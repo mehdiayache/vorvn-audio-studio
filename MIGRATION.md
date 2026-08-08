@@ -79,15 +79,18 @@ Never delete the old system first and rebuild everything at once.
 
 ## Current step
 
-Protect the current working version with a local baseline commit and the
-`baseline-pre-migration` tag, then publish that exact checkpoint to a private
-GitHub repository after GitHub authentication is restored.
+Text preparation is the single active migration capability.
 
-No capability migration is active yet.
+Inspect the complete Shape/Tag path from React through FastAPI, durable Jobs,
+the loopback adapter, `server.py`, Alibaba, and persistence. Record its existing
+behavior and contracts before moving any implementation. No legacy path is
+removed until the native replacement is verified.
 
 ## Last verified checkpoint
 
-- Commit: resolve from the `baseline-pre-migration` tag
+- Repository: `https://github.com/mehdiayache/vorvn-audio-studio` (private)
+- Commit: `696e08f80c741d7638bcf3041720f11c5e2d70c0`
+- Tag: `baseline-pre-migration`
 - Tests: Python architecture/provider/application suites passed
 - Frontend: OpenAPI generation, strict TypeScript build, Vite build, and 59
   Vitest tests passed
