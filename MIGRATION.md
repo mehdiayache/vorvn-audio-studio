@@ -60,7 +60,7 @@ Never delete the old system first and rebuild everything at once.
 - [x] Transcription (active external and Production caption execution)
 - [x] Batch (spreadsheet intake, native row generation and output delivery)
 - [x] Speech generation (create, another Take and Draft recording)
-- [ ] Remove obsolete Voice cloning implementation after the active package path is migrated
+- [x] Voice cloning and package execution
 - [x] Confirm zero active runtime dependencies
 - [ ] Delete `server.py`
 
@@ -80,30 +80,30 @@ Never delete the old system first and rebuild everything at once.
 
 ## Current step
 
-Voice cloning is the next migration capability. The active React package flow
-already bypasses `server.py`, but its worker still imports legacy `db.py` and
-legacy package orchestration. Move that one active flow behind an application
-service, a PostgreSQL repository and a provider adapter before removing only
-the corresponding legacy code.
+Audit every remaining implementation in quarantined `server.py` against the
+active FastAPI routers and React flows. Remove the file only after proving that
+none of its historical routes, helpers or startup behavior has an active
+caller. Keep `db.py` for its still-active persistence responsibilities.
 
 ## Last verified checkpoint
 
 - Repository: `https://github.com/mehdiayache/vorvn-audio-studio` (private)
-- Checkpoint: native Speech generation slice (the commit carrying this record)
-- Tests: 64 Python unit/integration tests including real PostgreSQL Speech,
+- Checkpoint: native Voice cloning and package slice (the commit carrying this record)
+- Tests: 69 Python unit/integration tests including real PostgreSQL Voice package,
   Batch and Job fixtures; 25 Alibaba contracts, 18 chunking checks, 4
   transcription checks, 22 HTTP checks, 15 Phase 1 checks, 12 Phase 2 checks
   and 6 canonical domain checks passed
 - Frontend: OpenAPI generation, strict TypeScript build, Vite build, 19 Vitest
   files and 59 tests passed
-- Manual flow: restarted React, verified Standalone Speak, Add Part, New Take
-  and Record Draft, and removed the temporary Draft from the explicit test
-  Production; no paid generation was submitted and the browser logged no error
+- Manual flow: restarted React, verified the Voices catalogue and the
+  Identity → Recording creation flow through the real UI. The paid action
+  remained disabled and no recording was uploaded or provider request made
 - Runtime: one FastAPI supervisor and one durable worker. `server.py` is no
   longer started and port 7861 is gone from the application configuration
-- Remaining dependency: Voice packages, rendering/timeline and several
-  canonical services still call `db.py`; `server.py` remains in the repository
-  only until its obsolete implementations receive a final deletion audit
+- Remaining dependency: Voice profile/edit/history, rendering/timeline and
+  several canonical services still call `db.py`; `server.py` remains in the
+  repository only until its obsolete implementations receive a final deletion
+  audit
 
 ## Findings
 
@@ -151,6 +151,16 @@ the corresponding legacy code.
   input compatibility for older clients.
 - Removing the last loopback Job handler made the 7861 compatibility process
   unnecessary. The runtime now starts only FastAPI and the durable worker.
+- Voice reference intake, package creation, package state, clone attempt
+  accounting and worker execution now use a native application service,
+  contained workspace, PostgreSQL repository and Alibaba adapter. The active
+  worker and runtime no longer import `db.py` for this capability.
+- A resubmitted package cannot silently restart a creating, failed or
+  interrupted capability. Interrupted provider calls require an explicit
+  operator retry, because Alibaba may have completed an ambiguously interrupted
+  request. Package Activity totals are scoped to the models in that request.
+- The Voice package planner now displays Beijing or Singapore from the same
+  canonical region value used by provider routing.
 - Legacy-only prompt preview/save routes remain quarantined with the unreachable
   old UI and are not part of active Shape/Tag execution.
 - `db.py` remains an active persistence compatibility layer.

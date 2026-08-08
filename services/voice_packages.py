@@ -59,7 +59,7 @@ def plan(language: str, package: str = "complete") -> dict:
                          "available": bool(routes)})
     return {
         "region": config.region(),
-        "region_label": "Beijing" if config.region() == "cn" else "Singapore",
+        "region_label": "Beijing" if config.region() == "beijing" else "Singapore",
         "language": code, "package": package,
         "routes": selected, "available_routes": available, "packages": packages,
         "total_estimated_creation_cost": round(sum(

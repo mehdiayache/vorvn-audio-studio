@@ -41,7 +41,6 @@ from services.alibaba import omni as alibaba_omni
 from services.alibaba import speech as alibaba_speech
 from services.alibaba import voice_registry as alibaba_voice_registry
 from services import voice_packages
-from services import voice_package_worker
 from services import voice_routing
 from audio_studio.application.preferences import (
     DEFAULT_PREFERENCES,
@@ -2659,9 +2658,6 @@ class Handler(SimpleHTTPRequestHandler):
                 "/api/clone/create": self._clone_create,
                 "/api/clone/delete": self._clone_delete,
                 "/api/clone/update": self._clone_update,
-                "/api/voice-packages/preflight": self._voice_package_preflight,
-                "/api/voice-packages/create": self._voice_package_create,
-                "/api/voice-packages/retry": self._voice_package_retry,
                 "/api/storage": self._save_storage,
                 "/api/storage/test": lambda p: self._json(storage.status()),
                 "/api/transcript/delete": lambda p: self._json(
@@ -3096,11 +3092,6 @@ class Handler(SimpleHTTPRequestHandler):
         db.voice_binding_forget(voice)
         return self._json({"ok": True})
 
-    def _start_voice_package_jobs(self, job_ids: list[str]) -> None:
-        for job_id in job_ids:
-            threading.Thread(target=voice_package_worker.run, args=(job_id,),
-                             daemon=True, name=f"voice-package-{job_id[-8:]}").start()
-
     def _voice_profile_data(self):
         identities = db.voice_identities()
         usage = db.voice_identity_usage()
@@ -3119,67 +3110,6 @@ class Handler(SimpleHTTPRequestHandler):
 
     def _voice_identities(self):
         return self._json({"identities": self._voice_profile_data()})
-
-    def _voice_package_preflight(self, payload: dict):
-        language = (payload.get("language") or "").strip()
-        if not language:
-            return self._json({"error": "Choose the recording language first."}, 400)
-        return self._json(voice_packages.plan(language, payload.get("package", "complete")))
-
-    def _voice_package_create(self, payload: dict):
-        name = (payload.get("name") or "").strip()
-        language = (payload.get("language") or "").strip().lower()
-        reference_id = (payload.get("reference_id") or "").strip()
-        package = payload.get("package") or "complete"
-        if not name or len(name) > 80:
-            return self._json({"error": "Give this voice a name of 80 characters or fewer."}, 400)
-        reference = db.voice_reference_get(reference_id)
-        if not reference:
-            return self._json({"error": "Upload a reference recording first."}, 400)
-        plan = voice_packages.plan(language, package)
-        if not plan["routes"]:
-            return self._json({"error": "No installed voice model supports that language."}, 400)
-        guard = self._check_budget(plan["total_estimated_creation_cost"], payload)
-        if guard:
-            return self._json(*guard)
-        identity_id = (payload.get("identity_id") or "").strip()
-        if identity_id:
-            identity = next((item for item in db.voice_identities()
-                             if item["id"] == identity_id), None)
-            if not identity:
-                return self._json({"error": "That voice identity no longer exists."}, 404)
-            if not db.voice_reference_attach(reference_id, identity_id):
-                return self._json({"error": "That source belongs to another voice."}, 409)
-        else:
-            identity_id = db.voice_identity_create(name, {
-                "language": plan["language"], "package": plan["package"],
-                "gender": payload.get("gender") or None,
-                "trait": (payload.get("trait") or "").strip() or None,
-            }, reference_id)
-        if not identity_id:
-            return self._json({"error": "The voice identity could not be saved."}, 503)
-        job_ids = db.voice_package_enqueue(identity_id, reference_id, plan["routes"])
-        # The request itself belongs in Activity even before its provider jobs
-        # start. Each actual Alibaba creation is logged separately by the
-        # worker with its final cost and provider voice id.
-        self._log("clone_package", status="queued" if job_ids else "ok",
-                  estimated=plan["total_estimated_creation_cost"],
-                  voice=identity_id, voice_identity_id=identity_id,
-                  detail=f"{name} · {len(job_ids)} capabilities queued")
-        self._start_voice_package_jobs(job_ids)
-        identity = next((item for item in db.voice_identities()
-                         if item["id"] == identity_id), None)
-        return self._json({"identity": identity, "queued": len(job_ids),
-                           "plan": plan}, 202)
-
-    def _voice_package_retry(self, payload: dict):
-        identity_id = (payload.get("identity_id") or "").strip()
-        model_id = (payload.get("model_id") or "").strip()
-        job_id = db.voice_package_retry(identity_id, model_id)
-        if not job_id:
-            return self._json({"error": "That failed variant is no longer retryable."}, 409)
-        self._start_voice_package_jobs([job_id])
-        return self._json({"ok": True, "job_id": job_id}, 202)
 
     def _clone_update(self, payload: dict):
         """Swap a clone's reference audio without spending a new voice slot.
@@ -3290,9 +3220,6 @@ def main() -> int:
         print(f"Tidied {swept['removed']} old working files "
               f"({swept['freed'] / 1_000_000:.1f} MB)")
     if db.init():
-        interrupted = db.voice_package_abandon_running()
-        if interrupted:
-            print(f"Marked {interrupted} interrupted voice variant(s) for retry")
         filled = db.backfill_durations(measure_ms)
         if filled:
             print(f"Measured {filled} older recordings")

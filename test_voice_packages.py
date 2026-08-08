@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Pure contract tests: no provider calls and no voice creation."""
 
+import os
+from unittest.mock import patch
+
 from services import voice_packages
 
 
@@ -19,4 +22,8 @@ assert exact_arabic["routes"] == []
 assert next(item for item in exact_arabic["packages"] if item["id"] == "exact")["available"] is False
 
 assert voice_packages.plan("en", "omni")["routes"] == english["routes"][1:]
+with patch.dict(os.environ, {"DASHSCOPE_REGION": "beijing"}):
+    assert voice_packages.plan("en")["region_label"] == "Beijing"
+with patch.dict(os.environ, {"DASHSCOPE_REGION": "intl"}):
+    assert voice_packages.plan("en")["region_label"] == "Singapore"
 print("voice package contracts passed")

@@ -29,7 +29,7 @@ hatch.
 - Domain types describe state without FastAPI, PostgreSQL or Alibaba imports.
 - Repositories own SQL and transaction boundaries.
 - Provider adapters own external request/response contracts.
-- Workers claim only jobs tagged `audio-studio-worker-v1` with `FOR UPDATE SKIP LOCKED`.
+- Workers claim durable work with `FOR UPDATE SKIP LOCKED`.
 
 Paid operations are never automatically retried after an ambiguous transport failure. A provider may have billed a request even when its response was lost. Retry is an explicit operator action.
 
@@ -71,9 +71,10 @@ destination for new code. A capability slice is complete only when:
 The React client never invokes Alibaba-backed routes directly. New speech,
 replacement takes, draft rendering, batch generation, transcription,
 translation and AI text shaping/tagging all create a durable `/api/v1/jobs/*`
-resource. The worker is the
-only process allowed to execute those operations. A provider response that is
-lost after billing is recorded as failed and is never retried automatically.
+resource. Voice creation uses its durable package-capability records and one
+Activity attempt per provider call. The worker is the only process allowed to
+execute those operations. A provider response that is lost after billing is
+recorded as failed or interrupted and is never retried automatically.
 
 ## Native media invariant
 

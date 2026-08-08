@@ -31,9 +31,10 @@ On macOS, `restart.command` performs the database startup, process restart, heal
 application entry point. FastAPI is the only HTTP process and is exposed on
 port 7860. The old UI is unreachable, `server.py` is no longer started, and
 there is no compatibility port. Text preparation, subtitle Translation,
-Transcription, Batch and Speech generation run through native application
-services. Remaining migration work is limited to active legacy persistence and
-orchestration responsibilities such as Voice packages and Production editing.
+Transcription, Batch, Speech generation and Voice package execution run through
+native application services. Remaining migration work is limited to active
+legacy persistence and orchestration responsibilities such as Voice profile
+management and Production editing.
 
 See [Architecture](docs/ARCHITECTURE.md), [API v1](docs/API_V1.md), and [Canonical domain](docs/CANONICAL_DOMAIN.md).
 

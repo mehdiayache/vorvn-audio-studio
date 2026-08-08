@@ -200,7 +200,8 @@ the same resource contract without sharing DOM code.
 3. Add auth/tenant scope before exposing the server beyond localhost.
 4. Move paid work behind durable Jobs and actual provider usage accounting.
 5. Add idempotent writes and cursor pagination.
-6. Migrate the remaining Voice-package and Production persistence paths out of
-   legacy `db.py` as each capability is touched.
+6. Migrate the remaining Voice profile/history and Production persistence paths
+   out of legacy `db.py` as each capability is touched. Voice package execution
+   is native.
 7. Delete quarantined `server.py`, `db.py` and `ui/` after zero active callers
    and parity checks are proven.

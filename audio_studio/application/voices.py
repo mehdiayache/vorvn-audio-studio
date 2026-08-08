@@ -7,6 +7,10 @@ from typing import Any
 import db
 from services import voice_packages
 from audio_studio.application.preferences import load_preferences
+from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
+
+
+package_repository = VoicePackageRepository()
 
 
 def profiles() -> list[dict[str, Any]]:
@@ -63,10 +67,10 @@ def package_plan(language: str, package: str = "complete") -> dict:
 def _check_creation_budget(estimate: float, confirmed: bool) -> dict | None:
     preferences = load_preferences()
     cap = float(preferences.get("daily_cap") or 0)
-    spent = float(db.spend_totals().get("today") or 0)
+    spent = package_repository.today_spend()
     if cap > 0 and spent + estimate > cap:
-        db.job("blocked", status="blocked", estimated=estimate,
-               detail=f"daily cap of ${cap:.2f} reached")
+        package_repository.record_blocked(
+            estimate=estimate, detail=f"daily cap of ${cap:.2f} reached")
         raise PermissionError(
             f"Daily cap reached. You've spent ${spent:.4f} today and this would "
             f"add ${estimate:.4f}, over your ${cap:.2f} cap.")
@@ -83,7 +87,7 @@ def create_package(payload: dict) -> dict:
     reference_id = str(payload.get("reference_id") or "").strip()
     if not name or len(name) > 80:
         raise ValueError("Give this voice a name of 80 characters or fewer.")
-    if not db.voice_reference_get(reference_id):
+    if not package_repository.reference(reference_id):
         raise ValueError("Upload a reference recording first.")
     plan = package_plan(language, str(payload.get("package") or "complete"))
     if not plan["routes"]:
@@ -93,28 +97,20 @@ def create_package(payload: dict) -> dict:
     if confirmation:
         return confirmation
 
-    identity_id = str(payload.get("identity_id") or "").strip()
-    if identity_id:
-        if not profile(identity_id):
-            raise LookupError("That voice identity no longer exists.")
-        if not db.voice_reference_attach(reference_id, identity_id):
-            raise RuntimeError("That source belongs to another voice.")
-    else:
-        identity_id = db.voice_identity_create(name, {
-            "language": plan["language"], "package": plan["package"],
-            "gender": payload.get("gender") or None,
-            "trait": str(payload.get("trait") or "").strip() or None,
-        }, reference_id) or ""
-    if not identity_id:
-        raise RuntimeError("The voice identity could not be saved.")
-    job_ids = db.voice_package_enqueue(identity_id, reference_id, plan["routes"])
-    db.job("clone_package", status="queued" if job_ids else "ok",
-           estimated=plan["total_estimated_creation_cost"], voice=identity_id,
-           voice_identity_id=identity_id,
-           detail=f"{name} · {len(job_ids)} capabilities queued")
+    metadata = {
+        "language": plan["language"], "package": plan["package"],
+        "gender": payload.get("gender") or None,
+        "trait": str(payload.get("trait") or "").strip() or None,
+    }
+    identity_id, job_ids = package_repository.create_package(
+        name=name, metadata=metadata, reference_id=reference_id,
+        identity_id=str(payload.get("identity_id") or "").strip() or None,
+        routes=plan["routes"],
+        estimate=float(plan["total_estimated_creation_cost"]),
+    )
     return {"identity": profile(identity_id), "queued": len(job_ids), "plan": plan}
 
 
 def retry_binding(identity_id: str, model_id: str) -> dict | None:
-    job_id = db.voice_package_retry(identity_id.strip(), model_id.strip())
+    job_id = package_repository.retry(identity_id.strip(), model_id.strip())
     return {"ok": True, "job_id": job_id} if job_id else None

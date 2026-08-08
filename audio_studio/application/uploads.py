@@ -13,6 +13,10 @@ import db
 import storage
 
 from audio_studio.config import settings
+from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
+
+
+voice_packages = VoicePackageRepository()
 
 
 class UploadError(ValueError):
@@ -65,15 +69,16 @@ def save_voice_reference(raw: bytes, encoded_name: str) -> dict[str, str]:
             original.unlink(missing_ok=True)
             normalized.unlink(missing_ok=True)
             raise UploadError("That recording could not be decoded as audio.")
-    reference_id = db.voice_reference_create(
-        original_name=original_name, original_path=original.name,
-        normalized_path=normalized.name,
-    )
-    if not reference_id:
+    try:
+        reference_id = voice_packages.create_reference(
+            original_name=original_name, original_path=original.name,
+            normalized_path=normalized.name,
+        )
+    except Exception:
         original.unlink(missing_ok=True)
         if normalized != original:
             normalized.unlink(missing_ok=True)
-        raise UploadError("The reference recording could not be saved.")
+        raise
     return {"name": normalized.name, "reference_id": reference_id}
 
 

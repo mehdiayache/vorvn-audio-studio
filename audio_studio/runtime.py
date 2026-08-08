@@ -10,6 +10,7 @@ import uvicorn
 
 from audio_studio.config import settings
 from audio_studio.migrations import run as run_migrations
+from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
 
 
 def main() -> int:
@@ -20,8 +21,7 @@ def main() -> int:
             print(f"Applied {len(applied)} Audio Studio migration(s): {', '.join(applied)}")
         # A provider request has ambiguous billing semantics after a crash, so
         # it becomes explicitly retryable instead of being silently replayed.
-        import db
-        db.voice_package_abandon_running()
+        VoicePackageRepository().abandon_running()
         worker = subprocess.Popen(
             [sys.executable, "-m", "audio_studio.worker"],
             cwd=settings.root,

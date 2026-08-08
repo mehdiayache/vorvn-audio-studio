@@ -5,8 +5,6 @@ from __future__ import annotations
 import signal
 import time
 
-import db
-from services import voice_package_worker
 from audio_studio.application import renders
 from audio_studio.application.batches import (
     BatchGenerationService,
@@ -30,12 +28,14 @@ from audio_studio.application.transcription import (
     TranscriptionJobHandler,
     TranscriptionService,
 )
+from audio_studio.application.voice_cloning import VoiceCloningService
 
 from audio_studio.application.jobs import JobService
 from audio_studio.infrastructure.alibaba.text_preparation import AlibabaTextProvider
 from audio_studio.infrastructure.alibaba.speech_generation import AlibabaSpeechProvider
 from audio_studio.infrastructure.alibaba.translation import AlibabaTranslationProvider
 from audio_studio.infrastructure.alibaba.transcription import AlibabaTranscriptionProvider
+from audio_studio.infrastructure.alibaba.voice_cloning import AlibabaVoiceCloningProvider
 from audio_studio.infrastructure.audio_workspace import AudioWorkspace
 from audio_studio.infrastructure.batch_workspace import FilesystemBatchWorkspace
 from audio_studio.infrastructure.postgres.text_preparation import (
@@ -43,7 +43,9 @@ from audio_studio.infrastructure.postgres.text_preparation import (
 )
 from audio_studio.infrastructure.postgres.transcripts import TranscriptRepository
 from audio_studio.infrastructure.postgres.speech import SpeechRepository
+from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
 from audio_studio.infrastructure.transcription_source import TranscriptionSourceResolver
+from audio_studio.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
 
 
 def main() -> int:
@@ -77,6 +79,10 @@ def main() -> int:
         PostgresTextPreparationRepository(), AlibabaTextProvider(), load_preferences,
     )))
     service.register("render", renders.handle_job)
+    voice_cloning = VoiceCloningService(
+        VoicePackageRepository(), AlibabaVoiceCloningProvider(),
+        VoiceReferenceWorkspace(),
+    )
     stopping = False
 
     def stop(*_):
@@ -88,9 +94,7 @@ def main() -> int:
     while not stopping:
         if service.work_once():
             continue
-        voice_job_id = db.voice_package_claim_next()
-        if voice_job_id:
-            voice_package_worker.run(voice_job_id)
+        if voice_cloning.work_once():
             continue
         time.sleep(.5)
     return 0
