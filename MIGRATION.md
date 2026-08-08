@@ -80,28 +80,29 @@ Never delete the old system first and rebuild everything at once.
 
 ## Current step
 
-Move Voice profile, binding-history and catalogue reads/writes from `db.py`
-into one focused PostgreSQL repository. This is the next coherent capability;
-Work/Timeline/Render persistence remains a later slice.
+Move Settings, pronunciation management, Activity cleanup and System health
+reads from `db.py` into focused control-plane repositories. Do not mix this
+with Work/Timeline/Render persistence.
 
 ## Last verified checkpoint
 
 - Repository: `https://github.com/mehdiayache/vorvn-audio-studio` (private)
-- Checkpoint: final legacy HTTP/UI removal (the commit carrying this record)
-- Tests: 76 Python unit/integration tests against the real FastAPI application
+- Checkpoint: native Voice profile, history and catalogue persistence (the
+  commit carrying this record)
+- Tests: 79 Python unit/integration tests against the real FastAPI application
   and PostgreSQL; 25 Alibaba contracts, 18 chunking checks, 4 transcription
   checks, 15 native renderer checks, 12 Phase 2 checks and 6 canonical domain
   checks passed
 - Frontend: OpenAPI generation, strict TypeScript build, Vite build, 19 Vitest
   files and 59 tests passed
-- Manual flow: restarted the legacy-free runtime and verified Ventures, Speak,
-  Batch, Voices, Activity, Subtitles, Settings and Production 6 in the real
-  React UI. Health, validation errors and a relocated voice sample were also
-  verified over HTTP; no paid operation was submitted
+- Manual flow: restarted FastAPI and the worker, verified health, Voice profile
+  and registry endpoints, then verified all three cloned identities, seven
+  ready capabilities and historical history in the real React Voices page.
+  The browser console had no warnings or errors; no paid operation was submitted
 - Runtime: one FastAPI supervisor and one durable worker. The legacy HTTP
   server and UI are deleted and port 7861 is gone from the configuration
-- Remaining dependency: Voice profile/edit/history, Work, rendering/timeline,
-  Settings, Activity and media persistence still call `db.py`
+- Remaining dependency: Work, Venture Assets, Production rendering/timeline,
+  Settings, Activity, System health and media persistence still call `db.py`
 
 ## Findings
 
@@ -166,13 +167,19 @@ Work/Timeline/Render persistence remains a later slice.
   request. Package Activity totals are scoped to the models in that request.
 - The Voice package planner now displays Beijing or Singapore from the same
   canonical region value used by provider routing.
+- Voice profile editing, cloned binding catalogues, source-reference lookup,
+  usage rollups and historical provider-voice linking now share one native
+  `VoiceRepository`. History linking and its Activity record commit atomically.
+- Active Voice and catalogue code contains no `db.voice_*` calls. The replaced
+  legacy functions were removed from `db.py`, reducing it from 3,286 to 2,861
+  lines without changing its still-active schema initialization.
 - `db.py` remains an active persistence compatibility layer.
 - The active `db.py` callers are now inventoried by capability: canonical
   Work and Venture Assets (`domain/repository.py`, `application/work.py`,
   `application/uploads.py`); Production timeline/render/media
-  (`timeline.py`, `renders.py`, `media.py`); Voice profile/catalogue
-  (`voices.py`, `catalog.py` and catalogue routers); and control-plane reads
-  (`settings.py`, `administration.py`, Activity, Settings and System routers).
+  (`timeline.py`, `renders.py`, `media.py`); and control-plane reads
+  (`settings.py`, `administration.py`, catalogue configuration, Activity,
+  Settings and System routers).
   These are the remaining migration slices, not hidden HTTP dependencies.
 - The versioned migration runner under `audio_studio/migrations` is the target
   migration mechanism.

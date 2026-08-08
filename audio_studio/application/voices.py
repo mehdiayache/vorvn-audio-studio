@@ -4,18 +4,19 @@ from __future__ import annotations
 
 from typing import Any
 
-import db
 from services import voice_packages
 from audio_studio.application.preferences import load_preferences
 from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
+from audio_studio.infrastructure.postgres.voices import VoiceRepository
 
 
 package_repository = VoicePackageRepository()
+repository = VoiceRepository()
 
 
 def profiles() -> list[dict[str, Any]]:
-    identities = db.voice_identities()
-    usage = db.voice_identity_usage()
+    identities = repository.profiles()
+    usage = repository.profile_usage()
     for identity in identities:
         metadata = identity.get("metadata") or {}
         language = metadata.get("language") or next((
@@ -36,7 +37,7 @@ def profile(identity_id: str) -> dict[str, Any] | None:
 
 
 def update(identity_id: str, changes: dict[str, Any]) -> dict[str, Any] | None:
-    if not db.voice_identity_update(identity_id, changes):
+    if not repository.update_profile(identity_id, changes):
         return None
     return profile(identity_id)
 
@@ -46,15 +47,13 @@ def archive(identity_id: str) -> dict[str, Any] | None:
 
 
 def unlinked_history() -> list[dict[str, Any]]:
-    return db.voice_historical_unlinked()
+    return repository.unlinked_history()
 
 
 def link_history(identity_id: str, provider_voice_id: str) -> dict[str, Any] | None:
-    linked = db.voice_link_history(provider_voice_id, identity_id)
+    linked = repository.link_history(provider_voice_id, identity_id)
     if not linked:
         return None
-    db.job("voice_history_link", status="ok", voice=identity_id,
-           detail=f"Linked {linked} historical recordings from {provider_voice_id}")
     return {"linked": linked, "profile": profile(identity_id)}
 
 

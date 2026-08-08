@@ -84,6 +84,18 @@ class AudioStudioArchitectureTests(unittest.TestCase):
                          "build_voices.py"):
             self.assertFalse((ROOT / obsolete).exists(), obsolete)
 
+    def test_voice_surfaces_use_the_native_postgres_repository(self):
+        for relative in (
+                "audio_studio/application/voices.py",
+                "audio_studio/application/catalog.py",
+                "audio_studio/http/routers/catalog.py"):
+            source = (ROOT / relative).read_text()
+            self.assertNotIn("db.voice_", source, relative)
+        legacy = (ROOT / "db.py").read_text()
+        self.assertNotIn("def voice_", legacy)
+        repository = ROOT / "audio_studio/infrastructure/postgres/voices.py"
+        self.assertTrue(repository.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

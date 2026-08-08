@@ -7,7 +7,6 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict
 
-import db
 from audio_studio.application import catalog
 
 
@@ -36,12 +35,12 @@ def get_voice_registry() -> dict:
 
 @router.get("/voice-usage", operation_id="getVoiceUsage")
 def get_voice_usage() -> dict:
-    return {"data": db.voice_usage()}
+    return {"data": catalog.voice_usage()}
 
 
 @router.get("/voice-meta", operation_id="getVoiceMeta")
 def get_voice_meta() -> dict:
-    return {"data": db.voice_meta()}
+    return {"data": catalog.voice_metadata()}
 
 
 @router.post("/voice-routes/resolve", operation_id="resolveVoiceRoute")

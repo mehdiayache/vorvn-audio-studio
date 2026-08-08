@@ -15,16 +15,18 @@ from services.alibaba import voice_registry
 
 from audio_studio.application.preferences import load_preferences
 from audio_studio.application.text_preparation import variables as tag_variables
+from audio_studio.infrastructure.postgres.voices import VoiceRepository
 
 
 LANGUAGES = ["Auto", "English", "Chinese", "Japanese", "Korean", "French",
              "German", "Spanish", "Italian", "Portuguese", "Russian", "Arabic",
              "Indonesian", "Malay", "Thai", "Vietnamese", "Tagalog"]
+repository = VoiceRepository()
 
 
 def configuration() -> dict:
     preferences = load_preferences()
-    metadata = db.voice_meta()
+    metadata = repository.catalog_metadata()
     return {
         "voices": say.VOICES,
         "default_voice": say.DEFAULT_VOICE,
@@ -66,10 +68,19 @@ def configuration() -> dict:
 
 
 def registry() -> dict:
-    return voice_registry.assemble(db.voice_custom_bindings(), db.voice_meta(),
-                                   db.voice_binding_references())
+    return voice_registry.assemble(
+        repository.custom_bindings(), repository.catalog_metadata(),
+        repository.binding_references())
+
+
+def voice_usage() -> dict:
+    return repository.catalog_usage()
+
+
+def voice_metadata() -> dict:
+    return repository.catalog_metadata()
 
 
 def resolve_voice(payload: dict) -> dict:
-    bindings = [*voice_registry.system_bindings(), *db.voice_custom_bindings()]
+    bindings = [*voice_registry.system_bindings(), *repository.custom_bindings()]
     return voice_routing.resolve(payload, bindings).payload()
