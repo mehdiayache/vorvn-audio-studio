@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: voice-studio-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: voicestudio
+      POSTGRES_USER: voicestudio
+      POSTGRES_PASSWORD: voicestudio
+    ports:
+      # Bound to localhost only — nothing on your network can reach it.
+      # 5433 belongs to another project on this machine, hence 5434.
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voicestudio -d voicestudio"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db-data:

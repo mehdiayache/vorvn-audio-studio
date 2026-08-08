@@ -1,0 +1,44 @@
+{
+  "name": "vorvn-audio-studio-web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev:web": "vite --host 127.0.0.1",
+    "build:web": "tsc -b && vite build",
+    "preview:web": "vite preview --host 127.0.0.1",
+    "test:web": "vitest run",
+    "test:web:watch": "vitest",
+    "generate:api": ".venv/bin/python scripts/export_openapi.py && openapi-typescript openapi/audio-studio-v1.json -o frontend/src/types/api.generated.ts",
+    "check": "pnpm generate:api && pnpm build:web && pnpm test:web"
+  },
+  "dependencies": {
+    "@radix-ui/react-slot": "latest",
+    "class-variance-authority": "latest",
+    "clsx": "latest",
+    "cmdk": "^1.1.1",
+    "lucide-react": "latest",
+    "next-themes": "^0.4.6",
+    "radix-ui": "^1.6.7",
+    "react": "latest",
+    "react-dom": "latest",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "latest"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "latest",
+    "@testing-library/jest-dom": "latest",
+    "@testing-library/react": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "latest",
+    "jsdom": "latest",
+    "openapi-typescript": "^7.13.0",
+    "tailwindcss": "latest",
+    "typescript": "5.9.3",
+    "vite": "latest",
+    "vitest": "latest"
+  },
+  "packageManager": "pnpm@11.11.0+sha512.4463f65fd80ed80d69bc1d4bf163ee94f605c7380fc318bb5b2ebe15f8cd12d49c51a4d59e951b401e764d3b6ca751cbf51bc50ed7001a6bcb4935e684c34882"
+}

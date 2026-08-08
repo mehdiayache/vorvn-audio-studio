@@ -1,0 +1,34 @@
+import { Copy } from "lucide-react"
+import { toast } from "sonner"
+
+import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { formatMoney } from "@/lib/format"
+import type { ActivityRun } from "@/types/domain"
+import { costBasisLabel } from "./activity-run-card"
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div><dt>{label}</dt><dd>{children || "Not reported"}</dd></div>
+}
+
+export function ActivityDetailSheet({ run, onClose }: { run: ActivityRun | null; onClose: () => void }) {
+  return <Sheet open={Boolean(run)} onOpenChange={(open) => { if (!open) onClose() }}>
+    <SheetContent className="activity-detail">
+      {run && <><SheetHeader><SheetTitle>{run.operation}</SheetTitle><SheetDescription>{run.kind_label} · {new Date(run.when).toLocaleString()}</SheetDescription></SheetHeader>
+        <div className="activity-detail-body">
+          <section className="activity-cost"><span>{costBasisLabel(run.cost_basis)}</span><b>{formatMoney(run.cost)}</b><small>{run.cost_basis_raw}</small></section>
+          <dl>
+            <Field label="Status">{run.status}</Field><Field label="Started by">{run.actor_label}</Field>
+            <Field label="Workspace">{run.organization_id}</Field><Field label="Tool">{run.source_tool}</Field>
+            <Field label="Production">{run.production_name}</Field><Field label="Model">{run.model}</Field>
+            <Field label="Region">{run.provider_region}</Field><Field label="Price version">{run.price_version}</Field>
+            <Field label="Provider request ID">{run.provider_request_id}</Field><Field label="Duration">{run.seconds ? `${run.seconds.toFixed(2)} seconds` : null}</Field>
+          </dl>
+          <section className="activity-identifiers"><h3>Identifiers</h3><code>{run.id}</code><Button size="sm" variant="outline" onClick={() => void navigator.clipboard.writeText(run.id).then(() => toast.success("Job ID copied."))}><Copy /> Copy Job ID</Button></section>
+          {!!run.output_ids.length && <section className="activity-outputs"><h3>Outputs</h3>{run.output_ids.map((output) => <p key={`${output.type}:${output.id}`}><b>{output.type}</b> #{output.id}</p>)}</section>}
+          {Object.keys(run.usage || {}).length > 0 && <section><h3>Provider usage</h3><pre>{JSON.stringify(run.usage, null, 2)}</pre></section>}
+          {run.error && <section className="activity-detail-error"><h3>Error</h3><p>{run.error}</p></section>}
+        </div></>}
+    </SheetContent>
+  </Sheet>
+}

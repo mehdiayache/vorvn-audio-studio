@@ -1,0 +1,17 @@
+.settings-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.settings-form-grid > label, .settings-subsection > label { display: grid; gap: 6px; }
+.settings-form-grid > label > span, .settings-subsection > label > span { color: var(--muted-foreground); font-size: var(--type-small); font-weight: 650; text-transform: capitalize; }
+.settings-span { grid-column: 1 / -1; }
+.settings-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: 16px; }
+.settings-card-actions small { color: var(--muted-foreground); }
+.settings-subsection { display: grid; gap: 13px; padding-top: 16px; border-top: 1px solid var(--border); }
+.settings-subsection + .settings-subsection { margin-top: 20px; }
+.settings-subsection h3 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: var(--type-body); }
+.settings-subsection h3 svg { width: 17px; }
+.settings-flags { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.pronunciation-create { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; }
+.pronunciation-list { display: grid; gap: 7px; margin-top: 14px; }
+.pronunciation-list article { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 10px; }
+.pronunciation-list article span { display: grid; }
+.pronunciation-list article small, .pronunciation-list > p { color: var(--muted-foreground); }
+@media (max-width: 700px) { .settings-form-grid, .settings-flags, .pronunciation-create { grid-template-columns: 1fr; } .settings-span { grid-column: auto; } }
