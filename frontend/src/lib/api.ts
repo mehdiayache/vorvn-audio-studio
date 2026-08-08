@@ -255,11 +255,11 @@ export const studioApi = {
   promoteTake: (productionId: number, partId: number, takeId: number) => postV1<{ ok: boolean; subtitles_stale?: number }>(`/api/v1/productions/${productionId}/parts/${partId}/takes/${takeId}/promote`, {}),
   captions: (productionId: number, id: number) => v1<TranscriptSummary[]>(`/api/v1/productions/${productionId}/parts/${id}/captions`).then((transcripts) => ({ transcripts })),
   transcript: (id: number) => v1<Transcript>(`/api/v1/subtitles/${id}`),
-  transcribePart: async (part: ProductionPart, confirmed = false) => {
+  transcribePart: async (productionId: number, part: ProductionPart, confirmed = false) => {
     const response = await request<{ data: DurableJob<CaptionMutationResult> }>("/api/v1/jobs/transcription", {
       method: "POST",
       headers: { "Idempotency-Key": `transcribe-part-${part.id}-${crypto.randomUUID()}` },
-      body: JSON.stringify({ file: part.filename, generation_id: part.id, confirmed }),
+      body: JSON.stringify({ file: part.filename, generation_id: part.id, production_id: productionId, confirmed }),
     })
     return waitForJob<CaptionMutationResult>(response.data.id)
   },

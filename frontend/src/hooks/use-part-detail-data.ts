@@ -48,12 +48,12 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
     if (!part) return
     setCaptionBusy("transcribe"); setMessage("Listening to the current take…")
     try {
-      const result = await studioApi.transcribePart(part, confirmed)
+      const result = await studioApi.transcribePart(productionId, part, confirmed)
       if (result.needs_confirmation) { setCaptionConfirmation({ kind: "transcribe", estimate: result.estimate || 0 }); setMessage(""); return }
       await onChanged(); await reload(part, result.id); setMessage("Subtitles ready.")
     } catch (error) { setMessage(error instanceof Error ? error.message : "Subtitles could not be created.") }
     finally { setCaptionBusy(null) }
-  }, [onChanged, part, reload])
+  }, [onChanged, part, productionId, reload])
 
   const translate = useCallback(async (target: string, confirmed = false) => {
     if (!part || !target) return

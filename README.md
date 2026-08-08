@@ -31,9 +31,9 @@ On macOS, `restart.command` performs the database startup, process restart, heal
 application entry point. FastAPI is the only process exposed on port 7860.
 The old UI is unreachable from the product. Port 7861 is loopback-only and is
 used solely by the worker for provider capabilities that have not yet been
-extracted; Text preparation and subtitle Translation already run natively
-without that loopback. The compatibility process no longer serves browser,
-file or editing contracts.
+extracted; Text preparation, subtitle Translation and Transcription already
+run natively without that loopback. The compatibility process no longer serves
+browser, file or editing contracts.
 
 See [Architecture](docs/ARCHITECTURE.md), [API v1](docs/API_V1.md), and [Canonical domain](docs/CANONICAL_DOMAIN.md).
 

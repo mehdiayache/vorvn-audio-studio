@@ -41,7 +41,6 @@ from services.alibaba import fidelity as alibaba_fidelity
 from services.alibaba import omni as alibaba_omni
 from services.alibaba import speech as alibaba_speech
 from services.alibaba import voice_registry as alibaba_voice_registry
-from services.alibaba import pricing as alibaba_pricing
 from services import voice_packages
 from services import voice_package_worker
 from services import voice_routing
@@ -2589,126 +2588,6 @@ class Handler(SimpleHTTPRequestHandler):
         return self._json({**self._transcript_payload({"id": [str(row["id"])]}),
                            "stale": bool(row.get("stale"))})
 
-    def _transcribe_upload(self, raw: bytes):
-        """Put a file from the user's computer somewhere the recogniser can read."""
-        if not storage.configured():
-            return self._json({
-                "error": "Set up Settings → Reference audio storage first.",
-                "needs_storage": True}, 400)
-        name = unquote(self.headers.get("X-Filename", "audio.mp3"))
-        suffix = Path(name).suffix.lower()
-        if suffix not in {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"}:
-            return self._json({"error": "Use MP3, WAV, M4A, AAC, OGG or FLAC audio."}, 400)
-        if not raw:
-            return self._json({"error": "That audio file is empty."}, 400)
-        if len(raw) > 500_000_000:
-            return self._json({"error": "That file is over 500 MB."}, 400)
-        INBOX.mkdir(exist_ok=True)
-        # Keep the local copy: the result panel plays the audio back, and the
-        # storage link expires after 15 minutes.
-        local = INBOX / _unique_output_name(Path(name).stem, suffix)
-        local.write_bytes(raw)
-        content_type = mimetypes.guess_type(local.name)[0] or "application/octet-stream"
-        url = storage.upload(str(local), content_type=content_type,
-                             kind="transcribe")
-        return self._json({
-            "url": url,
-            "name": local.name,
-            "playable": f"/inbox/{local.name}",
-            "size_bytes": len(raw),
-        })
-
-    def _transcribe(self, payload: dict):
-        """Turn audio into text with timings, and keep the result."""
-        durable_job = bool(payload.pop("_durable_job", False))
-        durable_job_id = int(payload.pop("_durable_job_id", 0) or 0) or None
-        if not storage.configured():
-            return self._json({
-                "error": "Transcription needs somewhere to put the audio so the "
-                         "service can fetch it. Set up Settings → Reference audio "
-                         "storage first.", "needs_storage": True}, 400)
-
-        # Either one of our own files, or something already uploaded.
-        url = (payload.get("url") or "").strip()
-        name = (payload.get("name") or "").strip()
-        playable = (payload.get("playable") or "").strip() or None
-        generation_id = int(payload.get("generation_id") or 0) or None
-
-        if not url:
-            name = (payload.get("file") or "").strip()
-            target = (out_dir() / Path(name).name).resolve()
-            if not name or not target.exists() or out_dir().resolve() not in target.parents:
-                return self._json({"error": "Pick one of your audio files first."}, 400)
-            playable = f"/audio/{target.name}"
-
-        try:
-            measured_duration = max(0, int(payload.get("duration_ms") or 0))
-        except (TypeError, ValueError):
-            return self._json({"error": "The uploaded audio duration is invalid."}, 400)
-        if not measured_duration and not url:
-            measured_duration = int(measure_ms(str(target)) or 0)
-        estimate = alibaba_pricing.transcription_cost(
-            measured_duration, alibaba_config.region(),
-            "fun-asr" if payload.get("vocabulary_id") else transcribe.MODEL)
-        guard = self._check_budget(estimate.catalog_cost, payload)
-        if guard:
-            return self._json(*guard)
-
-        say.apply_credentials()
-        asr_model = "fun-asr" if payload.get("vocabulary_id") else transcribe.MODEL
-        run = None if durable_job else self._run("transcribe", model=asr_model,
-                        estimated=estimate.catalog_cost, total=1,
-                        generation_id=generation_id,
-                        detail=name or "an uploaded file")
-        job = start_progress(done=0, total=1, stage="Listening to the audio",
-                     label=name)
-        try:
-            if not url:
-                url = storage.upload(str(target), content_type="audio/mpeg",
-                                     kind="transcribe")
-            result = transcribe.transcribe(
-                url,
-                language=(payload.get("language") or None),
-                vocabulary_id=(payload.get("vocabulary_id") or None),
-                enable_itn=bool(payload.get("enable_itn", False)),
-            )
-        finally:
-            clear_progress(job)
-
-        srt = transcribe.to_srt(result)
-        vtt = transcribe.to_vtt(result)
-        final_cost = alibaba_pricing.transcription_cost(
-            result.get("duration_ms"), alibaba_config.region(), asr_model)
-        self._done(run, status="ok", cost=final_cost.catalog_cost, done=1,
-                   seconds=(result["duration_ms"] or 0) / 1000)
-        # Keeping it means never paying to recognise the same audio twice.
-        transcript_id = db.transcript_save({
-            "name": name, "source_url": url, "audio_url": playable,
-            "language": payload.get("language") or None,
-            "duration_ms": result["duration_ms"], "text": result["text"],
-            "srt": srt, "vtt": vtt, "sentences": result["sentences"],
-            "generation_id": generation_id,
-            "source_job_id": durable_job_id,
-            "model": final_cost.model,
-            "provider_region": final_cost.provider_region,
-            "price_version": final_cost.price_version,
-            "catalog_rate": final_cost.catalog_rate,
-            "catalog_cost": final_cost.catalog_cost,
-            "cost_basis": final_cost.cost_basis,
-        })
-        # Recognition knows the true length; trust it over our own measurement.
-        if generation_id and result["duration_ms"]:
-            db.set_duration(generation_id, result["duration_ms"])
-        if generation_id:
-            db.clear_stale(generation_id, transcript_id)
-
-        return self._json({
-            "id": transcript_id, "file": name, "generation_id": generation_id, "url": playable,
-            "text": result["text"], "sentences": result["sentences"],
-            "duration_ms": result["duration_ms"], "srt": srt, "vtt": vtt,
-            "cost": final_cost.catalog_cost, **final_cost.as_dict(),
-        })
-
     def _stream(self, query: dict):
         """Play audio as it's produced, rather than after the whole render."""
         text = (query.get("text", [""])[0] or "").strip()
@@ -3007,7 +2886,6 @@ class Handler(SimpleHTTPRequestHandler):
             "/api/v1/venture-logos/upload": 8_000_000,
             "/api/v1/voice-images/upload": 8_000_000,
             "/api/asset/upload": 250_000_000,
-            "/api/transcribe/upload": 500_000_000,
             "/api/batch/preview": 25_000_000,
         }
         limit = upload_limits.get(path, 5_000_000)
@@ -3035,8 +2913,6 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._icon_upload(raw)
             if path == "/api/asset/upload":
                 return self._asset_upload(raw)
-            if path == "/api/transcribe/upload":
-                return self._transcribe_upload(raw)
             if path == "/api/batch/preview":
                 return self._batch_preview(raw)
             payload = json.loads(raw or b"{}")
@@ -3056,7 +2932,6 @@ class Handler(SimpleHTTPRequestHandler):
                 "/api/voice-packages/retry": self._voice_package_retry,
                 "/api/storage": self._save_storage,
                 "/api/storage/test": lambda p: self._json(storage.status()),
-                "/api/transcribe": self._transcribe,
                 "/api/transcript/delete": lambda p: self._json(
                     {"ok": db.transcript_delete(int(p["id"]))}),
                 "/api/speak/languages": self._speak_many_languages,

@@ -60,8 +60,8 @@ class TranslationProvider(Protocol):
 
 
 class TranslationRepository(Protocol):
-    def get_transcript(self, transcript_id: int) -> dict | None: ...
-    def save_translation(self, values: dict) -> int: ...
+    def get(self, transcript_id: int) -> dict | None: ...
+    def save(self, values: dict) -> int: ...
     def today_spend(self) -> float: ...
 
 
@@ -206,7 +206,7 @@ class SubtitleTranslationService:
                   source: str = "", quality: str = "fast",
                   confirmed: bool = False, source_job_id: int | None = None,
                   on_progress=None) -> dict:
-        transcript = self.repository.get_transcript(transcript_id)
+        transcript = self.repository.get(transcript_id)
         if not transcript:
             raise LookupError("That transcript is gone.")
         target = target.strip()
@@ -254,7 +254,7 @@ class SubtitleTranslationService:
         cost = actual if actual is not None else estimate
         cost_basis = "actual_tokens" if actual is not None else "estimate"
         name = f"{transcript['name']} [{target}]"
-        new_id = self.repository.save_translation({
+        new_id = self.repository.save({
             "name": name,
             "source_url": transcript.get("source_url"),
             "audio_url": transcript.get("audio_url"),

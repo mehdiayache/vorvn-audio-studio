@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 from uuid import uuid4
 
 import db
 from domain import repository
 
 from audio_studio.application.preferences import load_preferences
+
+
+class TranscriptState(Protocol):
+    def mark_stale(self, generation_id: int) -> int: ...
+    def list_for_generation(self, generation_id: int) -> list[dict]: ...
 
 
 class TimelineError(ValueError):
@@ -176,11 +181,12 @@ def takes(production_id: int, part_id: int) -> list[dict[str, Any]]:
     return db.takes(part_id)
 
 
-def promote(production_id: int, part_id: int, take_id: int) -> dict[str, Any]:
+def promote(production_id: int, part_id: int, take_id: int,
+            transcripts: TranscriptState) -> dict[str, Any]:
     _part(part_id, production_id)
     if db.take_part_id(take_id) != part_id or not db.promote_take(take_id):
         raise TimelineError("That Take no longer belongs to this Part.")
-    return {"ok": True, "subtitles_stale": db.mark_transcripts_stale(part_id)}
+    return {"ok": True, "subtitles_stale": transcripts.mark_stale(part_id)}
 
 
 def save_text(production_id: int, part_id: int, values: dict[str, Any]) -> dict[str, Any]:
@@ -190,6 +196,7 @@ def save_text(production_id: int, part_id: int, values: dict[str, Any]) -> dict[
     return {"ok": True}
 
 
-def captions(production_id: int, part_id: int) -> list[dict[str, Any]]:
+def captions(production_id: int, part_id: int,
+             transcripts: TranscriptState) -> list[dict[str, Any]]:
     _part(part_id, production_id)
-    return db.transcripts_for(part_id)
+    return transcripts.list_for_generation(part_id)

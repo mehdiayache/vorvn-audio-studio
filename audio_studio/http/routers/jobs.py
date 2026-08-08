@@ -12,6 +12,7 @@ from uuid import uuid4
 from audio_studio.domain.jobs import Job
 from audio_studio.application.text_preparation import MODEL as TEXT_PREPARATION_MODEL
 from audio_studio.application.translation import MODELS as TRANSLATION_MODELS
+from audio_studio.application.transcription import FUN_MODEL, QWEN_MODEL
 from audio_studio.http.errors import ApiProblem
 from audio_studio.infrastructure.postgres.jobs import JobRepository
 
@@ -74,22 +75,31 @@ class BatchJobCreate(BaseModel):
 class TranscriptionJobCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    url: str = ""
-    name: str = ""
-    file: str = ""
-    generation_id: int | None = None
-    playable: str = ""
+    url: str = Field(default="", max_length=4096)
+    name: str = Field(default="", max_length=500)
+    file: str = Field(default="", max_length=500)
+    generation_id: int | None = Field(default=None, gt=0)
+    production_id: int | None = Field(default=None, gt=0)
+    playable: str = Field(default="", max_length=1000)
     size_bytes: int = Field(default=0, ge=0, le=500_000_000)
     duration_ms: int = Field(default=0, ge=0)
-    language: str = ""
+    language: str = Field(default="", max_length=80)
     enable_itn: bool = False
-    vocabulary_id: str | None = None
+    vocabulary_id: str | None = Field(default=None, max_length=500)
     confirmed: bool = False
 
     @model_validator(mode="after")
     def source_is_present(self):
-        if not self.url.strip() and not self.file.strip():
+        has_url, has_file = bool(self.url.strip()), bool(self.file.strip())
+        if not has_url and not has_file:
             raise ValueError("Provide either an uploaded URL or an Audio Studio file.")
+        if has_url and (has_file or self.generation_id or self.production_id):
+            raise ValueError(
+                "Uploaded audio and Production Parts are separate sources.")
+        if has_file and not self.generation_id:
+            raise ValueError("Audio Studio files require their Part ID.")
+        if self.production_id and not has_file:
+            raise ValueError("A Production ID requires one of its Parts.")
         return self
 
 
@@ -177,10 +187,14 @@ def create_render_job(payload: RenderJobCreate,
 @router.post("/transcription", operation_id="createTranscriptionJob", status_code=202)
 def create_transcription_job(payload: TranscriptionJobCreate,
                              idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
+    values = {**payload.model_dump(exclude_none=True),
+              "model": FUN_MODEL if payload.vocabulary_id else QWEN_MODEL}
     job, created = repository.enqueue(
-        "transcribe", payload.model_dump(exclude_none=True),
+        "transcribe", values,
         idempotency_key=(idempotency_key or f"transcribe-{uuid4()}")[:200],
-        source_tool="subtitles", operation_label="Create subtitles",
+        production_id=payload.production_id,
+        source_tool="production" if payload.production_id else "subtitles",
+        operation_label="Create subtitles",
     )
     return {"data": _payload(job), "meta": {"created": created}}
 

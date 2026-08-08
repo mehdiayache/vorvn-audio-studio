@@ -35,9 +35,6 @@ class LegacyProviderJobHandlers:
     def batch(self, job: Job, repository: JobRepository) -> dict[str, Any]:
         return self._post(job, repository, "/api/batch/run", "Generating batch rows")
 
-    def transcribe(self, job: Job, repository: JobRepository) -> dict[str, Any]:
-        return self._post(job, repository, "/api/transcribe", "Transcribing audio")
-
     def _post(self, job: Job, repository: JobRepository, path: str,
               label: str, values: dict[str, Any] | None = None) -> dict[str, Any]:
         repository.progress(job.id, 0, 1, label)

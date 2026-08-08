@@ -1783,6 +1783,8 @@ export interface components {
              * @default
              */
             playable: string;
+            /** Production Id */
+            production_id?: number | null;
             /**
              * Size Bytes
              * @default 0

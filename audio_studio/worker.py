@@ -18,17 +18,21 @@ from audio_studio.application.translation import (
     SubtitleTranslationService,
     Translator,
 )
+from audio_studio.application.transcription import (
+    TranscriptionJobHandler,
+    TranscriptionService,
+)
 
 from audio_studio.application.jobs import JobService
 from audio_studio.infrastructure.alibaba.text_preparation import AlibabaTextProvider
 from audio_studio.infrastructure.alibaba.translation import AlibabaTranslationProvider
+from audio_studio.infrastructure.alibaba.transcription import AlibabaTranscriptionProvider
 from audio_studio.infrastructure.legacy_jobs import LegacyProviderJobHandlers
 from audio_studio.infrastructure.postgres.text_preparation import (
     PostgresTextPreparationRepository,
 )
-from audio_studio.infrastructure.postgres.translation import (
-    PostgresTranslationRepository,
-)
+from audio_studio.infrastructure.postgres.transcripts import TranscriptRepository
+from audio_studio.infrastructure.transcription_source import TranscriptionSourceResolver
 
 
 def main() -> int:
@@ -36,10 +40,18 @@ def main() -> int:
     handlers = LegacyProviderJobHandlers()
     service.register("speech", handlers.speech)
     service.register("batch", handlers.batch)
-    service.register("transcribe", handlers.transcribe)
+    transcripts = TranscriptRepository()
+    service.register("transcribe", TranscriptionJobHandler(
+        TranscriptionService(
+            transcripts,
+            AlibabaTranscriptionProvider(),
+            TranscriptionSourceResolver(transcripts),
+            load_preferences,
+        )
+    ))
     service.register("translate", SubtitleTranslationJobHandler(
         SubtitleTranslationService(
-            PostgresTranslationRepository(),
+            transcripts,
             Translator(AlibabaTranslationProvider()),
             load_preferences,
         )

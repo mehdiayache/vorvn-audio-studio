@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import sys
 import types
 import unittest
@@ -9,10 +10,11 @@ import transcribe
 
 
 class Response:
-    def __init__(self, output, status_code=200, message=""):
+    def __init__(self, output, status_code=200, message="", usage=None):
         self.output = output
         self.status_code = status_code
         self.message = message
+        self.usage = usage or {}
 
 
 PAYLOAD = {"transcripts": [{"sentences": [{
@@ -30,6 +32,13 @@ class TranscriptionContractTests(unittest.TestCase):
             modules[module_name] = types.ModuleType(module_name)
         setattr(modules[path], name, fake)
         return patch.dict(sys.modules, modules)
+
+    def setUp(self):
+        self.key = patch.dict(os.environ, {"DASHSCOPE_API_KEY": "test-key"})
+        self.key.start()
+
+    def tearDown(self):
+        self.key.stop()
 
     def test_qwen_uses_current_filetrans_contract(self):
         class FakeQwen:

@@ -9,7 +9,7 @@ from uuid import UUID
 from audio_studio.domain.jobs import Job, JobStatus
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 from services.alibaba import config as alibaba_config
-import transcribe
+from audio_studio.application.transcription import FUN_MODEL, QWEN_MODEL
 
 
 _SELECT = """
@@ -37,7 +37,7 @@ def _requested_model(kind: str, payload: dict[str, Any]) -> str | None:
     if kind in {"speech", "batch"} and payload.get("engine") in {"audio", "omni"}:
         return alibaba_config.model_id(str(payload["engine"]), str(payload.get("model") or "plus"))
     if kind == "transcribe":
-        return "fun-asr" if payload.get("vocabulary_id") else transcribe.MODEL
+        return FUN_MODEL if payload.get("vocabulary_id") else QWEN_MODEL
     return str(payload.get("model") or payload.get("quality") or "") or None
 
 

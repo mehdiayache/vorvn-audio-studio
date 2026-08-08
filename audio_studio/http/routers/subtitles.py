@@ -1,4 +1,4 @@
-"""Native transcript catalogue; provider transcription remains a job adapter."""
+"""Native transcript catalogue and derived caption layouts."""
 
 from __future__ import annotations
 
@@ -6,23 +6,24 @@ from fastapi import APIRouter
 from pathlib import Path
 from typing import Literal
 
-import db
 from audio_studio.application.preferences import load_preferences
 from audio_studio.http.errors import ApiProblem
+from audio_studio.infrastructure.postgres.transcripts import TranscriptRepository
 from services import captions
 
 
 router = APIRouter(prefix="/api/v1/subtitles", tags=["subtitles"])
+repository = TranscriptRepository()
 
 
 @router.get("", operation_id="listSubtitles")
 def list_subtitles(limit: int = 40) -> dict:
-    return {"data": db.transcript_list(limit=max(1, min(limit, 200)))}
+    return {"data": repository.list(limit=max(1, min(limit, 200)))}
 
 
 @router.get("/{transcript_id}", operation_id="getSubtitle")
 def get_subtitle(transcript_id: int) -> dict:
-    item = db.transcript_get(transcript_id)
+    item = repository.get(transcript_id)
     if not item:
         raise ApiProblem(404, "subtitle_not_found", "That subtitle file no longer exists.")
     audio_url = item.get("audio_url")
@@ -59,7 +60,7 @@ def get_subtitle_layout(
     profile: Literal["standard", "short", "words"],
 ) -> dict:
     """Derive a presentation from saved timings without another provider call."""
-    item = db.transcript_get(transcript_id)
+    item = repository.get(transcript_id)
     if not item:
         raise ApiProblem(404, "subtitle_not_found", "That subtitle file no longer exists.")
     return {"data": captions.layout(item.get("sentences") or [], profile)}
@@ -67,6 +68,6 @@ def get_subtitle_layout(
 
 @router.delete("/{transcript_id}", operation_id="deleteSubtitle")
 def delete_subtitle(transcript_id: int) -> dict:
-    if not db.transcript_delete(transcript_id):
+    if not repository.delete(transcript_id):
         raise ApiProblem(404, "subtitle_not_found", "That subtitle file no longer exists.")
     return {"data": {"deleted": True}}

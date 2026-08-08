@@ -56,7 +56,7 @@ Never delete the old system first and rebuild everything at once.
 
 - [x] Text preparation (active Shape/Tag execution)
 - [x] Translation (active subtitle execution)
-- [ ] Transcription
+- [x] Transcription (active external and Production caption execution)
 - [ ] Batch
 - [ ] Speech generation
 - [ ] Voice cloning
@@ -79,29 +79,29 @@ Never delete the old system first and rebuild everything at once.
 
 ## Current step
 
-Transcription is the next migration capability.
+Batch is the next migration capability.
 
-Inspect the complete external-audio transcription path before changing it.
-Preserve upload/library input handling, subtitle profiles, Arabic limitations,
-provider routing, cost guards and transcript persistence. Do not remove its
-loopback route until the native replacement is verified.
+Inspect spreadsheet parsing, row validation, destination placement, per-row
+speech routing, progress, partial failure and accounting before changing it.
+Do not remove the Batch loopback route until the native replacement is
+verified.
 
 ## Last verified checkpoint
 
 - Repository: `https://github.com/mehdiayache/vorvn-audio-studio` (private)
-- Checkpoint: native subtitle Translation slice (the commit carrying this
+- Checkpoint: native Transcription slice (the commit carrying this
   record)
-- Tests: 32 focused Python tests including real PostgreSQL translation
-  persistence, 19 HTTP integration checks, 15 Phase 1 checks, 12 Phase 2
-  checks, pricing regressions, and 6 canonical domain checks passed
+- Tests: 45 focused Python tests including real PostgreSQL transcript
+  persistence, provider contracts and pricing; 19 HTTP integration checks,
+  15 Phase 1 checks, 12 Phase 2 checks and 6 canonical domain checks passed
 - Frontend: OpenAPI generation, strict TypeScript build, Vite build, 19 Vitest
   files and 59 tests passed
-- Manual flow: restarted React app and opened the Subtitles workspace with its
-  translation controls; no paid provider call was made
+- Manual flow: restarted React app, opened Subtitles and a real Production
+  caption panel, and verified the native contracts without submitting audio
 - Runtime: one supervisor, one loopback compatibility process and one current
   worker; stale development workers were stopped before verification
-- Remaining dependency: Transcription, Batch, Speech and Voice cloning Jobs
-  still delegate to `server.py`; several canonical services still call `db.py`
+- Remaining dependency: Batch and Speech Jobs still delegate to `server.py`;
+  Voice cloning and several canonical services still call `db.py`
 
 ## Findings
 
@@ -116,6 +116,15 @@ loopback route until the native replacement is verified.
   as the pre-call warning and daily-cap guard.
 - `translate.py` is temporarily a small compatibility facade for the remaining
   multilingual Speech path; subtitle Translation no longer calls it.
+- External and Production Transcription Jobs now run through the native
+  application service, safe source resolver and Alibaba asynchronous ASR
+  adapter. Their execution and upload loopback routes were removed.
+- `TranscriptRepository` is the single PostgreSQL owner shared by
+  Transcription, Translation, the Subtitles catalogue and Production caption
+  state. The slice removed the translation-specific duplicate repository.
+- Qwen3-ASR uses provider-reported billable seconds when available while saved
+  subtitle duration remains the final timed cue. Word timings are always
+  requested, with the documented language limitation still visible in React.
 - Legacy-only prompt preview/save routes remain quarantined with the unreachable
   old UI and are not part of active Shape/Tag execution.
 - `db.py` remains an active persistence compatibility layer.

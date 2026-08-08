@@ -9,9 +9,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from audio_studio.application import timeline
 from audio_studio.http.errors import ApiProblem
+from audio_studio.infrastructure.postgres.transcripts import TranscriptRepository
 
 
 router = APIRouter(prefix="/api/v1/productions/{production_id}", tags=["timeline"])
+transcripts = TranscriptRepository()
 
 
 class OrderBody(BaseModel):
@@ -144,7 +146,8 @@ def list_takes(production_id: int, part_id: int) -> dict:
 
 @router.post("/parts/{part_id}/takes/{take_id}/promote", operation_id="promoteProductionTake")
 def promote_take(production_id: int, part_id: int, take_id: int) -> dict:
-    return _run(lambda: timeline.promote(production_id, part_id, take_id))
+    return _run(lambda: timeline.promote(
+        production_id, part_id, take_id, transcripts))
 
 
 @router.patch("/parts/{part_id}/text", operation_id="updateProductionPartText")
@@ -154,4 +157,4 @@ def update_part_text(production_id: int, part_id: int, payload: TextBody) -> dic
 
 @router.get("/parts/{part_id}/captions", operation_id="listProductionPartCaptions")
 def list_part_captions(production_id: int, part_id: int) -> dict:
-    return _run(lambda: timeline.captions(production_id, part_id))
+    return _run(lambda: timeline.captions(production_id, part_id, transcripts))

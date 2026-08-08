@@ -1136,12 +1136,14 @@
           },
           "file": {
             "default": "",
+            "maxLength": 500,
             "title": "File",
             "type": "string"
           },
           "generation_id": {
             "anyOf": [
               {
+                "exclusiveMinimum": 0.0,
                 "type": "integer"
               },
               {
@@ -1152,18 +1154,33 @@
           },
           "language": {
             "default": "",
+            "maxLength": 80,
             "title": "Language",
             "type": "string"
           },
           "name": {
             "default": "",
+            "maxLength": 500,
             "title": "Name",
             "type": "string"
           },
           "playable": {
             "default": "",
+            "maxLength": 1000,
             "title": "Playable",
             "type": "string"
+          },
+          "production_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Production Id"
           },
           "size_bytes": {
             "default": 0,
@@ -1174,12 +1191,14 @@
           },
           "url": {
             "default": "",
+            "maxLength": 4096,
             "title": "Url",
             "type": "string"
           },
           "vocabulary_id": {
             "anyOf": [
               {
+                "maxLength": 500,
                 "type": "string"
               },
               {

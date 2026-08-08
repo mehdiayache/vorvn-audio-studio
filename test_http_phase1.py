@@ -167,15 +167,15 @@ with tempfile.TemporaryDirectory() as directory:
               manifest.exists() and json.loads(manifest.read_text())["renderer"] ==
               "ffmpeg-normalized-v1", payload)
 
-        print("\nexternal subtitle upload contract")
+        print("\nlegacy transcription boundary")
         status, _, data = request(port, "POST", "/api/transcribe", {
             "url": "https://storage.invalid/reference.mp3",
             "name": "reference.mp3", "playable": "/inbox/reference.mp3",
             "size_bytes": 2_500_000,
         })
         payload = json.loads(data)
-        check("external transcription estimates without an undefined local path",
-              status == 409 and payload.get("blocked_for_test") is True,
+        check("legacy transcription execution route is removed",
+              status == 404 and payload.get("error") == "unknown endpoint",
               (status, payload))
 
         print("\nserver-side invariants")

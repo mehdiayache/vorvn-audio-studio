@@ -19,7 +19,7 @@ from audio_studio.application.translation import (
 from audio_studio.domain.jobs import Job, JobStatus
 from audio_studio.http.routers.jobs import TranslationJobCreate
 from audio_studio.infrastructure.alibaba.translation import AlibabaTranslationProvider
-from audio_studio.infrastructure.postgres import translation as postgres_translation
+from audio_studio.infrastructure.postgres import transcripts as postgres_transcripts
 from services.alibaba import text as alibaba_text
 
 
@@ -66,10 +66,10 @@ class FakeRepository:
         self.spent = spent
         self.saved = []
 
-    def get_transcript(self, transcript_id):
+    def get(self, transcript_id):
         return self.transcript if transcript_id == self.transcript["id"] else None
 
-    def save_translation(self, values):
+    def save(self, values):
         self.saved.append(values)
         return 77
 
@@ -227,10 +227,10 @@ class TranslationTests(unittest.TestCase):
             with connection.cursor() as cursor:
                 yield cursor
 
-        original_read_only = postgres_translation.read_only
-        original_transaction = postgres_translation.transaction
-        postgres_translation.read_only = cursor_scope
-        postgres_translation.transaction = cursor_scope
+        original_read_only = postgres_transcripts.read_only
+        original_transaction = postgres_transcripts.transaction
+        postgres_transcripts.read_only = cursor_scope
+        postgres_transcripts.transaction = cursor_scope
         try:
             with connection.cursor() as cursor:
                 cursor.execute("""
@@ -241,10 +241,10 @@ class TranslationTests(unittest.TestCase):
                     RETURNING id
                 """)
                 source_id = int(cursor.fetchone()[0])
-            repository = postgres_translation.PostgresTranslationRepository()
-            source = repository.get_transcript(source_id)
+            repository = postgres_transcripts.TranscriptRepository()
+            source = repository.get(source_id)
             self.assertEqual(source["text"], "Hello")
-            translated_id = repository.save_translation({
+            translated_id = repository.save({
                 "name": "translation fixture [French]",
                 "language": "French", "duration_ms": 1000,
                 "text": "Bonjour", "srt": "", "vtt": "",
@@ -255,11 +255,11 @@ class TranslationTests(unittest.TestCase):
                                "text": "Bonjour", "words": []}],
             })
             self.assertGreater(translated_id, 0)
-            self.assertEqual(repository.get_transcript(translated_id)["text"],
+            self.assertEqual(repository.get(translated_id)["text"],
                              "Bonjour")
         finally:
-            postgres_translation.read_only = original_read_only
-            postgres_translation.transaction = original_transaction
+            postgres_transcripts.read_only = original_read_only
+            postgres_transcripts.transaction = original_transaction
             connection.rollback()
             connection.close()
 
