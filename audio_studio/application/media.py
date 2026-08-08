@@ -35,7 +35,7 @@ def resolve(kind: str, name: str, folder: str | None = None) -> MediaFile | None
         "icon": settings.root / ".icons",
         "inbox": settings.root / ".inbox",
         "block-audio": settings.root / ".blocks",
-        "samples": settings.root / "ui" / "samples",
+        "samples": settings.voice_samples,
     }
     if kind == "batch-audio":
         if folder is None:

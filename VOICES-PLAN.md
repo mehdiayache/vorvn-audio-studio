@@ -1,5 +1,10 @@
 # Voices — the rebuild
 
+> Historical implementation record. `check_voices.py` and the legacy UI
+> referenced below were removed after their provider and React contracts were
+> covered by the current automated suites. Current state lives in
+> `MIGRATION.md`.
+
 Every defect found in the audit, with how it gets proved fixed. Nothing is
 ticked from memory: each line names a check, and `check_voices.py` runs the ones
 a machine can run.

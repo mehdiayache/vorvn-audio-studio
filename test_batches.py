@@ -297,13 +297,9 @@ class BatchTests(unittest.TestCase):
         self.assertGreaterEqual(repository.today_spend(), 0)
 
     def test_legacy_batch_execution_and_media_routes_are_removed(self):
-        server = (ROOT / "server.py").read_text()
         legacy = ROOT / "audio_studio/infrastructure/legacy_jobs.py"
         worker = (ROOT / "audio_studio/worker.py").read_text()
-        self.assertNotIn('"/api/batch/run"', server)
-        self.assertNotIn('"/api/batch/preview"', server)
-        self.assertNotIn('path.startswith("/batch-audio/")', server)
-        self.assertNotIn("def _batch_run", server)
+        self.assertFalse((ROOT / "server.py").exists())
         self.assertFalse(legacy.exists())
         self.assertIn('service.register("batch", BatchJobHandler', worker)
 

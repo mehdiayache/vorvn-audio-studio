@@ -355,16 +355,10 @@ class SpeechGenerationTests(unittest.TestCase):
                     cleanup.commit()
 
     def test_worker_has_no_loopback_speech_adapter(self):
-        server = (ROOT / "server.py").read_text()
         worker = (ROOT / "audio_studio/worker.py").read_text()
+        self.assertFalse((ROOT / "server.py").exists())
         self.assertIn('service.register("speech", SpeechJobHandler', worker)
         self.assertNotIn("LegacyProviderJobHandlers", worker)
-        for route in ('"/api/speak"', '"/api/part/regenerate"',
-                      '"/api/part/render"'):
-            self.assertNotIn(route, server)
-        for method in ("def _speak(", "def _regenerate(",
-                       "def _render_draft("):
-            self.assertNotIn(method, server)
         self.assertFalse(
             (ROOT / "audio_studio/infrastructure/legacy_jobs.py").exists())
 

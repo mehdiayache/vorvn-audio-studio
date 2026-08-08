@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-import server
+from audio_studio.application import renders
 from audio_studio.application.speech import SpeechGenerationService
 
 
@@ -30,20 +30,20 @@ def make_audio(path: Path, frequency: int, rate: int, codec: str):
 
 
 print("unique output identity")
-names = {server._unique_output_name("Same title", "mp3") for _ in range(100)}
+names = {renders._name("Same title", "mp3") for _ in range(100)}
 check("concurrent-looking names never collide", len(names) == 100)
 check("names remain readable", all(name.startswith("same-title-") for name in names))
 
 
 print("\nnormalized finishing")
 with tempfile.TemporaryDirectory() as directory:
-    root = Path(directory)
+    root = Path(directory).resolve()
     wav = root / "first.wav"
     second = root / "second.flac"
     make_audio(wav, 440, 44100, "pcm_s16le")
     make_audio(second, 660, 24000, "flac")
-    original_out_dir = server.out_dir
-    server.out_dir = lambda: root
+    original_output = renders._output
+    renders._output = lambda: root
     try:
         target = root / "finished.mp3"
         parts = [
@@ -51,8 +51,14 @@ with tempfile.TemporaryDirectory() as directory:
             {"id": 2, "kind": "silence", "title": "0.2", "filename": ""},
             {"id": 3, "kind": "asset", "filename": second.name, "asset_of": 42},
         ]
-        ok, manifest, error = server._render_sequence(parts, target)
-        check("mixed formats render successfully", ok, error)
+        try:
+            manifest, _ = renders._sequence(parts, target)
+            rendered = True
+            render_error = ""
+        except renders.RenderError as exc:
+            rendered = False
+            manifest, render_error = [], str(exc)
+        check("mixed formats render successfully", rendered, render_error)
         check("render creates one non-empty MP3", target.exists() and target.stat().st_size > 0)
         probe = subprocess.run([
             "ffprobe", "-v", "error", "-select_streams", "a:0",
@@ -73,11 +79,11 @@ with tempfile.TemporaryDirectory() as directory:
         music = root / "music.wav"
         make_audio(music, 220, 32000, "pcm_s16le")
         mixed = root / "mixed.mp3"
-        mixed_ok = server._mix_music(target, music, {
+        renders._mix(target, music, {
             "level": "discreet", "fade_in": 0.05, "fade_out": 0.05,
             "duck": True,
         }, mixed)
-        check("background bed mixes with ducking and fades", mixed_ok,
+        check("background bed mixes with ducking and fades", mixed.exists(),
               "ffmpeg music mix failed")
         mixed_probe = subprocess.run([
             "ffprobe", "-v", "error", "-show_entries", "format=duration",
@@ -89,11 +95,16 @@ with tempfile.TemporaryDirectory() as directory:
 
         missing_target = root / "must-not-exist.mp3"
         missing = [{"id": 4, "kind": "audio", "filename": "gone.wav"}]
-        ok, _, error = server._render_sequence(missing, missing_target)
-        check("missing input fails explicitly", not ok and "missing" in error.lower(), error)
+        try:
+            renders._sequence(missing, missing_target)
+            missing_error = ""
+        except renders.RenderError as exc:
+            missing_error = str(exc)
+        check("missing input fails explicitly", "missing" in missing_error.lower(),
+              missing_error)
         check("failed render leaves no output", not missing_target.exists())
     finally:
-        server.out_dir = original_out_dir
+        renders._output = original_output
 
 
 print("\npaid-call destination gate")

@@ -170,12 +170,9 @@ class TranscriptionTests(unittest.TestCase):
                 generation_id=44)
 
     def test_legacy_execution_and_upload_routes_are_removed(self):
-        server = (ROOT / "server.py").read_text()
         legacy = ROOT / "audio_studio/infrastructure/legacy_jobs.py"
         worker = (ROOT / "audio_studio/worker.py").read_text()
-        self.assertNotIn('"/api/transcribe"', server)
-        self.assertNotIn('"/api/transcribe/upload"', server)
-        self.assertNotIn("def _transcribe(", server)
+        self.assertFalse((ROOT / "server.py").exists())
         self.assertFalse(legacy.exists())
         self.assertIn('service.register("transcribe", TranscriptionJobHandler',
                       worker)

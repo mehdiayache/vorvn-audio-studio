@@ -12,7 +12,8 @@ pnpm build:web
 .venv/bin/python -m audio_studio
 ```
 
-Open <http://127.0.0.1:7860/audio-studio/>. Do not open `ui/index.html` with a `file://` URL: the application requires its HTTP API and built assets.
+Open <http://127.0.0.1:7860/audio-studio/>. The application must run through
+HTTP because React depends on the FastAPI contract and built assets.
 
 On macOS, `restart.command` performs the database startup, process restart, health check and browser opening.
 
@@ -27,14 +28,13 @@ On macOS, `restart.command` performs the database startup, process restart, heal
 - `audio_studio/worker.py` — separate durable Job worker.
 - `services/alibaba/` — Alibaba provider implementations and documented model routing.
 
-`server.py`, `db.py` and `ui/` are quarantined migration code, not the public
-application entry point. FastAPI is the only HTTP process and is exposed on
-port 7860. The old UI is unreachable, `server.py` is no longer started, and
-there is no compatibility port. Text preparation, subtitle Translation,
+FastAPI is the only HTTP process and is exposed on port 7860. The legacy HTTP
+server and UI have been removed; there is no compatibility port or hidden
+fallback. Text preparation, subtitle Translation,
 Transcription, Batch, Speech generation and Voice package execution run through
 native application services. Remaining migration work is limited to active
-legacy persistence and orchestration responsibilities such as Voice profile
-management and Production editing.
+`db.py` persistence responsibilities such as Voice profile management and
+Production editing.
 
 See [Architecture](docs/ARCHITECTURE.md), [API v1](docs/API_V1.md), and [Canonical domain](docs/CANONICAL_DOMAIN.md).
 

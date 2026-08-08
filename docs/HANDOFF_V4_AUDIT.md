@@ -44,4 +44,5 @@ This document prevents the prototype from being treated either as production cod
 - Dock accessible labels match the seven handoff tools.
 - Header and seam Add menus expose only supported source types.
 - Player tests assert a visible idle Production state, preview-cache non-downloadability and downloadable source behavior.
-- TypeScript build, frontend tests and legacy `check_app.py` audit must pass before handoff.
+- TypeScript build, frontend tests and the native FastAPI architecture/HTTP
+  suites must pass before handoff.

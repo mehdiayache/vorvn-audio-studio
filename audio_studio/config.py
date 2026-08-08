@@ -20,6 +20,7 @@ class Settings:
     root: Path = ROOT
     web_build: Path = ROOT / "ui-next"
     output_dir: Path = ROOT / "out"
+    voice_samples: Path = ROOT / ".voice-samples"
 
     @classmethod
     def from_env(cls) -> "Settings":

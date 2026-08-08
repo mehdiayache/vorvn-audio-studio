@@ -62,11 +62,11 @@ Never delete the old system first and rebuild everything at once.
 - [x] Speech generation (create, another Take and Draft recording)
 - [x] Voice cloning and package execution
 - [x] Confirm zero active runtime dependencies
-- [ ] Delete `server.py`
+- [x] Delete `server.py`
 
 ### Legacy db.py
 
-- [ ] Identify active callers
+- [x] Identify active callers
 - [ ] Migrate responsibilities progressively
 - [ ] Confirm zero active callers
 - [ ] Delete `db.py`
@@ -76,40 +76,45 @@ Never delete the old system first and rebuild everything at once.
 - [ ] One configuration path
 - [ ] One migration mechanism
 - [ ] API contracts improved as touched
-- [ ] Remove old UI after active dependencies are gone
+- [x] Remove old UI after active dependencies are gone
 
 ## Current step
 
-Audit every remaining implementation in quarantined `server.py` against the
-active FastAPI routers and React flows. Remove the file only after proving that
-none of its historical routes, helpers or startup behavior has an active
-caller. Keep `db.py` for its still-active persistence responsibilities.
+Move Voice profile, binding-history and catalogue reads/writes from `db.py`
+into one focused PostgreSQL repository. This is the next coherent capability;
+Work/Timeline/Render persistence remains a later slice.
 
 ## Last verified checkpoint
 
 - Repository: `https://github.com/mehdiayache/vorvn-audio-studio` (private)
-- Checkpoint: native Voice cloning and package slice (the commit carrying this record)
-- Tests: 69 Python unit/integration tests including real PostgreSQL Voice package,
-  Batch and Job fixtures; 25 Alibaba contracts, 18 chunking checks, 4
-  transcription checks, 22 HTTP checks, 15 Phase 1 checks, 12 Phase 2 checks
-  and 6 canonical domain checks passed
+- Checkpoint: final legacy HTTP/UI removal (the commit carrying this record)
+- Tests: 76 Python unit/integration tests against the real FastAPI application
+  and PostgreSQL; 25 Alibaba contracts, 18 chunking checks, 4 transcription
+  checks, 15 native renderer checks, 12 Phase 2 checks and 6 canonical domain
+  checks passed
 - Frontend: OpenAPI generation, strict TypeScript build, Vite build, 19 Vitest
   files and 59 tests passed
-- Manual flow: restarted React, verified the Voices catalogue and the
-  Identity → Recording creation flow through the real UI. The paid action
-  remained disabled and no recording was uploaded or provider request made
-- Runtime: one FastAPI supervisor and one durable worker. `server.py` is no
-  longer started and port 7861 is gone from the application configuration
-- Remaining dependency: Voice profile/edit/history, rendering/timeline and
-  several canonical services still call `db.py`; `server.py` remains in the
-  repository only until its obsolete implementations receive a final deletion
-  audit
+- Manual flow: restarted the legacy-free runtime and verified Ventures, Speak,
+  Batch, Voices, Activity, Subtitles, Settings and Production 6 in the real
+  React UI. Health, validation errors and a relocated voice sample were also
+  verified over HTTP; no paid operation was submitted
+- Runtime: one FastAPI supervisor and one durable worker. The legacy HTTP
+  server and UI are deleted and port 7861 is gone from the configuration
+- Remaining dependency: Voice profile/edit/history, Work, rendering/timeline,
+  Settings, Activity and media persistence still call `db.py`
 
 ## Findings
 
-- `server.py` has zero active runtime callers and is no longer started. Keep it
-  only until the remaining obsolete implementations have been audited against
-  active FastAPI capabilities, then delete it in a separately verified step.
+- The final parity audit mapped every historical HTTP responsibility to the
+  active FastAPI/React path. `server.py`, the old UI and their obsolete audit
+  scripts are deleted; FastAPI has no compatibility escape hatch.
+- The old HTTP test harness now exercises the actual FastAPI application,
+  including canonical redirects, v1 validation envelopes, upload bounds,
+  seekable media and Work/Timeline contracts. Audio finishing tests call the
+  native renderer rather than importing dead server helpers.
+- System voice previews are runtime media, not UI source code. The existing
+  1,025 local preview files moved intact from `ui/samples` to the dedicated,
+  ignored `.voice-samples` store.
 - Shape/Tag Jobs now run through the native Text preparation service, canonical
   PostgreSQL reads and the Alibaba adapter. Their loopback routes were removed.
 - Subtitle Translation Jobs now run through the native application service,
@@ -161,9 +166,14 @@ caller. Keep `db.py` for its still-active persistence responsibilities.
   request. Package Activity totals are scoped to the models in that request.
 - The Voice package planner now displays Beijing or Singapore from the same
   canonical region value used by provider routing.
-- Legacy-only prompt preview/save routes remain quarantined with the unreachable
-  old UI and are not part of active Shape/Tag execution.
 - `db.py` remains an active persistence compatibility layer.
+- The active `db.py` callers are now inventoried by capability: canonical
+  Work and Venture Assets (`domain/repository.py`, `application/work.py`,
+  `application/uploads.py`); Production timeline/render/media
+  (`timeline.py`, `renders.py`, `media.py`); Voice profile/catalogue
+  (`voices.py`, `catalog.py` and catalogue routers); and control-plane reads
+  (`settings.py`, `administration.py`, Activity, Settings and System routers).
+  These are the remaining migration slices, not hidden HTTP dependencies.
 - The versioned migration runner under `audio_studio/migrations` is the target
   migration mechanism.
 - New functionality must not add another legacy dependency.

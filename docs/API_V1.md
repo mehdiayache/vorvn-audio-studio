@@ -203,5 +203,5 @@ the same resource contract without sharing DOM code.
 6. Migrate the remaining Voice profile/history and Production persistence paths
    out of legacy `db.py` as each capability is touched. Voice package execution
    is native.
-7. Delete quarantined `server.py`, `db.py` and `ui/` after zero active callers
-   and parity checks are proven.
+7. Legacy `server.py` and `ui/` are deleted. Delete `db.py` only after its
+   remaining persistence callers have moved and parity checks are proven.

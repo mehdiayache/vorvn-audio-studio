@@ -199,15 +199,11 @@ class VoicePackageWorkerTests(unittest.TestCase):
     def test_active_runtime_has_no_legacy_voice_package_worker(self):
         worker = (ROOT / "audio_studio/worker.py").read_text()
         runtime = (ROOT / "audio_studio/runtime.py").read_text()
-        server = (ROOT / "server.py").read_text()
         self.assertNotIn("import db", worker)
         self.assertNotIn("import db", runtime)
         self.assertNotIn("voice_package_worker", worker)
         self.assertFalse((ROOT / "services/voice_package_worker.py").exists())
-        for route in ("/api/voice-packages/preflight",
-                      "/api/voice-packages/create",
-                      "/api/voice-packages/retry"):
-            self.assertNotIn(f'"{route}"', server)
+        self.assertFalse((ROOT / "server.py").exists())
 
 
 if __name__ == "__main__":

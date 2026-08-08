@@ -15,12 +15,9 @@ FastAPI :7860
                               +--> provider adapters
 ```
 
-FastAPI is the only HTTP process. `server.py` is no longer started and there is
-no loopback compatibility port. It remains temporarily as quarantined source
-until a deletion audit confirms that each historical implementation is either
-obsolete or represented by an active FastAPI capability. New code must never
-import its handler. There is no compatibility gateway or `/legacy/*` escape
-hatch.
+FastAPI is the only HTTP process. The historical server and UI have been
+deleted after parity verification, and there is no loopback compatibility
+port, compatibility gateway or `/legacy/*` escape hatch.
 
 ## Backend boundaries
 
@@ -35,7 +32,11 @@ Paid operations are never automatically retried after an ambiguous transport fai
 
 ## Frontend boundaries
 
-`frontend/src/features/*` owns page-level workflows. `frontend/src/components/*` owns reusable visual behavior. Hooks own lifecycle and interaction state; `lib/api.ts` is the sole HTTP client. Components do not calculate provider billing or call Alibaba endpoints.
+`frontend/src/features/*` owns page-level workflows. `frontend/src/components/*`
+owns reusable visual behavior. Hooks own lifecycle and interaction state;
+`lib/api.ts` is the sole JSON API client. The waveform component may fetch
+same-origin media bytes for visualization. Components do not calculate provider
+billing or call Alibaba endpoints.
 
 The shell has one canonical route for every tool:
 
@@ -57,7 +58,7 @@ Historical spend is immutable. Removing a Part, Take or audio file changes the c
 
 ## Legacy extraction rule
 
-The quarantined legacy files are a measured extraction reference, not a
+The remaining legacy persistence is a measured extraction source, not a
 destination for new code. A capability slice is complete only when:
 
 1. FastAPI owns its contract.
@@ -78,8 +79,8 @@ recorded as failed or interrupted and is never retried automatically.
 
 ## Native media invariant
 
-Browser playback no longer passes through the compatibility server. FastAPI
-serves generated audio, voice samples, imports, blocks and batch results from
-explicit roots. Every URL segment must be a basename, so media routes cannot
-be used to browse arbitrary local files. Starlette handles byte ranges for
-seeking and pause/resume behavior.
+FastAPI serves generated audio, voice samples, imports, blocks and batch
+results from explicit roots. Voice previews live in `.voice-samples`, outside
+frontend source. Every URL segment must be a basename, so media routes cannot
+browse arbitrary local files. Starlette handles byte ranges for seeking and
+pause/resume behavior.

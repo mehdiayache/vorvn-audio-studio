@@ -1,5 +1,9 @@
 # Text states · Music · Cleanup
 
+> Historical implementation record. The legacy UI and `check_app.py` referenced
+> below were removed after React/FastAPI parity was verified. Current migration
+> state lives in `MIGRATION.md`.
+
 Same discipline as the voices rebuild: every item names how it gets proved, and
 `check_app.py` runs the ones a machine can run. Nothing is ticked from memory.
 

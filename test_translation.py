@@ -208,11 +208,9 @@ class TranslationTests(unittest.TestCase):
         self.assertEqual(result.request_id, "req")
 
     def test_legacy_translation_execution_route_is_removed(self):
-        server = (ROOT / "server.py").read_text()
         legacy_jobs = ROOT / "audio_studio/infrastructure/legacy_jobs.py"
         worker = (ROOT / "audio_studio/worker.py").read_text()
-        self.assertNotIn('"/api/translate/subtitles"', server)
-        self.assertNotIn("def _translate_subtitles", server)
+        self.assertFalse((ROOT / "server.py").exists())
         self.assertFalse(legacy_jobs.exists())
         self.assertIn('service.register("translate", SubtitleTranslationJobHandler', worker)
 
