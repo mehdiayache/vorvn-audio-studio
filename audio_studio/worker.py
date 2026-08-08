@@ -8,6 +8,10 @@ import time
 import db
 from services import voice_package_worker
 from audio_studio.application import renders
+from audio_studio.application.batches import (
+    BatchGenerationService,
+    BatchJobHandler,
+)
 from audio_studio.application.preferences import load_preferences
 from audio_studio.application.text_preparation import (
     TextPreparationJobHandler,
@@ -25,13 +29,16 @@ from audio_studio.application.transcription import (
 
 from audio_studio.application.jobs import JobService
 from audio_studio.infrastructure.alibaba.text_preparation import AlibabaTextProvider
+from audio_studio.infrastructure.alibaba.batch_speech import AlibabaBatchSpeechProvider
 from audio_studio.infrastructure.alibaba.translation import AlibabaTranslationProvider
 from audio_studio.infrastructure.alibaba.transcription import AlibabaTranscriptionProvider
 from audio_studio.infrastructure.legacy_jobs import LegacyProviderJobHandlers
+from audio_studio.infrastructure.batch_workspace import FilesystemBatchWorkspace
 from audio_studio.infrastructure.postgres.text_preparation import (
     PostgresTextPreparationRepository,
 )
 from audio_studio.infrastructure.postgres.transcripts import TranscriptRepository
+from audio_studio.infrastructure.postgres.speech import SpeechRepository
 from audio_studio.infrastructure.transcription_source import TranscriptionSourceResolver
 
 
@@ -39,7 +46,11 @@ def main() -> int:
     service = JobService()
     handlers = LegacyProviderJobHandlers()
     service.register("speech", handlers.speech)
-    service.register("batch", handlers.batch)
+    speech = SpeechRepository()
+    service.register("batch", BatchJobHandler(BatchGenerationService(
+        FilesystemBatchWorkspace(), speech, AlibabaBatchSpeechProvider(),
+        load_preferences,
+    )))
     transcripts = TranscriptRepository()
     service.register("transcribe", TranscriptionJobHandler(
         TranscriptionService(

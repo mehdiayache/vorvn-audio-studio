@@ -54,21 +54,30 @@ class SpeechJobCreate(BaseModel):
         return self
 
 
+class BatchColumns(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text: int = Field(ge=0)
+    name: int | None = Field(default=None, ge=0)
+    voice: int | None = Field(default=None, ge=0)
+    language: int | None = Field(default=None, ge=0)
+
+
 class BatchJobCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    token: str = Field(min_length=1, max_length=120)
-    columns: dict[str, int | None]
-    voice: str = Field(min_length=1)
-    voice_identity_id: str | None = None
-    engine: str
-    model: str
-    format: str = "mp3"
-    language: str = ""
-    instruction: str = ""
-    rate: float = 1
-    pitch: float = 1
-    volume: int = 50
+    token: str = Field(pattern=r"^[A-Za-z0-9-]{1,120}$")
+    columns: BatchColumns
+    voice: str = Field(min_length=1, max_length=300)
+    voice_identity_id: str | None = Field(default=None, max_length=120)
+    engine: Literal["audio", "omni"]
+    model: Literal["plus", "flash"]
+    format: Literal["mp3", "mp3-24k", "wav", "opus"] = "mp3"
+    language: str = Field(default="", max_length=80)
+    instruction: str = Field(default="", max_length=100)
+    rate: float = Field(default=1, ge=.5, le=2)
+    pitch: float = Field(default=1, ge=.5, le=2)
+    volume: int = Field(default=50, ge=0, le=100)
     confirmed: bool = False
 
 

@@ -26,22 +26,62 @@
         "title": "AssetBody",
         "type": "object"
       },
+      "BatchColumns": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "text": {
+            "minimum": 0.0,
+            "title": "Text",
+            "type": "integer"
+          },
+          "voice": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "BatchColumns",
+        "type": "object"
+      },
       "BatchJobCreate": {
         "additionalProperties": false,
         "properties": {
           "columns": {
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "title": "Columns",
-            "type": "object"
+            "$ref": "#/components/schemas/BatchColumns"
           },
           "confirmed": {
             "default": false,
@@ -49,45 +89,65 @@
             "type": "boolean"
           },
           "engine": {
+            "enum": [
+              "audio",
+              "omni"
+            ],
             "title": "Engine",
             "type": "string"
           },
           "format": {
             "default": "mp3",
+            "enum": [
+              "mp3",
+              "mp3-24k",
+              "wav",
+              "opus"
+            ],
             "title": "Format",
             "type": "string"
           },
           "instruction": {
             "default": "",
+            "maxLength": 100,
             "title": "Instruction",
             "type": "string"
           },
           "language": {
             "default": "",
+            "maxLength": 80,
             "title": "Language",
             "type": "string"
           },
           "model": {
+            "enum": [
+              "plus",
+              "flash"
+            ],
             "title": "Model",
             "type": "string"
           },
           "pitch": {
             "default": 1,
+            "maximum": 2.0,
+            "minimum": 0.5,
             "title": "Pitch",
             "type": "number"
           },
           "rate": {
             "default": 1,
+            "maximum": 2.0,
+            "minimum": 0.5,
             "title": "Rate",
             "type": "number"
           },
           "token": {
-            "maxLength": 120,
-            "minLength": 1,
+            "pattern": "^[A-Za-z0-9-]{1,120}$",
             "title": "Token",
             "type": "string"
           },
           "voice": {
+            "maxLength": 300,
             "minLength": 1,
             "title": "Voice",
             "type": "string"
@@ -95,6 +155,7 @@
           "voice_identity_id": {
             "anyOf": [
               {
+                "maxLength": 120,
                 "type": "string"
               },
               {
@@ -105,6 +166,8 @@
           },
           "volume": {
             "default": 50,
+            "maximum": 100.0,
+            "minimum": 0.0,
             "title": "Volume",
             "type": "integer"
           }

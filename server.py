@@ -25,7 +25,6 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
-import batch
 import db
 from domain import repository as domain_repo
 import say  # chunking + synthesis live there; single source of truth
@@ -1290,11 +1289,6 @@ class Handler(SimpleHTTPRequestHandler):
             return self._serve_audio(Path(path).name, BLOCKS_DIR)
         if path.startswith("/inbox/"):
             return self._serve_audio(Path(path).name, INBOX)
-        if path.startswith("/batch-audio/"):
-            parts = [p for p in path.split("/") if p][1:]
-            if len(parts) == 2:
-                return self._serve_batch_file(parts[0], parts[1])
-            return self._json({"error": "not found"}, 404)
         return super().do_GET()
 
     def do_PATCH(self):
@@ -1372,24 +1366,6 @@ class Handler(SimpleHTTPRequestHandler):
                 "warn_above": warn,
             }, 200
         return None
-
-    def _serve_batch_file(self, folder: str, name: str):
-        """Serve one row's audio, or the whole batch as a zip."""
-        root = (out_dir() / Path(folder).name).resolve()
-        target = (root / Path(name).name).resolve()
-        if not target.exists() or root not in target.parents:
-            return self._json({"error": "not found"}, 404)
-        if target.suffix == ".zip":
-            data = target.read_bytes()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/zip")
-            self.send_header("Content-Length", str(len(data)))
-            self.send_header("Content-Disposition",
-                             f'attachment; filename="{folder}.zip"')
-            self.end_headers()
-            self.wfile.write(data)
-            return
-        return self._serve_audio(target.name, root)
 
     # ──────────────────────────────────────────────────────── projects
 
@@ -2234,157 +2210,6 @@ class Handler(SimpleHTTPRequestHandler):
                           error=(f"{len(failed)} part(s) failed" if failed else None))
         return self._json({"recorded": len(done), "failed": failed})
 
-    def _known_voices(self) -> set:
-        """Every voice this account can actually speak with, both tiers."""
-        known = {item["provider_voice_id"]
-                 for item in alibaba_voice_registry.system_bindings()}
-        known.update(item.get("voice_id") for item in db.voice_custom_bindings()
-                     if item.get("voice_id"))
-        try:
-            say.apply_credentials()
-            known.update(v.get("voice_id") for v in self._enrollment().list_voices()
-                         if v.get("voice_id"))
-        except Exception:
-            pass
-        return {v for v in known if v}
-
-    def _batch_check_voices(self, sheet: dict, column) -> dict:
-        """Which voices in the sheet don't exist.
-
-        A batch is the one place a typo costs a hundred failed renders, so the
-        column is checked against the real catalogue before anything is spent.
-        """
-        if column is None:
-            return {"unknown": [], "checked": 0}
-        known = self._known_voices()
-        seen, unknown = set(), {}
-        for index, row in enumerate(sheet["rows"], 1):
-            value = (row[column] if column < len(row) else "").strip()
-            if not value or value in seen:
-                continue
-            seen.add(value)
-            if value not in known:
-                unknown[value] = index
-        return {"unknown": [{"voice": v, "first_row": r} for v, r in unknown.items()],
-                "checked": len(seen)}
-
-    def _batch_preview(self, raw: bytes):
-        """Read a spreadsheet and report what's in it, before anything is spent."""
-        name = unquote(self.headers.get("X-Filename", "sheet.csv"))
-        try:
-            sheet = batch.read(name, raw)
-        except ValueError as exc:
-            return self._json({"error": str(exc)}, 400)
-
-        BATCHES.mkdir(exist_ok=True)
-        token = f"{datetime.now():%Y%m%d-%H%M%S}"
-        (BATCHES / f"{token}.json").write_text(json.dumps(sheet))
-        guess = batch.guess_columns(sheet["headers"])
-        return self._json({
-            "token": token, "name": Path(name).name,
-            "headers": sheet["headers"],
-            "rows": len(sheet["rows"]),
-            "preview": sheet["rows"][:8],
-            "guess": guess,
-            "voices": self._batch_check_voices(sheet, guess.get("voice")),
-            "truncated": sheet["truncated"], "max_rows": batch.MAX_ROWS,
-        })
-
-    def _batch_run(self, payload: dict):
-        """Speak every row. One bad row never stops the rest."""
-        stored = BATCHES / f"{payload.get('token', '')}.json"
-        if not stored.exists():
-            return self._json({"error": "Load the spreadsheet again."}, 400)
-        sheet = json.loads(stored.read_text())
-        rows = sheet["rows"]
-
-        columns = payload.get("columns") or {}
-        text_column = columns.get("text")
-        if text_column is None:
-            return self._json({"error": "Say which column holds the words."}, 400)
-
-        jobs = []
-        for index, row in enumerate(rows):
-            words = batch.cell(row, text_column)
-            if words:
-                jobs.append((index, row, words))
-        if not jobs:
-            return self._json({"error": "That column is empty on every row."}, 400)
-
-        options = Options(payload)
-        estimate = sum(estimate_cost(w, options.model, options.engine)
-                       for _, _, w in jobs)
-        guard = self._check_budget(estimate, payload)
-        if guard:
-            return self._json(*guard)
-
-        say.apply_credentials()
-        results, paths, total = [], [], 0.0
-        folder = out_dir() / f"batch-{payload.get('token')}"
-        folder.mkdir(parents=True, exist_ok=True)
-
-        job = start_progress(done=0, total=len(jobs), stage="Speaking rows")
-        try:
-            for done, (index, row, words) in enumerate(jobs):
-                set_progress(job, done=done, label=words[:60])
-                label = batch.cell(row, columns.get("name")) or f"row-{index + 2}"
-                try:
-                    row_voice = batch.cell(row, columns.get("voice")) or options.voice
-                    per_row = Options({
-                        **payload,
-                        "voice": row_voice,
-                        "voice_identity_id": (options.voice_identity_id
-                                              if row_voice == options.voice else None),
-                        "language": batch.cell(row, columns.get("language"))
-                                    or payload.get("language"),
-                    }, bindings=options.routing_bindings)
-                    prepared, _ = say.apply_pronunciations(words)
-                    prepared, _ = maybe_normalise(prepared)
-                    audio, failures, _, usage = alibaba_speech.synthesize(
-                        say.chunk_text(prepared), per_row)
-                    estimated_cost = estimate_cost(prepared, per_row.model, per_row.engine)
-                    row_cost, cost_basis = speech_cost(prepared, per_row, usage)
-                    self._log("batch", model=per_row.model_id,
-                              status="ok" if audio else "failed",
-                              estimated=estimated_cost,
-                              cost=row_cost if audio else 0,
-                              usage=usage, cost_basis=cost_basis,
-                              chars=len(prepared), voice=per_row.voice,
-                              voice_identity_id=per_row.voice_identity_id,
-                              provider_voice_id=per_row.voice,
-                              engine=per_row.engine, tier=per_row.model,
-                              detail=f"row {index + 2}",
-                              error=None if audio else "no audio came back")
-                    if not audio:
-                        raise RuntimeError("no audio came back")
-
-                    filename = (f"{batch.safe_name(label, f'row-{index + 2}')}"
-                                f".{output_extension(per_row.format)}")
-                    target = folder / filename
-                    target.write_bytes(audio)
-                    paths.append(target)
-                    cost = round(row_cost, 6)
-                    total += cost
-                    results.append({
-                        "row": index + 2, "name": filename, "text": words[:90],
-                        "url": f"/batch-audio/{folder.name}/{filename}",
-                        "size_mb": round(len(audio) / 1_000_000, 2),
-                        "cost": round(cost, 4), "failed_parts": len(failures),
-                    })
-                except Exception as exc:
-                    results.append({"row": index + 2, "text": words[:90],
-                                    "error": human_error(exc)})
-        finally:
-            clear_progress(job)
-
-        if paths:
-            (folder / "all.zip").write_bytes(batch.make_zip(paths))
-        return self._json({
-            "results": results, "cost": round(total, 4), "folder": folder.name,
-            "zip": f"/batch-audio/{folder.name}/all.zip" if paths else None,
-            "made": len(paths), "failed": len(results) - len(paths),
-        })
-
     def _speak_many_languages(self, payload: dict):
         """Translate one script into several languages and speak each of them."""
         text = (payload.get("text") or "").strip()
@@ -2688,7 +2513,6 @@ class Handler(SimpleHTTPRequestHandler):
             },
             "instruction_max": INSTRUCTION_MAX,
             "rates": RATES,
-            "batch_max_rows": batch.MAX_ROWS,
             "synth_flags": say.SYNTH_FLAGS,
             "chunk_size": say.MAX_CHARS,
             "has_key": bool(os.getenv("DASHSCOPE_API_KEY")),
@@ -2886,7 +2710,6 @@ class Handler(SimpleHTTPRequestHandler):
             "/api/v1/venture-logos/upload": 8_000_000,
             "/api/v1/voice-images/upload": 8_000_000,
             "/api/asset/upload": 250_000_000,
-            "/api/batch/preview": 25_000_000,
         }
         limit = upload_limits.get(path, 5_000_000)
         if length < 0 or length > limit:
@@ -2913,8 +2736,6 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._icon_upload(raw)
             if path == "/api/asset/upload":
                 return self._asset_upload(raw)
-            if path == "/api/batch/preview":
-                return self._batch_preview(raw)
             payload = json.loads(raw or b"{}")
             if self._api_v1_post(path, payload):
                 return
@@ -2935,7 +2756,6 @@ class Handler(SimpleHTTPRequestHandler):
                 "/api/transcript/delete": lambda p: self._json(
                     {"ok": db.transcript_delete(int(p["id"]))}),
                 "/api/speak/languages": self._speak_many_languages,
-                "/api/batch/run": self._batch_run,
                 "/api/project/create": self._project_create,
                 "/api/project/rename": lambda p: self._json(
                     {"ok": db.project_rename(int(p["id"]), p["name"])}),

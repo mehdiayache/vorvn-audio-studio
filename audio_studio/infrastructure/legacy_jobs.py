@@ -32,9 +32,6 @@ class LegacyProviderJobHandlers:
         payload.pop("operation", None)
         return self._post(job, repository, path, "Preparing speech", payload)
 
-    def batch(self, job: Job, repository: JobRepository) -> dict[str, Any]:
-        return self._post(job, repository, "/api/batch/run", "Generating batch rows")
-
     def _post(self, job: Job, repository: JobRepository, path: str,
               label: str, values: dict[str, Any] | None = None) -> dict[str, Any]:
         repository.progress(job.id, 0, 1, label)

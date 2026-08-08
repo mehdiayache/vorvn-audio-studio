@@ -16,6 +16,8 @@ KIND_LABELS = {
 
 def _basis(value: str | None) -> str:
     lowered = (value or "unknown").lower()
+    if "mixed" in lowered:
+        return "mixed_usage"
     if "actual" in lowered or "token" in lowered:
         return "actual_usage"
     if "catalog" in lowered or "duration" in lowered or "character" in lowered:

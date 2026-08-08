@@ -163,6 +163,12 @@ Example accepted response:
 `events` may use Server-Sent Events for progress, but the durable Job is the
 source of truth. Disconnecting a browser does not lose the operation.
 
+Batch uses a two-step contract: `/batches/preview` parses and stores the sheet
+without contacting a provider, then `/jobs/batch` validates the selected
+columns and every mapped voice before synthesis. One failed row does not erase
+successful rows. The parent Job records aggregate spend and usage while its
+result keeps the resolved model, voice, cost basis and error for each row.
+
 ## Migration boundary
 
 ```text

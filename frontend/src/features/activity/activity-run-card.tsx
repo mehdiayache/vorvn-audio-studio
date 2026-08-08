@@ -4,7 +4,7 @@ import { formatMoney } from "@/lib/format"
 import type { ActivityRun } from "@/types/domain"
 
 export function costBasisLabel(basis: string) {
-  return ({ actual_usage: "Provider usage", catalog_usage: "Catalogue usage",
+  return ({ actual_usage: "Provider usage", catalog_usage: "Catalogue usage", mixed_usage: "Mixed usage",
     estimate: "Estimate", not_billed: "Not billed",
     historical_unknown: "Historical" } as Record<string, string>)[basis] || "Unknown"
 }

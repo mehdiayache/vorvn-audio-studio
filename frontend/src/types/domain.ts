@@ -623,14 +623,17 @@ export type BatchPreview = {
 }
 
 export type BatchResult = {
-  results: Array<{ row: number; name?: string; text: string; url?: string; cost?: number; error?: string }>
+  results: Array<{ row: number; name?: string; text: string; url?: string; cost?: number; error?: string; warning?: string }>
   cost: number
+  estimated_cost?: number
+  cost_basis?: string
   folder: string
   zip?: string | null
   made: number
   failed: number
   needs_confirmation?: boolean
   estimate?: number
+  failures?: Array<{ row: number; error: string }>
 }
 
 export type DurableJob<T = Record<string, unknown>> = {

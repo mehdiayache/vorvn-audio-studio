@@ -57,7 +57,7 @@ Never delete the old system first and rebuild everything at once.
 - [x] Text preparation (active Shape/Tag execution)
 - [x] Translation (active subtitle execution)
 - [x] Transcription (active external and Production caption execution)
-- [ ] Batch
+- [x] Batch (spreadsheet intake, native row generation and output delivery)
 - [ ] Speech generation
 - [ ] Voice cloning
 - [ ] Confirm zero active runtime dependencies
@@ -79,29 +79,29 @@ Never delete the old system first and rebuild everything at once.
 
 ## Current step
 
-Batch is the next migration capability.
+Speech generation is the next migration capability.
 
-Inspect spreadsheet parsing, row validation, destination placement, per-row
-speech routing, progress, partial failure and accounting before changing it.
-Do not remove the Batch loopback route until the native replacement is
-verified.
+Extract create, regenerate and draft-render operations through one native
+speech service. Preserve destination ownership, takes, text states, provider
+routing, fidelity checks, partial chunk warnings, exact accounting and durable
+progress. Remove each loopback operation only after its React flow works.
 
 ## Last verified checkpoint
 
 - Repository: `https://github.com/mehdiayache/vorvn-audio-studio` (private)
-- Checkpoint: native Transcription slice (the commit carrying this
+- Checkpoint: native Batch slice (the commit carrying this
   record)
-- Tests: 45 focused Python tests including real PostgreSQL transcript
-  persistence, provider contracts and pricing; 19 HTTP integration checks,
+- Tests: focused Python tests including real PostgreSQL Batch policy and Job
+  ledger reads, provider contracts and pricing; HTTP integration checks,
   15 Phase 1 checks, 12 Phase 2 checks and 6 canonical domain checks passed
 - Frontend: OpenAPI generation, strict TypeScript build, Vite build, 19 Vitest
   files and 59 tests passed
-- Manual flow: restarted React app, opened Subtitles and a real Production
-  caption panel, and verified the native contracts without submitting audio
+- Manual flow: restarted React app, opened Batch, loaded and mapped a free
+  local fixture, and verified controls without submitting a paid generation
 - Runtime: one supervisor, one loopback compatibility process and one current
   worker; stale development workers were stopped before verification
-- Remaining dependency: Batch and Speech Jobs still delegate to `server.py`;
-  Voice cloning and several canonical services still call `db.py`
+- Remaining dependency: Speech Jobs still delegate to `server.py`; Voice
+  cloning and several canonical services still call `db.py`
 
 ## Findings
 
@@ -125,6 +125,15 @@ verified.
 - Qwen3-ASR uses provider-reported billable seconds when available while saved
   subtitle duration remains the final timed cue. Word timings are always
   requested, with the documented language limitation still visible in React.
+- Batch preview and generation now use native application services, a contained
+  filesystem workspace, a PostgreSQL speech-policy repository and the Alibaba
+  speech adapter. The worker no longer calls the Batch loopback route.
+- Batch validates column bounds, tokens and mapped provider voice IDs before
+  any paid call. Duplicate spreadsheet names cannot overwrite prior rows, and
+  partial row failures preserve successful audio and mark the durable Job.
+- Batch accounting records each resolved row route and aggregates actual Omni
+  token usage or regional Qwen Audio catalogue character cost. Completed Jobs
+  now also retain resolved model/engine/voice and elapsed time.
 - Legacy-only prompt preview/save routes remain quarantined with the unreachable
   old UI and are not part of active Shape/Tag execution.
 - `db.py` remains an active persistence compatibility layer.

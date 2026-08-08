@@ -148,15 +148,22 @@ class JobRepository:
                 UPDATE jobs SET status = %s, result = %s::jsonb, cost = %s,
                        estimated = greatest(estimated, %s),
                        chars = greatest(chars, %s),
+                       model = coalesce(%s, model),
+                       engine = coalesce(%s, engine),
+                       voice = coalesce(%s, voice),
                        usage = %s::jsonb, provider_request_id = %s,
                        cost_basis = %s, price_version = %s,
                        provider_region = %s, provider_endpoint = %s,
                        resolved_route = %s::jsonb, output_ids = %s::jsonb,
-                       finished_at = now(), last_heartbeat_at = now()
+                       finished_at = now(), last_heartbeat_at = now(),
+                       elapsed_ms = greatest(0, extract(epoch from
+                           (now() - coalesce(started_at, created_at))) * 1000)::int
                  WHERE id = %s
             """, (status, json.dumps(result), cost,
                   float(result.get("estimated_cost") or result.get("estimate") or 0),
-                  int(result.get("chars") or 0), json.dumps(usage or {}),
+                  int(result.get("chars") or 0), result.get("model") or None,
+                  result.get("engine") or None, result.get("voice") or None,
+                  json.dumps(usage or {}),
                   provider_request_id or result.get("provider_request_id"),
                   result.get("cost_basis") or "unknown", result.get("price_version"),
                   result.get("provider_region"), result.get("provider_endpoint"),

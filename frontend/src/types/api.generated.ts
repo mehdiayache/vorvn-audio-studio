@@ -1291,24 +1291,36 @@ export interface components {
             /** Insert At */
             insert_at?: number | null;
         };
+        /** BatchColumns */
+        BatchColumns: {
+            /** Language */
+            language?: number | null;
+            /** Name */
+            name?: number | null;
+            /** Text */
+            text: number;
+            /** Voice */
+            voice?: number | null;
+        };
         /** BatchJobCreate */
         BatchJobCreate: {
-            /** Columns */
-            columns: {
-                [key: string]: number | null;
-            };
+            columns: components["schemas"]["BatchColumns"];
             /**
              * Confirmed
              * @default false
              */
             confirmed: boolean;
-            /** Engine */
-            engine: string;
+            /**
+             * Engine
+             * @enum {string}
+             */
+            engine: "audio" | "omni";
             /**
              * Format
              * @default mp3
+             * @enum {string}
              */
-            format: string;
+            format: "mp3" | "mp3-24k" | "wav" | "opus";
             /**
              * Instruction
              * @default
@@ -1319,8 +1331,11 @@ export interface components {
              * @default
              */
             language: string;
-            /** Model */
-            model: string;
+            /**
+             * Model
+             * @enum {string}
+             */
+            model: "plus" | "flash";
             /**
              * Pitch
              * @default 1

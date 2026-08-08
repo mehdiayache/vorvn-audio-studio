@@ -1,34 +1,83 @@
-"""Spreadsheet intake for durable Batch jobs; parsing never spends provider money."""
+"""Batch spreadsheet intake and generation, independent of HTTP and Alibaba."""
 
 from __future__ import annotations
 
-from datetime import datetime
-import json
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any, Callable, Protocol
 from urllib.parse import unquote
-from uuid import uuid4
 
-import batch
-import db
-import say
+import batch as spreadsheet
 
-from audio_studio.config import settings
+from audio_studio.domain.jobs import Job
 
 
-def _known_voice_ids() -> set[str]:
-    known = {str(voice_id) for tier in say.VOICES.values() for voice_id in tier}
-    known.update(str(item.get("voice_id") or "") for item in db.voice_custom_bindings())
-    return {voice for voice in known if voice}
+@dataclass(frozen=True, slots=True)
+class PreparedBatchSpeech:
+    original_text: str
+    spoken_text: str
+    voice: str
+    voice_identity_id: str | None
+    engine: str
+    tier: str
+    model_id: str
+    output_format: str
+    extension: str
+    estimated_cost: float
+    context: object = field(repr=False, compare=False)
 
 
-def _voice_check(sheet: dict, column: int | None) -> dict:
+@dataclass(frozen=True, slots=True)
+class SynthesizedBatchSpeech:
+    audio: bytes
+    cost: float
+    cost_basis: str
+    usage: dict[str, int | float]
+    failures: list[dict]
+    returned_text: str | None = None
+    provider_region: str | None = None
+    provider_endpoint: str | None = None
+    price_version: str | None = None
+    catalog_rate: str | None = None
+    request_ids: list[str] = field(default_factory=list)
+
+
+class BatchWorkspace(Protocol):
+    def save_sheet(self, sheet: dict) -> str: ...
+    def load_sheet(self, token: str) -> dict: ...
+    def create_output(self, token: str, run_id: str) -> str: ...
+    def write_audio(self, folder: str, filename: str, audio: bytes) -> None: ...
+    def write_zip(self, folder: str, filenames: list[str]) -> bool: ...
+
+
+class BatchRepository(Protocol):
+    def voice_bindings(self) -> list[dict]: ...
+    def pronunciations(self) -> list[dict]: ...
+    def today_spend(self) -> float: ...
+
+
+class BatchSpeechProvider(Protocol):
+    def prepare(self, *, text: str, values: dict, bindings: list[dict],
+                pronunciations: list[dict], preferences: dict
+                ) -> PreparedBatchSpeech: ...
+    def synthesize(self, prepared: PreparedBatchSpeech,
+                   on_progress=None) -> SynthesizedBatchSpeech: ...
+
+
+def _known_voice_ids(bindings: list[dict]) -> set[str]:
+    return {str(item.get("provider_voice_id") or item.get("voice_id") or "")
+            for item in bindings
+            if item.get("provider_voice_id") or item.get("voice_id")}
+
+
+def _voice_check(sheet: dict, column: int | None,
+                 known: set[str]) -> dict:
     if column is None:
         return {"unknown": [], "checked": 0}
-    known = _known_voice_ids()
     seen: set[str] = set()
     unknown: dict[str, int] = {}
-    for index, row in enumerate(sheet["rows"], 1):
-        value = batch.cell(row, column)
+    for index, row in enumerate(sheet["rows"], 2):
+        value = spreadsheet.cell(row, column)
         if not value or value in seen:
             continue
         seen.add(value)
@@ -41,21 +90,276 @@ def _voice_check(sheet: dict, column: int | None) -> dict:
     }
 
 
-def preview(raw: bytes, filename: str) -> dict:
-    if not raw:
-        raise ValueError("Choose a spreadsheet first.")
-    if len(raw) > 25_000_000:
-        raise ValueError("That spreadsheet is over 25 MB.")
-    safe_name = Path(unquote(filename)).name or "sheet.csv"
-    sheet = batch.read(safe_name, raw)
-    root = settings.root / ".batches"
-    root.mkdir(exist_ok=True)
-    token = f"{datetime.now():%Y%m%d-%H%M%S}-{uuid4().hex[:8]}"
-    (root / f"{token}.json").write_text(json.dumps(sheet), encoding="utf-8")
-    guess = batch.guess_columns(sheet["headers"])
-    return {
-        "token": token, "name": safe_name, "headers": sheet["headers"],
-        "rows": len(sheet["rows"]), "preview": sheet["rows"][:8],
-        "guess": guess, "voices": _voice_check(sheet, guess.get("voice")),
-        "truncated": sheet["truncated"], "max_rows": batch.MAX_ROWS,
-    }
+class BatchIntakeService:
+    def __init__(self, workspace: BatchWorkspace,
+                 repository: BatchRepository):
+        self.workspace = workspace
+        self.repository = repository
+
+    def preview(self, raw: bytes, filename: str) -> dict:
+        if not raw:
+            raise ValueError("Choose a spreadsheet first.")
+        if len(raw) > 25_000_000:
+            raise ValueError("That spreadsheet is over 25 MB.")
+        safe_name = Path(unquote(filename)).name or "sheet.csv"
+        sheet = spreadsheet.read(safe_name, raw)
+        token = self.workspace.save_sheet(sheet)
+        guess = spreadsheet.guess_columns(sheet["headers"])
+        known = _known_voice_ids(self.repository.voice_bindings())
+        return {
+            "token": token, "name": safe_name, "headers": sheet["headers"],
+            "rows": len(sheet["rows"]), "preview": sheet["rows"][:8],
+            "guess": guess,
+            "voices": _voice_check(sheet, guess.get("voice"), known),
+            "truncated": sheet["truncated"], "max_rows": spreadsheet.MAX_ROWS,
+        }
+
+
+def _column(columns: dict, key: str, width: int,
+            *, required: bool = False) -> int | None:
+    value = columns.get(key)
+    if value is None and not required:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError(f"The {key} column is invalid.")
+    if value >= width:
+        raise ValueError(f"The {key} column is no longer in this spreadsheet.")
+    return value
+
+
+def _unique_filename(label: str, fallback: str, extension: str,
+                     used: set[str]) -> str:
+    stem = spreadsheet.safe_name(label, fallback)
+    candidate = f"{stem}.{extension}"
+    if candidate.casefold() in used:
+        candidate = f"{stem}-{fallback}.{extension}"
+    suffix = 2
+    root = candidate
+    while candidate.casefold() in used:
+        candidate = f"{Path(root).stem}-{suffix}.{extension}"
+        suffix += 1
+    used.add(candidate.casefold())
+    return candidate
+
+
+def _sum_usage(total: dict[str, int | float], values: dict) -> None:
+    for key, value in values.items():
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        total[key] = total.get(key, 0) + value
+
+
+def _human_error(error: Exception) -> str:
+    message = str(error).strip()
+    lowered = f"{type(error).__name__} {message}".lower()
+    if "apikey" in lowered or "api key" in lowered or "unauthorized" in lowered:
+        return ("Your API key was rejected. Check it in Settings, and confirm "
+                "that its region matches Audio Studio.")
+    if "arrearage" in lowered or "insufficient" in lowered or "quota" in lowered:
+        return ("Alibaba refused the request over billing or quota. Check your "
+                "Model Studio account.")
+    if "voice" in lowered and ("not exist" in lowered or "unsupported" in lowered):
+        return "That voice is unavailable for the selected Alibaba model."
+    return message if isinstance(error, RuntimeError) and message else (
+        f"{type(error).__name__}: {message}" if message else type(error).__name__)
+
+
+class BatchGenerationService:
+    def __init__(self, workspace: BatchWorkspace,
+                 repository: BatchRepository, provider: BatchSpeechProvider,
+                 preferences: Callable[[], dict]):
+        self.workspace = workspace
+        self.repository = repository
+        self.provider = provider
+        self.preferences = preferences
+
+    def run(self, *, token: str, columns: dict, voice: str,
+            voice_identity_id: str | None = None, engine: str = "audio",
+            model: str = "plus", format: str = "mp3", language: str = "",
+            instruction: str = "", rate: float = 1, pitch: float = 1,
+            volume: int = 50, confirmed: bool = False,
+            run_id: str = "batch", on_progress=None) -> dict:
+        sheet = self.workspace.load_sheet(token)
+        width = len(sheet.get("headers") or [])
+        text_column = _column(columns, "text", width, required=True)
+        name_column = _column(columns, "name", width)
+        voice_column = _column(columns, "voice", width)
+        language_column = _column(columns, "language", width)
+        rows = [(index, row, spreadsheet.cell(row, text_column))
+                for index, row in enumerate(sheet.get("rows") or [], 2)]
+        rows = [item for item in rows if item[2]]
+        if not rows:
+            raise ValueError("That column is empty on every row.")
+
+        bindings = self.repository.voice_bindings()
+        known = _known_voice_ids(bindings)
+        selected_voices = _voice_check(sheet, voice_column, known)
+        if voice not in known:
+            raise ValueError("The default voice is no longer available.")
+        if selected_voices["unknown"]:
+            detail = ", ".join(
+                f"{item['voice']} (row {item['first_row']})"
+                for item in selected_voices["unknown"][:5])
+            raise ValueError(f"Unknown voice IDs: {detail}.")
+
+        pronunciations = self.repository.pronunciations()
+        preferences = self.preferences()
+        prepared_rows: list[tuple[int, list, PreparedBatchSpeech]] = []
+        defaults = {
+            "voice": voice, "voice_identity_id": voice_identity_id,
+            "engine": engine, "model": model, "format": format,
+            "language": language, "instruction": instruction,
+            "rate": rate, "pitch": pitch, "volume": volume,
+        }
+        for row_number, row, words in rows:
+            row_voice = spreadsheet.cell(row, voice_column) or voice
+            values = {
+                **defaults, "text": words, "voice": row_voice,
+                "voice_identity_id": (voice_identity_id
+                                      if row_voice == voice else None),
+                "language": (spreadsheet.cell(row, language_column)
+                             or language),
+            }
+            prepared_rows.append((
+                row_number, row,
+                self.provider.prepare(
+                    text=words, values=values, bindings=bindings,
+                    pronunciations=pronunciations, preferences=preferences),
+            ))
+
+        estimate = round(sum(item[2].estimated_cost
+                             for item in prepared_rows), 6)
+        cap = float(preferences.get("daily_cap") or 0)
+        spent = self.repository.today_spend() if cap > 0 else 0.0
+        if cap > 0 and spent + estimate > cap:
+            raise PermissionError(
+                f"Daily cap reached. You've spent ${spent:.4f} today and this "
+                f"would add about ${estimate:.4f}, over your ${cap:.2f} cap.")
+        warning = float(preferences.get("warn_above") or 0)
+        if warning > 0 and estimate > warning and not confirmed:
+            return {"needs_confirmation": True, "estimate": estimate,
+                    "estimated_cost": estimate, "cost": 0}
+
+        folder = self.workspace.create_output(token, run_id)
+        results: list[dict[str, Any]] = []
+        files: list[str] = []
+        problems: list[dict[str, Any]] = []
+        used_names: set[str] = set()
+        usage: dict[str, int | float] = {}
+        total_cost = 0.0
+        models: set[str] = set()
+        engines: set[str] = set()
+        voices: set[str] = set()
+        regions: set[str] = set()
+        endpoints: set[str] = set()
+        bases: set[str] = set()
+        price_versions: set[str] = set()
+        request_ids: list[str] = []
+
+        for done, (row_number, row, prepared) in enumerate(prepared_rows):
+            if on_progress:
+                on_progress(done, len(prepared_rows),
+                            f"Speaking spreadsheet row {row_number}")
+            label = (spreadsheet.cell(row, name_column)
+                     or f"row-{row_number}")
+            try:
+                made = self.provider.synthesize(prepared)
+                if not made.audio:
+                    raise RuntimeError("Alibaba returned no audio.")
+                filename = _unique_filename(
+                    label, f"row-{row_number}", prepared.extension, used_names)
+                self.workspace.write_audio(folder, filename, made.audio)
+                files.append(filename)
+                total_cost += float(made.cost)
+                _sum_usage(usage, made.usage)
+                models.add(prepared.model_id)
+                engines.add(prepared.engine)
+                voices.add(prepared.voice)
+                if made.provider_region:
+                    regions.add(made.provider_region)
+                if made.provider_endpoint:
+                    endpoints.add(made.provider_endpoint)
+                bases.add(made.cost_basis)
+                if made.price_version:
+                    price_versions.add(made.price_version)
+                request_ids.extend(made.request_ids)
+                item = {
+                    "row": row_number, "name": filename,
+                    "text": prepared.original_text[:90],
+                    "url": f"/batch-audio/{folder}/{filename}",
+                    "size_mb": round(len(made.audio) / 1_000_000, 2),
+                    "cost": round(float(made.cost), 6),
+                    "cost_basis": made.cost_basis,
+                    "model": prepared.model_id, "engine": prepared.engine,
+                    "voice": prepared.voice,
+                    "voice_identity_id": prepared.voice_identity_id,
+                    "usage": made.usage, "request_ids": made.request_ids,
+                    "price_version": made.price_version,
+                    "catalog_rate": made.catalog_rate,
+                    "failed_parts": len(made.failures),
+                }
+                if made.failures:
+                    item["warning"] = (
+                        f"{len(made.failures)} speech chunk(s) are missing.")
+                    problems.append({"row": row_number,
+                                     "error": item["warning"]})
+                results.append(item)
+            except Exception as error:
+                item = {"row": row_number,
+                        "text": prepared.original_text[:90],
+                        "error": _human_error(error)}
+                results.append(item)
+                problems.append(item)
+
+        if on_progress:
+            on_progress(len(prepared_rows), len(prepared_rows), "Batch complete")
+        zipped = self.workspace.write_zip(folder, files) if files else False
+        usage.update({"rows_made": len(files),
+                      "rows_failed": len(results) - len(files),
+                      "characters": sum(len(item[2].spoken_text)
+                                        for item in prepared_rows)})
+        cost_basis = next(iter(bases)) if len(bases) == 1 else (
+            "mixed_usage" if bases else "not_billed")
+        model_id = next(iter(models)) if len(models) == 1 else (
+            "mixed" if models else "")
+        resolved_engine = next(iter(engines)) if len(engines) == 1 else (
+            "mixed" if engines else "")
+        resolved_voice = next(iter(voices)) if len(voices) == 1 else (
+            "mixed" if voices else "")
+        region = next(iter(regions)) if len(regions) == 1 else (
+            "mixed" if regions else None)
+        endpoint = next(iter(endpoints)) if len(endpoints) == 1 else None
+        return {
+            "results": results, "cost": round(total_cost, 6),
+            "estimated_cost": estimate, "cost_basis": cost_basis,
+            "folder": folder,
+            "zip": f"/batch-audio/{folder}/all.zip" if zipped else None,
+            "made": len(files), "failed": len(results) - len(files),
+            "failures": problems, "usage": usage,
+            "chars": int(usage["characters"]), "model": model_id,
+            "engine": resolved_engine, "voice": resolved_voice,
+            "provider_region": region, "provider_endpoint": endpoint,
+            "price_version": (next(iter(price_versions))
+                              if len(price_versions) == 1 else None),
+            "provider_request_id": (request_ids[0]
+                                    if len(request_ids) == 1 else None),
+            "request_ids": request_ids,
+        }
+
+
+class BatchJobHandler:
+    def __init__(self, service: BatchGenerationService):
+        self.service = service
+
+    def __call__(self, job: Job, repository) -> dict:
+        repository.progress(job.id, 0, 1, "Preparing spreadsheet rows")
+        return self.service.run(
+            **{key: value for key, value in job.payload.items()
+               if key in {"token", "columns", "voice", "voice_identity_id",
+                          "engine", "model", "format", "language",
+                          "instruction", "rate", "pitch", "volume",
+                          "confirmed"}},
+            run_id=str(job.public_id),
+            on_progress=lambda done, total, detail: repository.progress(
+                job.id, done, total, detail),
+        )

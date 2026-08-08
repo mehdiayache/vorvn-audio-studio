@@ -178,6 +178,16 @@ with tempfile.TemporaryDirectory() as directory:
               status == 404 and payload.get("error") == "unknown endpoint",
               (status, payload))
 
+        print("\nlegacy Batch boundary")
+        status, _, data = request(port, "POST", "/api/batch/run", {
+            "token": "fixture", "columns": {"text": 0},
+            "voice": "fixture", "engine": "audio", "model": "plus",
+        })
+        payload = json.loads(data)
+        check("legacy Batch execution route is removed",
+              status == 404 and payload.get("error") == "unknown endpoint",
+              (status, payload))
+
         print("\nserver-side invariants")
         status, _, data = request(port, "POST", "/api/speak", {
             "text": "Never send this", "project_id": 999,
