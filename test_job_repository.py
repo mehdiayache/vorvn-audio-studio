@@ -40,12 +40,14 @@ class JobRepositoryTests(unittest.TestCase):
                 "id": 42, "cost_basis": "catalog_duration",
                 "price_version": "fixture-price", "provider_region": "intl",
                 "model": "qwen3-asr-flash-filetrans",
+                "estimated_cost": 0.001, "chars": 123,
             }, cost=0.000826)
             with connection.cursor() as cursor:
-                cursor.execute("SELECT cost_basis, price_version, provider_region, output_ids FROM jobs WHERE id = %s", (job.id,))
-                basis, version, region, outputs = cursor.fetchone()
+                cursor.execute("SELECT cost_basis, price_version, provider_region, output_ids, estimated, chars FROM jobs WHERE id = %s", (job.id,))
+                basis, version, region, outputs, estimated, chars = cursor.fetchone()
                 self.assertEqual((basis, version, region), ("catalog_duration", "fixture-price", "intl"))
                 self.assertEqual(outputs, [{"type": "part", "id": 42}])
+                self.assertEqual((float(estimated), chars), (0.001, 123))
                 cursor.execute("SELECT action FROM audit_records WHERE resource_id = %s ORDER BY id", (str(job.id),))
                 self.assertEqual([row[0] for row in cursor.fetchall()], ["job.enqueued", "job.completed"])
         finally:

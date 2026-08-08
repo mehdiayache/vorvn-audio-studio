@@ -146,13 +146,17 @@ class JobRepository:
             outputs = _output_ids(kind, result)
             cursor.execute("""
                 UPDATE jobs SET status = %s, result = %s::jsonb, cost = %s,
+                       estimated = greatest(estimated, %s),
+                       chars = greatest(chars, %s),
                        usage = %s::jsonb, provider_request_id = %s,
                        cost_basis = %s, price_version = %s,
                        provider_region = %s, provider_endpoint = %s,
                        resolved_route = %s::jsonb, output_ids = %s::jsonb,
                        finished_at = now(), last_heartbeat_at = now()
                  WHERE id = %s
-            """, (status, json.dumps(result), cost, json.dumps(usage or {}),
+            """, (status, json.dumps(result), cost,
+                  float(result.get("estimated_cost") or result.get("estimate") or 0),
+                  int(result.get("chars") or 0), json.dumps(usage or {}),
                   provider_request_id or result.get("provider_request_id"),
                   result.get("cost_basis") or "unknown", result.get("price_version"),
                   result.get("provider_region"), result.get("provider_endpoint"),

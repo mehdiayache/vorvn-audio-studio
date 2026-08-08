@@ -2485,77 +2485,6 @@ class Handler(SimpleHTTPRequestHandler):
 
         return self._json({"results": results, "cost": round(total_cost, 4)})
 
-    def _translate_subtitles(self, payload: dict):
-        """Re-say an existing transcript in another language, timings intact."""
-        durable_job = bool(payload.pop("_durable_job", False))
-        durable_job_id = int(payload.pop("_durable_job_id", 0) or 0) or None
-        row = db.transcript_get(int(payload.get("id") or 0))
-        if not row:
-            return self._json({"error": "That transcript is gone."}, 404)
-        target = (payload.get("target") or "").strip()
-        if not target:
-            return self._json({"error": "Pick a language to translate into."}, 400)
-
-        sentences = row["sentences"] or []
-        if not sentences:
-            return self._json({"error": "Nothing to translate."}, 400)
-
-        characters = sum(len(s["text"] or "") for s in sentences)
-        guard = self._check_budget(characters / 1_000_000 * 2.0, payload)
-        if guard:
-            return self._json(*guard)
-
-        say.apply_credentials()
-        lines = [s["text"] for s in sentences]
-        run = None if durable_job else self._run("translate", model=payload.get("quality", "fast"),
-                        estimated=characters / 1_000_000 * 2.0, chars=characters,
-                        total=len(lines), generation_id=row.get("generation_id"),
-                        detail=f"into {target}")
-        job = start_progress(done=0, total=len(lines),
-                     stage=f"Translating into {target}")
-        try:
-            translated = translate.translate_lines(
-                lines, target=target, source=(payload.get("source") or None),
-                model=payload.get("quality", "fast"),
-                on_progress=lambda done, total: set_progress(job, done=done, total=total),
-            )
-        finally:
-            clear_progress(job)
-
-        # Word-level timings belong to the original words, so they are dropped;
-        # to_cues shares each sentence's span out by length instead.
-        result = {
-            "text": " ".join(translated),
-            "duration_ms": row["duration_ms"],
-            "sentences": [{**s, "text": t, "words": []}
-                          for s, t in zip(sentences, translated)],
-        }
-        srt, vtt = transcribe.to_srt(result), transcribe.to_vtt(result)
-        cost = characters / 1_000_000 * 2.0
-        if run is not None:
-            self._done(run, status="ok", cost=cost, done=len(lines))
-        new_id = db.transcript_save({
-            "name": f"{row['name']} [{target}]", "source_url": row["source_url"],
-            "audio_url": row["audio_url"], "language": target,
-            "duration_ms": row["duration_ms"], "text": result["text"],
-            "srt": srt, "vtt": vtt, "sentences": result["sentences"],
-            "generation_id": row.get("generation_id"), "translated_from": row["id"],
-            "source_job_id": durable_job_id, "model": payload.get("quality", "fast"),
-            "provider_region": alibaba_config.region(),
-            "price_version": "legacy-qwen-mt-character-rate",
-            "catalog_rate": 2.0 / 1_000_000,
-            "catalog_cost": round(cost, 6), "cost_basis": "catalog_characters",
-        })
-        return self._json({
-            "id": new_id, "file": f"{row['name']} [{target}]",
-            "url": row["audio_url"], "text": result["text"],
-            "sentences": result["sentences"], "duration_ms": row["duration_ms"],
-            "srt": srt, "vtt": vtt, "cost": round(cost, 6),
-            "cost_basis": "catalog_characters", "model": payload.get("quality", "fast"),
-            "provider_region": alibaba_config.region(),
-            "price_version": "legacy-qwen-mt-character-rate",
-        })
-
     def _vocabulary_save(self, payload: dict):
         """Create or replace a vocabulary, refusing anything the service would."""
         words, rejected = vocabulary.clean(payload.get("words", []))
@@ -3130,7 +3059,6 @@ class Handler(SimpleHTTPRequestHandler):
                 "/api/transcribe": self._transcribe,
                 "/api/transcript/delete": lambda p: self._json(
                     {"ok": db.transcript_delete(int(p["id"]))}),
-                "/api/translate/subtitles": self._translate_subtitles,
                 "/api/speak/languages": self._speak_many_languages,
                 "/api/batch/run": self._batch_run,
                 "/api/project/create": self._project_create,

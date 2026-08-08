@@ -55,7 +55,7 @@ Never delete the old system first and rebuild everything at once.
 ### Legacy server.py
 
 - [x] Text preparation (active Shape/Tag execution)
-- [ ] Translation
+- [x] Translation (active subtitle execution)
 - [ ] Transcription
 - [ ] Batch
 - [ ] Speech generation
@@ -79,29 +79,29 @@ Never delete the old system first and rebuild everything at once.
 
 ## Current step
 
-Translation is the next migration capability.
+Transcription is the next migration capability.
 
-Inspect the complete subtitle translation path before changing it. Preserve
-its current language, quality, cost guard, provider and subtitle-persistence
-behavior. Do not remove its loopback route until the native replacement is
-verified.
+Inspect the complete external-audio transcription path before changing it.
+Preserve upload/library input handling, subtitle profiles, Arabic limitations,
+provider routing, cost guards and transcript persistence. Do not remove its
+loopback route until the native replacement is verified.
 
 ## Last verified checkpoint
 
 - Repository: `https://github.com/mehdiayache/vorvn-audio-studio` (private)
-- Checkpoint: native Text preparation slice (the commit carrying this record)
-- Tests: 29 focused Python tests, 19 HTTP integration checks, 15 Phase 1
-  checks, 12 Phase 2 checks, 18 speech regression checks, and 6 canonical
-  domain checks passed
+- Checkpoint: native subtitle Translation slice (the commit carrying this
+  record)
+- Tests: 32 focused Python tests including real PostgreSQL translation
+  persistence, 19 HTTP integration checks, 15 Phase 1 checks, 12 Phase 2
+  checks, pricing regressions, and 6 canonical domain checks passed
 - Frontend: OpenAPI generation, strict TypeScript build, Vite build, 19 Vitest
   files and 59 tests passed
-- Manual flow: restarted React app opened a real Production and its Add speech
-  Composer; no paid provider call was made
+- Manual flow: restarted React app and opened the Subtitles workspace with its
+  translation controls; no paid provider call was made
 - Runtime: one supervisor, one loopback compatibility process and one current
   worker; stale development workers were stopped before verification
-- Remaining dependency: Translation, Transcription, Batch, Speech and Voice
-  cloning Jobs still delegate to `server.py`; several canonical services still
-  call `db.py`
+- Remaining dependency: Transcription, Batch, Speech and Voice cloning Jobs
+  still delegate to `server.py`; several canonical services still call `db.py`
 
 ## Findings
 
@@ -109,6 +109,13 @@ verified.
   deleted early.
 - Shape/Tag Jobs now run through the native Text preparation service, canonical
   PostgreSQL reads and the Alibaba adapter. Their loopback routes were removed.
+- Subtitle Translation Jobs now run through the native application service,
+  PostgreSQL repository and Qwen-MT adapter. Their loopback route was removed.
+- Qwen-MT persistence records the exact provider model, region, request IDs and
+  returned input/output token usage. The old character estimate remains only
+  as the pre-call warning and daily-cap guard.
+- `translate.py` is temporarily a small compatibility facade for the remaining
+  multilingual Speech path; subtitle Translation no longer calls it.
 - Legacy-only prompt preview/save routes remain quarantined with the unreachable
   old UI and are not part of active Shape/Tag execution.
 - `db.py` remains an active persistence compatibility layer.

@@ -11,6 +11,7 @@ from uuid import uuid4
 
 from audio_studio.domain.jobs import Job
 from audio_studio.application.text_preparation import MODEL as TEXT_PREPARATION_MODEL
+from audio_studio.application.translation import MODELS as TRANSLATION_MODELS
 from audio_studio.http.errors import ApiProblem
 from audio_studio.infrastructure.postgres.jobs import JobRepository
 
@@ -93,12 +94,13 @@ class TranscriptionJobCreate(BaseModel):
 
 
 class TranslationJobCreate(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    id: int = Field(gt=0)
+    transcript_id: int = Field(
+        gt=0, validation_alias=AliasChoices("transcript_id", "id"))
     target: str = Field(min_length=1, max_length=80)
-    source: str = ""
-    quality: str = "fast"
+    source: str = Field(default="", max_length=80)
+    quality: Literal["fast", "best"] = "fast"
     confirmed: bool = False
 
 
@@ -186,8 +188,10 @@ def create_transcription_job(payload: TranscriptionJobCreate,
 @router.post("/translation", operation_id="createTranslationJob", status_code=202)
 def create_translation_job(payload: TranslationJobCreate,
                            idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
+    values = {**payload.model_dump(exclude_none=True),
+              "model": TRANSLATION_MODELS[payload.quality]}
     job, created = repository.enqueue(
-        "translate", payload.model_dump(exclude_none=True),
+        "translate", values,
         idempotency_key=(idempotency_key or f"translate-{uuid4()}")[:200],
         source_tool="subtitles", operation_label="Translate subtitles",
     )

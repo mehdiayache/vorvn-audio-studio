@@ -38,9 +38,6 @@ class LegacyProviderJobHandlers:
     def transcribe(self, job: Job, repository: JobRepository) -> dict[str, Any]:
         return self._post(job, repository, "/api/transcribe", "Transcribing audio")
 
-    def translate(self, job: Job, repository: JobRepository) -> dict[str, Any]:
-        return self._post(job, repository, "/api/translate/subtitles", "Translating subtitles")
-
     def _post(self, job: Job, repository: JobRepository, path: str,
               label: str, values: dict[str, Any] | None = None) -> dict[str, Any]:
         repository.progress(job.id, 0, 1, label)

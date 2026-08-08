@@ -13,12 +13,21 @@ from audio_studio.application.text_preparation import (
     TextPreparationJobHandler,
     TextPreparationService,
 )
+from audio_studio.application.translation import (
+    SubtitleTranslationJobHandler,
+    SubtitleTranslationService,
+    Translator,
+)
 
 from audio_studio.application.jobs import JobService
 from audio_studio.infrastructure.alibaba.text_preparation import AlibabaTextProvider
+from audio_studio.infrastructure.alibaba.translation import AlibabaTranslationProvider
 from audio_studio.infrastructure.legacy_jobs import LegacyProviderJobHandlers
 from audio_studio.infrastructure.postgres.text_preparation import (
     PostgresTextPreparationRepository,
+)
+from audio_studio.infrastructure.postgres.translation import (
+    PostgresTranslationRepository,
 )
 
 
@@ -28,7 +37,13 @@ def main() -> int:
     service.register("speech", handlers.speech)
     service.register("batch", handlers.batch)
     service.register("transcribe", handlers.transcribe)
-    service.register("translate", handlers.translate)
+    service.register("translate", SubtitleTranslationJobHandler(
+        SubtitleTranslationService(
+            PostgresTranslationRepository(),
+            Translator(AlibabaTranslationProvider()),
+            load_preferences,
+        )
+    ))
     service.register("rewrite", TextPreparationJobHandler(TextPreparationService(
         PostgresTextPreparationRepository(), AlibabaTextProvider(), load_preferences,
     )))

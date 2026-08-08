@@ -1803,13 +1803,12 @@ export interface components {
              * @default false
              */
             confirmed: boolean;
-            /** Id */
-            id: number;
             /**
              * Quality
              * @default fast
+             * @enum {string}
              */
-            quality: string;
+            quality: "fast" | "best";
             /**
              * Source
              * @default
@@ -1817,6 +1816,8 @@ export interface components {
             source: string;
             /** Target */
             target: string;
+            /** Transcript Id */
+            transcript_id: number;
         };
         /** ValidationError */
         ValidationError: {

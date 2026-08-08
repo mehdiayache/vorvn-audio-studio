@@ -1200,18 +1200,18 @@
             "title": "Confirmed",
             "type": "boolean"
           },
-          "id": {
-            "exclusiveMinimum": 0.0,
-            "title": "Id",
-            "type": "integer"
-          },
           "quality": {
             "default": "fast",
+            "enum": [
+              "fast",
+              "best"
+            ],
             "title": "Quality",
             "type": "string"
           },
           "source": {
             "default": "",
+            "maxLength": 80,
             "title": "Source",
             "type": "string"
           },
@@ -1220,10 +1220,15 @@
             "minLength": 1,
             "title": "Target",
             "type": "string"
+          },
+          "transcript_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Transcript Id",
+            "type": "integer"
           }
         },
         "required": [
-          "id",
+          "transcript_id",
           "target"
         ],
         "title": "TranslationJobCreate",

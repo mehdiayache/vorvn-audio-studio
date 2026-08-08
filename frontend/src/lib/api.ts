@@ -267,7 +267,7 @@ export const studioApi = {
     const response = await request<{ data: DurableJob<CaptionMutationResult> }>("/api/v1/jobs/translation", {
       method: "POST",
       headers: { "Idempotency-Key": `translate-${id}-${target}-${crypto.randomUUID()}` },
-      body: JSON.stringify({ id, target, confirmed }),
+      body: JSON.stringify({ transcript_id: id, target, confirmed }),
     })
     return waitForJob<CaptionMutationResult>(response.data.id)
   },
