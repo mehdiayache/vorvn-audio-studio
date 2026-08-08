@@ -245,7 +245,7 @@ export const studioApi = {
     const response = await request<{ data: DurableJob<GenerateResult> }>("/api/v1/jobs/speech", { method: "POST", headers: { "Idempotency-Key": `regenerate-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ ...payload, operation: "regenerate", part_id: id }) })
     return waitForJob<GenerateResult>(response.data.id)
   },
-  textPass: async (kind: "shape" | "tag", payload: { text: string; project_id: number; id?: number; density?: string; engine: "audio" | "omni"; confirmed?: boolean }) => {
+  textPass: async (kind: "shape" | "tag", payload: { text: string; production_id: number; part_id?: number; density?: "none" | "light" | "normal" | "heavy"; engine: "audio" | "omni"; confirmed?: boolean }) => {
     const response = await request<{ data: DurableJob<TextPassResult> }>("/api/v1/jobs/text", { method: "POST", headers: { "Idempotency-Key": `rewrite-${kind}-${crypto.randomUUID()}` }, body: JSON.stringify({ ...payload, operation: kind }) })
     return waitForJob<TextPassResult>(response.data.id)
   },

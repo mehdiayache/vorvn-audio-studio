@@ -1052,24 +1052,23 @@
           },
           "density": {
             "default": "normal",
+            "enum": [
+              "none",
+              "light",
+              "normal",
+              "heavy"
+            ],
             "title": "Density",
             "type": "string"
           },
           "engine": {
             "default": "audio",
+            "enum": [
+              "audio",
+              "omni"
+            ],
             "title": "Engine",
             "type": "string"
-          },
-          "id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
           },
           "operation": {
             "enum": [
@@ -1079,16 +1078,29 @@
             "title": "Operation",
             "type": "string"
           },
-          "project_id": {
+          "part_id": {
             "anyOf": [
               {
+                "exclusiveMinimum": 0.0,
                 "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Project Id"
+            "title": "Part Id"
+          },
+          "production_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Production Id"
           },
           "text": {
             "minLength": 1,

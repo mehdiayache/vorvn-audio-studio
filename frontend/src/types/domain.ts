@@ -715,6 +715,13 @@ export type TextPassResult = {
   style_used?: boolean
   needs_confirmation?: boolean
   estimate?: number
+  model?: string
+  usage?: Record<string, unknown>
+  provider_request_id?: string | null
+  provider_region?: string | null
+  provider_endpoint?: string | null
+  cost_basis?: string
+  price_version?: string
 }
 
 export type CaptionMutationResult = Transcript & {

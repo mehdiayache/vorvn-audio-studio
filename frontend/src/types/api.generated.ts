@@ -1723,22 +1723,24 @@ export interface components {
             /**
              * Density
              * @default normal
+             * @enum {string}
              */
-            density: string;
+            density: "none" | "light" | "normal" | "heavy";
             /**
              * Engine
              * @default audio
+             * @enum {string}
              */
-            engine: string;
-            /** Id */
-            id?: number | null;
+            engine: "audio" | "omni";
             /**
              * Operation
              * @enum {string}
              */
             operation: "shape" | "tag";
-            /** Project Id */
-            project_id?: number | null;
+            /** Part Id */
+            part_id?: number | null;
+            /** Production Id */
+            production_id?: number | null;
             /** Text */
             text: string;
         };

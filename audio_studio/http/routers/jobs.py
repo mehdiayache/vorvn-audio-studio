@@ -6,10 +6,11 @@ from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Header
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 from uuid import uuid4
 
 from audio_studio.domain.jobs import Job
+from audio_studio.application.text_preparation import MODEL as TEXT_PREPARATION_MODEL
 from audio_studio.http.errors import ApiProblem
 from audio_studio.infrastructure.postgres.jobs import JobRepository
 
@@ -102,13 +103,19 @@ class TranslationJobCreate(BaseModel):
 
 
 class TextJobCreate(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
     operation: Literal["shape", "tag"]
     text: str = Field(min_length=1)
-    project_id: int | None = None
-    id: int | None = None
-    density: str = "normal"
-    engine: str = "audio"
+    production_id: int | None = Field(
+        default=None, gt=0,
+        validation_alias=AliasChoices("production_id", "project_id"),
+    )
+    part_id: int | None = Field(
+        default=None, gt=0,
+        validation_alias=AliasChoices("part_id", "id"),
+    )
+    density: Literal["none", "light", "normal", "heavy"] = "normal"
+    engine: Literal["audio", "omni"] = "audio"
     confirmed: bool = False
 
 
@@ -190,11 +197,13 @@ def create_translation_job(payload: TranslationJobCreate,
 @router.post("/text", operation_id="createTextJob", status_code=202)
 def create_text_job(payload: TextJobCreate,
                     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
+    values = {**payload.model_dump(exclude_none=True),
+              "model": TEXT_PREPARATION_MODEL}
     job, created = repository.enqueue(
-        "rewrite", payload.model_dump(exclude_none=True),
+        "rewrite", values,
         idempotency_key=(idempotency_key or f"rewrite-{uuid4()}")[:200],
-        project_id=payload.project_id,
-        source_tool="production" if payload.project_id else "speak",
+        production_id=payload.production_id,
+        source_tool="production" if payload.production_id else "speak",
         operation_label="Prepare spoken text" if payload.operation == "shape" else "Add delivery tags",
     )
     return {"data": _payload(job), "meta": {"created": created}}

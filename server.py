@@ -1555,59 +1555,6 @@ class Handler(SimpleHTTPRequestHandler):
             "model": rewrite.MODEL,
         })
 
-    def _text_pass(self, payload: dict, which: str):
-        """Run one rewriting pass and hand back what changed.
-
-        Nothing is stored: the part keeps its words until you accept, so a pass
-        you dislike costs you the call and nothing else.
-        """
-        durable_job = bool(payload.pop("_durable_job", False))
-        text = (payload.get("text") or "").strip()
-        if not text:
-            return self._json({"error": "There's nothing to work on."}, 400)
-        if which == "tag" and payload.get("engine") != "audio":
-            return self._json({"error": "Inline delivery tags belong to Qwen Audio TTS. Qwen 3.5 Omni uses one natural-language performance direction instead."}, 400)
-        part_id = int(payload.get("id") or 0)
-        project_id = int(payload.get("project_id") or 0)
-        style = db.style_for(project_id) if project_id else ""
-
-        guard = self._check_budget(rewrite.estimate(text), payload)
-        if guard:
-            return self._json(*guard)
-
-        # Whatever you have edited in Settings is what actually gets sent.
-        rewrite.use_settings(db.setting("prompts", {}))
-        run = None if durable_job else self._run("rewrite", model=rewrite.MODEL,
-                        estimated=rewrite.estimate(text), chars=len(text),
-                        project_id=project_id or None,
-                        generation_id=part_id or None, total=1,
-                        detail=which + (f" · {payload.get('density')}"
-                                        if which == "tag" else ""))
-        job = start_progress(done=0, total=1,
-                             stage="Rewriting for the ear" if which == "shape"
-                                   else "Placing tags")
-        try:
-            if which == "shape":
-                after = rewrite.shape(text, style)
-            else:
-                after = rewrite.tag(text, payload.get("density") or "normal", style)
-        except Exception as exc:
-            if run is not None:
-                self._done(run, status="failed", error=str(exc)[:300])
-            return self._json({"error": f"The model couldn't do it: {exc}"}, 502)
-        finally:
-            clear_progress(job)
-
-        if run is not None:
-            self._done(run, status="ok", cost=rewrite.estimate(text), done=1)
-
-        return self._json({
-            "before": text, "after": after,
-            "difference": rewrite.difference(text, after),
-            "cost": rewrite.estimate(text), "style_used": bool(style),
-            "part": part_id,
-        })
-
     def _voice_describe(self, payload: dict):
         """Ask Qwen to listen to the reference clip and describe the voice.
 
@@ -3201,8 +3148,6 @@ class Handler(SimpleHTTPRequestHandler):
                 "/api/asset/insert": self._insert_asset,
                 "/api/voice/save": self._voice_save,
                 "/api/voice/try": self._voice_try,
-                "/api/text/shape": lambda p: self._text_pass(p, "shape"),
-                "/api/text/tag": lambda p: self._text_pass(p, "tag"),
                 "/api/text/states": lambda p: self._json(
                     {"ok": db.text_states(int(p.get("id") or 0), p)}),
                 "/api/prompts/save": lambda p: self._json(

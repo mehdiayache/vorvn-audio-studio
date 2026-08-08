@@ -7,7 +7,6 @@ import os
 import batch
 import db
 import naming
-import rewrite
 import say
 import storage
 from services import voice_routing
@@ -15,6 +14,7 @@ from services.alibaba import config as alibaba_config
 from services.alibaba import voice_registry
 
 from audio_studio.application.preferences import load_preferences
+from audio_studio.application.text_preparation import variables as tag_variables
 
 
 LANGUAGES = ["Auto", "English", "Chinese", "Japanese", "Korean", "French",
@@ -33,7 +33,7 @@ def configuration() -> dict:
         "formats": list(say.FORMATS),
         "tags": {"Moods": say.MOOD_TAGS, "Sounds": say.SOUND_TAGS},
         "retired_tags": say.RETIRED_TAGS,
-        "tag_variables": rewrite.variables(),
+        "tag_variables": tag_variables(),
         "naming": naming.merged(db.setting("naming", preferences.get("naming", {})), None),
         "voice_images": {voice: value["image"] for voice, value in metadata.items() if value.get("image")},
         "voice_favourites": [voice for voice, value in metadata.items() if value.get("favourite")],

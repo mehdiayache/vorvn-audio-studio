@@ -54,7 +54,7 @@ Never delete the old system first and rebuild everything at once.
 
 ### Legacy server.py
 
-- [ ] Text preparation
+- [x] Text preparation (active Shape/Tag execution)
 - [ ] Translation
 - [ ] Transcription
 - [ ] Batch
@@ -79,29 +79,38 @@ Never delete the old system first and rebuild everything at once.
 
 ## Current step
 
-Text preparation is the single active migration capability.
+Translation is the next migration capability.
 
-Inspect the complete Shape/Tag path from React through FastAPI, durable Jobs,
-the loopback adapter, `server.py`, Alibaba, and persistence. Record its existing
-behavior and contracts before moving any implementation. No legacy path is
-removed until the native replacement is verified.
+Inspect the complete subtitle translation path before changing it. Preserve
+its current language, quality, cost guard, provider and subtitle-persistence
+behavior. Do not remove its loopback route until the native replacement is
+verified.
 
 ## Last verified checkpoint
 
 - Repository: `https://github.com/mehdiayache/vorvn-audio-studio` (private)
-- Commit: `696e08f80c741d7638bcf3041720f11c5e2d70c0`
-- Tag: `baseline-pre-migration`
-- Tests: Python architecture/provider/application suites passed
-- Frontend: OpenAPI generation, strict TypeScript build, Vite build, and 59
-  Vitest tests passed
-- Manual flow: previously verified React Settings, Activity, and Subtitles
-- Remaining dependency: FastAPI Jobs still delegate paid provider operations to
-  the loopback `server.py`; canonical product services still call `db.py`
+- Checkpoint: native Text preparation slice (the commit carrying this record)
+- Tests: 29 focused Python tests, 19 HTTP integration checks, 15 Phase 1
+  checks, 12 Phase 2 checks, 18 speech regression checks, and 6 canonical
+  domain checks passed
+- Frontend: OpenAPI generation, strict TypeScript build, Vite build, 19 Vitest
+  files and 59 tests passed
+- Manual flow: restarted React app opened a real Production and its Add speech
+  Composer; no paid provider call was made
+- Runtime: one supervisor, one loopback compatibility process and one current
+  worker; stale development workers were stopped before verification
+- Remaining dependency: Translation, Transcription, Batch, Speech and Voice
+  cloning Jobs still delegate to `server.py`; several canonical services still
+  call `db.py`
 
 ## Findings
 
 - `server.py` remains an active loopback provider adapter and must not be
   deleted early.
+- Shape/Tag Jobs now run through the native Text preparation service, canonical
+  PostgreSQL reads and the Alibaba adapter. Their loopback routes were removed.
+- Legacy-only prompt preview/save routes remain quarantined with the unreachable
+  old UI and are not part of active Shape/Tag execution.
 - `db.py` remains an active persistence compatibility layer.
 - The versioned migration runner under `audio_studio/migrations` is the target
   migration mechanism.

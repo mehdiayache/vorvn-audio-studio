@@ -21,6 +21,14 @@ import time
 from pathlib import Path
 from typing import NamedTuple
 
+from audio_studio.domain.delivery_tags import (
+    KNOWN_TAGS,
+    MOOD_TAGS,
+    RETIRED_TAGS,
+    SOUND_TAGS,
+    TAG_RE,
+)
+
 ROOT = Path(__file__).parent
 
 
@@ -71,42 +79,6 @@ FORMATS = {
 # The API takes a bounded amount of text per request, and shorter requests fail
 # less often on flaky networks. Split on sentence ends, never mid-word.
 MAX_CHARS = 500
-
-
-# Alibaba's documented inline tags, from the Model Studio realtime TTS guide.
-# A MOOD holds until the next mood tag; a SOUND fires once and leaves the tone
-# alone. The launch material claims 86 tags but publishes only these — the rest
-# are not documented anywhere, so they are not offered.
-MOOD_TAGS = {
-    "sad": "sad", "amazed": "amazed", "trembling": "trembling",
-    "angry": "angry", "excited": "excited", "sarcastic": "sarcastic",
-    "curious": "curious", "bored": "bored", "tired": "tired",
-    "singing": "singing", "scornful": "scornful", "shouting": "shouting",
-    "deep and loud shouting": "deep, loud shouting",
-    "asmr": "ASMR — soft and close", "panicked": "panicked",
-    "mischievously": "mischievous", "empathetic": "empathetic",
-    "whispers": "whispering", "reluctantly": "reluctant", "crying": "crying",
-    "serious": "serious", "like dracula": "deep and eerie",
-    "very fast": "much faster",
-}
-
-# Documented by Alibaba, but not offered here because it doesn't behave: it
-# slows the voice far more than "slower" implies, to the point of distortion.
-# Still recognised, so text that already contains it is not flagged as invented
-# — five existing parts use it, including the Heartsnotes intro and outro.
-RETIRED_TAGS = {
-    "very slowly": "slows the voice far more than it should — use the Speed "
-                   "control in Settings instead",
-}
-SOUND_TAGS = {
-    "gasp": "a sharp intake of breath", "sighing": "a sigh",
-    "clears throat": "clearing the throat", "giggles": "a giggle",
-    "laughing": "laughter", "cough": "a cough", "snorts": "a snort",
-}
-TAG_RE = re.compile(r"\[([^\[\]]{1,40})\]")
-
-# Everything the service understands, including what we no longer offer.
-KNOWN_TAGS = set(MOOD_TAGS) | set(SOUND_TAGS) | set(RETIRED_TAGS)
 
 
 def active_mood(text: str) -> str | None:

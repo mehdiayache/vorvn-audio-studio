@@ -8,9 +8,18 @@ import time
 import db
 from services import voice_package_worker
 from audio_studio.application import renders
+from audio_studio.application.preferences import load_preferences
+from audio_studio.application.text_preparation import (
+    TextPreparationJobHandler,
+    TextPreparationService,
+)
 
 from audio_studio.application.jobs import JobService
+from audio_studio.infrastructure.alibaba.text_preparation import AlibabaTextProvider
 from audio_studio.infrastructure.legacy_jobs import LegacyProviderJobHandlers
+from audio_studio.infrastructure.postgres.text_preparation import (
+    PostgresTextPreparationRepository,
+)
 
 
 def main() -> int:
@@ -20,7 +29,9 @@ def main() -> int:
     service.register("batch", handlers.batch)
     service.register("transcribe", handlers.transcribe)
     service.register("translate", handlers.translate)
-    service.register("rewrite", handlers.rewrite)
+    service.register("rewrite", TextPreparationJobHandler(TextPreparationService(
+        PostgresTextPreparationRepository(), AlibabaTextProvider(), load_preferences,
+    )))
     service.register("render", renders.handle_job)
     stopping = False
 

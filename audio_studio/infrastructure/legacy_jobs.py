@@ -41,20 +41,6 @@ class LegacyProviderJobHandlers:
     def translate(self, job: Job, repository: JobRepository) -> dict[str, Any]:
         return self._post(job, repository, "/api/translate/subtitles", "Translating subtitles")
 
-    def rewrite(self, job: Job, repository: JobRepository) -> dict[str, Any]:
-        operation = job.payload.get("operation")
-        if operation not in ("shape", "tag"):
-            raise RuntimeError("Unknown text operation.")
-        payload = dict(job.payload)
-        payload.pop("operation", None)
-        if payload.get("project_id"):
-            production = domain_repository.production_get(int(payload["project_id"]))
-            if not production:
-                raise RuntimeError("The source Production no longer exists.")
-            payload["project_id"] = int(production["legacy_container_id"])
-        return self._post(job, repository, f"/api/text/{operation}",
-                          "Preparing spoken text", payload)
-
     def _post(self, job: Job, repository: JobRepository, path: str,
               label: str, values: dict[str, Any] | None = None) -> dict[str, Any]:
         repository.progress(job.id, 0, 1, label)
