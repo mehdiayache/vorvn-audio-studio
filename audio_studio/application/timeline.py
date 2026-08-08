@@ -10,6 +10,12 @@ import db
 from domain import repository
 
 from audio_studio.application.preferences import load_preferences
+from audio_studio.infrastructure.postgres.venture_assets import (
+    VentureAssetRepository,
+)
+
+
+asset_repository = VentureAssetRepository()
 
 
 class TranscriptState(Protocol):
@@ -44,7 +50,9 @@ def music(production_id: int) -> dict[str, Any]:
 def set_music(production_id: int, values: dict[str, Any]) -> dict[str, Any]:
     target = legacy_id(production_id)
     music_of = values.get("music_of")
-    if music_of not in (None, "", 0, "0") and not db.asset_allowed(target, int(music_of), {"Music"}):
+    if (music_of not in (None, "", 0, "0")
+            and not asset_repository.allowed_for_production(
+                production_id, int(music_of), {"music"})):
         raise TimelineError("Background music must come from this Venture's Music library.")
     if not db.music_set(target, values):
         raise TimelineError("Those music settings could not be saved.")
@@ -120,13 +128,14 @@ def edit_silence(production_id: int, part_id: int, seconds: float) -> dict[str, 
 
 def insert_asset(production_id: int, asset_id: int, insert_at: int | None) -> dict[str, Any]:
     target = legacy_id(production_id)
-    asset = db.asset_get(asset_id)
+    asset = asset_repository.get(asset_id)
     if not asset or not asset.get("filename"):
         raise TimelineError("That Asset does not exist.")
-    context = db.asset_library_context(asset_id)
+    context = asset_repository.library_context(asset_id)
     if context and context.get("collection") == "Music":
         raise TimelineError("Music is a background bed. Choose it in the Music controls.")
-    if not db.asset_allowed(target, asset_id, {"Intros", "Outros", "Stingers"}):
+    if not asset_repository.allowed_for_production(
+            production_id, asset_id, {"intros", "outros", "stingers"}):
         raise TimelineError("That clip is not in this Venture's reusable clip library.")
     part_id = db.asset_insert(target, asset_id, insert_at)
     if not part_id:

@@ -80,30 +80,31 @@ Never delete the old system first and rebuild everything at once.
 
 ## Current step
 
-Move Venture Asset library reads, uploads and typed ownership checks from
-`db.py` into one native repository. Preserve the distinction between reusable
-Venture Assets and Production timeline links.
+Move the canonical Work hierarchy, overview reads and resource lifecycle from
+the compatibility `domain/repository.py` + `db.py` path into focused native
+persistence. Keep Production editor/timeline/render persistence out of this
+slice.
 
 ## Last verified checkpoint
 
 - Repository: `https://github.com/mehdiayache/vorvn-audio-studio` (private)
-- Checkpoint: native Settings, pronunciation, Activity and health persistence
+- Checkpoint: native Venture Asset collections, reads, uploads and ownership
   (the commit carrying this record)
-- Tests: 83 Python unit/integration tests against the real FastAPI application
+- Tests: 87 Python unit/integration tests against the real FastAPI application
   and PostgreSQL; 25 Alibaba contracts, 18 chunking checks, 4 transcription
   checks, 15 native renderer checks, 12 Phase 2 checks and 6 canonical domain
   checks passed
 - Frontend: OpenAPI generation, strict TypeScript build, Vite build, 19 Vitest
   files and 59 tests passed
-- Manual flow: restarted FastAPI and the worker, verified health, Settings,
-  Activity, pronunciation list/preview and spend summaries over HTTP, then
-  inspected the real React Settings and Activity pages. Database status,
-  pronunciation rules and 130 historical operations rendered with no browser
-  warning or error; no setting was submitted and no paid operation was triggered
+- Manual flow: restarted FastAPI and the worker, verified the Heartsnotes
+  Venture, overview and Production Asset contracts over HTTP, then inspected
+  the real React Venture libraries, Music modal and Production clip selector.
+  Four typed collections and four existing Assets rendered with no browser
+  warning or error; no upload, insertion or paid operation was triggered
 - Runtime: one FastAPI supervisor and one durable worker. The legacy HTTP
   server and UI are deleted and port 7861 is gone from the configuration
-- Remaining dependency: Work, Venture Assets, Production rendering/timeline
-  and media persistence still call `db.py`
+- Remaining dependency: canonical Work hierarchy/lifecycle and Production
+  editor, rendering, timeline and media persistence still call `db.py`
 
 ## Findings
 
@@ -186,11 +187,19 @@ Venture Assets and Production timeline links.
   read/write block were removed from `db.py`, reducing it from 2,861 to 2,535
   lines. Its schema initializer remains active until migration consolidation.
 - `db.py` remains an active persistence compatibility layer.
-- The active `db.py` callers are now inventoried by capability: canonical
-  Work and Venture Assets (`domain/repository.py`, `application/work.py`,
-  `application/uploads.py`); Production timeline/render/media
-  (`timeline.py`, `renders.py`, `media.py`).
-  These are the remaining migration slices, not hidden HTTP dependencies.
+- `VentureAssetRepository` now owns the four fixed collection identities,
+  Asset reads, immutable current versions and same-Venture/type authorization.
+  Reading a library is side-effect free; creating a Venture explicitly creates
+  its Intros, Outros, Music and Stingers collections.
+- A local Asset upload now commits its compatibility generation, stable Asset
+  identity and first immutable version in one PostgreSQL transaction. Failure
+  cannot leave an orphan card or half-registered file record.
+- Work, Uploads and timeline authorization no longer call legacy Asset helpers.
+  The replaced library read/upload functions were removed from `db.py`, reducing
+  it from 2,535 to 2,412 lines. Timeline writes still use the compatibility
+  layer and remain deliberately outside this checkpoint.
+- The active runtime `db.py` callers are now `domain/repository.py`, Work's
+  Production editor, and Production timeline/render/media. Uploads are native.
 - The versioned migration runner under `audio_studio/migrations` is the target
   migration mechanism.
 - New functionality must not add another legacy dependency.

@@ -1096,44 +1096,6 @@ def is_assets(project_id: int) -> bool:
         return bool(row and row[0] == "library" and row[1] == "venture_assets")
 
 
-def is_asset_folder(project_id: int) -> bool:
-    """Whether a folder is one of a venture's fixed asset collections."""
-    with cursor() as cur:
-        if cur is None:
-            return False
-        cur.execute("SELECT container_type, system_role FROM projects WHERE id = %s",
-                    (project_id,))
-        row = cur.fetchone()
-        return bool(row and row[0] == "asset_collection"
-                    and str(row[1] or "").startswith("assets:"))
-
-
-def venture_assets(venture_id: int) -> list:
-    """Everything in a venture's library, grouped by the folder it sits in."""
-    with cursor() as cur:
-        if cur is None:
-            return []
-        cur.execute("""
-            SELECT collection.name, a.id, g.text, a.name, g.voice,
-                   version.duration_ms, version.filename, a.kind, version.id
-              FROM assets a
-              JOIN asset_collections collection ON collection.id = a.collection_id
-              JOIN LATERAL (
-                   SELECT v.* FROM asset_versions v
-                    WHERE v.asset_id = a.id ORDER BY v.version DESC LIMIT 1
-              ) version ON true
-              LEFT JOIN generations g ON g.id = a.legacy_generation_id
-             WHERE a.venture_id = %s
-             ORDER BY collection.name, a.updated_at, a.id
-        """, (venture_id,))
-        return [{"folder": folder, "collection": kind, "id": asset_id,
-                 "version_id": version_id, "text": text or "", "title": title,
-                 "voice": voice or "", "duration_ms": duration,
-                 "filename": filename}
-                for folder, asset_id, text, title, voice, duration, filename,
-                    kind, version_id in cur.fetchall()]
-
-
 def asset_library_context(asset_id: int) -> dict | None:
     """Return the durable library identity of one uploaded reusable asset."""
     with cursor() as cur:
@@ -1171,80 +1133,6 @@ def asset_get(asset_id: int) -> dict | None:
                 "legacy_generation_id", "version_id", "filename", "path",
                 "size_bytes", "duration_ms", "mime_type")
         return dict(zip(keys, row))
-
-
-def assets_for_venture(venture_id: int) -> list:
-    """Typed Asset resources without per-row lookups."""
-    with cursor() as cur:
-        if cur is None:
-            return []
-        cur.execute("""
-            SELECT a.id, a.venture_id, a.collection_id, a.name, a.kind,
-                   a.legacy_generation_id, v.id, v.filename, v.path,
-                   v.size_bytes, v.duration_ms, v.mime_type
-              FROM assets a
-              JOIN LATERAL (
-                   SELECT version.* FROM asset_versions version
-                    WHERE version.asset_id = a.id
-                    ORDER BY version.version DESC LIMIT 1
-              ) v ON true
-             WHERE a.venture_id = %s ORDER BY a.updated_at DESC, a.id DESC
-        """, (venture_id,))
-        keys = ("id", "venture_id", "collection_id", "name", "kind",
-                "legacy_generation_id", "version_id", "filename", "path",
-                "size_bytes", "duration_ms", "mime_type")
-        return [dict(zip(keys, row)) for row in cur.fetchall()]
-
-
-def asset_register_generation(generation_id: int) -> int | None:
-    """Project a newly uploaded legacy generation into Asset + AssetVersion."""
-    with cursor(write=True) as cur:
-        if cur is None:
-            return None
-        cur.execute("""
-            SELECT library.parent_id, collection.id,
-                   replace(collection.system_role, 'assets:', ''),
-                   coalesce(nullif(g.title, ''), nullif(g.text, ''), g.filename),
-                   g.filename, g.path, g.size_bytes, g.duration_ms
-              FROM generations g
-              JOIN projects collection ON collection.id = g.project_id
-              JOIN projects library ON library.id = collection.parent_id
-             WHERE g.id = %s AND collection.container_type = 'asset_collection'
-               AND library.container_type = 'library' AND g.filename <> ''
-        """, (generation_id,))
-        row = cur.fetchone()
-        if not row:
-            return None
-        venture_id, collection_id, kind, name, filename, path, size, duration = row
-        cur.execute("""
-            INSERT INTO assets
-                (venture_id, collection_id, name, kind, legacy_generation_id)
-            VALUES (%s, %s, %s, %s, %s)
-            ON CONFLICT (legacy_generation_id) DO UPDATE
-              SET name = EXCLUDED.name, kind = EXCLUDED.kind,
-                  collection_id = EXCLUDED.collection_id, updated_at = now()
-            RETURNING id
-        """, (venture_id, collection_id, name, kind, generation_id))
-        asset_id = cur.fetchone()[0]
-        mime = {"mp3": "audio/mpeg", "wav": "audio/wav", "ogg": "audio/ogg",
-                "flac": "audio/flac", "m4a": "audio/mp4", "aac": "audio/aac"}.get(
-                    str(filename).rsplit(".", 1)[-1].lower(), "application/octet-stream")
-        cur.execute("""
-            INSERT INTO asset_versions
-                (asset_id, version, source_generation_id, filename, path,
-                 size_bytes, duration_ms, mime_type)
-            VALUES (%s, 1, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (source_generation_id) DO UPDATE
-              SET filename = EXCLUDED.filename, path = EXCLUDED.path,
-                  size_bytes = EXCLUDED.size_bytes,
-                  duration_ms = EXCLUDED.duration_ms,
-                  mime_type = EXCLUDED.mime_type
-            RETURNING id
-        """, (asset_id, generation_id, filename, path, size, duration, mime))
-        version_id = cur.fetchone()[0]
-        cur.execute("UPDATE generations SET asset_id = %s, asset_version_id = %s "
-                    "WHERE id = %s", (asset_id, version_id, generation_id))
-        return asset_id
 
 
 def export_record(production_id: int, generation_id: int, filename: str,
@@ -2398,17 +2286,6 @@ def takes(part_id: int) -> list:
                  "fidelity": fidelity}
                 for i, c, v, identity_id, m, r, p, s, f, sz, co, t, ms, ins, lang, fidelity
                 in cur.fetchall()]
-
-
-def asset_collections_for_venture(venture_id: int) -> list:
-    """Canonical reusable-media collections owned by one Venture."""
-    with cursor() as cur:
-        if cur is None:
-            return []
-        cur.execute("SELECT id, venture_id, kind, name FROM asset_collections "
-                    "WHERE venture_id = %s ORDER BY name", (venture_id,))
-        return [{"id": ident, "venture_id": owner, "kind": kind, "name": name}
-                for ident, owner, kind, name in cur.fetchall()]
 
 
 def promote_take(take_id: int) -> bool:

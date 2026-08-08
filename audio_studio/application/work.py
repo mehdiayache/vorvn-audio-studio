@@ -6,10 +6,14 @@ from typing import Any
 
 import db
 from domain import repository
+from audio_studio.infrastructure.postgres.venture_assets import (
+    VentureAssetRepository,
+)
 
 
 KINDS = {"ventures": "venture", "projects": "project",
          "series": "series", "productions": "production"}
+asset_repository = VentureAssetRepository()
 
 
 def hierarchy() -> list[dict[str, Any]]:
@@ -33,11 +37,10 @@ def venture_assets(venture_id: int) -> dict[str, Any] | None:
     venture = repository.resource_get("venture", venture_id)
     if not venture:
         return None
-    db.ensure_assets(venture_id)
     return {
         "venture": venture,
-        "collections": db.asset_collections_for_venture(venture_id),
-        "assets": db.venture_assets(venture_id),
+        "collections": asset_repository.collections_for_venture(venture_id),
+        "assets": asset_repository.list_for_venture(venture_id),
     }
 
 
@@ -74,7 +77,10 @@ def production_editor(production_id: int) -> dict[str, Any] | None:
 def create(collection: str, parent_id: int | None, name: str,
            description: str = "") -> dict[str, Any] | None:
     if collection == "ventures":
-        return repository.create_venture(name, description)
+        created = repository.create_venture(name, description)
+        if created:
+            asset_repository.ensure_collections(int(created["id"]))
+        return created
     if collection == "projects":
         return repository.create_project(int(parent_id or 0), name, description)
     if collection == "series":

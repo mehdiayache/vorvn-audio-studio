@@ -9,14 +9,18 @@ import subprocess
 from urllib.parse import unquote
 from uuid import uuid4
 
-import db
+import psycopg
 import storage
 
 from audio_studio.config import settings
 from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
+from audio_studio.infrastructure.postgres.venture_assets import (
+    VentureAssetRepository,
+)
 
 
 voice_packages = VoicePackageRepository()
+venture_assets = VentureAssetRepository()
 
 
 class UploadError(ValueError):
@@ -98,7 +102,7 @@ def _audio_duration_ms(target: Path) -> int | None:
 
 def save_asset(collection_id: int, raw: bytes, encoded_name: str) -> dict:
     """Store one reusable Venture Asset without contacting a model provider."""
-    if not db.is_asset_folder(collection_id):
+    if not venture_assets.collection(collection_id):
         raise UploadError("Choose an Intros, Outros, Music or Stingers library first.")
     if not raw:
         raise UploadError("That audio file is empty.")
@@ -118,30 +122,23 @@ def save_asset(collection_id: int, raw: bytes, encoded_name: str) -> dict:
         target.unlink(missing_ok=True)
         raise UploadError("That file could not be decoded as audio.")
 
-    generation_id = db.record({
-        "text": Path(original).stem, "title": Path(original).stem,
-        "voice": "Uploaded", "engine": "upload", "model": "-",
-        "format": suffix.lstrip("."), "language": None, "instruction": "",
-        "rate": 1, "pitch": 1, "volume": 50, "seed": 0,
-        "filename": stored, "path": str(target), "size_bytes": len(raw),
-        "chars": 0, "requests": 0, "cost": 0, "project_id": collection_id,
-        "position": db.next_position(collection_id), "kind": "asset",
-        "duration_ms": duration_ms, "speech_mode": "uploaded",
-        "usage": {}, "cost_basis": "not billed", "failures": [],
-    })
-    if not generation_id:
+    mime_type = {
+        ".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg",
+        ".flac": "audio/flac", ".m4a": "audio/mp4", ".aac": "audio/aac",
+    }.get(suffix, "application/octet-stream")
+    try:
+        created = venture_assets.create_uploaded_asset(
+            collection_id, name=Path(original).stem, filename=stored,
+            path=str(target), size_bytes=len(raw), duration_ms=duration_ms,
+            audio_format=suffix.lstrip("."), mime_type=mime_type,
+        )
+    except psycopg.OperationalError as exc:
         target.unlink(missing_ok=True)
-        raise RuntimeError("The database could not save that asset.")
-    asset_id = db.asset_register_generation(generation_id)
-    if not asset_id:
-        db.delete(generation_id)
+        raise RuntimeError("The database could not save that Asset.") from exc
+    if not created:
         target.unlink(missing_ok=True)
-        raise RuntimeError("The database could not register that Asset.")
-    return {
-        "id": asset_id, "generation_id": generation_id, "name": original,
-        "filename": stored, "duration_ms": duration_ms,
-        "url": f"/audio/{stored}",
-    }
+        raise RuntimeError("That Asset collection no longer exists.")
+    return {**created, "name": original, "url": f"/audio/{stored}"}
 
 
 def save_transcription_source(raw: bytes, encoded_name: str) -> dict:

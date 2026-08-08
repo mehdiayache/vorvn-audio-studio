@@ -117,6 +117,28 @@ class AudioStudioArchitectureTests(unittest.TestCase):
                 "pronunciation_save", "pronunciation_delete"):
             self.assertNotIn(f"def {function}(", legacy, function)
 
+    def test_venture_asset_library_uses_native_persistence(self):
+        repository = ROOT / "audio_studio/infrastructure/postgres/venture_assets.py"
+        self.assertTrue(repository.exists())
+        forbidden = (
+            "db.ensure_assets", "db.venture_assets",
+            "db.asset_collections_for_venture", "db.assets_for_venture",
+            "db.is_asset_folder", "db.asset_register_generation",
+            "db.asset_get", "db.asset_library_context", "db.asset_allowed",
+        )
+        for relative in (
+                "audio_studio/application/work.py",
+                "audio_studio/application/uploads.py",
+                "audio_studio/application/timeline.py"):
+            source = (ROOT / relative).read_text()
+            for call in forbidden:
+                self.assertNotIn(call, source, f"{relative}: {call}")
+        legacy = (ROOT / "db.py").read_text()
+        for function in (
+                "is_asset_folder", "venture_assets", "assets_for_venture",
+                "asset_register_generation", "asset_collections_for_venture"):
+            self.assertNotIn(f"def {function}(", legacy, function)
+
 
 if __name__ == "__main__":
     unittest.main()

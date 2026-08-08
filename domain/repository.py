@@ -605,23 +605,6 @@ def create_venture(name: str, description: str = "") -> dict[str, Any] | None:
             ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name,
               description = EXCLUDED.description
         """, (ident, _slug(clean_name, ident), clean_name, description.strip()))
-    db.ensure_assets(ident)
-    with db.cursor(write=True) as cur:
-        if cur is not None:
-            cur.execute("""
-                INSERT INTO asset_collections
-                    (id, venture_id, legacy_container_id, kind, name)
-                SELECT collection.id, %s, collection.id,
-                       CASE lower(collection.name)
-                         WHEN 'intros' THEN 'intros' WHEN 'outros' THEN 'outros'
-                         WHEN 'music' THEN 'music' WHEN 'stingers' THEN 'stingers'
-                         ELSE 'other' END, collection.name
-                  FROM projects collection
-                  JOIN projects library ON library.id = collection.parent_id
-                 WHERE library.parent_id = %s
-                   AND collection.container_type = 'asset_collection'
-                ON CONFLICT (id) DO NOTHING
-            """, (ident, ident))
     return resource_get("venture", ident)
 
 

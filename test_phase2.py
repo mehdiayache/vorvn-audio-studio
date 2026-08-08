@@ -2,9 +2,14 @@
 """Read-only domain verification for the additive Phase 2 migration."""
 
 import db
+from audio_studio.infrastructure.postgres.venture_assets import (
+    VentureAssetRepository,
+)
+from domain import repository as work_repository
 
 
 results = []
+asset_repository = VentureAssetRepository()
 
 
 def check(name, condition, detail=""):
@@ -35,19 +40,21 @@ check("asset collections carry stable roles",
 
 assets = []
 for venture in [item for item in tree if item["container_type"] == "venture"]:
-    assets.extend(db.assets_for_venture(venture["id"]))
+    assets.extend(asset_repository.get(item["id"])
+                  for item in asset_repository.list_for_venture(venture["id"]))
 check("legacy library audio is backfilled as typed Assets", bool(assets), assets)
 check("every Asset has an immutable current version",
       all(asset["version_id"] and asset["filename"] for asset in assets), assets)
 
 ownership = []
 for production in [item for item in tree if item["container_type"] == "production"]:
-    venture = db.venture_of(production["id"])
-    if not venture:
+    canonical = work_repository.production_get(production["id"])
+    if not canonical or not canonical["trail"]:
         continue
-    for asset in db.assets_for_venture(venture["id"]):
-        ownership.append(db.asset_allowed(
-            production["id"], asset["id"], {asset["kind"].title()}))
+    venture_id = canonical["trail"][0]["id"]
+    for asset in asset_repository.list_for_venture(venture_id):
+        ownership.append(asset_repository.allowed_for_production(
+            production["id"], asset["id"], {asset["collection"]}))
 check("same-Venture Asset permissions survive migration",
       bool(ownership) and all(ownership), ownership)
 
