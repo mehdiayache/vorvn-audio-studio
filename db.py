@@ -577,11 +577,11 @@ UPDATE generations SET kind = 'asset'
 
 -- Added later: a phoneme spelling is handled by the model itself (hot_fix)
 -- rather than by our text substitution, so the written word stays intact.
-ALTER TABLE pronunciations ADD COLUMN IF NOT EXISTS phoneme TEXT;
+-- Migration 004 owns the canonical BOOLEAN type; this remains additive for
+-- databases initialized through the temporary legacy schema.
+ALTER TABLE pronunciations ADD COLUMN IF NOT EXISTS phoneme BOOLEAN
+    NOT NULL DEFAULT false;
 """
-
-_unavailable_reason = None
-
 
 def _connect():
     """Open a connection, with a short timeout so a dead database fails fast."""
@@ -596,14 +596,12 @@ def cursor(write: bool = False):
     Callers must handle None — losing history is an inconvenience, not a reason
     to fail a render the user already paid for.
     """
-    global _unavailable_reason
     # Only a failure to CONNECT means "no database". A query that blows up is a
     # real bug and must surface — catching it here and yielding a second time
     # turned every SQL error into "generator didn't stop after throw()".
     try:
         connection = _connect()
-    except Exception as exc:
-        _unavailable_reason = f"{type(exc).__name__}: {str(exc).strip()[:120]}"
+    except Exception:
         yield None
         return
     try:
@@ -611,18 +609,8 @@ def cursor(write: bool = False):
             yield cur
         if write:
             connection.commit()
-        _unavailable_reason = None
     finally:
         connection.close()
-
-
-def status() -> dict:
-    """Whether the database is reachable, and why not if it isn't."""
-    with cursor() as cur:
-        if cur is None:
-            return {"connected": False, "reason": _unavailable_reason}
-        cur.execute("SELECT count(*) FROM generations")
-        return {"connected": True, "count": cur.fetchone()[0]}
 
 
 def init() -> bool:
@@ -768,269 +756,6 @@ def delete(generation_id: int) -> bool:
         cur.execute("DELETE FROM generations WHERE id = %s OR version_of = %s",
                     (generation_id, generation_id))
         return True
-
-
-def setting(key: str, fallback=None):
-    """One app-wide setting — prompts, file-name templates — or the fallback."""
-    with cursor() as cur:
-        if cur is None:
-            return fallback
-        cur.execute("SELECT value FROM app_settings WHERE key = %s", (key,))
-        row = cur.fetchone()
-        return row[0] if row else fallback
-
-
-def setting_save(key: str, value) -> bool:
-    """Store an app-wide setting; passing None removes it."""
-    with cursor(write=True) as cur:
-        if cur is None:
-            return False
-        if value is None:
-            cur.execute("DELETE FROM app_settings WHERE key = %s", (key,))
-            return True
-        cur.execute(
-            "INSERT INTO app_settings (key, value) VALUES (%s, %s) "
-            "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, "
-            "updated_at = now()", (key, json.dumps(value)))
-        return True
-
-
-# What a run is called, in words rather than endpoint names.
-JOB_KINDS = {
-    "speech": "Speech",
-    "transcribe": "Subtitles",
-    "translate": "Translation",
-    "rewrite": "Rewriting",
-    "describe": "Describing a voice",
-    "clone": "Cloning a voice",
-    "clone_package": "Preparing voice capabilities",
-    "voice_history_link": "Linking voice history",
-    "preview": "Live preview",
-    "batch": "Batch",
-}
-
-
-def job(kind: str, **fields) -> int | None:
-    """Write one run into the ledger. Never raises: losing a log line must not
-    lose the work it describes."""
-    row = {
-        "kind": kind[:40],
-        "model": (fields.get("model") or "")[:60] or None,
-        "status": (fields.get("status") or "ok")[:20],
-        "estimated": round(float(fields.get("estimated") or 0), 6),
-        "cost": round(float(fields.get("cost") or 0), 6),
-        "chars": int(fields.get("chars") or 0),
-        "seconds": float(fields.get("seconds") or 0),
-        "project_id": fields.get("project_id") or None,
-        "generation_id": fields.get("generation_id") or None,
-        "voice": (fields.get("voice") or "")[:200] or None,
-        "voice_identity_id": fields.get("voice_identity_id") or None,
-        "provider_voice_id": (fields.get("provider_voice_id") or fields.get("voice") or "")[:200] or None,
-        "engine": (fields.get("engine") or "")[:20] or None,
-        "tier": (fields.get("tier") or "")[:20] or None,
-        "detail": (fields.get("detail") or "")[:300] or None,
-        "error": (fields.get("error") or "")[:400] or None,
-        "usage": json.dumps(fields.get("usage") or {}),
-        "cost_basis": (fields.get("cost_basis") or "estimate")[:30],
-    }
-    try:
-        with cursor(write=True) as cur:
-            if cur is None:
-                return None
-            cur.execute(
-                f"INSERT INTO jobs ({', '.join(row)}) "
-                f"VALUES ({', '.join(['%s'] * len(row))}) RETURNING id",
-                list(row.values()))
-            return cur.fetchone()[0]
-    except Exception:
-        return None
-
-
-def job_start(kind: str, **fields) -> int | None:
-    """Open a run. It shows as running until something closes it."""
-    return job(kind, **{**fields, "status": "running"})
-
-
-def job_finish(job_id, **fields) -> bool:
-    """Close a run: how it ended, what it cost, how long it took, what it made."""
-    if not job_id:
-        return False
-    allowed = {k: v for k, v in fields.items()
-               if k in ("status", "cost", "estimated", "chars", "seconds",
-                        "generation_id", "project_id", "voice", "voice_identity_id",
-                        "provider_voice_id", "engine", "tier", "detail",
-                        "error", "done", "total", "usage", "cost_basis")}
-    if "usage" in allowed:
-        allowed["usage"] = json.dumps(allowed["usage"] or {})
-    allowed.setdefault("status", "ok")
-    try:
-        with cursor(write=True) as cur:
-            if cur is None:
-                return False
-            sets = ", ".join(f"{k} = %s" for k in allowed)
-            cur.execute(
-                f"UPDATE jobs SET {sets}, "
-                f"elapsed_ms = GREATEST(0, EXTRACT(EPOCH FROM (now() - created_at)) * 1000)::int "
-                f"WHERE id = %s", [*allowed.values(), job_id])
-            return True
-    except Exception:
-        return False
-
-
-def job_progress(job_id, done: int, total: int) -> bool:
-    """How far along a long run is, so the screen can show it after a reload."""
-    if not job_id:
-        return False
-    try:
-        with cursor(write=True) as cur:
-            if cur is None:
-                return False
-            cur.execute("UPDATE jobs SET done = %s, total = %s WHERE id = %s",
-                        (int(done), int(total), job_id))
-            return True
-    except Exception:
-        return False
-
-
-def jobs_running() -> list:
-    """What is happening right now. Anything older than an hour is a leftover
-    from a server that stopped mid-run, and is reported as such."""
-    with cursor() as cur:
-        if cur is None:
-            return []
-        cur.execute("""
-            SELECT j.id, j.created_at, j.kind, j.detail, j.done, j.total,
-                   j.estimated, p.name,
-                   EXTRACT(EPOCH FROM (now() - j.created_at))::int AS age
-              FROM jobs j LEFT JOIN projects p ON p.id = j.project_id
-             WHERE j.status = 'running' ORDER BY j.created_at""")
-        return [{"id": i, "when": w.isoformat(), "kind": k, "detail": det,
-                 "done": dn, "total": tot, "estimated": float(est),
-                 "where": place, "age": age, "stalled": age > 3600}
-                for i, w, k, det, dn, tot, est, place, age in cur.fetchall()]
-
-
-def jobs_abandon_stale(older_than_seconds: int = 3600) -> int:
-    """A run still marked running an hour later died with its server."""
-    with cursor(write=True) as cur:
-        if cur is None:
-            return 0
-        cur.execute(
-            "UPDATE jobs SET status = 'lost', "
-            "error = 'the app stopped before this finished' "
-            "WHERE status = 'running' "
-            "  AND created_at < now() - make_interval(secs => %s)",
-            (older_than_seconds,))
-        return cur.rowcount
-
-
-def job_children(parent_id: int) -> list:
-    """The individual runs inside a batch."""
-    with cursor() as cur:
-        if cur is None:
-            return []
-        cur.execute(
-            "SELECT id, created_at, kind, status, cost, chars, voice, detail, "
-            "       error, elapsed_ms, generation_id "
-            "  FROM jobs WHERE parent_id = %s ORDER BY created_at", (parent_id,))
-        return [{"id": i, "when": w.isoformat(), "kind": k, "status": st,
-                 "cost": float(c), "chars": ch, "voice": v, "detail": det,
-                 "error": err, "elapsed_ms": el, "generation_id": gen}
-                for i, w, k, st, c, ch, v, det, err, el, gen in cur.fetchall()]
-
-
-def job_totals() -> dict:
-    """Everything spent, by day and by kind — from the ledger, not from audio."""
-    with cursor() as cur:
-        if cur is None:
-            return {}
-        cur.execute("""
-            SELECT coalesce(sum(cost) FILTER (WHERE created_at::date = current_date), 0),
-                   coalesce(sum(cost) FILTER (WHERE created_at >= date_trunc('month', now())), 0),
-                   coalesce(sum(cost), 0),
-                   count(*),
-                   count(*) FILTER (WHERE status NOT IN ('ok', 'running'))
-              FROM jobs""")
-        today, month, total, runs, problems = cur.fetchone()
-        cur.execute("""
-            SELECT kind, count(*), coalesce(sum(cost), 0),
-                   count(*) FILTER (WHERE status <> 'ok')
-              FROM jobs GROUP BY kind ORDER BY sum(cost) DESC NULLS LAST""")
-        by_kind = [{"kind": k, "runs": n, "cost": float(c), "problems": p}
-                   for k, n, c, p in cur.fetchall()]
-        cur.execute("""
-            SELECT created_at::date, coalesce(sum(cost), 0), count(*)
-              FROM jobs WHERE created_at > now() - interval '30 days'
-             GROUP BY 1 ORDER BY 1 DESC""")
-        by_day = [{"day": d.isoformat(), "cost": float(c), "runs": n}
-                  for d, c, n in cur.fetchall()]
-        return {"today": float(today), "month": float(month),
-                "total": float(total), "runs": runs, "problems": problems,
-                "by_kind": by_kind, "by_day": by_day}
-
-
-def job_list(limit: int = 60, kind: str = "", failed_only: bool = False) -> list:
-    """Recent runs for the Activity screen. Children of a batch are folded
-    into their parent rather than listed loose."""
-    with cursor() as cur:
-        if cur is None:
-            return []
-        # Children of a batch are folded into their parent, not listed loose.
-        where, args = ["j.parent_id IS NULL"], []
-        if kind:
-            where.append("j.kind = %s"); args.append(kind)
-        if failed_only:
-            where.append("j.status NOT IN ('ok', 'running')")
-        clause = "WHERE " + " AND ".join(where)
-        cur.execute(
-            f"SELECT j.id, j.created_at, j.kind, j.model, j.status, j.estimated, "
-            f"       j.cost, j.chars, j.seconds, j.voice, j.detail, j.error, "
-            f"       p.name, j.elapsed_ms, j.generation_id, j.project_id, "
-            f"       (SELECT count(*) FROM jobs c WHERE c.parent_id = j.id), "
-            f"       j.usage, j.cost_basis "
-            f"  FROM jobs j LEFT JOIN projects p ON p.id = j.project_id "
-            f"  {clause} ORDER BY j.created_at DESC LIMIT %s", [*args, limit])
-        return [{"id": i, "when": w.isoformat(), "kind": k, "model": m,
-                 "status": st, "estimated": float(e), "cost": float(c),
-                 "chars": ch, "seconds": sec, "voice": v, "detail": det,
-                 "error": err, "where": place, "elapsed_ms": el,
-                 "generation_id": gen, "project_id": proj, "children": kids,
-                 "usage": usage or {}, "cost_basis": basis or "estimate"}
-                for i, w, k, m, st, e, c, ch, sec, v, det, err, place, el,
-                    gen, proj, kids, usage, basis in cur.fetchall()]
-
-
-def spend_totals() -> dict:
-    """Today / this month / all time, for the ledger in the header."""
-    with cursor() as cur:
-        if cur is None:
-            return {}
-        cur.execute(
-            "SELECT "
-            "  coalesce(sum(cost) FILTER (WHERE created_at::date = current_date), 0), "
-            "  coalesce(sum(cost) FILTER (WHERE created_at >= date_trunc('month', now())), 0), "
-            "  coalesce(sum(cost), 0), count(*) "
-            "FROM jobs"
-        )
-        today, month, total, runs = cur.fetchone()
-        return {"today": float(today), "month": float(month),
-                "all_time": float(total), "runs": runs}
-
-
-def spend(days: int = 30) -> list:
-    """Daily ledger totals; deleting editable content cannot rewrite them."""
-    with cursor() as cur:
-        if cur is None:
-            return []
-        cur.execute(
-            "SELECT date_trunc('day', created_at)::date AS day, "
-            "       count(*), sum(chars), sum(cost) "
-            "FROM jobs WHERE created_at > now() - %s * interval '1 day' "
-            "GROUP BY day ORDER BY day DESC",
-            (days,),
-        )
-        return [{"day": d.isoformat(), "runs": n, "chars": c or 0,
-                 "cost": float(s or 0)} for d, n, c, s in cur.fetchall()]
 
 
 def production_accounting_many(production_ids: list[int]) -> dict[int, dict]:
@@ -2805,56 +2530,6 @@ def transcript_delete(transcript_id: int) -> bool:
         return True
 
 
-# ──────────────────────── pronunciation dictionary ────────────────────────
-
-PRON_COLUMNS = ("id", "pattern", "replacement", "whole_word", "match_case",
-                "enabled", "phoneme")
-
-
-def pronunciations(enabled_only: bool = False) -> list:
-    """Your rules for words the model says wrong."""
-    with cursor() as cur:
-        if cur is None:
-            return []
-        where = "WHERE enabled" if enabled_only else ""
-        cur.execute(
-            f"SELECT {', '.join(PRON_COLUMNS)} FROM pronunciations {where} "
-            f"ORDER BY length(pattern) DESC, id"   # longest first, so "AI Ltd" beats "AI"
-        )
-        return [dict(zip(PRON_COLUMNS, row)) for row in cur.fetchall()]
-
-
-def pronunciation_save(entry: dict):
-    """Add or update one pronunciation rule."""
-    fields = PRON_COLUMNS[1:]
-    with cursor(write=True) as cur:
-        if cur is None:
-            return None
-        if entry.get("id"):
-            cur.execute(
-                f"UPDATE pronunciations SET {', '.join(f + ' = %s' for f in fields)} "
-                f"WHERE id = %s RETURNING id",
-                [entry.get(f) for f in fields] + [entry["id"]],
-            )
-        else:
-            cur.execute(
-                f"INSERT INTO pronunciations ({', '.join(fields)}) "
-                f"VALUES ({', '.join(['%s'] * len(fields))}) RETURNING id",
-                [entry.get(f) for f in fields],
-            )
-        return cur.fetchone()[0]
-
-
-def pronunciation_delete(entry_id: int) -> bool:
-    """Remove one pronunciation rule."""
-    with cursor(write=True) as cur:
-        if cur is None:
-            return False
-        cur.execute("DELETE FROM pronunciations WHERE id = %s", (entry_id,))
-        return True
-
-
 if __name__ == "__main__":
     print("DSN:", DSN)
     print("schema created" if init() else "database unreachable")
-    print(status())

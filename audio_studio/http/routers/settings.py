@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import db
 import storage
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, ConfigDict, Field
@@ -126,7 +125,7 @@ def save_pronunciation(payload: PronunciationUpdate) -> dict:
 
 @router.delete("/pronunciations/{item_id}", operation_id="deletePronunciation")
 def delete_pronunciation(item_id: int) -> dict:
-    if not db.pronunciation_delete(item_id):
+    if not administration.delete_pronunciation(item_id):
         raise ApiProblem(404, "pronunciation_not_found", "That pronunciation rule no longer exists.")
     return {"data": {"deleted": True}}
 

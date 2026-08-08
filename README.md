@@ -33,8 +33,8 @@ server and UI have been removed; there is no compatibility port or hidden
 fallback. Text preparation, subtitle Translation,
 Transcription, Batch, Speech generation and Voice package execution run through
 native application services. Remaining migration work is limited to active
-`db.py` persistence responsibilities such as Voice profile management and
-Production editing.
+`db.py` persistence responsibilities for the Work/Venture Asset library and
+Production timeline, render and media editing.
 
 See [Architecture](docs/ARCHITECTURE.md), [API v1](docs/API_V1.md), and [Canonical domain](docs/CANONICAL_DOMAIN.md).
 

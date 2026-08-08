@@ -28,7 +28,6 @@ from audio_studio.domain.delivery_tags import (
     SOUND_TAGS,
     TAG_RE,
 )
-
 ROOT = Path(__file__).parent
 
 
@@ -50,6 +49,11 @@ load_dotenv()
 import dashscope  # noqa: E402
 from dashscope.audio.tts_v2 import AudioFormat, SpeechSynthesizer  # noqa: E402
 from services.alibaba import config as alibaba_config  # noqa: E402
+from audio_studio.infrastructure.postgres.pronunciations import (  # noqa: E402
+    PronunciationRepository,
+)
+
+pronunciation_repository = PronunciationRepository()
 
 # Two tiers of the same model family.
 #   plus  = highest quality, currently #1 on Artificial Analysis for voice similarity
@@ -205,11 +209,11 @@ def build_hot_fix(rules=None) -> dict | None:
     """Phoneme rules, in the shape the service expects for hot_fix."""
     if rules is None:
         try:
-            import db
-            rules = db.pronunciations(enabled_only=True)
+            rules = pronunciation_repository.list(enabled_only=True)
         except Exception:
             return None
-    entries = [{r["pattern"]: r["phoneme"]} for r in rules if r.get("phoneme")]
+    entries = [{r["pattern"]: r["replacement"]}
+               for r in rules if r.get("phoneme")]
     return {"pronunciation": entries} if entries else None
 
 
@@ -222,8 +226,7 @@ def apply_pronunciations(text: str, rules=None) -> tuple[str, list]:
     """
     if rules is None:
         try:
-            import db
-            rules = db.pronunciations(enabled_only=True)
+            rules = pronunciation_repository.list(enabled_only=True)
         except Exception:
             return text, []
 

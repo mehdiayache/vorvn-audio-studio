@@ -80,29 +80,30 @@ Never delete the old system first and rebuild everything at once.
 
 ## Current step
 
-Move Settings, pronunciation management, Activity cleanup and System health
-reads from `db.py` into focused control-plane repositories. Do not mix this
-with Work/Timeline/Render persistence.
+Move Venture Asset library reads, uploads and typed ownership checks from
+`db.py` into one native repository. Preserve the distinction between reusable
+Venture Assets and Production timeline links.
 
 ## Last verified checkpoint
 
 - Repository: `https://github.com/mehdiayache/vorvn-audio-studio` (private)
-- Checkpoint: native Voice profile, history and catalogue persistence (the
-  commit carrying this record)
-- Tests: 79 Python unit/integration tests against the real FastAPI application
+- Checkpoint: native Settings, pronunciation, Activity and health persistence
+  (the commit carrying this record)
+- Tests: 83 Python unit/integration tests against the real FastAPI application
   and PostgreSQL; 25 Alibaba contracts, 18 chunking checks, 4 transcription
   checks, 15 native renderer checks, 12 Phase 2 checks and 6 canonical domain
   checks passed
 - Frontend: OpenAPI generation, strict TypeScript build, Vite build, 19 Vitest
   files and 59 tests passed
-- Manual flow: restarted FastAPI and the worker, verified health, Voice profile
-  and registry endpoints, then verified all three cloned identities, seven
-  ready capabilities and historical history in the real React Voices page.
-  The browser console had no warnings or errors; no paid operation was submitted
+- Manual flow: restarted FastAPI and the worker, verified health, Settings,
+  Activity, pronunciation list/preview and spend summaries over HTTP, then
+  inspected the real React Settings and Activity pages. Database status,
+  pronunciation rules and 130 historical operations rendered with no browser
+  warning or error; no setting was submitted and no paid operation was triggered
 - Runtime: one FastAPI supervisor and one durable worker. The legacy HTTP
   server and UI are deleted and port 7861 is gone from the configuration
-- Remaining dependency: Work, Venture Assets, Production rendering/timeline,
-  Settings, Activity, System health and media persistence still call `db.py`
+- Remaining dependency: Work, Venture Assets, Production rendering/timeline
+  and media persistence still call `db.py`
 
 ## Findings
 
@@ -173,13 +174,22 @@ with Work/Timeline/Render persistence.
 - Active Voice and catalogue code contains no `db.voice_*` calls. The replaced
   legacy functions were removed from `db.py`, reducing it from 3,286 to 2,861
   lines without changing its still-active schema initialization.
+- Settings, global naming, spend summaries and database health now share a
+  native `ControlPlaneRepository`; pronunciation rules and Activity use their
+  own focused repositories. HTTP routers contain no persistence calls.
+- Migration `004_pronunciation_phoneme_boolean.sql` repairs the historical
+  mismatch where the API sent a Boolean but PostgreSQL stored text. A disabled
+  phoneme flag can no longer become the truthy string `"false"` and suppress a
+  normal pronunciation replacement. Qwen Audio hot-fix entries now correctly
+  use the rule's replacement as the phoneme spelling.
+- The replaced control-plane functions and the already-unused legacy Activity
+  read/write block were removed from `db.py`, reducing it from 2,861 to 2,535
+  lines. Its schema initializer remains active until migration consolidation.
 - `db.py` remains an active persistence compatibility layer.
 - The active `db.py` callers are now inventoried by capability: canonical
   Work and Venture Assets (`domain/repository.py`, `application/work.py`,
   `application/uploads.py`); Production timeline/render/media
-  (`timeline.py`, `renders.py`, `media.py`); and control-plane reads
-  (`settings.py`, `administration.py`, catalogue configuration, Activity,
-  Settings and System routers).
+  (`timeline.py`, `renders.py`, `media.py`).
   These are the remaining migration slices, not hidden HTTP dependencies.
 - The versioned migration runner under `audio_studio/migrations` is the target
   migration mechanism.

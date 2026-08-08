@@ -7,13 +7,18 @@ import os
 from pathlib import Path
 from typing import Any
 
-import db
 import naming
 import say
 import storage
 from services.alibaba import config as alibaba_config
 
 from audio_studio.application.preferences import load_preferences, save_preferences
+from audio_studio.infrastructure.postgres.control_plane import (
+    ControlPlaneRepository,
+)
+
+
+repository = ControlPlaneRepository()
 
 
 def snapshot() -> dict[str, Any]:
@@ -33,7 +38,7 @@ def snapshot() -> dict[str, Any]:
         "spending": {
             "warn_above": float(preferences.get("warn_above") or 0),
             "daily_cap": float(preferences.get("daily_cap") or 0),
-            **db.spend_totals(),
+            **repository.spend_totals(),
         },
         "speech": {
             "fix_dates_phones": bool(preferences.get("fix_dates_phones", True)),
@@ -42,9 +47,10 @@ def snapshot() -> dict[str, Any]:
             "supported_flags": say.SYNTH_FLAGS,
             "extra_params": str(preferences.get("extra_params") or ""),
         },
-        "naming": naming.merged(db.setting("naming", preferences.get("naming", {})), None),
+        "naming": naming.merged(
+            repository.setting("naming", preferences.get("naming", {})), None),
         "naming_tokens": list(naming.TOKENS),
-        "database": db.status(),
+        "database": repository.database_status(),
         # Loading Settings must never wait on a remote bucket. Reachability is
         # checked only by the explicit Test connection action.
         "storage": ({"configured": True, "status": "Configured",
@@ -91,7 +97,7 @@ def update(changes: dict[str, Any]) -> dict[str, Any]:
         }
     if "naming" in changes:
         value = changes["naming"]
-        db.setting_save("naming", None if value is None else {
+        repository.save_setting("naming", None if value is None else {
             key: item for key, item in value.items() if key in naming.DEFAULTS
         })
     save_preferences(preferences)

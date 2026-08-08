@@ -96,6 +96,27 @@ class AudioStudioArchitectureTests(unittest.TestCase):
         repository = ROOT / "audio_studio/infrastructure/postgres/voices.py"
         self.assertTrue(repository.exists())
 
+    def test_control_plane_has_no_legacy_persistence_calls(self):
+        for relative in (
+                "audio_studio/application/activity.py",
+                "audio_studio/application/administration.py",
+                "audio_studio/application/catalog.py",
+                "audio_studio/application/settings.py",
+                "audio_studio/application/system.py",
+                "audio_studio/http/routers/activity.py",
+                "audio_studio/http/routers/settings.py",
+                "audio_studio/http/routers/system.py",
+                "say.py"):
+            source = (ROOT / relative).read_text()
+            self.assertNotIn("import db", source, relative)
+            self.assertNotIn("db.", source, relative)
+        legacy = (ROOT / "db.py").read_text()
+        for function in (
+                "status", "setting", "setting_save", "spend_totals",
+                "jobs_abandon_stale", "pronunciations",
+                "pronunciation_save", "pronunciation_delete"):
+            self.assertNotIn(f"def {function}(", legacy, function)
+
 
 if __name__ == "__main__":
     unittest.main()

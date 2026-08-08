@@ -200,8 +200,9 @@ the same resource contract without sharing DOM code.
 3. Add auth/tenant scope before exposing the server beyond localhost.
 4. Move paid work behind durable Jobs and actual provider usage accounting.
 5. Add idempotent writes and cursor pagination.
-6. Migrate the remaining Voice profile/history and Production persistence paths
-   out of legacy `db.py` as each capability is touched. Voice package execution
-   is native.
+6. Migrate the remaining Work/Venture Asset library and Production timeline,
+   render and media persistence paths out of legacy `db.py` as each capability
+   is touched. Voice identities, control-plane persistence and voice package
+   execution are native.
 7. Legacy `server.py` and `ui/` are deleted. Delete `db.py` only after its
    remaining persistence callers have moved and parity checks are proven.

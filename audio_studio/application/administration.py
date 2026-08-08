@@ -8,16 +8,19 @@ from pathlib import Path
 from threading import RLock
 from typing import Any
 
-import db
 import say
 import storage
 
 from audio_studio.config import settings
 from audio_studio.application.preferences import load_preferences
+from audio_studio.infrastructure.postgres.pronunciations import (
+    PronunciationRepository,
+)
 
 
 ENV_FILE = settings.root / ".env"
 _lock = RLock()
+pronunciation_repository = PronunciationRepository()
 _STORAGE_ENV = {
     "endpoint": "RUSTFS_ENDPOINT", "access_key": "RUSTFS_ACCESS_KEY",
     "secret_key": "RUSTFS_SECRET_KEY", "bucket": "RUSTFS_BUCKET",
@@ -115,7 +118,7 @@ def tidy_working_files(days: int = 7) -> dict[str, int]:
 
 
 def pronunciations() -> list[dict[str, Any]]:
-    return db.pronunciations()
+    return pronunciation_repository.list()
 
 
 def save_pronunciation(values: dict[str, Any]) -> int:
@@ -123,10 +126,17 @@ def save_pronunciation(values: dict[str, Any]) -> int:
     replacement = str(values.get("replacement") or "").strip()
     if not pattern or not replacement:
         raise ValueError("Both the written form and pronunciation are required.")
-    return int(db.pronunciation_save({
+    saved = pronunciation_repository.save({
         "id": values.get("id"), "pattern": pattern, "replacement": replacement,
         "whole_word": bool(values.get("whole_word", True)),
         "match_case": bool(values.get("match_case", False)),
         "enabled": bool(values.get("enabled", True)),
         "phoneme": bool(values.get("phoneme", False)),
-    }))
+    })
+    if saved is None:
+        raise ValueError("That pronunciation rule no longer exists.")
+    return saved
+
+
+def delete_pronunciation(item_id: int) -> bool:
+    return pronunciation_repository.delete(item_id)

@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 
 import batch
-import db
 import naming
 import say
 import storage
@@ -16,12 +15,16 @@ from services.alibaba import voice_registry
 from audio_studio.application.preferences import load_preferences
 from audio_studio.application.text_preparation import variables as tag_variables
 from audio_studio.infrastructure.postgres.voices import VoiceRepository
+from audio_studio.infrastructure.postgres.control_plane import (
+    ControlPlaneRepository,
+)
 
 
 LANGUAGES = ["Auto", "English", "Chinese", "Japanese", "Korean", "French",
              "German", "Spanish", "Italian", "Portuguese", "Russian", "Arabic",
              "Indonesian", "Malay", "Thai", "Vietnamese", "Tagalog"]
 repository = VoiceRepository()
+control_repository = ControlPlaneRepository()
 
 
 def configuration() -> dict:
@@ -36,7 +39,9 @@ def configuration() -> dict:
         "tags": {"Moods": say.MOOD_TAGS, "Sounds": say.SOUND_TAGS},
         "retired_tags": say.RETIRED_TAGS,
         "tag_variables": tag_variables(),
-        "naming": naming.merged(db.setting("naming", preferences.get("naming", {})), None),
+        "naming": naming.merged(
+            control_repository.setting(
+                "naming", preferences.get("naming", {})), None),
         "voice_images": {voice: value["image"] for voice, value in metadata.items() if value.get("image")},
         "voice_favourites": [voice for voice, value in metadata.items() if value.get("favourite")],
         "naming_tokens": list(naming.TOKENS),
@@ -59,8 +64,8 @@ def configuration() -> dict:
         "has_key": bool(os.getenv("DASHSCOPE_API_KEY")),
         "out_dir": str(preferences["out_dir"]),
         "prefs": preferences,
-        "spend": db.spend_totals(),
-        "database": db.status(),
+        "spend": control_repository.spend_totals(),
+        "database": control_repository.database_status(),
         "storage": storage.status(),
         "storage_settings": {key: value for key, value in storage.settings().items()
                              if "key" not in key},
