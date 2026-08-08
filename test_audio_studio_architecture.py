@@ -76,6 +76,11 @@ class AudioStudioArchitectureTests(unittest.TestCase):
         self.assertFalse(any(getattr(route, "path", "") == "/api/{path:path}"
                              for route in app.routes))
 
+    def test_runtime_does_not_start_the_legacy_server(self):
+        runtime = (ROOT / "audio_studio/runtime.py").read_text()
+        self.assertNotIn("server.py", runtime)
+        self.assertNotIn("legacy_port", runtime)
+
 
 if __name__ == "__main__":
     unittest.main()

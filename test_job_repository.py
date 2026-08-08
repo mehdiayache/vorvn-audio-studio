@@ -36,24 +36,32 @@ class JobRepositoryTests(unittest.TestCase):
                 self.assertEqual(cursor.fetchone(), ("local-owner", "local-studio", "speak", "Generate speech", "qwen3.5-omni-plus"))
                 cursor.execute("SELECT action FROM audit_records WHERE resource_type = 'job' AND resource_id = %s", (str(job.id),))
                 self.assertEqual(cursor.fetchone()[0], "job.enqueued")
+                cursor.execute("""
+                    INSERT INTO generations
+                        (text, voice, model, format, filename, path)
+                    VALUES ('fixture', 'Tina', 'plus', 'mp3', '', '')
+                    RETURNING id
+                """)
+                saved_generation_id = cursor.fetchone()[0]
             jobs_module.JobRepository().finish(job.id, {
-                "id": 42, "cost_basis": "catalog_duration",
+                "id": saved_generation_id, "cost_basis": "catalog_duration",
                 "price_version": "fixture-price", "provider_region": "intl",
                 "model": "qwen3-asr-flash-filetrans",
                 "engine": "native", "voice": "fixture-voice",
                 "estimated_cost": 0.001, "chars": 123,
             }, cost=0.000826)
             with connection.cursor() as cursor:
-                cursor.execute("SELECT cost_basis, price_version, provider_region, output_ids, estimated, chars, model, engine, voice, elapsed_ms FROM jobs WHERE id = %s", (job.id,))
+                cursor.execute("SELECT cost_basis, price_version, provider_region, output_ids, estimated, chars, model, engine, voice, elapsed_ms, generation_id FROM jobs WHERE id = %s", (job.id,))
                 (basis, version, region, outputs, estimated, chars, model,
-                 engine, voice, elapsed_ms) = cursor.fetchone()
+                 engine, voice, elapsed_ms, generation_id) = cursor.fetchone()
                 self.assertEqual((basis, version, region), ("catalog_duration", "fixture-price", "intl"))
-                self.assertEqual(outputs, [{"type": "part", "id": 42}])
+                self.assertEqual(outputs, [{"type": "part", "id": saved_generation_id}])
                 self.assertEqual((float(estimated), chars), (0.001, 123))
                 self.assertEqual(
                     (model, engine, voice),
                     ("qwen3-asr-flash-filetrans", "native", "fixture-voice"))
                 self.assertIsNotNone(elapsed_ms)
+                self.assertEqual(generation_id, saved_generation_id)
                 cursor.execute("SELECT action FROM audit_records WHERE resource_id = %s ORDER BY id", (str(job.id),))
                 self.assertEqual([row[0] for row in cursor.fetchall()], ["job.enqueued", "job.completed"])
         finally:

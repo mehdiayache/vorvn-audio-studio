@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Protocol
 from urllib.parse import unquote
@@ -10,36 +9,7 @@ from urllib.parse import unquote
 import batch as spreadsheet
 
 from audio_studio.domain.jobs import Job
-
-
-@dataclass(frozen=True, slots=True)
-class PreparedBatchSpeech:
-    original_text: str
-    spoken_text: str
-    voice: str
-    voice_identity_id: str | None
-    engine: str
-    tier: str
-    model_id: str
-    output_format: str
-    extension: str
-    estimated_cost: float
-    context: object = field(repr=False, compare=False)
-
-
-@dataclass(frozen=True, slots=True)
-class SynthesizedBatchSpeech:
-    audio: bytes
-    cost: float
-    cost_basis: str
-    usage: dict[str, int | float]
-    failures: list[dict]
-    returned_text: str | None = None
-    provider_region: str | None = None
-    provider_endpoint: str | None = None
-    price_version: str | None = None
-    catalog_rate: str | None = None
-    request_ids: list[str] = field(default_factory=list)
+from audio_studio.domain.speech import PreparedSpeech, SynthesizedSpeech
 
 
 class BatchWorkspace(Protocol):
@@ -59,9 +29,9 @@ class BatchRepository(Protocol):
 class BatchSpeechProvider(Protocol):
     def prepare(self, *, text: str, values: dict, bindings: list[dict],
                 pronunciations: list[dict], preferences: dict
-                ) -> PreparedBatchSpeech: ...
-    def synthesize(self, prepared: PreparedBatchSpeech,
-                   on_progress=None) -> SynthesizedBatchSpeech: ...
+                ) -> PreparedSpeech: ...
+    def synthesize(self, prepared: PreparedSpeech,
+                   on_progress=None) -> SynthesizedSpeech: ...
 
 
 def _known_voice_ids(bindings: list[dict]) -> set[str]:
@@ -204,7 +174,7 @@ class BatchGenerationService:
 
         pronunciations = self.repository.pronunciations()
         preferences = self.preferences()
-        prepared_rows: list[tuple[int, list, PreparedBatchSpeech]] = []
+        prepared_rows: list[tuple[int, list, PreparedSpeech]] = []
         defaults = {
             "voice": voice, "voice_identity_id": voice_identity_id,
             "engine": engine, "model": model, "format": format,

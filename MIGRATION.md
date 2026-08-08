@@ -8,10 +8,11 @@ rollback, and comparison system.
 Finish the existing migration from the legacy Audio Studio backend to the
 current React + FastAPI architecture.
 
-Current:
+Current mixed state:
 
 ```text
-React -> FastAPI -> Jobs -> legacy server.py / db.py
+React -> FastAPI -> Jobs -> native application services -> provider adapters
+                              \-> remaining legacy db.py responsibilities
 ```
 
 Target:
@@ -58,9 +59,9 @@ Never delete the old system first and rebuild everything at once.
 - [x] Translation (active subtitle execution)
 - [x] Transcription (active external and Production caption execution)
 - [x] Batch (spreadsheet intake, native row generation and output delivery)
-- [ ] Speech generation
-- [ ] Voice cloning
-- [ ] Confirm zero active runtime dependencies
+- [x] Speech generation (create, another Take and Draft recording)
+- [ ] Remove obsolete Voice cloning implementation after the active package path is migrated
+- [x] Confirm zero active runtime dependencies
 - [ ] Delete `server.py`
 
 ### Legacy db.py
@@ -79,34 +80,36 @@ Never delete the old system first and rebuild everything at once.
 
 ## Current step
 
-Speech generation is the next migration capability.
-
-Extract create, regenerate and draft-render operations through one native
-speech service. Preserve destination ownership, takes, text states, provider
-routing, fidelity checks, partial chunk warnings, exact accounting and durable
-progress. Remove each loopback operation only after its React flow works.
+Voice cloning is the next migration capability. The active React package flow
+already bypasses `server.py`, but its worker still imports legacy `db.py` and
+legacy package orchestration. Move that one active flow behind an application
+service, a PostgreSQL repository and a provider adapter before removing only
+the corresponding legacy code.
 
 ## Last verified checkpoint
 
 - Repository: `https://github.com/mehdiayache/vorvn-audio-studio` (private)
-- Checkpoint: native Batch slice (the commit carrying this
-  record)
-- Tests: focused Python tests including real PostgreSQL Batch policy and Job
-  ledger reads, provider contracts and pricing; HTTP integration checks,
-  15 Phase 1 checks, 12 Phase 2 checks and 6 canonical domain checks passed
+- Checkpoint: native Speech generation slice (the commit carrying this record)
+- Tests: 64 Python unit/integration tests including real PostgreSQL Speech,
+  Batch and Job fixtures; 25 Alibaba contracts, 18 chunking checks, 4
+  transcription checks, 22 HTTP checks, 15 Phase 1 checks, 12 Phase 2 checks
+  and 6 canonical domain checks passed
 - Frontend: OpenAPI generation, strict TypeScript build, Vite build, 19 Vitest
   files and 59 tests passed
-- Manual flow: restarted React app, opened Batch, loaded and mapped a free
-  local fixture, and verified controls without submitting a paid generation
-- Runtime: one supervisor, one loopback compatibility process and one current
-  worker; stale development workers were stopped before verification
-- Remaining dependency: Speech Jobs still delegate to `server.py`; Voice
-  cloning and several canonical services still call `db.py`
+- Manual flow: restarted React, verified Standalone Speak, Add Part, New Take
+  and Record Draft, and removed the temporary Draft from the explicit test
+  Production; no paid generation was submitted and the browser logged no error
+- Runtime: one FastAPI supervisor and one durable worker. `server.py` is no
+  longer started and port 7861 is gone from the application configuration
+- Remaining dependency: Voice packages, rendering/timeline and several
+  canonical services still call `db.py`; `server.py` remains in the repository
+  only until its obsolete implementations receive a final deletion audit
 
 ## Findings
 
-- `server.py` remains an active loopback provider adapter and must not be
-  deleted early.
+- `server.py` has zero active runtime callers and is no longer started. Keep it
+  only until the remaining obsolete implementations have been audited against
+  active FastAPI capabilities, then delete it in a separately verified step.
 - Shape/Tag Jobs now run through the native Text preparation service, canonical
   PostgreSQL reads and the Alibaba adapter. Their loopback routes were removed.
 - Subtitle Translation Jobs now run through the native application service,
@@ -134,6 +137,20 @@ progress. Remove each loopback operation only after its React flow works.
 - Batch accounting records each resolved row route and aggregates actual Omni
   token usage or regional Qwen Audio catalogue character cost. Completed Jobs
   now also retain resolved model/engine/voice and elapsed time.
+- Standalone Speak, Add Part, another Take and Record Draft now share one
+  native Speech application service, one PostgreSQL repository, one safe audio
+  workspace and the same Alibaba adapter as Batch. No operation calls the
+  legacy HTTP handler.
+- Speech validates Production ownership, Part kind, live voice binding,
+  delivery compatibility, daily cap and confirmation threshold before any
+  provider call. Take replacement is transactional and rejects concurrent
+  edits after preserving the paid file on disk.
+- Speech Jobs retain actual Omni token usage or versioned regional Qwen Audio
+  character cost, provider route, fidelity result and the generated Part ID.
+  Canonical requests now use `production_id`; `project_id` remains read-only
+  input compatibility for older clients.
+- Removing the last loopback Job handler made the 7861 compatibility process
+  unnecessary. The runtime now starts only FastAPI and the durable worker.
 - Legacy-only prompt preview/save routes remain quarantined with the unreachable
   old UI and are not part of active Shape/Tag execution.
 - `db.py` remains an active persistence compatibility layer.

@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest"
 import type { RenderTask } from "@/types/domain"
 import { useRenderTasks } from "./use-render-tasks"
 
-const task: RenderTask = { id: "task-1", mode: "new", status: "generating", text: "Hello", voice: "Tina", insertAt: null, startedAt: Date.now(), payload: { text: "Hello", project_id: 28, insert_at: null, voice: "Tina", engine: "omni", model: "plus", format: "mp3", language: "English", instruction: "", speech_mode: "exact", rate: 1, pitch: 1, volume: 50, seed: 0 } }
+const task: RenderTask = { id: "task-1", mode: "new", status: "generating", text: "Hello", voice: "Tina", insertAt: null, startedAt: Date.now(), payload: { text: "Hello", production_id: 28, insert_at: null, voice: "Tina", engine: "omni", model: "plus", format: "mp3", language: "English", instruction: "", speech_mode: "exact", rate: 1, pitch: 1, volume: 50, seed: 0 } }
 
 describe("useRenderTasks", () => {
   it("owns a pending task until the render resolves", async () => {

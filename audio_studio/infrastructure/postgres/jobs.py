@@ -155,6 +155,7 @@ class JobRepository:
                        cost_basis = %s, price_version = %s,
                        provider_region = %s, provider_endpoint = %s,
                        resolved_route = %s::jsonb, output_ids = %s::jsonb,
+                       generation_id = coalesce(%s, generation_id),
                        finished_at = now(), last_heartbeat_at = now(),
                        elapsed_ms = greatest(0, extract(epoch from
                            (now() - coalesce(started_at, created_at))) * 1000)::int
@@ -169,7 +170,7 @@ class JobRepository:
                   result.get("provider_region"), result.get("provider_endpoint"),
                   json.dumps({"model": result.get("model"),
                               "region": result.get("provider_region")}),
-                  json.dumps(outputs), job_id))
+                  json.dumps(outputs), result.get("id"), job_id))
             cursor.execute("INSERT INTO job_events (job_id, kind, progress) VALUES (%s, 'completed', 1)",
                            (job_id,))
             if job_row:

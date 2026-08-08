@@ -24,33 +24,41 @@ repository = JobRepository()
 class SpeechJobCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    text: str = Field(min_length=1)
-    text_raw: str | None = None
-    text_shaped: str | None = None
-    text_tagged: str | None = None
-    text_state: str = "raw"
-    project_id: int | None = None
-    insert_at: int | None = None
-    voice: str = Field(min_length=1)
-    voice_identity_id: str | None = None
-    engine: str
-    model: str
-    format: str = "mp3"
-    language: str = "Auto"
-    instruction: str = ""
-    speech_mode: str = "exact"
-    rate: float = 1
-    pitch: float = 1
-    volume: int = 50
-    seed: int = 0
+    text: str = Field(min_length=1, max_length=500_000)
+    text_raw: str | None = Field(default=None, max_length=500_000)
+    text_shaped: str | None = Field(default=None, max_length=500_000)
+    text_tagged: str | None = Field(default=None, max_length=500_000)
+    text_state: Literal["raw", "shaped", "tagged"] = "raw"
+    production_id: int | None = Field(
+        default=None, gt=0,
+        validation_alias=AliasChoices("production_id", "project_id"),
+    )
+    insert_at: int | None = Field(default=None, ge=0)
+    voice: str = Field(min_length=1, max_length=300)
+    voice_identity_id: str | None = Field(default=None, max_length=120)
+    engine: Literal["audio", "omni"]
+    model: Literal["plus", "flash"]
+    format: Literal["mp3", "mp3-24k", "wav", "opus"] = "mp3"
+    language: str = Field(default="Auto", max_length=80)
+    instruction: str = Field(default="", max_length=100)
+    speech_mode: Literal["exact", "directed"] = "exact"
+    rate: float = Field(default=1, ge=.5, le=2)
+    pitch: float = Field(default=1, ge=.5, le=2)
+    volume: int = Field(default=50, ge=0, le=100)
+    seed: int = Field(default=0, ge=0, le=2_147_483_647)
     confirmed: bool = False
     operation: Literal["create", "regenerate", "render_draft"] = "create"
-    part_id: int | None = None
+    part_id: int | None = Field(default=None, gt=0)
 
     @model_validator(mode="after")
     def part_is_present_for_replacement(self):
-        if self.operation != "create" and not self.part_id:
-            raise ValueError("A Part is required for that speech operation.")
+        if self.operation != "create" and (not self.part_id or not self.production_id):
+            raise ValueError(
+                "A Production and Part are required for that speech operation.")
+        if self.operation == "create" and self.part_id:
+            raise ValueError("A new speech Part cannot replace an existing Part.")
+        if self.production_id is None and self.insert_at is not None:
+            raise ValueError("A sequence position requires a Production.")
         return self
 
 
@@ -159,12 +167,14 @@ def _payload(job: Job) -> dict:
 @router.post("/speech", operation_id="createSpeechJob", status_code=202)
 def create_speech_job(payload: SpeechJobCreate,
                       idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
-    values = payload.model_dump(exclude_none=True)
+    # Keep explicit nulls: selecting a system voice intentionally clears a
+    # previous cloned-voice identity on a replacement Take.
+    values = payload.model_dump(exclude_unset=True)
     job, created = repository.enqueue(
         "speech", values,
         idempotency_key=(idempotency_key or f"speech-{uuid4()}")[:200],
-        production_id=payload.project_id,
-        source_tool="production" if payload.project_id else "speak",
+        production_id=payload.production_id,
+        source_tool="production" if payload.production_id else "speak",
         operation_label={"create": "Generate speech", "regenerate": "Create another take", "render_draft": "Render draft"}[payload.operation],
     )
     return {"data": _payload(job), "meta": {"created": created}}

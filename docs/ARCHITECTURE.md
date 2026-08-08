@@ -11,20 +11,16 @@ FastAPI :7860
   |-- /api/v1/*        typed native API
   |
   +--> PostgreSQL :5434 <--> durable worker
-  |                           |
-  |                           +--> provider adapters
-  |
-  +--> legacy loopback :7861 (temporary extraction boundary)
+                              |
+                              +--> provider adapters
 ```
 
-Only FastAPI is public. `server.py` is started on loopback solely as an
-internal Alibaba execution adapter while those provider implementations are
-extracted. It owns no browser, upload, media, timeline, preview or export
-contract. New routes, UI links and external integrations must never target
-port 7861 or import its HTTP handler.
-
-The loopback process is not a second product surface. There is no public
-compatibility gateway and no `/legacy/*` escape hatch.
+FastAPI is the only HTTP process. `server.py` is no longer started and there is
+no loopback compatibility port. It remains temporarily as quarantined source
+until a deletion audit confirms that each historical implementation is either
+obsolete or represented by an active FastAPI capability. New code must never
+import its handler. There is no compatibility gateway or `/legacy/*` escape
+hatch.
 
 ## Backend boundaries
 
@@ -59,10 +55,10 @@ Canonical resources keep both a public UUID and a compatibility integer ID durin
 
 Historical spend is immutable. Removing a Part, Take or audio file changes the current Production cost but never erases what was already billed. Jobs record requested/resolved routes, provider usage, price basis, outputs and failure state.
 
-## Internal provider extraction rule
+## Legacy extraction rule
 
-The loopback provider adapter is a measured extraction boundary, not a
-destination for new code. A provider slice is complete only when:
+The quarantined legacy files are a measured extraction reference, not a
+destination for new code. A capability slice is complete only when:
 
 1. FastAPI owns its contract.
 2. The application service owns its policy.

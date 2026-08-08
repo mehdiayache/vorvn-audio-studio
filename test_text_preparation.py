@@ -140,11 +140,11 @@ class TextPreparationTests(unittest.TestCase):
 
     def test_legacy_text_execution_routes_are_removed(self):
         server = (ROOT / "server.py").read_text()
-        legacy_jobs = (ROOT / "audio_studio/infrastructure/legacy_jobs.py").read_text()
+        legacy_jobs = ROOT / "audio_studio/infrastructure/legacy_jobs.py"
         worker = (ROOT / "audio_studio/worker.py").read_text()
         self.assertNotIn('"/api/text/shape"', server)
         self.assertNotIn('"/api/text/tag"', server)
-        self.assertNotIn("def rewrite(", legacy_jobs)
+        self.assertFalse(legacy_jobs.exists())
         self.assertIn('service.register("rewrite", TextPreparationJobHandler', worker)
 
 

@@ -1991,53 +1991,6 @@ class Handler(SimpleHTTPRequestHandler):
             "status": status, "error": run_error,
         }
 
-    def _regenerate(self, payload: dict):
-        """Make a fresh take of an existing part, keeping the old one."""
-        durable_job = bool(payload.pop("_durable_job", False))
-        part = db.get(int(payload.get("id") or 0))
-        if not part:
-            return self._json({"error": "That part is gone."}, 404)
-
-        # Anything not overridden keeps the part's own settings.
-        settings = {**{k: part[k] for k in
-                       ("text", "voice", "voice_identity_id", "engine", "model", "format", "language",
-                        "instruction", "speech_mode", "rate", "pitch", "volume", "seed",
-                        "text_raw", "text_shaped", "text_tagged", "text_state")},
-                    **{k: v for k, v in payload.items() if v is not None
-                       and k not in ("id", "confirmed")}}
-        text = (settings.get("text") or "").strip()
-        if not text:
-            return self._json({"error": "Nothing to say."}, 400)
-
-        options = Options(settings)
-        incompatible = delivery_error(text, options)
-        if incompatible:
-            return self._json({"error": incompatible}, 400)
-        guard = self._check_budget(estimate_cost(text, options.model, options.engine), payload)
-        if guard:
-            return self._json(*guard)
-
-        made = self._make_audio(text, options, label="Making another take",
-                                durable_job=durable_job)
-        if "error" in made:
-            return self._json(made, 500)
-
-        # Old take is put aside only once the new audio exists, so a failure
-        # above never loses anything.
-        db.archive_take(part["id"])
-        text_states = {key: settings.get(key) for key in
-                       ("text_raw", "text_shaped", "text_tagged", "text_state")}
-        db.replace_take(part["id"], {**made["row"], **text_states})
-        if made.get("run") is not None:
-            db.job_finish(made.get("run"), status=made["status"], error=made.get("error"),
-                          generation_id=part["id"], project_id=part["project_id"])
-        # The words are now spoken differently, so anything written from the old
-        # audio describes a recording that no longer exists.
-        stale = db.mark_transcripts_stale(part["id"])
-        return self._json({"id": part["id"], **made["summary"],
-                           "takes": db.take_count(part["id"]),
-                           "subtitles_stale": stale})
-
     def _silence_edit(self, payload: dict):
         """Change how long a gap lasts, without deleting and re-adding it."""
         seconds = max(0.1, min(120.0, float(payload.get("seconds") or 4)))
@@ -2117,47 +2070,6 @@ class Handler(SimpleHTTPRequestHandler):
             "title": None, "failures": [],
         }, insert_at=position if at is not None else None)
         return self._json({"id": new_id})
-
-    def _render_draft(self, payload: dict):
-        """Speak a draft, turning it into an ordinary recorded part."""
-        durable_job = bool(payload.pop("_durable_job", False))
-        part = db.get(int(payload.get("id") or 0))
-        if not part:
-            return self._json({"error": "That part is gone."}, 404)
-        if part["kind"] != "draft":
-            return self._json({"error": "That part already has audio."}, 400)
-
-        settings = {**{k: part[k] for k in
-                       ("text", "voice", "voice_identity_id", "engine", "model", "format", "language",
-                        "instruction", "speech_mode", "rate", "pitch", "volume", "seed",
-                        "text_raw", "text_shaped", "text_tagged", "text_state")},
-                    **{k: v for k, v in payload.items() if v is not None
-                       and k not in ("id", "confirmed")}}
-        text = (settings.get("text") or "").strip()
-        if not text:
-            return self._json({"error": "Nothing to say."}, 400)
-
-        options = Options(settings)
-        incompatible = delivery_error(text, options)
-        if incompatible:
-            return self._json({"error": incompatible}, 400)
-        guard = self._check_budget(
-            estimate_cost(text, options.model, options.engine), payload)
-        if guard:
-            return self._json(*guard)
-
-        made = self._make_audio(text, options, label=f"Part {(part['position'] or 0) + 1}",
-                                durable_job=durable_job)
-        if "error" in made:
-            return self._json(made, 400)
-
-        text_states = {key: settings.get(key) for key in
-                       ("text_raw", "text_shaped", "text_tagged", "text_state")}
-        db.replace_take(part["id"], {**made["row"], **text_states, "kind": "audio"})
-        if made.get("run") is not None:
-            db.job_finish(made.get("run"), status=made["status"], error=made.get("error"),
-                          generation_id=part["id"], project_id=part["project_id"])
-        return self._json({"id": part["id"], **made["summary"]})
 
     def _render_drafts(self, payload: dict):
         """Speak every draft in a project, in order, so one press covers a script."""
@@ -2742,7 +2654,6 @@ class Handler(SimpleHTTPRequestHandler):
             routes = {
                 "/api/key": self._save_key,
                 "/api/alibaba": self._save_alibaba,
-                "/api/speak": self._speak,
                 "/api/prefs": self._save_prefs,
                 "/api/reveal": self._reveal,
                 "/api/clone/create": self._clone_create,
@@ -2793,10 +2704,8 @@ class Handler(SimpleHTTPRequestHandler):
                                            (p.get("icon") or "")[:400])}),
                 "/api/project/silence": self._silence_part,
                 "/api/project/silence/edit": self._silence_edit,
-                "/api/part/regenerate": self._regenerate,
                 "/api/part/duplicate": self._part_duplicate,
                 "/api/part/draft": self._draft_part,
-                "/api/part/render": self._render_draft,
                 "/api/project/render-drafts": self._render_drafts,
                 "/api/parts/delete": self._parts_delete,
                 "/api/parts/move": self._parts_move,
@@ -3014,143 +2923,6 @@ class Handler(SimpleHTTPRequestHandler):
         """Show a file in Finder."""
         subprocess.run(["open", str(out_dir())], check=False)
         return self._json({"ok": True})
-
-    def _speak(self, payload: dict):
-
-        """Turn text into audio — the request behind the Speak button."""
-        durable_job = bool(payload.pop("_durable_job", False))
-        text = (payload.get("text") or "").strip()
-        if not text:
-            return self._json({"error": "Type something to say first."}, 400)
-        if not os.getenv("DASHSCOPE_API_KEY"):
-            return self._json({"error": "No API key saved yet."}, 400)
-
-        requested_destination = payload.get("project_id")
-        if requested_destination not in (None, "", 0, "0"):
-            try:
-                project_id = int(requested_destination)
-            except (TypeError, ValueError):
-                return self._json({"error": "Choose a valid destination."}, 400)
-            if not db.project_get(project_id):
-                return self._json({"error": "That destination no longer exists."}, 404)
-            wrong = self._reject_wrong_level(project_id)
-            if wrong:
-                return wrong
-            payload = {**payload, "project_id": project_id}
-
-        options = Options(payload)
-        incompatible = delivery_error(text, options)
-        if incompatible:
-            return self._json({"error": incompatible}, 400)
-        guard = self._check_budget(
-            estimate_cost(text, options.model, options.engine), payload)
-        if guard:
-            return self._json(*guard)
-
-        # The dictionary rewrites the text that gets spoken; the original is what
-        # we store, so history still shows what you actually typed.
-        spoken, applied = say.apply_pronunciations(text)
-        spoken, rewrites = maybe_normalise(spoken)
-        chunks = say.chunk_text(spoken)
-        estimated = estimate_cost(spoken, options.model, options.engine)
-        run = None if durable_job else self._run("speech", model=options.model_id, estimated=estimated,
-                        chars=len(spoken), voice=options.voice,
-                        voice_identity_id=options.voice_identity_id,
-                        provider_voice_id=options.voice, engine=options.engine,
-                        tier=options.model, detail="Speak tab",
-                        total=len(chunks))
-
-        job = start_progress(done=0, total=len(chunks), stage="Generating")
-        try:
-            try:
-                audio, failures, transcripts, usage = alibaba_speech.synthesize(
-                    chunks, options,
-                    on_progress=lambda i, n, t: set_progress(
-                        job, done=i - 1, total=n, label=t[:60]),
-                )
-            except Exception as exc:
-                self._done(run, status="failed", error=str(exc)[:400])
-                raise
-        finally:
-            clear_progress(job)
-        if not audio:
-            self._done(run, status="failed", cost=0, error="no audio returned")
-            return self._json({"error": "Nothing rendered — every chunk failed."}, 500)
-
-        extension = output_extension(options.format)
-        name = _unique_output_name(text, extension)
-        (out_dir() / name).write_bytes(audio)
-
-        # Audio TTS is character billed; Omni uses the exact streamed token usage.
-        rendered_chars = len(text) - sum(len(f.text) for f in failures)
-        cost, cost_basis = speech_cost(spoken[:rendered_chars], options, usage)
-        failure_list = [
-            {"index": f.index, "text": f.text[:80], "error": f.error}
-            for f in failures
-        ]
-        provider_text = " ".join(item.strip() for item in transcripts if item.strip())
-        compared_text = say.strip_known_tags(spoken) if options.engine == "omni" else spoken
-        fidelity = (alibaba_fidelity.assess(compared_text, provider_text)
-                    if options.engine == "omni" else {})
-        warning = truncation_warning(compared_text, measure_ms(name), options)
-        fidelity_warning = fidelity.get("message") if fidelity.get("status") in ("warning", "failed", "unverified") else None
-        # Recording is best-effort: the render already succeeded and was paid
-        # for, so a database outage must not turn it into an error.
-        project_id = payload.get("project_id") or db.ensure_unsorted()
-        if payload.get("project_id"):
-            at = payload.get("insert_at")
-            position = int(at) if at is not None else db.next_position(project_id)
-        else:
-            position = None
-        generation_id = db.record({
-            "project_id": project_id,
-            "position": position,
-            "kind": "audio",
-            "title": payload.get("title"),
-            "text": text,
-            "text_raw": payload.get("text_raw"),
-            "text_shaped": payload.get("text_shaped"),
-            "text_tagged": payload.get("text_tagged"),
-            "text_state": payload.get("text_state") or "raw",
-            "voice": options.voice, "voice_identity_id": options.voice_identity_id,
-            "engine": options.engine,
-            "model": options.model,
-            "format": options.format, "language": options.language,
-            "instruction": options.instruction, "speech_mode": options.speech_mode,
-            "rate": options.rate,
-            "pitch": options.pitch, "volume": options.volume, "seed": options.seed,
-            "filename": name, "path": str(out_dir() / name),
-            "size_bytes": len(audio), "duration_ms": measure_ms(name), "chars": len(text),
-            "requests": len(chunks), "cost": cost, "failures": failure_list,
-            "usage": usage, "cost_basis": cost_basis,
-            "provider_text": provider_text or None, "fidelity": fidelity,
-        }, insert_at=position if payload.get("project_id") and at is not None else None)
-        self._done(run,
-                   status="failed" if failures else "warning" if warning or fidelity_warning else "ok",
-                   cost=cost, chars=len(spoken), usage=usage, cost_basis=cost_basis,
-                   generation_id=generation_id, project_id=project_id,
-                   seconds=(measure_ms(name) or 0) / 1000, done=len(chunks),
-                   error=(f"{len(failures)} chunk(s) failed" if failures else fidelity_warning or warning))
-
-        return self._json({
-            "id": generation_id,
-            "url": f"/audio/{name}",
-            "name": name,
-            "path": str(out_dir() / name),
-            "chars": len(text),
-            "requests": len(chunks),
-            "size_mb": round(len(audio) / 1_000_000, 2),
-            "cost": round(cost, 4),
-            "cost_basis": cost_basis,
-            "usage": usage,
-            "failures": failure_list,
-            "warning": fidelity_warning or warning,
-            "returned_text": provider_text or None,
-            "fidelity": fidelity,
-            "voice_route": options.voice_route,
-            "pronunciations": applied,
-            "rewrites": [{"from": a, "to": b} for a, b in rewrites],
-        })
 
     # ------------------------------------------------------- voice cloning
 

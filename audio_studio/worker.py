@@ -12,6 +12,10 @@ from audio_studio.application.batches import (
     BatchGenerationService,
     BatchJobHandler,
 )
+from audio_studio.application.speech import (
+    SpeechGenerationService,
+    SpeechJobHandler,
+)
 from audio_studio.application.preferences import load_preferences
 from audio_studio.application.text_preparation import (
     TextPreparationJobHandler,
@@ -29,10 +33,10 @@ from audio_studio.application.transcription import (
 
 from audio_studio.application.jobs import JobService
 from audio_studio.infrastructure.alibaba.text_preparation import AlibabaTextProvider
-from audio_studio.infrastructure.alibaba.batch_speech import AlibabaBatchSpeechProvider
+from audio_studio.infrastructure.alibaba.speech_generation import AlibabaSpeechProvider
 from audio_studio.infrastructure.alibaba.translation import AlibabaTranslationProvider
 from audio_studio.infrastructure.alibaba.transcription import AlibabaTranscriptionProvider
-from audio_studio.infrastructure.legacy_jobs import LegacyProviderJobHandlers
+from audio_studio.infrastructure.audio_workspace import AudioWorkspace
 from audio_studio.infrastructure.batch_workspace import FilesystemBatchWorkspace
 from audio_studio.infrastructure.postgres.text_preparation import (
     PostgresTextPreparationRepository,
@@ -44,11 +48,13 @@ from audio_studio.infrastructure.transcription_source import TranscriptionSource
 
 def main() -> int:
     service = JobService()
-    handlers = LegacyProviderJobHandlers()
-    service.register("speech", handlers.speech)
     speech = SpeechRepository()
+    speech_provider = AlibabaSpeechProvider()
+    service.register("speech", SpeechJobHandler(SpeechGenerationService(
+        speech, speech_provider, AudioWorkspace(), load_preferences,
+    )))
     service.register("batch", BatchJobHandler(BatchGenerationService(
-        FilesystemBatchWorkspace(), speech, AlibabaBatchSpeechProvider(),
+        FilesystemBatchWorkspace(), speech, speech_provider,
         load_preferences,
     )))
     transcripts = TranscriptRepository()

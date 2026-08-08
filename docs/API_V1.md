@@ -131,6 +131,15 @@ GET    /productions/{production_id}/parts/{part_id}/captions
 Creating a generated take returns a Job. A Part keeps raw, spoken and tagged
 text versions; `text_state` says which version the requested take used.
 
+Speech uses one `POST /jobs/speech` contract for standalone recording, new
+Production Parts, another Take and recording a Draft. Canonical clients send
+`production_id`; the API temporarily accepts `project_id` as an input alias but
+never emits it as the canonical field. Replacement operations require both
+`production_id` and `part_id`. The worker validates ownership and Part kind
+before contacting Alibaba, saves immutable audio, then commits the Part/Take
+mutation transactionally. Completed Jobs link directly to the generated Part
+and retain provider usage, cost basis, route and fidelity state.
+
 ### Jobs
 
 ```text
@@ -176,7 +185,7 @@ UI feature
   -> domain service (VentureApi, ProjectApi, PartApi...)
     -> transport client
       -> durable Job worker for provider-backed execution
-        -> internal loopback adapter only for provider implementations not yet extracted
+        -> provider adapter / PostgreSQL repository
 ```
 
 No UI component may call `fetch`, know an Alibaba endpoint or calculate billed
@@ -191,7 +200,7 @@ the same resource contract without sharing DOM code.
 3. Add auth/tenant scope before exposing the server beyond localhost.
 4. Move paid work behind durable Jobs and actual provider usage accounting.
 5. Add idempotent writes and cursor pagination.
-6. Extract Alibaba execution implementations from the internal loopback
-   adapter into `audio_studio/infrastructure/providers`.
-7. Remove that internal runtime after the provider contract suite covers every
-   paid operation.
+6. Migrate the remaining Voice-package and Production persistence paths out of
+   legacy `db.py` as each capability is touched.
+7. Delete quarantined `server.py`, `db.py` and `ui/` after zero active callers
+   and parity checks are proven.

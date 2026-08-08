@@ -135,6 +135,7 @@ Local shadcn components: Button, Badge, Tabs, Toggle Group, Tooltip, Popover, Dr
 - **2026-08-07 — Music is primary Production context.** Full playback, the shared clock, the current bed, source audition, level, source position, ducking, replace and remove now appear before the sequence. Music is no longer hidden below a long sequence in a collapsed Timing tray.
 - **2026-08-07 — Human voice identity is shared.** `VoiceIdentity` resolves saved metadata, catalogue names, clone names, images and provider fallbacks. Alibaba identifiers remain storage values and are not used as card, picker, context-panel or take labels.
 - **2026-08-07 — Card geometry never changes on hover.** Selection, content and the 82 px action rail occupy explicit columns. Opening the action menu preserves the measured 600 px content column and 146 px card height; card content opens details and selection is a separate checkbox.
+- **2026-08-08 — Composer execution is native.** The historical `/api/speak` mapping above described the migration bridge at that time. Standalone Speak, Add Part, New Take and Record Draft now use typed `/api/v1/jobs/speech`, one application service and one provider adapter; the old route and loopback process are removed from active runtime.
 
 ## Verification log
 

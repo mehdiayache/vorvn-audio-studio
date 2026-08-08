@@ -2,12 +2,12 @@
 """Non-paid regression tests for Phase 1 reliability and audio finishing."""
 
 import json
-import os
 import subprocess
 import tempfile
 from pathlib import Path
 
 import server
+from audio_studio.application.speech import SpeechGenerationService
 
 
 results = []
@@ -99,30 +99,37 @@ with tempfile.TemporaryDirectory() as directory:
 print("\npaid-call destination gate")
 
 
-class FakeHandler:
-    def _json(self, body, status=200):
-        return body, status
+class MissingDestinationRepository:
+    def production(self, _production_id):
+        return None
 
 
-original_key = os.environ.get("DASHSCOPE_API_KEY")
-original_project_get = server.db.project_get
-original_synthesize = server.alibaba_speech.synthesize
-os.environ["DASHSCOPE_API_KEY"] = "test-key-never-sent"
-server.db.project_get = lambda _project_id: None
-provider_called = []
-server.alibaba_speech.synthesize = lambda *_args, **_kwargs: provider_called.append(True)
+class NeverProvider:
+    def __init__(self):
+        self.called = False
+
+    def is_configured(self):
+        return True
+
+    def prepare(self, **_values):
+        self.called = True
+        raise AssertionError("provider preparation must not run")
+
+
+provider = NeverProvider()
+service = SpeechGenerationService(
+    MissingDestinationRepository(), provider, object(),
+    lambda: {"warn_above": 0, "daily_cap": 0},
+)
 try:
-    body, status = server.Handler._speak(
-        FakeHandler(), {"text": "Never send this", "project_id": 999999})
-    check("missing destination is rejected", status == 404, (body, status))
-    check("provider is not called before destination validation", provider_called == [])
-finally:
-    server.db.project_get = original_project_get
-    server.alibaba_speech.synthesize = original_synthesize
-    if original_key is None:
-        os.environ.pop("DASHSCOPE_API_KEY", None)
-    else:
-        os.environ["DASHSCOPE_API_KEY"] = original_key
+    service.run({"operation": "create", "production_id": 999999,
+                 "text": "Never send this", "voice": "Tina",
+                 "engine": "omni", "model": "plus"})
+    rejected = False
+except LookupError:
+    rejected = True
+check("missing destination is rejected", rejected)
+check("provider is not called before destination validation", not provider.called)
 
 
 failed = [name for name, ok, _ in results if not ok]

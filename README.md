@@ -28,12 +28,12 @@ On macOS, `restart.command` performs the database startup, process restart, heal
 - `services/alibaba/` — Alibaba provider implementations and documented model routing.
 
 `server.py`, `db.py` and `ui/` are quarantined migration code, not the public
-application entry point. FastAPI is the only process exposed on port 7860.
-The old UI is unreachable from the product. Port 7861 is loopback-only and is
-used solely by the worker for provider capabilities that have not yet been
-extracted; Text preparation, subtitle Translation, Transcription and Batch
-already run natively without that loopback. The compatibility process no
-longer serves browser, file or editing contracts.
+application entry point. FastAPI is the only HTTP process and is exposed on
+port 7860. The old UI is unreachable, `server.py` is no longer started, and
+there is no compatibility port. Text preparation, subtitle Translation,
+Transcription, Batch and Speech generation run through native application
+services. Remaining migration work is limited to active legacy persistence and
+orchestration responsibilities such as Voice packages and Production editing.
 
 See [Architecture](docs/ARCHITECTURE.md), [API v1](docs/API_V1.md), and [Canonical domain](docs/CANONICAL_DOMAIN.md).
 

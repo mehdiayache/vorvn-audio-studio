@@ -209,11 +209,11 @@ class TranslationTests(unittest.TestCase):
 
     def test_legacy_translation_execution_route_is_removed(self):
         server = (ROOT / "server.py").read_text()
-        legacy_jobs = (ROOT / "audio_studio/infrastructure/legacy_jobs.py").read_text()
+        legacy_jobs = ROOT / "audio_studio/infrastructure/legacy_jobs.py"
         worker = (ROOT / "audio_studio/worker.py").read_text()
         self.assertNotIn('"/api/translate/subtitles"', server)
         self.assertNotIn("def _translate_subtitles", server)
-        self.assertNotIn("def translate(", legacy_jobs)
+        self.assertFalse(legacy_jobs.exists())
         self.assertIn('service.register("translate", SubtitleTranslationJobHandler', worker)
 
     def test_postgres_repository_reads_and_saves_in_one_rolled_back_fixture(self):

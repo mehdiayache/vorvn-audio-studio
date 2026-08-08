@@ -656,7 +656,7 @@ export type GeneratePayload = {
   text_shaped?: string | null
   text_tagged?: string | null
   text_state?: "raw" | "shaped" | "tagged"
-  project_id?: number
+  production_id?: number
   insert_at: number | null
   voice: string
   voice_identity_id?: string | null

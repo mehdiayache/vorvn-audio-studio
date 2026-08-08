@@ -225,9 +225,9 @@ export const studioApi = {
       insert_at: at,
     }),
   saveDraft: (payload: Omit<GeneratePayload, "confirmed">) => {
-    if (!payload.project_id) return Promise.reject(new ApiError("Choose a Production before saving a Draft.", 400))
-    const { project_id, ...draft } = payload
-    return postV1<{ id: number }>(`/api/v1/productions/${project_id}/parts/drafts`, draft)
+    if (!payload.production_id) return Promise.reject(new ApiError("Choose a Production before saving a Draft.", 400))
+    const { production_id, ...draft } = payload
+    return postV1<{ id: number }>(`/api/v1/productions/${production_id}/parts/drafts`, draft)
   },
   generate: async (payload: GeneratePayload) => {
     const response = await request<{ data: DurableJob<GenerateResult> }>("/api/v1/jobs/speech", {

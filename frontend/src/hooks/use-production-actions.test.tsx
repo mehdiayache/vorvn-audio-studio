@@ -14,7 +14,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
 })
 
 const payload: GeneratePayload = {
-  text: "In the beginning", project_id: 28, insert_at: null,
+  text: "In the beginning", production_id: 28, insert_at: null,
   voice: "serinity", engine: "omni", model: "plus", format: "mp3",
   language: "English", instruction: "", speech_mode: "exact",
   rate: 1, pitch: 1, volume: 50, seed: 0,

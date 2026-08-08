@@ -1603,13 +1603,17 @@ export interface components {
              * @default false
              */
             confirmed: boolean;
-            /** Engine */
-            engine: string;
+            /**
+             * Engine
+             * @enum {string}
+             */
+            engine: "audio" | "omni";
             /**
              * Format
              * @default mp3
+             * @enum {string}
              */
-            format: string;
+            format: "mp3" | "mp3-24k" | "wav" | "opus";
             /** Insert At */
             insert_at?: number | null;
             /**
@@ -1622,8 +1626,11 @@ export interface components {
              * @default Auto
              */
             language: string;
-            /** Model */
-            model: string;
+            /**
+             * Model
+             * @enum {string}
+             */
+            model: "plus" | "flash";
             /**
              * Operation
              * @default create
@@ -1637,8 +1644,8 @@ export interface components {
              * @default 1
              */
             pitch: number;
-            /** Project Id */
-            project_id?: number | null;
+            /** Production Id */
+            production_id?: number | null;
             /**
              * Rate
              * @default 1
@@ -1652,8 +1659,9 @@ export interface components {
             /**
              * Speech Mode
              * @default exact
+             * @enum {string}
              */
-            speech_mode: string;
+            speech_mode: "exact" | "directed";
             /** Text */
             text: string;
             /** Text Raw */
@@ -1663,8 +1671,9 @@ export interface components {
             /**
              * Text State
              * @default raw
+             * @enum {string}
              */
-            text_state: string;
+            text_state: "raw" | "shaped" | "tagged";
             /** Text Tagged */
             text_tagged?: string | null;
             /** Voice */

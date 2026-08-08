@@ -15,8 +15,6 @@ class Settings:
     name: str = "VORVN Audio Studio"
     host: str = "127.0.0.1"
     port: int = 7860
-    legacy_host: str = "127.0.0.1"
-    legacy_port: int = 7861
     web_prefix: str = "/audio-studio"
     database_url: str = "postgresql://voicestudio:voicestudio@127.0.0.1:5434/voicestudio"
     root: Path = ROOT
@@ -28,18 +26,10 @@ class Settings:
         return cls(
             host=os.getenv("AUDIO_STUDIO_HOST", "127.0.0.1"),
             port=int(os.getenv("PORT", "7860")),
-            legacy_host=os.getenv("AUDIO_STUDIO_LEGACY_HOST", "127.0.0.1"),
-            legacy_port=int(os.getenv("AUDIO_STUDIO_LEGACY_PORT", "7861")),
             database_url=os.getenv(
                 "DATABASE_URL",
                 "postgresql://voicestudio:voicestudio@127.0.0.1:5434/voicestudio",
             ),
             output_dir=Path(os.getenv("AUDIO_STUDIO_OUTPUT_DIR", str(ROOT / "out"))),
         )
-
-    @property
-    def legacy_origin(self) -> str:
-        return f"http://{self.legacy_host}:{self.legacy_port}"
-
-
 settings = Settings.from_env()

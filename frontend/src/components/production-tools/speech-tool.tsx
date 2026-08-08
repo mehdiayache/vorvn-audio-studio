@@ -82,7 +82,7 @@ export function SpeechTool({ projectId, nextPartNumber = 1, insertAt = null, par
   function payload(confirmed = false): GeneratePayload {
     const binding = directory.registry?.bindings.find((item) => item.provider_voice_id === voice)
     const identityId = binding?.source === "custom" ? binding.identity_id : part?.voice === voice ? part.voice_identity_id : null
-    return { text: textSession.text, text_raw: textSession.states.raw || null, text_shaped: textSession.states.shaped || null, text_tagged: textSession.states.tagged || null, text_state: textSession.view, ...(projectId ? { project_id: projectId } : {}), insert_at: insertAt, voice, voice_identity_id: identityId, engine, model, format, language, instruction, speech_mode: engine === "omni" ? speechMode : "exact", rate, pitch, volume, seed: part?.seed ?? 0, confirmed }
+    return { text: textSession.text, text_raw: textSession.states.raw || null, text_shaped: textSession.states.shaped || null, text_tagged: textSession.states.tagged || null, text_state: textSession.view, ...(projectId ? { production_id: projectId } : {}), insert_at: insertAt, voice, voice_identity_id: identityId, engine, model, format, language, instruction, speech_mode: engine === "omni" ? speechMode : "exact", rate, pitch, volume, seed: part?.seed ?? 0, confirmed }
   }
   async function generate(next = payload()) {
     const warnAbove = Number(config?.prefs?.warn_above || 0)

@@ -188,12 +188,25 @@ with tempfile.TemporaryDirectory() as directory:
               status == 404 and payload.get("error") == "unknown endpoint",
               (status, payload))
 
-        print("\nserver-side invariants")
+        print("\nlegacy Speech boundary")
         status, _, data = request(port, "POST", "/api/speak", {
             "text": "Never send this", "project_id": 999,
         })
-        check("paid Speak rejects missing destination", status == 404, (status, data))
-        check("invalid Speak never reaches Alibaba", provider_calls == [])
+        check("legacy Speak execution route is removed", status == 404,
+              (status, data))
+        status, _, data = request(port, "POST", "/api/part/regenerate", {
+            "id": 9, "text": "Never send this",
+        })
+        check("legacy Take execution route is removed", status == 404,
+              (status, data))
+        status, _, data = request(port, "POST", "/api/part/render", {
+            "id": 9, "text": "Never send this",
+        })
+        check("legacy Draft render route is removed", status == 404,
+              (status, data))
+        check("removed Speech routes never reach Alibaba", provider_calls == [])
+
+        print("\nserver-side invariants")
 
         status, _, data = request(port, "POST", "/api/asset/insert", {
             "project_id": 7, "asset_id": 55,

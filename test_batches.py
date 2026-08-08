@@ -11,13 +11,12 @@ from audio_studio.application.batches import (
     BatchGenerationService,
     BatchIntakeService,
     BatchJobHandler,
-    PreparedBatchSpeech,
-    SynthesizedBatchSpeech,
 )
+from audio_studio.domain.speech import PreparedSpeech, SynthesizedSpeech
 from audio_studio.domain.jobs import Job, JobStatus
 from audio_studio.config import settings
 from audio_studio.http.routers.jobs import BatchJobCreate
-from audio_studio.infrastructure.alibaba.batch_speech import AlibabaBatchSpeechProvider
+from audio_studio.infrastructure.alibaba.speech_generation import AlibabaSpeechProvider
 from audio_studio.infrastructure.batch_workspace import FilesystemBatchWorkspace
 from audio_studio.infrastructure.postgres.speech import SpeechRepository
 from services.alibaba import voice_registry
@@ -81,12 +80,15 @@ class FakeProvider:
         self.calls = []
 
     def prepare(self, *, text, values, **_):
-        result = PreparedBatchSpeech(
+        result = PreparedSpeech(
             original_text=text, spoken_text=text, voice=values["voice"],
             voice_identity_id=values.get("voice_identity_id"),
             engine=values["engine"], tier=values["model"],
             model_id=f"model-{values['engine']}-{values['model']}",
             output_format=values["format"], extension="mp3",
+            language=None, instruction=None, speech_mode="exact",
+            rate=1, pitch=1, volume=50, seed=0, request_count=1,
+            voice_route={},
             estimated_cost=.001, context=text,
         )
         self.prepared.append(result)
@@ -96,7 +98,7 @@ class FakeProvider:
         self.calls.append(prepared)
         if prepared.original_text == "FAIL":
             raise RuntimeError("row refused")
-        return SynthesizedBatchSpeech(
+        return SynthesizedSpeech(
             audio=b"audio-" + prepared.original_text.encode(), cost=.001,
             cost_basis="catalog_characters", usage={"input_text": 2},
             failures=[], provider_region="intl",
@@ -260,7 +262,7 @@ class BatchTests(unittest.TestCase):
                 workspace.write_audio(folder, "../escape.mp3", b"audio")
 
     def test_provider_preflight_routes_arabic_and_rejects_omni_tags(self):
-        provider = AlibabaBatchSpeechProvider()
+        provider = AlibabaSpeechProvider()
         bindings = voice_registry.system_bindings()
         prepared = provider.prepare(
             text="مرحبا", values={"text": "مرحبا", "voice": "longanlingxin",
@@ -296,13 +298,13 @@ class BatchTests(unittest.TestCase):
 
     def test_legacy_batch_execution_and_media_routes_are_removed(self):
         server = (ROOT / "server.py").read_text()
-        legacy = (ROOT / "audio_studio/infrastructure/legacy_jobs.py").read_text()
+        legacy = ROOT / "audio_studio/infrastructure/legacy_jobs.py"
         worker = (ROOT / "audio_studio/worker.py").read_text()
         self.assertNotIn('"/api/batch/run"', server)
         self.assertNotIn('"/api/batch/preview"', server)
         self.assertNotIn('path.startswith("/batch-audio/")', server)
         self.assertNotIn("def _batch_run", server)
-        self.assertNotIn("def batch(", legacy)
+        self.assertFalse(legacy.exists())
         self.assertIn('service.register("batch", BatchJobHandler', worker)
 
 

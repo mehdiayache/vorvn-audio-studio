@@ -842,17 +842,28 @@
             "type": "boolean"
           },
           "engine": {
+            "enum": [
+              "audio",
+              "omni"
+            ],
             "title": "Engine",
             "type": "string"
           },
           "format": {
             "default": "mp3",
+            "enum": [
+              "mp3",
+              "mp3-24k",
+              "wav",
+              "opus"
+            ],
             "title": "Format",
             "type": "string"
           },
           "insert_at": {
             "anyOf": [
               {
+                "minimum": 0.0,
                 "type": "integer"
               },
               {
@@ -863,15 +874,21 @@
           },
           "instruction": {
             "default": "",
+            "maxLength": 100,
             "title": "Instruction",
             "type": "string"
           },
           "language": {
             "default": "Auto",
+            "maxLength": 80,
             "title": "Language",
             "type": "string"
           },
           "model": {
+            "enum": [
+              "plus",
+              "flash"
+            ],
             "title": "Model",
             "type": "string"
           },
@@ -888,6 +905,7 @@
           "part_id": {
             "anyOf": [
               {
+                "exclusiveMinimum": 0.0,
                 "type": "integer"
               },
               {
@@ -898,36 +916,48 @@
           },
           "pitch": {
             "default": 1,
+            "maximum": 2.0,
+            "minimum": 0.5,
             "title": "Pitch",
             "type": "number"
           },
-          "project_id": {
+          "production_id": {
             "anyOf": [
               {
+                "exclusiveMinimum": 0.0,
                 "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Project Id"
+            "title": "Production Id"
           },
           "rate": {
             "default": 1,
+            "maximum": 2.0,
+            "minimum": 0.5,
             "title": "Rate",
             "type": "number"
           },
           "seed": {
             "default": 0,
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
             "title": "Seed",
             "type": "integer"
           },
           "speech_mode": {
             "default": "exact",
+            "enum": [
+              "exact",
+              "directed"
+            ],
             "title": "Speech Mode",
             "type": "string"
           },
           "text": {
+            "maxLength": 500000,
             "minLength": 1,
             "title": "Text",
             "type": "string"
@@ -935,6 +965,7 @@
           "text_raw": {
             "anyOf": [
               {
+                "maxLength": 500000,
                 "type": "string"
               },
               {
@@ -946,6 +977,7 @@
           "text_shaped": {
             "anyOf": [
               {
+                "maxLength": 500000,
                 "type": "string"
               },
               {
@@ -956,12 +988,18 @@
           },
           "text_state": {
             "default": "raw",
+            "enum": [
+              "raw",
+              "shaped",
+              "tagged"
+            ],
             "title": "Text State",
             "type": "string"
           },
           "text_tagged": {
             "anyOf": [
               {
+                "maxLength": 500000,
                 "type": "string"
               },
               {
@@ -971,6 +1009,7 @@
             "title": "Text Tagged"
           },
           "voice": {
+            "maxLength": 300,
             "minLength": 1,
             "title": "Voice",
             "type": "string"
@@ -978,6 +1017,7 @@
           "voice_identity_id": {
             "anyOf": [
               {
+                "maxLength": 120,
                 "type": "string"
               },
               {
@@ -988,6 +1028,8 @@
           },
           "volume": {
             "default": 50,
+            "maximum": 100.0,
+            "minimum": 0.0,
             "title": "Volume",
             "type": "integer"
           }
