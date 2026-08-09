@@ -472,6 +472,52 @@
         "title": "AssetBody",
         "type": "object"
       },
+      "BatchColumnGuessResponse": {
+        "properties": {
+          "language": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "text": {
+            "title": "Text",
+            "type": "integer"
+          },
+          "voice": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "BatchColumnGuessResponse",
+        "type": "object"
+      },
       "BatchColumns": {
         "additionalProperties": false,
         "properties": {
@@ -626,6 +672,321 @@
           "model"
         ],
         "title": "BatchJobCreate",
+        "type": "object"
+      },
+      "BatchPreviewEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BatchPreviewResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "BatchPreviewEnvelope",
+        "type": "object"
+      },
+      "BatchPreviewResponse": {
+        "properties": {
+          "guess": {
+            "$ref": "#/components/schemas/BatchColumnGuessResponse"
+          },
+          "headers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Headers",
+            "type": "array"
+          },
+          "max_rows": {
+            "title": "Max Rows",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "preview": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Preview",
+            "type": "array"
+          },
+          "rows": {
+            "title": "Rows",
+            "type": "integer"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          },
+          "voices": {
+            "$ref": "#/components/schemas/BatchVoiceCheckResponse"
+          }
+        },
+        "required": [
+          "token",
+          "name",
+          "headers",
+          "rows",
+          "preview",
+          "guess",
+          "voices",
+          "truncated",
+          "max_rows"
+        ],
+        "title": "BatchPreviewResponse",
+        "type": "object"
+      },
+      "BatchUnknownVoiceResponse": {
+        "properties": {
+          "first_row": {
+            "title": "First Row",
+            "type": "integer"
+          },
+          "voice": {
+            "title": "Voice",
+            "type": "string"
+          }
+        },
+        "required": [
+          "voice",
+          "first_row"
+        ],
+        "title": "BatchUnknownVoiceResponse",
+        "type": "object"
+      },
+      "BatchVoiceCheckResponse": {
+        "properties": {
+          "checked": {
+            "title": "Checked",
+            "type": "integer"
+          },
+          "unknown": {
+            "items": {
+              "$ref": "#/components/schemas/BatchUnknownVoiceResponse"
+            },
+            "title": "Unknown",
+            "type": "array"
+          }
+        },
+        "required": [
+          "unknown",
+          "checked"
+        ],
+        "title": "BatchVoiceCheckResponse",
+        "type": "object"
+      },
+      "CaptionCueResponse": {
+        "properties": {
+          "end": {
+            "title": "End",
+            "type": "integer"
+          },
+          "start": {
+            "title": "Start",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "timing": {
+            "enum": [
+              "word",
+              "estimated"
+            ],
+            "title": "Timing",
+            "type": "string"
+          },
+          "words": {
+            "items": {
+              "$ref": "#/components/schemas/CaptionWordResponse"
+            },
+            "title": "Words",
+            "type": "array"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "text",
+          "words",
+          "timing"
+        ],
+        "title": "CaptionCueResponse",
+        "type": "object"
+      },
+      "CaptionLayoutEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CaptionLayoutResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "CaptionLayoutEnvelope",
+        "type": "object"
+      },
+      "CaptionLayoutResponse": {
+        "properties": {
+          "cues": {
+            "items": {
+              "$ref": "#/components/schemas/CaptionCueResponse"
+            },
+            "title": "Cues",
+            "type": "array"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/CaptionMetricsResponse"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/CaptionProfileResponse"
+          },
+          "srt": {
+            "title": "Srt",
+            "type": "string"
+          },
+          "timing_json": {
+            "title": "Timing Json",
+            "type": "string"
+          },
+          "timing_quality": {
+            "enum": [
+              "word_aligned",
+              "estimated"
+            ],
+            "title": "Timing Quality",
+            "type": "string"
+          },
+          "vtt": {
+            "title": "Vtt",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile",
+          "cues",
+          "srt",
+          "vtt",
+          "timing_json",
+          "timing_quality",
+          "metrics"
+        ],
+        "title": "CaptionLayoutResponse",
+        "type": "object"
+      },
+      "CaptionMetricsResponse": {
+        "properties": {
+          "average_words": {
+            "title": "Average Words",
+            "type": "number"
+          },
+          "cues": {
+            "title": "Cues",
+            "type": "integer"
+          },
+          "maximum_cps": {
+            "title": "Maximum Cps",
+            "type": "number"
+          }
+        },
+        "required": [
+          "cues",
+          "average_words",
+          "maximum_cps"
+        ],
+        "title": "CaptionMetricsResponse",
+        "type": "object"
+      },
+      "CaptionProfileResponse": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "key": {
+            "enum": [
+              "standard",
+              "short",
+              "words"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "line_chars": {
+            "title": "Line Chars",
+            "type": "integer"
+          },
+          "max_chars": {
+            "title": "Max Chars",
+            "type": "integer"
+          },
+          "max_duration_ms": {
+            "title": "Max Duration Ms",
+            "type": "integer"
+          },
+          "max_lines": {
+            "title": "Max Lines",
+            "type": "integer"
+          },
+          "max_words": {
+            "title": "Max Words",
+            "type": "integer"
+          },
+          "min_duration_ms": {
+            "title": "Min Duration Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "description",
+          "max_words",
+          "max_chars",
+          "line_chars",
+          "max_lines",
+          "min_duration_ms",
+          "max_duration_ms"
+        ],
+        "title": "CaptionProfileResponse",
+        "type": "object"
+      },
+      "CaptionWordResponse": {
+        "properties": {
+          "end": {
+            "title": "End",
+            "type": "integer"
+          },
+          "start": {
+            "title": "Start",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "text"
+        ],
+        "title": "CaptionWordResponse",
         "type": "object"
       },
       "CollectionMetaResponse": {
@@ -2166,6 +2527,307 @@
         "title": "StudioConfigResponse",
         "type": "object"
       },
+      "SubtitleDeletedEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SubtitleDeletedResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SubtitleDeletedEnvelope",
+        "type": "object"
+      },
+      "SubtitleDeletedResponse": {
+        "properties": {
+          "deleted": {
+            "title": "Deleted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "title": "SubtitleDeletedResponse",
+        "type": "object"
+      },
+      "SubtitleEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SubtitleResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SubtitleEnvelope",
+        "type": "object"
+      },
+      "SubtitleListEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SubtitleSummaryResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SubtitleListEnvelope",
+        "type": "object"
+      },
+      "SubtitleResponse": {
+        "properties": {
+          "catalog_rate": {
+            "title": "Catalog Rate",
+            "type": "number"
+          },
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "cost_basis": {
+            "title": "Cost Basis",
+            "type": "string"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "file": {
+            "title": "File",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "price_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Version"
+          },
+          "provider_region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Region"
+          },
+          "public_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Id"
+          },
+          "sentences": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptSentenceResponse"
+            },
+            "title": "Sentences",
+            "type": "array"
+          },
+          "source_job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Job Id"
+          },
+          "srt": {
+            "title": "Srt",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "vtt": {
+            "title": "Vtt",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "file",
+          "url",
+          "text",
+          "srt",
+          "vtt",
+          "sentences",
+          "duration_ms",
+          "language",
+          "created_at",
+          "cost",
+          "cost_basis",
+          "model",
+          "provider_region",
+          "price_version",
+          "catalog_rate",
+          "source_job_id"
+        ],
+        "title": "SubtitleResponse",
+        "type": "object"
+      },
+      "SubtitleSummaryResponse": {
+        "properties": {
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "cost_basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Basis"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "lines": {
+            "title": "Lines",
+            "type": "integer"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "provider_region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Region"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "source_job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Job Id"
+          },
+          "when": {
+            "title": "When",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "when",
+          "name",
+          "duration_ms",
+          "lines",
+          "model",
+          "provider_region",
+          "cost",
+          "cost_basis",
+          "source_job_id"
+        ],
+        "title": "SubtitleSummaryResponse",
+        "type": "object"
+      },
       "SystemHealthEnvelope": {
         "properties": {
           "data": {
@@ -2342,6 +3004,42 @@
           "text"
         ],
         "title": "TextJobCreate",
+        "type": "object"
+      },
+      "TranscriptSentenceResponse": {
+        "properties": {
+          "end": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "start": {
+            "title": "Start",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "words": {
+            "items": {
+              "$ref": "#/components/schemas/CaptionWordResponse"
+            },
+            "title": "Words",
+            "type": "array"
+          }
+        },
+        "required": [
+          "start",
+          "text"
+        ],
+        "title": "TranscriptSentenceResponse",
         "type": "object"
       },
       "TranscriptionJobCreate": {
@@ -4583,9 +5281,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Previewbatch",
-                  "type": "object"
+                  "$ref": "#/components/schemas/BatchPreviewEnvelope"
                 }
               }
             },
@@ -7267,9 +7963,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Listsubtitles",
-                  "type": "object"
+                  "$ref": "#/components/schemas/SubtitleListEnvelope"
                 }
               }
             },
@@ -7354,9 +8048,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Deletesubtitle",
-                  "type": "object"
+                  "$ref": "#/components/schemas/SubtitleDeletedEnvelope"
                 }
               }
             },
@@ -7396,9 +8088,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getsubtitle",
-                  "type": "object"
+                  "$ref": "#/components/schemas/SubtitleEnvelope"
                 }
               }
             },
@@ -7455,9 +8145,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getsubtitlelayout",
-                  "type": "object"
+                  "$ref": "#/components/schemas/CaptionLayoutEnvelope"
                 }
               }
             },

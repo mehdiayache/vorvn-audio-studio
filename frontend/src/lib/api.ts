@@ -29,11 +29,8 @@ import type {
   SettingsSnapshot,
   PronunciationRule,
   DiskSnapshot,
-  ExternalTranscriptSummary,
   ExternalAudioUpload,
-  CaptionLayout,
   CaptionProfile,
-  BatchPreview,
   BatchResult,
   DurableJob,
   VentureAssetLibrary,
@@ -46,6 +43,11 @@ type GeneratedJob = paths["/api/v1/jobs/{job_id}"]["get"]["responses"][200]["con
 type UploadedImage = paths["/api/v1/project-covers/upload"]["post"]["responses"][200]["content"]["application/json"]["data"]
 type UploadedVoiceReference = paths["/api/v1/voice-references/upload"]["post"]["responses"][200]["content"]["application/json"]["data"]
 type UploadedAsset = paths["/api/v1/asset-collections/{collection_id}/assets/upload"]["post"]["responses"][201]["content"]["application/json"]["data"]
+type BatchPreviewEnvelope = paths["/api/v1/batches/preview"]["post"]["responses"][200]["content"]["application/json"]
+type SubtitleListEnvelope = paths["/api/v1/subtitles"]["get"]["responses"][200]["content"]["application/json"]
+type SubtitleEnvelope = paths["/api/v1/subtitles/{transcript_id}"]["get"]["responses"][200]["content"]["application/json"]
+type SubtitleDeletedEnvelope = paths["/api/v1/subtitles/{transcript_id}"]["delete"]["responses"][200]["content"]["application/json"]
+type CaptionLayoutEnvelope = paths["/api/v1/subtitles/{transcript_id}/layouts/{profile}"]["get"]["responses"][200]["content"]["application/json"]
 
 export { ApiError } from "@/lib/api-error"
 
@@ -129,16 +131,16 @@ export const studioApi = {
   savePronunciation: (rule: Omit<PronunciationRule, "id"> & { id?: number }) => postV1<{ id: number; rules: PronunciationRule[] }>("/api/v1/settings/pronunciations", rule),
   deletePronunciation: (id: number) => request<{ data: { deleted: boolean } }>(`/api/v1/settings/pronunciations/${id}`, { method: "DELETE" }).then((response) => response.data),
   previewPronunciation: (text: string) => v1<{ text: string; applied: unknown[] }>(`/api/v1/settings/pronunciations/preview?text=${encodeURIComponent(text)}`),
-  externalTranscripts: () => v1<ExternalTranscriptSummary[]>("/api/v1/subtitles"),
-  externalTranscript: (id: number) => v1<Transcript>(`/api/v1/subtitles/${id}`),
-  subtitleLayout: (id: number, profile: CaptionProfile) => v1<CaptionLayout>(`/api/v1/subtitles/${id}/layouts/${profile}`),
-  deleteExternalTranscript: (id: number) => request<{ data: { deleted: boolean } }>(`/api/v1/subtitles/${id}`, { method: "DELETE" }),
+  externalTranscripts: () => request<SubtitleListEnvelope>("/api/v1/subtitles").then((response) => response.data),
+  externalTranscript: (id: number) => request<SubtitleEnvelope>(`/api/v1/subtitles/${id}`).then((response) => response.data),
+  subtitleLayout: (id: number, profile: CaptionProfile) => request<CaptionLayoutEnvelope>(`/api/v1/subtitles/${id}/layouts/${profile}`).then((response) => response.data),
+  deleteExternalTranscript: (id: number) => request<SubtitleDeletedEnvelope>(`/api/v1/subtitles/${id}`, { method: "DELETE" }),
   uploadExternalAudio: (file: File) => uploadFile<{ data: ExternalAudioUpload }>("/api/v1/subtitles/uploads", file).then((response) => response.data),
   transcribeExternal: async (payload: { url: string; name: string; playable: string; size_bytes: number; duration_ms: number; language?: string; enable_itn?: boolean; confirmed?: boolean }) => {
     const response = await request<{ data: DurableJob<CaptionMutationResult> }>("/api/v1/jobs/transcription", { method: "POST", headers: { "Idempotency-Key": `transcribe-${crypto.randomUUID()}` }, body: JSON.stringify(payload) })
     return waitForJob<CaptionMutationResult>(response.data.id)
   },
-  previewBatch: (file: File) => uploadFile<{ data: BatchPreview }>("/api/v1/batches/preview", file).then((response) => response.data),
+  previewBatch: (file: File) => uploadFile<BatchPreviewEnvelope>("/api/v1/batches/preview", file).then((response) => response.data),
   runBatch: async (payload: Record<string, unknown>) => {
     const response = await request<{ data: DurableJob<BatchResult> }>("/api/v1/jobs/batch", { method: "POST", headers: { "Idempotency-Key": `batch-${crypto.randomUUID()}` }, body: JSON.stringify(payload) })
     return waitForJob<BatchResult>(response.data.id)

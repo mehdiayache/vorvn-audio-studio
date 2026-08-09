@@ -431,86 +431,21 @@ export type TranscriptSummary = {
   stale: boolean
 }
 
-export type Transcript = {
-  id: number
-  public_id?: string
-  file: string
-  url?: string
-  language?: string
-  text: string
-  srt: string
-  vtt: string
-  sentences: Array<{ start: number; end?: number; text: string; words?: CaptionWord[] }>
-  duration_ms: number
-  created_at?: string
-  cost?: number
-  cost_basis?: string
-  model?: string
-  provider_region?: string
-  price_version?: string
-  catalog_rate?: number
-  source_job_id?: string
-}
+export type Transcript = components["schemas"]["SubtitleResponse"]
 
-export type CaptionProfile = "standard" | "short" | "words"
+export type CaptionProfile = components["schemas"]["CaptionProfileResponse"]["key"]
 
-export type CaptionWord = { start: number; end: number; text: string }
+export type CaptionWord = components["schemas"]["CaptionWordResponse"]
 
-export type CaptionCue = {
-  start: number
-  end: number
-  text: string
-  words: CaptionWord[]
-  timing: "word" | "estimated"
-}
+export type CaptionCue = components["schemas"]["CaptionCueResponse"]
 
-export type CaptionLayout = {
-  profile: {
-    key: CaptionProfile
-    label: string
-    description: string
-    max_words: number
-    max_chars: number
-    line_chars: number
-    max_lines: number
-    min_duration_ms: number
-    max_duration_ms: number
-  }
-  cues: CaptionCue[]
-  srt: string
-  vtt: string
-  timing_json: string
-  timing_quality: "word_aligned" | "estimated"
-  metrics: { cues: number; average_words: number; maximum_cps: number }
-}
+export type CaptionLayout = components["schemas"]["CaptionLayoutResponse"]
 
-export type ExternalTranscriptSummary = {
-  id: number
-  when: string
-  name: string
-  duration_ms: number
-  lines: number
-  public_id?: string
-  model?: string
-  provider_region?: string
-  cost?: number
-  cost_basis?: string
-  source_job_id?: string
-}
+export type ExternalTranscriptSummary = components["schemas"]["SubtitleSummaryResponse"]
 
 export type ExternalAudioUpload = components["schemas"]["UploadedTranscriptionSourceResponse"]
 
-export type BatchPreview = {
-  token: string
-  name: string
-  headers: string[]
-  rows: number
-  preview: string[][]
-  guess: { text: number; name: number | null; voice: number | null; language: number | null }
-  voices: { unknown: Array<{ voice: string; first_row: number }>; checked: number }
-  truncated: boolean
-  max_rows: number
-}
+export type BatchPreview = components["schemas"]["BatchPreviewResponse"]
 
 export type BatchResult = {
   results: Array<{ row: number; name?: string; text: string; url?: string; cost?: number; error?: string; warning?: string }>

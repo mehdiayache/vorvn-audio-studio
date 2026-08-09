@@ -195,3 +195,9 @@ completion results now belong to Domain. Application services and Alibaba,
 PostgreSQL and storage adapters share those contracts directly. This removes
 all eight reverse Infrastructure-to-Application edges without changing provider
 requests, pricing, job routing or public results.
+
+Batch preview and saved Subtitle endpoints now publish explicit Pydantic
+response envelopes. React consumes their generated OpenAPI path and component
+types, while `domain.ts` keeps aliases only for UI-facing use. This removes the
+duplicate handwritten wire contracts without changing Batch intake, saved
+captions, layout profiles or deletion behavior.

@@ -1421,6 +1421,17 @@ export interface components {
             /** Insert At */
             insert_at?: number | null;
         };
+        /** BatchColumnGuessResponse */
+        BatchColumnGuessResponse: {
+            /** Language */
+            language?: number | null;
+            /** Name */
+            name?: number | null;
+            /** Text */
+            text: number;
+            /** Voice */
+            voice?: number | null;
+        };
         /** BatchColumns */
         BatchColumns: {
             /** Language */
@@ -1487,6 +1498,123 @@ export interface components {
              * @default 50
              */
             volume: number;
+        };
+        /** BatchPreviewEnvelope */
+        BatchPreviewEnvelope: {
+            data: components["schemas"]["BatchPreviewResponse"];
+        };
+        /** BatchPreviewResponse */
+        BatchPreviewResponse: {
+            guess: components["schemas"]["BatchColumnGuessResponse"];
+            /** Headers */
+            headers: string[];
+            /** Max Rows */
+            max_rows: number;
+            /** Name */
+            name: string;
+            /** Preview */
+            preview: string[][];
+            /** Rows */
+            rows: number;
+            /** Token */
+            token: string;
+            /** Truncated */
+            truncated: boolean;
+            voices: components["schemas"]["BatchVoiceCheckResponse"];
+        };
+        /** BatchUnknownVoiceResponse */
+        BatchUnknownVoiceResponse: {
+            /** First Row */
+            first_row: number;
+            /** Voice */
+            voice: string;
+        };
+        /** BatchVoiceCheckResponse */
+        BatchVoiceCheckResponse: {
+            /** Checked */
+            checked: number;
+            /** Unknown */
+            unknown: components["schemas"]["BatchUnknownVoiceResponse"][];
+        };
+        /** CaptionCueResponse */
+        CaptionCueResponse: {
+            /** End */
+            end: number;
+            /** Start */
+            start: number;
+            /** Text */
+            text: string;
+            /**
+             * Timing
+             * @enum {string}
+             */
+            timing: "word" | "estimated";
+            /** Words */
+            words: components["schemas"]["CaptionWordResponse"][];
+        };
+        /** CaptionLayoutEnvelope */
+        CaptionLayoutEnvelope: {
+            data: components["schemas"]["CaptionLayoutResponse"];
+        };
+        /** CaptionLayoutResponse */
+        CaptionLayoutResponse: {
+            /** Cues */
+            cues: components["schemas"]["CaptionCueResponse"][];
+            metrics: components["schemas"]["CaptionMetricsResponse"];
+            profile: components["schemas"]["CaptionProfileResponse"];
+            /** Srt */
+            srt: string;
+            /** Timing Json */
+            timing_json: string;
+            /**
+             * Timing Quality
+             * @enum {string}
+             */
+            timing_quality: "word_aligned" | "estimated";
+            /** Vtt */
+            vtt: string;
+        };
+        /** CaptionMetricsResponse */
+        CaptionMetricsResponse: {
+            /** Average Words */
+            average_words: number;
+            /** Cues */
+            cues: number;
+            /** Maximum Cps */
+            maximum_cps: number;
+        };
+        /** CaptionProfileResponse */
+        CaptionProfileResponse: {
+            /** Description */
+            description: string;
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "standard" | "short" | "words";
+            /** Label */
+            label: string;
+            /** Line Chars */
+            line_chars: number;
+            /** Max Chars */
+            max_chars: number;
+            /** Max Duration Ms */
+            max_duration_ms: number;
+            /** Max Lines */
+            max_lines: number;
+            /** Max Words */
+            max_words: number;
+            /** Min Duration Ms */
+            min_duration_ms: number;
+        };
+        /** CaptionWordResponse */
+        CaptionWordResponse: {
+            /** End */
+            end: number;
+            /** Start */
+            start: number;
+            /** Text */
+            text: string;
         };
         /** CollectionMetaResponse */
         CollectionMetaResponse: {
@@ -2094,6 +2222,88 @@ export interface components {
             };
             workspace: components["schemas"]["WorkspaceResponse"];
         };
+        /** SubtitleDeletedEnvelope */
+        SubtitleDeletedEnvelope: {
+            data: components["schemas"]["SubtitleDeletedResponse"];
+        };
+        /** SubtitleDeletedResponse */
+        SubtitleDeletedResponse: {
+            /** Deleted */
+            deleted: boolean;
+        };
+        /** SubtitleEnvelope */
+        SubtitleEnvelope: {
+            data: components["schemas"]["SubtitleResponse"];
+        };
+        /** SubtitleListEnvelope */
+        SubtitleListEnvelope: {
+            /** Data */
+            data: components["schemas"]["SubtitleSummaryResponse"][];
+        };
+        /** SubtitleResponse */
+        SubtitleResponse: {
+            /** Catalog Rate */
+            catalog_rate: number;
+            /** Cost */
+            cost: number;
+            /** Cost Basis */
+            cost_basis: string;
+            /** Created At */
+            created_at: string | null;
+            /** Duration Ms */
+            duration_ms: number;
+            /** File */
+            file: string;
+            /** Id */
+            id: number;
+            /** Language */
+            language: string | null;
+            /** Model */
+            model: string | null;
+            /** Price Version */
+            price_version: string | null;
+            /** Provider Region */
+            provider_region: string | null;
+            /** Public Id */
+            public_id: string | null;
+            /** Sentences */
+            sentences: components["schemas"]["TranscriptSentenceResponse"][];
+            /** Source Job Id */
+            source_job_id: string | null;
+            /** Srt */
+            srt: string;
+            /** Text */
+            text: string;
+            /** Url */
+            url: string | null;
+            /** Vtt */
+            vtt: string;
+        };
+        /** SubtitleSummaryResponse */
+        SubtitleSummaryResponse: {
+            /** Cost */
+            cost: number;
+            /** Cost Basis */
+            cost_basis: string | null;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Id */
+            id: number;
+            /** Lines */
+            lines: number;
+            /** Model */
+            model: string | null;
+            /** Name */
+            name: string;
+            /** Provider Region */
+            provider_region: string | null;
+            /** Public Id */
+            public_id: string;
+            /** Source Job Id */
+            source_job_id: string | null;
+            /** When */
+            when: string;
+        };
         /** SystemHealthEnvelope */
         SystemHealthEnvelope: {
             data: components["schemas"]["SystemHealthResponse"];
@@ -2152,6 +2362,17 @@ export interface components {
             production_id?: number | null;
             /** Text */
             text: string;
+        };
+        /** TranscriptSentenceResponse */
+        TranscriptSentenceResponse: {
+            /** End */
+            end?: number | null;
+            /** Start */
+            start: number;
+            /** Text */
+            text: string;
+            /** Words */
+            words?: components["schemas"]["CaptionWordResponse"][];
         };
         /** TranscriptionJobCreate */
         TranscriptionJobCreate: {
@@ -2965,9 +3186,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["BatchPreviewEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -4856,9 +5075,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SubtitleListEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -4920,9 +5137,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SubtitleEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -4953,9 +5168,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SubtitleDeletedEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -4987,9 +5200,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CaptionLayoutEnvelope"];
                 };
             };
             /** @description Validation Error */
