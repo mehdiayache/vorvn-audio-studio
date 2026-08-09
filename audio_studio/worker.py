@@ -7,8 +7,6 @@ import time
 import os
 import threading
 
-import say
-
 from audio_studio.application import renders
 from audio_studio.application.batches import (
     BatchGenerationService,
@@ -125,7 +123,6 @@ def main() -> int:
             current_revision = environment_revision()
             if current_revision != loaded_revision:
                 reload_owned_environment()
-                say.apply_credentials()
                 loaded_revision = current_revision
             if now - last_maintenance >= 30:
                 jobs.abandon_stale()

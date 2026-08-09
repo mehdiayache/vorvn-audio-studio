@@ -9,6 +9,7 @@ from unittest.mock import patch
 from audio_studio.application import administration
 from audio_studio.infrastructure import runtime_environment
 from audio_studio.infrastructure.alibaba import config as alibaba_config
+from audio_studio.infrastructure.alibaba import sdk_runtime
 from audio_studio import config
 from dataclasses import replace
 
@@ -94,6 +95,24 @@ class RuntimeEnvironmentTests(unittest.TestCase):
                 self.assertEqual(
                     alibaba_config.http_base(),
                     "https://worker-space.cn-beijing.maas.aliyuncs.com/api/v1",
+                )
+
+    def test_worker_reload_refreshes_the_imported_sdk_process_state(self):
+        with TemporaryDirectory() as directory:
+            env_file = Path(directory) / ".env"
+            env_file.write_text(
+                "DASHSCOPE_REGION=intl\nDASHSCOPE_API_KEY=refreshed-key\n"
+            )
+            with patch.object(runtime_environment, "ENV_FILE", env_file), \
+                    patch.object(sdk_runtime.dashscope, "api_key", None), \
+                    patch.object(
+                        sdk_runtime.dashscope, "base_http_api_url", "old"
+                    ):
+                runtime_environment.reload_owned_environment()
+                self.assertEqual(sdk_runtime.dashscope.api_key, "refreshed-key")
+                self.assertEqual(
+                    sdk_runtime.dashscope.base_http_api_url,
+                    "https://dashscope-intl.aliyuncs.com/api/v1",
                 )
 
     def test_admin_rejects_newline_injection(self):

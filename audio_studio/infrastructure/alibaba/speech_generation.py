@@ -6,9 +6,8 @@ import json
 import os
 import re
 
-import say
 from audio_studio.domain import delivery_tags, provider_catalog, speech_text, voice_routing
-from audio_studio.infrastructure.alibaba import config, omni
+from audio_studio.infrastructure.alibaba import audio_tts, config, omni
 from audio_studio.domain import speech_fidelity as alibaba_fidelity
 from audio_studio.domain.provider_pricing import PRICE_VERSION, qwen_audio_tts_cost
 
@@ -33,7 +32,7 @@ def synthesize(chunks, options, on_progress=None):
         audio, failures, transcripts, usage = omni.synthesize(
             chunks, options, on_progress)
         return audio, failures, transcripts, usage
-    audio, failures = say.synthesize(
+    audio, failures = audio_tts.synthesize(
         chunks, options, on_progress=on_progress)
     return audio, failures, [], {}
 

@@ -8,13 +8,12 @@ from pathlib import Path
 from threading import RLock
 from typing import Any
 
-import say
 from audio_studio.domain import speech_text
 from audio_studio.infrastructure import object_storage as storage
 
 from audio_studio.config import settings
 from audio_studio.infrastructure.media_paths import media_root, voice_reference_root
-from audio_studio.infrastructure.runtime_environment import REVISION_FILE
+from audio_studio.infrastructure import runtime_environment
 from audio_studio.infrastructure.postgres.pronunciations import (
     PronunciationRepository,
 )
@@ -48,9 +47,9 @@ def _write_environment(changes: dict[str, str | None]) -> None:
         temporary.write_text("\n".join(kept).rstrip() + "\n")
         temporary.chmod(0o600)
         temporary.replace(ENV_FILE)
-        revision = REVISION_FILE.with_suffix(".tmp")
+        revision = runtime_environment.REVISION_FILE.with_suffix(".tmp")
         revision.write_text(str(time.time_ns()))
-        revision.replace(REVISION_FILE)
+        revision.replace(runtime_environment.REVISION_FILE)
 
 
 def update_provider(values: dict[str, Any]) -> None:
@@ -66,7 +65,7 @@ def update_provider(values: dict[str, Any]) -> None:
     if api_key:
         changes["DASHSCOPE_API_KEY"] = api_key
     _write_environment(changes)
-    say.apply_credentials()
+    runtime_environment.reload_owned_environment()
 
 
 def update_storage(values: dict[str, Any]) -> None:

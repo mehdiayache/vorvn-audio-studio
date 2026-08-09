@@ -28,16 +28,17 @@ def revision() -> int:
 
 
 def reload_owned_environment() -> None:
-    if not ENV_FILE.is_file():
-        return
     values: dict[str, str] = {}
-    for raw in ENV_FILE.read_text().splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, value = line.partition("=")
-        key = key.strip()
-        if key in OWNED_KEYS:
-            values[key] = value.strip().strip("\"'")
+    if ENV_FILE.is_file():
+        for raw in ENV_FILE.read_text().splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            if key in OWNED_KEYS:
+                values[key] = value.strip().strip("\"'")
     for key, value in values.items():
         os.environ[key] = value
+    from audio_studio.infrastructure.alibaba.sdk_runtime import apply_credentials
+    apply_credentials()

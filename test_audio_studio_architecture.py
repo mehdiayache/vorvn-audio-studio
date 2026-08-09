@@ -113,7 +113,7 @@ class AudioStudioArchitectureTests(unittest.TestCase):
                 "audio_studio/http/routers/activity.py",
                 "audio_studio/http/routers/settings.py",
                 "audio_studio/http/routers/system.py",
-                "say.py"):
+        ):
             source = (ROOT / relative).read_text()
             self.assertNotIn("import db", source, relative)
             self.assertNotIn("db.", source, relative)

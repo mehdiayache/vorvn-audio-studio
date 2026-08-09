@@ -8,9 +8,8 @@ import re
 import threading
 import time
 
-import say
 from audio_studio.infrastructure import object_storage as storage
-from audio_studio.infrastructure.alibaba import config, omni
+from audio_studio.infrastructure.alibaba import config, omni, sdk_runtime
 from audio_studio.domain.provider_pricing import PRICE_VERSION
 
 from audio_studio.domain.voice_packages import (
@@ -65,7 +64,7 @@ class AlibabaVoiceCloningProvider:
             endpoint = config.compatible_base_url()
         else:
             from dashscope.audio.tts_v2 import VoiceEnrollmentService
-            say.apply_credentials()
+            sdk_runtime.apply_credentials()
             provider_voice_id = VoiceEnrollmentService().create_voice(
                 target_model=job.model_id, prefix=prefix, url=url,
                 language_hints=[language] if language else None,

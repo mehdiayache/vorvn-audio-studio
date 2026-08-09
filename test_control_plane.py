@@ -7,9 +7,9 @@ from uuid import uuid4
 
 import psycopg
 
-import say
 from audio_studio.application import system
 from audio_studio.config import settings
+from audio_studio.domain import speech_text
 from audio_studio.infrastructure.postgres.activity import ActivityRepository
 from audio_studio.infrastructure.postgres.jobs import JobRepository
 from audio_studio.infrastructure.postgres.control_plane import (
@@ -64,8 +64,10 @@ class ControlPlaneRepositoryTests(unittest.TestCase):
             rule = next(item for item in repository.list()
                         if item["id"] == entry_id)
             self.assertEqual(rule["replacement"], "spoken fixture")
-            prepared, applied = say.apply_pronunciations(
-                f"Please read {pattern} now.")
+            prepared, applied = speech_text.apply_pronunciations(
+                f"Please read {pattern} now.",
+                repository.list(enabled_only=True),
+            )
             self.assertIn("spoken fixture", prepared)
             self.assertEqual(applied[0]["pattern"], pattern)
 
@@ -83,10 +85,14 @@ class ControlPlaneRepositoryTests(unittest.TestCase):
             self.assertEqual(repository.save(phoneme_rule), entry_id)
             self.assertIn(
                 {pattern: "model hot fix"},
-                say.build_hot_fix()["pronunciation"],
+                speech_text.build_hot_fix(
+                    repository.list(enabled_only=True)
+                )["pronunciation"],
             )
-            prepared, applied = say.apply_pronunciations(
-                f"Please read {pattern} now.")
+            prepared, applied = speech_text.apply_pronunciations(
+                f"Please read {pattern} now.",
+                repository.list(enabled_only=True),
+            )
             self.assertIn(pattern, prepared)
             self.assertEqual(applied, [])
             self.assertTrue(repository.delete(entry_id))

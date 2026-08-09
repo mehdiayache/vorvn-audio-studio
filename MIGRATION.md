@@ -54,8 +54,8 @@ Current checkpoint: boundary baseline complete.
 - Application direct technical edges: 1.
 - HTTP to Infrastructure edges: 7.
 - Infrastructure to Application edges: 8.
-- Transitional root/`services` import edges: 4.
-- Root business modules: 7.
+- Transitional root/`services` import edges: 0.
+- Root business modules: 6.
 - `services` Python modules: 0.
 
 Current slice: Alibaba's immutable capability/language/model catalogue and its
@@ -107,3 +107,9 @@ Speech text preparation is now pure Domain policy: chunking, delivery-tag
 handling, pronunciation rules, ambiguous date/phone normalization, output
 names and supported request flags. Catalog, Settings and Production rendering
 no longer depend on the root speech CLI.
+
+Qwen Audio SDK execution, request formatting, retry policy and partial-audio
+recovery now belong to the Alibaba Infrastructure adapter. Runtime credential
+refresh has one Infrastructure owner shared by the API and worker processes.
+The optional direct CLI is a thin client in `scripts/`; the root `say.py`
+compatibility module and the final transitional import edges are removed.

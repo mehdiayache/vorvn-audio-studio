@@ -50,7 +50,7 @@ APPLICATION_INFRASTRUCTURE_DEBT = {
     "audio_studio.application.administration -> audio_studio.infrastructure.media_paths.voice_reference_root",
     "audio_studio.application.administration -> audio_studio.infrastructure.object_storage",
     "audio_studio.application.administration -> audio_studio.infrastructure.postgres.pronunciations.PronunciationRepository",
-    "audio_studio.application.administration -> audio_studio.infrastructure.runtime_environment.REVISION_FILE",
+    "audio_studio.application.administration -> audio_studio.infrastructure.runtime_environment",
     "audio_studio.application.catalog -> audio_studio.infrastructure.media_paths.media_root",
     "audio_studio.application.catalog -> audio_studio.infrastructure.object_storage",
     "audio_studio.application.catalog -> audio_studio.infrastructure.postgres.control_plane.ControlPlaneRepository",
@@ -114,16 +114,11 @@ INFRASTRUCTURE_APPLICATION_DEBT = {
     "audio_studio.infrastructure.transcription_source -> audio_studio.application.transcription.PreparedAudio",
 }
 
-TRANSITIONAL_MODULE_DEBT = {
-    "audio_studio.application.administration -> say",
-    "audio_studio.infrastructure.alibaba.speech_generation -> say",
-    "audio_studio.infrastructure.alibaba.voice_cloning -> say",
-    "audio_studio.worker -> say",
-}
+TRANSITIONAL_MODULE_DEBT: set[str] = set()
 
 ROOT_MODULE_DEBT = {
     "check_domain.py", "importer.py", "rewrite.py",
-    "say.py", "streaming.py", "translate.py", "vocabulary.py",
+    "streaming.py", "translate.py", "vocabulary.py",
 }
 
 SERVICES_MODULE_DEBT: set[str] = set()
