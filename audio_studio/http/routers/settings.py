@@ -19,7 +19,6 @@ router = APIRouter(prefix="/api/v1/settings", tags=["settings"])
 class SettingsUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    output_directory: str | None = None
     warn_above: float | None = Field(default=None, ge=0)
     daily_cap: float | None = Field(default=None, ge=0)
     fix_dates_phones: bool | None = None

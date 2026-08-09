@@ -12,7 +12,7 @@ import say
 import storage
 
 from audio_studio.config import settings
-from audio_studio.application.preferences import load_preferences
+from audio_studio.infrastructure.media_paths import media_root, voice_reference_root
 from audio_studio.infrastructure.postgres.pronunciations import (
     PronunciationRepository,
 )
@@ -78,10 +78,11 @@ def pronunciation_preview(text: str) -> dict[str, Any]:
 
 
 def disk_snapshot() -> dict[str, Any]:
-    output = Path(load_preferences()["out_dir"]).expanduser()
+    output = media_root()
     scratch_paths = {
         ".batches": (settings.root / ".batches", "parsed spreadsheets"),
-        ".uploads": (settings.root / ".uploads", "reference recordings"),
+        ".uploads": (settings.root / ".uploads", "legacy reference recordings"),
+        "voice-references": (voice_reference_root(), "durable voice masters"),
         ".blocks": (settings.root / ".blocks", "per-block script audio"),
         ".inbox": (settings.root / ".inbox", "subtitle source audio"),
         ".tagged": (settings.root / ".tagged", "temporary tagged copies"),
@@ -105,7 +106,9 @@ def tidy_working_files(days: int = 7) -> dict[str, int]:
         raise ValueError("Retention days cannot be negative.")
     cutoff = time.time() - days * 86400
     removed = freed = 0
-    for folder in (".batches", ".uploads", ".blocks", ".inbox", ".tagged"):
+    # Voice references are masters, not scratch. Legacy .uploads is also kept
+    # until every pre-migration reference has been copied on access.
+    for folder in (".batches", ".blocks", ".inbox", ".tagged"):
         root = settings.root / folder
         if not root.exists():
             continue

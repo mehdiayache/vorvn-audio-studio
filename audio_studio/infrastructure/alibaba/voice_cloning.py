@@ -46,7 +46,9 @@ class AlibabaVoiceCloningProvider:
             cached = _REFERENCE_URLS.get(job.reference_id)
             if cached and time.monotonic() - cached[0] < 600:
                 return cached[1]
-            url = storage.upload(local, kind="voice-clone")
+            url = storage.upload(
+                local, kind="voice-references", object_id=job.reference_id,
+                retention="durable")
             _REFERENCE_URLS[job.reference_id] = (time.monotonic(), url)
             return url
 

@@ -57,8 +57,7 @@ class NativeHttpTests(unittest.TestCase):
             root = Path(directory)
             (root / "final.mp3").write_bytes(b"export audio")
             (root / "take.mp3").write_bytes(b"generation audio")
-            with patch.object(media, "load_preferences",
-                              return_value={"out_dir": directory}), \
+            with patch.object(media, "media_root", return_value=root), \
                     patch.object(media.export_repository, "get", return_value={
                         "id": 91, "filename": "final.mp3"}), \
                     patch.object(media.media_repository, "generation", return_value={

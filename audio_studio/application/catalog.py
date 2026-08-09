@@ -18,6 +18,7 @@ from audio_studio.infrastructure.postgres.voices import VoiceRepository
 from audio_studio.infrastructure.postgres.control_plane import (
     ControlPlaneRepository,
 )
+from audio_studio.infrastructure.media_paths import media_root
 
 
 LANGUAGES = ["Auto", "English", "Chinese", "Japanese", "Korean", "French",
@@ -62,8 +63,8 @@ def configuration() -> dict:
         "synth_flags": say.SYNTH_FLAGS,
         "chunk_size": say.MAX_CHARS,
         "has_key": bool(os.getenv("DASHSCOPE_API_KEY")),
-        "out_dir": str(preferences["out_dir"]),
-        "prefs": preferences,
+        "out_dir": str(media_root()),
+        "prefs": {**preferences, "out_dir": str(media_root())},
         "spend": control_repository.spend_totals(),
         "database": control_repository.database_status(),
         "storage": storage.status(),

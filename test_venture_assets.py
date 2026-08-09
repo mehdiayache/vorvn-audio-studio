@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -92,8 +91,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         collections = self.repository.ensure_collections(self.venture_id)
         music = next(item for item in collections if item["kind"] == "music")
         with TemporaryDirectory() as output:
-            isolated = replace(settings, output_dir=Path(output))
-            with (patch.object(uploads, "settings", isolated),
+            with (patch.object(uploads, "media_root", return_value=Path(output)),
                   patch.object(uploads, "_audio_duration_ms",
                                return_value=1200)):
                 created = uploads.save_asset(

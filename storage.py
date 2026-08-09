@@ -22,8 +22,12 @@ Credentials come from .env:
                                                 is already world-readable)
 """
 
+import base64
+import hashlib
 import os
-from datetime import datetime
+from pathlib import Path
+import re
+from uuid import uuid4
 
 # Alibaba only needs to fetch the file once, right after we hand over the link.
 LINK_TTL_SECONDS = 900
@@ -40,6 +44,8 @@ def settings() -> dict:
         "prefix": (os.getenv("RUSTFS_PREFIX") or "text-to-voice").strip("/"),
         "region": os.getenv("RUSTFS_REGION") or "us-east-1",
         "public_url": (os.getenv("RUSTFS_PUBLIC_URL") or "").rstrip("/"),
+        "organization_id": (os.getenv("AUDIO_STUDIO_ORGANIZATION_ID")
+                            or "local-studio").strip(),
     }
 
 
@@ -95,8 +101,27 @@ def _explain(exc: Exception) -> str:
     return text[:160]
 
 
+_SEGMENT = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$")
+
+
+def object_key(*, kind: str, object_id: str, extension: str) -> str:
+    """Build a stable, tenant-scoped S3 key without user-controlled names."""
+    s = settings()
+    organization = s["organization_id"]
+    if not _SEGMENT.fullmatch(organization):
+        raise ValueError("AUDIO_STUDIO_ORGANIZATION_ID is invalid.")
+    if not _SEGMENT.fullmatch(kind) or not _SEGMENT.fullmatch(object_id):
+        raise ValueError("The storage object identity is invalid.")
+    suffix = extension.casefold().lstrip(".")
+    if not re.fullmatch(r"[a-z0-9]{1,10}", suffix):
+        raise ValueError("The storage object extension is invalid.")
+    return (f"{s['prefix']}/v1/organizations/{organization}/"
+            f"objects/{kind}/{object_id}/source.{suffix}")
+
+
 def upload(local_path, content_type: str = "audio/wav",
-           kind: str = "voice-clone") -> str:
+           kind: str = "voice-clone", *, object_id: str | None = None,
+           retention: str = "temporary") -> str:
     """Store the file and return a URL Alibaba can fetch.
 
     `kind` groups uploads by purpose (voice-clone, transcribe) so the bucket
@@ -108,12 +133,23 @@ def upload(local_path, content_type: str = "audio/wav",
             "Object storage isn't set up. Add your RustFS details in Settings, "
             "or paste a public link to the audio instead."
         )
-    key = (f"{s['prefix']}/{kind}/{datetime.now():%Y/%m/%d}/"
-           f"{datetime.now():%H%M%S}-{os.path.basename(local_path)}")
+    target = Path(local_path)
+    identity = object_id or f"obj_{uuid4().hex}"
+    key = object_key(kind=kind, object_id=identity,
+                     extension=target.suffix or ".bin")
+    if retention not in {"temporary", "durable"}:
+        raise ValueError("The storage retention class is invalid.")
     client = _client()
-    with open(local_path, "rb") as handle:
-        client.put_object(Bucket=s["bucket"], Key=key, Body=handle,
-                          ContentType=content_type)
+    digest = hashlib.sha256(target.read_bytes()).digest()
+    with target.open("rb") as handle:
+        client.put_object(
+            Bucket=s["bucket"], Key=key, Body=handle,
+            ContentType=content_type,
+            ChecksumSHA256=base64.b64encode(digest).decode("ascii"),
+            Metadata={"audio-studio-object-id": identity,
+                      "retention": retention},
+            Tagging=f"retention={retention}",
+        )
 
     # A world-readable bucket can serve the object directly; otherwise sign it.
     if s["public_url"]:

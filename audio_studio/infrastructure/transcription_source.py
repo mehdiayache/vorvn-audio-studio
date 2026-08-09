@@ -8,8 +8,8 @@ from urllib.parse import urlparse
 
 import storage
 
-from audio_studio.application.preferences import load_preferences
 from audio_studio.application.transcription import PreparedAudio
+from audio_studio.infrastructure.media_paths import media_root
 from audio_studio.infrastructure.postgres.transcripts import TranscriptRepository
 
 
@@ -34,7 +34,7 @@ class TranscriptionSourceResolver:
             generation_id, production_id=production_id)
         if not generation:
             raise LookupError("That Production audio no longer exists.")
-        output = Path(load_preferences()["out_dir"]).expanduser().resolve()
+        output = media_root()
         filename = Path(str(generation.get("filename") or file or "")).name
         raw_path = str(generation.get("path") or "").strip()
         target = (Path(raw_path).expanduser().resolve()
@@ -56,7 +56,10 @@ class TranscriptionSourceResolver:
             raise RuntimeError("The transcription source is unavailable.")
         content_type = mimetypes.guess_type(source.name)[0] or "audio/mpeg"
         provider_url = storage.upload(
-            source.local_path, content_type=content_type, kind="transcribe")
+            source.local_path, content_type=content_type,
+            kind="transcription-sources",
+            object_id=f"generation_{source.generation_id}",
+            retention="temporary")
         return PreparedAudio(
             provider_url, source.name, source.playable, source.duration_ms,
             source.generation_id, source.local_path)

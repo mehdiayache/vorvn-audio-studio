@@ -15,7 +15,7 @@ from uuid import uuid4
 import say
 import transcribe
 
-from audio_studio.application.preferences import load_preferences
+from audio_studio.infrastructure.media_paths import media_root
 from audio_studio.infrastructure.postgres import work as work_repository
 from audio_studio.infrastructure.postgres.exports import ProductionExportRepository
 from audio_studio.infrastructure.postgres.production_document import (
@@ -35,7 +35,7 @@ class RenderError(RuntimeError):
 
 
 def _output() -> Path:
-    target = Path(load_preferences()["out_dir"]).expanduser().resolve()
+    target = media_root()
     target.mkdir(parents=True, exist_ok=True)
     return target
 

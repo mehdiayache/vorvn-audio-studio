@@ -6,8 +6,8 @@ from fastapi import APIRouter
 from pathlib import Path
 from typing import Literal
 
-from audio_studio.application.preferences import load_preferences
 from audio_studio.http.errors import ApiProblem
+from audio_studio.infrastructure.media_paths import media_root
 from audio_studio.infrastructure.postgres.transcripts import TranscriptRepository
 from services import captions
 
@@ -28,7 +28,7 @@ def get_subtitle(transcript_id: int) -> dict:
         raise ApiProblem(404, "subtitle_not_found", "That subtitle file no longer exists.")
     audio_url = item.get("audio_url")
     if isinstance(audio_url, str) and audio_url.startswith("/audio/"):
-        output = Path(load_preferences()["out_dir"]).expanduser().resolve()
+        output = media_root()
         candidate = (output / Path(audio_url.removeprefix("/audio/")).name).resolve()
         if candidate.parent != output or not candidate.is_file():
             audio_url = None

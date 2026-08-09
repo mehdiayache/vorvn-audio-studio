@@ -8,7 +8,7 @@ import shutil
 import subprocess
 from uuid import uuid4
 
-from audio_studio.application.preferences import load_preferences
+from audio_studio.infrastructure.media_paths import media_root
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,7 +25,7 @@ class AudioWorkspace:
 
     @property
     def root(self) -> Path:
-        value = self._root or Path(load_preferences()["out_dir"])
+        value = self._root or media_root()
         return value.expanduser().resolve()
 
     def save(self, audio: bytes, extension: str) -> SavedAudio:

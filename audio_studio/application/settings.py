@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 from typing import Any
 
 import naming
@@ -16,6 +15,7 @@ from audio_studio.application.preferences import load_preferences, save_preferen
 from audio_studio.infrastructure.postgres.control_plane import (
     ControlPlaneRepository,
 )
+from audio_studio.infrastructure.media_paths import media_root
 
 
 repository = ControlPlaneRepository()
@@ -34,7 +34,7 @@ def snapshot() -> dict[str, Any]:
             "region_label": "Beijing" if alibaba_config.region() == "beijing" else "Singapore",
             "http_base": alibaba_config.http_base(),
         },
-        "output_directory": str(preferences["out_dir"]),
+        "output_directory": str(media_root()),
         "spending": {
             "warn_above": float(preferences.get("warn_above") or 0),
             "daily_cap": float(preferences.get("daily_cap") or 0),
@@ -71,11 +71,10 @@ def snapshot() -> dict[str, Any]:
 def update(changes: dict[str, Any]) -> dict[str, Any]:
     preferences = load_preferences()
     if "output_directory" in changes:
-        directory = Path(str(changes["output_directory"])).expanduser()
-        if not directory.is_absolute():
-            raise ValueError("Use a full output folder path.")
-        directory.mkdir(parents=True, exist_ok=True)
-        preferences["out_dir"] = str(directory)
+        raise ValueError(
+            "The media folder is deployment configuration. Set "
+            "AUDIO_STUDIO_OUTPUT_DIR before starting Audio Studio."
+        )
     if "warn_above" in changes:
         preferences["warn_above"] = _non_negative(changes["warn_above"], "Warning threshold")
     if "daily_cap" in changes:

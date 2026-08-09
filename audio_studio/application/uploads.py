@@ -13,6 +13,10 @@ import psycopg
 import storage
 
 from audio_studio.config import settings
+from audio_studio.infrastructure.media_paths import (
+    media_root,
+    voice_reference_directory,
+)
 from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
 from audio_studio.infrastructure.postgres.venture_assets import (
     VentureAssetRepository,
@@ -57,13 +61,15 @@ def save_voice_reference(raw: bytes, encoded_name: str) -> dict[str, str]:
     original_name = clean_name(encoded_name, "reference.wav")
     if Path(original_name).suffix.lower() not in {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".webm"}:
         raise UploadError("Use an MP3, WAV, M4A, AAC, OGG, FLAC or WebM recording.")
-    root = settings.root / ".uploads"
-    root.mkdir(exist_ok=True)
-    original = root / f"{uuid4().hex[:12]}-{original_name}"
+    reference_id = f"ref_{uuid4().hex}"
+    root = voice_reference_directory(reference_id)
+    root.mkdir(parents=True, exist_ok=False)
+    suffix = Path(original_name).suffix.lower()
+    original = root / f"original{suffix}"
     original.write_bytes(raw)
     normalized = original
     if shutil.which("ffmpeg"):
-        normalized = original.with_name(f"{original.stem}-24k.wav")
+        normalized = original.with_name("normalized-24k.wav")
         result = subprocess.run(
             ["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", str(original),
              "-ac", "1", "-ar", "24000", "-c:a", "pcm_s16le", str(normalized)],
@@ -75,13 +81,13 @@ def save_voice_reference(raw: bytes, encoded_name: str) -> dict[str, str]:
             raise UploadError("That recording could not be decoded as audio.")
     try:
         reference_id = voice_packages.create_reference(
-            original_name=original_name, original_path=original.name,
-            normalized_path=normalized.name,
+            original_name=original_name,
+            original_path=str(original.relative_to(voice_reference_directory(reference_id).parent)),
+            normalized_path=str(normalized.relative_to(voice_reference_directory(reference_id).parent)),
+            reference_id=reference_id,
         )
     except Exception:
-        original.unlink(missing_ok=True)
-        if normalized != original:
-            normalized.unlink(missing_ok=True)
+        shutil.rmtree(root, ignore_errors=True)
         raise
     return {"name": normalized.name, "reference_id": reference_id}
 
@@ -113,9 +119,10 @@ def save_asset(collection_id: int, raw: bytes, encoded_name: str) -> dict:
     if suffix not in {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"}:
         raise UploadError("Use MP3, WAV, M4A, AAC, OGG or FLAC audio.")
 
-    settings.output_dir.mkdir(parents=True, exist_ok=True)
+    output = media_root()
+    output.mkdir(parents=True, exist_ok=True)
     stored = f"{uuid4().hex}{suffix}"
-    target = settings.output_dir / stored
+    target = output / stored
     target.write_bytes(raw)
     duration_ms = _audio_duration_ms(target)
     if duration_ms is None:
@@ -166,7 +173,9 @@ def save_transcription_source(raw: bytes, encoded_name: str) -> dict:
         raise UploadError("That file could not be decoded as audio.")
     content_type = mimetypes.guess_type(local.name)[0] or "application/octet-stream"
     try:
-        url = storage.upload(str(local), content_type=content_type, kind="transcribe")
+        url = storage.upload(
+            str(local), content_type=content_type, kind="transcription-sources",
+            object_id=f"upload_{local.stem}", retention="temporary")
     except Exception:
         local.unlink(missing_ok=True)
         raise

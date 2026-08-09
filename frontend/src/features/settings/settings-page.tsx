@@ -28,7 +28,6 @@ export function SettingsPage() {
   const [data, setData] = useState<SettingsSnapshot | null>(null)
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
-  const [outputDirectory, setOutputDirectory] = useState("")
   const [warnAbove, setWarnAbove] = useState("0")
   const [dailyCap, setDailyCap] = useState("0")
   const [fixDates, setFixDates] = useState(true)
@@ -39,7 +38,6 @@ export function SettingsPage() {
     try {
       const next = await studioApi.settings()
       setData(next)
-      setOutputDirectory(next.output_directory)
       setWarnAbove(String(next.spending.warn_above))
       setDailyCap(String(next.spending.daily_cap))
       setFixDates(next.speech.fix_dates_phones)
@@ -55,7 +53,6 @@ export function SettingsPage() {
     setSaving(true)
     try {
       const next = await studioApi.updateSettings({
-        output_directory: outputDirectory,
         warn_above: Number(warnAbove),
         daily_cap: Number(dailyCap),
         fix_dates_phones: fixDates,
@@ -83,7 +80,7 @@ export function SettingsPage() {
     </section>
 
     <div className="settings-grid">
-      <section className="settings-card settings-wide"><header><FolderOpen /><div><h2>Finished audio</h2><p>Every generated file is written here. Use an absolute path.</p></div></header><label><span>Output folder</span><Input value={outputDirectory} onChange={(event) => setOutputDirectory(event.target.value)} /></label></section>
+      <section className="settings-card settings-wide"><header><FolderOpen /><div><h2>Finished audio</h2><p>One stable media root protects existing recordings. Change it through deployment configuration before startup.</p></div></header><label><span>Media root</span><Input value={data.output_directory} readOnly aria-readonly="true" /></label><small>Set AUDIO_STUDIO_OUTPUT_DIR when deploying or moving the complete media library.</small></section>
 
       <section className="settings-card"><header><Gauge /><div><h2>Spending guardrails</h2><p>Warnings inform the operator; a non-zero daily cap blocks new paid work.</p></div></header><div className="settings-pair"><label><span>Warn above (USD)</span><Input type="number" min="0" step="0.01" value={warnAbove} onChange={(event) => setWarnAbove(event.target.value)} /></label><label><span>Daily cap (USD)</span><Input type="number" min="0" step="0.01" value={dailyCap} onChange={(event) => setDailyCap(event.target.value)} /></label></div><small>${Number(data.spending.today || 0).toFixed(4)} recorded today · ${Number(data.spending.month || 0).toFixed(4)} this month</small></section>
 

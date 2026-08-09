@@ -766,17 +766,6 @@
             ],
             "title": "Naming"
           },
-          "output_directory": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Output Directory"
-          },
           "synth_flags": {
             "anyOf": [
               {

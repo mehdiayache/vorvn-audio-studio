@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import batch as spreadsheet
 
-from audio_studio.application.preferences import load_preferences
+from audio_studio.infrastructure.media_paths import media_root
 from audio_studio.config import settings
 
 
@@ -25,7 +25,7 @@ class FilesystemBatchWorkspace:
 
     @property
     def output_root(self) -> Path:
-        value = self._output_root or Path(load_preferences()["out_dir"])
+        value = self._output_root or media_root()
         return value.expanduser().resolve()
 
     def save_sheet(self, sheet: dict) -> str:

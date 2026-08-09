@@ -1580,8 +1580,6 @@ export interface components {
             naming?: {
                 [key: string]: unknown;
             } | null;
-            /** Output Directory */
-            output_directory?: string | null;
             /** Synth Flags */
             synth_flags?: {
                 [key: string]: boolean;

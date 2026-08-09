@@ -27,6 +27,26 @@ def _job(row) -> VoicePackageJob | None:
 
 
 class VoicePackageRepository:
+    def references(self) -> list[dict]:
+        with read_only() as cursor:
+            cursor.execute("""
+                SELECT id, original_path, normalized_path
+                  FROM voice_references ORDER BY created_at, id
+            """)
+            rows = cursor.fetchall()
+        return [{"id": row[0], "original_path": row[1] or "",
+                 "normalized_path": row[2] or ""} for row in rows]
+
+    def update_reference_paths(self, reference_id: str, *, original_path: str,
+                               normalized_path: str) -> bool:
+        with transaction() as cursor:
+            cursor.execute("""
+                UPDATE voice_references
+                   SET original_path = %s, normalized_path = %s
+                 WHERE id = %s
+            """, (original_path or None, normalized_path or None, reference_id))
+            return cursor.rowcount == 1
+
     def today_spend(self) -> float:
         with read_only() as cursor:
             cursor.execute("""
@@ -54,8 +74,9 @@ class VoicePackageRepository:
         }
 
     def create_reference(self, *, original_name: str, original_path: str,
-                         normalized_path: str, source_url: str = "") -> str:
-        reference_id = f"ref_{uuid4().hex}"
+                         normalized_path: str, source_url: str = "",
+                         reference_id: str | None = None) -> str:
+        reference_id = reference_id or f"ref_{uuid4().hex}"
         with transaction() as cursor:
             cursor.execute("""
                 INSERT INTO voice_references

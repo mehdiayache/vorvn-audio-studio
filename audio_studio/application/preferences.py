@@ -34,12 +34,16 @@ def load_preferences() -> dict[str, Any]:
         return result
     if isinstance(stored, dict):
         result.update(stored)
+    # Media location is deployment configuration, never a mutable preference:
+    # changing a lookup root without moving the database and files would make
+    # every historical recording disappear.
+    result["out_dir"] = str(settings.output_dir)
     return result
 
 
 def save_preferences(values: dict[str, Any]) -> dict[str, Any]:
     """Atomically replace the preference document and return the saved value."""
-    merged = {**DEFAULT_PREFERENCES, **values}
+    merged = {**DEFAULT_PREFERENCES, **values, "out_dir": str(settings.output_dir)}
     payload = json.dumps(merged, indent=2, ensure_ascii=False) + "\n"
     temporary = PREFERENCES_FILE.with_suffix(".json.tmp")
     with _lock:

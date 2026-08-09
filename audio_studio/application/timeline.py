@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from audio_studio.infrastructure.postgres import work as repository
 
-from audio_studio.application.preferences import load_preferences
+from audio_studio.infrastructure.media_paths import media_root
 from audio_studio.infrastructure.postgres.venture_assets import (
     VentureAssetRepository,
 )
@@ -150,7 +150,7 @@ def duplicate(production_id: int, part_id: int) -> dict[str, Any]:
     part = _part(part_id, production_id)
     copied = ""
     if part.get("filename"):
-        output = Path(load_preferences()["out_dir"]).expanduser().resolve()
+        output = media_root()
         source = (output / Path(part["filename"]).name).resolve()
         if output in source.parents and source.is_file():
             copied = f"{source.stem}-copy-{uuid4().hex[:10]}{source.suffix}"
@@ -158,7 +158,7 @@ def duplicate(production_id: int, part_id: int) -> dict[str, Any]:
     new_id = document_repository.duplicate(production_id, part_id, copied)
     if not new_id:
         if copied:
-            (Path(load_preferences()["out_dir"]) / copied).unlink(missing_ok=True)
+            (media_root() / copied).unlink(missing_ok=True)
         raise TimelineError("That Part could not be duplicated.")
     return {"id": new_id, "filename": copied or None}
 
