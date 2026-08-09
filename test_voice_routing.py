@@ -23,9 +23,12 @@ switched = voice_routing.resolve({"voice_identity_id": "voice_eve", "voice": "ev
                                   "engine": "omni", "model": "plus"}, BINDINGS)
 assert switched.provider_voice_id == "eve-omni" and switched.engine == "omni"
 
-preserved = voice_routing.resolve({"voice_identity_id": "voice_eve", "voice": "eve-audio",
-                                   "engine": "audio", "model": "plus"}, BINDINGS)
-assert preserved.provider_voice_id == "eve-audio" and preserved.reason == "preserved_available_binding"
+try:
+    voice_routing.resolve({"voice_identity_id": "voice_eve", "voice": "eve-audio",
+                           "engine": "audio", "model": "plus"}, BINDINGS)
+    raise AssertionError("an unavailable capability was silently substituted")
+except ValueError as error:
+    assert "no ready" in str(error)
 
 legacy_id = "qwen-audio-3.0-tts-flash-oldvoice-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 legacy = voice_routing.resolve({"voice": legacy_id, "engine": "audio", "model": "flash",
@@ -36,10 +39,12 @@ stock_arabic = voice_routing.resolve({"voice": "loongeva_v3.6", "engine": "audio
                                       "model": "flash", "language": "Arabic"}, BINDINGS)
 assert stock_arabic.provider_voice_id == "Tina" and stock_arabic.engine == "omni"
 
-system = voice_routing.resolve({"voice": "eva", "engine": "audio", "model": "plus"},
-                               BINDINGS + SYSTEM_BINDINGS)
-assert system.provider_voice_id == "eva" and system.tier == "flash"
-assert system.identity_id is None
+try:
+    voice_routing.resolve({"voice": "eva", "engine": "audio", "model": "plus"},
+                          BINDINGS + SYSTEM_BINDINGS)
+    raise AssertionError("a Flash voice was silently used with Plus")
+except ValueError:
+    pass
 
 system_arabic = voice_routing.resolve({"voice": "eva", "engine": "audio",
                                        "model": "flash", "language": "Arabic"},

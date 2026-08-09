@@ -35,9 +35,21 @@ class ChunkResponse(NamedTuple):
     event_count: int
 
 
-MAX_RECOVERY_DEPTH = 4
-MIN_RECOVERY_WORDS = 8
-MAX_CALLS_PER_SEGMENT = 7
+PASSAGE_TARGET_CHARS = 240
+RECOVERY_TARGET_CHARS = 120
+MAX_ATTEMPTS_PER_PASSAGE = 2
+
+
+class OmniSynthesisError(RuntimeError):
+    """Incomplete Omni render with evidence from every billed request."""
+
+    def __init__(self, message: str, *, failures: list, usage: dict,
+                 request_ids: list[str], diagnostics: list[dict]):
+        super().__init__(message)
+        self.failures = failures
+        self.usage = usage
+        self.request_ids = request_ids
+        self.diagnostics = diagnostics
 
 
 def _request(payload: dict) -> dict:
@@ -254,16 +266,14 @@ def _speak_chunk(text: str, model: str, voice: str,
     # bare fragment is answered instead of read.  Keep the steering minimal and
     # entirely inside the single documented user message: no system role, XML
     # wrapper, Composer metadata or model-specific hidden flags.
-    prompt = ((
-        "Speak the following text exactly as written while following this "
-        f"performance direction: {instruction}\n"
-        "Do not add, remove, translate, answer, explain, or introduce any words.\n\n"
-        + text
-    ) if speech_mode == "directed" and instruction else (
-        "Repeat the following text verbatim. Output only that text, with no "
-        "introduction, answer, explanation, formatting, or added words:\n\n"
-        + text
-    ))
+    direction = (f" Performance direction: {instruction}."
+                 if speech_mode == "directed" and instruction else "")
+    prompt = (
+        "Read aloud exactly the passage between BEGIN PASSAGE and END PASSAGE."
+        f"{direction} Do not skip, summarize, translate, repeat, answer, "
+        "explain, introduce, or add any words. Output only the passage.\n\n"
+        f"BEGIN PASSAGE\n{text}\nEND PASSAGE"
+    )
     key = os.getenv("DASHSCOPE_API_KEY")
     if not key:
         raise RuntimeError("DASHSCOPE_API_KEY is not set")
@@ -343,20 +353,17 @@ def _speak_chunk(text: str, model: str, voice: str,
     )
 
 
-def _recovery_chunks(text: str) -> list[str]:
-    """Split only a failed provider segment, never the user's input surface."""
-    words = text.split()
-    if len(words) <= MIN_RECOVERY_WORDS:
-        return []
-    target = max(48, len(text) // 2)
-    children = speech_text.chunk_text(text, limit=target)
-    if len(children) > 1 and " ".join(children).split() == words:
-        return children
+def plan_passages(chunks) -> list[str]:
+    """Plan short semantic Omni requests before any paid provider call."""
+    return [passage for chunk in chunks
+            for passage in speech_text.chunk_text(
+                str(chunk), limit=PASSAGE_TARGET_CHARS)]
 
-    # The sentence policy can occasionally retain one dense clause.  Fall
-    # back to the closest word boundary without adding or removing content.
-    midpoint = len(words) // 2
-    return [" ".join(words[:midpoint]), " ".join(words[midpoint:])]
+
+def _recovery_passages(text: str) -> list[str]:
+    """Split one incomplete planned passage once, at a semantic boundary."""
+    children = speech_text.chunk_text(text, limit=RECOVERY_TARGET_CHARS)
+    return children if len(children) > 1 else []
 
 
 def _is_complete(fidelity: dict) -> bool:
@@ -366,31 +373,24 @@ def _is_complete(fidelity: dict) -> bool:
 
 
 def synthesize(chunks, options, on_progress=None):
+    passages = plan_passages(chunks)
     pcm = bytearray()
     failures = []
     transcripts = []
     diagnostics = []
     request_ids = []
-    calls_by_segment = {index: 0 for index in range(1, len(chunks) + 1)}
     usage = {kind: 0 for kind in
              ("input_text", "input_audio", "output_text", "output_audio", "total")}
 
-    def render(text: str, root_index: int, path: str,
-               depth: int) -> tuple[bytes, str, bool]:
-        if calls_by_segment[root_index] >= MAX_CALLS_PER_SEGMENT:
-            failures.append(ChunkFailure(
-                root_index, text,
-                "Alibaba returned incomplete speech and the bounded recovery "
-                "budget was exhausted."))
-            return b"", "", False
-        calls_by_segment[root_index] += 1
+    def call(text: str, root_index: int, path: str,
+             attempt: int) -> tuple[bytes, str, bool, bool]:
         try:
             response = _speak_chunk(
                 text, options.model_id, options.voice, options.instruction,
                 getattr(options, "speech_mode", "exact"))
         except Exception as exc:
             diagnostics.append({
-                "segment": root_index, "path": path, "depth": depth,
+                "segment": root_index, "path": path, "attempt": attempt,
                 "requested_text": text, "returned_text": "",
                 "request_id": None, "finish_reason": None,
                 "event_count": 0, "usage": {}, "status": "error",
@@ -398,7 +398,10 @@ def synthesize(chunks, options, on_progress=None):
             })
             failures.append(ChunkFailure(
                 root_index, text, f"{type(exc).__name__}: {exc}"))
-            return b"", "", False
+            # A transport, authentication or provider error is not evidence
+            # that the passage was too long.  Do not split it and accidentally
+            # turn one failed request into several paid requests.
+            return b"", "", False, True
 
         if response.request_id:
             request_ids.append(response.request_id)
@@ -407,7 +410,7 @@ def synthesize(chunks, options, on_progress=None):
         fidelity = speech_fidelity.assess(text, response.text)
         complete = _is_complete(fidelity)
         diagnostic = {
-            "segment": root_index, "path": path, "depth": depth,
+            "segment": root_index, "path": path, "attempt": attempt,
             "requested_text": text, "returned_text": response.text,
             "request_id": response.request_id,
             "finish_reason": response.finish_reason,
@@ -417,44 +420,69 @@ def synthesize(chunks, options, on_progress=None):
             "status": "accepted" if complete else "incomplete",
         }
         diagnostics.append(diagnostic)
-        if complete:
-            return response.audio, response.text, True
+        return (response.audio if complete else b"", response.text,
+                complete, False)
 
-        children = (_recovery_chunks(text)
-                    if depth < MAX_RECOVERY_DEPTH else [])
-        if not children:
-            failures.append(ChunkFailure(
-                root_index, text,
-                "Alibaba returned incomplete speech after bounded recovery."))
+    def render(text: str, root_index: int,
+               path: str) -> tuple[bytes, str, bool]:
+        audio, returned, complete, provider_error = call(
+            text, root_index, path, 1)
+        if complete:
+            return audio, returned, True
+        if provider_error:
             return b"", "", False
 
-        diagnostic["status"] = "replaced"
-        diagnostic["recovery_segments"] = len(children)
+        children = _recovery_passages(text)
+        if not children:
+            # One bounded repeat is useful for a short non-deterministic Omni
+            # omission. It repeats the identical request and never changes the
+            # operator's words.
+            audio, returned, complete, provider_error = call(
+                text, root_index, path, 2)
+            if complete:
+                return audio, returned, True
+            if provider_error:
+                return b"", "", False
+            failures.append(ChunkFailure(
+                root_index, text,
+                "Alibaba returned incomplete speech for this passage."))
+            return b"", "", False
+
+        diagnostics[-1]["status"] = "replaced"
+        diagnostics[-1]["recovery_segments"] = len(children)
         recovered_audio = bytearray()
         recovered_text = []
         for child_index, child in enumerate(children, 1):
-            child_audio, child_text, child_complete = render(
-                child, root_index, f"{path}.{child_index}", depth + 1)
+            child_audio, child_text, child_complete, provider_error = call(
+                child, root_index, f"{path}.{child_index}", 1)
+            if provider_error:
+                return b"", "", False
             if not child_complete:
-                # Never assemble a partially recovered parent. Successful
-                # siblings remain documented but are not presented as final.
+                child_audio, child_text, child_complete, provider_error = call(
+                    child, root_index, f"{path}.{child_index}",
+                    MAX_ATTEMPTS_PER_PASSAGE)
+                if provider_error:
+                    return b"", "", False
+            if not child_complete:
+                failures.append(ChunkFailure(
+                    root_index, child,
+                    "Alibaba returned incomplete speech for this passage."))
                 return b"", "", False
             recovered_audio.extend(child_audio)
             recovered_text.append(child_text)
         return bytes(recovered_audio), " ".join(recovered_text), True
 
-    for index, chunk in enumerate(chunks, 1):
+    for index, chunk in enumerate(passages, 1):
         if on_progress:
-            on_progress(index, len(chunks), chunk)
-        audio, returned, complete = render(chunk, index, str(index), 0)
+            on_progress(index, len(passages), chunk)
+        audio, returned, complete = render(chunk, index, str(index))
         if complete:
             pcm.extend(audio)
             transcripts.append(returned)
-        elif not pcm:
-            # Preserve the historical actionable provider error when nothing
-            # at all could be generated. Do not bill later segments after an
-            # unusable first section or a fatal provider configuration error.
+        else:
             detail = failures[-1].error if failures else "incomplete speech"
-            raise RuntimeError(detail)
+            raise OmniSynthesisError(
+                detail, failures=failures, usage=usage,
+                request_ids=request_ids, diagnostics=diagnostics)
     return (_encode(bytes(pcm), options.format), failures, transcripts, usage,
             request_ids, diagnostics)

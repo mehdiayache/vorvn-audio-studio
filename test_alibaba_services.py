@@ -104,9 +104,10 @@ check("Omni sends one user message and no system role",
       and captured["body"]["messages"][0]["role"] == "user")
 check("Omni preserves intentional repetitions",
       captured["body"]["presence_penalty"] == 0.0)
-check("Omni asks for a verbatim read without Composer or XML metadata",
-      captured["body"]["messages"][0]["content"].endswith("\n\nمرحبا")
-      and "verbatim" in captured["body"]["messages"][0]["content"]
+check("Omni asks for an exact bounded read without Composer metadata",
+      "BEGIN PASSAGE\nمرحبا\nEND PASSAGE" in
+      captured["body"]["messages"][0]["content"]
+      and "exactly" in captured["body"]["messages"][0]["content"]
       and "calm and intimate" not in captured["body"]["messages"][0]["content"]
       and "<read>" not in captured["body"]["messages"][0]["content"])
 
@@ -194,6 +195,12 @@ omitted = fidelity.assess(
     "God told Noah. The dove returned.")
 check("Fidelity ignores punctuation but accepts a complete script",
       faithful["status"] == "pass" and faithful["coverage"] == 1.0)
+arabic_faithful = fidelity.assess(
+    "إِنَّ الأَمَلَ يَبْقَى فِي القَلْبِ.",
+    "إن الأمل يبقى في القلب")
+check("Fidelity accepts Arabic transcripts without optional harakat",
+      arabic_faithful["status"] == "pass"
+      and arabic_faithful["coverage"] == 1.0)
 check("Fidelity rejects a materially omitted script",
       omitted["status"] == "failed" and omitted["coverage"] < 0.9)
 

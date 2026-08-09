@@ -25,6 +25,14 @@ class JobCancelled(RuntimeError):
     """Cooperative stop raised at a safe Job progress boundary."""
 
 
+class JobFailed(RuntimeError):
+    """Terminal failure whose paid-provider evidence must remain durable."""
+
+    def __init__(self, message: str, result: dict[str, Any] | None = None):
+        super().__init__(message)
+        self.result = result or {}
+
+
 class IdempotencyConflict(RuntimeError):
     """One client key was reused for a different operation or payload."""
 

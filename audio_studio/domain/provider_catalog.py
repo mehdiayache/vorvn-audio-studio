@@ -56,7 +56,13 @@ OMNI_SYSTEM_VOICES = {
 CAPABILITIES = {
     "audio": {
         "label": "Qwen Audio TTS",
-        "purpose": "faithful text-to-speech with performance control",
+        "operator_title": "Expressive narration",
+        "purpose": "Reads the full script with emotions and vocal effects.",
+        "operator_notes": [
+            "Supports emotion and sound tags",
+            "Supports a natural performance direction",
+            "Long scripts are handled automatically",
+        ],
         "models": {
             "plus": "qwen-audio-3.0-tts-plus",
             "flash": "qwen-audio-3.0-tts-flash",
@@ -75,7 +81,13 @@ CAPABILITIES = {
     },
     "omni": {
         "label": "Qwen 3.5 Omni",
-        "purpose": "extended multilingual speech and Arabic voice cloning",
+        "operator_title": "Multilingual Omni",
+        "purpose": "Arabic and extended multilingual narration.",
+        "operator_notes": [
+            "Long scripts use short verified passages",
+            "Supports one natural performance direction",
+            "Does not use inline emotion tags",
+        ],
         "models": {
             "plus": "qwen3.5-omni-plus",
             "flash": "qwen3.5-omni-flash",
@@ -107,7 +119,13 @@ CAPABILITIES = {
     },
     "qwen_tts": {
         "label": "Qwen3 TTS Voice Clone",
-        "purpose": "faithful long-form speech with a cloned voice",
+        "operator_title": "Faithful narration",
+        "purpose": "Reads the complete prepared script with a cloned voice.",
+        "operator_notes": [
+            "Designed for long-form cloned narration",
+            "No emotion tags or performance instructions",
+            "Long scripts are handled automatically",
+        ],
         "models": {"vc": "qwen3-tts-vc-2026-01-22"},
         "clone_tiers": ["vc"],
         "clone_languages": QWEN_TTS_CLONE_LANGUAGES,

@@ -6,7 +6,7 @@ from typing import Any, Callable, Iterable, Protocol
 import threading
 from uuid import UUID
 
-from audio_studio.domain.jobs import Job, JobCancelled
+from audio_studio.domain.jobs import Job, JobCancelled, JobFailed
 
 
 class JobProgress(Protocol):
@@ -18,7 +18,8 @@ class JobStore(JobProgress, Protocol):
     def heartbeat(self, job_id: int) -> bool: ...
     def claim_next(self, kinds: Iterable[str]) -> Job | None: ...
     def finish(self, job_id: int, result: dict[str, Any], **values) -> bool: ...
-    def fail(self, job_id: int, error: str, retry: bool = False) -> None: ...
+    def fail(self, job_id: int, error: str, retry: bool = False,
+             result: dict[str, Any] | None = None) -> None: ...
     def enqueue(self, kind: str, payload: dict[str, Any], **values) \
             -> tuple[Job, bool]: ...
     def get(self, public_id: UUID) -> Job | None: ...
@@ -72,6 +73,9 @@ class JobService:
                                    status=status)
         except JobCancelled:
             pass
+        except JobFailed as exc:
+            self.repository.fail(
+                job.id, str(exc), retry=False, result=exc.result)
         except Exception as exc:
             # Paid provider requests are not blindly retried: a lost response
             # can still have been billed. The operator decides whether to retry.

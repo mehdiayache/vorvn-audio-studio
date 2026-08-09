@@ -11,7 +11,11 @@ from audio_studio.infrastructure.alibaba import audio_tts, config, omni, qwen_tt
 from audio_studio.domain import speech_fidelity as alibaba_fidelity
 from audio_studio.domain.provider_pricing import PRICE_VERSION, qwen_audio_tts_cost
 
-from audio_studio.domain.speech import PreparedSpeech, SynthesizedSpeech
+from audio_studio.domain.speech import (
+    PreparedSpeech,
+    SpeechSynthesisError,
+    SynthesizedSpeech,
+)
 
 
 INSTRUCTION_MAX = 100
@@ -128,6 +132,10 @@ class AlibabaSpeechProvider:
         if preferences.get("fix_dates_phones", True):
             spoken, rewrites = speech_text.normalise_ambiguous(
                 spoken, day_first=bool(preferences.get("day_first", True)))
+        generic_chunks = speech_text.chunk_text(spoken)
+        request_count = (len(omni.plan_passages(generic_chunks))
+                         if options.engine == "omni"
+                         else len(generic_chunks))
         return PreparedSpeech(
             original_text=text, spoken_text=spoken, voice=options.voice,
             voice_identity_id=options.voice_identity_id,
@@ -136,7 +144,7 @@ class AlibabaSpeechProvider:
             extension=_extension(options.format), language=options.language,
             instruction=options.instruction, speech_mode=options.speech_mode,
             rate=options.rate, pitch=options.pitch, volume=options.volume,
-            seed=options.seed, request_count=len(speech_text.chunk_text(spoken)),
+            seed=options.seed, request_count=request_count,
             estimated_cost=_guard_estimate(spoken, options.engine, options.model),
             voice_route=options.voice_route, pronunciations=applied,
             rewrites=rewrites, context=options,
@@ -145,8 +153,30 @@ class AlibabaSpeechProvider:
     def synthesize(self, prepared: PreparedSpeech,
                    on_progress=None) -> SynthesizedSpeech:
         chunks = speech_text.chunk_text(prepared.spoken_text)
-        audio, failures, transcripts, usage, request_ids, diagnostics = synthesize(
-            chunks, prepared.context, on_progress=on_progress)
+        try:
+            audio, failures, transcripts, usage, request_ids, diagnostics = synthesize(
+                chunks, prepared.context, on_progress=on_progress)
+        except omni.OmniSynthesisError as exc:
+            actual = config.omni_usage_cost(exc.usage, prepared.tier)
+            cost = actual if actual is not None else prepared.estimated_cost
+            raise SpeechSynthesisError(
+                "Alibaba returned incomplete speech for one verified passage.",
+                {
+                    "cost": cost,
+                    "cost_basis": ("actual_tokens" if actual is not None
+                                   else "estimate"),
+                    "usage": exc.usage,
+                    "failures": [item._asdict() for item in exc.failures],
+                    "provider_diagnostics": exc.diagnostics,
+                    "request_ids": exc.request_ids,
+                    "provider_request_id": (exc.request_ids[0]
+                                            if len(exc.request_ids) == 1
+                                            else None),
+                    "provider_region": config.region(),
+                    "provider_endpoint": config.compatible_base_url(),
+                    "price_version": PRICE_VERSION,
+                },
+            ) from exc
         failure_rows = [item._asdict() for item in failures]
         provider_text = " ".join(
             item.strip() for item in transcripts if item.strip()) or None

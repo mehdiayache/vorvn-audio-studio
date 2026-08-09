@@ -5,8 +5,13 @@ from __future__ import annotations
 from typing import Any, Callable, Protocol
 from urllib.parse import quote
 
-from audio_studio.domain.jobs import Job
-from audio_studio.domain.speech import PreparedSpeech, StoredAudio, SynthesizedSpeech
+from audio_studio.domain.jobs import Job, JobFailed
+from audio_studio.domain.speech import (
+    PreparedSpeech,
+    SpeechSynthesisError,
+    StoredAudio,
+    SynthesizedSpeech,
+)
 
 
 PLAUSIBLE_CHARACTERS_PER_SECOND = 25
@@ -183,12 +188,25 @@ class SpeechGenerationService:
 
         if on_progress:
             on_progress(0, max(1, prepared.request_count), "Preparing speech")
-        made = self.provider.synthesize(
-            prepared,
-            on_progress=(lambda done, total, detail: on_progress(
-                max(0, int(done) - 1), max(1, int(total)), str(detail)[:300]))
-            if on_progress else None,
-        )
+        try:
+            made = self.provider.synthesize(
+                prepared,
+                on_progress=(lambda done, total, detail: on_progress(
+                    max(0, int(done) - 1), max(1, int(total)), str(detail)[:300]))
+                if on_progress else None,
+            )
+        except SpeechSynthesisError as exc:
+            evidence = {
+                **exc.result,
+                "chars": len(prepared.spoken_text),
+                "estimated_cost": estimate,
+                "model": prepared.model_id,
+                "engine": prepared.engine,
+                "voice": prepared.voice,
+                "voice_identity_id": prepared.voice_identity_id,
+                "voice_route": prepared.voice_route,
+            }
+            raise JobFailed(str(exc), evidence) from exc
         if not made.audio:
             raise RuntimeError("Alibaba returned no audio.")
         saved = self.workspace.save(made.audio, prepared.extension)

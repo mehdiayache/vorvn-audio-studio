@@ -60,9 +60,8 @@ def _stock_audio(provider_id: str) -> bool:
 def resolve(payload: dict, bindings: list[dict] | None = None) -> VoiceRoute:
     """Return the concrete provider route for one speech request.
 
-    An exact compatible binding wins. If an existing identity has no such
-    variant, its selected ready binding is preserved rather than rejected.
-    Unknown legacy clones pass through untouched.
+    An exact compatible binding wins. A request is never silently moved to a
+    different model capability. Unknown legacy clones pass through untouched.
     """
     text = str(payload.get("text") or "")
     language = payload.get("language")
@@ -112,18 +111,13 @@ def resolve(payload: dict, bindings: list[dict] | None = None) -> VoiceRoute:
         chosen = next((item for item in exact
                        if item["provider_voice_id"] == requested_provider), None)
         chosen = chosen or (exact[0] if exact else None)
-        if chosen:
-            reason = "selected_binding" if chosen["provider_voice_id"] == requested_provider else "identity_binding"
-        else:
-            chosen = next((item for item in candidates
-                           if item["provider_voice_id"] == requested_provider), None)
-            chosen = chosen or sorted(
-                candidates,
-                key=lambda item: (item["engine"] == requested_engine,
-                                  item["tier"] == requested_tier),
-                reverse=True,
-            )[0]
-            reason = "preserved_available_binding"
+        if not chosen:
+            label = config.CAPABILITIES[requested_engine]["label"]
+            raise ValueError(
+                f"That voice has no ready {label} {requested_tier} capability.")
+        reason = ("selected_binding"
+                  if chosen["provider_voice_id"] == requested_provider
+                  else "identity_binding")
         resolved_identity = identity_id if chosen.get("source") == "custom" else None
         return VoiceRoute(resolved_identity, chosen["provider_voice_id"], chosen["engine"],
                           chosen["tier"], chosen["model_id"] or
@@ -131,12 +125,18 @@ def resolve(payload: dict, bindings: list[dict] | None = None) -> VoiceRoute:
                           reason, True)
 
     if (provider_match and provider_match.get("source") == "system"
+            and provider_match["engine"] == requested_engine
+            and provider_match["tier"] == requested_tier
             and not (language_requires_omni and provider_match["engine"] == "audio")):
         return VoiceRoute(None, provider_match["provider_voice_id"],
                           provider_match["engine"], provider_match["tier"],
                           provider_match["model_id"] or config.model_id(
                               provider_match["engine"], provider_match["tier"]),
                           "system_binding", True)
+    if provider_match and provider_match.get("source") == "system" \
+            and not language_requires_omni:
+        raise ValueError(
+            "That Alibaba system voice does not belong to the selected model capability.")
 
     # System voices and unregistered historic clones remain usable. Arabic only
     # replaces a certainly incompatible stock Audio choice; it never guesses
@@ -150,6 +150,8 @@ def resolve(payload: dict, bindings: list[dict] | None = None) -> VoiceRoute:
         provider_match and provider_match.get("source") == "system"
         and provider_match.get("engine") == "audio"))
     if language_requires_omni and (not provider_id or known_audio_system):
+        # Preserve the established Arabic safe route for stock voices. Custom
+        # identities are resolved above and are never silently changed.
         engine, provider_id, reason = "omni", "Tina", "language_safe_fallback"
     if not provider_id:
         provider_id = "Tina" if engine == "omni" else ""

@@ -188,7 +188,9 @@ export type StudioConfig = {
   retired_tags?: Record<string, string> | string[]
   capabilities: Record<string, {
     label: string
+    operator_title?: string
     purpose: string
+    operator_notes?: string[]
     models: Record<string, string>
     system_languages: string[]
     system_voices?: Record<string, string>

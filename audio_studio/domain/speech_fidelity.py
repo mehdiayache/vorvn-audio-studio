@@ -1,11 +1,19 @@
 """Compare requested speech with text returned by a conversational talker."""
 
 import re
+import unicodedata
 from difflib import SequenceMatcher
 
 
 def _words(text: str) -> list[str]:
-    return re.findall(r"[\w']+", (text or "").casefold(), re.UNICODE)
+    # Provider transcripts commonly omit Arabic harakat even when the spoken
+    # words are complete. Compare lexical content rather than optional Unicode
+    # combining marks, while preserving every base letter and word order.
+    normalized = unicodedata.normalize("NFKD", (text or "").casefold())
+    normalized = "".join(
+        character for character in normalized
+        if unicodedata.category(character) != "Mn" and character != "ـ")
+    return re.findall(r"[\w']+", normalized, re.UNICODE)
 
 
 def assess(requested: str, returned: str) -> dict:

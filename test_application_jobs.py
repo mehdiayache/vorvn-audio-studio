@@ -5,7 +5,7 @@ from uuid import uuid4
 import unittest
 
 from audio_studio.application.jobs import JobService
-from audio_studio.domain.jobs import Job, JobCancelled, JobStatus
+from audio_studio.domain.jobs import Job, JobCancelled, JobFailed, JobStatus
 
 
 def fixture_job(kind: str = "fixture", status: JobStatus = JobStatus.QUEUED):
@@ -38,8 +38,8 @@ class FakeJobStore:
         self.finished.append((job_id, result, values))
         return True
 
-    def fail(self, job_id, error, retry=False):
-        self.failed.append((job_id, error, retry))
+    def fail(self, job_id, error, retry=False, result=None):
+        self.failed.append((job_id, error, retry, result or {}))
 
     def enqueue(self, kind, payload, **values):
         self.enqueued = (kind, payload, values)
@@ -122,6 +122,24 @@ class JobServiceTests(unittest.TestCase):
         self.assertTrue(service.work_once())
         self.assertFalse(store.finished)
         self.assertFalse(store.failed)
+
+    def test_paid_failure_keeps_provider_usage_and_request_evidence(self):
+        job = fixture_job("speech")
+        store = FakeJobStore(job)
+        service = JobService(store)
+
+        def fail(_job, _progress):
+            raise JobFailed("incomplete passage", {
+                "cost": .04,
+                "usage": {"output_audio": 120},
+                "request_ids": ["request-one", "request-two"],
+            })
+
+        service.register("speech", fail)
+        self.assertTrue(service.work_once())
+        self.assertEqual(store.failed[0][3]["cost"], .04)
+        self.assertEqual(store.failed[0][3]["request_ids"],
+                         ["request-one", "request-two"])
 
     def test_worker_reports_idle_without_touching_state(self):
         store = FakeJobStore()

@@ -248,19 +248,38 @@ class JobRepository:
                                      "cost": cost, "outputs": outputs})
             return True
 
-    def fail(self, job_id: int, error: str, retry: bool = False) -> None:
+    def fail(self, job_id: int, error: str, retry: bool = False,
+             result: dict[str, Any] | None = None) -> None:
+        result = result or {}
         with transaction() as cursor:
             cursor.execute("""
                 UPDATE jobs SET status = %s, error = %s, retries = retries + 1,
+                       result = %s::jsonb, cost = %s, usage = %s::jsonb,
+                       provider_request_id = %s,
+                       cost_basis = %s, price_version = %s,
+                       provider_region = %s, provider_endpoint = %s,
+                       resolved_route = %s::jsonb,
                        available_at = CASE WHEN %s THEN now() + interval '10 seconds' ELSE available_at END,
                        finished_at = CASE WHEN %s THEN NULL ELSE now() END
                  WHERE id = %s AND status = 'running'
-            """, ("retrying" if retry else "failed", error[:400], retry, retry, job_id))
+            """, (
+                "retrying" if retry else "failed", error[:400],
+                json.dumps(result), float(result.get("cost") or 0),
+                json.dumps(result.get("usage") or {}),
+                result.get("provider_request_id"),
+                result.get("cost_basis") or "unknown",
+                result.get("price_version"), result.get("provider_region"),
+                result.get("provider_endpoint"),
+                json.dumps({"model": result.get("model"),
+                            "region": result.get("provider_region")}),
+                retry, retry, job_id,
+            ))
             if cursor.rowcount != 1:
                 return
             cursor.execute("INSERT INTO job_events (job_id, kind, detail) VALUES (%s, %s, %s::jsonb)",
                            (job_id, "retrying" if retry else "failed",
-                            json.dumps({"error": error[:400]})))
+                            json.dumps({"error": error[:400],
+                                        "result": result})))
             cursor.execute("SELECT actor_id, organization_id, kind FROM jobs WHERE id = %s", (job_id,))
             row = cursor.fetchone()
             if row:

@@ -51,7 +51,11 @@ def chunk_text(text: str, limit: int = MAX_CHARS) -> list[str]:
     for sentence in sentences:
         while len(sentence) > limit:
             cut = sentence.rfind(",", 0, limit)
-            cut = cut + 1 if cut > limit // 2 else limit
+            if cut > limit // 2:
+                cut += 1
+            else:
+                space = sentence.rfind(" ", 0, limit + 1)
+                cut = space if space > limit // 2 else limit
             chunks.append(sentence[:cut].strip())
             sentence = sentence[cut:].strip()
         if len(current) + len(sentence) + 1 > limit:

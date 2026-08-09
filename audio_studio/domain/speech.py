@@ -56,3 +56,11 @@ class StoredAudio:
     path: str
     size_bytes: int
     duration_ms: int | None
+
+
+class SpeechSynthesisError(RuntimeError):
+    """Provider failure with usage and request evidence from completed calls."""
+
+    def __init__(self, message: str, result: dict | None = None):
+        super().__init__(message)
+        self.result = result or {}
