@@ -7,11 +7,12 @@ from unittest.mock import Mock, patch
 
 from fastapi.testclient import TestClient
 
-from audio_studio.application import timeline
+from audio_studio.application.timeline import TimelineError
 from audio_studio.application.media import MediaService
 from audio_studio.domain.media import MediaFile
 from audio_studio.http.app import app
 from audio_studio.http.routers import media as media_router
+from audio_studio.http.routers import timeline as timeline_router
 from audio_studio.http.routers import work as work_router
 from audio_studio.domain.work import DomainConflict
 from audio_studio.infrastructure.media_workspace import LocalMediaWorkspace
@@ -174,7 +175,7 @@ class NativeHttpTests(unittest.TestCase):
 
     def test_timeline_contract_preserves_music_and_silence_rules(self):
         with patch.object(
-                timeline, "add_silence",
+                timeline_router.timeline_service, "add_silence",
                 return_value={"id": 101, "seconds": 2.5}):
             silence = self.client.post(
                 "/api/v1/productions/7/parts/silence",
@@ -183,15 +184,17 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(silence.json()["data"], {"id": 101, "seconds": 2.5})
 
         with patch.object(
-                timeline, "insert_asset",
-                side_effect=timeline.TimelineError(
+                timeline_router.timeline_service, "insert_asset",
+                side_effect=TimelineError(
                     "Music is a background bed. Choose it in the Music controls.")):
             music = self.client.post(
                 "/api/v1/productions/7/parts/assets", json={"asset_id": 55})
         self.assertEqual(music.status_code, 400)
         self.assertEqual(music.json()["error"]["code"], "timeline_error")
 
-        with patch.object(timeline, "set_music", return_value={"music_of": None}) as remove:
+        with patch.object(
+                timeline_router.timeline_service, "set_music",
+                return_value={"music_of": None}) as remove:
             response = self.client.patch(
                 "/api/v1/productions/6/music", json={"music_of": None})
         self.assertEqual(response.status_code, 200)

@@ -7,11 +7,13 @@ from uuid import uuid4
 
 import psycopg
 
-from audio_studio.application import timeline, work
+from audio_studio.application import work
+from audio_studio.application.timeline import TimelineService
 from audio_studio.config import settings
 from audio_studio.infrastructure.postgres.production_document import (
     ProductionDocumentRepository,
 )
+from audio_studio.infrastructure.postgres.timeline import PostgresTimelineRecords
 from audio_studio.infrastructure.postgres.venture_assets import (
     VentureAssetRepository,
 )
@@ -27,6 +29,16 @@ class _TranscriptState:
 
     def list_for_generation(self, _generation_id: int) -> list[dict]:
         return []
+
+
+class _Workspace:
+    @staticmethod
+    def duplicate(_filename: str) -> str:
+        return ""
+
+    @staticmethod
+    def discard(_filename: str) -> None:
+        pass
 
 
 class ProductionDocumentTests(unittest.TestCase):
@@ -54,6 +66,11 @@ class ProductionDocumentTests(unittest.TestCase):
         ])
         self.repository = ProductionDocumentRepository()
         self.asset_repository = VentureAssetRepository()
+        self.transcripts = _TranscriptState()
+        self.timeline = TimelineService(
+            PostgresTimelineRecords(
+                documents=self.repository, assets=self.asset_repository),
+            _Workspace(), self.transcripts)
         self.asset_generation_ids: list[int] = []
 
     def tearDown(self):
@@ -105,8 +122,8 @@ class ProductionDocumentTests(unittest.TestCase):
         self.asset_generation_ids.extend([
             intro["generation_id"], music_asset["generation_id"]])
 
-        silence = timeline.add_silence(first_id, 2, None)
-        draft = timeline.add_draft(first_id, {
+        silence = self.timeline.add_silence(first_id, 2, None)
+        draft = self.timeline.add_draft(first_id, {
             "text": "A quiet opening", "voice": "Tina", "engine": "audio",
             "model": "plus", "insert_at": 0,
         })
@@ -114,17 +131,17 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual([item["id"] for item in parts], [draft["id"], silence["id"]])
         self.assertEqual([item["position"] for item in parts], [0, 1])
 
-        linked = timeline.insert_asset(first_id, intro["id"], None)
+        linked = self.timeline.insert_asset(first_id, intro["id"], None)
         self.assertEqual(
             self.repository.part(first_id, linked["id"])["kind"], "asset")
 
-        timeline.edit_silence(first_id, silence["id"], 3.5)
+        self.timeline.edit_silence(first_id, silence["id"], 3.5)
         edited = next(item for item in self.repository.parts(first_id)
                       if item["id"] == silence["id"])
         self.assertEqual((edited["title"], edited["duration_ms"]), ("3.5", 3500))
 
-        duplicate = timeline.duplicate(first_id, draft["id"])
-        timeline.save_text(first_id, duplicate["id"], {
+        duplicate = self.timeline.duplicate(first_id, draft["id"])
+        self.timeline.save_text(first_id, duplicate["id"], {
             "text": "A revised opening", "text_state": "raw",
         })
         self.assertEqual(
@@ -144,16 +161,15 @@ class ProductionDocumentTests(unittest.TestCase):
                 """, (draft["id"], legacy_id))
                 take_id = int(cursor.fetchone()[0])
             database.commit()
-        self.assertEqual(timeline.takes(first_id, draft["id"])[0]["id"], take_id)
-        transcripts = _TranscriptState()
-        promoted = timeline.promote(
-            first_id, draft["id"], take_id, transcripts)
+        self.assertEqual(
+            self.timeline.takes(first_id, draft["id"])[0]["id"], take_id)
+        promoted = self.timeline.promote(first_id, draft["id"], take_id)
         self.assertTrue(promoted["ok"])
-        self.assertEqual(transcripts.stale, [draft["id"]])
+        self.assertEqual(self.transcripts.stale, [draft["id"]])
         self.assertEqual(self.repository.generation(draft["id"])["text"],
                          "Archived opening")
 
-        music = timeline.set_music(first_id, {
+        music = self.timeline.set_music(first_id, {
             "music_of": music_asset["id"],
             "music_volume": .25, "music_start": 1.5,
             "music_fade_in": 3, "music_duck": False,
@@ -162,16 +178,17 @@ class ProductionDocumentTests(unittest.TestCase):
                           music["start"], music["fade_in"], music["duck"]),
                          (music_asset["id"], f"music-{self.marker}.wav",
                           .25, 1.5, 3.0, False))
-        removed_music = timeline.set_music(first_id, {"music_of": None})
+        removed_music = self.timeline.set_music(first_id, {"music_of": None})
         self.assertIsNone(removed_music["music_of"])
         self.assertEqual(removed_music["filename"], "")
 
-        moved = timeline.move_parts(first_id, [duplicate["id"]], second_id)
+        moved = self.timeline.move_parts(
+            first_id, [duplicate["id"]], second_id)
         self.assertEqual(moved["moved"], 1)
         self.assertIsNone(self.repository.part(first_id, duplicate["id"]))
         self.assertIsNotNone(self.repository.part(second_id, duplicate["id"]))
 
-        deleted = timeline.delete_parts(second_id, [duplicate["id"]])
+        deleted = self.timeline.delete_parts(second_id, [duplicate["id"]])
         self.assertEqual(deleted["deleted"], 1)
         self.assertIsNone(self.repository.generation(duplicate["id"]))
         editor = work.production_editor(first_id)

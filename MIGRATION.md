@@ -50,9 +50,9 @@ edges from the matching allowlist in the same commit; new edges fail CI.
 Current checkpoint: boundary baseline complete.
 
 - Domain technical-dependency debt: 0.
-- Application to Infrastructure edges: 10.
+- Application to Infrastructure edges: 6.
 - Application direct technical edges: 0.
-- HTTP to Infrastructure edges: 5.
+- HTTP to Infrastructure edges: 4.
 - Infrastructure to Application edges: 8.
 - Transitional root/`services` import edges: 0.
 - Root business modules: 0.
@@ -161,3 +161,9 @@ service. FFmpeg and file lifecycle live in a workspace adapter; Production,
 Part, transcript and Export persistence live in one PostgreSQL adapter. This
 removes six Application-to-Infrastructure edges while preserving preview
 caching, normalization, music mixing, manifests and timed subtitle exports.
+
+Timeline commands now belong to one injected Application service. Ordered Part,
+Take, Venture-library and transcript persistence live behind a PostgreSQL
+adapter; contained media duplication lives behind a replaceable workspace port.
+This removes four Application-to-Infrastructure edges and the Timeline router's
+direct transcript dependency while preserving every existing HTTP contract.
