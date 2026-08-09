@@ -13,9 +13,9 @@ from audio_studio.application.speech import (
 )
 from audio_studio.config import settings
 from audio_studio.domain.jobs import Job, JobStatus
-from audio_studio.domain.speech import PreparedSpeech, SynthesizedSpeech
+from audio_studio.domain.speech import PreparedSpeech, StoredAudio, SynthesizedSpeech
 from audio_studio.http.routers.jobs import SpeechJobCreate
-from audio_studio.infrastructure.audio_workspace import AudioWorkspace, SavedAudio
+from audio_studio.infrastructure.audio_workspace import AudioWorkspace
 from audio_studio.infrastructure.postgres.speech import SpeechRepository
 
 
@@ -117,8 +117,8 @@ class FakeWorkspace:
 
     def save(self, audio, extension):
         self.saved.append((audio, extension))
-        return SavedAudio("generated.mp3", "/safe/generated.mp3",
-                          len(audio), 4_000)
+        return StoredAudio("generated.mp3", "/safe/generated.mp3",
+                           len(audio), 4_000)
 
 
 class Progress:

@@ -45,3 +45,13 @@ class SynthesizedSpeech:
     price_version: str | None = None
     catalog_rate: str | None = None
     request_ids: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
+class StoredAudio:
+    """Provider-neutral identity of one durably stored recording."""
+
+    filename: str
+    path: str
+    size_bytes: int
+    duration_ms: int | None

@@ -50,7 +50,7 @@ edges from the matching allowlist in the same commit; new edges fail CI.
 Current checkpoint: boundary baseline complete.
 
 - Domain technical-dependency debt: 0.
-- Application to Infrastructure edges: 1.
+- Application to Infrastructure edges: 0.
 - Application direct technical edges: 0.
 - HTTP to Infrastructure edges: 4.
 - Infrastructure to Application edges: 8.
@@ -173,3 +173,9 @@ Venture, Project, Series and Production persistence, editor Parts, immutable
 Exports, Venture assets and accounting are assembled behind one PostgreSQL
 adapter. This removes five Application-to-Infrastructure edges while preserving
 hierarchy semantics, Series defaults and historical Production accounting.
+
+Speech generation now receives a provider-neutral `StoredAudio` value from its
+workspace port. The filesystem adapter owns file creation and duration probing,
+while Application owns no Infrastructure type. This removes the final
+Application-to-Infrastructure edge without changing recordings, URLs or job
+results.

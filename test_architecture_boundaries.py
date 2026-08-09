@@ -44,9 +44,7 @@ def _edges(paths: list[Path], prefixes: tuple[str, ...]) -> set[str]:
     }
 
 
-APPLICATION_INFRASTRUCTURE_DEBT = {
-    "audio_studio.application.speech -> audio_studio.infrastructure.audio_workspace.SavedAudio",
-}
+APPLICATION_INFRASTRUCTURE_DEBT: set[str] = set()
 
 APPLICATION_TECHNICAL_DEBT: set[str] = set()
 

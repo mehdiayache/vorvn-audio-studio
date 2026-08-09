@@ -2,21 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 import shutil
 import subprocess
 from uuid import uuid4
 
+from audio_studio.domain.speech import StoredAudio
 from audio_studio.infrastructure.media_paths import media_root
-
-
-@dataclass(frozen=True, slots=True)
-class SavedAudio:
-    filename: str
-    path: str
-    size_bytes: int
-    duration_ms: int | None
 
 
 class AudioWorkspace:
@@ -28,7 +20,7 @@ class AudioWorkspace:
         value = self._root or media_root()
         return value.expanduser().resolve()
 
-    def save(self, audio: bytes, extension: str) -> SavedAudio:
+    def save(self, audio: bytes, extension: str) -> StoredAudio:
         if not audio:
             raise ValueError("Alibaba returned no audio.")
         safe_extension = extension.casefold().lstrip(".")
@@ -43,7 +35,7 @@ class AudioWorkspace:
         temporary = target.with_suffix(target.suffix + ".tmp")
         temporary.write_bytes(audio)
         temporary.replace(target)
-        return SavedAudio(filename, str(target), len(audio), self.duration_ms(target))
+        return StoredAudio(filename, str(target), len(audio), self.duration_ms(target))
 
     @staticmethod
     def duration_ms(path: Path) -> int | None:

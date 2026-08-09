@@ -6,8 +6,7 @@ from typing import Any, Callable, Protocol
 from urllib.parse import quote
 
 from audio_studio.domain.jobs import Job
-from audio_studio.domain.speech import PreparedSpeech, SynthesizedSpeech
-from audio_studio.infrastructure.audio_workspace import SavedAudio
+from audio_studio.domain.speech import PreparedSpeech, StoredAudio, SynthesizedSpeech
 
 
 PLAUSIBLE_CHARACTERS_PER_SECOND = 25
@@ -41,7 +40,7 @@ class SpeechProvider(Protocol):
 
 
 class SpeechWorkspace(Protocol):
-    def save(self, audio: bytes, extension: str) -> SavedAudio: ...
+    def save(self, audio: bytes, extension: str) -> StoredAudio: ...
 
 
 def _defaults(values: dict) -> dict:
@@ -77,7 +76,7 @@ def _fidelity_warning(result: SynthesizedSpeech) -> str | None:
 
 
 def _record(prepared: PreparedSpeech, result: SynthesizedSpeech,
-            saved: SavedAudio, values: dict) -> dict[str, Any]:
+            saved: StoredAudio, values: dict) -> dict[str, Any]:
     return {
         "text": prepared.original_text,
         "text_raw": values.get("text_raw"),
