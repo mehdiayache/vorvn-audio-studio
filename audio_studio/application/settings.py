@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import naming
 import say
+from audio_studio.domain import naming
 from audio_studio.infrastructure import object_storage as storage
 from audio_studio.config import alibaba_environment
 

@@ -9,8 +9,6 @@ is correct without a single file being touched on disk.
 """
 
 import re
-import subprocess
-from pathlib import Path
 
 # Windows and macOS both refuse these outright; everything else, including
 # accents and non-Latin scripts, is fine in a download name.
@@ -106,26 +104,3 @@ def id3(context: dict, settings: dict) -> dict:
     }
     return {k: v for k, v in fields.items() if v}
 
-
-def write_tags(source: Path, target: Path, tags: dict, cover: Path | None = None) -> bool:
-    """Copy the audio into `target` with its tags, without re-encoding.
-
-    `-c copy` moves the existing stream across untouched, so this costs
-    milliseconds and loses nothing. If ffmpeg isn't there, or the file isn't
-    MP3, the caller falls back to serving the original.
-    """
-    command = ["ffmpeg", "-y", "-nostdin", "-loglevel", "error", "-i", str(source)]
-    if cover and cover.exists():
-        command += ["-i", str(cover), "-map", "0:a", "-map", "1:v",
-                    "-c:v", "mjpeg", "-disposition:v", "attached_pic"]
-    else:
-        command += ["-map", "0:a"]
-    command += ["-c:a", "copy"]
-    for key, value in tags.items():
-        command += ["-metadata", f"{key}={value}"]
-    command.append(str(target))
-    try:
-        done = subprocess.run(command, capture_output=True, timeout=60)
-        return done.returncode == 0 and target.exists() and target.stat().st_size > 0
-    except Exception:
-        return False
