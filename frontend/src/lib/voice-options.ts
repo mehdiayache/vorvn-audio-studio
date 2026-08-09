@@ -17,6 +17,21 @@ export type VoiceChoice = {
   status: string
 }
 
+export function languageForVoice(
+  choice: VoiceChoice,
+  binding: { source: string; reference?: { source_language?: string | null } | null } | undefined,
+  labels: Record<string, string> = {},
+  current = "Auto",
+) {
+  const sourceCode = binding?.source === "custom" ? binding.reference?.source_language?.trim() : ""
+  const sourceLanguage = sourceCode ? labels[sourceCode] : undefined
+  const supports = (language: string) => choice.languages.some((item) => item.toLocaleLowerCase() === language.toLocaleLowerCase())
+  if (current === "Auto" && sourceLanguage && supports(sourceLanguage)) return sourceLanguage
+  if (choice.languages.length === 1) return choice.languages[0] || "Auto"
+  if (current !== "Auto" && !supports(current)) return choice.languages[0] || "Auto"
+  return current
+}
+
 export function getVoiceOptions(registry: VoiceRegistry | null, engine: SpeechEngine, model: SpeechModel) {
   if (!registry) return { choices: [] as VoiceChoice[], compatible: [] as VoiceChoice[], summary: null as VoiceModelSummary | null }
   const choices = registry.bindings.map((binding): VoiceChoice => ({

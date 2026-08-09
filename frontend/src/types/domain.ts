@@ -178,6 +178,7 @@ export type StudioConfig = {
   chosen_default_voice?: string
   formats: string[]
   languages: string[]
+  clone_languages?: Record<string, string>
   instruction_max: number
   has_key: boolean
   workspace?: { configured: boolean; id?: string; region: string; region_label: string; http_base?: string }

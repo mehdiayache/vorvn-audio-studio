@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { VoiceBinding, VoiceRegistry } from "@/types/domain"
-import { getVoiceOptions } from "./voice-options"
+import { getVoiceOptions, languageForVoice } from "./voice-options"
 
 function binding(id: string, engine: "audio" | "omni", tier: "plus" | "flash", source: "system" | "custom"): VoiceBinding {
   return { identity_id: `${source}:${id}`, provider_voice_id: id, name: id, description: "", languages: ["English"], source, provider: "alibaba", engine, tier, model_id: `${engine}-${tier}`, status: "active" }
@@ -28,5 +28,20 @@ describe("getVoiceOptions", () => {
     expect(omniFlash.choices.some((voice) => voice.id === "Sarah")).toBe(true)
     expect(omniFlash.compatible.map((voice) => voice.id)).toEqual(["Tina"])
     expect(omniFlash.choices.find((voice) => voice.id === "Mehdi")?.compatible).toBe(false)
+  })
+})
+
+describe("languageForVoice", () => {
+  it("uses a cloned voice master language as an editable initial preference", () => {
+    const voice = { ...getVoiceOptions(registry, "omni", "plus").compatible.find((item) => item.id === "Mehdi")!, languages: ["English", "Arabic"] }
+    const custom = { ...bindings.find((item) => item.provider_voice_id === "Mehdi")!, reference: { source_language: "ar" } }
+    expect(languageForVoice(voice, custom, { ar: "Arabic" })).toBe("Arabic")
+    expect(languageForVoice(voice, custom, { ar: "Arabic" }, "English")).toBe("English")
+  })
+
+  it("does not infer a cloned-language preference for provider voices", () => {
+    const voice = getVoiceOptions(registry, "omni", "plus").compatible.find((item) => item.id === "Tina")!
+    const system = { ...bindings.find((item) => item.provider_voice_id === "Tina")!, reference: { source_language: "ar" } }
+    expect(languageForVoice(voice, system, { ar: "Arabic" })).toBe("English")
   })
 })

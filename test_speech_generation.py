@@ -193,6 +193,7 @@ class SpeechGenerationTests(unittest.TestCase):
         saved = repository.created[0][2]
         self.assertEqual((saved["text"], saved["filename"], saved["kind"]),
                          ("Hello world", "generated.mp3", "audio"))
+        self.assertEqual(saved["cost"], .0015)
         self.assertEqual(len(provider.calls), 1)
         self.assertEqual(workspace.saved, [(b"generated-audio", "mp3")])
 

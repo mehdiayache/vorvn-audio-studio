@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { VoicePicker } from "@/components/voice-picker"
 import { useComposerText, type TextView } from "@/hooks/use-composer-text"
 import { resolveVoice } from "@/lib/voice"
-import { getVoiceOptions, type SpeechEngine, type SpeechModel, type VoiceChoice } from "@/lib/voice-options"
+import { getVoiceOptions, languageForVoice, type SpeechEngine, type SpeechModel, type VoiceChoice } from "@/lib/voice-options"
 import { cn } from "@/lib/utils"
 import type { ClonedVoice, GeneratePayload, GenerateResult, PlayerSource, ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
 
@@ -80,6 +80,12 @@ export function SpeechTool({ projectId, nextPartNumber = 1, insertAt = null, par
     if (!voices.compatible.some((item) => item.id === voice)) setVoice(next)
   }, [config, directory.registry, engine, model, voice, voices])
   useEffect(() => {
+    if (part || language !== "Auto" || !voice) return
+    const choice = voices.compatible.find((item) => item.id === voice)
+    const binding = directory.registry?.bindings.find((item) => item.provider_voice_id === voice)
+    if (choice) setLanguage(languageForVoice(choice, binding, config?.clone_languages))
+  }, [config?.clone_languages, directory.registry, language, part, voice, voices.compatible])
+  useEffect(() => {
     if (part || !/[\u0600-\u06ff]/.test(textSession.text)) return
     setEngine("omni"); setLanguage("Arabic")
   }, [part, textSession.text])
@@ -109,8 +115,8 @@ export function SpeechTool({ projectId, nextPartNumber = 1, insertAt = null, par
     finally { setBusy(null) }
   }
   function applyVoiceLanguage(choice: VoiceChoice) {
-    if (choice.languages.length === 1) setLanguage(choice.languages[0] || "Auto")
-    else if (language !== "Auto" && !choice.languages.some((item) => item.toLocaleLowerCase() === language.toLocaleLowerCase())) setLanguage(choice.languages[0] || "Auto")
+    const binding = directory.registry?.bindings.find((item) => item.provider_voice_id === choice.id)
+    setLanguage(languageForVoice(choice, binding, config?.clone_languages, language))
   }
 
   const routeModels = directory.registry?.models || []
@@ -126,7 +132,7 @@ export function SpeechTool({ projectId, nextPartNumber = 1, insertAt = null, par
   ]
 
   return <div className="speech-composer">
-    <aside className="composer-nav" aria-label="Composer sections"><span className="destination-note">{destination}</span>{nav.map(({ key, label, detail, icon: Icon }) => <button key={key} className={cn(section === key && "active")} onClick={() => setSection(key)}><Icon /><span><b>{label}</b><small>{detail}</small></span></button>)}</aside>
+    <aside className="composer-nav" aria-label="Composer sections"><span className="destination-note">{destination}</span>{nav.map(({ key, label, detail, icon: Icon }) => <button key={key} aria-label={`${label}: ${detail}`} className={cn(section === key && "active")} onClick={() => setSection(key)}><Icon /><span><b>{label}</b><small>{detail}</small></span></button>)}</aside>
     <div className="composer-stage">
       {section === "script" && <section className="composer-section script-section"><header><div><span className="eyebrow">Words and text states</span><h3>What should be said?</h3></div><div className="speech-states">{(["raw", "shaped", ...(capability?.inline_tags ? ["tagged" as const] : [])] as TextView[]).map((state) => <Button key={state} variant="ghost" size="sm" className={textSession.view === state ? "active" : ""} disabled={state !== "raw" && !textSession.states[state]} onClick={() => textSession.select(state)}>{state === "raw" ? "Raw" : state === "shaped" ? "Spoken" : "Tagged"}</Button>)}</div></header>{taggedIncompatible && <div className="composer-warning"><b>Tagged delivery is not available with {engineLabel(engine)}.</b><span>Choose the Spoken or Raw script. This model does not interpret inline tags.</span><div>{textSession.states.shaped && <Button size="sm" variant="outline" onClick={() => textSession.select("shaped")}>Use Spoken version</Button>}<Button size="sm" variant="outline" onClick={() => textSession.select("raw")}>Use Raw version</Button></div></div>}<Textarea dir="auto" value={textSession.text} onChange={(event) => textSession.updateText(event.target.value)} placeholder="Type or paste what should be said…" autoFocus />
         <div className="text-pass-actions"><Button variant="outline" disabled={!textSession.text.trim() || Boolean(textSession.busy)} onClick={() => void textSession.run("shape")}><AudioLines />{textSession.busy === "shape" ? "Rewriting…" : "Make it spoken"}</Button>{capability?.inline_tags ? <><Select value={textSession.density} onValueChange={textSession.setDensity}><SelectTrigger aria-label="Tag density"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="light">Light tags</SelectItem><SelectItem value="normal">Normal tags</SelectItem><SelectItem value="heavy">Heavy tags</SelectItem></SelectContent></Select><Button variant="outline" disabled={!textSession.text.trim() || Boolean(textSession.busy)} onClick={() => void textSession.run("tag")}><WandSparkles />{textSession.busy === "tag" ? "Tagging…" : "Add delivery tags"}</Button></> : <p className="composer-engine-note">{engineLabel(engine)} does not use inline tags.</p>}</div>
