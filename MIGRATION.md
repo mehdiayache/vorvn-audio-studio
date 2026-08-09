@@ -39,3 +39,25 @@ limits, per-tenant budget reservation, structured observability and a tested
 database + media backup/restore procedure. Retire compatibility columns and
 dual-write triggers only through their own measured data migration; they are
 not an active dependency on deleted Python legacy modules.
+
+## Architecture hardening
+
+The post-legacy cleanup is guarded by shrink-only AST tests in
+`test_architecture_boundaries.py`. Existing dependency debt is recorded as a
+ceiling, never as approved architecture. A capability migration must remove its
+edges from the matching allowlist in the same commit; new edges fail CI.
+
+Current checkpoint: boundary baseline complete.
+
+- Domain technical-dependency debt: 0.
+- Application to Infrastructure edges: 42.
+- Application direct technical edges: 1.
+- HTTP to Infrastructure edges: 7.
+- Infrastructure to Application edges: 8.
+- Transitional root/`services` import edges: 38.
+- Root business modules: 10.
+- `services` Python modules: 12.
+
+Next checkpoint: migrate pure Alibaba configuration, pricing, fidelity and
+voice-registry ownership without changing provider payloads or paid-call
+behavior.
