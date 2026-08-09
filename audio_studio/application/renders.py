@@ -12,12 +12,22 @@ import subprocess
 from urllib.parse import quote
 from uuid import uuid4
 
-import db
 import say
 import transcribe
 
 from audio_studio.application.preferences import load_preferences
-from audio_studio.application.timeline import legacy_id
+from audio_studio.infrastructure.postgres import work as work_repository
+from audio_studio.infrastructure.postgres.exports import ProductionExportRepository
+from audio_studio.infrastructure.postgres.production_document import (
+    MUSIC_LEVELS,
+    ProductionDocumentRepository,
+)
+from audio_studio.infrastructure.postgres.transcripts import TranscriptRepository
+
+
+document_repository = ProductionDocumentRepository()
+export_repository = ProductionExportRepository()
+transcript_repository = TranscriptRepository()
 
 
 class RenderError(RuntimeError):
@@ -97,7 +107,7 @@ def _mix(voice: Path, music: Path, values: dict, target: Path) -> None:
     seconds = (_measure(voice) or 0) / 1000
     if seconds <= 0:
         raise RenderError("The voice timeline has no measurable duration.")
-    legacy_level = db.MUSIC_LEVELS.get(values.get("level"), db.MUSIC_LEVELS["discreet"])
+    legacy_level = MUSIC_LEVELS.get(values.get("level"), MUSIC_LEVELS["discreet"])
     level = max(0.0, min(1.0, float(values.get("volume")
                                     if values.get("volume") is not None else legacy_level)))
     start = max(0.0, float(values.get("start") or 0))
@@ -129,10 +139,11 @@ def _mix(voice: Path, music: Path, values: dict, target: Path) -> None:
         raise RenderError("The background music could not be mixed.")
 
 
-def _parts(production_id: int) -> tuple[int, dict, list[dict], list[dict]]:
-    container_id = legacy_id(production_id)
-    production = db.project_get(container_id)
-    everything = db.project_parts(container_id)
+def _parts(production_id: int) -> tuple[dict, list[dict], list[dict]]:
+    production = work_repository.production_get(production_id)
+    if not production:
+        raise RenderError("That Production does not exist.")
+    everything = document_repository.parts(production_id)
     drafts = [part for part in everything if part["kind"] == "draft"]
     parts = [part for part in everything if part["kind"] not in ("stitch", "draft")]
     if not parts:
@@ -141,12 +152,12 @@ def _parts(production_id: int) -> tuple[int, dict, list[dict], list[dict]]:
     if broken:
         raise RenderError("Linked audio is missing from part" +
                           ("s " if len(broken) > 1 else " ") + ", ".join(map(str, broken)) + ".")
-    return container_id, production, parts, drafts
+    return production, parts, drafts
 
 
 def preview(production_id: int) -> dict:
-    container_id, _, parts, drafts = _parts(production_id)
-    music = db.music_get(container_id)
+    _, parts, drafts = _parts(production_id)
+    music = document_repository.music(production_id)
     signature = {
         "renderer": "production-preview-v1",
         "parts": [{key: part.get(key) for key in
@@ -192,7 +203,7 @@ def _subtitles(parts: list[dict]) -> dict:
             offset += int(float(part["title"] or 1) * 1000)
             continue
         length = part.get("duration_ms") or _measure(_output() / (part.get("filename") or "")) or 0
-        found = db.transcript_for(part["id"])
+        found = transcript_repository.source_for_generation(part["id"])
         if not found or not found.get("sentences"):
             missing.append(number)
         else:
@@ -208,17 +219,17 @@ def _subtitles(parts: list[dict]) -> dict:
 
 
 def export(production_id: int) -> dict:
-    container_id, production, parts, drafts = _parts(production_id)
+    production, parts, drafts = _parts(production_id)
     if drafts:
         raise RenderError(f"{len(drafts)} Part{'s are' if len(drafts) > 1 else ' is'} still a Draft.")
     subtitles = _subtitles(parts)
     name = _name(f"{production['name']}-full")
     target = _output() / name
     manifest_parts, renderer = _sequence(parts, target)
-    music = db.music_get(container_id)
+    music = document_repository.music(production_id)
     mixed = False
-    generation_id = None
     manifest_path = None
+    caption_paths: list[Path] = []
     try:
         if music.get("filename"):
             source = (_output() / Path(music["filename"]).name).resolve()
@@ -242,34 +253,31 @@ def export(production_id: int) -> dict:
         }
         manifest_path = _output() / f"{target.stem}.manifest.json"
         manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-        generation_id = db.record({
-            "text": f"Stitched from {len(parts)} parts of {production['name']}",
-            "voice": "-", "engine": "system", "model": "-", "format": "mp3",
-            "filename": name, "path": str(target), "size_bytes": size,
-            "duration_ms": duration, "chars": 0, "requests": len(parts), "cost": 0,
-            "project_id": container_id, "position": None, "kind": "stitch",
-            "title": f"Full — {len(parts)} parts", "cost_basis": "not billed",
-            "usage": {}, "failures": [],
-        })
-        export_id = (db.export_record(production_id, generation_id, name, manifest,
-                                      renderer, duration, size) if generation_id else None)
-        if not generation_id or not export_id:
-            raise RenderError("The finished Export could not be recorded.")
         if subtitles["srt"]:
-            (_output() / f"{target.stem}.srt").write_text(subtitles["srt"], encoding="utf-8")
-            (_output() / f"{target.stem}.vtt").write_text(subtitles["vtt"], encoding="utf-8")
+            caption_paths = [_output() / f"{target.stem}.srt",
+                             _output() / f"{target.stem}.vtt"]
+            caption_paths[0].write_text(subtitles["srt"], encoding="utf-8")
+            caption_paths[1].write_text(subtitles["vtt"], encoding="utf-8")
+        recorded = export_repository.create(
+            production_id, filename=name, path=str(target), manifest=manifest,
+            renderer=renderer, duration_ms=duration, size_bytes=size,
+            part_count=len(parts),
+        )
+        if not recorded:
+            raise RenderError("The finished Export could not be recorded.")
         return {"url": f"/audio/{name}", "name": name,
                 "size_mb": round(size / 1_000_000, 2), "parts": len(parts),
                 "subtitles": subtitles["cues"], "missing_subtitles": subtitles["missing"],
                 "stale_subtitles": subtitles["stale"], "music": mixed,
-                "manifest": manifest_path.name, "export_id": export_id,
+                "manifest": manifest_path.name,
+                "export_id": recorded["export_id"],
                 "srt_url": f"/audio/{target.stem}.srt" if subtitles["srt"] else None}
     except Exception:
         target.unlink(missing_ok=True)
         if manifest_path:
             manifest_path.unlink(missing_ok=True)
-        if generation_id:
-            db.delete(generation_id)
+        for caption_path in caption_paths:
+            caption_path.unlink(missing_ok=True)
         raise
 
 

@@ -94,6 +94,19 @@ class TranscriptRepository:
                  "is_translation": parent is not None, "stale": stale}
                 for ident, name, language, duration_ms, parent, stale in rows]
 
+    def source_for_generation(self, generation_id: int) -> dict | None:
+        """Newest source-language transcript used by Production rendering."""
+        with read_only() as cursor:
+            cursor.execute("""
+                SELECT id, duration_ms, sentences, stale
+                  FROM transcripts
+                 WHERE generation_id = %s AND translated_from IS NULL
+                 ORDER BY created_at DESC LIMIT 1
+            """, (generation_id,))
+            row = cursor.fetchone()
+        return (dict(zip(("id", "duration_ms", "sentences", "stale"), row))
+                if row else None)
+
     def mark_stale(self, generation_id: int) -> int:
         with transaction() as cursor:
             cursor.execute("""

@@ -240,6 +240,18 @@ export type ProductionPart = {
   missing?: boolean
 }
 
+export type ProductionExport = {
+  id: number
+  production_id: number
+  generation_id: number | null
+  filename: string
+  manifest: Record<string, unknown>
+  renderer: string
+  duration_ms: number | null
+  size_bytes: number
+  created_at: string
+}
+
 export type Production = {
   id: number
   public_id: string
@@ -254,6 +266,7 @@ export type Production = {
   updated_at?: string
   trail: TrailItem[]
   parts: ProductionPart[]
+  exports: ProductionExport[]
   total_cost: number
   current_sequence_cost: number
   accounting: {

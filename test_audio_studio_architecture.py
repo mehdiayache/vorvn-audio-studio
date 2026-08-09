@@ -173,6 +173,21 @@ class AudioStudioArchitectureTests(unittest.TestCase):
             self.assertNotIn("import db", application, relative)
             self.assertNotIn("db.", application, relative)
 
+    def test_render_and_export_use_native_persistence(self):
+        repository = ROOT / "audio_studio/infrastructure/postgres/exports.py"
+        self.assertTrue(repository.exists())
+        for relative in (
+                "audio_studio/infrastructure/postgres/exports.py",
+                "audio_studio/application/renders.py"):
+            source = (ROOT / relative).read_text()
+            self.assertNotIn("import db", source, relative)
+            self.assertNotIn("db.", source, relative)
+        legacy = (ROOT / "db.py").read_text()
+        self.assertNotIn("def export_record", legacy)
+        self.assertNotIn("def exports_for", legacy)
+        self.assertNotIn("def transcript_for", legacy)
+        self.assertNotIn("def music_get", legacy)
+
 
 if __name__ == "__main__":
     unittest.main()

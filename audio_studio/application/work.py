@@ -15,6 +15,7 @@ from audio_studio.infrastructure.postgres.venture_assets import (
 from audio_studio.infrastructure.postgres.production_document import (
     ProductionDocumentRepository,
 )
+from audio_studio.infrastructure.postgres.exports import ProductionExportRepository
 
 
 KINDS = {"ventures": "venture", "projects": "project",
@@ -22,6 +23,7 @@ KINDS = {"ventures": "venture", "projects": "project",
 asset_repository = VentureAssetRepository()
 accounting_repository = ProductionAccountingRepository()
 document_repository = ProductionDocumentRepository()
+export_repository = ProductionExportRepository()
 
 
 def hierarchy() -> list[dict[str, Any]]:
@@ -65,9 +67,10 @@ def production_editor(production_id: int) -> dict[str, Any] | None:
     if not production:
         return None
     parts = document_repository.parts(production_id)
+    exports = export_repository.list(production_id)
     visible = [part for part in parts if part.get("kind") != "stitch"]
     accounting = accounting_repository.one(production_id)
-    return {**production, "parts": parts,
+    return {**production, "parts": parts, "exports": exports,
             "total_cost": accounting["historical_spend"],
             "current_sequence_cost": accounting["current_sequence_cost"],
             "accounting": accounting,

@@ -69,7 +69,7 @@ Never delete the old system first and rebuild everything at once.
 - [x] Identify active callers
 - [x] Migrate canonical Work hierarchy and lifecycle
 - [x] Migrate Production document/timeline persistence
-- [ ] Migrate render/export persistence
+- [x] Migrate render/export persistence
 - [ ] Migrate media lookup persistence
 - [ ] Confirm zero active callers
 - [ ] Delete `db.py`
@@ -83,29 +83,29 @@ Never delete the old system first and rebuild everything at once.
 
 ## Current step
 
-Move Production preview/export rendering, subtitle assembly and immutable Export
-records out of `db.py` into focused native persistence. Keep public media file
-lookup as the final independent slice.
+Move public Export and Generation media lookup out of `db.py`, verify every
+download/range route, then confirm zero active callers before deleting the
+legacy persistence module.
 
 ## Last verified checkpoint
 
 - Repository: `https://github.com/mehdiayache/vorvn-audio-studio` (private)
-- Checkpoint: native Production document and Timeline persistence
+- Checkpoint: native Production rendering and immutable Export persistence
   (the commit carrying this record)
-- Tests: 95 Python unit/integration tests against the real FastAPI application
+- Tests: 98 Python unit/integration tests against the real FastAPI application
   and PostgreSQL; 25 Alibaba contracts, 18 chunking checks, 4 transcription
   checks, 15 native renderer checks, 12 Phase 2 checks and 6 canonical domain
   checks passed
-- Frontend: OpenAPI generation, strict TypeScript build, Vite build, 19 Vitest
-  files and 59 tests passed
+- Frontend: OpenAPI generation, strict TypeScript build, Vite build, 20 Vitest
+  files and 60 tests passed
 - Manual flow: restarted FastAPI and the worker, loaded the real Genesis
-  Production in Chrome, and verified its 12 Parts, silence, background music,
-  historical/current spend, Part detail and three-Take panel. No console warning,
-  mutation or paid operation was triggered
+  Production, opened Mix & Export, and verified readiness, music, caption state
+  and the empty canonical Export history. The browser console was clean; no
+  preview, render, mutation or paid operation was triggered
 - Runtime: one FastAPI supervisor and one durable worker. The legacy HTTP
   server and UI are deleted and port 7861 is gone from the configuration
-- Remaining dependency: only Production render/export and media lookup still
-  call `db.py`
+- Remaining dependency: only public Export/Generation media lookup still calls
+  `db.py`
 
 ## Findings
 
@@ -224,6 +224,16 @@ lookup as the final independent slice.
 - The replaced Timeline helpers were removed from `db.py`, reducing it from
   2,352 to 2,116 lines. The only active runtime imports of `db.py` are now
   `application/renders.py` and `application/media.py`.
+- Production preview and export now read canonical Work, Parts, music and source
+  captions through their focused repositories. `ProductionExportRepository`
+  atomically creates the immutable Export and its temporary playback projection;
+  no Render application code imports `db.py`.
+- Export history is a first-class `Production.exports` collection rather than a
+  synthetic Timeline Part. Release previously searched for excluded `stitch`
+  Parts and linked an Export ID to the Generation download route. It now renders
+  canonical Export identity and downloads through `/api/v1/exports/{id}/download`.
+- The replaced render helpers were removed from `db.py`, reducing it from 2,116
+  to 2,023 lines. `application/media.py` is the only active runtime importer.
 - The versioned migration runner under `audio_studio/migrations` is the target
   migration mechanism.
 - New functionality must not add another legacy dependency.

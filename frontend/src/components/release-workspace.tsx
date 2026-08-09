@@ -8,7 +8,7 @@ export function ReleaseWorkspace({ production, music, previewing, productionPlay
   const drafts = production.parts.filter((part) => part.kind === "draft").length
   const missing = production.parts.filter((part) => part.missing).length
   const ready = drafts === 0 && missing === 0 && production.parts.some((part) => part.filename)
-  const exports = production.parts.filter((part) => part.kind === "stitch")
+  const exports = production.exports
   return (
     <section className="release-workspace">
       <div className="release-readiness">
@@ -26,7 +26,7 @@ export function ReleaseWorkspace({ production, music, previewing, productionPlay
         <div><span className="eyebrow">Final output</span><h2>MP3 · 192 kbps</h2><p>Local FFmpeg render. Creating the file does not call Alibaba or add generation cost.</p></div>
         <Button disabled={!ready || exporting} onClick={onExport}><Download /> {exporting ? "Making MP3…" : "Make MP3"}</Button>
       </section>
-      <section className="export-history"><header><div><span className="eyebrow">Published versions</span><h2>Export history</h2></div><Badge variant="outline">{exports.length}</Badge></header>{exports.length ? exports.map((item) => <article key={item.id}><FileAudio /><div><b>{item.title || item.filename}</b><span>{item.created_at.slice(0, 16).replace("T", " ")}</span></div>{item.filename && <Button variant="outline" asChild><a href={`/api/v1/generations/${item.id}/download`}><Download /> Download</a></Button>}</article>) : <p>No final MP3 has been made from this Production yet.</p>}</section>
+      <section className="export-history"><header><div><span className="eyebrow">Published versions</span><h2>Export history</h2></div><Badge variant="outline">{exports.length}</Badge></header>{exports.length ? exports.map((item) => <article key={item.id}><FileAudio /><div><b>{item.filename}</b><span>{item.created_at.slice(0, 16).replace("T", " ")}</span></div><Button variant="outline" asChild><a href={`/api/v1/exports/${item.id}/download`}><Download /> Download</a></Button></article>) : <p>No final MP3 has been made from this Production yet.</p>}</section>
     </section>
   )
 }

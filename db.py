@@ -1075,47 +1075,6 @@ def asset_get(asset_id: int) -> dict | None:
         return dict(zip(keys, row))
 
 
-def export_record(production_id: int, generation_id: int, filename: str,
-                  manifest: dict, renderer: str, duration_ms: int | None,
-                  size_bytes: int) -> int | None:
-    """Persist one immutable export independently of its history projection."""
-    with cursor(write=True) as cur:
-        if cur is None:
-            return None
-        cur.execute("""
-            INSERT INTO exports
-                (production_id, generation_id, filename, manifest, renderer,
-                 duration_ms, size_bytes)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (generation_id) DO UPDATE
-              SET filename = EXCLUDED.filename, manifest = EXCLUDED.manifest,
-                  renderer = EXCLUDED.renderer, duration_ms = EXCLUDED.duration_ms,
-                  size_bytes = EXCLUDED.size_bytes
-            RETURNING id
-        """, (production_id, generation_id, filename, json.dumps(manifest),
-              renderer, duration_ms, size_bytes))
-        return cur.fetchone()[0]
-
-
-def exports_for(production_id: int) -> list:
-    """Immutable snapshots of one Production, newest first."""
-    with cursor() as cur:
-        if cur is None:
-            return []
-        cur.execute("SELECT id, production_id, generation_id, filename, manifest, "
-                    "renderer, duration_ms, size_bytes, created_at FROM exports "
-                    "WHERE production_id = %s ORDER BY created_at DESC, id DESC",
-                    (production_id,))
-        keys = ("id", "production_id", "generation_id", "filename", "manifest",
-                "renderer", "duration_ms", "size_bytes", "created_at")
-        rows = []
-        for values in cur.fetchall():
-            row = dict(zip(keys, values))
-            row["created_at"] = row["created_at"].isoformat()
-            rows.append(row)
-        return rows
-
-
 def export_get(export_id: int) -> dict | None:
     with cursor() as cur:
         if cur is None:
@@ -1341,23 +1300,6 @@ def set_duration(generation_id: int, duration_ms: int) -> bool:
         cur.execute("UPDATE generations SET duration_ms = %s WHERE id = %s",
                     (int(duration_ms), generation_id))
         return True
-
-
-def transcript_for(generation_id: int):
-    """The newest transcript of one recording, if it has one."""
-    with cursor() as cur:
-        if cur is None:
-            return None
-        # The original, never a translation of it.
-        cur.execute(
-            "SELECT id, duration_ms, sentences, stale FROM transcripts "
-            "WHERE generation_id = %s AND translated_from IS NULL "
-            "ORDER BY created_at DESC LIMIT 1",
-            (generation_id,),
-        )
-        row = cur.fetchone()
-        return ({"id": row[0], "duration_ms": row[1], "sentences": row[2],
-                 "stale": row[3]} if row else None)
 
 
 def project_naming(project_id: int, values: dict) -> bool:
@@ -1671,41 +1613,6 @@ def next_position(project_id: int) -> int:
         cur.execute("SELECT coalesce(max(position), -1) + 1 FROM generations "
                     "WHERE project_id = %s", (project_id,))
         return cur.fetchone()[0]
-
-
-# What the words mean, in something a person would say out loud. Decibels are
-# for engineers; this is for whoever is making a sleep guide at midnight.
-MUSIC_LEVELS = {"discreet": 0.10, "present": 0.20, "loud": 0.34}
-
-
-def music_get(project_id: int) -> dict:
-    """The Asset used as a Production's background bed."""
-    with cursor() as cur:
-        if cur is None:
-            return {}
-        cur.execute("SELECT coalesce(a.id, p.music_of), p.music_level, "
-                    "       p.music_fade_in, p.music_fade_out, p.music_duck, "
-                    "       p.music_volume, p.music_start, "
-                    "       coalesce(v.filename, g.filename), "
-                    "       coalesce(a.name, g.text), "
-                    "       coalesce(v.duration_ms, g.duration_ms) "
-                    "  FROM projects p "
-                    "  LEFT JOIN generations g ON g.id = p.music_of "
-                    "  LEFT JOIN assets a ON a.legacy_generation_id = p.music_of "
-                    "  LEFT JOIN LATERAL (SELECT version.* FROM asset_versions version "
-                    "       WHERE version.asset_id = a.id ORDER BY version.version DESC "
-                    "       LIMIT 1) v ON true "
-                    " WHERE p.id = %s", (project_id,))
-        row = cur.fetchone()
-        if not row:
-            return {}
-        level = row[1] or "discreet"
-        volume = float(row[5]) if row[5] is not None else MUSIC_LEVELS.get(level, .10)
-        return {"music_of": row[0], "level": level,
-                "fade_in": float(row[2] or 0), "fade_out": float(row[3] or 0),
-                "duck": bool(row[4]), "volume": volume,
-                "start": float(row[6] or 0), "filename": row[7] or "",
-                "name": (row[8] or "")[:80], "duration_ms": row[9]}
 
 
 def migrate_scripts() -> dict:

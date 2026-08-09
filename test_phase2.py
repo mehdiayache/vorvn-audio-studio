@@ -2,6 +2,7 @@
 """Read-only domain verification for the additive Phase 2 migration."""
 
 import db
+from audio_studio.infrastructure.postgres.exports import ProductionExportRepository
 from audio_studio.infrastructure.postgres.venture_assets import (
     VentureAssetRepository,
 )
@@ -10,6 +11,7 @@ from audio_studio.infrastructure.postgres import work as work_repository
 
 results = []
 asset_repository = VentureAssetRepository()
+export_repository = ProductionExportRepository()
 
 
 def check(name, condition, detail=""):
@@ -74,7 +76,7 @@ for venture in [item for item in tree if item["container_type"] == "venture"]:
 
 exports = []
 for production in [item for item in tree if item["container_type"] == "production"]:
-    exports.extend(db.exports_for(production["id"]))
+    exports.extend(export_repository.list(production["id"]))
 check("legacy snapshots are represented as Export resources", bool(exports), exports)
 check("Exports retain manifests and renderer identity",
       all(isinstance(item["manifest"], dict) and item["renderer"] for item in exports),
