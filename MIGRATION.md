@@ -50,7 +50,7 @@ edges from the matching allowlist in the same commit; new edges fail CI.
 Current checkpoint: boundary baseline complete.
 
 - Domain technical-dependency debt: 0.
-- Application to Infrastructure edges: 31.
+- Application to Infrastructure edges: 27.
 - Application direct technical edges: 1.
 - HTTP to Infrastructure edges: 6.
 - Infrastructure to Application edges: 8.
@@ -130,3 +130,8 @@ Activity and System health now depend only on ledger, database-status and
 worker-status ports. Their PostgreSQL adapters are assembled in the operational
 composition root, removing three more Application-to-Infrastructure edges while
 preserving worker leases, cost history and public error sanitization.
+
+The Studio catalogue now receives voice data, operational summaries and
+deployment-owned media/storage facts through explicit Application ports. Its
+composition root keeps PostgreSQL, filesystem and private S3 configuration out
+of the use case, removing four more Application-to-Infrastructure edges.

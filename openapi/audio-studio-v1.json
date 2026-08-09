@@ -1153,6 +1153,41 @@
         "title": "OutputReference",
         "type": "object"
       },
+      "PerformancePresetResponse": {
+        "properties": {
+          "engines": {
+            "items": {
+              "enum": [
+                "audio",
+                "omni"
+              ],
+              "type": "string"
+            },
+            "title": "Engines",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "instruction": {
+            "title": "Instruction",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "instruction",
+          "engines"
+        ],
+        "title": "PerformancePresetResponse",
+        "type": "object"
+      },
       "PronunciationUpdate": {
         "additionalProperties": false,
         "properties": {
@@ -1735,6 +1770,229 @@
         "title": "StorageUpdate",
         "type": "object"
       },
+      "StudioConfigEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/StudioConfigResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "StudioConfigEnvelope",
+        "type": "object"
+      },
+      "StudioConfigResponse": {
+        "properties": {
+          "batch_max_rows": {
+            "title": "Batch Max Rows",
+            "type": "integer"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "chosen_default_voice": {
+            "title": "Chosen Default Voice",
+            "type": "string"
+          },
+          "chunk_size": {
+            "title": "Chunk Size",
+            "type": "integer"
+          },
+          "clone_languages": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Clone Languages",
+            "type": "object"
+          },
+          "database": {
+            "additionalProperties": true,
+            "title": "Database",
+            "type": "object"
+          },
+          "default_voice": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Default Voice",
+            "type": "object"
+          },
+          "formats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Formats",
+            "type": "array"
+          },
+          "has_key": {
+            "title": "Has Key",
+            "type": "boolean"
+          },
+          "instruction_max": {
+            "title": "Instruction Max",
+            "type": "integer"
+          },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Languages",
+            "type": "array"
+          },
+          "models": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Models",
+            "type": "object"
+          },
+          "naming": {
+            "additionalProperties": true,
+            "title": "Naming",
+            "type": "object"
+          },
+          "naming_tokens": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Naming Tokens",
+            "type": "array"
+          },
+          "out_dir": {
+            "title": "Out Dir",
+            "type": "string"
+          },
+          "performance_presets": {
+            "items": {
+              "$ref": "#/components/schemas/PerformancePresetResponse"
+            },
+            "title": "Performance Presets",
+            "type": "array"
+          },
+          "prefs": {
+            "additionalProperties": true,
+            "title": "Prefs",
+            "type": "object"
+          },
+          "rates": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Rates",
+            "type": "object"
+          },
+          "retired_tags": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Retired Tags",
+            "type": "object"
+          },
+          "spend": {
+            "additionalProperties": true,
+            "title": "Spend",
+            "type": "object"
+          },
+          "storage": {
+            "additionalProperties": true,
+            "title": "Storage",
+            "type": "object"
+          },
+          "storage_settings": {
+            "additionalProperties": true,
+            "title": "Storage Settings",
+            "type": "object"
+          },
+          "synth_flags": {
+            "additionalProperties": true,
+            "title": "Synth Flags",
+            "type": "object"
+          },
+          "tag_variables": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Tag Variables",
+            "type": "object"
+          },
+          "tags": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "title": "Tags",
+            "type": "object"
+          },
+          "voice_favourites": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Voice Favourites",
+            "type": "array"
+          },
+          "voice_images": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Voice Images",
+            "type": "object"
+          },
+          "voices": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "title": "Voices",
+            "type": "object"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/WorkspaceResponse"
+          }
+        },
+        "required": [
+          "voices",
+          "default_voice",
+          "chosen_default_voice",
+          "models",
+          "formats",
+          "tags",
+          "retired_tags",
+          "tag_variables",
+          "naming",
+          "voice_images",
+          "voice_favourites",
+          "naming_tokens",
+          "languages",
+          "capabilities",
+          "performance_presets",
+          "clone_languages",
+          "workspace",
+          "instruction_max",
+          "rates",
+          "batch_max_rows",
+          "synth_flags",
+          "chunk_size",
+          "has_key",
+          "out_dir",
+          "prefs",
+          "spend",
+          "database",
+          "storage",
+          "storage_settings"
+        ],
+        "title": "StudioConfigResponse",
+        "type": "object"
+      },
       "SystemHealthEnvelope": {
         "properties": {
           "data": {
@@ -2091,6 +2349,371 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "VoiceBindingResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "accent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accent"
+          },
+          "age": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "engine": {
+            "enum": [
+              "audio",
+              "omni"
+            ],
+            "title": "Engine",
+            "type": "string"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "identity_id": {
+            "title": "Identity Id",
+            "type": "string"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Languages",
+            "type": "array"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "provider_voice_id": {
+            "title": "Provider Voice Id",
+            "type": "string"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VoiceReferenceResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scene": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scene"
+          },
+          "source": {
+            "enum": [
+              "system",
+              "custom"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tier": {
+            "enum": [
+              "plus",
+              "flash"
+            ],
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identity_id",
+          "provider_voice_id",
+          "name",
+          "description",
+          "languages",
+          "source",
+          "provider",
+          "engine",
+          "tier",
+          "model_id",
+          "status"
+        ],
+        "title": "VoiceBindingResponse",
+        "type": "object"
+      },
+      "VoiceMetadataEnvelope": {
+        "properties": {
+          "data": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/VoiceMetadataResponse"
+            },
+            "title": "Data",
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "VoiceMetadataEnvelope",
+        "type": "object"
+      },
+      "VoiceMetadataResponse": {
+        "properties": {
+          "age": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age"
+          },
+          "engine": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine"
+          },
+          "favourite": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Favourite"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "languages": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Languages"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "provider_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Status"
+          },
+          "provider_voice_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Voice Id"
+          },
+          "scene": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scene"
+          },
+          "target_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Model"
+          },
+          "trait": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trait"
+          }
+        },
+        "title": "VoiceMetadataResponse",
+        "type": "object"
+      },
+      "VoiceModelSummaryResponse": {
+        "properties": {
+          "clone_supported": {
+            "title": "Clone Supported",
+            "type": "boolean"
+          },
+          "custom_count": {
+            "title": "Custom Count",
+            "type": "integer"
+          },
+          "engine": {
+            "enum": [
+              "audio",
+              "omni"
+            ],
+            "title": "Engine",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "system_count": {
+            "title": "System Count",
+            "type": "integer"
+          },
+          "tier": {
+            "enum": [
+              "plus",
+              "flash"
+            ],
+            "title": "Tier",
+            "type": "string"
+          },
+          "total_count": {
+            "title": "Total Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "engine",
+          "tier",
+          "model_id",
+          "label",
+          "system_count",
+          "custom_count",
+          "total_count",
+          "clone_supported"
+        ],
+        "title": "VoiceModelSummaryResponse",
+        "type": "object"
+      },
       "VoicePackageCreate": {
         "additionalProperties": false,
         "properties": {
@@ -2213,6 +2836,156 @@
         "title": "VoicePackageRetry",
         "type": "object"
       },
+      "VoiceReferenceResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "identity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identity Id"
+          },
+          "normalized_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Path"
+          },
+          "original_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Name"
+          },
+          "original_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Path"
+          }
+        },
+        "title": "VoiceReferenceResponse",
+        "type": "object"
+      },
+      "VoiceRegistryEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/VoiceRegistryResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "VoiceRegistryEnvelope",
+        "type": "object"
+      },
+      "VoiceRegistryResponse": {
+        "properties": {
+          "bindings": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceBindingResponse"
+            },
+            "title": "Bindings",
+            "type": "array"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceModelSummaryResponse"
+            },
+            "title": "Models",
+            "type": "array"
+          },
+          "presets": {
+            "items": {
+              "$ref": "#/components/schemas/PerformancePresetResponse"
+            },
+            "title": "Presets",
+            "type": "array"
+          },
+          "source": {
+            "$ref": "#/components/schemas/VoiceRegistrySourceResponse"
+          }
+        },
+        "required": [
+          "models",
+          "bindings",
+          "presets",
+          "source"
+        ],
+        "title": "VoiceRegistryResponse",
+        "type": "object"
+      },
+      "VoiceRegistrySourceResponse": {
+        "properties": {
+          "audio_url": {
+            "title": "Audio Url",
+            "type": "string"
+          },
+          "omni_url": {
+            "title": "Omni Url",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "verified_at": {
+            "title": "Verified At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "verified_at",
+          "audio_url",
+          "omni_url"
+        ],
+        "title": "VoiceRegistrySourceResponse",
+        "type": "object"
+      },
+      "VoiceRouteEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/VoiceRouteResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "VoiceRouteEnvelope",
+        "type": "object"
+      },
       "VoiceRouteRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2254,6 +3027,56 @@
           }
         },
         "title": "VoiceRouteRequest",
+        "type": "object"
+      },
+      "VoiceRouteResponse": {
+        "properties": {
+          "engine": {
+            "title": "Engine",
+            "type": "string"
+          },
+          "identity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identity Id"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "provider_voice_id": {
+            "title": "Provider Voice Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "registry_matched": {
+            "title": "Registry Matched",
+            "type": "boolean"
+          },
+          "tier": {
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identity_id",
+          "provider_voice_id",
+          "engine",
+          "tier",
+          "model_id",
+          "reason",
+          "registry_matched"
+        ],
+        "title": "VoiceRouteResponse",
         "type": "object"
       },
       "VoiceUpdate": {
@@ -2394,6 +3217,67 @@
         "title": "VoiceUpdate",
         "type": "object"
       },
+      "VoiceUsageEnvelope": {
+        "properties": {
+          "data": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/VoiceUsageResponse"
+            },
+            "title": "Data",
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "VoiceUsageEnvelope",
+        "type": "object"
+      },
+      "VoiceUsageResponse": {
+        "properties": {
+          "folders": {
+            "title": "Folders",
+            "type": "integer"
+          },
+          "last_used": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used"
+          },
+          "mine": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mine"
+          },
+          "spend": {
+            "title": "Spend",
+            "type": "number"
+          },
+          "uses": {
+            "title": "Uses",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "uses",
+          "folders",
+          "spend"
+        ],
+        "title": "VoiceUsageResponse",
+        "type": "object"
+      },
       "WorkerStatusResponse": {
         "properties": {
           "detail": {
@@ -2455,6 +3339,39 @@
           "status"
         ],
         "title": "WorkerStatusResponse",
+        "type": "object"
+      },
+      "WorkspaceResponse": {
+        "properties": {
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "http_base": {
+            "title": "Http Base",
+            "type": "string"
+          },
+          "id": {
+            "default": "",
+            "title": "Id",
+            "type": "string"
+          },
+          "region": {
+            "title": "Region",
+            "type": "string"
+          },
+          "region_label": {
+            "title": "Region Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "configured",
+          "region",
+          "region_label",
+          "http_base"
+        ],
+        "title": "WorkspaceResponse",
         "type": "object"
       }
     }
@@ -2637,9 +3554,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getstudioconfig",
-                  "type": "object"
+                  "$ref": "#/components/schemas/StudioConfigEnvelope"
                 }
               }
             },
@@ -6077,9 +6992,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getvoicemeta",
-                  "type": "object"
+                  "$ref": "#/components/schemas/VoiceMetadataEnvelope"
                 }
               }
             },
@@ -6274,9 +7187,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getvoiceregistry",
-                  "type": "object"
+                  "$ref": "#/components/schemas/VoiceRegistryEnvelope"
                 }
               }
             },
@@ -6307,9 +7218,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Resolvevoiceroute",
-                  "type": "object"
+                  "$ref": "#/components/schemas/VoiceRouteEnvelope"
                 }
               }
             },
@@ -6340,9 +7249,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getvoiceusage",
-                  "type": "object"
+                  "$ref": "#/components/schemas/VoiceUsageEnvelope"
                 }
               }
             },

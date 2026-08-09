@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from typing import Callable, Protocol
+
+from audio_studio.config import alibaba_environment
 from audio_studio.domain import (
     batch,
     delivery_tags,
@@ -9,91 +12,114 @@ from audio_studio.domain import (
     provider_catalog,
     speech_text,
 )
-from audio_studio.infrastructure import object_storage as storage
 from audio_studio.domain import (
     provider_catalog as alibaba_catalog,
     voice_registry,
     voice_routing,
 )
-from audio_studio.config import alibaba_environment
-
-from audio_studio.application.preferences import load_preferences
 from audio_studio.application.text_preparation import variables as tag_variables
-from audio_studio.infrastructure.postgres.voices import VoiceRepository
-from audio_studio.infrastructure.postgres.control_plane import (
-    ControlPlaneRepository,
-)
-from audio_studio.infrastructure.media_paths import media_root
 
 
 LANGUAGES = ["Auto", "English", "Chinese", "Japanese", "Korean", "French",
              "German", "Spanish", "Italian", "Portuguese", "Russian", "Arabic",
              "Indonesian", "Malay", "Thai", "Vietnamese", "Tagalog"]
-repository = VoiceRepository()
-control_repository = ControlPlaneRepository()
 
 
-def configuration() -> dict:
-    preferences = load_preferences()
-    metadata = repository.catalog_metadata()
-    environment = alibaba_environment()
-    return {
-        "voices": provider_catalog.AUDIO_SYSTEM_VOICES,
-        "default_voice": provider_catalog.AUDIO_DEFAULT_VOICES,
-        "chosen_default_voice": preferences.get("default_voice", ""),
-        "models": provider_catalog.CAPABILITIES["audio"]["models"],
-        "formats": list(speech_text.OUTPUT_FORMATS),
-        "tags": {"Moods": delivery_tags.MOOD_TAGS,
-                 "Sounds": delivery_tags.SOUND_TAGS},
-        "retired_tags": delivery_tags.RETIRED_TAGS,
-        "tag_variables": tag_variables(),
-        "naming": naming.merged(
-            control_repository.setting(
-                "naming", preferences.get("naming", {})), None),
-        "voice_images": {voice: value["image"] for voice, value in metadata.items() if value.get("image")},
-        "voice_favourites": [voice for voice, value in metadata.items() if value.get("favourite")],
-        "naming_tokens": list(naming.TOKENS),
-        "languages": LANGUAGES,
-        "capabilities": alibaba_catalog.CAPABILITIES,
-        "performance_presets": voice_registry.presets(),
-        "clone_languages": alibaba_catalog.AUDIO_CLONE_LANGUAGES,
-        "workspace": {
-            "configured": bool(environment.workspace_id),
-            "id": environment.workspace_id,
-            "region": environment.region,
-            "region_label": environment.region_label,
-            "http_base": environment.native_http_base,
-        },
-        "instruction_max": 100,
-        "rates": alibaba_catalog.CAPABILITIES["audio"]["rates_per_million_chars"],
-        "batch_max_rows": batch.MAX_ROWS,
-        "synth_flags": speech_text.SYNTH_FLAGS,
-        "chunk_size": speech_text.MAX_CHARS,
-        "has_key": environment.api_key_configured,
-        "out_dir": str(media_root()),
-        "prefs": {**preferences, "out_dir": str(media_root())},
-        "spend": control_repository.spend_totals(),
-        "database": control_repository.database_status(),
-        "storage": storage.status(),
-        "storage_settings": {key: value for key, value in storage.settings().items()
-                             if "key" not in key},
-    }
+class VoiceCatalogue(Protocol):
+    def catalog_metadata(self) -> dict: ...
+    def custom_bindings(self) -> list[dict]: ...
+    def binding_references(self) -> dict: ...
+    def catalog_usage(self) -> dict: ...
 
 
-def registry() -> dict:
-    return voice_registry.assemble(
-        repository.custom_bindings(), repository.catalog_metadata(),
-        repository.binding_references())
+class CatalogueControlPlane(Protocol):
+    def setting(self, key: str, fallback=None): ...
+    def spend_totals(self) -> dict: ...
+    def database_status(self) -> dict: ...
 
 
-def voice_usage() -> dict:
-    return repository.catalog_usage()
+class CatalogueEnvironment(Protocol):
+    def media_root(self) -> str: ...
+    def storage_status(self) -> dict: ...
+    def storage_settings(self) -> dict: ...
 
 
-def voice_metadata() -> dict:
-    return repository.catalog_metadata()
+class CatalogService:
+    def __init__(
+        self,
+        voices: VoiceCatalogue,
+        control_plane: CatalogueControlPlane,
+        environment: CatalogueEnvironment,
+        load_preferences: Callable[[], dict],
+    ):
+        self.voices = voices
+        self.control_plane = control_plane
+        self.environment = environment
+        self.load_preferences = load_preferences
 
+    def configuration(self) -> dict:
+        preferences = self.load_preferences()
+        metadata = self.voices.catalog_metadata()
+        environment = alibaba_environment()
+        media_root = self.environment.media_root()
+        return {
+            "voices": provider_catalog.AUDIO_SYSTEM_VOICES,
+            "default_voice": provider_catalog.AUDIO_DEFAULT_VOICES,
+            "chosen_default_voice": preferences.get("default_voice", ""),
+            "models": provider_catalog.CAPABILITIES["audio"]["models"],
+            "formats": list(speech_text.OUTPUT_FORMATS),
+            "tags": {"Moods": delivery_tags.MOOD_TAGS,
+                     "Sounds": delivery_tags.SOUND_TAGS},
+            "retired_tags": delivery_tags.RETIRED_TAGS,
+            "tag_variables": tag_variables(),
+            "naming": naming.merged(
+                self.control_plane.setting(
+                    "naming", preferences.get("naming", {})), None),
+            "voice_images": {
+                voice: value["image"] for voice, value in metadata.items()
+                if value.get("image")},
+            "voice_favourites": [
+                voice for voice, value in metadata.items()
+                if value.get("favourite")],
+            "naming_tokens": list(naming.TOKENS),
+            "languages": LANGUAGES,
+            "capabilities": alibaba_catalog.CAPABILITIES,
+            "performance_presets": voice_registry.presets(),
+            "clone_languages": alibaba_catalog.AUDIO_CLONE_LANGUAGES,
+            "workspace": {
+                "configured": bool(environment.workspace_id),
+                "id": environment.workspace_id,
+                "region": environment.region,
+                "region_label": environment.region_label,
+                "http_base": environment.native_http_base,
+            },
+            "instruction_max": 100,
+            "rates": alibaba_catalog.CAPABILITIES[
+                "audio"]["rates_per_million_chars"],
+            "batch_max_rows": batch.MAX_ROWS,
+            "synth_flags": speech_text.SYNTH_FLAGS,
+            "chunk_size": speech_text.MAX_CHARS,
+            "has_key": environment.api_key_configured,
+            "out_dir": media_root,
+            "prefs": {**preferences, "out_dir": media_root},
+            "spend": self.control_plane.spend_totals(),
+            "database": self.control_plane.database_status(),
+            "storage": self.environment.storage_status(),
+            "storage_settings": self.environment.storage_settings(),
+        }
 
-def resolve_voice(payload: dict) -> dict:
-    bindings = [*voice_registry.system_bindings(), *repository.custom_bindings()]
-    return voice_routing.resolve(payload, bindings).payload()
+    def registry(self) -> dict:
+        return voice_registry.assemble(
+            self.voices.custom_bindings(), self.voices.catalog_metadata(),
+            self.voices.binding_references())
+
+    def voice_usage(self) -> dict:
+        return self.voices.catalog_usage()
+
+    def voice_metadata(self) -> dict:
+        return self.voices.catalog_metadata()
+
+    def resolve_voice(self, payload: dict) -> dict:
+        bindings = [
+            *voice_registry.system_bindings(), *self.voices.custom_bindings()]
+        return voice_routing.resolve(payload, bindings).payload()

@@ -314,20 +314,7 @@ export type ClonedVoice = {
   [key: string]: unknown
 }
 
-export type VoiceMeta = {
-  name?: string
-  image?: string
-  note?: string
-  gender?: string
-  age?: number | null
-  trait?: string
-  scene?: string
-  languages?: string
-  provider_voice_id?: string
-  engine?: "audio" | "omni" | string
-  target_model?: string
-  provider_status?: string
-}
+export type VoiceMeta = components["schemas"]["VoiceMetadataResponse"]
 
 export type VoiceCatalogItem = {
   id: string
@@ -379,12 +366,7 @@ export type PerformancePreset = {
   engines: Array<"audio" | "omni">
 }
 
-export type VoiceRegistry = {
-  models: VoiceModelSummary[]
-  bindings: VoiceBinding[]
-  presets: PerformancePreset[]
-  source: { provider: string; verified_at: string; audio_url: string; omni_url: string }
-}
+export type VoiceRegistry = components["schemas"]["VoiceRegistryResponse"]
 
 export type VoicePackageRoute = {
   provider: string

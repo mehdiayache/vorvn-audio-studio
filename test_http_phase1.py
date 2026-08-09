@@ -46,6 +46,24 @@ class NativeHttpTests(unittest.TestCase):
         self.assertIn("omni", payload["capabilities"])
         self.assertIn(payload["workspace"]["region"], {"intl", "beijing"})
 
+    def test_voice_catalogue_contracts_are_live(self):
+        registry = self.client.get("/api/v1/voice-registry")
+        metadata = self.client.get("/api/v1/voice-meta")
+        usage = self.client.get("/api/v1/voice-usage")
+        route = self.client.post("/api/v1/voice-routes/resolve", json={
+            "voice": "Tina", "engine": "omni", "model": "plus",
+            "language": "Arabic", "text": "مرحبا",
+        })
+
+        for response in (registry, metadata, usage, route):
+            self.assertEqual(response.status_code, 200, response.text)
+        self.assertTrue(registry.json()["data"]["bindings"])
+        self.assertIsInstance(metadata.json()["data"], dict)
+        self.assertIsInstance(usage.json()["data"], dict)
+        resolved = route.json()["data"]
+        self.assertEqual(resolved["engine"], "omni")
+        self.assertTrue(resolved["provider_voice_id"])
+
     def test_media_is_typed_seekable_and_security_hardened(self):
         with TemporaryDirectory() as directory:
             target = Path(directory) / "brand.png"

@@ -7,7 +7,14 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict
 
-from audio_studio.application import catalog
+from audio_studio.composition.catalog import catalog_service
+from audio_studio.http.catalog_contracts import (
+    StudioConfigEnvelope,
+    VoiceMetadataEnvelope,
+    VoiceRegistryEnvelope,
+    VoiceRouteEnvelope,
+    VoiceUsageEnvelope,
+)
 
 
 router = APIRouter(prefix="/api/v1", tags=["catalog"])
@@ -23,26 +30,41 @@ class VoiceRouteRequest(BaseModel):
     text: str = ""
 
 
-@router.get("/config", operation_id="getStudioConfig")
+@router.get(
+    "/config", operation_id="getStudioConfig",
+    response_model=StudioConfigEnvelope,
+)
 def get_config() -> dict:
-    return {"data": catalog.configuration()}
+    return {"data": catalog_service.configuration()}
 
 
-@router.get("/voice-registry", operation_id="getVoiceRegistry")
+@router.get(
+    "/voice-registry", operation_id="getVoiceRegistry",
+    response_model=VoiceRegistryEnvelope,
+)
 def get_voice_registry() -> dict:
-    return {"data": catalog.registry()}
+    return {"data": catalog_service.registry()}
 
 
-@router.get("/voice-usage", operation_id="getVoiceUsage")
+@router.get(
+    "/voice-usage", operation_id="getVoiceUsage",
+    response_model=VoiceUsageEnvelope,
+)
 def get_voice_usage() -> dict:
-    return {"data": catalog.voice_usage()}
+    return {"data": catalog_service.voice_usage()}
 
 
-@router.get("/voice-meta", operation_id="getVoiceMeta")
+@router.get(
+    "/voice-meta", operation_id="getVoiceMeta",
+    response_model=VoiceMetadataEnvelope,
+)
 def get_voice_meta() -> dict:
-    return {"data": catalog.voice_metadata()}
+    return {"data": catalog_service.voice_metadata()}
 
 
-@router.post("/voice-routes/resolve", operation_id="resolveVoiceRoute")
+@router.post(
+    "/voice-routes/resolve", operation_id="resolveVoiceRoute",
+    response_model=VoiceRouteEnvelope,
+)
 def resolve_voice_route(payload: VoiceRouteRequest) -> dict[str, Any]:
-    return {"data": catalog.resolve_voice(payload.model_dump())}
+    return {"data": catalog_service.resolve_voice(payload.model_dump())}

@@ -1677,6 +1677,17 @@ export interface components {
             /** Type */
             type: string;
         };
+        /** PerformancePresetResponse */
+        PerformancePresetResponse: {
+            /** Engines */
+            engines: ("audio" | "omni")[];
+            /** Id */
+            id: string;
+            /** Instruction */
+            instruction: string;
+            /** Name */
+            name: string;
+        };
         /** PronunciationUpdate */
         PronunciationUpdate: {
             /**
@@ -1915,6 +1926,110 @@ export interface components {
              */
             secret_key: string;
         };
+        /** StudioConfigEnvelope */
+        StudioConfigEnvelope: {
+            data: components["schemas"]["StudioConfigResponse"];
+        };
+        /** StudioConfigResponse */
+        StudioConfigResponse: {
+            /** Batch Max Rows */
+            batch_max_rows: number;
+            /** Capabilities */
+            capabilities: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            };
+            /** Chosen Default Voice */
+            chosen_default_voice: string;
+            /** Chunk Size */
+            chunk_size: number;
+            /** Clone Languages */
+            clone_languages: {
+                [key: string]: string;
+            };
+            /** Database */
+            database: {
+                [key: string]: unknown;
+            };
+            /** Default Voice */
+            default_voice: {
+                [key: string]: string;
+            };
+            /** Formats */
+            formats: string[];
+            /** Has Key */
+            has_key: boolean;
+            /** Instruction Max */
+            instruction_max: number;
+            /** Languages */
+            languages: string[];
+            /** Models */
+            models: {
+                [key: string]: string;
+            };
+            /** Naming */
+            naming: {
+                [key: string]: unknown;
+            };
+            /** Naming Tokens */
+            naming_tokens: string[];
+            /** Out Dir */
+            out_dir: string;
+            /** Performance Presets */
+            performance_presets: components["schemas"]["PerformancePresetResponse"][];
+            /** Prefs */
+            prefs: {
+                [key: string]: unknown;
+            };
+            /** Rates */
+            rates: {
+                [key: string]: number;
+            };
+            /** Retired Tags */
+            retired_tags: {
+                [key: string]: string;
+            };
+            /** Spend */
+            spend: {
+                [key: string]: unknown;
+            };
+            /** Storage */
+            storage: {
+                [key: string]: unknown;
+            };
+            /** Storage Settings */
+            storage_settings: {
+                [key: string]: unknown;
+            };
+            /** Synth Flags */
+            synth_flags: {
+                [key: string]: unknown;
+            };
+            /** Tag Variables */
+            tag_variables: {
+                [key: string]: string;
+            };
+            /** Tags */
+            tags: {
+                [key: string]: {
+                    [key: string]: string;
+                };
+            };
+            /** Voice Favourites */
+            voice_favourites: string[];
+            /** Voice Images */
+            voice_images: {
+                [key: string]: string;
+            };
+            /** Voices */
+            voices: {
+                [key: string]: {
+                    [key: string]: string;
+                };
+            };
+            workspace: components["schemas"]["WorkspaceResponse"];
+        };
         /** SystemHealthEnvelope */
         SystemHealthEnvelope: {
             data: components["schemas"]["SystemHealthResponse"];
@@ -2064,6 +2179,112 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /** VoiceBindingResponse */
+        VoiceBindingResponse: {
+            /** Accent */
+            accent?: string | null;
+            /** Age */
+            age?: number | null;
+            /** Description */
+            description: string;
+            /**
+             * Engine
+             * @enum {string}
+             */
+            engine: "audio" | "omni";
+            /** Gender */
+            gender?: string | null;
+            /** Identity Id */
+            identity_id: string;
+            /** Image */
+            image?: string | null;
+            /** Languages */
+            languages: string[];
+            /** Model Id */
+            model_id: string;
+            /** Name */
+            name: string;
+            /** Provider */
+            provider: string;
+            /** Provider Voice Id */
+            provider_voice_id: string;
+            reference?: components["schemas"]["VoiceReferenceResponse"] | null;
+            /** Scene */
+            scene?: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "system" | "custom";
+            /** Status */
+            status: string;
+            /**
+             * Tier
+             * @enum {string}
+             */
+            tier: "plus" | "flash";
+        };
+        /** VoiceMetadataEnvelope */
+        VoiceMetadataEnvelope: {
+            /** Data */
+            data: {
+                [key: string]: components["schemas"]["VoiceMetadataResponse"];
+            };
+        };
+        /** VoiceMetadataResponse */
+        VoiceMetadataResponse: {
+            /** Age */
+            age?: number | null;
+            /** Engine */
+            engine?: string | null;
+            /** Favourite */
+            favourite?: boolean | null;
+            /** Gender */
+            gender?: string | null;
+            /** Image */
+            image?: string | null;
+            /** Languages */
+            languages?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Note */
+            note?: string | null;
+            /** Provider Status */
+            provider_status?: string | null;
+            /** Provider Voice Id */
+            provider_voice_id?: string | null;
+            /** Scene */
+            scene?: string | null;
+            /** Target Model */
+            target_model?: string | null;
+            /** Trait */
+            trait?: string | null;
+        };
+        /** VoiceModelSummaryResponse */
+        VoiceModelSummaryResponse: {
+            /** Clone Supported */
+            clone_supported: boolean;
+            /** Custom Count */
+            custom_count: number;
+            /**
+             * Engine
+             * @enum {string}
+             */
+            engine: "audio" | "omni";
+            /** Label */
+            label: string;
+            /** Model Id */
+            model_id: string;
+            /** System Count */
+            system_count: number;
+            /**
+             * Tier
+             * @enum {string}
+             */
+            tier: "plus" | "flash";
+            /** Total Count */
+            total_count: number;
+        };
         /** VoicePackageCreate */
         VoicePackageCreate: {
             /**
@@ -2106,6 +2327,48 @@ export interface components {
             /** Model Id */
             model_id: string;
         };
+        /** VoiceReferenceResponse */
+        VoiceReferenceResponse: {
+            /** Id */
+            id?: string | null;
+            /** Identity Id */
+            identity_id?: string | null;
+            /** Normalized Path */
+            normalized_path?: string | null;
+            /** Original Name */
+            original_name?: string | null;
+            /** Original Path */
+            original_path?: string | null;
+        };
+        /** VoiceRegistryEnvelope */
+        VoiceRegistryEnvelope: {
+            data: components["schemas"]["VoiceRegistryResponse"];
+        };
+        /** VoiceRegistryResponse */
+        VoiceRegistryResponse: {
+            /** Bindings */
+            bindings: components["schemas"]["VoiceBindingResponse"][];
+            /** Models */
+            models: components["schemas"]["VoiceModelSummaryResponse"][];
+            /** Presets */
+            presets: components["schemas"]["PerformancePresetResponse"][];
+            source: components["schemas"]["VoiceRegistrySourceResponse"];
+        };
+        /** VoiceRegistrySourceResponse */
+        VoiceRegistrySourceResponse: {
+            /** Audio Url */
+            audio_url: string;
+            /** Omni Url */
+            omni_url: string;
+            /** Provider */
+            provider: string;
+            /** Verified At */
+            verified_at: string;
+        };
+        /** VoiceRouteEnvelope */
+        VoiceRouteEnvelope: {
+            data: components["schemas"]["VoiceRouteResponse"];
+        };
         /** VoiceRouteRequest */
         VoiceRouteRequest: {
             /**
@@ -2136,6 +2399,23 @@ export interface components {
             /** Voice Identity Id */
             voice_identity_id?: string | null;
         };
+        /** VoiceRouteResponse */
+        VoiceRouteResponse: {
+            /** Engine */
+            engine: string;
+            /** Identity Id */
+            identity_id: string | null;
+            /** Model Id */
+            model_id: string;
+            /** Provider Voice Id */
+            provider_voice_id: string;
+            /** Reason */
+            reason: string;
+            /** Registry Matched */
+            registry_matched: boolean;
+            /** Tier */
+            tier: string;
+        };
         /** VoiceUpdate */
         VoiceUpdate: {
             /** Accent */
@@ -2161,6 +2441,26 @@ export interface components {
             /** Trait */
             trait?: string | null;
         };
+        /** VoiceUsageEnvelope */
+        VoiceUsageEnvelope: {
+            /** Data */
+            data: {
+                [key: string]: components["schemas"]["VoiceUsageResponse"];
+            };
+        };
+        /** VoiceUsageResponse */
+        VoiceUsageResponse: {
+            /** Folders */
+            folders: number;
+            /** Last Used */
+            last_used?: string | null;
+            /** Mine */
+            mine?: string | null;
+            /** Spend */
+            spend: number;
+            /** Uses */
+            uses: number;
+        };
         /** WorkerStatusResponse */
         WorkerStatusResponse: {
             /** Detail */
@@ -2177,6 +2477,22 @@ export interface components {
             started_at?: string | null;
             /** Status */
             status: string;
+        };
+        /** WorkspaceResponse */
+        WorkspaceResponse: {
+            /** Configured */
+            configured: boolean;
+            /** Http Base */
+            http_base: string;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /** Region */
+            region: string;
+            /** Region Label */
+            region_label: string;
         };
     };
     responses: never;
@@ -2303,9 +2619,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["StudioConfigEnvelope"];
                 };
             };
         };
@@ -4730,9 +5044,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["VoiceMetadataEnvelope"];
                 };
             };
         };
@@ -4890,9 +5202,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["VoiceRegistryEnvelope"];
                 };
             };
         };
@@ -4916,9 +5226,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["VoiceRouteEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -4947,9 +5255,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["VoiceUsageEnvelope"];
                 };
             };
         };

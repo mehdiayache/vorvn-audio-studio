@@ -1,0 +1,165 @@
+"""Public response contracts for Studio and voice catalogues."""
+
+from __future__ import annotations
+
+from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict
+
+
+class PerformancePresetResponse(BaseModel):
+    id: str
+    name: str
+    instruction: str
+    engines: list[Literal["audio", "omni"]]
+
+
+class WorkspaceResponse(BaseModel):
+    configured: bool
+    id: str = ""
+    region: str
+    region_label: str
+    http_base: str
+
+
+class StudioConfigResponse(BaseModel):
+    voices: dict[str, dict[str, str]]
+    default_voice: dict[str, str]
+    chosen_default_voice: str
+    models: dict[str, str]
+    formats: list[str]
+    tags: dict[str, dict[str, str]]
+    retired_tags: dict[str, str]
+    tag_variables: dict[str, str]
+    naming: dict[str, Any]
+    voice_images: dict[str, str]
+    voice_favourites: list[str]
+    naming_tokens: list[str]
+    languages: list[str]
+    capabilities: dict[str, dict[str, Any]]
+    performance_presets: list[PerformancePresetResponse]
+    clone_languages: dict[str, str]
+    workspace: WorkspaceResponse
+    instruction_max: int
+    rates: dict[str, float]
+    batch_max_rows: int
+    synth_flags: dict[str, Any]
+    chunk_size: int
+    has_key: bool
+    out_dir: str
+    prefs: dict[str, Any]
+    spend: dict[str, Any]
+    database: dict[str, Any]
+    storage: dict[str, Any]
+    storage_settings: dict[str, Any]
+
+
+class StudioConfigEnvelope(BaseModel):
+    data: StudioConfigResponse
+
+
+class VoiceReferenceResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str | None = None
+    identity_id: str | None = None
+    original_name: str | None = None
+    original_path: str | None = None
+    normalized_path: str | None = None
+
+
+class VoiceBindingResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    identity_id: str
+    provider_voice_id: str
+    name: str
+    description: str
+    languages: list[str]
+    source: Literal["system", "custom"]
+    provider: str
+    engine: Literal["audio", "omni"]
+    tier: Literal["plus", "flash"]
+    model_id: str
+    status: str
+    image: str | None = None
+    gender: str | None = None
+    age: int | None = None
+    accent: str | None = None
+    scene: str | None = None
+    reference: VoiceReferenceResponse | None = None
+
+
+class VoiceModelSummaryResponse(BaseModel):
+    engine: Literal["audio", "omni"]
+    tier: Literal["plus", "flash"]
+    model_id: str
+    label: str
+    system_count: int
+    custom_count: int
+    total_count: int
+    clone_supported: bool
+
+
+class VoiceRegistrySourceResponse(BaseModel):
+    provider: str
+    verified_at: str
+    audio_url: str
+    omni_url: str
+
+
+class VoiceRegistryResponse(BaseModel):
+    models: list[VoiceModelSummaryResponse]
+    bindings: list[VoiceBindingResponse]
+    presets: list[PerformancePresetResponse]
+    source: VoiceRegistrySourceResponse
+
+
+class VoiceRegistryEnvelope(BaseModel):
+    data: VoiceRegistryResponse
+
+
+class VoiceMetadataResponse(BaseModel):
+    image: str | None = None
+    favourite: bool | None = None
+    note: str | None = None
+    name: str | None = None
+    gender: str | None = None
+    age: int | None = None
+    trait: str | None = None
+    scene: str | None = None
+    languages: str | None = None
+    provider_voice_id: str | None = None
+    engine: str | None = None
+    target_model: str | None = None
+    provider_status: str | None = None
+
+
+class VoiceMetadataEnvelope(BaseModel):
+    data: dict[str, VoiceMetadataResponse]
+
+
+class VoiceUsageResponse(BaseModel):
+    uses: int
+    folders: int
+    spend: float
+    last_used: str | None = None
+    mine: str | None = None
+
+
+class VoiceUsageEnvelope(BaseModel):
+    data: dict[str, VoiceUsageResponse]
+
+
+class VoiceRouteResponse(BaseModel):
+    identity_id: str | None
+    provider_voice_id: str
+    engine: str
+    tier: str
+    model_id: str
+    reason: str
+    registry_matched: bool
+
+
+class VoiceRouteEnvelope(BaseModel):
+    data: VoiceRouteResponse
