@@ -9,8 +9,8 @@ from uuid import uuid4
 
 import psycopg
 
-from audio_studio.application import work
 from audio_studio.application.renders import RenderService
+from audio_studio.composition.work import work_service as work
 from audio_studio.config import settings
 from audio_studio.domain.rendering import FinishedExport
 from audio_studio.infrastructure.postgres.exports import ProductionExportRepository

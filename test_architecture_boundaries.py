@@ -46,11 +46,6 @@ def _edges(paths: list[Path], prefixes: tuple[str, ...]) -> set[str]:
 
 APPLICATION_INFRASTRUCTURE_DEBT = {
     "audio_studio.application.speech -> audio_studio.infrastructure.audio_workspace.SavedAudio",
-    "audio_studio.application.work -> audio_studio.infrastructure.postgres.accounting.ProductionAccountingRepository",
-    "audio_studio.application.work -> audio_studio.infrastructure.postgres.exports.ProductionExportRepository",
-    "audio_studio.application.work -> audio_studio.infrastructure.postgres.production_document.ProductionDocumentRepository",
-    "audio_studio.application.work -> audio_studio.infrastructure.postgres.venture_assets.VentureAssetRepository",
-    "audio_studio.application.work -> audio_studio.infrastructure.postgres.work",
 }
 
 APPLICATION_TECHNICAL_DEBT: set[str] = set()

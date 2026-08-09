@@ -153,8 +153,10 @@ class NativeHttpTests(unittest.TestCase):
             "standalone_productions": [
                 {"id": 7, "type": "production", "series_id": None}],
         }
-        with patch.object(work_router.work, "create", return_value=series), \
-             patch.object(work_router.work, "overview", return_value=overview):
+        with patch.object(
+                work_router.work_service, "create", return_value=series), \
+             patch.object(
+                 work_router.work_service, "overview", return_value=overview):
             created = self.client.post(
                 "/api/v1/projects/3/series", json={"name": "Fixture Series"})
             opened = self.client.get("/api/v1/projects/3/overview")
@@ -165,7 +167,7 @@ class NativeHttpTests(unittest.TestCase):
             opened.json()["data"]["standalone_productions"][0]["series_id"])
 
         with patch.object(
-                work_router.work, "update",
+                work_router.work_service, "update",
                 side_effect=DomainConflict(
                     "A Production can only join a Series in its own Project.")):
             conflict = self.client.patch(

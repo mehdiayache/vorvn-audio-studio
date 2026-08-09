@@ -7,7 +7,8 @@ from typing import Any
 
 from fastapi import APIRouter, Query, status
 
-from audio_studio.application import work
+from audio_studio.application.work import KINDS
+from audio_studio.composition.work import work_service
 from audio_studio.domain.work import DomainConflict, DomainValidation
 from audio_studio.http.contracts import ResourceCreate, ResourceUpdate
 from audio_studio.http.errors import ApiProblem
@@ -34,21 +35,22 @@ def _page(items: list[dict[str, Any]], limit: int, after: str | None) -> dict:
 @router.get("/hierarchy", operation_id="listHierarchy")
 def list_hierarchy(limit: int = Query(100, ge=1, le=100),
                    after: str | None = None) -> dict:
-    return _page(work.hierarchy(), limit, after)
+    return _page(work_service.hierarchy(), limit, after)
 
 
 @router.get("/ventures", operation_id="listVentures")
 def list_ventures(limit: int = Query(100, ge=1, le=100),
                   after: str | None = None) -> dict:
-    return _page([item for item in work.hierarchy() if item["type"] == "venture"],
+    return _page([item for item in work_service.hierarchy()
+                  if item["type"] == "venture"],
                  limit, after)
 
 
 def _get_resource(collection: str, resource_id: int) -> dict:
-    item = work.resource(collection, resource_id)
+    item = work_service.resource(collection, resource_id)
     if not item:
-        raise ApiProblem(404, f"{work.KINDS[collection]}_not_found",
-                         f"That {work.KINDS[collection]} does not exist.")
+        raise ApiProblem(404, f"{KINDS[collection]}_not_found",
+                         f"That {KINDS[collection]} does not exist.")
     return {"data": item}
 
 
@@ -73,10 +75,10 @@ def get_production(resource_id: int) -> dict:
 
 
 def _get_overview(collection: str, resource_id: int) -> dict:
-    item = work.overview(collection, resource_id)
+    item = work_service.overview(collection, resource_id)
     if not item:
-        raise ApiProblem(404, f"{work.KINDS[collection]}_not_found",
-                         f"That {work.KINDS[collection]} does not exist.")
+        raise ApiProblem(404, f"{KINDS[collection]}_not_found",
+                         f"That {KINDS[collection]} does not exist.")
     return {"data": item}
 
 
@@ -87,7 +89,7 @@ def get_venture_overview(resource_id: int) -> dict:
 
 @router.get("/ventures/{resource_id}/assets", operation_id="listVentureAssets")
 def list_venture_assets(resource_id: int) -> dict:
-    result = work.venture_assets(resource_id)
+    result = work_service.venture_assets(resource_id)
     if not result:
         raise ApiProblem(404, "venture_not_found", "That Venture does not exist.")
     return {"data": result}
@@ -105,7 +107,7 @@ def get_series_overview(resource_id: int) -> dict:
 
 @router.get("/productions/{production_id}/editor", operation_id="getProductionEditor")
 def get_production_editor(production_id: int) -> dict:
-    item = work.production_editor(production_id)
+    item = work_service.production_editor(production_id)
     if not item:
         raise ApiProblem(404, "production_not_found", "That Production does not exist.")
     return {"data": item}
@@ -113,7 +115,7 @@ def get_production_editor(production_id: int) -> dict:
 
 @router.get("/productions/{production_id}/assets", operation_id="listProductionAssets")
 def list_production_assets(production_id: int) -> dict:
-    item = work.production_assets(production_id)
+    item = work_service.production_assets(production_id)
     if not item:
         raise ApiProblem(404, "production_not_found", "That Production does not exist.")
     return {"data": item}
@@ -122,13 +124,15 @@ def list_production_assets(production_id: int) -> dict:
 @router.post("/ventures", status_code=status.HTTP_201_CREATED,
              operation_id="createVenture")
 def create_venture(payload: ResourceCreate) -> dict:
-    return {"data": work.create("ventures", None, payload.name, payload.description)}
+    return {"data": work_service.create(
+        "ventures", None, payload.name, payload.description)}
 
 
 @router.post("/ventures/{venture_id}/projects", status_code=status.HTTP_201_CREATED,
              operation_id="createProject")
 def create_project(venture_id: int, payload: ResourceCreate) -> dict:
-    created = work.create("projects", venture_id, payload.name, payload.description)
+    created = work_service.create(
+        "projects", venture_id, payload.name, payload.description)
     if not created:
         raise ApiProblem(404, "venture_not_found", "That Venture does not exist.")
     return {"data": created}
@@ -137,7 +141,8 @@ def create_project(venture_id: int, payload: ResourceCreate) -> dict:
 @router.post("/projects/{project_id}/series", status_code=status.HTTP_201_CREATED,
              operation_id="createSeries")
 def create_series(project_id: int, payload: ResourceCreate) -> dict:
-    created = work.create("series", project_id, payload.name, payload.description)
+    created = work_service.create(
+        "series", project_id, payload.name, payload.description)
     if not created:
         raise ApiProblem(404, "project_not_found", "That Project does not exist.")
     return {"data": created}
@@ -146,7 +151,8 @@ def create_series(project_id: int, payload: ResourceCreate) -> dict:
 @router.post("/projects/{project_id}/productions", status_code=status.HTTP_201_CREATED,
              operation_id="createProduction")
 def create_production(project_id: int, payload: ResourceCreate) -> dict:
-    created = work.create("productions", project_id, payload.name, payload.description)
+    created = work_service.create(
+        "productions", project_id, payload.name, payload.description)
     if not created:
         raise ApiProblem(404, "project_not_found", "That Project does not exist.")
     return {"data": created}
@@ -155,7 +161,8 @@ def create_production(project_id: int, payload: ResourceCreate) -> dict:
 @router.post("/series/{series_id}/productions", status_code=status.HTTP_201_CREATED,
              operation_id="createSeriesProduction")
 def create_series_production(series_id: int, payload: ResourceCreate) -> dict:
-    created = work.create_in_series(series_id, payload.name, payload.description)
+    created = work_service.create_in_series(
+        series_id, payload.name, payload.description)
     if not created:
         raise ApiProblem(404, "series_not_found", "That Series does not exist.")
     return {"data": created}
@@ -164,14 +171,14 @@ def create_series_production(series_id: int, payload: ResourceCreate) -> dict:
 def _update_resource(collection: str, resource_id: int,
                      payload: ResourceUpdate) -> dict:
     try:
-        updated = work.update(collection, resource_id, payload.changes())
+        updated = work_service.update(collection, resource_id, payload.changes())
     except DomainConflict as exc:
         raise ApiProblem(409, "domain_conflict", str(exc)) from exc
     except DomainValidation as exc:
         raise ApiProblem(400, "invalid_resource", str(exc)) from exc
     if not updated:
-        raise ApiProblem(404, f"{work.KINDS[collection]}_not_found",
-                         f"That {work.KINDS[collection]} does not exist.")
+        raise ApiProblem(404, f"{KINDS[collection]}_not_found",
+                         f"That {KINDS[collection]} does not exist.")
     return {"data": updated}
 
 
@@ -198,13 +205,14 @@ def update_production(resource_id: int, payload: ResourceUpdate) -> dict:
 def _delete_resource(collection: str, resource_id: int,
                      strategy: str = "") -> dict:
     try:
-        removed = work.remove(collection, resource_id,
-                              make_standalone=strategy == "make_standalone")
+        removed = work_service.remove(
+            collection, resource_id,
+            make_standalone=strategy == "make_standalone")
     except DomainConflict as exc:
         raise ApiProblem(409, "domain_conflict", str(exc)) from exc
     if not removed:
-        raise ApiProblem(404, f"{work.KINDS[collection]}_not_found",
-                         f"That {work.KINDS[collection]} does not exist.")
+        raise ApiProblem(404, f"{KINDS[collection]}_not_found",
+                         f"That {KINDS[collection]} does not exist.")
     return {"data": removed}
 
 

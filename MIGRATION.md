@@ -50,7 +50,7 @@ edges from the matching allowlist in the same commit; new edges fail CI.
 Current checkpoint: boundary baseline complete.
 
 - Domain technical-dependency debt: 0.
-- Application to Infrastructure edges: 6.
+- Application to Infrastructure edges: 1.
 - Application direct technical edges: 0.
 - HTTP to Infrastructure edges: 4.
 - Infrastructure to Application edges: 8.
@@ -167,3 +167,9 @@ Take, Venture-library and transcript persistence live behind a PostgreSQL
 adapter; contained media duplication lives behind a replaceable workspace port.
 This removes four Application-to-Infrastructure edges and the Timeline router's
 direct transcript dependency while preserving every existing HTTP contract.
+
+The complete Work hierarchy now belongs to one injected Application service.
+Venture, Project, Series and Production persistence, editor Parts, immutable
+Exports, Venture assets and accounting are assembled behind one PostgreSQL
+adapter. This removes five Application-to-Infrastructure edges while preserving
+hierarchy semantics, Series defaults and historical Production accounting.
