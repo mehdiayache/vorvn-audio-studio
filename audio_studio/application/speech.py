@@ -75,6 +75,14 @@ def _fidelity_warning(result: SynthesizedSpeech) -> str | None:
     return None
 
 
+def _partial_warning(result: SynthesizedSpeech) -> str | None:
+    if not result.failures:
+        return None
+    count = len(result.failures)
+    return (f"Alibaba could not complete {count} internal speech section"
+            f"{'s' if count != 1 else ''}. This Take is incomplete.")
+
+
 def _record(prepared: PreparedSpeech, result: SynthesizedSpeech,
             saved: StoredAudio, values: dict) -> dict[str, Any]:
     return {
@@ -94,7 +102,7 @@ def _record(prepared: PreparedSpeech, result: SynthesizedSpeech,
         "filename": saved.filename, "path": saved.path,
         "size_bytes": saved.size_bytes, "duration_ms": saved.duration_ms,
         "chars": len(prepared.original_text),
-        "requests": prepared.request_count, "cost": result.cost,
+        "requests": len(result.diagnostics) or prepared.request_count,
         "kind": "audio", "title": values.get("title"),
         "usage": result.usage, "cost_basis": result.cost_basis,
         "provider_text": result.returned_text,
@@ -198,15 +206,17 @@ class SpeechGenerationService:
             on_progress(max(1, prepared.request_count),
                         max(1, prepared.request_count), "Speech ready")
 
-        warning = _fidelity_warning(made) or _truncation_warning(
+        warning = (_partial_warning(made) or _fidelity_warning(made)
+                   or _truncation_warning(
             prepared, saved.duration_ms)
+        )
         request_ids = list(made.request_ids)
         return {
             "id": generation_id,
             "url": f"/audio/{quote(saved.filename)}",
             "name": saved.filename, "path": saved.path,
             "chars": len(prepared.spoken_text),
-            "requests": prepared.request_count,
+            "requests": len(made.diagnostics) or prepared.request_count,
             "size_mb": round(saved.size_bytes / 1_000_000, 2),
             "duration_ms": saved.duration_ms,
             "cost": round(float(made.cost), 6),
@@ -225,6 +235,7 @@ class SpeechGenerationService:
             "price_version": made.price_version,
             "provider_request_id": request_ids[0] if len(request_ids) == 1 else None,
             "request_ids": request_ids,
+            "provider_diagnostics": made.diagnostics,
             **mutation,
         }
 

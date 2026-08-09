@@ -29,12 +29,12 @@ def synthesize(chunks, options, on_progress=None):
                 "Qwen 3.5 Omni does not support inline delivery tags. "
                 "Choose Raw or Spoken text, or use a Qwen Audio voice."
             )
-        audio, failures, transcripts, usage = omni.synthesize(
+        audio, failures, transcripts, usage, request_ids, diagnostics = omni.synthesize(
             chunks, options, on_progress)
-        return audio, failures, transcripts, usage
+        return audio, failures, transcripts, usage, request_ids, diagnostics
     audio, failures = audio_tts.synthesize(
         chunks, options, on_progress=on_progress)
-    return audio, failures, [], {}
+    return audio, failures, [], {}, [], []
 
 
 class _Options:
@@ -138,7 +138,7 @@ class AlibabaSpeechProvider:
     def synthesize(self, prepared: PreparedSpeech,
                    on_progress=None) -> SynthesizedSpeech:
         chunks = speech_text.chunk_text(prepared.spoken_text)
-        audio, failures, transcripts, usage = synthesize(
+        audio, failures, transcripts, usage, request_ids, diagnostics = synthesize(
             chunks, prepared.context, on_progress=on_progress)
         failure_rows = [item._asdict() for item in failures]
         provider_text = " ".join(
@@ -173,4 +173,5 @@ class AlibabaSpeechProvider:
             returned_text=provider_text, fidelity=fidelity,
             provider_region=config.region(), provider_endpoint=endpoint,
             price_version=PRICE_VERSION, catalog_rate=rate,
+            request_ids=request_ids, diagnostics=diagnostics,
         )

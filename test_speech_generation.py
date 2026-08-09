@@ -271,7 +271,7 @@ class SpeechGenerationTests(unittest.TestCase):
         service, _, _, _ = self.service(provider=provider)
         result = service.run(payload())
         self.assertEqual(result["failures"][0]["index"], 1)
-        self.assertEqual(result["warning"], "Review this Take.")
+        self.assertIn("This Take is incomplete", result["warning"])
         self.assertEqual(result["fidelity"]["status"], "warning")
 
     def test_job_handler_reports_durable_chunk_progress(self):

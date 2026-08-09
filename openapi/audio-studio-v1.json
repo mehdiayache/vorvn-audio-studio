@@ -243,6 +243,14 @@
             ],
             "title": "Production Name"
           },
+          "provider_diagnostics": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Provider Diagnostics",
+            "type": "array"
+          },
           "provider_endpoint": {
             "anyOf": [
               {
@@ -275,6 +283,13 @@
               }
             ],
             "title": "Provider Request Id"
+          },
+          "provider_request_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Provider Request Ids",
+            "type": "array"
           },
           "seconds": {
             "title": "Seconds",
@@ -356,6 +371,8 @@
           "currency",
           "output_ids",
           "usage",
+          "provider_diagnostics",
+          "provider_request_ids",
           "production_id",
           "production_name",
           "where",

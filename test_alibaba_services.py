@@ -36,11 +36,13 @@ encoded = base64.b64encode(pcm).decode()
 # would fail or lose bytes; the implementation must concatenate first.
 pieces = [encoded[:7], encoded[7:31], encoded[31:]]
 events = [
-    {"choices": [{"delta": {"audio": {"data": pieces[0]}}}]},
+    {"id": "req-omni-test", "choices": [{"delta": {
+        "audio": {"data": pieces[0]}}}]},
     {"choices": [{"delta": {
         "audio": {"data": pieces[1]}, "content": "مرحبا"
     }}]},
-    {"choices": [{"delta": {"audio": {"data": pieces[2]}}}]},
+    {"choices": [{"delta": {"audio": {"data": pieces[2]}},
+                  "finish_reason": "stop"}]},
 ]
 
 captured = {}
@@ -59,7 +61,7 @@ def fake_stream_events(payload, key):
 
 omni._stream_events = fake_stream_events
 try:
-    returned_pcm, returned_text, returned_usage = omni._speak_chunk(
+    response = omni._speak_chunk(
         "مرحبا", "qwen3.5-omni-flash", "Tina", "calm and intimate")
 finally:
     omni._stream_events = original_stream_events
@@ -72,9 +74,11 @@ finally:
     else:
         os.environ["DASHSCOPE_WORKSPACE_ID"] = original_workspace
 
-check("Omni joins Base64 before decoding", returned_pcm == pcm)
-check("Omni retains response text for fidelity review", returned_text == "مرحبا")
-check("Omni exposes streamed usage", returned_usage["total"] == 0)
+check("Omni joins Base64 before decoding", response.audio == pcm)
+check("Omni retains response text for fidelity review", response.text == "مرحبا")
+check("Omni exposes streamed usage", response.usage["total"] == 0)
+check("Omni retains request identity and completion reason",
+      response.request_id == "req-omni-test" and response.finish_reason == "stop")
 check("Omni uses the regional compatible endpoint that returns audio data",
       captured["base_url"]
       == "https://dashscope-intl.aliyuncs.com/compatible-mode/v1")
@@ -93,6 +97,8 @@ check("Omni sends the bound model and voice together",
 check("Omni sends one user message and no system role",
       len(captured["body"]["messages"]) == 1
       and captured["body"]["messages"][0]["role"] == "user")
+check("Omni preserves intentional repetitions",
+      captured["body"]["presence_penalty"] == 0.0)
 check("Omni asks for a verbatim read without Composer or XML metadata",
       captured["body"]["messages"][0]["content"].endswith("\n\nمرحبا")
       and "verbatim" in captured["body"]["messages"][0]["content"]
@@ -119,6 +125,9 @@ nested_audio, _, _ = omni._event_parts({
     "choices": [{"delta": {"audio": [{"chunk": {"data": encoded}}]}}]
 })
 check("Omni accepts nested/list audio envelopes", nested_audio == [encoded])
+check("Omni reads an audio-object transcript as a fallback",
+      omni._event_transcript({"choices": [{"delta": {
+          "audio": {"transcript": "fallback words"}}}]}) == "fallback words")
 
 no_audio_error = ""
 original_stream_events = omni._stream_events
@@ -153,7 +162,8 @@ check("Omni rejects transcript-only streams even when audio tokens are billed",
 original_omni_synthesize = omni.synthesize
 
 def fake_omni_synthesize(chunks, options, on_progress=None):
-    return b"audio", [], ["مرحبا [ملاحظة]"], {"output_audio": 10}
+    return (b"audio", [], ["مرحبا [ملاحظة]"], {"output_audio": 10},
+            ["req-test"], [])
 
 omni.synthesize = fake_omni_synthesize
 try:
@@ -194,4 +204,4 @@ check("Voice counts are derived from bindings",
 check("Performance presets declare their compatible engines",
       registry["presets"] and all(item.get("engines") for item in registry["presets"]))
 
-print("26/26 passed")
+print("29/29 passed")

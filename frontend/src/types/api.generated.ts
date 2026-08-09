@@ -1362,12 +1362,18 @@ export interface components {
             production_id: number | null;
             /** Production Name */
             production_name: string | null;
+            /** Provider Diagnostics */
+            provider_diagnostics: {
+                [key: string]: unknown;
+            }[];
             /** Provider Endpoint */
             provider_endpoint: string | null;
             /** Provider Region */
             provider_region: string | null;
             /** Provider Request Id */
             provider_request_id: string | null;
+            /** Provider Request Ids */
+            provider_request_ids: string[];
             /** Seconds */
             seconds: number;
             /** Source Tool */

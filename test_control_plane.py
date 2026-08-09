@@ -113,11 +113,12 @@ class ControlPlaneRepositoryTests(unittest.TestCase):
                         INSERT INTO jobs
                             (kind, status, detail, cost, cost_basis,
                              source_tool, operation_label, actor_id,
-                             organization_id, created_at)
+                             organization_id, created_at, result)
                         VALUES ('fixture_control', 'running', %s, 0.125,
                                 'actual_tokens', 'settings',
                                 'Control plane fixture', 'local-owner',
-                                'local-studio', now() - interval '2 hours')
+                                'local-studio', now() - interval '2 hours',
+                                '{"provider_diagnostics":[{"path":"1","status":"accepted"}],"request_ids":["req-fixture"]}'::jsonb)
                         RETURNING id
                     """, (marker,))
                     job_id = int(cursor.fetchone()[0])
@@ -132,6 +133,9 @@ class ControlPlaneRepositoryTests(unittest.TestCase):
                               run["operation"], run["cost_basis"]),
                              ("lost", "You", "Control plane fixture",
                               "actual_usage"))
+            self.assertEqual(run["provider_request_ids"], ["req-fixture"])
+            self.assertEqual(run["provider_diagnostics"][0]["status"],
+                             "accepted")
             self.assertTrue(snapshot["cost_breakdown"])
         finally:
             if job_id is not None:

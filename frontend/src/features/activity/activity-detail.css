@@ -17,4 +17,14 @@
 .activity-detail pre { overflow: auto; padding: 12px; border-radius: 9px; background: var(--surface-subtle); font-size: var(--type-small); }
 .activity-detail-error { padding: 12px; border: 1px solid var(--danger-border); border-radius: 10px; background: var(--danger-soft); color: var(--destructive); }
 .activity-detail-error p { margin: 0; }
+.provider-diagnostics > p { margin: -3px 0 10px; color: var(--muted-foreground); font-size: var(--type-small); }
+.provider-diagnostics details { margin-top: 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-subtle); }
+.provider-diagnostics details.replaced, .provider-diagnostics details.incomplete, .provider-diagnostics details.error { border-color: var(--warning-border); }
+.provider-diagnostics summary { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 11px 12px; cursor: pointer; }
+.provider-diagnostics summary span { text-transform: capitalize; }
+.provider-diagnostics summary small { color: var(--muted-foreground); }
+.provider-diagnostics details > dl, .provider-diagnostics details > h4, .provider-diagnostics details > pre, .provider-diagnostic-error { margin-right: 12px; margin-left: 12px; }
+.provider-diagnostics details > dl { padding-top: 10px; border-top: 1px solid var(--border); }
+.provider-diagnostics details > h4 { margin-bottom: 4px; font-size: var(--type-small); }
+.provider-diagnostic-error { color: var(--destructive); }
 .activity-more { display: flex; justify-content: center; margin-top: 14px; }

@@ -44,6 +44,8 @@ class ActivityRunResponse(BaseModel):
     currency: str
     output_ids: list[OutputReference]
     usage: dict[str, Any]
+    provider_diagnostics: list[dict[str, Any]]
+    provider_request_ids: list[str]
     production_id: int | None
     production_name: str | None
     where: str

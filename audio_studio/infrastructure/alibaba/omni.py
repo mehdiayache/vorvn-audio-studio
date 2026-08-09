@@ -16,6 +16,7 @@ from typing import NamedTuple
 
 from openai import APIStatusError, OpenAI
 
+from audio_studio.domain import speech_fidelity, speech_text
 from audio_studio.infrastructure.alibaba import config
 
 
@@ -23,6 +24,20 @@ class ChunkFailure(NamedTuple):
     index: int
     text: str
     error: str
+
+
+class ChunkResponse(NamedTuple):
+    audio: bytes
+    text: str
+    usage: dict
+    request_id: str | None
+    finish_reason: str | None
+    event_count: int
+
+
+MAX_RECOVERY_DEPTH = 4
+MIN_RECOVERY_WORDS = 8
+MAX_CALLS_PER_SEGMENT = 7
 
 
 def _request(payload: dict) -> dict:
@@ -195,6 +210,23 @@ def _event_parts(event: dict) -> tuple[list[str], list[str], list[str]]:
     return audio, text, shapes
 
 
+def _event_transcript(event: dict) -> str | None:
+    """Read a complete transcript only as fallback for absent text deltas."""
+    candidates = []
+    for choice in event.get("choices") or []:
+        message = (choice or {}).get("delta") or (choice or {}).get("message") or {}
+        candidates.append(message.get("audio"))
+    output = event.get("output") or {}
+    candidates.append(output.get("audio"))
+    for choice in output.get("choices") or []:
+        message = (choice or {}).get("message") or {}
+        candidates.append(message.get("audio"))
+    for candidate in candidates:
+        if isinstance(candidate, dict) and isinstance(candidate.get("transcript"), str):
+            return candidate["transcript"]
+    return None
+
+
 def _stream_events(payload: dict, key: str):
     """Yield plain dictionaries from Alibaba through the documented SDK.
 
@@ -217,7 +249,7 @@ def _stream_events(payload: dict, key: str):
 
 def _speak_chunk(text: str, model: str, voice: str,
                  instruction: str | None = None,
-                 speech_mode: str = "exact") -> tuple[bytes, str, dict]:
+                 speech_mode: str = "exact") -> ChunkResponse:
     # Omni is a conversational Thinker/Talker, not a literal TTS endpoint.  A
     # bare fragment is answered instead of read.  Keep the steering minimal and
     # entirely inside the single documented user message: no system role, XML
@@ -246,13 +278,29 @@ def _speak_chunk(text: str, model: str, voice: str,
         "stream": True,
         "stream_options": {"include_usage": True},
     }
+    # Qwen3.5-Omni defaults presence_penalty to 1.5. Every Audio Studio speech
+    # mode must preserve intentional script repetition, including Directed
+    # performance, so opt out explicitly rather than inheriting that default.
+    payload["presence_penalty"] = 0.0
     audio_base64 = []
     returned_text = []
     response_shapes = set()
     event_count = 0
     usage = {}
+    request_id = None
+    finish_reason = None
+    fallback_transcript = None
     for event in _stream_events(payload, key):
         event_count += 1
+        request_id = request_id or event.get("id") or event.get("request_id")
+        if not request_id and isinstance(event.get("output"), dict):
+            request_id = event["output"].get("request_id")
+        output = event.get("output") or {}
+        for choice in [*(event.get("choices") or []),
+                       *(output.get("choices") or [])]:
+            if choice and choice.get("finish_reason") is not None:
+                finish_reason = str(choice["finish_reason"])
+        fallback_transcript = _event_transcript(event) or fallback_transcript
         if isinstance(event.get("usage"), dict):
             usage = event["usage"]
         audio, text, shapes = _event_parts(event)
@@ -286,29 +334,127 @@ def _speak_chunk(text: str, model: str, voice: str,
         "output_audio": output_audio,
         "total": int(usage.get("total_tokens") or prompt_total + completion_total),
     }
-    return (base64.b64decode("".join(audio_base64)),
-            "".join(returned_text), measured)
+    combined_text = "".join(returned_text) or (fallback_transcript or "")
+    return ChunkResponse(
+        base64.b64decode("".join(audio_base64)),
+        combined_text, measured,
+        str(request_id) if request_id else None,
+        finish_reason, event_count,
+    )
+
+
+def _recovery_chunks(text: str) -> list[str]:
+    """Split only a failed provider segment, never the user's input surface."""
+    words = text.split()
+    if len(words) <= MIN_RECOVERY_WORDS:
+        return []
+    target = max(48, len(text) // 2)
+    children = speech_text.chunk_text(text, limit=target)
+    if len(children) > 1 and " ".join(children).split() == words:
+        return children
+
+    # The sentence policy can occasionally retain one dense clause.  Fall
+    # back to the closest word boundary without adding or removing content.
+    midpoint = len(words) // 2
+    return [" ".join(words[:midpoint]), " ".join(words[midpoint:])]
+
+
+def _is_complete(fidelity: dict) -> bool:
+    """Require every normalized word, not merely the UI review threshold."""
+    return (fidelity.get("coverage") == 1.0
+            and fidelity.get("precision") == 1.0)
 
 
 def synthesize(chunks, options, on_progress=None):
     pcm = bytearray()
     failures = []
     transcripts = []
+    diagnostics = []
+    request_ids = []
+    calls_by_segment = {index: 0 for index in range(1, len(chunks) + 1)}
     usage = {kind: 0 for kind in
              ("input_text", "input_audio", "output_text", "output_audio", "total")}
+
+    def render(text: str, root_index: int, path: str,
+               depth: int) -> tuple[bytes, str, bool]:
+        if calls_by_segment[root_index] >= MAX_CALLS_PER_SEGMENT:
+            failures.append(ChunkFailure(
+                root_index, text,
+                "Alibaba returned incomplete speech and the bounded recovery "
+                "budget was exhausted."))
+            return b"", "", False
+        calls_by_segment[root_index] += 1
+        try:
+            response = _speak_chunk(
+                text, options.model_id, options.voice, options.instruction,
+                getattr(options, "speech_mode", "exact"))
+        except Exception as exc:
+            diagnostics.append({
+                "segment": root_index, "path": path, "depth": depth,
+                "requested_text": text, "returned_text": "",
+                "request_id": None, "finish_reason": None,
+                "event_count": 0, "usage": {}, "status": "error",
+                "error": f"{type(exc).__name__}: {exc}",
+            })
+            failures.append(ChunkFailure(
+                root_index, text, f"{type(exc).__name__}: {exc}"))
+            return b"", "", False
+
+        if response.request_id:
+            request_ids.append(response.request_id)
+        for kind in usage:
+            usage[kind] += int(response.usage.get(kind) or 0)
+        fidelity = speech_fidelity.assess(text, response.text)
+        complete = _is_complete(fidelity)
+        diagnostic = {
+            "segment": root_index, "path": path, "depth": depth,
+            "requested_text": text, "returned_text": response.text,
+            "request_id": response.request_id,
+            "finish_reason": response.finish_reason,
+            "event_count": response.event_count,
+            "usage": response.usage,
+            "fidelity": fidelity,
+            "status": "accepted" if complete else "incomplete",
+        }
+        diagnostics.append(diagnostic)
+        if complete:
+            return response.audio, response.text, True
+
+        children = (_recovery_chunks(text)
+                    if depth < MAX_RECOVERY_DEPTH else [])
+        if not children:
+            failures.append(ChunkFailure(
+                root_index, text,
+                "Alibaba returned incomplete speech after bounded recovery."))
+            return b"", "", False
+
+        diagnostic["status"] = "replaced"
+        diagnostic["recovery_segments"] = len(children)
+        recovered_audio = bytearray()
+        recovered_text = []
+        for child_index, child in enumerate(children, 1):
+            child_audio, child_text, child_complete = render(
+                child, root_index, f"{path}.{child_index}", depth + 1)
+            if not child_complete:
+                # Never assemble a partially recovered parent. Successful
+                # siblings remain documented but are not presented as final.
+                return b"", "", False
+            recovered_audio.extend(child_audio)
+            recovered_text.append(child_text)
+        return bytes(recovered_audio), " ".join(recovered_text), True
+
     for index, chunk in enumerate(chunks, 1):
         if on_progress:
             on_progress(index, len(chunks), chunk)
-        try:
-            audio, returned, measured = _speak_chunk(
-                chunk, options.model_id, options.voice, options.instruction,
-                getattr(options, "speech_mode", "exact"))
+        audio, returned, complete = render(chunk, index, str(index), 0)
+        if complete:
             pcm.extend(audio)
             transcripts.append(returned)
-            for kind in usage:
-                usage[kind] += int(measured.get(kind) or 0)
-        except Exception as exc:
-            failures.append(ChunkFailure(index, chunk, f"{type(exc).__name__}: {exc}"))
-            if not pcm:
-                raise
-    return _encode(bytes(pcm), options.format), failures, transcripts, usage
+        elif not pcm:
+            # Preserve the historical actionable provider error when nothing
+            # at all could be generated. Do not bill later segments after an
+            # unusable first section or a fatal provider configuration error.
+            detail = failures[-1].error if failures else "incomplete speech"
+            raise RuntimeError(detail)
+    return (_encode(bytes(pcm), options.format), failures, transcripts, usage,
+            request_ids, diagnostics)
