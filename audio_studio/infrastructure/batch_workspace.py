@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 from datetime import datetime
+import io
 import json
 from pathlib import Path
 import re
 from uuid import uuid4
+import zipfile
 
-import batch as spreadsheet
-
+from audio_studio.domain import batch as batch_policy
 from audio_studio.infrastructure.media_paths import media_root
+from audio_studio.infrastructure import spreadsheets
 from audio_studio.config import settings
 
 
@@ -37,6 +39,10 @@ class FilesystemBatchWorkspace:
         temporary.replace(target)
         return token
 
+    @staticmethod
+    def parse_sheet(filename: str, data: bytes) -> dict:
+        return spreadsheets.read(filename, data)
+
     def load_sheet(self, token: str) -> dict:
         target = self._sheet(token)
         if not target.is_file():
@@ -48,7 +54,7 @@ class FilesystemBatchWorkspace:
         if not isinstance(sheet, dict) or not isinstance(sheet.get("headers"), list) \
                 or not isinstance(sheet.get("rows"), list):
             raise ValueError("That saved spreadsheet is invalid.")
-        if len(sheet["rows"]) > spreadsheet.MAX_ROWS:
+        if len(sheet["rows"]) > batch_policy.MAX_ROWS:
             raise ValueError("That saved spreadsheet exceeds the Batch limit.")
         return sheet
 
@@ -68,7 +74,7 @@ class FilesystemBatchWorkspace:
 
     def write_zip(self, folder: str, filenames: list[str]) -> bool:
         paths = [self._output_file(folder, name) for name in filenames]
-        payload = spreadsheet.make_zip(paths)
+        payload = _make_zip(paths)
         if not payload:
             return False
         self._output_file(folder, "all.zip").write_bytes(payload)
@@ -96,3 +102,12 @@ class FilesystemBatchWorkspace:
         if root.parent != self.output_root or target.parent != root:
             raise ValueError("That Batch output path is invalid.")
         return target
+
+
+def _make_zip(paths: list[Path]) -> bytes:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for target in paths:
+            if target.is_file():
+                archive.write(target, arcname=target.name)
+    return buffer.getvalue()

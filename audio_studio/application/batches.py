@@ -6,13 +6,13 @@ from pathlib import Path
 from typing import Any, Callable, Protocol
 from urllib.parse import unquote
 
-import batch as spreadsheet
-
+from audio_studio.domain import batch as spreadsheet
 from audio_studio.domain.jobs import Job
 from audio_studio.domain.speech import PreparedSpeech, SynthesizedSpeech
 
 
 class BatchWorkspace(Protocol):
+    def parse_sheet(self, filename: str, data: bytes) -> dict: ...
     def save_sheet(self, sheet: dict) -> str: ...
     def load_sheet(self, token: str) -> dict: ...
     def create_output(self, token: str, run_id: str) -> str: ...
@@ -72,7 +72,7 @@ class BatchIntakeService:
         if len(raw) > 25_000_000:
             raise ValueError("That spreadsheet is over 25 MB.")
         safe_name = Path(unquote(filename)).name or "sheet.csv"
-        sheet = spreadsheet.read(safe_name, raw)
+        sheet = self.workspace.parse_sheet(safe_name, raw)
         token = self.workspace.save_sheet(sheet)
         guess = spreadsheet.guess_columns(sheet["headers"])
         known = _known_voice_ids(self.repository.voice_bindings())

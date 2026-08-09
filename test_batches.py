@@ -18,6 +18,7 @@ from audio_studio.config import settings
 from audio_studio.http.routers.jobs import BatchJobCreate
 from audio_studio.infrastructure.alibaba.speech_generation import AlibabaSpeechProvider
 from audio_studio.infrastructure.batch_workspace import FilesystemBatchWorkspace
+from audio_studio.infrastructure.spreadsheets import read as read_spreadsheet
 from audio_studio.infrastructure.postgres.speech import SpeechRepository
 from audio_studio.domain import voice_registry
 from audio_studio.domain.provider_pricing import qwen_audio_tts_cost
@@ -36,6 +37,9 @@ class FakeWorkspace:
     def save_sheet(self, sheet):
         self.sheet = sheet
         return "20260808-120000-deadbeef"
+
+    def parse_sheet(self, filename, data):
+        return read_spreadsheet(filename, data)
 
     def load_sheet(self, token):
         if token != "20260808-120000-deadbeef":

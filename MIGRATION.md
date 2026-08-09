@@ -54,8 +54,8 @@ Current checkpoint: boundary baseline complete.
 - Application direct technical edges: 1.
 - HTTP to Infrastructure edges: 7.
 - Infrastructure to Application edges: 8.
-- Transitional root/`services` import edges: 10.
-- Root business modules: 8.
+- Transitional root/`services` import edges: 7.
+- Root business modules: 7.
 - `services` Python modules: 0.
 
 Current slice: Alibaba's immutable capability/language/model catalogue and its
@@ -98,3 +98,7 @@ the Alibaba Infrastructure adapter that actually owns them.
 Human-facing download names and ID3 values now belong to pure Domain policy;
 lossless FFmpeg metadata writing belongs to Infrastructure. Settings and the
 catalogue no longer depend on the root naming module.
+
+Batch column policy now belongs to Domain; CSV/TSV/XLSX decoding and ZIP
+assembly belong to Infrastructure. Batch intake still uses the same workspace
+port, and the root Batch module has been removed.
