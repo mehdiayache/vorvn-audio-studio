@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from audio_studio.application import administration
+from audio_studio import runtime
 from audio_studio.infrastructure import runtime_environment
 from audio_studio.infrastructure.alibaba import config as alibaba_config
 from audio_studio.infrastructure.alibaba import sdk_runtime
@@ -114,6 +115,19 @@ class RuntimeEnvironmentTests(unittest.TestCase):
                     sdk_runtime.dashscope.base_http_api_url,
                     "https://dashscope-intl.aliyuncs.com/api/v1",
                 )
+
+    def test_composition_root_loads_persisted_settings_before_startup(self):
+        order = []
+        with patch.object(
+                runtime, "reload_owned_environment",
+                side_effect=lambda: order.append("environment")), \
+                patch.object(
+                    runtime, "require_local_bind",
+                    side_effect=lambda: order.append("bind")), \
+                patch.object(runtime, "run_migrations", side_effect=RuntimeError("stop")):
+            with self.assertRaisesRegex(RuntimeError, "stop"):
+                runtime.main()
+        self.assertEqual(order, ["environment", "bind"])
 
     def test_admin_rejects_newline_injection(self):
         with self.assertRaisesRegex(ValueError, "line breaks"):

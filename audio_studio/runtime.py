@@ -11,6 +11,7 @@ import uvicorn
 
 from audio_studio.config import require_local_bind, settings
 from audio_studio.migrations import run as run_migrations
+from audio_studio.infrastructure.runtime_environment import reload_owned_environment
 from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
 from audio_studio.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
 from audio_studio.application.reference_storage import migrate_legacy_references
@@ -67,6 +68,9 @@ class WorkerSupervisor:
 def main() -> int:
     supervisor = WorkerSupervisor()
     try:
+        # The local `.env` is the persisted control-plane configuration. Load
+        # it before FastAPI, migrations or the worker inspect provider state.
+        reload_owned_environment()
         require_local_bind()
         applied = run_migrations()
         if applied:
