@@ -139,6 +139,26 @@ class AudioStudioArchitectureTests(unittest.TestCase):
                 "asset_register_generation", "asset_collections_for_venture"):
             self.assertNotIn(f"def {function}(", legacy, function)
 
+    def test_canonical_work_lifecycle_uses_native_persistence(self):
+        repository = ROOT / "audio_studio/infrastructure/postgres/work.py"
+        accounting = ROOT / "audio_studio/infrastructure/postgres/accounting.py"
+        self.assertTrue(repository.exists())
+        self.assertTrue(accounting.exists())
+        self.assertFalse((ROOT / "domain/repository.py").exists())
+        for path in (repository, accounting):
+            source = path.read_text()
+            self.assertNotIn("import db", source, str(path))
+            self.assertNotIn("db.", source, str(path))
+        for relative in (
+                "audio_studio/application/work.py",
+                "audio_studio/application/timeline.py",
+                "audio_studio/http/routers/work.py"):
+            source = (ROOT / relative).read_text()
+            self.assertNotIn("domain.repository", source, relative)
+            self.assertNotIn("from domain import repository", source, relative)
+        legacy = (ROOT / "db.py").read_text()
+        self.assertNotIn("def production_accounting", legacy)
+
 
 if __name__ == "__main__":
     unittest.main()

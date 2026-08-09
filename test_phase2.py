@@ -5,7 +5,7 @@ import db
 from audio_studio.infrastructure.postgres.venture_assets import (
     VentureAssetRepository,
 )
-from domain import repository as work_repository
+from audio_studio.infrastructure.postgres import work as work_repository
 
 
 results = []

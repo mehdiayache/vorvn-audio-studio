@@ -8,9 +8,9 @@ from typing import Any
 from fastapi import APIRouter, Query, status
 
 from audio_studio.application import work
+from audio_studio.domain.work import DomainConflict, DomainValidation
 from audio_studio.http.contracts import ResourceCreate, ResourceUpdate
 from audio_studio.http.errors import ApiProblem
-from domain import repository
 
 
 router = APIRouter(prefix="/api/v1", tags=["work"])
@@ -165,9 +165,9 @@ def _update_resource(collection: str, resource_id: int,
                      payload: ResourceUpdate) -> dict:
     try:
         updated = work.update(collection, resource_id, payload.changes())
-    except repository.DomainConflict as exc:
+    except DomainConflict as exc:
         raise ApiProblem(409, "domain_conflict", str(exc)) from exc
-    except repository.DomainValidation as exc:
+    except DomainValidation as exc:
         raise ApiProblem(400, "invalid_resource", str(exc)) from exc
     if not updated:
         raise ApiProblem(404, f"{work.KINDS[collection]}_not_found",
@@ -200,7 +200,7 @@ def _delete_resource(collection: str, resource_id: int,
     try:
         removed = work.remove(collection, resource_id,
                               make_standalone=strategy == "make_standalone")
-    except repository.DomainConflict as exc:
+    except DomainConflict as exc:
         raise ApiProblem(409, "domain_conflict", str(exc)) from exc
     if not removed:
         raise ApiProblem(404, f"{work.KINDS[collection]}_not_found",

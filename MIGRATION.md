@@ -67,7 +67,10 @@ Never delete the old system first and rebuild everything at once.
 ### Legacy db.py
 
 - [x] Identify active callers
-- [ ] Migrate responsibilities progressively
+- [x] Migrate canonical Work hierarchy and lifecycle
+- [ ] Migrate Production document/timeline persistence
+- [ ] Migrate render/export persistence
+- [ ] Migrate media lookup persistence
 - [ ] Confirm zero active callers
 - [ ] Delete `db.py`
 
@@ -80,31 +83,30 @@ Never delete the old system first and rebuild everything at once.
 
 ## Current step
 
-Move the canonical Work hierarchy, overview reads and resource lifecycle from
-the compatibility `domain/repository.py` + `db.py` path into focused native
-persistence. Keep Production editor/timeline/render persistence out of this
-slice.
+Move the Production document read model and timeline Part/Take/music mutations
+out of `db.py` into focused native persistence. Keep rendering/export delivery
+as the following independent slice.
 
 ## Last verified checkpoint
 
 - Repository: `https://github.com/mehdiayache/vorvn-audio-studio` (private)
-- Checkpoint: native Venture Asset collections, reads, uploads and ownership
+- Checkpoint: native canonical Work hierarchy, overviews and lifecycle
   (the commit carrying this record)
-- Tests: 87 Python unit/integration tests against the real FastAPI application
+- Tests: 93 Python unit/integration tests against the real FastAPI application
   and PostgreSQL; 25 Alibaba contracts, 18 chunking checks, 4 transcription
   checks, 15 native renderer checks, 12 Phase 2 checks and 6 canonical domain
   checks passed
 - Frontend: OpenAPI generation, strict TypeScript build, Vite build, 19 Vitest
   files and 59 tests passed
-- Manual flow: restarted FastAPI and the worker, verified the Heartsnotes
-  Venture, overview and Production Asset contracts over HTTP, then inspected
-  the real React Venture libraries, Music modal and Production clip selector.
-  Four typed collections and four existing Assets rendered with no browser
-  warning or error; no upload, insertion or paid operation was triggered
+- Manual flow: restarted FastAPI and the worker, verified the hierarchy over
+  HTTP, then navigated the real React flow in Chrome from Ventures to
+  Heartsnotes and Sleeping guides. Venture media, Project metrics, Series and
+  standalone Productions rendered with no console warning or error; no write
+  or paid operation was triggered
 - Runtime: one FastAPI supervisor and one durable worker. The legacy HTTP
   server and UI are deleted and port 7861 is gone from the configuration
-- Remaining dependency: canonical Work hierarchy/lifecycle and Production
-  editor, rendering, timeline and media persistence still call `db.py`
+- Remaining dependency: Production editor, timeline, render and media
+  persistence still call `db.py`
 
 ## Findings
 
@@ -198,8 +200,17 @@ slice.
   The replaced library read/upload functions were removed from `db.py`, reducing
   it from 2,535 to 2,412 lines. Timeline writes still use the compatibility
   layer and remain deliberately outside this checkpoint.
-- The active runtime `db.py` callers are now `domain/repository.py`, Work's
-  Production editor, and Production timeline/render/media. Uploads are native.
+- Canonical Work hierarchy, Venture/Project/Series overviews, Production
+  identity, lifecycle rules and historical/current accounting now use focused
+  PostgreSQL repositories. HTTP handles transport errors while Work conflicts
+  and validation errors live in the domain boundary.
+- Direct Production reads now reject archived Productions and Productions
+  hidden by an archived Project or Venture. The real lifecycle test caught and
+  closed the prior direct-URL visibility leak.
+- The compatibility `domain/repository.py` and legacy accounting helpers were
+  removed, reducing `db.py` from 2,412 to 2,352 lines.
+- The active runtime `db.py` callers are now exactly Work's Production editor,
+  Production timeline, render and media. Uploads and canonical Work are native.
 - The versioned migration runner under `audio_studio/migrations` is the target
   migration mechanism.
 - New functionality must not add another legacy dependency.

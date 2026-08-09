@@ -7,7 +7,7 @@ from typing import Any, Protocol
 from uuid import uuid4
 
 import db
-from domain import repository
+from audio_studio.infrastructure.postgres import work as repository
 
 from audio_studio.application.preferences import load_preferences
 from audio_studio.infrastructure.postgres.venture_assets import (

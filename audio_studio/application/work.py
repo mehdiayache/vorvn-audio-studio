@@ -5,7 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 import db
-from domain import repository
+from audio_studio.domain.work import DomainValidation
+from audio_studio.infrastructure.postgres import work as repository
+from audio_studio.infrastructure.postgres.accounting import (
+    ProductionAccountingRepository,
+)
 from audio_studio.infrastructure.postgres.venture_assets import (
     VentureAssetRepository,
 )
@@ -14,6 +18,7 @@ from audio_studio.infrastructure.postgres.venture_assets import (
 KINDS = {"ventures": "venture", "projects": "project",
          "series": "series", "productions": "production"}
 asset_repository = VentureAssetRepository()
+accounting_repository = ProductionAccountingRepository()
 
 
 def hierarchy() -> list[dict[str, Any]]:
@@ -66,7 +71,7 @@ def production_editor(production_id: int) -> dict[str, Any] | None:
         part["subtitles_stale"] = bool(subtitled.get(part["id"]))
         part["languages"] = sorted(set(translated.get(part["id"], [])))
     visible = [part for part in parts if part.get("kind") != "stitch"]
-    accounting = db.production_accounting(production_id)
+    accounting = accounting_repository.one(production_id)
     return {**production, "parts": parts,
             "total_cost": accounting["historical_spend"],
             "current_sequence_cost": accounting["current_sequence_cost"],
@@ -87,7 +92,7 @@ def create(collection: str, parent_id: int | None, name: str,
         return repository.create_series(int(parent_id or 0), name, description)
     if collection == "productions":
         return repository.create_production(int(parent_id or 0), name, description)
-    raise repository.DomainValidation("Unknown resource type.")
+    raise DomainValidation("Unknown resource type.")
 
 
 def create_in_series(series_id: int, name: str,

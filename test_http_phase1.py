@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from audio_studio.application import media, timeline
 from audio_studio.http.app import app
 from audio_studio.http.routers import work as work_router
-from domain import repository
+from audio_studio.domain.work import DomainConflict
 
 
 class NativeHttpTests(unittest.TestCase):
@@ -90,7 +90,7 @@ class NativeHttpTests(unittest.TestCase):
 
         with patch.object(
                 work_router.work, "update",
-                side_effect=repository.DomainConflict(
+                side_effect=DomainConflict(
                     "A Production can only join a Series in its own Project.")):
             conflict = self.client.patch(
                 "/api/v1/productions/7", json={"series_id": 99})

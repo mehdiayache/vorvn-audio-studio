@@ -1,4 +1,4 @@
-"""Read model for canonical navigation and Production editing."""
+"""PostgreSQL repository for canonical Work navigation and lifecycle."""
 
 from __future__ import annotations
 
@@ -6,15 +6,14 @@ from typing import Any, TypedDict
 import json
 import re
 
-import db
+from audio_studio.domain.work import DomainConflict, DomainValidation
+from audio_studio.infrastructure.postgres.accounting import (
+    ProductionAccountingRepository,
+)
+from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 
-class DomainConflict(ValueError):
-    """A valid request conflicts with canonical ownership or lifecycle rules."""
-
-
-class DomainValidation(ValueError):
-    """A canonical resource mutation contains an invalid value."""
+accounting_repository = ProductionAccountingRepository()
 
 
 class ProductionSummary(TypedDict):
@@ -62,9 +61,7 @@ def _iso(value):
 
 def hierarchy() -> list[dict[str, Any]]:
     """Return a typed tree. Keys are typed because table-local IDs can collide."""
-    with db.cursor() as cur:
-        if cur is None:
-            return []
+    with read_only() as cur:
         cur.execute("""
             SELECT 'venture', v.id, NULL::BIGINT, NULL::BIGINT, v.name,
                    v.description, v.icon, v.updated_at, v.locked, v.system_role,
@@ -92,7 +89,7 @@ def hierarchy() -> list[dict[str, Any]]:
         """)
         rows = cur.fetchall()
 
-    production_accounting = db.production_accounting_many(
+    production_accounting = accounting_repository.many(
         [ident for kind, ident, *_ in rows if kind == "production"])
 
     nodes = []
@@ -127,9 +124,7 @@ def hierarchy() -> list[dict[str, Any]]:
 
 
 def production_get(production_id: int) -> dict[str, Any] | None:
-    with db.cursor() as cur:
-        if cur is None:
-            return None
+    with read_only() as cur:
         cur.execute("""
             SELECT production.id, production.public_id, production.name,
                    production.description, production.status,
@@ -142,6 +137,9 @@ def production_get(production_id: int) -> dict[str, Any] | None:
               JOIN ventures venture ON venture.id = project.venture_id
               LEFT JOIN series ON series.id = production.series_id
              WHERE production.id = %s
+               AND production.archived_at IS NULL
+               AND project.archived_at IS NULL
+               AND venture.archived_at IS NULL
         """, (production_id,))
         row = cur.fetchone()
     if not row:
@@ -197,7 +195,7 @@ def _production_summaries(cur, where_sql: str, params: tuple = ()) -> list[Produ
                   production.name
     """, params)
     rows = cur.fetchall()
-    accounting = db.production_accounting_many([row[0] for row in rows])
+    accounting = accounting_repository.many([row[0] for row in rows])
     return [{
         "id": ident, "type": "production", "key": f"production:{ident}",
         "name": name, "description": description or "", "status": status,
@@ -212,9 +210,7 @@ def _production_summaries(cur, where_sql: str, params: tuple = ()) -> list[Produ
 
 def venture_overview(venture_id: int) -> VentureOverview | None:
     """Brand-level overview: work, reusable media, and recent outputs."""
-    with db.cursor() as cur:
-        if cur is None:
-            return None
+    with read_only() as cur:
         cur.execute("""
             SELECT id, public_id, name, description, icon, locked, updated_at
               FROM ventures WHERE id = %s AND archived_at IS NULL
@@ -269,7 +265,7 @@ def venture_overview(venture_id: int) -> VentureOverview | None:
             project_id: {"historical_spend": 0.0, "current_sequence_cost": 0.0}
             for project_id in project_ids
         }
-        accounting = db.production_accounting_many(
+        accounting = accounting_repository.many(
             [production_id for production_id, _ in production_owners])
         for production_id, project_id in production_owners:
             values = accounting.get(production_id, {})
@@ -316,9 +312,7 @@ def venture_overview(venture_id: int) -> VentureOverview | None:
 
 def project_overview(project_id: int) -> ProjectOverview | None:
     """Project workspace with Series and standalone Productions kept distinct."""
-    with db.cursor() as cur:
-        if cur is None:
-            return None
+    with read_only() as cur:
         cur.execute("""
             SELECT project.id, project.public_id, project.name,
                    project.description,
@@ -408,9 +402,7 @@ def project_overview(project_id: int) -> ProjectOverview | None:
 
 def series_overview(series_id: int) -> SeriesOverview | None:
     """Editorial catalog. Series itself never pretends to be playable media."""
-    with db.cursor() as cur:
-        if cur is None:
-            return None
+    with read_only() as cur:
         cur.execute("""
             SELECT series.id, series.public_id, series.name, series.description,
                    series.icon, series.defaults, series.updated_at,
@@ -491,9 +483,7 @@ def update_resource(kind: str, resource_id: int, changes: dict[str, Any]) -> dic
         else f"{column} = %s" for column in provided)
     values = [json.dumps(value) if column in {"defaults", "settings"} else value
               for column, value in provided.items()]
-    with db.cursor(write=True) as cur:
-        if cur is None:
-            return None
+    with transaction() as cur:
         cur.execute(f"UPDATE {table} SET {assignments}, updated_at = now() WHERE id = %s RETURNING id",
                     (*values, resource_id))
         if not cur.fetchone():
@@ -511,9 +501,7 @@ def update_resource(kind: str, resource_id: int, changes: dict[str, Any]) -> dic
 
 def move_production(production_id: int, series_id: int | None) -> dict[str, Any] | None:
     """Join a same-Project Series, or make the Production standalone."""
-    with db.cursor(write=True) as cur:
-        if cur is None:
-            return None
+    with transaction() as cur:
         cur.execute("SELECT project_id FROM productions WHERE id = %s", (production_id,))
         row = cur.fetchone()
         if not row:
@@ -536,9 +524,7 @@ def archive_resource(kind: str, resource_id: int) -> dict[str, Any] | None:
     table = _TABLES.get(kind)
     if not table:
         raise DomainValidation("Unknown resource type.")
-    with db.cursor(write=True) as cur:
-        if cur is None:
-            return None
+    with transaction() as cur:
         cur.execute(f"SELECT id FROM {table} WHERE id = %s", (resource_id,))
         if not cur.fetchone():
             return None
@@ -564,9 +550,7 @@ def archive_resource(kind: str, resource_id: int) -> dict[str, Any] | None:
 
 def delete_series(series_id: int, make_standalone: bool = False) -> dict[str, Any] | None:
     """Delete editorial grouping without ever deleting paid Productions."""
-    with db.cursor(write=True) as cur:
-        if cur is None:
-            return None
+    with transaction() as cur:
         cur.execute("SELECT id FROM series WHERE id = %s", (series_id,))
         if not cur.fetchone():
             return None
@@ -590,9 +574,7 @@ def _slug(name: str, ident: int) -> str:
 
 def create_venture(name: str, description: str = "") -> dict[str, Any] | None:
     clean_name = name.strip() or "Untitled Venture"
-    with db.cursor(write=True) as cur:
-        if cur is None:
-            return None
+    with transaction() as cur:
         cur.execute("""
             INSERT INTO projects
                 (name, description, level, container_type, locked)
@@ -612,9 +594,7 @@ def create_project(venture_id: int, name: str, description: str = "") -> dict[st
     if not resource_get("venture", venture_id):
         return None
     clean_name = name.strip() or "Untitled Project"
-    with db.cursor(write=True) as cur:
-        if cur is None:
-            return None
+    with transaction() as cur:
         cur.execute("""
             INSERT INTO projects
                 (parent_id, name, description, level, container_type)
@@ -634,9 +614,7 @@ def create_series(project_id: int, name: str, description: str = "") -> dict[str
     if not resource_get("project", project_id):
         return None
     clean_name = name.strip() or "Untitled Series"
-    with db.cursor(write=True) as cur:
-        if cur is None:
-            return None
+    with transaction() as cur:
         cur.execute("""
             INSERT INTO series (project_id, slug, name, description)
             VALUES (%s, 'pending-' || gen_random_uuid()::text, %s, %s) RETURNING id
@@ -657,9 +635,7 @@ def create_production(project_id: int, name: str, description: str = "",
         if not series_resource or series_resource["parent_key"] != f"project:{project_id}":
             return None
     clean_name = name.strip() or "Untitled Production"
-    with db.cursor(write=True) as cur:
-        if cur is None:
-            return None
+    with transaction() as cur:
         cur.execute("""
             INSERT INTO projects
                 (parent_id, name, description, level, container_type)
