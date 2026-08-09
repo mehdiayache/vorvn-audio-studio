@@ -163,13 +163,35 @@ class NativeHttpTests(unittest.TestCase):
                          response.headers["x-request-id"])
 
     def test_work_routes_keep_series_and_production_semantics(self):
-        series = {"id": 44, "type": "series", "parent_key": "project:3",
-                  "name": "Fixture Series"}
+        series = {
+            "id": 44, "public_id": "fixture-series", "type": "series",
+            "key": "series:44", "parent_key": "project:3",
+            "name": "Fixture Series", "description": "", "icon": "",
+            "defaults": {}, "metrics": {
+                "production_count": 0, "part_count": 0, "duration_ms": 0,
+                "total_cost": 0, "current_sequence_cost": 0,
+            },
+        }
         overview = {
-            "resource": {"id": 3, "type": "project", "name": "Project"},
+            "resource": {
+                "id": 3, "public_id": "fixture-project", "type": "project",
+                "key": "project:3", "name": "Project", "description": "",
+                "icon": "",
+            },
+            "trail": [],
             "series": [series],
-            "standalone_productions": [
-                {"id": 7, "type": "production", "series_id": None}],
+            "standalone_productions": [{
+                "id": 7, "public_id": "fixture-production",
+                "type": "production", "key": "production:7",
+                "name": "Standalone", "description": "", "status": "draft",
+                "series_id": None, "part_count": 0, "duration_ms": 0,
+                "total_cost": 0, "current_sequence_cost": 0,
+            }],
+            "metrics": {
+                "series_count": 1, "standalone_count": 1,
+                "production_count": 1, "part_count": 0, "duration_ms": 0,
+                "total_cost": 0, "current_sequence_cost": 0,
+            },
         }
         with patch.object(
                 work_router.work_service, "create", return_value=series), \

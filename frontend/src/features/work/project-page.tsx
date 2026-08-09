@@ -31,14 +31,17 @@ export function ProjectPage({ data, refresh }: { data: ProjectOverview; refresh:
   const editableProject = {
     id: project.id,
     public_id: project.public_id,
+    key: project.key,
+    type: "project" as const,
     name: project.name,
     description: project.description,
-    cover_image: project.cover_image || project.icon || "",
+    cover_image: (typeof project.cover_image === "string" ? project.cover_image : "") || project.icon || "",
     metrics: {
       production_count: data.metrics.production_count,
       part_count: data.metrics.part_count,
       duration_ms: data.metrics.duration_ms,
       total_cost: data.metrics.total_cost,
+      current_sequence_cost: data.metrics.current_sequence_cost,
     },
     updated_at: project.updated_at,
   }

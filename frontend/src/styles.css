@@ -289,8 +289,8 @@
   .breadcrumbs span { display: none; }
   .identity-row { padding-top: 13px; }
   .production-title p { display: none; }
-  .production-metrics { overflow-x: auto; }
-  .production-metrics > span:not([data-slot="badge"]) { min-width: 65px; }
+  .production-metrics { flex-wrap: wrap; overflow: visible; }
+  .production-metrics > span:not([data-slot="badge"]) { min-width: 0; }
   .tool-dock { position: static; }
   .tool-buttons { display: grid; width: 100%; grid-template-columns: 1fr 1fr; }
   .music-empty { align-items: flex-start; flex-wrap: wrap; }

@@ -447,6 +447,88 @@
         "title": "ActivitySnapshotResponse",
         "type": "object"
       },
+      "AppliedPronunciationResponse": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "pattern": {
+            "title": "Pattern",
+            "type": "string"
+          },
+          "replacement": {
+            "title": "Replacement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pattern",
+          "replacement",
+          "count"
+        ],
+        "title": "AppliedPronunciationResponse",
+        "type": "object"
+      },
+      "ArchivedResourceEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ArchivedResourceResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ArchivedResourceEnvelope",
+        "type": "object"
+      },
+      "ArchivedResourceResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived"
+          },
+          "deleted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "venture",
+              "project",
+              "series",
+              "production"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "ArchivedResourceResponse",
+        "type": "object"
+      },
       "AssetBody": {
         "properties": {
           "asset_id": {
@@ -470,6 +552,88 @@
           "asset_id"
         ],
         "title": "AssetBody",
+        "type": "object"
+      },
+      "AssetCollectionResponse": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "venture_id": {
+            "title": "Venture Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "venture_id",
+          "kind",
+          "name"
+        ],
+        "title": "AssetCollectionResponse",
+        "type": "object"
+      },
+      "AssetKindSummaryResponse": {
+        "properties": {
+          "collection_id": {
+            "title": "Collection Id",
+            "type": "integer"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "collection_id",
+          "name",
+          "count",
+          "duration_ms"
+        ],
+        "title": "AssetKindSummaryResponse",
+        "type": "object"
+      },
+      "AssetSummaryResponse": {
+        "properties": {
+          "by_kind": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AssetKindSummaryResponse"
+            },
+            "title": "By Kind",
+            "type": "object"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "duration_ms",
+          "by_kind"
+        ],
+        "title": "AssetSummaryResponse",
         "type": "object"
       },
       "BatchColumnGuessResponse": {
@@ -1047,41 +1211,6 @@
         "title": "CostBasisResponse",
         "type": "object"
       },
-      "DatabaseStatusResponse": {
-        "properties": {
-          "connected": {
-            "title": "Connected",
-            "type": "boolean"
-          },
-          "count": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Count"
-          },
-          "reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reason"
-          }
-        },
-        "required": [
-          "connected"
-        ],
-        "title": "DatabaseStatusResponse",
-        "type": "object"
-      },
       "DeleteBody": {
         "properties": {
           "ids": {
@@ -1096,6 +1225,151 @@
           "ids"
         ],
         "title": "DeleteBody",
+        "type": "object"
+      },
+      "DeletedPartsEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DeletedPartsResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "DeletedPartsEnvelope",
+        "type": "object"
+      },
+      "DeletedPartsResponse": {
+        "properties": {
+          "deleted": {
+            "title": "Deleted",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "title": "DeletedPartsResponse",
+        "type": "object"
+      },
+      "DeletedPronunciationEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DeletedPronunciationResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "DeletedPronunciationEnvelope",
+        "type": "object"
+      },
+      "DeletedPronunciationResponse": {
+        "properties": {
+          "deleted": {
+            "title": "Deleted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "title": "DeletedPronunciationResponse",
+        "type": "object"
+      },
+      "DiskLocationResponse": {
+        "properties": {
+          "bytes": {
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "files": {
+            "title": "Files",
+            "type": "integer"
+          },
+          "what": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "What"
+          },
+          "where": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Where"
+          }
+        },
+        "required": [
+          "bytes",
+          "files"
+        ],
+        "title": "DiskLocationResponse",
+        "type": "object"
+      },
+      "DiskSnapshotEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DiskSnapshotResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "DiskSnapshotEnvelope",
+        "type": "object"
+      },
+      "DiskSnapshotResponse": {
+        "properties": {
+          "finished": {
+            "$ref": "#/components/schemas/DiskLocationResponse"
+          },
+          "keep_days": {
+            "title": "Keep Days",
+            "type": "integer"
+          },
+          "protected": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DiskLocationResponse"
+            },
+            "title": "Protected",
+            "type": "object"
+          },
+          "protected_total": {
+            "title": "Protected Total",
+            "type": "integer"
+          },
+          "scratch": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DiskLocationResponse"
+            },
+            "title": "Scratch",
+            "type": "object"
+          },
+          "scratch_total": {
+            "title": "Scratch Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "finished",
+          "scratch",
+          "scratch_total",
+          "protected",
+          "protected_total",
+          "keep_days"
+        ],
+        "title": "DiskSnapshotResponse",
         "type": "object"
       },
       "DraftBody": {
@@ -1234,6 +1508,53 @@
         "title": "DraftBody",
         "type": "object"
       },
+      "FidelityResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "requested_words": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested Words"
+          },
+          "returned_words": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Returned Words"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "FidelityResponse",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1245,6 +1566,150 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HierarchyMetricsResponse": {
+        "properties": {
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "parts": {
+            "title": "Parts",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "parts",
+          "cost"
+        ],
+        "title": "HierarchyMetricsResponse",
+        "type": "object"
+      },
+      "HierarchyNodeResponse": {
+        "properties": {
+          "children": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/HierarchyNodeResponse"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Children"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "icon": {
+            "title": "Icon",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "locked": {
+            "title": "Locked",
+            "type": "boolean"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/HierarchyMetricsResponse"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "parent_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Key"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "system_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System Role"
+          },
+          "type": {
+            "enum": [
+              "venture",
+              "project",
+              "series",
+              "production"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "key",
+          "id",
+          "public_id",
+          "type",
+          "parent_key",
+          "name",
+          "description",
+          "icon",
+          "locked",
+          "metrics"
+        ],
+        "title": "HierarchyNodeResponse",
+        "type": "object"
+      },
+      "HierarchyPageEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/HierarchyNodeResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaResponse"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "HierarchyPageEnvelope",
         "type": "object"
       },
       "HistoricalVoiceCollectionEnvelope": {
@@ -1559,6 +2024,159 @@
         "title": "MoveBody",
         "type": "object"
       },
+      "MovedPartsEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/MovedPartsResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "MovedPartsEnvelope",
+        "type": "object"
+      },
+      "MovedPartsResponse": {
+        "properties": {
+          "moved": {
+            "title": "Moved",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "moved"
+        ],
+        "title": "MovedPartsResponse",
+        "type": "object"
+      },
+      "MusicBedEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/MusicBedResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "MusicBedEnvelope",
+        "type": "object"
+      },
+      "MusicBedResponse": {
+        "properties": {
+          "duck": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duck"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "fade_in": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fade In"
+          },
+          "fade_out": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fade Out"
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "music_of": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Music Of"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume"
+          }
+        },
+        "title": "MusicBedResponse",
+        "type": "object"
+      },
       "MusicBody": {
         "additionalProperties": false,
         "properties": {
@@ -1646,6 +2264,42 @@
         "title": "MusicBody",
         "type": "object"
       },
+      "OkEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/OkResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "OkEnvelope",
+        "type": "object"
+      },
+      "OkResponse": {
+        "properties": {
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "subtitles_stale": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitles Stale"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "OkResponse",
+        "type": "object"
+      },
       "OrderBody": {
         "properties": {
           "order": {
@@ -1687,6 +2341,154 @@
         "title": "OutputReference",
         "type": "object"
       },
+      "OverviewResourceResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "icon": {
+            "title": "Icon",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "locked": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locked"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "venture",
+              "project",
+              "series"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "type",
+          "key",
+          "name",
+          "description",
+          "icon"
+        ],
+        "title": "OverviewResourceResponse",
+        "type": "object"
+      },
+      "PaginationMetaResponse": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "total",
+          "next_cursor"
+        ],
+        "title": "PaginationMetaResponse",
+        "type": "object"
+      },
+      "PartCreatedEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PartCreatedResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "PartCreatedEnvelope",
+        "type": "object"
+      },
+      "PartCreatedResponse": {
+        "properties": {
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seconds"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "PartCreatedResponse",
+        "type": "object"
+      },
       "PerformancePresetResponse": {
         "properties": {
           "engines": {
@@ -1720,6 +2522,1051 @@
           "engines"
         ],
         "title": "PerformancePresetResponse",
+        "type": "object"
+      },
+      "ProductionAccountingResponse": {
+        "properties": {
+          "current_sequence_cost": {
+            "title": "Current Sequence Cost",
+            "type": "number"
+          },
+          "historical_spend": {
+            "title": "Historical Spend",
+            "type": "number"
+          },
+          "retained_generation_cost": {
+            "title": "Retained Generation Cost",
+            "type": "number"
+          },
+          "tracked_spend": {
+            "title": "Tracked Spend",
+            "type": "number"
+          },
+          "untracked_legacy_spend": {
+            "title": "Untracked Legacy Spend",
+            "type": "number"
+          }
+        },
+        "required": [
+          "historical_spend",
+          "current_sequence_cost",
+          "retained_generation_cost",
+          "tracked_spend",
+          "untracked_legacy_spend"
+        ],
+        "title": "ProductionAccountingResponse",
+        "type": "object"
+      },
+      "ProductionEditorEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProductionEditorResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ProductionEditorEnvelope",
+        "type": "object"
+      },
+      "ProductionEditorResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "accounting": {
+            "$ref": "#/components/schemas/ProductionAccountingResponse"
+          },
+          "children": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/HierarchyNodeResponse"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Children"
+          },
+          "cover_image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Image"
+          },
+          "current_sequence_cost": {
+            "title": "Current Sequence Cost",
+            "type": "number"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "exports": {
+            "items": {
+              "$ref": "#/components/schemas/ProductionExportResponse"
+            },
+            "title": "Exports",
+            "type": "array"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "legacy_container_id": {
+            "title": "Legacy Container Id",
+            "type": "integer"
+          },
+          "locked": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locked"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HierarchyMetricsResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "parent_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Key"
+          },
+          "parts": {
+            "items": {
+              "$ref": "#/components/schemas/ProductionPartResponse"
+            },
+            "title": "Parts",
+            "type": "array"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "integer"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "series_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series Id"
+          },
+          "settings": {
+            "additionalProperties": true,
+            "title": "Settings",
+            "type": "object"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "system_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System Role"
+          },
+          "total_bytes": {
+            "title": "Total Bytes",
+            "type": "integer"
+          },
+          "total_cost": {
+            "title": "Total Cost",
+            "type": "number"
+          },
+          "trail": {
+            "items": {
+              "$ref": "#/components/schemas/TrailItemResponse"
+            },
+            "title": "Trail",
+            "type": "array"
+          },
+          "type": {
+            "const": "production",
+            "title": "Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "type",
+          "key",
+          "name",
+          "description",
+          "project_id",
+          "series_id",
+          "legacy_container_id",
+          "settings",
+          "trail",
+          "parts",
+          "exports",
+          "total_cost",
+          "current_sequence_cost",
+          "accounting",
+          "total_bytes"
+        ],
+        "title": "ProductionEditorResponse",
+        "type": "object"
+      },
+      "ProductionExportResponse": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "generation_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generation Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "manifest": {
+            "additionalProperties": true,
+            "title": "Manifest",
+            "type": "object"
+          },
+          "production_id": {
+            "title": "Production Id",
+            "type": "integer"
+          },
+          "renderer": {
+            "title": "Renderer",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "production_id",
+          "generation_id",
+          "filename",
+          "manifest",
+          "renderer",
+          "duration_ms",
+          "size_bytes",
+          "created_at"
+        ],
+        "title": "ProductionExportResponse",
+        "type": "object"
+      },
+      "ProductionPartResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "asset_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Id"
+          },
+          "asset_of": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Of"
+          },
+          "asset_version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Version Id"
+          },
+          "chars": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chars"
+          },
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "cost_basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Basis"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "engine": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine"
+          },
+          "fidelity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FidelityResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "instruction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instruction"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Languages",
+            "type": "array"
+          },
+          "missing": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "pitch": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pitch"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "provider_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Text"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          },
+          "speech_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speech Mode"
+          },
+          "spent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spent"
+          },
+          "subtitled": {
+            "default": false,
+            "title": "Subtitled",
+            "type": "boolean"
+          },
+          "subtitles_stale": {
+            "default": false,
+            "title": "Subtitles Stale",
+            "type": "boolean"
+          },
+          "takes": {
+            "default": 0,
+            "title": "Takes",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "text_raw": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Raw"
+          },
+          "text_shaped": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Shaped"
+          },
+          "text_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text State"
+          },
+          "text_tagged": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Tagged"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "voice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice"
+          },
+          "voice_identity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Identity Id"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "position",
+          "kind",
+          "text",
+          "cost"
+        ],
+        "title": "ProductionPartResponse",
+        "type": "object"
+      },
+      "ProductionSummaryResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "current_sequence_cost": {
+            "title": "Current Sequence Cost",
+            "type": "number"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "part_count": {
+            "title": "Part Count",
+            "type": "integer"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "series_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "total_cost": {
+            "title": "Total Cost",
+            "type": "number"
+          },
+          "type": {
+            "const": "production",
+            "default": "production",
+            "title": "Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "key",
+          "name",
+          "description",
+          "status",
+          "series_id",
+          "part_count",
+          "duration_ms",
+          "total_cost",
+          "current_sequence_cost"
+        ],
+        "title": "ProductionSummaryResponse",
+        "type": "object"
+      },
+      "ProjectOverviewEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProjectOverviewResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ProjectOverviewEnvelope",
+        "type": "object"
+      },
+      "ProjectOverviewMetricsResponse": {
+        "properties": {
+          "current_sequence_cost": {
+            "title": "Current Sequence Cost",
+            "type": "number"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "part_count": {
+            "title": "Part Count",
+            "type": "integer"
+          },
+          "production_count": {
+            "title": "Production Count",
+            "type": "integer"
+          },
+          "series_count": {
+            "title": "Series Count",
+            "type": "integer"
+          },
+          "standalone_count": {
+            "title": "Standalone Count",
+            "type": "integer"
+          },
+          "total_cost": {
+            "title": "Total Cost",
+            "type": "number"
+          }
+        },
+        "required": [
+          "production_count",
+          "part_count",
+          "duration_ms",
+          "total_cost",
+          "current_sequence_cost",
+          "series_count",
+          "standalone_count"
+        ],
+        "title": "ProjectOverviewMetricsResponse",
+        "type": "object"
+      },
+      "ProjectOverviewResponse": {
+        "properties": {
+          "metrics": {
+            "$ref": "#/components/schemas/ProjectOverviewMetricsResponse"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/OverviewResourceResponse"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/SeriesSummaryResponse"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "standalone_productions": {
+            "items": {
+              "$ref": "#/components/schemas/ProductionSummaryResponse"
+            },
+            "title": "Standalone Productions",
+            "type": "array"
+          },
+          "trail": {
+            "items": {
+              "$ref": "#/components/schemas/TrailItemResponse"
+            },
+            "title": "Trail",
+            "type": "array"
+          }
+        },
+        "required": [
+          "resource",
+          "trail",
+          "series",
+          "standalone_productions",
+          "metrics"
+        ],
+        "title": "ProjectOverviewResponse",
+        "type": "object"
+      },
+      "ProjectSummaryResponse": {
+        "properties": {
+          "cover_image": {
+            "title": "Cover Image",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/SummaryMetricsResponse"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "project",
+            "default": "project",
+            "title": "Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "key",
+          "name",
+          "description",
+          "cover_image",
+          "metrics"
+        ],
+        "title": "ProjectSummaryResponse",
+        "type": "object"
+      },
+      "PronunciationListEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PronunciationRuleResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "PronunciationListEnvelope",
+        "type": "object"
+      },
+      "PronunciationPreviewEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PronunciationPreviewResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "PronunciationPreviewEnvelope",
+        "type": "object"
+      },
+      "PronunciationPreviewResponse": {
+        "properties": {
+          "applied": {
+            "items": {
+              "$ref": "#/components/schemas/AppliedPronunciationResponse"
+            },
+            "title": "Applied",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "applied"
+        ],
+        "title": "PronunciationPreviewResponse",
+        "type": "object"
+      },
+      "PronunciationRuleResponse": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "match_case": {
+            "title": "Match Case",
+            "type": "boolean"
+          },
+          "pattern": {
+            "title": "Pattern",
+            "type": "string"
+          },
+          "phoneme": {
+            "title": "Phoneme",
+            "type": "boolean"
+          },
+          "replacement": {
+            "title": "Replacement",
+            "type": "string"
+          },
+          "whole_word": {
+            "title": "Whole Word",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "pattern",
+          "replacement",
+          "whole_word",
+          "match_case",
+          "enabled",
+          "phoneme"
+        ],
+        "title": "PronunciationRuleResponse",
         "type": "object"
       },
       "PronunciationUpdate": {
@@ -1770,6 +3617,49 @@
           "replacement"
         ],
         "title": "PronunciationUpdate",
+        "type": "object"
+      },
+      "ProviderSettingsResponse": {
+        "properties": {
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "http_base": {
+            "title": "Http Base",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "region": {
+            "title": "Region",
+            "type": "string"
+          },
+          "region_label": {
+            "title": "Region Label",
+            "type": "string"
+          },
+          "workspace_configured": {
+            "title": "Workspace Configured",
+            "type": "boolean"
+          },
+          "workspace_id": {
+            "default": "",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "configured",
+          "workspace_configured",
+          "region",
+          "region_label",
+          "http_base"
+        ],
+        "title": "ProviderSettingsResponse",
         "type": "object"
       },
       "ProviderUpdate": {
@@ -1839,6 +3729,99 @@
           "name"
         ],
         "title": "ResourceCreate",
+        "type": "object"
+      },
+      "ResourceMutationEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ResourceMutationResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ResourceMutationEnvelope",
+        "type": "object"
+      },
+      "ResourceMutationResponse": {
+        "additionalProperties": true,
+        "description": "A command acknowledgement; callers reload the canonical resource.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "parent_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Key"
+          },
+          "public_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Id"
+          },
+          "type": {
+            "enum": [
+              "venture",
+              "project",
+              "series",
+              "production"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "ResourceMutationResponse",
         "type": "object"
       },
       "ResourceUpdate": {
@@ -1939,6 +3922,266 @@
           }
         },
         "title": "ResourceUpdate",
+        "type": "object"
+      },
+      "SavedPronunciationEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SavedPronunciationResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SavedPronunciationEnvelope",
+        "type": "object"
+      },
+      "SavedPronunciationResponse": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/PronunciationRuleResponse"
+            },
+            "title": "Rules",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "rules"
+        ],
+        "title": "SavedPronunciationResponse",
+        "type": "object"
+      },
+      "SeriesOverviewEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SeriesOverviewResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SeriesOverviewEnvelope",
+        "type": "object"
+      },
+      "SeriesOverviewMetricsResponse": {
+        "properties": {
+          "current_sequence_cost": {
+            "title": "Current Sequence Cost",
+            "type": "number"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "part_count": {
+            "title": "Part Count",
+            "type": "integer"
+          },
+          "production_count": {
+            "title": "Production Count",
+            "type": "integer"
+          },
+          "total_cost": {
+            "title": "Total Cost",
+            "type": "number"
+          }
+        },
+        "required": [
+          "production_count",
+          "part_count",
+          "duration_ms",
+          "total_cost",
+          "current_sequence_cost"
+        ],
+        "title": "SeriesOverviewMetricsResponse",
+        "type": "object"
+      },
+      "SeriesOverviewResponse": {
+        "properties": {
+          "defaults": {
+            "additionalProperties": true,
+            "title": "Defaults",
+            "type": "object"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/SeriesOverviewMetricsResponse"
+          },
+          "productions": {
+            "items": {
+              "$ref": "#/components/schemas/ProductionSummaryResponse"
+            },
+            "title": "Productions",
+            "type": "array"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/OverviewResourceResponse"
+          },
+          "trail": {
+            "items": {
+              "$ref": "#/components/schemas/TrailItemResponse"
+            },
+            "title": "Trail",
+            "type": "array"
+          }
+        },
+        "required": [
+          "resource",
+          "trail",
+          "defaults",
+          "productions",
+          "metrics"
+        ],
+        "title": "SeriesOverviewResponse",
+        "type": "object"
+      },
+      "SeriesSummaryResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "defaults": {
+            "additionalProperties": true,
+            "title": "Defaults",
+            "type": "object"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "icon": {
+            "default": "",
+            "title": "Icon",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/SummaryMetricsResponse"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "series",
+            "default": "series",
+            "title": "Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "key",
+          "name",
+          "description",
+          "defaults",
+          "metrics"
+        ],
+        "title": "SeriesSummaryResponse",
+        "type": "object"
+      },
+      "SettingsSnapshotEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SettingsSnapshotResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SettingsSnapshotEnvelope",
+        "type": "object"
+      },
+      "SettingsSnapshotResponse": {
+        "properties": {
+          "database": {
+            "$ref": "#/components/schemas/audio_studio__http__settings_contracts__DatabaseStatusResponse"
+          },
+          "naming": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "title": "Naming",
+            "type": "object"
+          },
+          "naming_tokens": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Naming Tokens",
+            "type": "array"
+          },
+          "output_directory": {
+            "title": "Output Directory",
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ProviderSettingsResponse"
+          },
+          "speech": {
+            "$ref": "#/components/schemas/SpeechSettingsResponse"
+          },
+          "spending": {
+            "$ref": "#/components/schemas/SpendingSettingsResponse"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageStatusResponse"
+          },
+          "storage_settings": {
+            "$ref": "#/components/schemas/StorageSettingsResponse"
+          }
+        },
+        "required": [
+          "provider",
+          "output_directory",
+          "spending",
+          "speech",
+          "naming",
+          "naming_tokens",
+          "database",
+          "storage",
+          "storage_settings"
+        ],
+        "title": "SettingsSnapshotResponse",
         "type": "object"
       },
       "SettingsUpdate": {
@@ -2265,6 +4508,246 @@
           "model"
         ],
         "title": "SpeechJobCreate",
+        "type": "object"
+      },
+      "SpeechSettingsResponse": {
+        "properties": {
+          "day_first": {
+            "title": "Day First",
+            "type": "boolean"
+          },
+          "extra_params": {
+            "title": "Extra Params",
+            "type": "string"
+          },
+          "fix_dates_phones": {
+            "title": "Fix Dates Phones",
+            "type": "boolean"
+          },
+          "supported_flags": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Supported Flags",
+            "type": "object"
+          },
+          "synth_flags": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "title": "Synth Flags",
+            "type": "object"
+          }
+        },
+        "required": [
+          "fix_dates_phones",
+          "day_first",
+          "synth_flags",
+          "supported_flags",
+          "extra_params"
+        ],
+        "title": "SpeechSettingsResponse",
+        "type": "object"
+      },
+      "SpendingSettingsResponse": {
+        "properties": {
+          "all_time": {
+            "title": "All Time",
+            "type": "number"
+          },
+          "daily_cap": {
+            "title": "Daily Cap",
+            "type": "number"
+          },
+          "month": {
+            "title": "Month",
+            "type": "number"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          },
+          "today": {
+            "title": "Today",
+            "type": "number"
+          },
+          "warn_above": {
+            "title": "Warn Above",
+            "type": "number"
+          }
+        },
+        "required": [
+          "warn_above",
+          "daily_cap",
+          "today",
+          "month",
+          "all_time",
+          "runs"
+        ],
+        "title": "SpendingSettingsResponse",
+        "type": "object"
+      },
+      "StorageSettingsResponse": {
+        "properties": {
+          "access_key_configured": {
+            "title": "Access Key Configured",
+            "type": "boolean"
+          },
+          "bucket": {
+            "title": "Bucket",
+            "type": "string"
+          },
+          "endpoint": {
+            "title": "Endpoint",
+            "type": "string"
+          },
+          "organization_id": {
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "prefix": {
+            "title": "Prefix",
+            "type": "string"
+          },
+          "region": {
+            "title": "Region",
+            "type": "string"
+          },
+          "secret_key_configured": {
+            "title": "Secret Key Configured",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "endpoint",
+          "bucket",
+          "prefix",
+          "region",
+          "organization_id",
+          "access_key_configured",
+          "secret_key_configured"
+        ],
+        "title": "StorageSettingsResponse",
+        "type": "object"
+      },
+      "StorageStatusResponse": {
+        "properties": {
+          "bucket": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bucket"
+          },
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "endpoint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endpoint"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "configured",
+          "status"
+        ],
+        "title": "StorageStatusResponse",
+        "type": "object"
+      },
+      "StorageTestEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/StorageTestResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "StorageTestEnvelope",
+        "type": "object"
+      },
+      "StorageTestResponse": {
+        "properties": {
+          "bucket": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bucket"
+          },
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "endpoint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endpoint"
+          },
+          "prefix": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prefix"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "configured"
+        ],
+        "title": "StorageTestResponse",
         "type": "object"
       },
       "StorageUpdate": {
@@ -2828,6 +5311,39 @@
         "title": "SubtitleSummaryResponse",
         "type": "object"
       },
+      "SummaryMetricsResponse": {
+        "properties": {
+          "current_sequence_cost": {
+            "title": "Current Sequence Cost",
+            "type": "number"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "part_count": {
+            "title": "Part Count",
+            "type": "integer"
+          },
+          "production_count": {
+            "title": "Production Count",
+            "type": "integer"
+          },
+          "total_cost": {
+            "title": "Total Cost",
+            "type": "number"
+          }
+        },
+        "required": [
+          "production_count",
+          "part_count",
+          "duration_ms",
+          "total_cost",
+          "current_sequence_cost"
+        ],
+        "title": "SummaryMetricsResponse",
+        "type": "object"
+      },
       "SystemHealthEnvelope": {
         "properties": {
           "data": {
@@ -2843,7 +5359,7 @@
       "SystemHealthResponse": {
         "properties": {
           "database": {
-            "$ref": "#/components/schemas/DatabaseStatusResponse"
+            "$ref": "#/components/schemas/audio_studio__http__operational_contracts__DatabaseStatusResponse"
           },
           "name": {
             "title": "Name",
@@ -2869,6 +5385,140 @@
           "worker"
         ],
         "title": "SystemHealthResponse",
+        "type": "object"
+      },
+      "TakeListEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TakeResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "TakeListEnvelope",
+        "type": "object"
+      },
+      "TakeResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "fidelity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FidelityResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "instruction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instruction"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "pitch": {
+            "title": "Pitch",
+            "type": "number"
+          },
+          "rate": {
+            "title": "Rate",
+            "type": "number"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "voice": {
+            "title": "Voice",
+            "type": "string"
+          },
+          "voice_identity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Identity Id"
+          },
+          "when": {
+            "title": "When",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "when",
+          "voice",
+          "model",
+          "rate",
+          "pitch",
+          "seed",
+          "filename",
+          "size_bytes",
+          "cost",
+          "text"
+        ],
+        "title": "TakeResponse",
         "type": "object"
       },
       "TextBody": {
@@ -3006,6 +5656,80 @@
         "title": "TextJobCreate",
         "type": "object"
       },
+      "TidyResultEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TidyResultResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "TidyResultEnvelope",
+        "type": "object"
+      },
+      "TidyResultResponse": {
+        "properties": {
+          "freed": {
+            "title": "Freed",
+            "type": "integer"
+          },
+          "removed": {
+            "title": "Removed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "removed",
+          "freed"
+        ],
+        "title": "TidyResultResponse",
+        "type": "object"
+      },
+      "TrailItemResponse": {
+        "properties": {
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "venture",
+              "project",
+              "series"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "type",
+          "name"
+        ],
+        "title": "TrailItemResponse",
+        "type": "object"
+      },
       "TranscriptSentenceResponse": {
         "properties": {
           "end": {
@@ -3040,6 +5764,73 @@
           "text"
         ],
         "title": "TranscriptSentenceResponse",
+        "type": "object"
+      },
+      "TranscriptSummaryListEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptSummaryResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "TranscriptSummaryListEnvelope",
+        "type": "object"
+      },
+      "TranscriptSummaryResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "is_translation": {
+            "title": "Is Translation",
+            "type": "boolean"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "is_translation",
+          "stale"
+        ],
+        "title": "TranscriptSummaryResponse",
         "type": "object"
       },
       "TranscriptionJobCreate": {
@@ -3373,6 +6164,211 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "VentureAssetLibraryEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/VentureAssetLibraryResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "VentureAssetLibraryEnvelope",
+        "type": "object"
+      },
+      "VentureAssetLibraryResponse": {
+        "properties": {
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/VentureAssetResponse"
+            },
+            "title": "Assets",
+            "type": "array"
+          },
+          "collections": {
+            "items": {
+              "$ref": "#/components/schemas/AssetCollectionResponse"
+            },
+            "title": "Collections",
+            "type": "array"
+          },
+          "venture": {
+            "$ref": "#/components/schemas/HierarchyNodeResponse"
+          }
+        },
+        "required": [
+          "venture",
+          "collections",
+          "assets"
+        ],
+        "title": "VentureAssetLibraryResponse",
+        "type": "object"
+      },
+      "VentureAssetResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "collection": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collection"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "folder": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Folder"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "missing": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          },
+          "voice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "VentureAssetResponse",
+        "type": "object"
+      },
+      "VentureOverviewEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/VentureOverviewResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "VentureOverviewEnvelope",
+        "type": "object"
+      },
+      "VentureOverviewResponse": {
+        "properties": {
+          "asset_summary": {
+            "$ref": "#/components/schemas/AssetSummaryResponse"
+          },
+          "projects": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectSummaryResponse"
+            },
+            "title": "Projects",
+            "type": "array"
+          },
+          "recent_productions": {
+            "items": {
+              "$ref": "#/components/schemas/ProductionSummaryResponse"
+            },
+            "title": "Recent Productions",
+            "type": "array"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/OverviewResourceResponse"
+          },
+          "trail": {
+            "items": {
+              "$ref": "#/components/schemas/TrailItemResponse"
+            },
+            "title": "Trail",
+            "type": "array"
+          }
+        },
+        "required": [
+          "resource",
+          "trail",
+          "projects",
+          "asset_summary",
+          "recent_productions"
+        ],
+        "title": "VentureOverviewResponse",
         "type": "object"
       },
       "VoiceBindingResponse": {
@@ -5040,6 +8036,224 @@
         "title": "VoiceUsageResponse",
         "type": "object"
       },
+      "WorkResourceEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WorkResourceResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "WorkResourceEnvelope",
+        "type": "object"
+      },
+      "WorkResourceResponse": {
+        "additionalProperties": true,
+        "description": "The shared identity fields returned by any Work resource.",
+        "properties": {
+          "children": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/HierarchyNodeResponse"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Children"
+          },
+          "cover_image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Image"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "legacy_container_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legacy Container Id"
+          },
+          "locked": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locked"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HierarchyMetricsResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "parent_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Key"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "series_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series Id"
+          },
+          "settings": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settings"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "system_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System Role"
+          },
+          "trail": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/TrailItemResponse"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trail"
+          },
+          "type": {
+            "enum": [
+              "venture",
+              "project",
+              "series",
+              "production"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "type",
+          "key",
+          "name",
+          "description"
+        ],
+        "title": "WorkResourceResponse",
+        "type": "object"
+      },
       "WorkerStatusResponse": {
         "properties": {
           "detail": {
@@ -5134,6 +8348,77 @@
           "http_base"
         ],
         "title": "WorkspaceResponse",
+        "type": "object"
+      },
+      "audio_studio__http__operational_contracts__DatabaseStatusResponse": {
+        "properties": {
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "connected"
+        ],
+        "title": "DatabaseStatusResponse",
+        "type": "object"
+      },
+      "audio_studio__http__settings_contracts__DatabaseStatusResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "required": [
+          "connected"
+        ],
+        "title": "DatabaseStatusResponse",
         "type": "object"
       }
     }
@@ -5341,11 +8626,6 @@
         ],
         "responses": {
           "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
             "description": "Successful Response"
           },
           "422": {
@@ -5381,11 +8661,6 @@
         ],
         "responses": {
           "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
             "description": "Successful Response"
           },
           "422": {
@@ -5443,9 +8718,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Listhierarchy",
-                  "type": "object"
+                  "$ref": "#/components/schemas/HierarchyPageEnvelope"
                 }
               }
             },
@@ -5970,9 +9243,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Listproductionassets",
-                  "type": "object"
+                  "$ref": "#/components/schemas/VentureAssetLibraryEnvelope"
                 }
               }
             },
@@ -6014,9 +9285,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getproductioneditor",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProductionEditorEnvelope"
                 }
               }
             },
@@ -6058,9 +9327,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getproductionmusic",
-                  "type": "object"
+                  "$ref": "#/components/schemas/MusicBedEnvelope"
                 }
               }
             },
@@ -6110,9 +9377,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Updateproductionmusic",
-                  "type": "object"
+                  "$ref": "#/components/schemas/MusicBedEnvelope"
                 }
               }
             },
@@ -6164,9 +9429,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Deleteproductionparts",
-                  "type": "object"
+                  "$ref": "#/components/schemas/DeletedPartsEnvelope"
                 }
               }
             },
@@ -6218,9 +9481,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Insertproductionasset",
-                  "type": "object"
+                  "$ref": "#/components/schemas/PartCreatedEnvelope"
                 }
               }
             },
@@ -6272,9 +9533,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Addproductiondraft",
-                  "type": "object"
+                  "$ref": "#/components/schemas/PartCreatedEnvelope"
                 }
               }
             },
@@ -6326,9 +9585,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Moveproductionparts",
-                  "type": "object"
+                  "$ref": "#/components/schemas/MovedPartsEnvelope"
                 }
               }
             },
@@ -6380,9 +9637,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Reorderproductionparts",
-                  "type": "object"
+                  "$ref": "#/components/schemas/OkEnvelope"
                 }
               }
             },
@@ -6434,9 +9689,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Addproductionsilence",
-                  "type": "object"
+                  "$ref": "#/components/schemas/PartCreatedEnvelope"
                 }
               }
             },
@@ -6487,9 +9740,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Listproductionpartcaptions",
-                  "type": "object"
+                  "$ref": "#/components/schemas/TranscriptSummaryListEnvelope"
                 }
               }
             },
@@ -6540,9 +9791,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Duplicateproductionpart",
-                  "type": "object"
+                  "$ref": "#/components/schemas/PartCreatedEnvelope"
                 }
               }
             },
@@ -6603,9 +9852,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Updateproductionsilence",
-                  "type": "object"
+                  "$ref": "#/components/schemas/PartCreatedEnvelope"
                 }
               }
             },
@@ -6656,9 +9903,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Listproductionparttakes",
-                  "type": "object"
+                  "$ref": "#/components/schemas/TakeListEnvelope"
                 }
               }
             },
@@ -6718,9 +9963,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Promoteproductiontake",
-                  "type": "object"
+                  "$ref": "#/components/schemas/OkEnvelope"
                 }
               }
             },
@@ -6781,9 +10024,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Updateproductionparttext",
-                  "type": "object"
+                  "$ref": "#/components/schemas/OkEnvelope"
                 }
               }
             },
@@ -6825,9 +10066,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Deleteproduction",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ArchivedResourceEnvelope"
                 }
               }
             },
@@ -6867,9 +10106,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getproduction",
-                  "type": "object"
+                  "$ref": "#/components/schemas/WorkResourceEnvelope"
                 }
               }
             },
@@ -6919,9 +10156,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Updateproduction",
-                  "type": "object"
+                  "$ref": "#/components/schemas/WorkResourceEnvelope"
                 }
               }
             },
@@ -7016,9 +10251,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Createproduction",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ResourceMutationEnvelope"
                 }
               }
             },
@@ -7070,9 +10303,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Createseries",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ResourceMutationEnvelope"
                 }
               }
             },
@@ -7114,9 +10345,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Deleteproject",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ArchivedResourceEnvelope"
                 }
               }
             },
@@ -7156,9 +10385,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getproject",
-                  "type": "object"
+                  "$ref": "#/components/schemas/WorkResourceEnvelope"
                 }
               }
             },
@@ -7208,9 +10435,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Updateproject",
-                  "type": "object"
+                  "$ref": "#/components/schemas/WorkResourceEnvelope"
                 }
               }
             },
@@ -7252,9 +10477,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getprojectoverview",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProjectOverviewEnvelope"
                 }
               }
             },
@@ -7306,9 +10529,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Deleteseries",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ArchivedResourceEnvelope"
                 }
               }
             },
@@ -7348,9 +10569,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getseries",
-                  "type": "object"
+                  "$ref": "#/components/schemas/WorkResourceEnvelope"
                 }
               }
             },
@@ -7400,9 +10619,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Updateseries",
-                  "type": "object"
+                  "$ref": "#/components/schemas/WorkResourceEnvelope"
                 }
               }
             },
@@ -7444,9 +10661,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getseriesoverview",
-                  "type": "object"
+                  "$ref": "#/components/schemas/SeriesOverviewEnvelope"
                 }
               }
             },
@@ -7498,9 +10713,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Createseriesproduction",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ResourceMutationEnvelope"
                 }
               }
             },
@@ -7531,9 +10744,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getsettings",
-                  "type": "object"
+                  "$ref": "#/components/schemas/SettingsSnapshotEnvelope"
                 }
               }
             },
@@ -7562,9 +10773,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Updatesettings",
-                  "type": "object"
+                  "$ref": "#/components/schemas/SettingsSnapshotEnvelope"
                 }
               }
             },
@@ -7595,9 +10804,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getmaintenancesettings",
-                  "type": "object"
+                  "$ref": "#/components/schemas/DiskSnapshotEnvelope"
                 }
               }
             },
@@ -7632,9 +10839,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Tidyworkingfiles",
-                  "type": "object"
+                  "$ref": "#/components/schemas/TidyResultEnvelope"
                 }
               }
             },
@@ -7665,9 +10870,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Resetnaming",
-                  "type": "object"
+                  "$ref": "#/components/schemas/SettingsSnapshotEnvelope"
                 }
               }
             },
@@ -7688,9 +10891,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Listpronunciations",
-                  "type": "object"
+                  "$ref": "#/components/schemas/PronunciationListEnvelope"
                 }
               }
             },
@@ -7719,9 +10920,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Savepronunciation",
-                  "type": "object"
+                  "$ref": "#/components/schemas/SavedPronunciationEnvelope"
                 }
               }
             },
@@ -7765,9 +10964,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Previewpronunciation",
-                  "type": "object"
+                  "$ref": "#/components/schemas/PronunciationPreviewEnvelope"
                 }
               }
             },
@@ -7809,9 +11006,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Deletepronunciation",
-                  "type": "object"
+                  "$ref": "#/components/schemas/DeletedPronunciationEnvelope"
                 }
               }
             },
@@ -7852,9 +11047,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Updateprovidersettings",
-                  "type": "object"
+                  "$ref": "#/components/schemas/SettingsSnapshotEnvelope"
                 }
               }
             },
@@ -7895,9 +11088,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Updatestoragesettings",
-                  "type": "object"
+                  "$ref": "#/components/schemas/SettingsSnapshotEnvelope"
                 }
               }
             },
@@ -7928,9 +11119,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Teststoragesettings",
-                  "type": "object"
+                  "$ref": "#/components/schemas/StorageTestEnvelope"
                 }
               }
             },
@@ -8270,9 +11459,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Listventures",
-                  "type": "object"
+                  "$ref": "#/components/schemas/HierarchyPageEnvelope"
                 }
               }
             },
@@ -8311,9 +11498,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Createventure",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ResourceMutationEnvelope"
                 }
               }
             },
@@ -8355,9 +11540,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Deleteventure",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ArchivedResourceEnvelope"
                 }
               }
             },
@@ -8397,9 +11580,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getventure",
-                  "type": "object"
+                  "$ref": "#/components/schemas/WorkResourceEnvelope"
                 }
               }
             },
@@ -8449,9 +11630,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Updateventure",
-                  "type": "object"
+                  "$ref": "#/components/schemas/WorkResourceEnvelope"
                 }
               }
             },
@@ -8493,9 +11672,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Listventureassets",
-                  "type": "object"
+                  "$ref": "#/components/schemas/VentureAssetLibraryEnvelope"
                 }
               }
             },
@@ -8537,9 +11714,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getventureoverview",
-                  "type": "object"
+                  "$ref": "#/components/schemas/VentureOverviewEnvelope"
                 }
               }
             },
@@ -8591,9 +11766,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Createproject",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ResourceMutationEnvelope"
                 }
               }
             },

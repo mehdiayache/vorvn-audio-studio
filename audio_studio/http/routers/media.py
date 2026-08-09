@@ -49,12 +49,13 @@ def get_batch_media(folder: str, name: str) -> FileResponse:
     return _response(media_service.resolve("batch-audio", name, folder))
 
 
-@router.get("/api/v1/exports/{export_id}/download", operation_id="downloadExport")
+@router.get("/api/v1/exports/{export_id}/download", operation_id="downloadExport",
+            response_class=FileResponse)
 def download_export(export_id: int) -> FileResponse:
     return _response(media_service.export_file(export_id))
 
 
 @router.get("/api/v1/generations/{generation_id}/download",
-            operation_id="downloadGeneration")
+            operation_id="downloadGeneration", response_class=FileResponse)
 def download_generation(generation_id: int) -> FileResponse:
     return _response(media_service.generation_file(generation_id))

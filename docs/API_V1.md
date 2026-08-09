@@ -24,19 +24,19 @@ Export (immutable Production snapshot + manifest)
 Voice (provider voice, cloned voice or application alias)
 ```
 
-A Venture is not a generic container. It is the brand and policy boundary. A
-Project cannot be moved between ventures without an explicit transfer
-operation because voices, assets, naming rules and accounting belong to the
-venture.
+A Venture is not a generic folder. It owns brand identity and reusable media.
+Voices and standalone tools belong to Audio Studio globally; a Production may
+use any compatible application voice. Projects cannot currently be moved
+between Ventures.
 
 ## Transport rules
 
 - Base path: `/api/v1`.
 - JSON requests and responses, except binary upload/download URLs.
-- Every canonical resource has a UUID `public_id`. The local Studio routes and
-  local Studio routes still expose stable integer `id` values; external
-  clients should store `public_id` once UUID routing is enabled.
-- Mutating requests accept `Idempotency-Key`.
+- Every canonical Work resource has a UUID `public_id`. Browser URLs use it;
+  the current local API still uses integer path IDs and returns both identities.
+- Paid Job enqueue routes accept `Idempotency-Key`. Ordinary synchronous Work,
+  Timeline and Settings writes do not advertise idempotency.
 - Lists use cursor pagination: `?limit=50&after=...`.
 - Errors have one shape:
 
@@ -67,33 +67,29 @@ POST   /ventures
 GET    /ventures/{venture_id}
 PATCH  /ventures/{venture_id}
 DELETE /ventures/{venture_id}
-GET    /ventures/{venture_id}/usage
+GET    /ventures/{venture_id}/overview
 GET    /ventures/{venture_id}/assets
-POST   /ventures/{venture_id}/assets
-GET    /ventures/{venture_id}/voices
 ```
 
-Venture writes cover brand identity, default routing, naming rules, rewrite
-style, budget policy and provider region. They must not be hidden inside
-Project settings.
+Venture writes cover its identity. Reusable Intros, Outros, Music and Stingers
+are uploaded into its Asset collections through the dedicated upload route.
+Provider region, budgets, naming and global voices remain Studio concerns.
 
 ### Projects, Series and Productions
 
 ```text
-GET    /ventures/{venture_id}/projects
 POST   /ventures/{venture_id}/projects
 GET    /projects/{project_id}
 PATCH  /projects/{project_id}
 DELETE /projects/{project_id}
-GET    /projects/{project_id}/productions
 POST   /projects/{project_id}/productions
-GET    /projects/{project_id}/series
 POST   /projects/{project_id}/series
+GET    /projects/{project_id}/overview
 GET    /series/{series_id}
 PATCH  /series/{series_id}
 DELETE /series/{series_id}
-GET    /series/{series_id}/productions
 POST   /series/{series_id}/productions
+GET    /series/{series_id}/overview
 GET    /productions/{production_id}
 PATCH  /productions/{production_id}
 DELETE /productions/{production_id}
@@ -152,7 +148,6 @@ POST   /jobs/transcription
 POST   /jobs/translation
 POST   /jobs/text
 POST   /jobs/render
-GET    /ventures/{venture_id}/jobs
 ```
 
 Example accepted response:
@@ -194,15 +189,23 @@ the same resource contract without sharing DOM code.
 
 ## Implementation sequence
 
-1. Finish moving all browser networking behind domain services.
+1. All browser networking is owned by the typed API client. — done
 2. Add `/api/v1` read endpoints for Ventures, Projects, Productions, Parts,
    Assets and Exports. — done
-3. Add auth/tenant scope before exposing the server beyond localhost.
-4. Move paid work behind durable Jobs and actual provider usage accounting.
-5. Add idempotent writes and cursor pagination.
+3. Add auth/tenant scope before exposing the server beyond localhost. — future
+4. Paid work runs behind durable Jobs with actual provider usage when supplied.
+   — done
+5. Job enqueue is idempotent and hierarchy lists are cursor-paginated. Broader
+   external-write idempotency belongs to the future authenticated API.
 6. Public Export/Generation media lookup, Canonical Work lifecycle, Production
    document/Timeline, rendering/Exports, Voice identities, control-plane
    persistence, Venture Assets and voice package execution are native. — done
 7. Legacy `server.py`, `db.py`, `domain/schema.py` and `ui/` are deleted after
    caller and parity verification. Ordered migrations now bootstrap empty and
    existing databases. — done
+
+Every successful JSON operation now names an explicit Pydantic response
+envelope in OpenAPI. `pnpm check` regenerates the TypeScript contract consumed
+directly by Settings, Work overviews, Timeline commands, Voice, Batch and
+Subtitle paths; CI rejects a new successful JSON route that falls back to an
+unknown object. UI-only normalized view models remain separate where needed.

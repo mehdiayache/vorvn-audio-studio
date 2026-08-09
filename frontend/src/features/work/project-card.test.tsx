@@ -10,10 +10,12 @@ afterEach(cleanup)
 const project: ProjectSummary = {
   id: 3,
   public_id: "prj_sleeping",
+  key: "project:3",
+  type: "project",
   name: "Sleeping guides with a deliberately long name",
   description: "Calm evening productions.",
   cover_image: "/icon/sleeping.jpg",
-  metrics: { production_count: 3, part_count: 12, duration_ms: 88000, total_cost: .02 },
+  metrics: { production_count: 3, part_count: 12, duration_ms: 88000, total_cost: .02, current_sequence_cost: .02 },
   updated_at: "2026-08-07T03:31:12.852306+00:00",
 }
 

@@ -4,9 +4,6 @@ import type {
   Production,
   ProductionPart,
   HierarchyNode,
-  VentureOverview,
-  ProjectOverview,
-  SeriesOverview,
   ProductionSummary,
   VentureAsset,
   StudioConfig,
@@ -19,9 +16,6 @@ import type {
   CaptionMutationResult,
   AssetCollection,
   ActivitySnapshot,
-  SettingsSnapshot,
-  PronunciationRule,
-  DiskSnapshot,
   ExternalAudioUpload,
   CaptionProfile,
   BatchResult,
@@ -58,6 +52,28 @@ type VoicePackageCreateEnvelope = paths["/api/v1/voice-packages"]["post"]["respo
 type VoicePackageCreateBody = paths["/api/v1/voice-packages"]["post"]["requestBody"]["content"]["application/json"]
 type VoicePackageRetryEnvelope = paths["/api/v1/voice-packages/retry"]["post"]["responses"][202]["content"]["application/json"]
 type VoicePackageRetryBody = paths["/api/v1/voice-packages/retry"]["post"]["requestBody"]["content"]["application/json"]
+type SettingsEnvelope = paths["/api/v1/settings"]["get"]["responses"][200]["content"]["application/json"]
+type SettingsUpdateBody = paths["/api/v1/settings"]["patch"]["requestBody"]["content"]["application/json"]
+type ProviderUpdateBody = paths["/api/v1/settings/provider"]["patch"]["requestBody"]["content"]["application/json"]
+type StorageUpdateBody = paths["/api/v1/settings/storage"]["patch"]["requestBody"]["content"]["application/json"]
+type StorageTestEnvelope = paths["/api/v1/settings/storage/test"]["post"]["responses"][200]["content"]["application/json"]
+type MaintenanceEnvelope = paths["/api/v1/settings/maintenance"]["get"]["responses"][200]["content"]["application/json"]
+type TidyEnvelope = paths["/api/v1/settings/maintenance/tidy"]["post"]["responses"][200]["content"]["application/json"]
+type PronunciationListEnvelope = paths["/api/v1/settings/pronunciations"]["get"]["responses"][200]["content"]["application/json"]
+type PronunciationSaveEnvelope = paths["/api/v1/settings/pronunciations"]["post"]["responses"][200]["content"]["application/json"]
+type PronunciationSaveBody = paths["/api/v1/settings/pronunciations"]["post"]["requestBody"]["content"]["application/json"]
+type PronunciationDeleteEnvelope = paths["/api/v1/settings/pronunciations/{item_id}"]["delete"]["responses"][200]["content"]["application/json"]
+type PronunciationPreviewEnvelope = paths["/api/v1/settings/pronunciations/preview"]["get"]["responses"][200]["content"]["application/json"]
+type HierarchyPageEnvelope = paths["/api/v1/hierarchy"]["get"]["responses"][200]["content"]["application/json"]
+type VentureOverviewEnvelope = paths["/api/v1/ventures/{resource_id}/overview"]["get"]["responses"][200]["content"]["application/json"]
+type VentureAssetsEnvelope = paths["/api/v1/ventures/{resource_id}/assets"]["get"]["responses"][200]["content"]["application/json"]
+type ProjectOverviewEnvelope = paths["/api/v1/projects/{resource_id}/overview"]["get"]["responses"][200]["content"]["application/json"]
+type SeriesOverviewEnvelope = paths["/api/v1/series/{resource_id}/overview"]["get"]["responses"][200]["content"]["application/json"]
+type TimelineReorderEnvelope = paths["/api/v1/productions/{production_id}/parts/reorder"]["post"]["responses"][200]["content"]["application/json"]
+type TimelinePartEnvelope = paths["/api/v1/productions/{production_id}/parts/silence"]["post"]["responses"][200]["content"]["application/json"]
+type TimelineDeleteEnvelope = paths["/api/v1/productions/{production_id}/parts"]["delete"]["responses"][200]["content"]["application/json"]
+type TimelineMoveEnvelope = paths["/api/v1/productions/{production_id}/parts/move"]["post"]["responses"][200]["content"]["application/json"]
+type TimelineOkEnvelope = paths["/api/v1/productions/{production_id}/parts/{part_id}/text"]["patch"]["responses"][200]["content"]["application/json"]
 
 export { ApiError } from "@/lib/api-error"
 
@@ -97,18 +113,6 @@ function v1<T>(path: string) {
   return request<{ data: T }>(path).then((response) => response.data)
 }
 
-async function v1CollectionAll<T>(path: string): Promise<T[]> {
-  const items: T[] = []
-  let after: string | null = null
-  do {
-    const separator = path.includes("?") ? "&" : "?"
-    const response: { data: T[]; meta?: { next_cursor?: string | null } } = await request<{ data: T[]; meta?: { next_cursor?: string | null } }>(`${path}${separator}limit=100${after ? `&after=${encodeURIComponent(after)}` : ""}`)
-    items.push(...response.data)
-    after = response.meta?.next_cursor || null
-  } while (after)
-  return items
-}
-
 function postV1<T>(path: string, body: unknown) {
   return post<{ data: T }>(path, body).then((response) => response.data)
 }
@@ -126,21 +130,21 @@ export const studioApi = {
     if (filters.limit) query.set("limit", String(filters.limit))
     return v1<ActivitySnapshot>(`/api/v1/activity${query.size ? `?${query}` : ""}`)
   },
-  settings: () => v1<SettingsSnapshot>("/api/v1/settings"),
-  updateSettings: (changes: Record<string, unknown>) => request<{ data: SettingsSnapshot }>("/api/v1/settings", {
+  settings: () => request<SettingsEnvelope>("/api/v1/settings").then((response) => response.data),
+  updateSettings: (changes: SettingsUpdateBody) => request<SettingsEnvelope>("/api/v1/settings", {
     method: "PATCH",
     body: JSON.stringify(changes),
   }).then((response) => response.data),
-  resetNaming: () => postV1<SettingsSnapshot>("/api/v1/settings/naming/reset", {}),
-  updateProviderSettings: (changes: Record<string, unknown>) => request<{ data: SettingsSnapshot }>("/api/v1/settings/provider", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
-  updateStorageSettings: (changes: Record<string, unknown>) => request<{ data: SettingsSnapshot }>("/api/v1/settings/storage", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
-  testStorage: () => postV1<Record<string, unknown>>("/api/v1/settings/storage/test", {}),
-  maintenance: () => v1<DiskSnapshot>("/api/v1/settings/maintenance"),
-  tidyWorkingFiles: (days = 7) => postV1<{ removed: number; freed: number }>(`/api/v1/settings/maintenance/tidy?days=${days}`, {}),
-  pronunciations: () => v1<PronunciationRule[]>("/api/v1/settings/pronunciations"),
-  savePronunciation: (rule: Omit<PronunciationRule, "id"> & { id?: number }) => postV1<{ id: number; rules: PronunciationRule[] }>("/api/v1/settings/pronunciations", rule),
-  deletePronunciation: (id: number) => request<{ data: { deleted: boolean } }>(`/api/v1/settings/pronunciations/${id}`, { method: "DELETE" }).then((response) => response.data),
-  previewPronunciation: (text: string) => v1<{ text: string; applied: unknown[] }>(`/api/v1/settings/pronunciations/preview?text=${encodeURIComponent(text)}`),
+  resetNaming: () => request<SettingsEnvelope>("/api/v1/settings/naming/reset", { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
+  updateProviderSettings: (changes: ProviderUpdateBody) => request<SettingsEnvelope>("/api/v1/settings/provider", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
+  updateStorageSettings: (changes: StorageUpdateBody) => request<SettingsEnvelope>("/api/v1/settings/storage", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
+  testStorage: () => request<StorageTestEnvelope>("/api/v1/settings/storage/test", { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
+  maintenance: () => request<MaintenanceEnvelope>("/api/v1/settings/maintenance").then((response) => response.data),
+  tidyWorkingFiles: (days = 7) => request<TidyEnvelope>(`/api/v1/settings/maintenance/tidy?days=${days}`, { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
+  pronunciations: () => request<PronunciationListEnvelope>("/api/v1/settings/pronunciations").then((response) => response.data),
+  savePronunciation: (rule: PronunciationSaveBody) => request<PronunciationSaveEnvelope>("/api/v1/settings/pronunciations", { method: "POST", body: JSON.stringify(rule) }).then((response) => response.data),
+  deletePronunciation: (id: number) => request<PronunciationDeleteEnvelope>(`/api/v1/settings/pronunciations/${id}`, { method: "DELETE" }).then((response) => response.data),
+  previewPronunciation: (text: string) => request<PronunciationPreviewEnvelope>(`/api/v1/settings/pronunciations/preview?text=${encodeURIComponent(text)}`).then((response) => response.data),
   externalTranscripts: () => request<SubtitleListEnvelope>("/api/v1/subtitles").then((response) => response.data),
   externalTranscript: (id: number) => request<SubtitleEnvelope>(`/api/v1/subtitles/${id}`).then((response) => response.data),
   subtitleLayout: (id: number, profile: CaptionProfile) => request<CaptionLayoutEnvelope>(`/api/v1/subtitles/${id}/layouts/${profile}`).then((response) => response.data),
@@ -179,13 +183,22 @@ export const studioApi = {
   },
   retryVoiceBinding: (identityId: string, modelId: string) => request<VoicePackageRetryEnvelope>("/api/v1/voice-packages/retry", { method: "POST", body: JSON.stringify({ identity_id: identityId, model_id: modelId } satisfies VoicePackageRetryBody) }).then((response) => response.data),
   uploadVoiceReference: (file: File) => uploadFile<{ data: UploadedVoiceReference }>("/api/v1/voice-references/upload", file).then((response) => response.data),
-  projects: () => v1CollectionAll<HierarchyNode>("/api/v1/hierarchy"),
+  projects: async () => {
+    const items: HierarchyNode[] = []
+    let after: string | null = null
+    do {
+      const response: HierarchyPageEnvelope = await request<HierarchyPageEnvelope>(`/api/v1/hierarchy?limit=100${after ? `&after=${encodeURIComponent(after)}` : ""}`)
+      items.push(...response.data)
+      after = response.meta.next_cursor
+    } while (after)
+    return items
+  },
   resource: (type: "ventures" | "projects" | "series", id: number) =>
     v1<HierarchyNode>(`/api/v1/${type}/${id}`),
-  ventureOverview: (id: number) => v1<VentureOverview>(`/api/v1/ventures/${id}/overview`),
-  ventureAssets: (id: number) => v1<VentureAssetLibrary>(`/api/v1/ventures/${id}/assets`),
-  projectOverview: (id: number) => v1<ProjectOverview>(`/api/v1/projects/${id}/overview`),
-  seriesOverview: (id: number) => v1<SeriesOverview>(`/api/v1/series/${id}/overview`),
+  ventureOverview: (id: number) => request<VentureOverviewEnvelope>(`/api/v1/ventures/${id}/overview`).then((response) => response.data),
+  ventureAssets: (id: number) => request<VentureAssetsEnvelope>(`/api/v1/ventures/${id}/assets`).then((response) => response.data as VentureAssetLibrary),
+  projectOverview: (id: number) => request<ProjectOverviewEnvelope>(`/api/v1/projects/${id}/overview`).then((response) => response.data),
+  seriesOverview: (id: number) => request<SeriesOverviewEnvelope>(`/api/v1/series/${id}/overview`).then((response) => response.data),
   production: (id: number) => v1<Production>(`/api/v1/productions/${id}/editor`),
   createVenture: (name: string, description = "") => postV1<HierarchyNode>("/api/v1/ventures", { name, description }),
   createProject: (ventureId: number, name: string, description = "") => postV1<HierarchyNode>(`/api/v1/ventures/${ventureId}/projects`, { name, description }),
@@ -209,19 +222,19 @@ export const studioApi = {
     const response = await request<{ data: DurableJob<{ url: string; name: string; error?: string }> }>("/api/v1/jobs/render", { method: "POST", headers: { "Idempotency-Key": `export-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ production_id: id, operation: "export" }) })
     return waitForJob<{ url: string; name: string; error?: string }>(response.data.id)
   },
-  reorder: (id: number, order: number[]) => postV1<{ ok: boolean }>(`/api/v1/productions/${id}/parts/reorder`, { order }),
+  reorder: (id: number, order: number[]) => request<TimelineReorderEnvelope>(`/api/v1/productions/${id}/parts/reorder`, { method: "POST", body: JSON.stringify({ order }) }).then((response) => response.data),
   addSilence: (projectId: number, seconds: number, insertAt: number | null) =>
-    postV1<{ id?: number; ok?: boolean }>(`/api/v1/productions/${projectId}/parts/silence`, {
+    request<TimelinePartEnvelope>(`/api/v1/productions/${projectId}/parts/silence`, { method: "POST", body: JSON.stringify({
       seconds,
       insert_at: insertAt,
-    }),
+    }) }).then((response) => response.data),
   editSilence: (productionId: number, id: number, seconds: number) =>
-    request<{ data: { id: number; seconds: number } }>(`/api/v1/productions/${productionId}/parts/${id}/silence`, { method: "PATCH", body: JSON.stringify({ seconds }) }).then((response) => response.data),
-  duplicatePart: (productionId: number, id: number) => postV1<{ id?: number; ok?: boolean }>(`/api/v1/productions/${productionId}/parts/${id}/duplicate`, {}),
+    request<TimelinePartEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/silence`, { method: "PATCH", body: JSON.stringify({ seconds }) }).then((response) => response.data),
+  duplicatePart: (productionId: number, id: number) => request<TimelinePartEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/duplicate`, { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
   deletePart: (productionId: number, id: number) =>
-    request<{ data: { deleted: number } }>(`/api/v1/productions/${productionId}/parts`, { method: "DELETE", body: JSON.stringify({ ids: [id] }) }).then((response) => response.data),
-  deleteParts: (productionId: number, ids: number[]) => request<{ data: { deleted: number } }>(`/api/v1/productions/${productionId}/parts`, { method: "DELETE", body: JSON.stringify({ ids }) }).then((response) => response.data),
-  moveParts: (sourceProductionId: number, ids: number[], destinationProductionId: number) => postV1<{ moved: number }>(`/api/v1/productions/${sourceProductionId}/parts/move`, { ids, destination_production_id: destinationProductionId }),
+    request<TimelineDeleteEnvelope>(`/api/v1/productions/${productionId}/parts`, { method: "DELETE", body: JSON.stringify({ ids: [id] }) }).then((response) => response.data),
+  deleteParts: (productionId: number, ids: number[]) => request<TimelineDeleteEnvelope>(`/api/v1/productions/${productionId}/parts`, { method: "DELETE", body: JSON.stringify({ ids }) }).then((response) => response.data),
+  moveParts: (sourceProductionId: number, ids: number[], destinationProductionId: number) => request<TimelineMoveEnvelope>(`/api/v1/productions/${sourceProductionId}/parts/move`, { method: "POST", body: JSON.stringify({ ids, destination_production_id: destinationProductionId }) }).then((response) => response.data),
   setMusic: (id: number, settings: Partial<MusicBed>) =>
     request<{ data: MusicBed }>(`/api/v1/productions/${id}/music`, { method: "PATCH", body: JSON.stringify(settings) }).then((response) => response.data),
   insertAsset: (projectId: number, assetId: number, at: number | null) =>
@@ -255,7 +268,7 @@ export const studioApi = {
     return waitForJob<TextPassResult>(response.data.id)
   },
   saveTextStates: (productionId: number, id: number, states: { text: string; text_raw: string | null; text_shaped: string | null; text_tagged: string | null; text_state: string }) =>
-    request<{ data: { ok: boolean } }>(`/api/v1/productions/${productionId}/parts/${id}/text`, { method: "PATCH", body: JSON.stringify(states) }).then((response) => response.data),
+    request<TimelineOkEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/text`, { method: "PATCH", body: JSON.stringify(states) }).then((response) => response.data),
   takes: (productionId: number, id: number) => v1<Take[]>(`/api/v1/productions/${productionId}/parts/${id}/takes`).then((takes) => ({ takes })),
   promoteTake: (productionId: number, partId: number, takeId: number) => postV1<{ ok: boolean; subtitles_stale?: number }>(`/api/v1/productions/${productionId}/parts/${partId}/takes/${takeId}/promote`, {}),
   captions: (productionId: number, id: number) => v1<TranscriptSummary[]>(`/api/v1/productions/${productionId}/parts/${id}/captions`).then((transcripts) => ({ transcripts })),

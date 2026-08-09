@@ -40,6 +40,32 @@ class ContentContractTests(unittest.TestCase):
         profile = components["CaptionProfileResponse"]["properties"]["key"]
         self.assertEqual(profile["enum"], ["standard", "short", "words"])
 
+    def test_every_successful_json_response_has_an_explicit_contract(self):
+        """Prevent new endpoints from silently degrading to unknown objects."""
+        for path, path_item in self.schema["paths"].items():
+            for method, operation in path_item.items():
+                if method not in {"get", "post", "patch", "put", "delete"}:
+                    continue
+                for status, response in operation.get("responses", {}).items():
+                    if not status.startswith("2"):
+                        continue
+                    content = response.get("content", {})
+                    if "application/json" not in content:
+                        continue
+                    with self.subTest(path=path, method=method, status=status):
+                        self.assertIn(
+                            "$ref", content["application/json"]["schema"],
+                            "Successful JSON responses must name a Pydantic envelope.",
+                        )
+
+    def test_work_timeline_and_settings_publish_nested_types(self):
+        components = self.schema["components"]["schemas"]
+        self.assertIn("metrics", components["HierarchyNodeResponse"]["required"])
+        self.assertIn("parts", components["ProductionEditorResponse"]["required"])
+        self.assertIn("music_of", components["MusicBedResponse"]["properties"])
+        self.assertIn("storage_settings",
+                      components["SettingsSnapshotResponse"]["required"])
+
 
 if __name__ == "__main__":
     unittest.main()

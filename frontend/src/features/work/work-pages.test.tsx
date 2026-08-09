@@ -9,8 +9,8 @@ import type { ProjectOverview, SeriesOverview, WorkResource } from "@/types/doma
 afterEach(cleanup)
 
 const projectResource: WorkResource = { public_id: "project-3", key: "project:3", id: 3, type: "project", name: "Sleeping guides", description: "Sleep audio", icon: "/icon/sleeping.jpg", cover_image: "/icon/sleeping.jpg" }
-const metrics = { series_count: 1, production_count: 2, part_count: 7, duration_ms: 90000, total_cost: .12 }
-const production = { id: 6, public_id: "prd_falling", name: "Falling asleep", description: "A finished episode", status: "draft", series_id: 1, part_count: 7, duration_ms: 90000, total_cost: .12 }
+const metrics = { series_count: 1, standalone_count: 1, production_count: 2, part_count: 7, duration_ms: 90000, total_cost: .12, current_sequence_cost: .12 }
+const production = { id: 6, public_id: "prd_falling", key: "production:6", type: "production" as const, name: "Falling asleep", description: "A finished episode", status: "draft", series_id: 1, part_count: 7, duration_ms: 90000, total_cost: .12, current_sequence_cost: .12 }
 
 describe("canonical work pages", () => {
   it("separates Series from standalone Productions in a Project", () => {
@@ -18,7 +18,7 @@ describe("canonical work pages", () => {
       resource: projectResource,
       trail: [{ id: 2, public_id: "vnt_heartsnotes", type: "venture", name: "Heartsnotes" }],
       metrics,
-      series: [{ id: 1, public_id: "ser_prayer", name: "Christian prayer", description: "Recurring line", defaults: {}, metrics: { production_count: 1, part_count: 7, duration_ms: 90000, total_cost: .12 } }],
+      series: [{ id: 1, public_id: "ser_prayer", key: "series:1", type: "series", icon: "", name: "Christian prayer", description: "Recurring line", defaults: {}, metrics: { production_count: 1, part_count: 7, duration_ms: 90000, total_cost: .12, current_sequence_cost: .12 } }],
       standalone_productions: [{ ...production, id: 7, public_id: "prd_scratch", name: "Scratch", series_id: null }],
     }
     render(<ProjectPage data={data} refresh={() => undefined} />)

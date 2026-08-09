@@ -2,36 +2,11 @@ import type { components } from "./api.generated"
 
 export type ResourceType = "venture" | "project" | "series" | "production"
 
-export type HierarchyNode = {
-  key: string
-  id: number
-  public_id: string
-  type: ResourceType
-  parent_key: string | null
-  name: string
-  description: string
-  icon: string
-  system_role?: string | null
-  locked: boolean
-  metrics: { parts: number; cost: number }
-  updated_at?: string
-}
+export type HierarchyNode = components["schemas"]["HierarchyNodeResponse"]
 
-export type TrailItem = { id: number; public_id: string; type: Exclude<ResourceType, "production">; name: string; icon?: string }
+export type TrailItem = components["schemas"]["TrailItemResponse"]
 
-export type ProductionSummary = {
-  id: number
-  public_id: string
-  name: string
-  description: string
-  status: string
-  series_id: number | null
-  part_count: number
-  duration_ms: number
-  total_cost: number
-  current_sequence_cost?: number
-  updated_at?: string | null
-}
+export type ProductionSummary = components["schemas"]["ProductionSummaryResponse"]
 
 export type WorkResource = {
   id: number
@@ -47,25 +22,9 @@ export type WorkResource = {
   project_id?: number
 }
 
-export type SeriesSummary = {
-  id: number
-  public_id: string
-  name: string
-  description: string
-  defaults: Record<string, unknown>
-  metrics: { production_count: number; part_count: number; duration_ms: number; total_cost: number; current_sequence_cost?: number }
-  updated_at?: string | null
-}
+export type SeriesSummary = components["schemas"]["SeriesSummaryResponse"]
 
-export type ProjectSummary = {
-  id: number
-  public_id: string
-  name: string
-  description: string
-  cover_image: string
-  metrics: { production_count: number; part_count: number; duration_ms: number; total_cost: number; current_sequence_cost?: number }
-  updated_at?: string | null
-}
+export type ProjectSummary = components["schemas"]["ProjectSummaryResponse"]
 
 export type WorkMetrics = {
   project_count?: number
@@ -82,79 +41,17 @@ export type ActivityRun = components["schemas"]["ActivityRunResponse"]
 
 export type ActivitySnapshot = components["schemas"]["ActivitySnapshotResponse"]
 
-export type SettingsSnapshot = {
-  provider: {
-    name: string
-    configured: boolean
-    workspace_configured: boolean
-    workspace_id?: string
-    region: string
-    region_label: string
-    http_base?: string
-  }
-  output_directory: string
-  spending: {
-    warn_above: number
-    daily_cap: number
-    today?: number
-    month?: number
-    total?: number
-  }
-  speech: {
-    fix_dates_phones: boolean
-    day_first: boolean
-    synth_flags: Record<string, boolean>
-    supported_flags: Record<string, string>
-    extra_params: string
-  }
-  naming: Record<string, string | number | boolean>
-  naming_tokens: string[]
-  database: Record<string, unknown>
-  storage: Record<string, unknown>
-  storage_settings: Record<string, unknown>
-}
+export type SettingsSnapshot = components["schemas"]["SettingsSnapshotResponse"]
 
-export type PronunciationRule = {
-  id: number
-  pattern: string
-  replacement: string
-  whole_word: boolean
-  match_case: boolean
-  enabled: boolean
-  phoneme: boolean
-}
+export type PronunciationRule = components["schemas"]["PronunciationRuleResponse"]
 
-export type DiskSnapshot = {
-  finished: { bytes: number; files: number; where: string }
-  scratch: Record<string, { bytes: number; files: number; what: string }>
-  scratch_total: number
-  protected: Record<string, { bytes: number; files: number; what: string }>
-  protected_total: number
-  keep_days: number
-}
+export type DiskSnapshot = components["schemas"]["DiskSnapshotResponse"]
 
-export type VentureOverview = {
-  resource: WorkResource
-  projects: ProjectSummary[]
-  recent_productions: ProductionSummary[]
-  asset_summary: { total: number; duration_ms: number; by_kind: Record<string, { collection_id: number; name: string; count: number; duration_ms: number }> }
-}
+export type VentureOverview = components["schemas"]["VentureOverviewResponse"]
 
-export type ProjectOverview = {
-  resource: WorkResource
-  trail: TrailItem[]
-  series: SeriesSummary[]
-  standalone_productions: ProductionSummary[]
-  metrics: WorkMetrics
-}
+export type ProjectOverview = components["schemas"]["ProjectOverviewResponse"]
 
-export type SeriesOverview = {
-  resource: WorkResource
-  trail: TrailItem[]
-  defaults: Record<string, unknown>
-  productions: ProductionSummary[]
-  metrics: WorkMetrics
-}
+export type SeriesOverview = components["schemas"]["SeriesOverviewResponse"]
 
 export type ProductionPart = {
   id: number

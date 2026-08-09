@@ -17,7 +17,7 @@ export function ShellBreadcrumbs({ trail = [], current, className = "" }: {
 }) {
   return <nav className={`shell-breadcrumbs ${className}`} aria-label="Location">
     <a className="shell-breadcrumb-root" href={`${audioStudioBase}/`}>Ventures</a>
-    {trail.map((item) => <span className="shell-breadcrumb-item" key={`${item.type}:${item.id}`}><ChevronRight /><a href={resourceHref(item.type, item.public_id)}><CrumbIdentity type={item.type} name={item.name} icon={item.icon} /><span>{item.name}</span></a></span>)}
+    {trail.map((item) => <span className="shell-breadcrumb-item" key={`${item.type}:${item.id}`}><ChevronRight /><a href={resourceHref(item.type, item.public_id)}><CrumbIdentity type={item.type} name={item.name} icon={item.icon || undefined} /><span>{item.name}</span></a></span>)}
     {current && <span className="shell-breadcrumb-item"><ChevronRight /><b aria-current="page"><CrumbIdentity type={current.type} name={current.name} icon={current.icon} /><span>{current.name}</span></b></span>}
   </nav>
 }

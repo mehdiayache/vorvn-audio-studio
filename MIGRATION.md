@@ -207,3 +207,13 @@ contracts for the registry, metadata, usage, routing, profiles, historical
 voices and package lifecycle. The client also distinguishes a cost-confirmation
 response from a successfully queued package instead of casting both to the same
 shape. Voice creation, provider routing and saved identities remain unchanged.
+
+Work hierarchy and overview reads, Timeline commands, Settings, maintenance and
+pronunciation routes now publish explicit Pydantic response envelopes. Their
+React client paths consume the generated OpenAPI operations, and CI rejects any
+future successful JSON operation that degrades to an unknown object. Binary
+Export and Generation downloads are described as files rather than fake JSON.
+
+The final responsive audit removed the Production metrics mini-scrollbar on
+mobile: the same metric pills now wrap inside the available width. Desktop and
+mobile route smoke checks show no document overflow or browser diagnostics.
