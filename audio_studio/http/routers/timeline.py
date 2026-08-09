@@ -96,7 +96,8 @@ def get_music(production_id: int) -> dict:
 
 @router.patch("/music", operation_id="updateProductionMusic")
 def update_music(production_id: int, payload: MusicBody) -> dict:
-    return _run(lambda: timeline.set_music(production_id, payload.model_dump(exclude_none=True)))
+    return _run(lambda: timeline.set_music(
+        production_id, payload.model_dump(exclude_unset=True)))
 
 
 @router.post("/parts/reorder", operation_id="reorderProductionParts")

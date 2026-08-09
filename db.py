@@ -1360,20 +1360,6 @@ def transcript_for(generation_id: int):
                  "stale": row[3]} if row else None)
 
 
-def transcribed_ids(project_id: int) -> dict:
-    """Which recordings have subtitles, and whether those are out of date."""
-    with cursor() as cur:
-        if cur is None:
-            return {}
-        cur.execute(
-            "SELECT t.generation_id, bool_or(t.stale) FROM transcripts t "
-            "JOIN generations g ON g.id = t.generation_id "
-            "WHERE g.project_id = %s AND t.translated_from IS NULL "
-            "GROUP BY t.generation_id", (project_id,),
-        )
-        return {gen: stale for gen, stale in cur.fetchall()}
-
-
 def project_naming(project_id: int, values: dict) -> bool:
     """A venture's own naming and tag overrides."""
     with cursor(write=True) as cur:
@@ -1687,22 +1673,6 @@ def next_position(project_id: int) -> int:
         return cur.fetchone()[0]
 
 
-def text_states(part_id: int, values: dict) -> bool:
-    """Store where a part's words are in their journey."""
-    allowed = {k: v for k, v in values.items()
-               if k in ("text", "text_raw", "text_shaped", "text_tagged",
-                        "text_state")}
-    if not part_id or not allowed:
-        return False
-    with cursor(write=True) as cur:
-        if cur is None:
-            return False
-        cur.execute(
-            f"UPDATE generations SET {', '.join(k + ' = %s' for k in allowed)} "
-            f"WHERE id = %s", [*allowed.values(), part_id])
-        return True
-
-
 # What the words mean, in something a person would say out loud. Decibels are
 # for engineers; this is for whoever is making a sleep guide at midnight.
 MUSIC_LEVELS = {"discreet": 0.10, "present": 0.20, "loud": 0.34}
@@ -1736,65 +1706,6 @@ def music_get(project_id: int) -> dict:
                 "duck": bool(row[4]), "volume": volume,
                 "start": float(row[6] or 0), "filename": row[7] or "",
                 "name": (row[8] or "")[:80], "duration_ms": row[9]}
-
-
-def music_set(project_id: int, values: dict) -> bool:
-    """Change the bed or how it sits."""
-    if not can_hold_recordings(project_id):
-        return False
-    music_of = values.get("music_of")
-    stored_music_of = music_of
-    if music_of not in (None, "", 0, "0"):
-        try:
-            music_id = int(music_of)
-        except (TypeError, ValueError):
-            return False
-        if not asset_allowed(project_id, music_id, {"Music"}):
-            return False
-        asset = asset_get(music_id)
-        if not asset or not asset.get("legacy_generation_id"):
-            return False
-        stored_music_of = asset["legacy_generation_id"]
-    allowed = {k: v for k, v in values.items()
-               if k in ("music_of", "music_level", "music_fade_in",
-                        "music_fade_out", "music_duck", "music_volume",
-                        "music_start")}
-    if "music_volume" in allowed:
-        allowed["music_volume"] = max(0.0, min(1.0, float(allowed["music_volume"])))
-    if "music_start" in allowed:
-        allowed["music_start"] = max(0.0, float(allowed["music_start"]))
-    if "music_of" in allowed:
-        allowed["music_of"] = stored_music_of or None
-    if not allowed:
-        return False
-    with cursor(write=True) as cur:
-        if cur is None:
-            return False
-        cur.execute(
-            f"UPDATE projects SET {', '.join(k + ' = %s' for k in allowed)}, "
-            f"updated_at = now() WHERE id = %s", [*allowed.values(), project_id])
-        cur.execute("""
-            INSERT INTO production_mixes
-                (production_id, music_asset_id, level, volume, start_seconds,
-                 fade_in_seconds, fade_out_seconds, duck, updated_at)
-            SELECT production.id, asset.id, legacy.music_level,
-                   coalesce(legacy.music_volume,
-                     CASE legacy.music_level WHEN 'present' THEN .20
-                       WHEN 'loud' THEN .34 ELSE .10 END),
-                   coalesce(legacy.music_start, 0), legacy.music_fade_in,
-                   legacy.music_fade_out, legacy.music_duck, now()
-              FROM productions production
-              JOIN projects legacy ON legacy.id = production.legacy_container_id
-              LEFT JOIN assets asset ON asset.legacy_generation_id = legacy.music_of
-             WHERE legacy.id = %s
-            ON CONFLICT (production_id) DO UPDATE SET
-              music_asset_id = EXCLUDED.music_asset_id, level = EXCLUDED.level,
-              volume = EXCLUDED.volume, start_seconds = EXCLUDED.start_seconds,
-              fade_in_seconds = EXCLUDED.fade_in_seconds,
-              fade_out_seconds = EXCLUDED.fade_out_seconds,
-              duck = EXCLUDED.duck, updated_at = now()
-        """, (project_id,))
-        return True
 
 
 def migrate_scripts() -> dict:
@@ -1908,40 +1819,6 @@ def draft_save(part_id: int, values: dict) -> bool:
         return True
 
 
-def part_duplicate(part_id: int, filename: str = ""):
-    """Copy a part in place, landing directly after the original.
-
-    Everything below shifts down first, so the copy has a position of its own
-    rather than fighting the original for one.
-    """
-    with cursor(write=True) as cur:
-        if cur is None:
-            return None
-        cur.execute("SELECT project_id, position FROM generations WHERE id = %s",
-                    (part_id,))
-        row = cur.fetchone()
-        if not row:
-            return None
-        project_id, position = row
-        position = position if position is not None else 0
-        cur.execute("UPDATE generations SET position = position + 1 "
-                    "WHERE project_id = %s AND position > %s", (project_id, position))
-        # asset_of has to come along: a copy of a linked part is another link,
-        # not an orphan with no audio behind it.
-        columns = ("text", "text_raw", "text_shaped", "text_tagged", "text_state",
-                   "voice", "voice_identity_id", "engine", "model", "format", "language", "instruction",
-                   "rate", "pitch", "volume", "seed", "path", "size_bytes",
-                   "chars", "requests", "failures", "project_id", "kind",
-                   "title", "duration_ms", "asset_of", "speech_mode", "usage", "cost_basis")
-        cur.execute(
-            f"INSERT INTO generations ({', '.join(columns)}, filename, position, cost) "
-            f"SELECT {', '.join(columns)}, %s, %s, 0 FROM generations WHERE id = %s "
-            f"RETURNING id",
-            (filename or "", position + 1, part_id),
-        )
-        return cur.fetchone()[0]
-
-
 def _recover_part_spend(cur, ids: list[int]) -> None:
     """Materialise pre-ledger speech cost before its last content row leaves.
 
@@ -2046,25 +1923,6 @@ def parts_delete(ids: list) -> list:
         return list(dict.fromkeys(files))
 
 
-def parts_move(ids: list, project_id: int) -> bool:
-    """Re-file several parts, appending them after whatever is already there."""
-    ids = [int(i) for i in ids]
-    if not ids:
-        return False
-    with cursor(write=True) as cur:
-        if cur is None:
-            return False
-        cur.execute("SELECT coalesce(max(position), -1) FROM generations "
-                    "WHERE project_id = %s", (project_id,))
-        start = cur.fetchone()[0] + 1
-        for offset, part_id in enumerate(ids):
-            cur.execute("UPDATE generations SET project_id = %s, position = %s "
-                        "WHERE id = %s", (project_id, start + offset, part_id))
-            cur.execute("UPDATE generations SET project_id = %s "
-                        "WHERE version_of = %s", (project_id, part_id))
-        return True
-
-
 def transcripts_for(generation_id: int) -> list:
     """Every transcript of one recording — the original and its translations."""
     with cursor() as cur:
@@ -2077,36 +1935,6 @@ def transcripts_for(generation_id: int) -> list:
         return [{"id": i, "name": n, "language": lang, "duration_ms": ms,
                  "is_translation": parent is not None, "stale": stale}
                 for i, n, lang, ms, parent, stale in cur.fetchall()]
-
-
-def translated_ids(project_id: int) -> dict:
-    """Which recordings in a project have translations, and into what."""
-    with cursor() as cur:
-        if cur is None:
-            return {}
-        cur.execute("""
-            SELECT t.generation_id, t.language FROM transcripts t
-            JOIN generations g ON g.id = t.generation_id
-            WHERE g.project_id = %s AND t.translated_from IS NOT NULL""",
-            (project_id,))
-        found = {}
-        for gen_id, language in cur.fetchall():
-            found.setdefault(gen_id, []).append(language)
-        return found
-
-
-def parts_reorder(project_id: int, ordered_ids: list) -> bool:
-    """Write a new order for a folder's parts."""
-    with cursor(write=True) as cur:
-        if cur is None:
-            return False
-        for index, generation_id in enumerate(ordered_ids):
-            cur.execute("UPDATE generations SET position = %s "
-                        "WHERE id = %s AND project_id = %s",
-                        (index, generation_id, project_id))
-        cur.execute("UPDATE projects SET updated_at = now() WHERE id = %s",
-                    (project_id,))
-        return True
 
 
 def generation_move(generation_id: int, project_id: int) -> bool:
@@ -2162,25 +1990,6 @@ def archive_take(part_id: int):
         return cur.fetchone()[0]
 
 
-def replace_take(part_id: int, values: dict) -> bool:
-    """Put a freshly made take into the part row itself."""
-    if "voice" in values and "voice_identity_id" not in values:
-        values = {**values, "voice_identity_id": voice_identity_for_provider(
-            str(values.get("voice") or ""), str(values.get("engine") or ""),
-            str(values.get("model") or ""))}
-    fields = [f for f in COPIED if f in values]
-    with cursor(write=True) as cur:
-        if cur is None:
-            return False
-        cur.execute(
-            f"UPDATE generations SET {', '.join(f + ' = %s' for f in fields)}, "
-            f"created_at = now() WHERE id = %s",
-            [json.dumps(values[f] or {}) if f in ("usage", "fidelity") else values[f]
-             for f in fields] + [part_id],
-        )
-        return True
-
-
 def mark_transcripts_stale(generation_id: int) -> int:
     """The audio of this part changed, so anything written from it is out of date."""
     with cursor(write=True) as cur:
@@ -2226,51 +2035,6 @@ def takes(part_id: int) -> list:
                  "fidelity": fidelity}
                 for i, c, v, identity_id, m, r, p, s, f, sz, co, t, ms, ins, lang, fidelity
                 in cur.fetchall()]
-
-
-def promote_take(take_id: int) -> bool:
-    """Swap an older take back into the part, keeping the displaced one."""
-    with cursor(write=True) as cur:
-        if cur is None:
-            return False
-        cur.execute("SELECT version_of FROM generations WHERE id = %s", (take_id,))
-        row = cur.fetchone()
-        if not row or not row[0]:
-            return False
-        part_id = row[0]
-        columns = ", ".join(COPIED)
-        # The current take moves into the take being promoted, and vice versa —
-        # a straight swap, so neither is lost.
-        cur.execute(f"SELECT {columns} FROM generations WHERE id = %s", (part_id,))
-        current = cur.fetchone()
-        cur.execute(f"SELECT {columns} FROM generations WHERE id = %s", (take_id,))
-        chosen = cur.fetchone()
-        assignments = ", ".join(f + " = %s" for f in COPIED)
-        cur.execute(f"UPDATE generations SET {assignments} WHERE id = %s",
-                    list(chosen) + [part_id])
-        cur.execute(f"UPDATE generations SET {assignments} WHERE id = %s",
-                    list(current) + [take_id])
-        return True
-
-
-def take_part_id(take_id: int) -> int | None:
-    """Return the stable Part id that owns either a current or archived take."""
-    with cursor() as cur:
-        if cur is None:
-            return None
-        cur.execute("SELECT coalesce(version_of, id) FROM generations WHERE id = %s",
-                    (take_id,))
-        row = cur.fetchone()
-        return int(row[0]) if row else None
-
-
-def take_count(part_id: int) -> int:
-    """How many older takes a part has kept."""
-    with cursor() as cur:
-        if cur is None:
-            return 0
-        cur.execute("SELECT count(*) FROM generations WHERE version_of = %s", (part_id,))
-        return cur.fetchone()[0]
 
 
 # ─────────────────────────────── transcripts ──────────────────────────────

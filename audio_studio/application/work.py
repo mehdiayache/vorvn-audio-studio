@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import db
 from audio_studio.domain.work import DomainValidation
 from audio_studio.infrastructure.postgres import work as repository
 from audio_studio.infrastructure.postgres.accounting import (
@@ -13,12 +12,16 @@ from audio_studio.infrastructure.postgres.accounting import (
 from audio_studio.infrastructure.postgres.venture_assets import (
     VentureAssetRepository,
 )
+from audio_studio.infrastructure.postgres.production_document import (
+    ProductionDocumentRepository,
+)
 
 
 KINDS = {"ventures": "venture", "projects": "project",
          "series": "series", "productions": "production"}
 asset_repository = VentureAssetRepository()
 accounting_repository = ProductionAccountingRepository()
+document_repository = ProductionDocumentRepository()
 
 
 def hierarchy() -> list[dict[str, Any]]:
@@ -61,15 +64,7 @@ def production_editor(production_id: int) -> dict[str, Any] | None:
     production = repository.production_get(production_id)
     if not production:
         return None
-    legacy_id = int(production["legacy_container_id"])
-    parts = db.project_parts(legacy_id)
-    subtitled = db.transcribed_ids(legacy_id)
-    translated = db.translated_ids(legacy_id)
-    for part in parts:
-        part["takes"] = db.take_count(part["id"])
-        part["subtitled"] = part["id"] in subtitled
-        part["subtitles_stale"] = bool(subtitled.get(part["id"]))
-        part["languages"] = sorted(set(translated.get(part["id"], [])))
+    parts = document_repository.parts(production_id)
     visible = [part for part in parts if part.get("kind") != "stitch"]
     accounting = accounting_repository.one(production_id)
     return {**production, "parts": parts,

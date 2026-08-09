@@ -68,7 +68,7 @@ Never delete the old system first and rebuild everything at once.
 
 - [x] Identify active callers
 - [x] Migrate canonical Work hierarchy and lifecycle
-- [ ] Migrate Production document/timeline persistence
+- [x] Migrate Production document/timeline persistence
 - [ ] Migrate render/export persistence
 - [ ] Migrate media lookup persistence
 - [ ] Confirm zero active callers
@@ -83,30 +83,29 @@ Never delete the old system first and rebuild everything at once.
 
 ## Current step
 
-Move the Production document read model and timeline Part/Take/music mutations
-out of `db.py` into focused native persistence. Keep rendering/export delivery
-as the following independent slice.
+Move Production preview/export rendering, subtitle assembly and immutable Export
+records out of `db.py` into focused native persistence. Keep public media file
+lookup as the final independent slice.
 
 ## Last verified checkpoint
 
 - Repository: `https://github.com/mehdiayache/vorvn-audio-studio` (private)
-- Checkpoint: native canonical Work hierarchy, overviews and lifecycle
+- Checkpoint: native Production document and Timeline persistence
   (the commit carrying this record)
-- Tests: 93 Python unit/integration tests against the real FastAPI application
+- Tests: 95 Python unit/integration tests against the real FastAPI application
   and PostgreSQL; 25 Alibaba contracts, 18 chunking checks, 4 transcription
   checks, 15 native renderer checks, 12 Phase 2 checks and 6 canonical domain
   checks passed
 - Frontend: OpenAPI generation, strict TypeScript build, Vite build, 19 Vitest
   files and 59 tests passed
-- Manual flow: restarted FastAPI and the worker, verified the hierarchy over
-  HTTP, then navigated the real React flow in Chrome from Ventures to
-  Heartsnotes and Sleeping guides. Venture media, Project metrics, Series and
-  standalone Productions rendered with no console warning or error; no write
-  or paid operation was triggered
+- Manual flow: restarted FastAPI and the worker, loaded the real Genesis
+  Production in Chrome, and verified its 12 Parts, silence, background music,
+  historical/current spend, Part detail and three-Take panel. No console warning,
+  mutation or paid operation was triggered
 - Runtime: one FastAPI supervisor and one durable worker. The legacy HTTP
   server and UI are deleted and port 7861 is gone from the configuration
-- Remaining dependency: Production editor, timeline, render and media
-  persistence still call `db.py`
+- Remaining dependency: only Production render/export and media lookup still
+  call `db.py`
 
 ## Findings
 
@@ -209,8 +208,22 @@ as the following independent slice.
   closed the prior direct-URL visibility leak.
 - The compatibility `domain/repository.py` and legacy accounting helpers were
   removed, reducing `db.py` from 2,412 to 2,352 lines.
-- The active runtime `db.py` callers are now exactly Work's Production editor,
-  Production timeline, render and media. Uploads and canonical Work are native.
+- After the canonical Work checkpoint, the remaining callers were Work's
+  Production editor, Production timeline, render and media.
+- `ProductionDocumentRepository` now owns canonical Part reads, insertion,
+  ordering, duplication, deletion, cross-Production moves, text state,
+  historical Takes, Take promotion and background-music state. Its public
+  methods accept canonical Production IDs; the temporary legacy container ID
+  bridge is private to persistence.
+- The Production editor loads Parts, Take counts and caption/translation state
+  in one PostgreSQL query instead of issuing separate queries per card.
+- Part deletion still materialises positive pre-ledger spend into the immutable
+  Job ledger before removing content. Moving Parts also moves archived Takes
+  and compacts the source sequence. Linked clips retain stable Asset/version
+  identity, and music is validated against the Production's Venture.
+- The replaced Timeline helpers were removed from `db.py`, reducing it from
+  2,352 to 2,116 lines. The only active runtime imports of `db.py` are now
+  `application/renders.py` and `application/media.py`.
 - The versioned migration runner under `audio_studio/migrations` is the target
   migration mechanism.
 - New functionality must not add another legacy dependency.

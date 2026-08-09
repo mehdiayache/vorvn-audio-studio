@@ -116,6 +116,12 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(music.status_code, 400)
         self.assertEqual(music.json()["error"]["code"], "timeline_error")
 
+        with patch.object(timeline, "set_music", return_value={"music_of": None}) as remove:
+            response = self.client.patch(
+                "/api/v1/productions/6/music", json={"music_of": None})
+        self.assertEqual(response.status_code, 200)
+        remove.assert_called_once_with(6, {"music_of": None})
+
 
 if __name__ == "__main__":
     unittest.main()

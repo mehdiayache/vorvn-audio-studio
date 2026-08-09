@@ -33,9 +33,9 @@ server and UI have been removed; there is no compatibility port or hidden
 fallback. Text preparation, subtitle Translation,
 Transcription, Batch, Speech generation and Voice package execution run through
 native application services. Remaining migration work is limited to active
-`db.py` persistence responsibilities for the Production editor, timeline,
-render and media operations. Canonical Work hierarchy/lifecycle and Venture
-Asset libraries/uploads are native.
+`db.py` persistence responsibilities for render/export and media lookup.
+Canonical Work hierarchy/lifecycle, the Production document/Timeline and
+Venture Asset libraries/uploads are native.
 
 See [Architecture](docs/ARCHITECTURE.md), [API v1](docs/API_V1.md), and [Canonical domain](docs/CANONICAL_DOMAIN.md).
 

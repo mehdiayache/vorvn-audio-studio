@@ -159,6 +159,20 @@ class AudioStudioArchitectureTests(unittest.TestCase):
         legacy = (ROOT / "db.py").read_text()
         self.assertNotIn("def production_accounting", legacy)
 
+    def test_production_document_and_timeline_use_native_persistence(self):
+        repository = (
+            ROOT / "audio_studio/infrastructure/postgres/production_document.py")
+        self.assertTrue(repository.exists())
+        source = repository.read_text()
+        self.assertNotIn("import db", source)
+        self.assertNotIn("db.", source)
+        for relative in (
+                "audio_studio/application/work.py",
+                "audio_studio/application/timeline.py"):
+            application = (ROOT / relative).read_text()
+            self.assertNotIn("import db", application, relative)
+            self.assertNotIn("db.", application, relative)
+
 
 if __name__ == "__main__":
     unittest.main()
