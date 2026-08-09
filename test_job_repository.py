@@ -8,9 +8,44 @@ import psycopg
 
 from audio_studio.config import settings
 from audio_studio.infrastructure.postgres import jobs as jobs_module
+from audio_studio.domain.jobs import IdempotencyConflict
 
 
 class JobRepositoryTests(unittest.TestCase):
+    def test_idempotency_is_scoped_and_rejects_payload_reuse(self):
+        try:
+            connection = psycopg.connect(settings.database_url)
+        except psycopg.OperationalError as exc:
+            self.skipTest(str(exc))
+        repository = jobs_module.JobRepository()
+        key = f"idempotency-{uuid4()}"
+        ids = []
+        try:
+            first, created = repository.enqueue(
+                "fixture_idempotency", {"value": 1}, idempotency_key=key,
+                organization_id="organization-a")
+            ids.append(first.id)
+            repeated, created_again = repository.enqueue(
+                "fixture_idempotency", {"value": 1}, idempotency_key=key,
+                organization_id="organization-a")
+            self.assertTrue(created)
+            self.assertFalse(created_again)
+            self.assertEqual(repeated.id, first.id)
+            with self.assertRaises(IdempotencyConflict):
+                repository.enqueue(
+                    "fixture_idempotency", {"value": 2}, idempotency_key=key,
+                    organization_id="organization-a")
+            second_org, second_created = repository.enqueue(
+                "fixture_idempotency", {"value": 2}, idempotency_key=key,
+                organization_id="organization-b")
+            ids.append(second_org.id)
+            self.assertTrue(second_created)
+        finally:
+            with connection.cursor() as cursor:
+                cursor.execute("DELETE FROM jobs WHERE id = ANY(%s)", (ids,))
+            connection.commit()
+            connection.close()
+
     def test_running_cancel_preserves_completed_cost_but_finishes_cancelled(self):
         try:
             connection = psycopg.connect(settings.database_url)

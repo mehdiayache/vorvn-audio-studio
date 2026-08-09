@@ -9,6 +9,8 @@ from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from audio_studio.domain.jobs import IdempotencyConflict
+
 
 @dataclass(slots=True)
 class ApiProblem(Exception):
@@ -42,3 +44,8 @@ async def validation_handler(request: Request,
     return error_response(
         request, 422, "validation_error",
         "The request does not match the API contract.", details)
+
+
+async def idempotency_handler(request: Request,
+                              problem: IdempotencyConflict) -> JSONResponse:
+    return error_response(request, 409, "idempotency_conflict", str(problem))

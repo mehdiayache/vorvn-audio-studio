@@ -69,11 +69,19 @@ class WorkRepositoryTests(unittest.TestCase):
             "series", project["id"], f"Series {self.marker}", "Fixture Series")
         foreign_series = work.create(
             "series", other_project["id"], f"Foreign {self.marker}", "Foreign Series")
+        work.update("series", series["id"], {"defaults": {
+            "language": "Arabic", "engine": "omni",
+            "speech_mode": "directed",
+        }})
         production = work.create_in_series(
             series["id"], f"Production {self.marker}", "Fixture Production")
         self.assertIsNotNone(series)
         self.assertIsNotNone(foreign_series)
         self.assertIsNotNone(production)
+        self.assertEqual(production["settings"], {
+            "language": "Arabic", "engine": "omni",
+            "speech_mode": "directed",
+        })
         self.created_project_rows.append(production["id"])
 
         keys = {item["key"] for item in work.hierarchy()}

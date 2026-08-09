@@ -25,6 +25,10 @@ class JobCancelled(RuntimeError):
     """Cooperative stop raised at a safe Job progress boundary."""
 
 
+class IdempotencyConflict(RuntimeError):
+    """One client key was reused for a different operation or payload."""
+
+
 TERMINAL_STATUSES = {JobStatus.SUCCEEDED, JobStatus.WARNING, JobStatus.FAILED,
                      JobStatus.BLOCKED, JobStatus.LOST, JobStatus.CANCELLED}
 

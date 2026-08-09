@@ -8,14 +8,16 @@ import { audioStudioBase } from "@/lib/links"
 
 const tools = [
   { key: "speak", label: "Speak", icon: Mic2 },
-  { key: "projects", label: "Projects", icon: FolderKanban },
+  { key: "projects", label: "Ventures", icon: FolderKanban },
   { key: "batch", label: "Batch", icon: Layers3 },
   { key: "voices", label: "Voices", icon: UsersRound },
   { key: "activity", label: "Activity", icon: CircleDollarSign },
   { key: "subtitles", label: "Subtitles", icon: Captions },
 ]
 
-export function AppShell({ children, providerConfigured }: { children: ReactNode; providerConfigured?: boolean }) {
+type ProviderState = boolean | "unavailable" | undefined
+
+export function AppShell({ children, providerConfigured }: { children: ReactNode; providerConfigured?: ProviderState }) {
   const activeTool = window.location.pathname.startsWith(`${audioStudioBase}/speak`) ? "speak" : window.location.pathname.startsWith(`${audioStudioBase}/batch`) ? "batch" : window.location.pathname.startsWith(`${audioStudioBase}/voices`) ? "voices" : window.location.pathname.startsWith(`${audioStudioBase}/activity`) ? "activity" : window.location.pathname.startsWith(`${audioStudioBase}/subtitles`) ? "subtitles" : window.location.pathname.startsWith(`${audioStudioBase}/settings`) ? "settings" : "projects"
   return (
     <div className="app-shell">
@@ -32,7 +34,7 @@ export function AppShell({ children, providerConfigured }: { children: ReactNode
           ))}
         </nav>
         <div className="global-actions">
-          <span className={cn("connection", providerConfigured === false && "needs-key")}><i /> {providerConfigured === undefined ? "Checking Alibaba" : providerConfigured ? "Alibaba configured" : "Alibaba key needed"}</span>
+          <span className={cn("connection", (providerConfigured === false || providerConfigured === "unavailable") && "needs-key")}><i /> {providerConfigured === undefined ? "Checking Alibaba" : providerConfigured === "unavailable" ? "Audio Studio unavailable" : providerConfigured ? "Alibaba configured" : "Alibaba key needed"}</span>
           <Tooltip>
             <TooltipTrigger asChild><Button variant="ghost" size="icon" asChild><a className={cn(activeTool === "settings" && "active")} href={`${audioStudioBase}/settings`} aria-label="Settings"><Settings2 /></a></Button></TooltipTrigger>
             <TooltipContent>Settings</TooltipContent>

@@ -119,7 +119,7 @@ class SpeechRepository:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT production.id, production.legacy_container_id,
-                       production.name
+                       production.name, production.settings
                   FROM productions production
                   JOIN work_projects project ON project.id = production.project_id
                   JOIN ventures venture ON venture.id = project.venture_id
@@ -129,7 +129,8 @@ class SpeechRepository:
                    AND venture.archived_at IS NULL
             """, (production_id,))
             row = cursor.fetchone()
-        return ({"id": row[0], "legacy_container_id": row[1], "name": row[2]}
+        return ({"id": row[0], "legacy_container_id": row[1], "name": row[2],
+                 "settings": row[3] or {}}
                 if row else None)
 
     def part(self, part_id: int, production_id: int) -> dict[str, Any] | None:

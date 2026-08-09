@@ -140,7 +140,8 @@ def upload(local_path, content_type: str = "audio/wav",
     if retention not in {"temporary", "durable"}:
         raise ValueError("The storage retention class is invalid.")
     client = _client()
-    digest = hashlib.sha256(target.read_bytes()).digest()
+    with target.open("rb") as checksum_source:
+        digest = hashlib.file_digest(checksum_source, "sha256").digest()
     with target.open("rb") as handle:
         client.put_object(
             Bucket=s["bucket"], Key=key, Body=handle,

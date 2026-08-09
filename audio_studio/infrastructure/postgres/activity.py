@@ -29,6 +29,22 @@ def _basis(value: str | None) -> str:
     return "historical_unknown"
 
 
+def _public_error(value: str | None, public_id) -> tuple[str, str | None]:
+    raw = str(value or "").strip()
+    if not raw:
+        return "", None
+    lowered = raw.casefold()
+    technical = any(marker in lowered for marker in (
+        "foreignkeyviolation", "notnullviolation", "uniqueviolation",
+        "psycopg.", "constraint", "relation \"", "traceback",
+    ))
+    if technical:
+        diagnostic = f"job-{str(public_id)[:8]}"
+        return ("Audio Studio could not save this result. "
+                f"Use diagnostic ID {diagnostic} if the problem repeats.", diagnostic)
+    return raw, None
+
+
 def _run(row) -> dict[str, Any]:
     (internal_id, public_id, when, kind, status, operation_label, source_tool,
      model, voice, detail, error, estimated, cost, chars, seconds, elapsed_ms,
@@ -37,6 +53,7 @@ def _run(row) -> dict[str, Any]:
      production_id, production_name, cost_basis, created_at, started_at,
      finished_at) = row
     label = KIND_LABELS.get(kind, kind.replace("_", " ").title())
+    public_error, diagnostic_id = _public_error(error, public_id)
     return {
         "id": str(public_id), "internal_id": internal_id,
         "when": when.isoformat(), "created_at": created_at.isoformat(),
@@ -45,7 +62,8 @@ def _run(row) -> dict[str, Any]:
         "kind": kind, "kind_label": label,
         "operation": operation_label or label,
         "source_tool": source_tool or "audio-studio", "status": status,
-        "model": model, "voice": voice, "detail": detail, "error": error,
+        "model": model, "voice": voice, "detail": detail,
+        "error": public_error, "diagnostic_id": diagnostic_id,
         "estimated": float(estimated or 0), "cost": float(cost or 0),
         "chars": int(chars or 0), "seconds": float(seconds or 0),
         "elapsed_ms": elapsed_ms, "actor_id": actor_id,

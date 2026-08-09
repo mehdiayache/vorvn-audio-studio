@@ -3,10 +3,16 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from typing import Any, Iterable
 from uuid import UUID
 
-from audio_studio.domain.jobs import Job, JobCancelled, JobStatus
+from audio_studio.domain.jobs import (
+    IdempotencyConflict,
+    Job,
+    JobCancelled,
+    JobStatus,
+)
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 from services.alibaba import config as alibaba_config
 from audio_studio.application.transcription import FUN_MODEL, QWEN_MODEL
@@ -72,27 +78,52 @@ class JobRepository:
             "engine": payload.get("engine"),
             "model": requested_model,
         }
+        fingerprint = hashlib.sha256(json.dumps(
+            {"kind": kind, "payload": payload}, sort_keys=True,
+            separators=(",", ":"), ensure_ascii=False,
+        ).encode()).hexdigest()
         with transaction() as cursor:
-            cursor.execute(_SELECT + " WHERE idempotency_key = %s",
-                           (idempotency_key,))
-            existing = cursor.fetchone()
-            if existing:
-                return _job(existing), False
             cursor.execute("""
                 INSERT INTO jobs
                     (kind, status, payload, idempotency_key, actor_id,
                      organization_id, project_id, production_id, estimated, cost,
                      requested_route, resolved_route, source_tool, operation_label,
-                     model, voice, engine, tier)
+                     model, voice, engine, tier, idempotency_fingerprint)
                 VALUES (%s, 'queued', %s::jsonb, %s, %s, %s, %s, %s, 0, 0,
-                        %s::jsonb, '{}'::jsonb, %s, %s, %s, %s, %s, %s)
+                        %s::jsonb, '{}'::jsonb, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (organization_id, idempotency_key)
+                    WHERE idempotency_key IS NOT NULL
+                      AND organization_id IS NOT NULL
+                DO NOTHING
                 RETURNING id
             """, (kind, json.dumps(payload), idempotency_key, actor_id,
                   organization_id, project_id, production_id,
                   json.dumps(requested_route), source_tool, operation_label,
                   requested_model, payload.get("voice"), payload.get("engine"),
-                  payload.get("model")))
-            job_id = cursor.fetchone()[0]
+                  payload.get("model"), fingerprint))
+            inserted = cursor.fetchone()
+            if not inserted:
+                cursor.execute("""
+                    SELECT kind, payload, idempotency_fingerprint
+                      FROM jobs
+                     WHERE organization_id = %s AND idempotency_key = %s
+                """, (organization_id, idempotency_key))
+                existing_identity = cursor.fetchone()
+                if not existing_identity:
+                    raise RuntimeError("The idempotent Job could not be resolved.")
+                existing_fingerprint = existing_identity[2] or hashlib.sha256(
+                    json.dumps({"kind": existing_identity[0],
+                                "payload": existing_identity[1] or {}},
+                               sort_keys=True, separators=(",", ":"),
+                               ensure_ascii=False).encode()).hexdigest()
+                if existing_fingerprint != fingerprint:
+                    raise IdempotencyConflict(
+                        "That Idempotency-Key was already used for a different request.")
+                cursor.execute(
+                    _SELECT + " WHERE organization_id = %s AND idempotency_key = %s",
+                    (organization_id, idempotency_key))
+                return _job(cursor.fetchone()), False
+            job_id = inserted[0]
             self._audit(cursor, actor_id, organization_id, "job.enqueued",
                         job_id, {"kind": kind, "source_tool": source_tool,
                                  "operation": operation_label})

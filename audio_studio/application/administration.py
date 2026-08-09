@@ -91,6 +91,7 @@ def disk_snapshot() -> dict[str, Any]:
         ".batches": (settings.root / ".batches", "parsed spreadsheets"),
         ".blocks": (settings.root / ".blocks", "per-block script audio"),
         ".inbox": (settings.root / ".inbox", "subtitle source audio"),
+        ".incoming": (settings.root / ".incoming", "interrupted uploads"),
         ".tagged": (settings.root / ".tagged", "temporary tagged copies"),
     }
     protected_paths = {
@@ -124,7 +125,7 @@ def tidy_working_files(days: int = 7) -> dict[str, int]:
     removed = freed = 0
     # Voice references are masters, not scratch. Legacy .uploads is also kept
     # until every pre-migration reference has been copied on access.
-    for folder in (".batches", ".blocks", ".inbox", ".tagged"):
+    for folder in (".batches", ".blocks", ".inbox", ".incoming", ".tagged"):
         root = settings.root / folder
         if not root.exists():
             continue

@@ -107,12 +107,23 @@ def _audio_duration_ms(target: Path) -> int | None:
 
 
 def save_asset(collection_id: int, raw: bytes, encoded_name: str) -> dict:
+    source = settings.root / ".incoming" / f"asset-{uuid4().hex}.upload"
+    source.parent.mkdir(exist_ok=True)
+    source.write_bytes(raw)
+    try:
+        return save_asset_file(collection_id, source, len(raw), encoded_name)
+    finally:
+        source.unlink(missing_ok=True)
+
+
+def save_asset_file(collection_id: int, source: Path, size_bytes: int,
+                    encoded_name: str) -> dict:
     """Store one reusable Venture Asset without contacting a model provider."""
     if not venture_assets.collection(collection_id):
         raise UploadError("Choose an Intros, Outros, Music or Stingers library first.")
-    if not raw:
+    if size_bytes <= 0 or not source.is_file():
         raise UploadError("That audio file is empty.")
-    if len(raw) > 250_000_000:
+    if size_bytes > 250_000_000:
         raise UploadError("That file is over 250 MB.")
     original = clean_name(encoded_name, "audio.mp3")
     suffix = Path(original).suffix.lower()
@@ -123,7 +134,7 @@ def save_asset(collection_id: int, raw: bytes, encoded_name: str) -> dict:
     output.mkdir(parents=True, exist_ok=True)
     stored = f"{uuid4().hex}{suffix}"
     target = output / stored
-    target.write_bytes(raw)
+    shutil.move(str(source), target)
     duration_ms = _audio_duration_ms(target)
     if duration_ms is None:
         target.unlink(missing_ok=True)
@@ -136,7 +147,7 @@ def save_asset(collection_id: int, raw: bytes, encoded_name: str) -> dict:
     try:
         created = venture_assets.create_uploaded_asset(
             collection_id, name=Path(original).stem, filename=stored,
-            path=str(target), size_bytes=len(raw), duration_ms=duration_ms,
+            path=str(target), size_bytes=size_bytes, duration_ms=duration_ms,
             audio_format=suffix.lstrip("."), mime_type=mime_type,
         )
     except psycopg.OperationalError as exc:
@@ -149,15 +160,26 @@ def save_asset(collection_id: int, raw: bytes, encoded_name: str) -> dict:
 
 
 def save_transcription_source(raw: bytes, encoded_name: str) -> dict:
+    source = settings.root / ".incoming" / f"subtitle-{uuid4().hex}.upload"
+    source.parent.mkdir(exist_ok=True)
+    source.write_bytes(raw)
+    try:
+        return save_transcription_source_file(source, len(raw), encoded_name)
+    finally:
+        source.unlink(missing_ok=True)
+
+
+def save_transcription_source_file(source: Path, size_bytes: int,
+                                   encoded_name: str) -> dict:
     """Keep a playable local source and create the short-lived worker URL."""
     if not storage.configured():
         raise UploadError(
             "Set up Settings → Reference audio storage first.",
             needs_storage=True,
         )
-    if not raw:
+    if size_bytes <= 0 or not source.is_file():
         raise UploadError("That audio file is empty.")
-    if len(raw) > 500_000_000:
+    if size_bytes > 500_000_000:
         raise UploadError("That file is over 500 MB.")
     original = clean_name(encoded_name, "audio.mp3")
     suffix = Path(original).suffix.lower()
@@ -166,7 +188,7 @@ def save_transcription_source(raw: bytes, encoded_name: str) -> dict:
     root = settings.root / ".inbox"
     root.mkdir(exist_ok=True)
     local = root / f"{uuid4().hex}{suffix}"
-    local.write_bytes(raw)
+    shutil.move(str(source), local)
     duration_ms = _audio_duration_ms(local)
     if duration_ms is None:
         local.unlink(missing_ok=True)
@@ -181,5 +203,5 @@ def save_transcription_source(raw: bytes, encoded_name: str) -> dict:
         raise
     return {
         "url": url, "name": local.name, "playable": f"/inbox/{local.name}",
-        "size_bytes": len(raw), "duration_ms": duration_ms,
+        "size_bytes": size_bytes, "duration_ms": duration_ms,
     }

@@ -9,6 +9,7 @@ ui-next/
 out/
 .uploads/
 .media/
+.incoming/
 .blocks/
 .inbox/
 .batches/

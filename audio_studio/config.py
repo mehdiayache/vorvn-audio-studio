@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
+import ipaddress
 from pathlib import Path
 
 
@@ -34,3 +35,19 @@ class Settings:
             output_dir=Path(os.getenv("AUDIO_STUDIO_OUTPUT_DIR", str(ROOT / "out"))),
         )
 settings = Settings.from_env()
+
+
+def require_local_bind() -> None:
+    """Fail closed until authentication and tenant authorization exist."""
+    host = settings.host.strip().casefold()
+    if host == "localhost":
+        return
+    try:
+        if ipaddress.ip_address(host).is_loopback:
+            return
+    except ValueError:
+        pass
+    raise RuntimeError(
+        "Audio Studio has no remote authentication yet. "
+        "AUDIO_STUDIO_HOST must remain a loopback address."
+    )

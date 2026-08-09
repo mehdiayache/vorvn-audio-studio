@@ -362,6 +362,138 @@
         "title": "HistoryLink",
         "type": "object"
       },
+      "JobCreatedEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/JobResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/JobMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "JobCreatedEnvelope",
+        "type": "object"
+      },
+      "JobEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/JobResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "JobEnvelope",
+        "type": "object"
+      },
+      "JobMeta": {
+        "properties": {
+          "created": {
+            "title": "Created",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "created"
+        ],
+        "title": "JobMeta",
+        "type": "object"
+      },
+      "JobResponse": {
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "progress": {
+            "title": "Progress",
+            "type": "number"
+          },
+          "result": {
+            "additionalProperties": true,
+            "title": "Result",
+            "type": "object"
+          },
+          "retries": {
+            "title": "Retries",
+            "type": "integer"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "status",
+          "progress",
+          "detail",
+          "retries",
+          "result"
+        ],
+        "title": "JobResponse",
+        "type": "object"
+      },
       "MoveBody": {
         "properties": {
           "destination_production_id": {
@@ -2066,9 +2198,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Createbatchjob",
-                  "type": "object"
+                  "$ref": "#/components/schemas/JobCreatedEnvelope"
                 }
               }
             },
@@ -2127,9 +2257,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Createrenderjob",
-                  "type": "object"
+                  "$ref": "#/components/schemas/JobCreatedEnvelope"
                 }
               }
             },
@@ -2188,9 +2316,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Createspeechjob",
-                  "type": "object"
+                  "$ref": "#/components/schemas/JobCreatedEnvelope"
                 }
               }
             },
@@ -2249,9 +2375,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Createtextjob",
-                  "type": "object"
+                  "$ref": "#/components/schemas/JobCreatedEnvelope"
                 }
               }
             },
@@ -2310,9 +2434,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Createtranscriptionjob",
-                  "type": "object"
+                  "$ref": "#/components/schemas/JobCreatedEnvelope"
                 }
               }
             },
@@ -2371,9 +2493,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Createtranslationjob",
-                  "type": "object"
+                  "$ref": "#/components/schemas/JobCreatedEnvelope"
                 }
               }
             },
@@ -2416,9 +2536,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getjob",
-                  "type": "object"
+                  "$ref": "#/components/schemas/JobEnvelope"
                 }
               }
             },

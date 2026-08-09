@@ -9,7 +9,7 @@ import threading
 
 import uvicorn
 
-from audio_studio.config import settings
+from audio_studio.config import require_local_bind, settings
 from audio_studio.migrations import run as run_migrations
 from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
 from audio_studio.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
@@ -67,6 +67,7 @@ class WorkerSupervisor:
 def main() -> int:
     supervisor = WorkerSupervisor()
     try:
+        require_local_bind()
         applied = run_migrations()
         if applied:
             print(f"Applied {len(applied)} Audio Studio migration(s): {', '.join(applied)}")

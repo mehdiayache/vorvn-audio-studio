@@ -8,7 +8,7 @@ import type { HierarchyNode } from "@/types/domain"
 globalThis.ResizeObserver = class ResizeObserver { observe() {}; unobserve() {}; disconnect() {} } as typeof ResizeObserver
 afterEach(cleanup)
 
-const base = { description: "", icon: "", locked: false, metrics: { parts: 0, cost: 0 } }
+const base = { public_id: "00000000-0000-0000-0000-000000000001", description: "", icon: "", locked: false, metrics: { parts: 0, cost: 0 } }
 const nodes: HierarchyNode[] = [
   { ...base, id: 2, key: "venture:2", type: "venture", parent_key: null, name: "Heartsnotes" },
   { ...base, id: 3, key: "project:3", type: "project", parent_key: "venture:2", name: "Sleeping guides" },

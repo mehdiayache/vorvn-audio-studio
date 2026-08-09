@@ -3,6 +3,7 @@ export type ResourceType = "venture" | "project" | "series" | "production"
 export type HierarchyNode = {
   key: string
   id: number
+  public_id: string
   type: ResourceType
   parent_key: string | null
   name: string
@@ -86,6 +87,7 @@ export type ActivityRun = {
   voice?: string | null
   detail?: string | null
   error?: string | null
+  diagnostic_id?: string | null
   where?: string | null
   elapsed_ms?: number | null
   generation_id?: number | null

@@ -13,7 +13,13 @@ from fastapi.responses import FileResponse, RedirectResponse
 from audio_studio import __version__
 from audio_studio.config import settings
 from audio_studio.http.middleware import request_context
-from audio_studio.http.errors import ApiProblem, problem_handler, validation_handler
+from audio_studio.http.errors import (
+    ApiProblem,
+    idempotency_handler,
+    problem_handler,
+    validation_handler,
+)
+from audio_studio.domain.jobs import IdempotencyConflict
 from audio_studio.http.routers.system import router as system_router
 from audio_studio.http.routers.work import router as work_router
 from audio_studio.http.routers.jobs import router as jobs_router
@@ -43,6 +49,7 @@ app = FastAPI(title="VORVN Audio Studio API", version=__version__,
 app.middleware("http")(request_context)
 app.add_exception_handler(ApiProblem, problem_handler)
 app.add_exception_handler(RequestValidationError, validation_handler)
+app.add_exception_handler(IdempotencyConflict, idempotency_handler)
 app.include_router(system_router)
 app.include_router(work_router)
 app.include_router(jobs_router)

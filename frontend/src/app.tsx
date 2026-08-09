@@ -42,8 +42,8 @@ function ProductionRoute({ productionId }: { productionId: number }) {
 
 function HomeRoute() {
   const hierarchy = useHierarchy()
-  const [configured, setConfigured] = useState<boolean | undefined>()
-  useEffect(() => { void studioApi.config().then((config) => setConfigured(config.has_key)).catch(() => setConfigured(false)) }, [])
+  const [configured, setConfigured] = useState<boolean | "unavailable" | undefined>()
+  useEffect(() => { void studioApi.config().then((config) => setConfigured(config.has_key)).catch(() => setConfigured("unavailable")) }, [])
   return <AppShell providerConfigured={configured}>
     {hierarchy.status === "loading" && !hierarchy.data && <PageLoading />}
     {hierarchy.status === "error" && !hierarchy.data && <ErrorState title="Ventures unavailable" message={hierarchy.error || "Unable to load Ventures."} retry={() => void hierarchy.refresh()} />}
@@ -52,8 +52,8 @@ function HomeRoute() {
 }
 
 function useConfigured() {
-  const [configured, setConfigured] = useState<boolean | undefined>()
-  useEffect(() => { void studioApi.config().then((config) => setConfigured(config.has_key)).catch(() => setConfigured(false)) }, [])
+  const [configured, setConfigured] = useState<boolean | "unavailable" | undefined>()
+  useEffect(() => { void studioApi.config().then((config) => setConfigured(config.has_key)).catch(() => setConfigured("unavailable")) }, [])
   return configured
 }
 

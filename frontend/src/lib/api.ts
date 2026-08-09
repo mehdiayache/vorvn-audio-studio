@@ -38,6 +38,9 @@ import type {
   DurableJob,
   VentureAssetLibrary,
 } from "@/types/domain"
+import type { paths } from "@/types/api.generated"
+
+type GeneratedJob = paths["/api/v1/jobs/{job_id}"]["get"]["responses"][200]["content"]["application/json"]["data"]
 
 export class ApiError extends Error {
   constructor(
@@ -75,8 +78,9 @@ async function uploadFile<T>(path: string, file: File): Promise<T> {
     headers: { "X-Filename": encodeURIComponent(file.name) },
     body: file,
   })
-  const body = (await response.json().catch(() => ({}))) as T & { error?: string }
-  if (!response.ok || body.error) throw new ApiError(body.error || `Upload failed (${response.status})`, response.status)
+  const body = (await response.json().catch(() => ({}))) as T & { error?: string | { message?: string } }
+  const message = typeof body.error === "string" ? body.error : body.error?.message
+  if (!response.ok || body.error) throw new ApiError(message || `Upload failed (${response.status})`, response.status)
   return body
 }
 
@@ -105,8 +109,8 @@ const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeou
 async function waitForJob<T>(jobId: string): Promise<T> {
   const deadline = Date.now() + 30 * 60 * 1000
   while (Date.now() < deadline) {
-    const job = await v1<DurableJob<T>>(`/api/v1/jobs/${encodeURIComponent(jobId)}`)
-    if (["ok", "warning", "blocked"].includes(job.status)) return job.result
+    const job = await v1<GeneratedJob>(`/api/v1/jobs/${encodeURIComponent(jobId)}`)
+    if (["ok", "warning", "blocked"].includes(job.status)) return job.result as T
     if (["failed", "lost", "cancelled"].includes(job.status)) throw new ApiError(job.error || `Job ${job.status}.`, 409)
     await wait(500)
   }

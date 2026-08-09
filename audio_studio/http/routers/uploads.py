@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Header, Request
+from pathlib import Path
+from uuid import uuid4
+
+from audio_studio.config import settings
 
 from audio_studio.application import uploads
 from audio_studio.http.errors import ApiProblem
@@ -23,6 +27,36 @@ async def _body(request: Request, limit: int) -> bytes:
     if len(raw) > limit:
         raise ApiProblem(413, "upload_too_large", f"The upload limit is {limit // 1_000_000} MB.")
     return raw
+
+
+async def _stream_to_file(request: Request, limit: int) -> tuple[Path, int]:
+    raw_length = request.headers.get("content-length")
+    if raw_length:
+        try:
+            length = int(raw_length)
+        except ValueError as exc:
+            raise ApiProblem(400, "invalid_content_length",
+                             "Content-Length is invalid.") from exc
+        if length < 0 or length > limit:
+            raise ApiProblem(413, "upload_too_large",
+                             f"The upload limit is {limit // 1_000_000} MB.")
+    root = settings.root / ".incoming"
+    root.mkdir(exist_ok=True)
+    target = root / f"incoming-{uuid4().hex}.upload"
+    size = 0
+    try:
+        with target.open("wb") as handle:
+            async for chunk in request.stream():
+                size += len(chunk)
+                if size > limit:
+                    raise ApiProblem(
+                        413, "upload_too_large",
+                        f"The upload limit is {limit // 1_000_000} MB.")
+                handle.write(chunk)
+        return target, size
+    except Exception:
+        target.unlink(missing_ok=True)
+        raise
 
 
 async def _image(request: Request, filename: str) -> dict:
@@ -64,26 +98,32 @@ async def upload_voice_reference(request: Request,
              operation_id="uploadVentureAsset", status_code=201)
 async def upload_venture_asset(collection_id: int, request: Request,
                                x_filename: str = Header(default="audio.mp3")) -> dict:
+    incoming, size = await _stream_to_file(request, 250_000_000)
     try:
-        result = uploads.save_asset(
-            collection_id, await _body(request, 250_000_000), x_filename)
+        result = uploads.save_asset_file(
+            collection_id, incoming, size, x_filename)
     except uploads.UploadError as exc:
         raise ApiProblem(400, "invalid_asset", str(exc)) from exc
     except RuntimeError as exc:
         raise ApiProblem(503, "asset_storage_failed", str(exc)) from exc
+    finally:
+        incoming.unlink(missing_ok=True)
     return {"data": result}
 
 
 @router.post("/subtitles/uploads", operation_id="uploadSubtitleSource")
 async def upload_subtitle_source(request: Request,
                                  x_filename: str = Header(default="audio.mp3")) -> dict:
+    incoming, size = await _stream_to_file(request, 500_000_000)
     try:
-        result = uploads.save_transcription_source(
-            await _body(request, 500_000_000), x_filename)
+        result = uploads.save_transcription_source_file(
+            incoming, size, x_filename)
     except uploads.UploadError as exc:
         raise ApiProblem(400, "invalid_subtitle_source", str(exc),
                          details={"needs_storage": exc.needs_storage}) from exc
     except Exception as exc:
         raise ApiProblem(502, "subtitle_storage_failed",
                          "The audio could not be uploaded to reference storage.") from exc
+    finally:
+        incoming.unlink(missing_ok=True)
     return {"data": result}

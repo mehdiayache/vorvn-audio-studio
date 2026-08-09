@@ -30,6 +30,7 @@ class MigrationTests(unittest.TestCase):
                 "002_job_payloads.sql", "003_control_plane.sql",
                 "004_pronunciation_phoneme_boolean.sql",
                 "005_worker_runtime.sql",
+                "006_job_idempotency.sql",
             ])
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:

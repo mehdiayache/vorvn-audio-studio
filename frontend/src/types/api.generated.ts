@@ -1450,6 +1450,47 @@ export interface components {
             /** Provider Voice Id */
             provider_voice_id: string;
         };
+        /** JobCreatedEnvelope */
+        JobCreatedEnvelope: {
+            data: components["schemas"]["JobResponse"];
+            meta: components["schemas"]["JobMeta"];
+        };
+        /** JobEnvelope */
+        JobEnvelope: {
+            data: components["schemas"]["JobResponse"];
+        };
+        /** JobMeta */
+        JobMeta: {
+            /** Created */
+            created: boolean;
+        };
+        /** JobResponse */
+        JobResponse: {
+            /** Created At */
+            created_at?: string | null;
+            /** Detail */
+            detail: string;
+            /** Error */
+            error?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: string;
+            /** Progress */
+            progress: number;
+            /** Result */
+            result: {
+                [key: string]: unknown;
+            };
+            /** Retries */
+            retries: number;
+            /** Started At */
+            started_at?: string | null;
+            /** Status */
+            status: string;
+            /** Type */
+            type: string;
+        };
         /** MoveBody */
         MoveBody: {
             /** Destination Production Id */
@@ -2204,9 +2245,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["JobCreatedEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -2241,9 +2280,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["JobCreatedEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -2278,9 +2315,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["JobCreatedEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -2315,9 +2350,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["JobCreatedEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -2352,9 +2385,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["JobCreatedEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -2389,9 +2420,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["JobCreatedEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -2422,9 +2451,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["JobEnvelope"];
                 };
             };
             /** @description Validation Error */

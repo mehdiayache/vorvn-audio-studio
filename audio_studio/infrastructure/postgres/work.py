@@ -63,22 +63,22 @@ def hierarchy() -> list[dict[str, Any]]:
     """Return a typed tree. Keys are typed because table-local IDs can collide."""
     with read_only() as cur:
         cur.execute("""
-            SELECT 'venture', v.id, NULL::BIGINT, NULL::BIGINT, v.name,
+            SELECT 'venture', v.id, v.public_id, NULL::BIGINT, NULL::BIGINT, v.name,
                    v.description, v.icon, v.updated_at, v.locked, v.system_role,
                    0::BIGINT, 0::NUMERIC
               FROM ventures v WHERE v.archived_at IS NULL
             UNION ALL
-            SELECT 'project', p.id, p.venture_id, NULL::BIGINT, p.name,
+            SELECT 'project', p.id, p.public_id, p.venture_id, NULL::BIGINT, p.name,
                    p.description, coalesce(nullif(p.cover_image, ''), p.icon), p.updated_at, false, NULL,
                    0::BIGINT, 0::NUMERIC
               FROM work_projects p WHERE p.archived_at IS NULL
             UNION ALL
-            SELECT 'series', s.id, s.project_id, NULL::BIGINT, s.name,
+            SELECT 'series', s.id, s.public_id, s.project_id, NULL::BIGINT, s.name,
                    s.description, s.icon, s.updated_at, false, NULL,
                    0::BIGINT, 0::NUMERIC
               FROM series s WHERE s.archived_at IS NULL
             UNION ALL
-            SELECT 'production', p.id, p.project_id, p.series_id, p.name,
+            SELECT 'production', p.id, p.public_id, p.project_id, p.series_id, p.name,
                    p.description, '', p.updated_at, false, NULL,
                    count(pp.generation_id), coalesce(sum(g.cost), 0)
               FROM productions p
@@ -93,7 +93,7 @@ def hierarchy() -> list[dict[str, Any]]:
         [ident for kind, ident, *_ in rows if kind == "production"])
 
     nodes = []
-    for kind, ident, owner_id, series_id, name, description, icon, updated, locked, role, parts, cost in rows:
+    for kind, ident, public_id, owner_id, series_id, name, description, icon, updated, locked, role, parts, cost in rows:
         if kind == "production":
             cost = production_accounting.get(ident, {}).get("historical_spend", float(cost or 0))
         if kind == "venture":
@@ -105,7 +105,8 @@ def hierarchy() -> list[dict[str, Any]]:
         else:
             parent_key = f"series:{series_id}" if series_id else f"project:{owner_id}"
         nodes.append({
-            "key": f"{kind}:{ident}", "id": ident, "type": kind,
+            "key": f"{kind}:{ident}", "id": ident,
+            "public_id": str(public_id), "type": kind,
             "parent_key": parent_key, "name": name,
             "description": description or "", "icon": icon or "",
             "updated_at": _iso(updated), "locked": bool(locked),
@@ -129,7 +130,8 @@ def production_get(production_id: int) -> dict[str, Any] | None:
             SELECT production.id, production.public_id, production.name,
                    production.description, production.status,
                    production.project_id, production.series_id,
-                   production.legacy_container_id, production.updated_at,
+                   production.legacy_container_id, production.settings,
+                   production.updated_at,
                    project.name, project.venture_id,
                    venture.name, venture.icon, series.name
               FROM productions production
@@ -145,7 +147,7 @@ def production_get(production_id: int) -> dict[str, Any] | None:
     if not row:
         return None
     (ident, public_id, name, description, status, project_id, series_id,
-     legacy_id, updated, project_name, venture_id, venture_name, venture_icon,
+     legacy_id, production_settings, updated, project_name, venture_id, venture_name, venture_icon,
      series_name) = row
     trail = [
         {"id": venture_id, "type": "venture", "name": venture_name,
@@ -159,7 +161,8 @@ def production_get(production_id: int) -> dict[str, Any] | None:
         "key": f"production:{ident}", "name": name,
         "description": description or "", "status": status,
         "project_id": project_id, "series_id": series_id,
-        "legacy_container_id": legacy_id, "trail": trail,
+        "legacy_container_id": legacy_id,
+        "settings": production_settings or {}, "trail": trail,
         "updated_at": _iso(updated),
     }
 
@@ -644,12 +647,15 @@ def create_production(project_id: int, name: str, description: str = "",
         ident = cur.fetchone()[0]
         cur.execute("""
             INSERT INTO productions
-                (id, project_id, series_id, legacy_container_id, slug, name, description)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                (id, project_id, series_id, legacy_container_id, slug, name,
+                 description, settings)
+            VALUES (%s, %s, %s, %s, %s, %s, %s,
+                    coalesce((SELECT defaults FROM series WHERE id = %s), '{}'::jsonb))
             ON CONFLICT (id) DO UPDATE SET project_id = EXCLUDED.project_id,
               series_id = EXCLUDED.series_id, name = EXCLUDED.name,
-              description = EXCLUDED.description
+              description = EXCLUDED.description,
+              settings = EXCLUDED.settings
         """, (ident, project_id, series_id, ident, _slug(clean_name, ident),
-              clean_name, description.strip()))
+              clean_name, description.strip(), series_id))
         cur.execute("INSERT INTO production_mixes (production_id) VALUES (%s) ON CONFLICT DO NOTHING", (ident,))
     return production_get(ident)

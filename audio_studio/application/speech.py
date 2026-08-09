@@ -119,10 +119,14 @@ class SpeechGenerationService:
         part_id = int(part_id) if part_id is not None else None
         part = None
         if operation == "create":
-            if production_id is not None and not self.repository.production(production_id):
+            production = (self.repository.production(production_id)
+                          if production_id is not None else None)
+            if production_id is not None and not production:
                 raise LookupError("That Production no longer exists.")
-            effective = _defaults({key: value for key, value in values.items()
-                                   if key in _SETTING_FIELDS or key == "title"})
+            inherited = production.get("settings", {}) if production else {}
+            overrides = {key: value for key, value in values.items()
+                         if key in _SETTING_FIELDS or key == "title"}
+            effective = _defaults({**inherited, **overrides})
         else:
             if production_id is None or part_id is None:
                 raise ValueError("A Production and Part are required.")

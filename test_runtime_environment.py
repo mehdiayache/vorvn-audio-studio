@@ -8,9 +8,20 @@ from unittest.mock import patch
 
 from audio_studio.application import administration
 from audio_studio.infrastructure import runtime_environment
+from audio_studio import config
+from dataclasses import replace
 
 
 class RuntimeEnvironmentTests(unittest.TestCase):
+    def test_remote_bind_fails_closed_until_authentication_exists(self):
+        with patch.object(config, "settings", replace(
+                config.settings, host="0.0.0.0")):
+            with self.assertRaisesRegex(RuntimeError, "no remote authentication"):
+                config.require_local_bind()
+        with patch.object(config, "settings", replace(
+                config.settings, host="127.0.0.1")):
+            config.require_local_bind()
+
     def test_worker_reload_overrides_owned_values_only(self):
         with TemporaryDirectory() as directory:
             env_file = Path(directory) / ".env"

@@ -23,10 +23,12 @@ ROOT = Path(__file__).parent
 
 
 class FakeRepository:
-    def __init__(self, *, spent=0, part=None, production=True):
+    def __init__(self, *, spent=0, part=None, production=True,
+                 production_settings=None):
         self.spent = spent
         self.current_part = part
         self.has_production = production
+        self.production_settings = production_settings or {}
         self.created = []
         self.replaced = []
 
@@ -44,7 +46,8 @@ class FakeRepository:
 
     def production(self, production_id):
         return ({"id": production_id, "legacy_container_id": 88,
-                 "name": "Fixture"} if self.has_production else None)
+                 "name": "Fixture", "settings": self.production_settings}
+                if self.has_production else None)
 
     def part(self, part_id, production_id):
         if not self.current_part:
@@ -150,6 +153,23 @@ def existing(kind="audio"):
 
 
 class SpeechGenerationTests(unittest.TestCase):
+    def test_new_speech_inherits_missing_series_defaults_from_production(self):
+        repository = FakeRepository(production_settings={
+            "language": "Arabic", "engine": "omni",
+            "model": "flash", "speech_mode": "directed",
+        })
+        service, _, provider, _ = self.service(repository=repository)
+        values = payload(production_id=12)
+        for key in ("language", "engine", "model", "speech_mode"):
+            values.pop(key)
+        service.run(values)
+        prepared = provider.prepared[0]
+        self.assertEqual(
+            (prepared.language, prepared.engine, prepared.tier,
+             prepared.speech_mode),
+            ("Arabic", "omni", "flash", "directed"),
+        )
+
     def service(self, repository=None, provider=None, preferences=None):
         repository = repository or FakeRepository()
         provider = provider or FakeProvider()

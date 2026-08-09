@@ -105,6 +105,28 @@ def create_in_series(series_id: int, name: str,
 def update(collection: str, resource_id: int,
            changes: dict[str, Any]) -> dict[str, Any] | None:
     kind = KINDS[collection]
+    if kind == "series" and "defaults" in changes:
+        allowed = {
+            "voice", "voice_identity_id", "engine", "model", "format",
+            "language", "instruction", "speech_mode", "rate", "pitch",
+            "volume", "seed",
+        }
+        defaults = changes["defaults"] or {}
+        unknown = set(defaults) - allowed
+        if unknown:
+            raise DomainValidation(
+                f"Unknown Series default: {sorted(unknown)[0]}.")
+        if defaults.get("engine") not in {None, "", "audio", "omni"}:
+            raise DomainValidation("Series speech engine must be Audio or Omni.")
+        if defaults.get("model") not in {None, "", "plus", "flash"}:
+            raise DomainValidation("Series quality must be Plus or Flash.")
+        if defaults.get("speech_mode") not in {None, "", "exact", "directed"}:
+            raise DomainValidation(
+                "Series reading mode must be exact or directed.")
+        changes["defaults"] = {
+            key: value for key, value in defaults.items()
+            if value not in (None, "")
+        }
     if kind == "production" and "series_id" in changes:
         series_id = changes.pop("series_id")
         moved = repository.move_production(

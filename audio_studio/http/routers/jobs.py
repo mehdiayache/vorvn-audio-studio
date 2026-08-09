@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from datetime import datetime
+from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Header
@@ -19,6 +20,32 @@ from audio_studio.infrastructure.postgres.jobs import JobRepository
 
 router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
 repository = JobRepository()
+
+
+class JobResponse(BaseModel):
+    id: str
+    type: str
+    status: str
+    progress: float
+    detail: str
+    error: str | None = None
+    retries: int
+    created_at: datetime | None = None
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    result: dict[str, Any]
+
+
+class JobMeta(BaseModel):
+    created: bool
+
+
+class JobEnvelope(BaseModel):
+    data: JobResponse
+
+
+class JobCreatedEnvelope(JobEnvelope):
+    meta: JobMeta
 
 
 class SpeechJobCreate(BaseModel):
@@ -164,7 +191,8 @@ def _payload(job: Job) -> dict:
             "result": job.result}
 
 
-@router.post("/speech", operation_id="createSpeechJob", status_code=202)
+@router.post("/speech", operation_id="createSpeechJob", status_code=202,
+             response_model=JobCreatedEnvelope)
 def create_speech_job(payload: SpeechJobCreate,
                       idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
     # Keep explicit nulls: selecting a system voice intentionally clears a
@@ -180,7 +208,8 @@ def create_speech_job(payload: SpeechJobCreate,
     return {"data": _payload(job), "meta": {"created": created}}
 
 
-@router.post("/batch", operation_id="createBatchJob", status_code=202)
+@router.post("/batch", operation_id="createBatchJob", status_code=202,
+             response_model=JobCreatedEnvelope)
 def create_batch_job(payload: BatchJobCreate,
                      idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
     job, created = repository.enqueue(
@@ -191,7 +220,8 @@ def create_batch_job(payload: BatchJobCreate,
     return {"data": _payload(job), "meta": {"created": created}}
 
 
-@router.post("/render", operation_id="createRenderJob", status_code=202)
+@router.post("/render", operation_id="createRenderJob", status_code=202,
+             response_model=JobCreatedEnvelope)
 def create_render_job(payload: RenderJobCreate,
                       idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
     job, created = repository.enqueue(
@@ -203,7 +233,8 @@ def create_render_job(payload: RenderJobCreate,
     return {"data": _payload(job), "meta": {"created": created}}
 
 
-@router.post("/transcription", operation_id="createTranscriptionJob", status_code=202)
+@router.post("/transcription", operation_id="createTranscriptionJob", status_code=202,
+             response_model=JobCreatedEnvelope)
 def create_transcription_job(payload: TranscriptionJobCreate,
                              idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
     values = {**payload.model_dump(exclude_none=True),
@@ -218,7 +249,8 @@ def create_transcription_job(payload: TranscriptionJobCreate,
     return {"data": _payload(job), "meta": {"created": created}}
 
 
-@router.post("/translation", operation_id="createTranslationJob", status_code=202)
+@router.post("/translation", operation_id="createTranslationJob", status_code=202,
+             response_model=JobCreatedEnvelope)
 def create_translation_job(payload: TranslationJobCreate,
                            idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
     values = {**payload.model_dump(exclude_none=True),
@@ -231,7 +263,8 @@ def create_translation_job(payload: TranslationJobCreate,
     return {"data": _payload(job), "meta": {"created": created}}
 
 
-@router.post("/text", operation_id="createTextJob", status_code=202)
+@router.post("/text", operation_id="createTextJob", status_code=202,
+             response_model=JobCreatedEnvelope)
 def create_text_job(payload: TextJobCreate,
                     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
     values = {**payload.model_dump(exclude_none=True),
@@ -246,7 +279,7 @@ def create_text_job(payload: TextJobCreate,
     return {"data": _payload(job), "meta": {"created": created}}
 
 
-@router.get("/{job_id}", operation_id="getJob")
+@router.get("/{job_id}", operation_id="getJob", response_model=JobEnvelope)
 def get_job(job_id: UUID) -> dict:
     job = repository.get(job_id)
     if not job:
