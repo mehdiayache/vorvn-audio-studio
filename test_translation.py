@@ -20,7 +20,7 @@ from audio_studio.domain.jobs import Job, JobStatus
 from audio_studio.http.routers.jobs import TranslationJobCreate
 from audio_studio.infrastructure.alibaba.translation import AlibabaTranslationProvider
 from audio_studio.infrastructure.postgres import transcripts as postgres_transcripts
-from services.alibaba import text as alibaba_text
+from audio_studio.infrastructure.alibaba import text as alibaba_text
 
 
 ROOT = Path(__file__).parent

@@ -1,13 +1,9 @@
-"""OpenAI-compatible access for Alibaba text models.
+"""Scoped OpenAI-compatible client for Alibaba text models."""
 
-The DashScope SDK stores its base URL in a process-wide global.  This server
-also uses native HTTP and WebSocket speech APIs, so sharing that global caused
-Composer rewrites and translations to inherit the wrong endpoint.  A scoped
-client makes the model, key and URL explicit for every text request.
-"""
+from __future__ import annotations
 
-import os
 from dataclasses import dataclass
+import os
 
 from openai import OpenAI
 
@@ -21,9 +17,12 @@ class TextCompletion:
     request_id: str | None = None
 
 
-def complete_with_metadata(model: str, messages: list[dict],
-                           extra_body: dict | None = None) -> TextCompletion:
-    """Return text plus the provider facts needed by the durable ledger."""
+def complete_with_metadata(
+    model: str,
+    messages: list[dict],
+    extra_body: dict | None = None,
+) -> TextCompletion:
+    """Return text and the provider facts required by the durable ledger."""
     key = os.getenv("DASHSCOPE_API_KEY")
     if not key:
         raise RuntimeError("DASHSCOPE_API_KEY is not set")
@@ -44,6 +43,10 @@ def complete_with_metadata(model: str, messages: list[dict],
     return TextCompletion(content.strip(), usage, response.id or None)
 
 
-def complete(model: str, messages: list[dict], extra_body: dict | None = None) -> str:
-    """Compatibility result for callers that only need the returned text."""
+def complete(
+    model: str,
+    messages: list[dict],
+    extra_body: dict | None = None,
+) -> str:
+    """Compatibility result for callers that only need returned text."""
     return complete_with_metadata(model, messages, extra_body).text

@@ -129,8 +129,6 @@ TRANSITIONAL_MODULE_DEBT = {
     "audio_studio.http.routers.subtitles -> services.captions",
     "audio_studio.infrastructure.alibaba.speech_generation -> say",
     "audio_studio.infrastructure.alibaba.speech_generation -> services.alibaba.speech",
-    "audio_studio.infrastructure.alibaba.text_preparation -> services.alibaba.text",
-    "audio_studio.infrastructure.alibaba.translation -> services.alibaba.text",
     "audio_studio.infrastructure.alibaba.voice_cloning -> say",
     "audio_studio.infrastructure.alibaba.voice_cloning -> services.alibaba.omni",
     "audio_studio.infrastructure.batch_workspace -> batch",
@@ -147,7 +145,6 @@ SERVICES_MODULE_DEBT = {
     "services/alibaba/__init__.py",
     "services/alibaba/omni.py",
     "services/alibaba/speech.py",
-    "services/alibaba/text.py",
     "services/captions.py",
 }
 
