@@ -52,6 +52,24 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(response.headers["x-frame-options"], "DENY")
         self.assertTrue(response.headers["x-request-id"].startswith("req_"))
 
+    def test_export_and_generation_download_use_canonical_identity(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "final.mp3").write_bytes(b"export audio")
+            (root / "take.mp3").write_bytes(b"generation audio")
+            with patch.object(media, "load_preferences",
+                              return_value={"out_dir": directory}), \
+                    patch.object(media.export_repository, "get", return_value={
+                        "id": 91, "filename": "final.mp3"}), \
+                    patch.object(media.media_repository, "generation", return_value={
+                        "id": 150, "filename": "take.mp3"}):
+                exported = self.client.get("/api/v1/exports/91/download")
+                generated = self.client.get("/api/v1/generations/150/download")
+        self.assertEqual(exported.content, b"export audio")
+        self.assertEqual(generated.content, b"generation audio")
+        self.assertIn("final.mp3", exported.headers["content-disposition"])
+        self.assertIn("take.mp3", generated.headers["content-disposition"])
+
     def test_upload_limits_fail_before_body_processing(self):
         response = self.client.post(
             "/api/v1/project-covers/upload", content=b"",

@@ -5,10 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-import db
-
 from audio_studio.application.preferences import load_preferences
 from audio_studio.config import settings
+from audio_studio.infrastructure.postgres.exports import ProductionExportRepository
+from audio_studio.infrastructure.postgres.media import MediaLookupRepository
+
+
+export_repository = ProductionExportRepository()
+media_repository = MediaLookupRepository()
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,7 +52,7 @@ def resolve(kind: str, name: str, folder: str | None = None) -> MediaFile | None
 
 
 def export_file(export_id: int) -> MediaFile | None:
-    item = db.export_get(export_id)
+    item = export_repository.get(export_id)
     if not item:
         return None
     path = _contained_file(Path(load_preferences()["out_dir"]), item["filename"])
@@ -56,7 +60,7 @@ def export_file(export_id: int) -> MediaFile | None:
 
 
 def generation_file(generation_id: int) -> MediaFile | None:
-    item = db.get(generation_id)
+    item = media_repository.generation(generation_id)
     if not item or not item.get("filename"):
         return None
     path = _contained_file(Path(load_preferences()["out_dir"]), item["filename"])

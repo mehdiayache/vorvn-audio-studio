@@ -8,11 +8,11 @@ rollback, and comparison system.
 Finish the existing migration from the legacy Audio Studio backend to the
 current React + FastAPI architecture.
 
-Current mixed state:
+Completed runtime state:
 
 ```text
-React -> FastAPI -> Jobs -> native application services -> provider adapters
-                              \-> remaining legacy db.py responsibilities
+React -> FastAPI -> application services -> provider adapters / PostgreSQL
+                         \-> durable Jobs for provider-backed work
 ```
 
 Target:
@@ -70,44 +70,56 @@ Never delete the old system first and rebuild everything at once.
 - [x] Migrate canonical Work hierarchy and lifecycle
 - [x] Migrate Production document/timeline persistence
 - [x] Migrate render/export persistence
-- [ ] Migrate media lookup persistence
-- [ ] Confirm zero active callers
-- [ ] Delete `db.py`
+- [x] Migrate media lookup persistence
+- [x] Confirm zero active callers
+- [x] Delete `db.py`
 
 ### Consolidation
 
-- [ ] One configuration path
-- [ ] One migration mechanism
-- [ ] API contracts improved as touched
+- [x] One configuration path
+- [x] One migration mechanism
+- [x] API contracts improved as touched
 - [x] Remove old UI after active dependencies are gone
 
 ## Current step
 
-Move public Export and Generation media lookup out of `db.py`, verify every
-download/range route, then confirm zero active callers before deleting the
-legacy persistence module.
+Migration complete. Keep this file as the final evidence record until the team
+chooses to archive it; all new development starts on the native architecture.
 
 ## Last verified checkpoint
 
 - Repository: `https://github.com/mehdiayache/vorvn-audio-studio` (private)
-- Checkpoint: native Production rendering and immutable Export persistence
-  (the commit carrying this record)
-- Tests: 98 Python unit/integration tests against the real FastAPI application
+- Checkpoint: complete legacy backend and persistence removal (the commit
+  carrying this record)
+- Tests: 102 Python unit/integration tests against the real FastAPI application
   and PostgreSQL; 25 Alibaba contracts, 18 chunking checks, 4 transcription
-  checks, 15 native renderer checks, 12 Phase 2 checks and 6 canonical domain
-  checks passed
+  checks, 15 native renderer checks, 12 Phase 2 checks, 6 canonical domain
+  checks and 3 accounting checks passed
 - Frontend: OpenAPI generation, strict TypeScript build, Vite build, 20 Vitest
   files and 60 tests passed
-- Manual flow: restarted FastAPI and the worker, loaded the real Genesis
-  Production, opened Mix & Export, and verified readiness, music, caption state
-  and the empty canonical Export history. The browser console was clean; no
-  preview, render, mutation or paid operation was triggered
+- Database: all six ordered migrations bootstrap an empty PostgreSQL database,
+  seed the required system containers and are idempotent on a second run
+- Manual flow: restarted FastAPI and the worker after deleting `db.py`, loaded
+  the real Genesis Production, verified the page controls and clean browser
+  console, then verified byte-range delivery for a real Export and Generation.
+  No preview, render, mutation or paid operation was triggered
 - Runtime: one FastAPI supervisor and one durable worker. The legacy HTTP
   server and UI are deleted and port 7861 is gone from the configuration
-- Remaining dependency: only public Export/Generation media lookup still calls
-  `db.py`
+- Remaining legacy module dependency: none; `server.py`, `db.py`, the legacy UI
+  and the parallel schema bootstrap are deleted
 
 ## Findings
+
+- A versioned base migration now owns empty-database bootstrap. It contains the
+  exact schema and required fixture seeds formerly hidden in `db.py`; subsequent
+  migrations remain ordered and checksummed. A small preparation migration
+  preserves upgrade compatibility for databases that have not yet run the
+  pronunciation Boolean conversion.
+- Public Export and Generation downloads use focused native repositories.
+  FastAPI preserves safe root containment, filenames, content types and byte
+  ranges without importing a generic persistence module.
+- `domain/schema.py` was a second, unversioned schema owner and is deleted. The
+  migration runner is now the only schema creation and evolution mechanism.
 
 - The final parity audit mapped every historical HTTP responsibility to the
   active FastAPI/React path. `server.py`, the old UI and their obsolete audit

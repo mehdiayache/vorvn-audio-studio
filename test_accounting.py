@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Accounting regressions; transaction is always rolled back, no provider calls."""
 
-import db
+import psycopg
+
+from audio_studio.config import settings
+from audio_studio.infrastructure.postgres.production_document import (
+    ProductionDocumentRepository,
+    TAKE_FIELDS,
+)
 
 
 def main() -> int:
-    conn = db._connect()  # An isolated transaction lets us test deletion recovery safely.
-    if conn is None:
-        print("FAIL  database unavailable")
-        return 1
+    conn = psycopg.connect(settings.database_url)
     try:
         cur = conn.cursor()
         cur.execute("""
@@ -22,7 +25,7 @@ def main() -> int:
             return 1
         part_id, production_id = source
 
-        copied = [column for column in db.COPIED if column != "cost"]
+        copied = [column for column in TAKE_FIELDS if column != "cost"]
         columns = ", ".join(copied)
         cur.execute(
             f"INSERT INTO generations ({columns}, cost, project_id, version_of, failures) "
@@ -45,7 +48,7 @@ def main() -> int:
         expected_gap = round(max(0.0, float(content_cost) - float(tracked_cost)), 6)
         assert expected_gap > 0
 
-        db._recover_part_spend(cur, [part_id])
+        ProductionDocumentRepository._recover_spend(cur, [part_id])
         cur.execute("""
             SELECT cost, production_id, generation_id FROM jobs
              WHERE detail = 'Recovered pre-ledger Part spend before deletion'
@@ -62,7 +65,7 @@ def main() -> int:
                     "detail = 'Recovered pre-ledger Part spend before deletion'",
                     (part_id,))
         recovered_count = cur.fetchone()[0]
-        db._recover_part_spend(cur, [part_id])
+        ProductionDocumentRepository._recover_spend(cur, [part_id])
         cur.execute("SELECT count(*) FROM jobs WHERE generation_id = %s AND "
                     "detail = 'Recovered pre-ledger Part spend before deletion'",
                     (part_id,))

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Read-only integrity gate for the canonical Studio domain."""
 
-import db
+from audio_studio.infrastructure.postgres.session import read_only
 
 
 CHECKS = {
@@ -48,10 +48,7 @@ CHECKS = {
 
 def main() -> int:
     failures = []
-    with db.cursor() as cur:
-        if cur is None:
-            print("FAIL  database unavailable")
-            return 1
+    with read_only() as cur:
         for label, query in CHECKS.items():
             cur.execute(query)
             problems = int(cur.fetchone()[0] or 0)

@@ -32,10 +32,11 @@ FastAPI is the only HTTP process and is exposed on port 7860. The legacy HTTP
 server and UI have been removed; there is no compatibility port or hidden
 fallback. Text preparation, subtitle Translation,
 Transcription, Batch, Speech generation and Voice package execution run through
-native application services. Remaining migration work is limited to public
-Export/Generation media lookup in `db.py`. Canonical Work hierarchy/lifecycle,
-the Production document/Timeline, rendering/Exports and Venture Asset
-libraries/uploads are native.
+native application services. Canonical Work hierarchy/lifecycle, the Production
+document/Timeline, rendering/Exports, media delivery and Venture Asset
+libraries/uploads all use focused PostgreSQL repositories. The ordered
+migrations are the only schema bootstrap and evolution mechanism and support a
+completely empty database.
 
 See [Architecture](docs/ARCHITECTURE.md), [API v1](docs/API_V1.md), and [Canonical domain](docs/CANONICAL_DOMAIN.md).
 

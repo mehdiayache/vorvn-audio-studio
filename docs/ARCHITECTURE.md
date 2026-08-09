@@ -56,10 +56,12 @@ Canonical resources keep both a public UUID and a compatibility integer ID durin
 
 Historical spend is immutable. Removing a Part, Take or audio file changes the current Production cost but never erases what was already billed. Jobs record requested/resolved routes, provider usage, price basis, outputs and failure state.
 
-## Legacy extraction rule
+## Compatibility removal rule
 
-The remaining legacy persistence is a measured extraction source, not a
-destination for new code. A capability slice is complete only when:
+The legacy runtime and generic persistence modules are gone. Compatibility
+columns that preserve historical data are implementation details owned by
+focused repositories, never a destination for new code. A capability slice is
+complete only when:
 
 1. FastAPI owns its contract.
 2. The application service owns its policy.

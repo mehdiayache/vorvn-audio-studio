@@ -1,5 +1,6 @@
 """Architecture guardrails. No provider calls and no database writes."""
 
+import ast
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -57,6 +58,14 @@ class AudioStudioArchitectureTests(unittest.TestCase):
             self.assertIsNone(_contained_file(root, "../secret"))
             self.assertIsNone(_contained_file(root, "."))
 
+    def test_public_media_lookup_uses_native_persistence(self):
+        for relative in (
+                "audio_studio/application/media.py",
+                "audio_studio/infrastructure/postgres/media.py"):
+            source = (ROOT / relative).read_text()
+            self.assertNotIn("import db", source, relative)
+            self.assertNotIn("db.", source, relative)
+
     def test_react_never_calls_paid_legacy_routes_directly(self):
         client = (ROOT / "frontend/src/lib/api.ts").read_text()
         forbidden = ('post<GenerateResult>("/api/part/render"',
@@ -91,8 +100,6 @@ class AudioStudioArchitectureTests(unittest.TestCase):
                 "audio_studio/http/routers/catalog.py"):
             source = (ROOT / relative).read_text()
             self.assertNotIn("db.voice_", source, relative)
-        legacy = (ROOT / "db.py").read_text()
-        self.assertNotIn("def voice_", legacy)
         repository = ROOT / "audio_studio/infrastructure/postgres/voices.py"
         self.assertTrue(repository.exists())
 
@@ -110,13 +117,6 @@ class AudioStudioArchitectureTests(unittest.TestCase):
             source = (ROOT / relative).read_text()
             self.assertNotIn("import db", source, relative)
             self.assertNotIn("db.", source, relative)
-        legacy = (ROOT / "db.py").read_text()
-        for function in (
-                "status", "setting", "setting_save", "spend_totals",
-                "jobs_abandon_stale", "pronunciations",
-                "pronunciation_save", "pronunciation_delete"):
-            self.assertNotIn(f"def {function}(", legacy, function)
-
     def test_venture_asset_library_uses_native_persistence(self):
         repository = ROOT / "audio_studio/infrastructure/postgres/venture_assets.py"
         self.assertTrue(repository.exists())
@@ -133,12 +133,6 @@ class AudioStudioArchitectureTests(unittest.TestCase):
             source = (ROOT / relative).read_text()
             for call in forbidden:
                 self.assertNotIn(call, source, f"{relative}: {call}")
-        legacy = (ROOT / "db.py").read_text()
-        for function in (
-                "is_asset_folder", "venture_assets", "assets_for_venture",
-                "asset_register_generation", "asset_collections_for_venture"):
-            self.assertNotIn(f"def {function}(", legacy, function)
-
     def test_canonical_work_lifecycle_uses_native_persistence(self):
         repository = ROOT / "audio_studio/infrastructure/postgres/work.py"
         accounting = ROOT / "audio_studio/infrastructure/postgres/accounting.py"
@@ -156,9 +150,6 @@ class AudioStudioArchitectureTests(unittest.TestCase):
             source = (ROOT / relative).read_text()
             self.assertNotIn("domain.repository", source, relative)
             self.assertNotIn("from domain import repository", source, relative)
-        legacy = (ROOT / "db.py").read_text()
-        self.assertNotIn("def production_accounting", legacy)
-
     def test_production_document_and_timeline_use_native_persistence(self):
         repository = (
             ROOT / "audio_studio/infrastructure/postgres/production_document.py")
@@ -182,11 +173,20 @@ class AudioStudioArchitectureTests(unittest.TestCase):
             source = (ROOT / relative).read_text()
             self.assertNotIn("import db", source, relative)
             self.assertNotIn("db.", source, relative)
-        legacy = (ROOT / "db.py").read_text()
-        self.assertNotIn("def export_record", legacy)
-        self.assertNotIn("def exports_for", legacy)
-        self.assertNotIn("def transcript_for", legacy)
-        self.assertNotIn("def music_get", legacy)
+
+    def test_legacy_database_module_is_gone(self):
+        self.assertFalse((ROOT / "db.py").exists())
+        for path in ROOT.rglob("*.py"):
+            if any(part in {".venv", "node_modules"} for part in path.parts):
+                continue
+            tree = ast.parse(path.read_text())
+            imports_legacy = any(
+                (isinstance(node, ast.Import)
+                 and any(alias.name == "db" for alias in node.names))
+                or (isinstance(node, ast.ImportFrom) and node.module == "db")
+                for node in ast.walk(tree)
+            )
+            self.assertFalse(imports_legacy, str(path))
 
 
 if __name__ == "__main__":
