@@ -50,7 +50,7 @@ edges from the matching allowlist in the same commit; new edges fail CI.
 Current checkpoint: boundary baseline complete.
 
 - Domain technical-dependency debt: 0.
-- Application to Infrastructure edges: 19.
+- Application to Infrastructure edges: 16.
 - Application direct technical edges: 0.
 - HTTP to Infrastructure edges: 5.
 - Infrastructure to Application edges: 8.
@@ -150,3 +150,8 @@ Upload rules and rollback orchestration now belong to one injected Application
 service. Local files, FFmpeg and private S3 publication live in one workspace
 adapter while PostgreSQL records live in one persistence adapter. This removes
 five Application-to-Infrastructure edges and the final direct technical import.
+
+Public media delivery now resolves persisted Export and Generation IDs through
+an Application service. PostgreSQL identity lookup and contained local-path
+resolution are composed adapters, removing three more direct infrastructure
+dependencies while preserving every browser and download URL.

@@ -5,9 +5,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from audio_studio.application.media import _contained_file
 from audio_studio.http.app import COMPATIBILITY_ALLOWLIST, app
 from audio_studio.http.routers.jobs import SpeechJobCreate, TranscriptionJobCreate
+from audio_studio.infrastructure.media_workspace import contained_file
 
 
 ROOT = Path(__file__).parent
@@ -126,9 +126,9 @@ class AudioStudioArchitectureTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "ok.mp3").write_bytes(b"audio")
-            self.assertEqual(_contained_file(root, "ok.mp3"), (root / "ok.mp3").resolve())
-            self.assertIsNone(_contained_file(root, "../secret"))
-            self.assertIsNone(_contained_file(root, "."))
+            self.assertEqual(contained_file(root, "ok.mp3"), (root / "ok.mp3").resolve())
+            self.assertIsNone(contained_file(root, "../secret"))
+            self.assertIsNone(contained_file(root, "."))
 
     def test_public_media_lookup_uses_native_persistence(self):
         for relative in (

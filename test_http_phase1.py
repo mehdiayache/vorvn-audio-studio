@@ -3,14 +3,18 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from fastapi.testclient import TestClient
 
-from audio_studio.application import media, timeline
+from audio_studio.application import timeline
+from audio_studio.application.media import MediaService
+from audio_studio.domain.media import MediaFile
 from audio_studio.http.app import app
+from audio_studio.http.routers import media as media_router
 from audio_studio.http.routers import work as work_router
 from audio_studio.domain.work import DomainConflict
+from audio_studio.infrastructure.media_workspace import LocalMediaWorkspace
 
 
 class NativeHttpTests(unittest.TestCase):
@@ -88,7 +92,9 @@ class NativeHttpTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             target = Path(directory) / "brand.png"
             target.write_bytes(b"0123456789")
-            with patch.object(media, "resolve", return_value=media.MediaFile(target)):
+            with patch.object(
+                    media_router.media_service, "resolve",
+                    return_value=MediaFile(target)):
                 response = self.client.get(
                     "/icon/brand.png", headers={"Range": "bytes=0-3"})
         self.assertEqual(response.status_code, 206)
@@ -103,11 +109,17 @@ class NativeHttpTests(unittest.TestCase):
             root = Path(directory)
             (root / "final.mp3").write_bytes(b"export audio")
             (root / "take.mp3").write_bytes(b"generation audio")
-            with patch.object(media, "media_root", return_value=root), \
-                    patch.object(media.export_repository, "get", return_value={
-                        "id": 91, "filename": "final.mp3"}), \
-                    patch.object(media.media_repository, "generation", return_value={
-                        "id": 150, "filename": "take.mp3"}):
+            records = Mock()
+            records.export.return_value = {
+                "id": 91, "filename": "final.mp3"}
+            records.generation.return_value = {
+                "id": 150, "filename": "take.mp3"}
+            service = MediaService(
+                LocalMediaWorkspace(
+                    root=root, output=root, voice_samples=root),
+                records,
+            )
+            with patch.object(media_router, "media_service", service):
                 exported = self.client.get("/api/v1/exports/91/download")
                 generated = self.client.get("/api/v1/generations/150/download")
         self.assertEqual(exported.content, b"export audio")

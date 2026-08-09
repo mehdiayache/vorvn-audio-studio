@@ -1,67 +1,51 @@
-"""Resolve playable local media without exposing arbitrary filesystem paths."""
+"""Media lookup use cases independent from PostgreSQL and local paths."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
+from typing import Protocol
 
-from audio_studio.config import settings
-from audio_studio.infrastructure.media_paths import media_root
-from audio_studio.infrastructure.postgres.exports import ProductionExportRepository
-from audio_studio.infrastructure.postgres.media import MediaLookupRepository
+from audio_studio.domain.media import MediaFile
 
 
-export_repository = ProductionExportRepository()
-media_repository = MediaLookupRepository()
+class MediaWorkspace(Protocol):
+    def resolve(
+        self, kind: str, name: str, folder: str | None = None,
+        *, download_name: str | None = None,
+    ) -> MediaFile | None: ...
 
 
-@dataclass(frozen=True, slots=True)
-class MediaFile:
-    path: Path
-    download_name: str | None = None
+class MediaRecords(Protocol):
+    def export(self, export_id: int) -> dict | None: ...
+    def generation(self, generation_id: int) -> dict | None: ...
 
 
-def _contained_file(root: Path, *parts: str) -> Path | None:
-    root = root.expanduser().resolve()
-    # URL-controlled segments must be plain names. This blocks traversal and
-    # deliberately prevents the public media surface from becoming a file API.
-    if not parts or any(not part or Path(part).name != part for part in parts):
-        return None
-    candidate = root.joinpath(*parts).resolve()
-    if root not in candidate.parents or not candidate.is_file():
-        return None
-    return candidate
+class MediaService:
+    def __init__(self, workspace: MediaWorkspace, records: MediaRecords):
+        self.workspace = workspace
+        self.records = records
 
+    def resolve(
+        self, kind: str, name: str, folder: str | None = None,
+    ) -> MediaFile | None:
+        download_name = (
+            f"{folder}.zip" if kind == "batch-audio" and folder
+            and name.casefold().endswith(".zip") else None
+        )
+        return self.workspace.resolve(
+            kind, name, folder, download_name=download_name)
 
-def resolve(kind: str, name: str, folder: str | None = None) -> MediaFile | None:
-    roots = {
-        "audio": media_root(),
-        "icon": settings.root / ".icons",
-        "inbox": settings.root / ".inbox",
-        "block-audio": settings.root / ".blocks",
-        "samples": settings.voice_samples,
-    }
-    if kind == "batch-audio":
-        if folder is None:
+    def export_file(self, export_id: int) -> MediaFile | None:
+        item = self.records.export(export_id)
+        if not item or not item.get("filename"):
             return None
-        path = _contained_file(media_root(), folder, name)
-        return MediaFile(path, f"{folder}.zip" if path and path.suffix == ".zip" else None) if path else None
-    root = roots.get(kind)
-    path = _contained_file(root, name) if root else None
-    return MediaFile(path) if path else None
+        filename = str(item["filename"])
+        return self.workspace.resolve(
+            "audio", filename, download_name=filename)
 
-
-def export_file(export_id: int) -> MediaFile | None:
-    item = export_repository.get(export_id)
-    if not item:
-        return None
-    path = _contained_file(media_root(), item["filename"])
-    return MediaFile(path, item["filename"]) if path else None
-
-
-def generation_file(generation_id: int) -> MediaFile | None:
-    item = media_repository.generation(generation_id)
-    if not item or not item.get("filename"):
-        return None
-    path = _contained_file(media_root(), item["filename"])
-    return MediaFile(path, item["filename"]) if path else None
+    def generation_file(self, generation_id: int) -> MediaFile | None:
+        item = self.records.generation(generation_id)
+        if not item or not item.get("filename"):
+            return None
+        filename = str(item["filename"])
+        return self.workspace.resolve(
+            "audio", filename, download_name=filename)
