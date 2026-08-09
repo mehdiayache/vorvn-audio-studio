@@ -8,15 +8,34 @@ import re
 
 import say
 from audio_studio.domain import voice_routing
-from audio_studio.infrastructure.alibaba import config
+from audio_studio.infrastructure.alibaba import config, omni
 from audio_studio.domain import speech_fidelity as alibaba_fidelity
-from services.alibaba import speech as alibaba_speech
 from audio_studio.domain.provider_pricing import PRICE_VERSION, qwen_audio_tts_cost
 
 from audio_studio.domain.speech import PreparedSpeech, SynthesizedSpeech
 
 
 INSTRUCTION_MAX = 100
+
+
+def synthesize(chunks, options, on_progress=None):
+    """Route speech through the Alibaba product selected by one voice route."""
+    if options.engine == "omni":
+        if any(
+            tag.casefold() in say.KNOWN_TAGS
+            for chunk in chunks
+            for tag in say.TAG_RE.findall(chunk)
+        ):
+            raise ValueError(
+                "Qwen 3.5 Omni does not support inline delivery tags. "
+                "Choose Raw or Spoken text, or use a Qwen Audio voice."
+            )
+        audio, failures, transcripts, usage = omni.synthesize(
+            chunks, options, on_progress)
+        return audio, failures, transcripts, usage
+    audio, failures = say.synthesize(
+        chunks, options, on_progress=on_progress)
+    return audio, failures, [], {}
 
 
 class _Options:
@@ -119,7 +138,7 @@ class AlibabaSpeechProvider:
     def synthesize(self, prepared: PreparedSpeech,
                    on_progress=None) -> SynthesizedSpeech:
         chunks = say.chunk_text(prepared.spoken_text)
-        audio, failures, transcripts, usage = alibaba_speech.synthesize(
+        audio, failures, transcripts, usage = synthesize(
             chunks, prepared.context, on_progress=on_progress)
         failure_rows = [item._asdict() for item in failures]
         provider_text = " ".join(

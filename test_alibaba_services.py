@@ -5,8 +5,8 @@ import json
 import os
 
 from audio_studio.infrastructure.alibaba import omni
-from services.alibaba import speech
 from audio_studio.infrastructure.alibaba import config
+from audio_studio.infrastructure.alibaba import speech_generation as speech
 from audio_studio.domain import speech_fidelity as fidelity
 from audio_studio.domain import voice_registry
 from types import SimpleNamespace
