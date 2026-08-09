@@ -7,8 +7,17 @@ from typing import Any
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, ConfigDict, Field
 
-from audio_studio.application import voices
+from audio_studio.composition.voices import voice_service
 from audio_studio.http.errors import ApiProblem
+from audio_studio.http.voice_contracts import (
+    HistoricalVoiceCollectionEnvelope,
+    VoiceHistoryLinkEnvelope,
+    VoicePackageCreateEnvelope,
+    VoicePackagePlanEnvelope,
+    VoicePackageRetryEnvelope,
+    VoiceProfileCollectionEnvelope,
+    VoiceProfileEnvelope,
+)
 
 
 router = APIRouter(prefix="/api/v1", tags=["voices"])
@@ -54,12 +63,15 @@ class VoicePackageRetry(BaseModel):
     model_id: str = Field(min_length=1, max_length=200)
 
 
-@router.get("/voices", operation_id="listVoiceProfiles")
+@router.get(
+    "/voices", operation_id="listVoiceProfiles",
+    response_model=VoiceProfileCollectionEnvelope,
+)
 def list_profiles(limit: int = Query(100, ge=1, le=100), after: str | None = None) -> dict:
     # Voice catalogues are intentionally bounded below the public page limit.
     # Keep the cursor field so API clients and the React collection helper use
     # one consistent collection envelope.
-    items = voices.profiles()
+    items = voice_service.profiles()
     if after:
         raise ApiProblem(400, "invalid_cursor", "The voice catalogue has no further page.")
     page = items[:limit]
@@ -67,18 +79,25 @@ def list_profiles(limit: int = Query(100, ge=1, le=100), after: str | None = Non
                                       "next_cursor": None}}
 
 
-@router.get("/voices/{identity_id}", operation_id="getVoiceProfile")
+@router.get(
+    "/voices/{identity_id}", operation_id="getVoiceProfile",
+    response_model=VoiceProfileEnvelope,
+)
 def get_profile(identity_id: str) -> dict:
-    item = voices.profile(identity_id)
+    item = voice_service.profile(identity_id)
     if not item:
         raise ApiProblem(404, "voice_not_found", "That voice identity does not exist.")
     return {"data": item}
 
 
-@router.patch("/voices/{identity_id}", operation_id="updateVoiceProfile")
+@router.patch(
+    "/voices/{identity_id}", operation_id="updateVoiceProfile",
+    response_model=VoiceProfileEnvelope,
+)
 def update_profile(identity_id: str, payload: VoiceUpdate) -> dict:
     try:
-        item = voices.update(identity_id, payload.model_dump(exclude_none=True))
+        item = voice_service.update(
+            identity_id, payload.model_dump(exclude_none=True))
     except ValueError as exc:
         raise ApiProblem(400, "invalid_voice", str(exc)) from exc
     if not item:
@@ -86,27 +105,37 @@ def update_profile(identity_id: str, payload: VoiceUpdate) -> dict:
     return {"data": item}
 
 
-@router.delete("/voices/{identity_id}", operation_id="archiveVoiceProfile")
+@router.delete(
+    "/voices/{identity_id}", operation_id="archiveVoiceProfile",
+    response_model=VoiceProfileEnvelope,
+)
 def archive_profile(identity_id: str) -> dict:
-    item = voices.archive(identity_id)
+    item = voice_service.archive(identity_id)
     if not item:
         raise ApiProblem(404, "voice_not_found", "That voice identity does not exist.")
     return {"data": item}
 
 
-@router.get("/voice-history/unlinked", operation_id="listUnlinkedVoiceHistory")
+@router.get(
+    "/voice-history/unlinked", operation_id="listUnlinkedVoiceHistory",
+    response_model=HistoricalVoiceCollectionEnvelope,
+)
 def list_unlinked_history(limit: int = Query(100, ge=1, le=100), after: str | None = None) -> dict:
     if after:
         raise ApiProblem(400, "invalid_cursor", "The history catalogue has no further page.")
-    items = voices.unlinked_history()[:limit]
+    items = voice_service.unlinked_history()[:limit]
     return {"data": items, "meta": {"count": len(items), "total": len(items),
                                        "next_cursor": None}}
 
 
-@router.post("/voices/{identity_id}/link-history", operation_id="linkVoiceHistory")
+@router.post(
+    "/voices/{identity_id}/link-history", operation_id="linkVoiceHistory",
+    response_model=VoiceHistoryLinkEnvelope,
+)
 def link_history(identity_id: str, payload: HistoryLink) -> dict[str, Any]:
     try:
-        result = voices.link_history(identity_id, payload.provider_voice_id.strip())
+        result = voice_service.link_history(
+            identity_id, payload.provider_voice_id.strip())
     except ValueError as exc:
         raise ApiProblem(400, "invalid_voice_history", str(exc)) from exc
     if not result:
@@ -115,18 +144,26 @@ def link_history(identity_id: str, payload: HistoryLink) -> dict[str, Any]:
     return {"data": result}
 
 
-@router.post("/voice-packages/preflight", operation_id="preflightVoicePackage")
+@router.post(
+    "/voice-packages/preflight", operation_id="preflightVoicePackage",
+    response_model=VoicePackagePlanEnvelope,
+)
 def preflight_voice_package(payload: VoicePackagePreflight) -> dict:
     try:
-        return {"data": voices.package_plan(payload.language, payload.package)}
+        return {"data": voice_service.package_plan(
+            payload.language, payload.package)}
     except ValueError as exc:
         raise ApiProblem(400, "invalid_voice_package", str(exc)) from exc
 
 
-@router.post("/voice-packages", operation_id="createVoicePackage", status_code=202)
+@router.post(
+    "/voice-packages", operation_id="createVoicePackage", status_code=202,
+    response_model=VoicePackageCreateEnvelope,
+)
 def create_voice_package(payload: VoicePackageCreate) -> dict:
     try:
-        result = voices.create_package(payload.model_dump(exclude_none=True))
+        result = voice_service.create_package(
+            payload.model_dump(exclude_none=True))
     except PermissionError as exc:
         raise ApiProblem(402, "daily_cap_reached", str(exc)) from exc
     except LookupError as exc:
@@ -138,9 +175,12 @@ def create_voice_package(payload: VoicePackageCreate) -> dict:
     return {"data": result}
 
 
-@router.post("/voice-packages/retry", operation_id="retryVoicePackage", status_code=202)
+@router.post(
+    "/voice-packages/retry", operation_id="retryVoicePackage",
+    status_code=202, response_model=VoicePackageRetryEnvelope,
+)
 def retry_voice_package(payload: VoicePackageRetry) -> dict:
-    result = voices.retry_binding(payload.identity_id, payload.model_id)
+    result = voice_service.retry_binding(payload.identity_id, payload.model_id)
     if not result:
         raise ApiProblem(409, "voice_package_not_retryable",
                          "That failed variant is no longer retryable.")

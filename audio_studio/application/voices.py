@@ -2,117 +2,146 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable, Protocol
 
 from audio_studio.config import alibaba_environment
 from audio_studio.domain import voice_packages
-from audio_studio.application.preferences import load_preferences
-from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
-from audio_studio.infrastructure.postgres.voices import VoiceRepository
 
 
-package_repository = VoicePackageRepository()
-repository = VoiceRepository()
+class VoiceProfilesStore(Protocol):
+    def profiles(self) -> list[dict]: ...
+    def profile_usage(self) -> dict[str, dict]: ...
+    def update_profile(self, identity_id: str, changes: dict) -> bool: ...
+    def unlinked_history(self) -> list[dict]: ...
+    def link_history(self, provider_voice_id: str, identity_id: str) -> int: ...
 
 
-def profiles() -> list[dict[str, Any]]:
-    identities = repository.profiles()
-    usage = repository.profile_usage()
-    for identity in identities:
-        metadata = identity.get("metadata") or {}
-        language = metadata.get("language") or next((
-            language for binding in identity["bindings"]
-            for language in binding.get("languages", []) if language), "")
-        identity["metadata"] = {**metadata, "language": language}
-        identity["available_routes"] = (voice_packages.plan(
-            language, region=alibaba_environment().region)["available_routes"]
-                                                 if language else [])
-        identity["usage"] = usage.get(identity["id"], {
-            "uses": 0, "productions": 0, "spend": 0.0,
-            "last_used": None, "preview_filename": "",
-        })
-    return identities
+class VoicePackageStore(Protocol):
+    def today_spend(self) -> float: ...
+    def reference(self, reference_id: str) -> dict | None: ...
+    def record_blocked(self, *, estimate: float, detail: str) -> None: ...
+    def create_package(self, **values) -> tuple[str, list[str]]: ...
+    def retry(self, identity_id: str, model_id: str) -> str | None: ...
 
 
-def profile(identity_id: str) -> dict[str, Any] | None:
-    return next((item for item in profiles() if item["id"] == identity_id), None)
+class VoiceService:
+    def __init__(
+        self,
+        profiles_store: VoiceProfilesStore,
+        package_store: VoicePackageStore,
+        preferences: Callable[[], dict],
+    ):
+        self.profiles_store = profiles_store
+        self.package_store = package_store
+        self.preferences = preferences
 
+    def profiles(self) -> list[dict[str, Any]]:
+        identities = self.profiles_store.profiles()
+        usage = self.profiles_store.profile_usage()
+        for identity in identities:
+            metadata = identity.get("metadata") or {}
+            language = metadata.get("language") or next((
+                language for binding in identity["bindings"]
+                for language in binding.get("languages", []) if language), "")
+            identity["metadata"] = {**metadata, "language": language}
+            identity["available_routes"] = (voice_packages.plan(
+                language,
+                region=alibaba_environment().region,
+            )["available_routes"] if language else [])
+            identity["usage"] = usage.get(identity["id"], {
+                "uses": 0, "productions": 0, "spend": 0.0,
+                "last_used": None, "preview_filename": "",
+            })
+        return identities
 
-def update(identity_id: str, changes: dict[str, Any]) -> dict[str, Any] | None:
-    if not repository.update_profile(identity_id, changes):
+    def profile(self, identity_id: str) -> dict[str, Any] | None:
+        return next((
+            item for item in self.profiles()
+            if item["id"] == identity_id), None)
+
+    def update(self, identity_id: str,
+               changes: dict[str, Any]) -> dict[str, Any] | None:
+        if not self.profiles_store.update_profile(identity_id, changes):
+            return None
+        return self.profile(identity_id)
+
+    def archive(self, identity_id: str) -> dict[str, Any] | None:
+        return self.update(identity_id, {"status": "archived"})
+
+    def unlinked_history(self) -> list[dict[str, Any]]:
+        return self.profiles_store.unlinked_history()
+
+    def link_history(self, identity_id: str,
+                     provider_voice_id: str) -> dict[str, Any] | None:
+        linked = self.profiles_store.link_history(
+            provider_voice_id, identity_id)
+        if not linked:
+            return None
+        return {"linked": linked, "profile": self.profile(identity_id)}
+
+    def package_plan(self, language: str,
+                     package: str = "complete") -> dict:
+        if not language.strip():
+            raise ValueError("Choose the recording language first.")
+        return voice_packages.plan(
+            language, package, region=alibaba_environment().region)
+
+    def _check_creation_budget(self, estimate: float,
+                               confirmed: bool) -> dict | None:
+        preferences = self.preferences()
+        cap = float(preferences.get("daily_cap") or 0)
+        spent = self.package_store.today_spend()
+        if cap > 0 and spent + estimate > cap:
+            self.package_store.record_blocked(
+                estimate=estimate, detail=f"daily cap of ${cap:.2f} reached")
+            raise PermissionError(
+                f"Daily cap reached. You've spent ${spent:.4f} today and this "
+                f"would add ${estimate:.4f}, over your ${cap:.2f} cap.")
+        warn = float(preferences.get("warn_above") or 0)
+        if warn > 0 and estimate > warn and not confirmed:
+            return {
+                "needs_confirmation": True,
+                "estimate": round(estimate, 4), "warn_above": warn,
+            }
         return None
-    return profile(identity_id)
 
+    def create_package(self, payload: dict) -> dict:
+        name = str(payload.get("name") or "").strip()
+        language = str(payload.get("language") or "").strip().lower()
+        reference_id = str(payload.get("reference_id") or "").strip()
+        if not name or len(name) > 80:
+            raise ValueError("Give this voice a name of 80 characters or fewer.")
+        if not self.package_store.reference(reference_id):
+            raise ValueError("Upload a reference recording first.")
+        plan = self.package_plan(
+            language, str(payload.get("package") or "complete"))
+        if not plan["routes"]:
+            raise ValueError("No installed voice model supports that language.")
+        confirmation = self._check_creation_budget(
+            float(plan["total_estimated_creation_cost"]),
+            bool(payload.get("confirmed")),
+        )
+        if confirmation:
+            return confirmation
 
-def archive(identity_id: str) -> dict[str, Any] | None:
-    return update(identity_id, {"status": "archived"})
+        metadata = {
+            "language": plan["language"], "package": plan["package"],
+            "gender": payload.get("gender") or None,
+            "trait": str(payload.get("trait") or "").strip() or None,
+        }
+        identity_id, job_ids = self.package_store.create_package(
+            name=name, metadata=metadata, reference_id=reference_id,
+            identity_id=str(payload.get("identity_id") or "").strip() or None,
+            routes=plan["routes"],
+            estimate=float(plan["total_estimated_creation_cost"]),
+        )
+        return {
+            "identity": self.profile(identity_id),
+            "queued": len(job_ids), "plan": plan,
+        }
 
-
-def unlinked_history() -> list[dict[str, Any]]:
-    return repository.unlinked_history()
-
-
-def link_history(identity_id: str, provider_voice_id: str) -> dict[str, Any] | None:
-    linked = repository.link_history(provider_voice_id, identity_id)
-    if not linked:
-        return None
-    return {"linked": linked, "profile": profile(identity_id)}
-
-
-def package_plan(language: str, package: str = "complete") -> dict:
-    if not language.strip():
-        raise ValueError("Choose the recording language first.")
-    return voice_packages.plan(
-        language, package, region=alibaba_environment().region)
-
-
-def _check_creation_budget(estimate: float, confirmed: bool) -> dict | None:
-    preferences = load_preferences()
-    cap = float(preferences.get("daily_cap") or 0)
-    spent = package_repository.today_spend()
-    if cap > 0 and spent + estimate > cap:
-        package_repository.record_blocked(
-            estimate=estimate, detail=f"daily cap of ${cap:.2f} reached")
-        raise PermissionError(
-            f"Daily cap reached. You've spent ${spent:.4f} today and this would "
-            f"add ${estimate:.4f}, over your ${cap:.2f} cap.")
-    warn = float(preferences.get("warn_above") or 0)
-    if warn > 0 and estimate > warn and not confirmed:
-        return {"needs_confirmation": True, "estimate": round(estimate, 4),
-                "warn_above": warn}
-    return None
-
-
-def create_package(payload: dict) -> dict:
-    name = str(payload.get("name") or "").strip()
-    language = str(payload.get("language") or "").strip().lower()
-    reference_id = str(payload.get("reference_id") or "").strip()
-    if not name or len(name) > 80:
-        raise ValueError("Give this voice a name of 80 characters or fewer.")
-    if not package_repository.reference(reference_id):
-        raise ValueError("Upload a reference recording first.")
-    plan = package_plan(language, str(payload.get("package") or "complete"))
-    if not plan["routes"]:
-        raise ValueError("No installed voice model supports that language.")
-    confirmation = _check_creation_budget(
-        float(plan["total_estimated_creation_cost"]), bool(payload.get("confirmed")))
-    if confirmation:
-        return confirmation
-
-    metadata = {
-        "language": plan["language"], "package": plan["package"],
-        "gender": payload.get("gender") or None,
-        "trait": str(payload.get("trait") or "").strip() or None,
-    }
-    identity_id, job_ids = package_repository.create_package(
-        name=name, metadata=metadata, reference_id=reference_id,
-        identity_id=str(payload.get("identity_id") or "").strip() or None,
-        routes=plan["routes"],
-        estimate=float(plan["total_estimated_creation_cost"]),
-    )
-    return {"identity": profile(identity_id), "queued": len(job_ids), "plan": plan}
-
-
-def retry_binding(identity_id: str, model_id: str) -> dict | None:
-    job_id = package_repository.retry(identity_id.strip(), model_id.strip())
-    return {"ok": True, "job_id": job_id} if job_id else None
+    def retry_binding(self, identity_id: str,
+                      model_id: str) -> dict | None:
+        job_id = self.package_store.retry(
+            identity_id.strip(), model_id.strip())
+        return {"ok": True, "job_id": job_id} if job_id else None

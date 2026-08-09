@@ -64,6 +64,25 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(resolved["engine"], "omni")
         self.assertTrue(resolved["provider_voice_id"])
 
+    def test_voice_identity_contracts_are_live_without_provider_calls(self):
+        profiles = self.client.get("/api/v1/voices?limit=100")
+        history = self.client.get("/api/v1/voice-history/unlinked?limit=100")
+        plan = self.client.post("/api/v1/voice-packages/preflight", json={
+            "language": "English", "package": "complete",
+        })
+
+        for response in (profiles, history, plan):
+            self.assertEqual(response.status_code, 200, response.text)
+        identities = profiles.json()["data"]
+        self.assertTrue(identities)
+        detail = self.client.get(f"/api/v1/voices/{identities[0]['id']}")
+        self.assertEqual(detail.status_code, 200, detail.text)
+        self.assertEqual(detail.json()["data"]["id"], identities[0]["id"])
+        self.assertIsInstance(history.json()["data"], list)
+        package = plan.json()["data"]
+        self.assertEqual(package["region"], "intl")
+        self.assertEqual(len(package["available_routes"]), 3)
+
     def test_media_is_typed_seekable_and_security_hardened(self):
         with TemporaryDirectory() as directory:
             target = Path(directory) / "brand.png"

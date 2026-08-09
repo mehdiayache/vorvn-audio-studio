@@ -628,6 +628,36 @@
         "title": "BatchJobCreate",
         "type": "object"
       },
+      "CollectionMetaResponse": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "total",
+          "next_cursor"
+        ],
+        "title": "CollectionMetaResponse",
+        "type": "object"
+      },
       "CostBasisResponse": {
         "properties": {
           "basis": {
@@ -854,6 +884,75 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HistoricalVoiceCollectionEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/HistoricalVoiceResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/CollectionMetaResponse"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "HistoricalVoiceCollectionEnvelope",
+        "type": "object"
+      },
+      "HistoricalVoiceResponse": {
+        "properties": {
+          "engine": {
+            "title": "Engine",
+            "type": "string"
+          },
+          "last_used": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "preview_filename": {
+            "default": "",
+            "title": "Preview Filename",
+            "type": "string"
+          },
+          "productions": {
+            "title": "Productions",
+            "type": "integer"
+          },
+          "provider_voice_id": {
+            "title": "Provider Voice Id",
+            "type": "string"
+          },
+          "uses": {
+            "title": "Uses",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "provider_voice_id",
+          "engine",
+          "model",
+          "uses",
+          "productions"
+        ],
+        "title": "HistoricalVoiceResponse",
         "type": "object"
       },
       "HistoryLink": {
@@ -2567,6 +2666,35 @@
         "title": "VoiceBindingResponse",
         "type": "object"
       },
+      "VoiceHistoryLinkEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/VoiceHistoryLinkResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "VoiceHistoryLinkEnvelope",
+        "type": "object"
+      },
+      "VoiceHistoryLinkResponse": {
+        "properties": {
+          "linked": {
+            "title": "Linked",
+            "type": "integer"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/VoiceProfileResponse"
+          }
+        },
+        "required": [
+          "linked",
+          "profile"
+        ],
+        "title": "VoiceHistoryLinkResponse",
+        "type": "object"
+      },
       "VoiceMetadataEnvelope": {
         "properties": {
           "data": {
@@ -2788,6 +2916,30 @@
         "title": "VoiceModelSummaryResponse",
         "type": "object"
       },
+      "VoicePackageConfirmationResponse": {
+        "properties": {
+          "estimate": {
+            "title": "Estimate",
+            "type": "number"
+          },
+          "needs_confirmation": {
+            "const": true,
+            "title": "Needs Confirmation",
+            "type": "boolean"
+          },
+          "warn_above": {
+            "title": "Warn Above",
+            "type": "number"
+          }
+        },
+        "required": [
+          "needs_confirmation",
+          "estimate",
+          "warn_above"
+        ],
+        "title": "VoicePackageConfirmationResponse",
+        "type": "object"
+      },
       "VoicePackageCreate": {
         "additionalProperties": false,
         "properties": {
@@ -2865,6 +3017,249 @@
         "title": "VoicePackageCreate",
         "type": "object"
       },
+      "VoicePackageCreateEnvelope": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VoicePackageCreatedResponse"
+              },
+              {
+                "$ref": "#/components/schemas/VoicePackageConfirmationResponse"
+              }
+            ],
+            "title": "Data"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "VoicePackageCreateEnvelope",
+        "type": "object"
+      },
+      "VoicePackageCreatedResponse": {
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/VoiceProfileResponse"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/VoicePackagePlanResponse"
+          },
+          "queued": {
+            "title": "Queued",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "identity",
+          "queued",
+          "plan"
+        ],
+        "title": "VoicePackageCreatedResponse",
+        "type": "object"
+      },
+      "VoicePackageJobResponse": {
+        "properties": {
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "engine": {
+            "enum": [
+              "audio",
+              "omni"
+            ],
+            "title": "Engine",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "identity_id": {
+            "title": "Identity Id",
+            "type": "string"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "provider_voice_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Voice Id"
+          },
+          "reference_id": {
+            "title": "Reference Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tier": {
+            "enum": [
+              "plus",
+              "flash"
+            ],
+            "title": "Tier",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "identity_id",
+          "reference_id",
+          "model_id",
+          "engine",
+          "tier",
+          "status",
+          "attempts",
+          "updated_at"
+        ],
+        "title": "VoicePackageJobResponse",
+        "type": "object"
+      },
+      "VoicePackageOptionResponse": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "enum": [
+              "complete",
+              "exact",
+              "omni"
+            ],
+            "title": "Id",
+            "type": "string"
+          },
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Models",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "models",
+          "available"
+        ],
+        "title": "VoicePackageOptionResponse",
+        "type": "object"
+      },
+      "VoicePackagePlanEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/VoicePackagePlanResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "VoicePackagePlanEnvelope",
+        "type": "object"
+      },
+      "VoicePackagePlanResponse": {
+        "properties": {
+          "available_routes": {
+            "items": {
+              "$ref": "#/components/schemas/VoicePackageRouteResponse"
+            },
+            "title": "Available Routes",
+            "type": "array"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "package": {
+            "enum": [
+              "complete",
+              "exact",
+              "omni"
+            ],
+            "title": "Package",
+            "type": "string"
+          },
+          "packages": {
+            "items": {
+              "$ref": "#/components/schemas/VoicePackageOptionResponse"
+            },
+            "title": "Packages",
+            "type": "array"
+          },
+          "region": {
+            "enum": [
+              "intl",
+              "beijing"
+            ],
+            "title": "Region",
+            "type": "string"
+          },
+          "region_label": {
+            "title": "Region Label",
+            "type": "string"
+          },
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/VoicePackageRouteResponse"
+            },
+            "title": "Routes",
+            "type": "array"
+          },
+          "total_estimated_creation_cost": {
+            "title": "Total Estimated Creation Cost",
+            "type": "number"
+          }
+        },
+        "required": [
+          "region",
+          "region_label",
+          "language",
+          "package",
+          "routes",
+          "available_routes",
+          "packages",
+          "total_estimated_creation_cost"
+        ],
+        "title": "VoicePackagePlanResponse",
+        "type": "object"
+      },
       "VoicePackagePreflight": {
         "additionalProperties": false,
         "properties": {
@@ -2908,6 +3303,418 @@
           "model_id"
         ],
         "title": "VoicePackageRetry",
+        "type": "object"
+      },
+      "VoicePackageRetryEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/VoicePackageRetryResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "VoicePackageRetryEnvelope",
+        "type": "object"
+      },
+      "VoicePackageRetryResponse": {
+        "properties": {
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "ok": {
+            "const": true,
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "job_id"
+        ],
+        "title": "VoicePackageRetryResponse",
+        "type": "object"
+      },
+      "VoicePackageRouteResponse": {
+        "properties": {
+          "engine": {
+            "enum": [
+              "audio",
+              "omni"
+            ],
+            "title": "Engine",
+            "type": "string"
+          },
+          "estimated_creation_cost": {
+            "title": "Estimated Creation Cost",
+            "type": "number"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "tier": {
+            "enum": [
+              "plus",
+              "flash"
+            ],
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "engine",
+          "tier",
+          "model_id",
+          "label",
+          "role",
+          "language",
+          "estimated_creation_cost"
+        ],
+        "title": "VoicePackageRouteResponse",
+        "type": "object"
+      },
+      "VoiceProfileBindingResponse": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "engine": {
+            "enum": [
+              "audio",
+              "omni"
+            ],
+            "title": "Engine",
+            "type": "string"
+          },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Languages",
+            "type": "array"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "provider_voice_id": {
+            "title": "Provider Voice Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tier": {
+            "enum": [
+              "plus",
+              "flash"
+            ],
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider_voice_id",
+          "model_id",
+          "engine",
+          "tier",
+          "status",
+          "languages",
+          "created_at"
+        ],
+        "title": "VoiceProfileBindingResponse",
+        "type": "object"
+      },
+      "VoiceProfileCollectionEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceProfileResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/CollectionMetaResponse"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "VoiceProfileCollectionEnvelope",
+        "type": "object"
+      },
+      "VoiceProfileEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/VoiceProfileResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "VoiceProfileEnvelope",
+        "type": "object"
+      },
+      "VoiceProfileMetadataResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "accent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accent"
+          },
+          "age": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age"
+          },
+          "favourite": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Favourite"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "package": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Package"
+          },
+          "scene": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scene"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "active",
+                  "archived"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "trait": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trait"
+          }
+        },
+        "title": "VoiceProfileMetadataResponse",
+        "type": "object"
+      },
+      "VoiceProfileResponse": {
+        "properties": {
+          "available_routes": {
+            "items": {
+              "$ref": "#/components/schemas/VoicePackageRouteResponse"
+            },
+            "title": "Available Routes",
+            "type": "array"
+          },
+          "bindings": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceProfileBindingResponse"
+            },
+            "title": "Bindings",
+            "type": "array"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/VoicePackageJobResponse"
+            },
+            "title": "Jobs",
+            "type": "array"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/VoiceProfileMetadataResponse"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "references": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceReferenceSummaryResponse"
+            },
+            "title": "References",
+            "type": "array"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/VoiceProfileUsageResponse"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "metadata",
+          "references",
+          "bindings",
+          "jobs",
+          "available_routes",
+          "usage",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "VoiceProfileResponse",
+        "type": "object"
+      },
+      "VoiceProfileUsageResponse": {
+        "properties": {
+          "last_used": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used"
+          },
+          "preview_filename": {
+            "default": "",
+            "title": "Preview Filename",
+            "type": "string"
+          },
+          "productions": {
+            "title": "Productions",
+            "type": "integer"
+          },
+          "spend": {
+            "title": "Spend",
+            "type": "number"
+          },
+          "uses": {
+            "title": "Uses",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "uses",
+          "productions",
+          "spend"
+        ],
+        "title": "VoiceProfileUsageResponse",
         "type": "object"
       },
       "VoiceReferenceResponse": {
@@ -2970,6 +3777,34 @@
           }
         },
         "title": "VoiceReferenceResponse",
+        "type": "object"
+      },
+      "VoiceReferenceSummaryResponse": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "normalized_path": {
+            "title": "Normalized Path",
+            "type": "string"
+          },
+          "original_name": {
+            "title": "Original Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "original_name",
+          "normalized_path",
+          "created_at"
+        ],
+        "title": "VoiceReferenceSummaryResponse",
         "type": "object"
       },
       "VoiceRegistryEnvelope": {
@@ -6984,9 +7819,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Listunlinkedvoicehistory",
-                  "type": "object"
+                  "$ref": "#/components/schemas/HistoricalVoiceCollectionEnvelope"
                 }
               }
             },
@@ -7093,9 +7926,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Createvoicepackage",
-                  "type": "object"
+                  "$ref": "#/components/schemas/VoicePackageCreateEnvelope"
                 }
               }
             },
@@ -7136,9 +7967,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Preflightvoicepackage",
-                  "type": "object"
+                  "$ref": "#/components/schemas/VoicePackagePlanEnvelope"
                 }
               }
             },
@@ -7179,9 +8008,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Retryvoicepackage",
-                  "type": "object"
+                  "$ref": "#/components/schemas/VoicePackageRetryEnvelope"
                 }
               }
             },
@@ -7370,9 +8197,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Listvoiceprofiles",
-                  "type": "object"
+                  "$ref": "#/components/schemas/VoiceProfileCollectionEnvelope"
                 }
               }
             },
@@ -7414,9 +8239,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Archivevoiceprofile",
-                  "type": "object"
+                  "$ref": "#/components/schemas/VoiceProfileEnvelope"
                 }
               }
             },
@@ -7456,9 +8279,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getvoiceprofile",
-                  "type": "object"
+                  "$ref": "#/components/schemas/VoiceProfileEnvelope"
                 }
               }
             },
@@ -7508,9 +8329,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Updatevoiceprofile",
-                  "type": "object"
+                  "$ref": "#/components/schemas/VoiceProfileEnvelope"
                 }
               }
             },
@@ -7562,9 +8381,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Linkvoicehistory",
-                  "type": "object"
+                  "$ref": "#/components/schemas/VoiceHistoryLinkEnvelope"
                 }
               }
             },

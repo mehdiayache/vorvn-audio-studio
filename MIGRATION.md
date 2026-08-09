@@ -50,7 +50,7 @@ edges from the matching allowlist in the same commit; new edges fail CI.
 Current checkpoint: boundary baseline complete.
 
 - Domain technical-dependency debt: 0.
-- Application to Infrastructure edges: 26.
+- Application to Infrastructure edges: 24.
 - Application direct technical edges: 1.
 - HTTP to Infrastructure edges: 5.
 - Infrastructure to Application edges: 8.
@@ -140,3 +140,8 @@ Durable Job creation, observation, cancellation and worker execution now share
 one Application service and one composed PostgreSQL adapter per process. HTTP
 and the worker no longer create independent repository paths, removing one
 Application-to-Infrastructure and one HTTP-to-Infrastructure edge.
+
+Voice identities, historical links, capability plans and package budget checks
+now belong to one injected Application service. PostgreSQL profile and package
+stores are assembled only in Composition, removing two more direct
+Application-to-Infrastructure edges without changing provider enrollment.

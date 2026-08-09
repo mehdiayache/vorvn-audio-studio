@@ -13,6 +13,7 @@ const profile: VoiceProfile = {
   references: [{ id: "ref-1", original_name: "serinity.wav", normalized_path: "serinity-24k.wav", created_at: "2026-08-07" }],
   bindings: [{ provider_voice_id: "audio-serinity", model_id: "audio-flash", engine: "audio", tier: "flash", status: "active", languages: ["en"], created_at: "2026-08-07" }],
   jobs: [],
+  usage: { uses: 0, productions: 0, spend: 0, last_used: null, preview_filename: "" },
   available_routes: [
     { provider: "alibaba", engine: "audio", tier: "flash", model_id: "audio-flash", label: "Qwen Audio · Flash", role: "Exact production", language: "en", estimated_creation_cost: 0 },
     { provider: "alibaba", engine: "omni", tier: "plus", model_id: "omni-plus", label: "Qwen Omni · Plus", role: "Best-quality performance", language: "en", estimated_creation_cost: .01 },

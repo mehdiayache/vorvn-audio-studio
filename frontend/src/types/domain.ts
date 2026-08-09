@@ -368,64 +368,15 @@ export type PerformancePreset = {
 
 export type VoiceRegistry = components["schemas"]["VoiceRegistryResponse"]
 
-export type VoicePackageRoute = {
-  provider: string
-  engine: "audio" | "omni"
-  tier: "plus" | "flash"
-  model_id: string
-  label: string
-  role: string
-  language: string
-  estimated_creation_cost: number
-}
+export type VoicePackageRoute = components["schemas"]["VoicePackageRouteResponse"]
 
-export type VoicePackagePlan = {
-  region: string
-  region_label: string
-  language: string
-  package: "complete" | "exact" | "omni"
-  routes: VoicePackageRoute[]
-  available_routes: VoicePackageRoute[]
-  packages: Array<{ id: "complete" | "exact" | "omni"; name: string; description: string; models: string[]; available: boolean }>
-  total_estimated_creation_cost: number
-}
+export type VoicePackagePlan = components["schemas"]["VoicePackagePlanResponse"]
 
-export type VoiceProfileBinding = {
-  provider_voice_id: string
-  model_id: string
-  engine: "audio" | "omni"
-  tier: "plus" | "flash"
-  status: string
-  languages: string[]
-  created_at: string
-}
+export type VoiceProfileBinding = components["schemas"]["VoiceProfileBindingResponse"]
 
-export type VoicePackageJob = {
-  id: string
-  identity_id: string
-  reference_id: string
-  model_id: string
-  engine: "audio" | "omni"
-  tier: "plus" | "flash"
-  status: "queued" | "creating" | "ready" | "failed" | "interrupted"
-  provider_voice_id?: string | null
-  error?: string | null
-  attempts: number
-  updated_at: string
-}
+export type VoicePackageJob = components["schemas"]["VoicePackageJobResponse"]
 
-export type VoiceProfile = {
-  id: string
-  name: string
-  metadata: { language?: string; package?: string; image?: string; gender?: string | null; age?: number | null; accent?: string; trait?: string | null; scene?: string; notes?: string; favourite?: boolean; status?: "active" | "archived"; [key: string]: unknown }
-  references: Array<{ id: string; original_name: string; normalized_path: string; created_at: string }>
-  bindings: VoiceProfileBinding[]
-  jobs: VoicePackageJob[]
-  available_routes: VoicePackageRoute[]
-  usage?: { uses: number; productions: number; spend: number; last_used?: string | null; preview_filename?: string }
-  created_at: string
-  updated_at: string
-}
+export type VoiceProfile = components["schemas"]["VoiceProfileResponse"]
 
 export type VoiceDirectory = {
   config: StudioConfig | null
@@ -469,15 +420,7 @@ export type Take = {
   fidelity?: FidelityResult
 }
 
-export type HistoricalVoiceReference = {
-  provider_voice_id: string
-  engine: string
-  model: string
-  uses: number
-  productions: number
-  last_used?: string | null
-  preview_filename?: string
-}
+export type HistoricalVoiceReference = components["schemas"]["HistoricalVoiceResponse"]
 
 export type TranscriptSummary = {
   id: number

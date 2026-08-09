@@ -64,8 +64,6 @@ APPLICATION_INFRASTRUCTURE_DEBT = {
     "audio_studio.application.uploads -> audio_studio.infrastructure.object_storage",
     "audio_studio.application.uploads -> audio_studio.infrastructure.postgres.venture_assets.VentureAssetRepository",
     "audio_studio.application.uploads -> audio_studio.infrastructure.postgres.voice_packages.VoicePackageRepository",
-    "audio_studio.application.voices -> audio_studio.infrastructure.postgres.voice_packages.VoicePackageRepository",
-    "audio_studio.application.voices -> audio_studio.infrastructure.postgres.voices.VoiceRepository",
     "audio_studio.application.work -> audio_studio.infrastructure.postgres.accounting.ProductionAccountingRepository",
     "audio_studio.application.work -> audio_studio.infrastructure.postgres.exports.ProductionExportRepository",
     "audio_studio.application.work -> audio_studio.infrastructure.postgres.production_document.ProductionDocumentRepository",
