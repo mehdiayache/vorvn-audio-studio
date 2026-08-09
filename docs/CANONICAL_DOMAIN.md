@@ -69,7 +69,7 @@ media functions accept `production_id` directly.
 Run after every database migration:
 
 ```bash
-.venv/bin/python check_domain.py
+.venv/bin/python -m scripts.check_domain
 ```
 
 Schema changes remain additive until old clients are retired. Do not remove

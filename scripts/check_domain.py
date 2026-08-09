@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Read-only integrity gate for the canonical Studio domain."""
+"""Read-only integrity gate for the canonical Studio domain.
+
+Run from the repository root with ``python -m scripts.check_domain``.
+"""
 
 from audio_studio.infrastructure.postgres.session import read_only
 

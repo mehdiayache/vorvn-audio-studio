@@ -55,7 +55,7 @@ Current checkpoint: boundary baseline complete.
 - HTTP to Infrastructure edges: 7.
 - Infrastructure to Application edges: 8.
 - Transitional root/`services` import edges: 0.
-- Root business modules: 6.
+- Root business modules: 0.
 - `services` Python modules: 0.
 
 Current slice: Alibaba's immutable capability/language/model catalogue and its
@@ -113,3 +113,9 @@ recovery now belong to the Alibaba Infrastructure adapter. Runtime credential
 refresh has one Infrastructure owner shared by the API and worker processes.
 The optional direct CLI is a thin client in `scripts/`; the root `say.py`
 compatibility module and the final transitional import edges are removed.
+
+The repository root now contains no Python business modules. The five
+unreachable legacy facades for import, prompt preparation, realtime streaming,
+translation and vocabulary management are removed; their active native
+capabilities remain in the package architecture. The canonical data-integrity
+gate is preserved as `scripts.check_domain`.

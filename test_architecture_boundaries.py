@@ -116,10 +116,7 @@ INFRASTRUCTURE_APPLICATION_DEBT = {
 
 TRANSITIONAL_MODULE_DEBT: set[str] = set()
 
-ROOT_MODULE_DEBT = {
-    "check_domain.py", "importer.py", "rewrite.py",
-    "streaming.py", "translate.py", "vocabulary.py",
-}
+ROOT_MODULE_DEBT: set[str] = set()
 
 SERVICES_MODULE_DEBT: set[str] = set()
 
