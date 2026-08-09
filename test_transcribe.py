@@ -6,7 +6,7 @@ import types
 import unittest
 from unittest.mock import patch
 
-import transcribe
+from audio_studio.infrastructure.alibaba.transcription import AlibabaTranscriptionProvider
 
 
 class Response:
@@ -58,7 +58,9 @@ class TranscriptionContractTests(unittest.TestCase):
         body = io.BytesIO(json.dumps(PAYLOAD).encode())
         with self._module("dashscope.audio.qwen_asr", "QwenTranscription", FakeQwen), \
                 patch("urllib.request.urlopen", return_value=body):
-            result = transcribe.transcribe("https://audio.test/file.mp3", "Arabic")
+            result = AlibabaTranscriptionProvider().transcribe(
+                url="https://audio.test/file.mp3", language="Arabic", words=True,
+                vocabulary_id=None, enable_itn=False)
 
         self.assertEqual(FakeQwen.params, {
             "model": "qwen3-asr-flash-filetrans",
@@ -67,7 +69,7 @@ class TranscriptionContractTests(unittest.TestCase):
             "enable_words": True,
             "language": "ar",
         })
-        self.assertEqual(result["text"], "Hello.")
+        self.assertEqual(result.text, "Hello.")
 
     def test_custom_vocabulary_stays_on_fun_asr_contract(self):
         class FakeFun:
@@ -87,8 +89,9 @@ class TranscriptionContractTests(unittest.TestCase):
         body = io.BytesIO(json.dumps(PAYLOAD).encode())
         with self._module("dashscope.audio.asr", "Transcription", FakeFun), \
                 patch("urllib.request.urlopen", return_value=body):
-            transcribe.transcribe("https://audio.test/file.mp3", "English",
-                                  vocabulary_id="vocab-1")
+            AlibabaTranscriptionProvider().transcribe(
+                url="https://audio.test/file.mp3", language="English", words=True,
+                vocabulary_id="vocab-1", enable_itn=False)
 
         self.assertEqual(FakeFun.params["model"], "fun-asr")
         self.assertEqual(FakeFun.params["file_urls"], ["https://audio.test/file.mp3"])
@@ -112,7 +115,9 @@ class TranscriptionContractTests(unittest.TestCase):
         body = io.BytesIO(json.dumps(PAYLOAD).encode())
         with self._module("dashscope.audio.qwen_asr", "QwenTranscription", FakeQwen), \
                 patch("urllib.request.urlopen", return_value=body):
-            transcribe.transcribe("https://audio.test/file.mp3", enable_itn=True)
+            AlibabaTranscriptionProvider().transcribe(
+                url="https://audio.test/file.mp3", language=None, words=True,
+                vocabulary_id=None, enable_itn=True)
 
         self.assertTrue(FakeQwen.params["enable_itn"])
 
@@ -129,7 +134,9 @@ class TranscriptionContractTests(unittest.TestCase):
 
         with self._module("dashscope.audio.qwen_asr", "QwenTranscription", FakeQwen):
             with self.assertRaisesRegex(RuntimeError, "Model not exist"):
-                transcribe.transcribe("https://audio.test/file.mp3")
+                AlibabaTranscriptionProvider().transcribe(
+                    url="https://audio.test/file.mp3", language=None, words=True,
+                    vocabulary_id=None, enable_itn=False)
 
 
 if __name__ == "__main__":

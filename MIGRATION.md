@@ -54,8 +54,8 @@ Current checkpoint: boundary baseline complete.
 - Application direct technical edges: 1.
 - HTTP to Infrastructure edges: 7.
 - Infrastructure to Application edges: 8.
-- Transitional root/`services` import edges: 13.
-- Root business modules: 10.
+- Transitional root/`services` import edges: 12.
+- Root business modules: 9.
 - `services` Python modules: 0.
 
 Current slice: Alibaba's immutable capability/language/model catalogue and its
@@ -90,3 +90,7 @@ package has been removed without creating a replacement dependency edge.
 
 Caption layout, word segmentation and SRT/VTT export are now pure Domain
 policy. The transitional `services` package has been removed completely.
+
+Production export rendering now consumes that Domain policy directly. The
+root transcription compatibility facade has been removed; ASR contracts test
+the Alibaba Infrastructure adapter that actually owns them.

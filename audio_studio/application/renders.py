@@ -13,8 +13,8 @@ from urllib.parse import quote
 from uuid import uuid4
 
 import say
-import transcribe
 
+from audio_studio.domain import captions
 from audio_studio.infrastructure.media_paths import media_root
 from audio_studio.infrastructure.postgres import work as work_repository
 from audio_studio.infrastructure.postgres.exports import ProductionExportRepository
@@ -209,13 +209,13 @@ def _subtitles(parts: list[dict]) -> dict:
         else:
             if found.get("stale"):
                 stale.append(number)
-            for cue in transcribe.to_cues({"sentences": found["sentences"]}):
+            for cue in captions.build_cues(found["sentences"], "standard"):
                 cues.append({**cue, "start": cue["start"] + offset,
                              "end": cue["end"] + offset})
         offset += length
     return {"cues": len(cues), "missing": missing, "stale": stale,
-            "srt": transcribe.render_srt(cues) if cues else "",
-            "vtt": transcribe.render_vtt(cues) if cues else ""}
+            "srt": captions.render_srt(cues) if cues else "",
+            "vtt": captions.render_vtt(cues) if cues else ""}
 
 
 def export(production_id: int) -> dict:

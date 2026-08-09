@@ -121,7 +121,6 @@ TRANSITIONAL_MODULE_DEBT = {
     "audio_studio.application.catalog -> naming",
     "audio_studio.application.catalog -> say",
     "audio_studio.application.renders -> say",
-    "audio_studio.application.renders -> transcribe",
     "audio_studio.application.settings -> naming",
     "audio_studio.application.settings -> say",
     "audio_studio.infrastructure.alibaba.speech_generation -> say",
@@ -132,7 +131,7 @@ TRANSITIONAL_MODULE_DEBT = {
 
 ROOT_MODULE_DEBT = {
     "batch.py", "check_domain.py", "importer.py", "naming.py", "rewrite.py",
-    "say.py", "streaming.py", "transcribe.py", "translate.py", "vocabulary.py",
+    "say.py", "streaming.py", "translate.py", "vocabulary.py",
 }
 
 SERVICES_MODULE_DEBT: set[str] = set()
