@@ -7,7 +7,7 @@ import os
 import re
 
 import say
-from services import voice_routing
+from audio_studio.domain import voice_routing
 from services.alibaba import config
 from audio_studio.domain import speech_fidelity as alibaba_fidelity
 from services.alibaba import speech as alibaba_speech

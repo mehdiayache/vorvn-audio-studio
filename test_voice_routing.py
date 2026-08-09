@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pure routing contracts: no database writes and no Alibaba calls."""
 
-from services import voice_routing
+from audio_studio.domain import voice_routing
 
 
 BINDINGS = [

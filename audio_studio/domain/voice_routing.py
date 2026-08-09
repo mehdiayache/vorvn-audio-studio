@@ -1,4 +1,4 @@
-"""Resolve a human voice identity to one concrete Alibaba binding.
+"""Resolve a human voice identity to one concrete provider binding.
 
 This module owns selection only. It does not call Alibaba, touch files, write
 the database, or decide UI policy. Unknown and legacy voices deliberately pass
