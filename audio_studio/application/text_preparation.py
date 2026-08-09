@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import difflib
 import re
 from typing import Callable, Protocol
@@ -15,6 +14,7 @@ from audio_studio.domain.delivery_tags import (
     TAG_RE,
 )
 from audio_studio.domain.jobs import Job
+from audio_studio.domain.text import ProviderText
 
 
 MODEL = "qwen3.7-plus"
@@ -57,17 +57,9 @@ DEFAULTS = {
 }
 
 
-@dataclass(frozen=True, slots=True)
-class Completion:
-    text: str
-    usage: dict
-    request_id: str | None = None
-    provider_region: str | None = None
-    provider_endpoint: str | None = None
-
-
 class TextProvider(Protocol):
-    def complete(self, *, model: str, messages: list[dict[str, str]]) -> Completion: ...
+    def complete(self, *, model: str,
+                 messages: list[dict[str, str]]) -> ProviderText: ...
 
 
 class TextPreparationRepository(Protocol):

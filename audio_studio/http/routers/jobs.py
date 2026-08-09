@@ -13,7 +13,7 @@ from uuid import uuid4
 from audio_studio.domain.jobs import Job
 from audio_studio.application.text_preparation import MODEL as TEXT_PREPARATION_MODEL
 from audio_studio.application.translation import MODELS as TRANSLATION_MODELS
-from audio_studio.application.transcription import FUN_MODEL, QWEN_MODEL
+from audio_studio.domain.transcription import FUN_MODEL, QWEN_MODEL
 from audio_studio.composition.jobs import job_service
 from audio_studio.http.errors import ApiProblem
 

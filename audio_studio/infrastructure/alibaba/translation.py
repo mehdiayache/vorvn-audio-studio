@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from audio_studio.application.translation import ProviderTranslation
+from audio_studio.domain.text import ProviderText
 from audio_studio.infrastructure.alibaba import config, text as alibaba_text
 
 
 class AlibabaTranslationProvider:
     def translate(self, *, model: str, text: str, source: str | None,
-                  target: str) -> ProviderTranslation:
+                  target: str) -> ProviderText:
         result = alibaba_text.complete_with_metadata(
             model=model,
             messages=[{"role": "user", "content": text}],
@@ -17,7 +17,7 @@ class AlibabaTranslationProvider:
                 "target_lang": target,
             }},
         )
-        return ProviderTranslation(
+        return ProviderText(
             text=result.text,
             usage=result.usage,
             request_id=result.request_id,

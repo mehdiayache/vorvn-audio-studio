@@ -10,13 +10,13 @@ import psycopg
 from audio_studio.config import settings
 from audio_studio.application.translation import (
     MODELS,
-    ProviderTranslation,
     SubtitleTranslationJobHandler,
     SubtitleTranslationService,
     Translator,
     usage_cost,
 )
 from audio_studio.domain.jobs import Job, JobStatus
+from audio_studio.domain.text import ProviderText
 from audio_studio.http.routers.jobs import TranslationJobCreate
 from audio_studio.infrastructure.alibaba.translation import AlibabaTranslationProvider
 from audio_studio.infrastructure.postgres import transcripts as postgres_transcripts
@@ -34,7 +34,7 @@ class FakeProvider:
     def translate(self, **request):
         self.calls.append(request)
         text = self.responses.pop(0)
-        return ProviderTranslation(
+        return ProviderText(
             text=text,
             usage={"prompt_tokens": 10, "completion_tokens": 5,
                    "total_tokens": 15},

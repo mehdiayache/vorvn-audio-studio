@@ -9,6 +9,7 @@ from typing import Callable, Protocol
 from audio_studio.domain import captions
 from audio_studio.domain.delivery_tags import TAG_RE
 from audio_studio.domain.jobs import Job
+from audio_studio.domain.text import ProviderText
 
 
 MODELS = {"fast": "qwen-mt-flash", "best": "qwen-mt-plus"}
@@ -37,15 +38,6 @@ TOKEN_PRICES = {
 
 
 @dataclass(frozen=True, slots=True)
-class ProviderTranslation:
-    text: str
-    usage: dict
-    request_id: str | None = None
-    provider_region: str | None = None
-    provider_endpoint: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
 class TranslatedLines:
     lines: list[str]
     usage: dict
@@ -56,7 +48,7 @@ class TranslatedLines:
 
 class TranslationProvider(Protocol):
     def translate(self, *, model: str, text: str, source: str | None,
-                  target: str) -> ProviderTranslation: ...
+                  target: str) -> ProviderText: ...
 
 
 class TranslationRepository(Protocol):
@@ -111,7 +103,7 @@ class Translator:
         self.provider = provider
 
     def _call(self, quality: str, text: str, source: str | None,
-              target: str) -> ProviderTranslation:
+              target: str) -> ProviderText:
         return self.provider.translate(
             model=MODELS.get(quality, MODELS["fast"]), text=text,
             source=source, target=target,
@@ -158,7 +150,7 @@ class Translator:
         provider_region = None
         provider_endpoint = None
 
-        def retain(response: ProviderTranslation) -> None:
+        def retain(response: ProviderText) -> None:
             nonlocal usage, provider_region, provider_endpoint
             usage = _merge_usage(usage, response.usage)
             if response.request_id:

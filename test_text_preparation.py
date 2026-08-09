@@ -5,12 +5,12 @@ import unittest
 from uuid import uuid4
 
 from audio_studio.application.text_preparation import (
-    Completion,
     MODEL,
     TextPreparationJobHandler,
     TextPreparationService,
 )
 from audio_studio.domain.jobs import Job, JobStatus
+from audio_studio.domain.text import ProviderText
 from audio_studio.http.routers.jobs import TextJobCreate
 
 
@@ -42,7 +42,7 @@ class FakeProvider:
 
     def complete(self, **request):
         self.calls.append(request)
-        return Completion(
+        return ProviderText(
             self.text, {"prompt_tokens": 12, "completion_tokens": 3},
             "provider-request", "intl", "https://example.test/compatible-mode/v1",
         )

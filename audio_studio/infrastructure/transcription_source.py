@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 from audio_studio.infrastructure import object_storage as storage
 
-from audio_studio.application.transcription import PreparedAudio
+from audio_studio.domain.transcription import PreparedAudio
 from audio_studio.infrastructure.media_paths import media_root
 from audio_studio.infrastructure.postgres.transcripts import TranscriptRepository
 

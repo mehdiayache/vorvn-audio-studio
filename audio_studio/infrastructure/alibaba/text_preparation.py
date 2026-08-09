@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from audio_studio.application.text_preparation import Completion
+from audio_studio.domain.text import ProviderText
 from audio_studio.infrastructure.alibaba import config, text
 
 
 class AlibabaTextProvider:
     def complete(self, *, model: str,
-                 messages: list[dict[str, str]]) -> Completion:
+                 messages: list[dict[str, str]]) -> ProviderText:
         result = text.complete_with_metadata(model=model, messages=messages)
-        return Completion(
+        return ProviderText(
             text=result.text,
             usage=result.usage,
             request_id=result.request_id,

@@ -50,16 +50,7 @@ APPLICATION_TECHNICAL_DEBT: set[str] = set()
 
 HTTP_INFRASTRUCTURE_DEBT: set[str] = set()
 
-INFRASTRUCTURE_APPLICATION_DEBT = {
-    "audio_studio.infrastructure.alibaba.text_preparation -> audio_studio.application.text_preparation.Completion",
-    "audio_studio.infrastructure.alibaba.transcription -> audio_studio.application.transcription.FUN_MODEL",
-    "audio_studio.infrastructure.alibaba.transcription -> audio_studio.application.transcription.ProviderTranscript",
-    "audio_studio.infrastructure.alibaba.transcription -> audio_studio.application.transcription.QWEN_MODEL",
-    "audio_studio.infrastructure.alibaba.translation -> audio_studio.application.translation.ProviderTranslation",
-    "audio_studio.infrastructure.postgres.jobs -> audio_studio.application.transcription.FUN_MODEL",
-    "audio_studio.infrastructure.postgres.jobs -> audio_studio.application.transcription.QWEN_MODEL",
-    "audio_studio.infrastructure.transcription_source -> audio_studio.application.transcription.PreparedAudio",
-}
+INFRASTRUCTURE_APPLICATION_DEBT: set[str] = set()
 
 TRANSITIONAL_MODULE_DEBT: set[str] = set()
 

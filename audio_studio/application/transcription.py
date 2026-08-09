@@ -2,38 +2,17 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Callable, Protocol
 
 from audio_studio.domain import captions
 from audio_studio.domain.jobs import Job
 from audio_studio.domain.provider_pricing import transcription_cost
-
-
-QWEN_MODEL = "qwen3-asr-flash-filetrans"
-FUN_MODEL = "fun-asr"
-
-
-@dataclass(frozen=True, slots=True)
-class PreparedAudio:
-    url: str
-    name: str
-    playable: str | None
-    duration_ms: int
-    generation_id: int | None
-    local_path: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class ProviderTranscript:
-    text: str
-    sentences: list[dict]
-    duration_ms: int
-    request_id: str | None = None
-    provider_region: str | None = None
-    provider_endpoint: str | None = None
-    billed_duration_ms: int | None = None
-    usage: dict | None = None
+from audio_studio.domain.transcription import (
+    FUN_MODEL,
+    PreparedAudio,
+    ProviderTranscript,
+    QWEN_MODEL,
+)
 
 
 class TranscriptionProvider(Protocol):

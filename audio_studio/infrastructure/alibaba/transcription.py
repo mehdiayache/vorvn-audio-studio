@@ -8,7 +8,7 @@ import urllib.request
 
 import dashscope
 
-from audio_studio.application.transcription import (
+from audio_studio.domain.transcription import (
     FUN_MODEL,
     ProviderTranscript,
     QWEN_MODEL,

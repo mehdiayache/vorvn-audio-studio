@@ -15,7 +15,7 @@ from audio_studio.domain.jobs import (
 )
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 from audio_studio.domain import provider_catalog as alibaba_config
-from audio_studio.application.transcription import FUN_MODEL, QWEN_MODEL
+from audio_studio.domain.transcription import FUN_MODEL, QWEN_MODEL
 
 
 _SELECT = """

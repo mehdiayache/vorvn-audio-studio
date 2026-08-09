@@ -53,7 +53,7 @@ Current checkpoint: boundary baseline complete.
 - Application to Infrastructure edges: 0.
 - Application direct technical edges: 0.
 - HTTP to Infrastructure edges: 0.
-- Infrastructure to Application edges: 8.
+- Infrastructure to Application edges: 0.
 - Transitional root/`services` import edges: 0.
 - Root business modules: 0.
 - `services` Python modules: 0.
@@ -189,3 +189,9 @@ The saved Subtitle catalogue now belongs to one Application service composed
 with PostgreSQL and the shared media resolver. HTTP owns only routes and public
 not-found errors. This removes the final HTTP-to-Infrastructure edges while
 preserving stored timings, layout profiles, costs and missing-audio behavior.
+
+Provider-neutral transcription sources/results, ASR model identities and text
+completion results now belong to Domain. Application services and Alibaba,
+PostgreSQL and storage adapters share those contracts directly. This removes
+all eight reverse Infrastructure-to-Application edges without changing provider
+requests, pricing, job routing or public results.

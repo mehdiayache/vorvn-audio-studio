@@ -8,14 +8,16 @@ from uuid import uuid4
 import psycopg
 
 from audio_studio.application.transcription import (
-    PreparedAudio,
-    ProviderTranscript,
-    QWEN_MODEL,
     TranscriptionJobHandler,
     TranscriptionService,
 )
 from audio_studio.config import settings
 from audio_studio.domain.jobs import Job, JobStatus
+from audio_studio.domain.transcription import (
+    PreparedAudio,
+    ProviderTranscript,
+    QWEN_MODEL,
+)
 from audio_studio.http.routers.jobs import TranscriptionJobCreate
 from audio_studio.infrastructure.postgres import transcripts as postgres_transcripts
 
