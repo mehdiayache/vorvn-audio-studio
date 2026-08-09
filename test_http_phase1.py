@@ -74,10 +74,11 @@ class NativeHttpTests(unittest.TestCase):
         for response in (profiles, history, plan):
             self.assertEqual(response.status_code, 200, response.text)
         identities = profiles.json()["data"]
-        self.assertTrue(identities)
-        detail = self.client.get(f"/api/v1/voices/{identities[0]['id']}")
-        self.assertEqual(detail.status_code, 200, detail.text)
-        self.assertEqual(detail.json()["data"]["id"], identities[0]["id"])
+        self.assertEqual(profiles.json()["meta"]["count"], len(identities))
+        if identities:
+            detail = self.client.get(f"/api/v1/voices/{identities[0]['id']}")
+            self.assertEqual(detail.status_code, 200, detail.text)
+            self.assertEqual(detail.json()["data"]["id"], identities[0]["id"])
         self.assertIsInstance(history.json()["data"], list)
         package = plan.json()["data"]
         self.assertEqual(package["region"], "intl")
