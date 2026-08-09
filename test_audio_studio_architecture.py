@@ -106,7 +106,6 @@ class AudioStudioArchitectureTests(unittest.TestCase):
     def test_control_plane_has_no_legacy_persistence_calls(self):
         for relative in (
                 "audio_studio/application/activity.py",
-                "audio_studio/application/administration.py",
                 "audio_studio/application/catalog.py",
                 "audio_studio/application/settings.py",
                 "audio_studio/application/system.py",

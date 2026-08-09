@@ -1,0 +1,168 @@
+"""Filesystem, environment and S3 implementation of Settings ports."""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+from threading import RLock
+import time
+from typing import Any, Callable
+
+from audio_studio.config import alibaba_environment, settings
+from audio_studio.infrastructure import object_storage, runtime_environment
+from audio_studio.infrastructure.media_paths import media_root, voice_reference_root
+
+
+_STORAGE_ENV = {
+    "endpoint": "RUSTFS_ENDPOINT", "access_key": "RUSTFS_ACCESS_KEY",
+    "secret_key": "RUSTFS_SECRET_KEY", "bucket": "RUSTFS_BUCKET",
+    "prefix": "RUSTFS_PREFIX", "region": "RUSTFS_REGION",
+}
+
+
+class EnvironmentSettings:
+    def __init__(self, env_file: Path | None = None,
+                 revision_file: Path | None = None,
+                 reload_environment: Callable[[], None] =
+                 runtime_environment.reload_owned_environment):
+        self.env_file = env_file or settings.root / ".env"
+        self.revision_file = revision_file or runtime_environment.REVISION_FILE
+        self.reload_environment = reload_environment
+        self._lock = RLock()
+
+    def _write_environment(self, changes: dict[str, str | None]) -> None:
+        """Atomically update owned keys while preserving unrelated settings."""
+        with self._lock:
+            for key, value in changes.items():
+                if "\n" in key or "\r" in key or (value is not None and (
+                        "\n" in value or "\r" in value)):
+                    raise ValueError("Settings values cannot contain line breaks.")
+            lines = (self.env_file.read_text().splitlines()
+                     if self.env_file.exists() else [])
+            owned = set(changes)
+            kept = [
+                line for line in lines
+                if not any(line.startswith(f"{key}=") for key in owned)
+            ]
+            for key, value in changes.items():
+                if value is not None:
+                    kept.append(f"{key}={value}")
+                    os.environ[key] = value
+            temporary = self.env_file.with_suffix(".env.tmp")
+            temporary.write_text("\n".join(kept).rstrip() + "\n")
+            temporary.chmod(0o600)
+            temporary.replace(self.env_file)
+            revision = self.revision_file.with_suffix(".tmp")
+            revision.write_text(str(time.time_ns()))
+            revision.replace(self.revision_file)
+        self.reload_environment()
+
+    def provider(self) -> dict[str, Any]:
+        environment = alibaba_environment()
+        return {
+            "name": "Alibaba Model Studio",
+            "configured": environment.api_key_configured,
+            "workspace_configured": bool(environment.workspace_id),
+            "workspace_id": environment.workspace_id,
+            "region": environment.region,
+            "region_label": environment.region_label,
+            "http_base": environment.native_http_base,
+        }
+
+    def storage(self) -> dict[str, str]:
+        return object_storage.settings()
+
+    def storage_configured(self) -> bool:
+        return object_storage.configured()
+
+    def test_storage(self) -> dict[str, Any]:
+        return object_storage.status()
+
+    def save_provider(self, values: dict[str, Any]) -> None:
+        changes: dict[str, str | None] = {
+            "DASHSCOPE_REGION": str(values["region"]),
+            "DASHSCOPE_WORKSPACE_ID": str(values.get("workspace_id") or ""),
+        }
+        api_key = str(values.get("api_key") or "").strip()
+        if api_key:
+            changes["DASHSCOPE_API_KEY"] = api_key
+        self._write_environment(changes)
+
+    def save_storage(self, values: dict[str, Any]) -> None:
+        current = self.storage()
+        changes: dict[str, str | None] = {}
+        for field, environment_key in _STORAGE_ENV.items():
+            supplied = str(values.get(field) or "").strip()
+            if field in {"access_key", "secret_key"} and not supplied:
+                continue
+            changes[environment_key] = (
+                supplied if field in values else str(current.get(field) or ""))
+        self._write_environment(changes)
+
+    def output_directory(self) -> str:
+        return str(media_root())
+
+
+class FilesystemMaintenance:
+    def __init__(self, root: Path = settings.root,
+                 output: Callable[[], Path] = media_root,
+                 voice_references: Callable[[], Path] = voice_reference_root):
+        self.root = root
+        self.output = output
+        self.voice_references = voice_references
+
+    @staticmethod
+    def _measure(path: Path) -> tuple[int, int]:
+        files = ([item for item in path.rglob("*") if item.is_file()]
+                 if path.exists() else [])
+        return sum(item.stat().st_size for item in files), len(files)
+
+    def snapshot(self) -> dict[str, Any]:
+        scratch_paths = {
+            ".batches": (self.root / ".batches", "parsed spreadsheets"),
+            ".blocks": (self.root / ".blocks", "per-block script audio"),
+            ".inbox": (self.root / ".inbox", "subtitle source audio"),
+            ".incoming": (self.root / ".incoming", "interrupted uploads"),
+            ".tagged": (self.root / ".tagged", "temporary tagged copies"),
+        }
+        protected_paths = {
+            ".uploads": (
+                self.root / ".uploads", "protected legacy voice masters"),
+            "voice-references": (
+                self.voice_references(), "durable voice masters"),
+        }
+        finished_bytes, finished_files = self._measure(self.output())
+        scratch = {}
+        for name, (path, description) in scratch_paths.items():
+            size, count = self._measure(path)
+            scratch[name] = {"bytes": size, "files": count,
+                             "what": description}
+        protected = {}
+        for name, (path, description) in protected_paths.items():
+            size, count = self._measure(path)
+            protected[name] = {"bytes": size, "files": count,
+                               "what": description}
+        return {
+            "finished": {"bytes": finished_bytes, "files": finished_files,
+                         "where": str(self.output())},
+            "scratch": scratch, "protected": protected,
+            "protected_total": sum(item["bytes"] for item in protected.values()),
+            "scratch_total": sum(item["bytes"] for item in scratch.values()),
+            "keep_days": 7,
+        }
+
+    def tidy(self, days: int = 7) -> dict[str, int]:
+        if days < 0:
+            raise ValueError("Retention days cannot be negative.")
+        cutoff = time.time() - days * 86400
+        removed = freed = 0
+        for folder in (".batches", ".blocks", ".inbox", ".incoming", ".tagged"):
+            root = self.root / folder
+            if not root.exists():
+                continue
+            for item in root.rglob("*"):
+                if item.is_file() and item.stat().st_mtime < cutoff:
+                    freed += item.stat().st_size
+                    item.unlink(missing_ok=True)
+                    removed += 1
+        return {"removed": removed, "freed": freed}

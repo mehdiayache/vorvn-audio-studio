@@ -4,12 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from audio_studio.infrastructure import object_storage as storage
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, ConfigDict, Field
 
-from audio_studio.application import settings as settings_service
-from audio_studio.application import administration
+from audio_studio.composition.settings import settings_service
 from audio_studio.http.errors import ApiProblem
 
 
@@ -77,8 +75,7 @@ def reset_naming() -> dict:
 @router.patch("/provider", operation_id="updateProviderSettings")
 def update_provider(payload: ProviderUpdate) -> dict:
     try:
-        administration.update_provider(payload.model_dump())
-        return {"data": settings_service.snapshot()}
+        return {"data": settings_service.update_provider(payload.model_dump())}
     except (OSError, ValueError) as exc:
         raise ApiProblem(400, "invalid_provider_settings", str(exc)) from exc
 
@@ -86,48 +83,48 @@ def update_provider(payload: ProviderUpdate) -> dict:
 @router.patch("/storage", operation_id="updateStorageSettings")
 def update_storage(payload: StorageUpdate) -> dict:
     try:
-        administration.update_storage(payload.model_dump())
-        return {"data": settings_service.snapshot()}
+        return {"data": settings_service.update_storage(payload.model_dump())}
     except (OSError, ValueError) as exc:
         raise ApiProblem(400, "invalid_storage_settings", str(exc)) from exc
 
 
 @router.post("/storage/test", operation_id="testStorageSettings")
 def test_storage() -> dict:
-    return {"data": storage.status()}
+    return {"data": settings_service.test_storage()}
 
 
 @router.get("/maintenance", operation_id="getMaintenanceSettings")
 def get_maintenance() -> dict:
-    return {"data": administration.disk_snapshot()}
+    return {"data": settings_service.maintenance_snapshot()}
 
 
 @router.post("/maintenance/tidy", operation_id="tidyWorkingFiles")
 def tidy_working_files(days: int = Query(7, ge=0, le=365)) -> dict:
-    return {"data": administration.tidy_working_files(days)}
+    return {"data": settings_service.tidy_working_files(days)}
 
 
 @router.get("/pronunciations", operation_id="listPronunciations")
 def list_pronunciations() -> dict:
-    return {"data": administration.pronunciations()}
+    return {"data": settings_service.pronunciations()}
 
 
 @router.post("/pronunciations", operation_id="savePronunciation")
 def save_pronunciation(payload: PronunciationUpdate) -> dict:
     try:
-        item_id = administration.save_pronunciation(payload.model_dump())
-        return {"data": {"id": item_id, "rules": administration.pronunciations()}}
+        item_id = settings_service.save_pronunciation(payload.model_dump())
+        return {"data": {
+            "id": item_id, "rules": settings_service.pronunciations()}}
     except ValueError as exc:
         raise ApiProblem(400, "invalid_pronunciation", str(exc)) from exc
 
 
 @router.delete("/pronunciations/{item_id}", operation_id="deletePronunciation")
 def delete_pronunciation(item_id: int) -> dict:
-    if not administration.delete_pronunciation(item_id):
+    if not settings_service.delete_pronunciation(item_id):
         raise ApiProblem(404, "pronunciation_not_found", "That pronunciation rule no longer exists.")
     return {"data": {"deleted": True}}
 
 
 @router.get("/pronunciations/preview", operation_id="previewPronunciation")
 def preview_pronunciation(text: str = Query("", max_length=5000)) -> dict:
-    return {"data": administration.pronunciation_preview(text)}
+    return {"data": settings_service.pronunciation_preview(text)}

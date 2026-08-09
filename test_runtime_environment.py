@@ -6,11 +6,11 @@ import os
 import unittest
 from unittest.mock import patch
 
-from audio_studio.application import administration
 from audio_studio import runtime
 from audio_studio.infrastructure import runtime_environment
 from audio_studio.infrastructure.alibaba import config as alibaba_config
 from audio_studio.infrastructure.alibaba import sdk_runtime
+from audio_studio.infrastructure.settings_administration import EnvironmentSettings
 from audio_studio import config
 from dataclasses import replace
 
@@ -130,10 +130,15 @@ class RuntimeEnvironmentTests(unittest.TestCase):
         self.assertEqual(order, ["environment", "bind"])
 
     def test_admin_rejects_newline_injection(self):
-        with self.assertRaisesRegex(ValueError, "line breaks"):
-            administration._write_environment({
-                "RUSTFS_ENDPOINT": "https://safe.test\nDASHSCOPE_API_KEY=bad"
-            })
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            administration = EnvironmentSettings(
+                env_file=root / ".env", revision_file=root / ".revision")
+            with self.assertRaisesRegex(ValueError, "line breaks"):
+                administration._write_environment({
+                    "RUSTFS_ENDPOINT":
+                        "https://safe.test\nDASHSCOPE_API_KEY=bad"
+                })
 
 
 if __name__ == "__main__":

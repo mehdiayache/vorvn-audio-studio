@@ -50,9 +50,9 @@ edges from the matching allowlist in the same commit; new edges fail CI.
 Current checkpoint: boundary baseline complete.
 
 - Domain technical-dependency debt: 0.
-- Application to Infrastructure edges: 42.
+- Application to Infrastructure edges: 34.
 - Application direct technical edges: 1.
-- HTTP to Infrastructure edges: 7.
+- HTTP to Infrastructure edges: 6.
 - Infrastructure to Application edges: 8.
 - Transitional root/`services` import edges: 0.
 - Root business modules: 0.
@@ -119,3 +119,9 @@ unreachable legacy facades for import, prompt preparation, realtime streaming,
 translation and vocabulary management are removed; their active native
 capabilities remain in the package architecture. The canonical data-integrity
 gate is preserved as `scripts.check_domain`.
+
+Settings and machine administration now have one injected Application service.
+Environment persistence, Alibaba SDK refresh, S3 inspection and filesystem
+maintenance belong to Infrastructure; HTTP imports the service from the
+composition root. This removes eight Application-to-Infrastructure edges and
+the Settings router's direct S3 dependency without changing API contracts.
