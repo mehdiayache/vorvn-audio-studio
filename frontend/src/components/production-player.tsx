@@ -7,7 +7,7 @@ import { formatDuration } from "@/lib/format"
 import type { PlayerSource } from "@/types/domain"
 import type { PlayerState } from "@/hooks/use-player"
 
-export function ProductionPlayer({ source, state, currentTime, duration, volume, speed, productionTitle, productionSubtitle, productionDuration, previewing, musicName, suppressed = false, onToggle, onSeek, onVolume, onSpeed, onClose, onPlayProduction, onOpenMusic }: {
+export function ProductionPlayer({ source, state, currentTime, duration, volume, speed, productionTitle, productionSubtitle, productionDuration, previewing, musicName, compact = false, onToggle, onSeek, onVolume, onSpeed, onClose, onPlayProduction, onOpenMusic }: {
   source: PlayerSource | null
   state: PlayerState
   currentTime: number
@@ -19,7 +19,7 @@ export function ProductionPlayer({ source, state, currentTime, duration, volume,
   productionDuration: number
   previewing: boolean
   musicName?: string
-  suppressed?: boolean
+  compact?: boolean
   onToggle: () => void
   onSeek: (seconds: number) => void
   onVolume: (volume: number) => void
@@ -35,9 +35,8 @@ export function ProductionPlayer({ source, state, currentTime, duration, volume,
   const shownSubtitle = state === "loading" || previewing ? "Preparing audio…" : source?.subtitle || productionSubtitle
   const shownDuration = source ? duration : productionDuration
   const play = () => isProduction ? onPlayProduction() : onToggle()
-  if (suppressed) return null
   return (
-    <section className={`production-player ${expanded ? "expanded" : ""} ${!source ? "idle" : ""}`} aria-label="Production player">
+    <section className={`production-player ${expanded ? "expanded" : ""} ${compact ? "compact" : ""} ${!source ? "idle" : ""}`} aria-label="Production player">
       <div className="player-art">{source?.artwork ? <img src={source.artwork} alt="" /> : <AudioLines />}</div>
       <div className="player-copy"><small>{resourceLabel}</small><b>{shownTitle}</b><span>{shownSubtitle}</span></div>
       <Button className="transport" size="icon" onClick={play} disabled={previewing} aria-label={isProduction && !source ? "Play full production" : state === "playing" ? "Pause" : "Play"}>{previewing ? <LoaderCircle className="spin" /> : state === "playing" ? <Pause /> : <Play />}</Button>
@@ -47,7 +46,7 @@ export function ProductionPlayer({ source, state, currentTime, duration, volume,
       <Volume1 className="volume-icon" />
       <Slider className="player-volume" value={[volume]} max={1} step={0.02} onValueChange={([value = 0]) => onVolume(value)} aria-label="Player volume" />
       {source && !isProduction ? <Button variant="ghost" size="icon" onClick={onClose} aria-label="Return to full production"><RotateCcw /></Button> : <Button variant="ghost" size="icon" onClick={onOpenMusic} aria-label="Open music controls"><Music2 /></Button>}
-      <Button variant="ghost" size="icon" onClick={() => setExpanded((value) => !value)} aria-label={expanded ? "Collapse player" : "Expand player"}>{expanded ? <ChevronDown /> : <ChevronUp />}</Button>
+      <Button className="player-expand" variant="ghost" size="icon" onClick={() => setExpanded((value) => !value)} aria-label={expanded ? "Collapse player" : "Expand player"}>{expanded ? <ChevronDown /> : <ChevronUp />}</Button>
       {expanded && <div className="player-extra">
         <Button variant="outline" size="sm" onClick={() => onSpeed(speed >= 2 ? 0.75 : speed + 0.25)}>{speed.toFixed(2).replace(/\.00$/, "")}× speed</Button>
         <Button variant="outline" size="sm" onClick={onOpenMusic}><Music2 /> {musicName || "Add music"}</Button>

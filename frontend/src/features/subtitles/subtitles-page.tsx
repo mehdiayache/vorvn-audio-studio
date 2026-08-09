@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { usePlayer } from "@/hooks/use-player"
+import { useGlobalPlayer } from "@/components/global-player-provider"
 import { studioApi } from "@/lib/api"
 import { formatDuration, formatMoney } from "@/lib/format"
 import type { CaptionLayout, CaptionProfile, ExternalAudioUpload, ExternalTranscriptSummary, Transcript } from "@/types/domain"
@@ -44,7 +44,7 @@ export function SubtitlesPage() {
   const [profile, setProfile] = useState<CaptionProfile>("standard")
   const [layout, setLayout] = useState<CaptionLayout | null>(null)
   const [layoutBusy, setLayoutBusy] = useState(false)
-  const player = usePlayer()
+  const player = useGlobalPlayer()
 
   const refresh = async () => setHistory(await studioApi.externalTranscripts())
   useEffect(() => {

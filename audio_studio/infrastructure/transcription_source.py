@@ -6,7 +6,7 @@ import mimetypes
 from pathlib import Path
 from urllib.parse import urlparse
 
-import storage
+from audio_studio.infrastructure import object_storage as storage
 
 from audio_studio.application.transcription import PreparedAudio
 from audio_studio.infrastructure.media_paths import media_root

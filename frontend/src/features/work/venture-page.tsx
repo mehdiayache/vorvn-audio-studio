@@ -17,7 +17,7 @@ export function VenturePage({ data, refresh }: { data: VentureOverview; refresh:
     <WorkPageHeader kind="Venture" name={venture.name} icon={venture.icon} description={venture.description} metrics={metrics} actions={<VentureSettingsDialog venture={venture} onUpdated={refresh} />} />
     <div className="work-content">
       <WorkSection title="Projects" action={<Button variant="outline" onClick={() => setCreating(true)}><Plus /> New Project</Button>}>
-        {data.projects.length ? <ProjectCardGrid projects={data.projects} venture={{ id: venture.id, type: "venture", name: venture.name, icon: venture.icon }} onUpdated={refresh} /> : <div className="work-empty compact"><FolderKanban /><h3>No Projects</h3><p>Create the first Project in this Venture.</p><Button onClick={() => setCreating(true)}><Plus /> New Project</Button></div>}
+        {data.projects.length ? <ProjectCardGrid projects={data.projects} venture={{ id: venture.id, public_id: venture.public_id, type: "venture", name: venture.name, icon: venture.icon }} onUpdated={refresh} /> : <div className="work-empty compact"><FolderKanban /><h3>No Projects</h3><p>Create the first Project in this Venture.</p><Button onClick={() => setCreating(true)}><Plus /> New Project</Button></div>}
       </WorkSection>
       <VentureMedia ventureId={venture.id} summary={data.asset_summary} refresh={refresh} />
       <WorkSection title="Recent Productions">

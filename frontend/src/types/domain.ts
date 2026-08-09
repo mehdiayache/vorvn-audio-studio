@@ -15,10 +15,11 @@ export type HierarchyNode = {
   updated_at?: string
 }
 
-export type TrailItem = { id: number; type: Exclude<ResourceType, "production">; name: string; icon?: string }
+export type TrailItem = { id: number; public_id: string; type: Exclude<ResourceType, "production">; name: string; icon?: string }
 
 export type ProductionSummary = {
   id: number
+  public_id: string
   name: string
   description: string
   status: string
@@ -46,6 +47,7 @@ export type WorkResource = {
 
 export type SeriesSummary = {
   id: number
+  public_id: string
   name: string
   description: string
   defaults: Record<string, unknown>
@@ -55,6 +57,7 @@ export type SeriesSummary = {
 
 export type ProjectSummary = {
   id: number
+  public_id: string
   name: string
   description: string
   cover_image: string

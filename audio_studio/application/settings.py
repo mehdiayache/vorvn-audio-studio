@@ -8,7 +8,7 @@ from typing import Any
 
 import naming
 import say
-import storage
+from audio_studio.infrastructure import object_storage as storage
 from services.alibaba import config as alibaba_config
 
 from audio_studio.application.preferences import load_preferences, save_preferences

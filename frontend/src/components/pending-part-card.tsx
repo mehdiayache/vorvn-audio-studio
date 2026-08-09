@@ -23,7 +23,7 @@ export function PendingPartCard({ task, index, directory, onRetry, onDismiss }: 
   const failed = task.status === "failed"
   return <div className="sequence-row pending-row">
     <div className="sequence-node-column"><span className={`sequence-row-node ${failed ? "issue" : "pending"}`}>{String(index + 1).padStart(2, "0")}</span></div>
-    <article className={`sequence-card pending-card ${failed ? "failed" : "generating"}`} aria-label={failed ? "Speech generation failed" : "Speech is generating"}>
+    <article className={`sequence-card pending-card ${failed ? "failed" : "generating"}`} aria-label={failed ? "Speech generation failed" : "Speech is generating"} role="status" aria-live="polite">
       <div className="pending-card-icon">{failed ? <CircleAlert /> : <LoaderCircle className="spin" />}</div>
       <div className="pending-card-body">
         <div className="sequence-card-heading"><VoiceIdentity voice={task.voice} directory={directory} compact /><span className="pending-card-status"><b>{failed ? "Generation failed" : "Generating audio…"}</b><small>{failed ? task.error || "The provider did not finish this Part." : `${elapsed(task.startedAt)} · safe to continue working`}</small></span></div>

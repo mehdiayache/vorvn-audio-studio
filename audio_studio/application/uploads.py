@@ -10,7 +10,7 @@ from urllib.parse import unquote
 from uuid import uuid4
 
 import psycopg
-import storage
+from audio_studio.infrastructure import object_storage as storage
 
 from audio_studio.config import settings
 from audio_studio.infrastructure.media_paths import (

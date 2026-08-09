@@ -39,18 +39,12 @@ import type {
   VentureAssetLibrary,
 } from "@/types/domain"
 import type { paths } from "@/types/api.generated"
+import { ApiError } from "@/lib/api-error"
+import { observeJob } from "@/lib/job-observer"
 
 type GeneratedJob = paths["/api/v1/jobs/{job_id}"]["get"]["responses"][200]["content"]["application/json"]["data"]
 
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-  ) {
-    super(message)
-    this.name = "ApiError"
-  }
-}
+export { ApiError } from "@/lib/api-error"
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -104,17 +98,8 @@ function postV1<T>(path: string, body: unknown) {
   return post<{ data: T }>(path, body).then((response) => response.data)
 }
 
-const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds))
-
 async function waitForJob<T>(jobId: string): Promise<T> {
-  const deadline = Date.now() + 30 * 60 * 1000
-  while (Date.now() < deadline) {
-    const job = await v1<GeneratedJob>(`/api/v1/jobs/${encodeURIComponent(jobId)}`)
-    if (["ok", "warning", "blocked"].includes(job.status)) return job.result as T
-    if (["failed", "lost", "cancelled"].includes(job.status)) throw new ApiError(job.error || `Job ${job.status}.`, 409)
-    await wait(500)
-  }
-  throw new ApiError("The Job is still running. Check Activity for its current state.", 408)
+  return observeJob<T>(jobId, (id) => v1<GeneratedJob>(`/api/v1/jobs/${encodeURIComponent(id)}`))
 }
 
 export const studioApi = {

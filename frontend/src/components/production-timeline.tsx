@@ -1,5 +1,5 @@
 import { Minus, Music2, Plus } from "lucide-react"
-import { useMemo, useState, type MouseEvent } from "react"
+import { useMemo, useState, type KeyboardEvent, type MouseEvent } from "react"
 
 import { AudioWaveform } from "@/components/audio-waveform"
 import { Button } from "@/components/ui/button"
@@ -48,6 +48,14 @@ export function ProductionTimeline({ parts, music, playingKey, currentTime, prod
     onSeek(((event.clientX - bounds.left) / bounds.width) * total)
   }
 
+  function seekWithKeyboard(event: KeyboardEvent<HTMLDivElement>) {
+    if (!productionLoaded || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return
+    event.preventDefault()
+    if (event.key === "Home") return onSeek(0)
+    if (event.key === "End") return onSeek(total)
+    onSeek(Math.min(total, Math.max(0, currentTime + (event.key === "ArrowRight" ? 5 : -5))))
+  }
+
   return (
     <section className="timeline-shell" aria-label="Production timeline">
       <header className="timeline-toolbar">
@@ -65,9 +73,9 @@ export function ProductionTimeline({ parts, music, playingKey, currentTime, prod
           </div>
           <div className="timeline-lane-row">
             <span className="timeline-lane-label">Sequence</span>
-            <div className={cn("timeline-track", productionLoaded && "seekable")} onClick={seek}>
+            <div className={cn("timeline-track", productionLoaded && "seekable")} onClick={seek} onKeyDown={seekWithKeyboard} role="slider" tabIndex={productionLoaded ? 0 : -1} aria-label="Production position" aria-disabled={!productionLoaded} aria-valuemin={0} aria-valuemax={total} aria-valuenow={Math.min(total, currentTime)} aria-valuetext={`${formatDuration(Math.min(total, currentTime))} of ${formatDuration(total)}`}>
               {sourceParts.map((part, index) => (
-                <button key={part.id} style={{ width: `${((durations[index] ?? .25) / total) * 100}%` }} className={cn("timeline-clip", part.kind, playingKey === `part:${part.id}` && "active")} onClick={(event) => { event.stopPropagation(); onLocate(part.id) }} title={`${index + 1}. ${part.kind} · ${formatDuration(durations[index] ?? .25)}`}>
+                <button key={part.id} style={{ width: `${((durations[index] ?? .25) / total) * 100}%` }} className={cn("timeline-clip", part.kind, playingKey === `part:${part.id}` && "active")} onClick={(event) => { event.stopPropagation(); onLocate(part.id) }} title={`${index + 1}. ${part.kind} · ${formatDuration(durations[index] ?? .25)}`} aria-label={`Locate part ${index + 1}, ${part.kind}, ${formatDuration(durations[index] ?? .25)}`}>
                   {part.filename && part.kind !== "silence" && <AudioWaveform url={audioUrl(part.filename)} bars={32} />}
                   <span>{part.kind === "silence" ? `${durations[index] ?? .25}s` : index + 1}</span>
                 </button>

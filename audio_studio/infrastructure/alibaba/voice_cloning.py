@@ -9,7 +9,7 @@ import threading
 import time
 
 import say
-import storage
+from audio_studio.infrastructure import object_storage as storage
 from services.alibaba import config, omni
 from services.alibaba.pricing import PRICE_VERSION
 

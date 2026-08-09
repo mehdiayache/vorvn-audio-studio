@@ -32,7 +32,7 @@ export function CreateProjectDialog({ ventureId, ventureName, open, onOpenChange
       if (coverImage) await studioApi.updateResource("projects", created.id, { cover_image: coverImage })
       onOpenChange(false)
       onCreated()
-      window.location.assign(resourceHref("project", created.id))
+      window.location.assign(resourceHref("project", created.public_id))
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to create this Project.")
     } finally { setSaving(false) }

@@ -24,7 +24,7 @@ export function CreateVentureDialog({ open, onOpenChange }: { open: boolean; onO
       if (file) icon = (await studioApi.uploadVentureLogo(file)).url
       const venture = await studioApi.createVenture(name.trim(), description.trim())
       await studioApi.updateResource("ventures", venture.id, { icon })
-      onOpenChange(false); window.location.assign(resourceHref("venture", venture.id))
+      onOpenChange(false); window.location.assign(resourceHref("venture", venture.public_id))
     } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to create this Venture.") }
     finally { setSaving(false) }
   }

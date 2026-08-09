@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ErrorState, PageLoading } from "@/components/state-panel"
 import { AudioPlayerDock } from "@/components/audio-player-dock"
-import { usePlayer } from "@/hooks/use-player"
+import { useGlobalPlayer } from "@/components/global-player-provider"
 import { audioUrl, studioApi } from "@/lib/api"
 import type { HistoricalVoiceReference, VoiceProfile } from "@/types/domain"
 import { CompleteVoiceDialog } from "./complete-voice-dialog"
@@ -27,7 +27,7 @@ export function VoicesPage() {
   const [filter, setFilter] = useState<"all" | "favourites" | "incomplete">("all")
   const [recentlyCompleted, setRecentlyCompleted] = useState<Set<string>>(() => new Set())
   const priorWorking = useRef<Map<string, boolean> | null>(null)
-  const player = usePlayer()
+  const player = useGlobalPlayer()
   const activeProfiles = useMemo(() => resources.profiles.filter((profile) => profile.metadata.status !== "archived"), [resources.profiles])
   const archivedProfiles = useMemo(() => resources.profiles.filter((profile) => profile.metadata.status === "archived"), [resources.profiles])
   const shownProfiles = useMemo(() => (showArchived ? archivedProfiles : activeProfiles).filter((profile) => {

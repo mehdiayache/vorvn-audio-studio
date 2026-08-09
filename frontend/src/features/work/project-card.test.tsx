@@ -9,6 +9,7 @@ afterEach(cleanup)
 
 const project: ProjectSummary = {
   id: 3,
+  public_id: "prj_sleeping",
   name: "Sleeping guides with a deliberately long name",
   description: "Calm evening productions.",
   cover_image: "/icon/sleeping.jpg",
@@ -19,7 +20,7 @@ const project: ProjectSummary = {
 describe("ProjectCard", () => {
   it("keeps navigation, identity and settings as separate controls", () => {
     render(<ProjectCard project={project} onUpdated={() => undefined} />)
-    expect(screen.getByRole("link", { name: /Open Project Sleeping guides/ }).getAttribute("href")).toBe("/audio-studio/projects/3")
+    expect(screen.getByRole("link", { name: /Open Project Sleeping guides/ }).getAttribute("href")).toBe("/audio-studio/projects/prj_sleeping")
     expect(screen.getByRole("heading", { name: project.name })).toBeTruthy()
     expect(screen.getByText("Project")).toBeTruthy()
     expect(screen.getByText("3 productions")).toBeTruthy()
@@ -28,13 +29,13 @@ describe("ProjectCard", () => {
   })
 
   it("opens Project-specific settings without navigating", async () => {
-    render(<ProjectCard project={project} venture={{ id: 2, type: "venture", name: "Heartsnotes", icon: "💜" }} onUpdated={() => undefined} />)
+    render(<ProjectCard project={project} venture={{ id: 2, public_id: "vnt_heartsnotes", type: "venture", name: "Heartsnotes", icon: "💜" }} onUpdated={() => undefined} />)
     fireEvent.pointerDown(screen.getByRole("button", { name: /Project settings for Sleeping guides/ }), { button: 0, ctrlKey: false })
     fireEvent.click(await screen.findByRole("menuitem", { name: "Project settings" }))
     expect(screen.getByRole("dialog", { name: "Project settings" })).toBeTruthy()
     expect(screen.getByRole("img", { name: "Project cover preview" }).getAttribute("src")).toBe(project.cover_image)
     expect(screen.getByRole("textbox", { name: "Name" })).toHaveProperty("value", project.name)
     expect(screen.getByText("This Project lives inside this Venture.")).toBeTruthy()
-    expect(screen.getByRole("link", { name: "Open Venture Heartsnotes" }).getAttribute("href")).toBe("/audio-studio/ventures/2")
+    expect(screen.getByRole("link", { name: "Open Venture Heartsnotes" }).getAttribute("href")).toBe("/audio-studio/ventures/vnt_heartsnotes")
   })
 })

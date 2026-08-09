@@ -30,6 +30,7 @@ export function ProjectPage({ data, refresh }: { data: ProjectOverview; refresh:
   const venture = data.trail.find((item) => item.type === "venture")
   const editableProject = {
     id: project.id,
+    public_id: project.public_id,
     name: project.name,
     description: project.description,
     cover_image: project.cover_image || project.icon || "",
@@ -43,7 +44,7 @@ export function ProjectPage({ data, refresh }: { data: ProjectOverview; refresh:
   }
   const parent = { id: project.id, type: "project" as const, name: project.name }
   return <main className="work-page">
-    <WorkPageHeader kind="Project" name={project.name} description={project.description} trail={data.trail} metrics={data.metrics} icon={editableProject.cover_image} actions={<ProjectSettingsDialog project={editableProject} venture={venture} onUpdated={refresh} onArchived={() => window.location.assign(venture ? `${audioStudioBase}/ventures/${venture.id}` : `${audioStudioBase}/`)} />} />
+    <WorkPageHeader kind="Project" name={project.name} description={project.description} trail={data.trail} metrics={data.metrics} icon={editableProject.cover_image} actions={<ProjectSettingsDialog project={editableProject} venture={venture} onUpdated={refresh} onArchived={() => window.location.assign(venture ? `${audioStudioBase}/ventures/${venture.public_id}` : `${audioStudioBase}/`)} />} />
     <div className="work-content">
       <div className="project-structure-note"><strong>Inside this Project</strong><span>Use a Series for a related collection. Create a standalone Production when it does not belong to one.</span></div>
       <WorkSection title="Series" description="Optional collections that group related Productions." action={<Button variant="outline" onClick={() => setCreating("series")}><Plus /> New Series</Button>}>

@@ -1,6 +1,6 @@
 import type { ResourceType } from "@/types/domain"
 
-export type StudioRoute = { type: ResourceType; id: number } | { type: "home" | "speak" | "batch" | "voices" | "activity" | "subtitles" | "settings"; id: null }
+export type StudioRoute = { type: ResourceType; id: string | number } | { type: "home" | "speak" | "batch" | "voices" | "activity" | "subtitles" | "settings"; id: null }
 
 const ROOT_PATTERN = "(?:audio-studio|studio)"
 
@@ -11,11 +11,12 @@ export function studioRouteFromLocation(pathname: string, search: string): Studi
   if (new RegExp(`^/${ROOT_PATTERN}/settings/?$`).test(pathname)) return { type: "settings", id: null }
   if (new RegExp(`^/${ROOT_PATTERN}/subtitles/?$`).test(pathname)) return { type: "subtitles", id: null }
   if (new RegExp(`^/${ROOT_PATTERN}/batch/?$`).test(pathname)) return { type: "batch", id: null }
-  const pathMatch = pathname.match(new RegExp(`^/${ROOT_PATTERN}/(ventures|projects|series|productions|workspaces)/(\\d+)/?$`))
+  const pathMatch = pathname.match(new RegExp(`^/${ROOT_PATTERN}/(ventures|projects|series|productions|workspaces)/([a-zA-Z0-9_-]+)/?$`))
   if (pathMatch?.[1] && pathMatch[2]) {
     const plural = pathMatch[1]
     const type: ResourceType = plural === "workspaces" ? "production" : plural === "series" ? "series" : plural.slice(0, -1) as ResourceType
-    return { type, id: Number(pathMatch[2]) }
+    const identifier = pathMatch[2]
+    return { type, id: /^\d+$/.test(identifier) ? Number(identifier) : identifier }
   }
   const value = Number(new URLSearchParams(search).get("project"))
   if (Number.isInteger(value) && value > 0) return { type: "production", id: value }
@@ -24,7 +25,7 @@ export function studioRouteFromLocation(pathname: string, search: string): Studi
 
 export function productionIdFromLocation(pathname: string, search: string, fallback = 6) {
   const route = studioRouteFromLocation(pathname, search)
-  return route.type === "production" ? route.id : fallback
+  return route.type === "production" && typeof route.id === "number" ? route.id : fallback
 }
 
 export function normalizeStudioLocation(pathname: string, search: string) {

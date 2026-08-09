@@ -7,7 +7,7 @@ import { FileDropZone } from "@/components/file-drop-zone"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { usePlayer } from "@/hooks/use-player"
+import { useGlobalPlayer } from "@/components/global-player-provider"
 import { useVoiceDirectory } from "@/hooks/use-voice-directory"
 import { studioApi } from "@/lib/api"
 import { getVoiceOptions } from "@/lib/voice-options"
@@ -20,7 +20,7 @@ const none = "__same__"
 
 export function BatchPage() {
   const voices = useVoiceDirectory()
-  const player = usePlayer()
+  const player = useGlobalPlayer()
   const [file, setFile] = useState<File | null>(null)
   const [sheet, setSheet] = useState<BatchPreview | null>(null)
   const [busy, setBusy] = useState<"preview" | "run" | null>(null)

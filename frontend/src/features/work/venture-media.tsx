@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { AudioPlayerDock } from "@/components/audio-player-dock"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { usePlayer } from "@/hooks/use-player"
+import { useGlobalPlayer } from "@/components/global-player-provider"
 import { formatDuration } from "@/lib/format"
 import { audioUrl, studioApi } from "@/lib/api"
 import type { VentureAsset, VentureOverview } from "@/types/domain"
@@ -43,7 +43,7 @@ export function VentureMedia({ ventureId, summary, refresh }: { ventureId: numbe
   const collections = Object.values(summary.by_kind)
   const [open, setOpen] = useState<MediaKind | null>(null)
   const [assets, setAssets] = useState<VentureAsset[]>([])
-  const player = usePlayer()
+  const player = useGlobalPlayer()
   useEffect(() => { if (open) void studioApi.ventureAssets(ventureId).then((result) => setAssets(result.assets.filter((asset) => asset.folder === open.name || asset.collection === open.name))).catch((reason) => toast.error(reason instanceof Error ? reason.message : "Media could not be loaded.")) }, [open, ventureId])
   return <><section className="work-section venture-media"><header className="work-section-head"><div><h2>Media</h2><p>Reusable Venture-owned Intros, Outros, Music and Stingers.</p></div></header><div className="media-collection-grid">{collections.map((item) => <MediaCollection item={item} refresh={refresh} onOpen={() => setOpen(item)} key={item.collection_id} />)}</div></section><Dialog open={Boolean(open)} onOpenChange={(next) => { if (!next) setOpen(null) }}><DialogContent><DialogHeader><DialogTitle>{open?.name || "Media"}</DialogTitle><DialogDescription>Reusable files available to Productions in this Venture.</DialogDescription></DialogHeader><div className="venture-asset-list">{assets.length ? assets.map((asset) => <article key={asset.id}><Music2 /><div><b>{asset.title || asset.name || asset.filename}</b><small>{formatDuration(Number(asset.duration_ms || 0) / 1000)}</small></div>{asset.filename && <Button variant="ghost" size="icon" aria-label={`Play ${asset.title || asset.filename}`} onClick={() => void player.toggleSource({ key: `asset:${asset.id}`, url: audioUrl(asset.filename), title: String(asset.title || asset.filename), subtitle: open?.name, kind: open?.name === "Music" ? "music" : "asset" })}><Play /></Button>}</article>) : <p className="work-empty compact">No files in this library yet.</p>}</div></DialogContent></Dialog><AudioPlayerDock label="Venture media" source={player.source} state={player.state} currentTime={player.currentTime} duration={player.duration} onToggle={() => void player.toggle()} onSeek={player.seek} onClose={player.close} /></>
 }

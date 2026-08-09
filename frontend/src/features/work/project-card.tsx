@@ -10,7 +10,7 @@ export function ProjectCard({ project, venture, onUpdated }: { project: ProjectS
   const productions = `${project.metrics.production_count} production${project.metrics.production_count === 1 ? "" : "s"}`
   return <article className={`project-card${project.cover_image ? " has-cover" : " no-cover"}`}>
     {project.cover_image ? <img className="project-card-image" src={project.cover_image} alt="" /> : <span className="project-card-fallback"><FolderKanban /><small>No cover image</small></span>}
-    <a className="project-card-link" href={resourceHref("project", project.id)} aria-label={`Open Project ${project.name}`} />
+    <a className="project-card-link" href={resourceHref("project", project.public_id)} aria-label={`Open Project ${project.name}`} />
     <div className="project-card-top"><small>Project</small><ProjectSettingsDialog project={project} venture={venture} onUpdated={onUpdated} /></div>
     <div className="project-card-content">
       <h3>{project.name}</h3>

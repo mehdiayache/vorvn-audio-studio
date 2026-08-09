@@ -132,8 +132,9 @@ def production_get(production_id: int) -> dict[str, Any] | None:
                    production.project_id, production.series_id,
                    production.legacy_container_id, production.settings,
                    production.updated_at,
-                   project.name, project.venture_id,
-                   venture.name, venture.icon, series.name
+                   project.name, project.public_id, project.venture_id,
+                   venture.name, venture.public_id, venture.icon,
+                   series.name, series.public_id
               FROM productions production
               JOIN work_projects project ON project.id = production.project_id
               JOIN ventures venture ON venture.id = project.venture_id
@@ -147,15 +148,16 @@ def production_get(production_id: int) -> dict[str, Any] | None:
     if not row:
         return None
     (ident, public_id, name, description, status, project_id, series_id,
-     legacy_id, production_settings, updated, project_name, venture_id, venture_name, venture_icon,
-     series_name) = row
+     legacy_id, production_settings, updated, project_name, project_public_id,
+     venture_id, venture_name, venture_public_id, venture_icon,
+     series_name, series_public_id) = row
     trail = [
-        {"id": venture_id, "type": "venture", "name": venture_name,
+        {"id": venture_id, "public_id": str(venture_public_id), "type": "venture", "name": venture_name,
          "icon": venture_icon or ""},
-        {"id": project_id, "type": "project", "name": project_name},
+        {"id": project_id, "public_id": str(project_public_id), "type": "project", "name": project_name},
     ]
     if series_id:
-        trail.append({"id": series_id, "type": "series", "name": series_name})
+        trail.append({"id": series_id, "public_id": str(series_public_id), "type": "series", "name": series_name})
     return {
         "id": ident, "public_id": str(public_id), "type": "production",
         "key": f"production:{ident}", "name": name,
@@ -180,7 +182,7 @@ def resource_get(kind: str, resource_id: int) -> dict[str, Any] | None:
 def _production_summaries(cur, where_sql: str, params: tuple = ()) -> list[ProductionSummary]:
     """Compact, durable Production cards shared by all overview DTOs."""
     cur.execute(f"""
-        SELECT production.id, production.name, production.description,
+        SELECT production.id, production.public_id, production.name, production.description,
                production.status, production.series_id, production.updated_at,
                count(part.generation_id),
                coalesce(sum(
@@ -200,14 +202,14 @@ def _production_summaries(cur, where_sql: str, params: tuple = ()) -> list[Produ
     rows = cur.fetchall()
     accounting = accounting_repository.many([row[0] for row in rows])
     return [{
-        "id": ident, "type": "production", "key": f"production:{ident}",
+        "id": ident, "public_id": str(public_id), "type": "production", "key": f"production:{ident}",
         "name": name, "description": description or "", "status": status,
         "series_id": series_id, "part_count": int(part_count or 0),
         "duration_ms": int(duration_ms or 0),
         "total_cost": accounting.get(ident, {}).get("historical_spend", float(total_cost or 0)),
         "current_sequence_cost": accounting.get(ident, {}).get("current_sequence_cost", float(total_cost or 0)),
         "updated_at": _iso(updated_at),
-    } for (ident, name, description, status, series_id, updated_at,
+    } for (ident, public_id, name, description, status, series_id, updated_at,
            part_count, duration_ms, total_cost) in rows]
 
 
@@ -223,7 +225,7 @@ def venture_overview(venture_id: int) -> VentureOverview | None:
             return None
         ident, public_id, name, description, icon, locked, updated_at = row
         cur.execute("""
-            SELECT project.id, project.name, project.description,
+            SELECT project.id, project.public_id, project.name, project.description,
                    coalesce(nullif(project.cover_image, ''), project.icon),
                    project.updated_at, count(DISTINCT production.id),
                    count(DISTINCT part.generation_id),
@@ -244,7 +246,7 @@ def venture_overview(venture_id: int) -> VentureOverview | None:
              ORDER BY project.updated_at DESC, project.name
         """, (venture_id,))
         projects = [{
-            "id": project_id, "type": "project", "key": f"project:{project_id}",
+            "id": project_id, "public_id": str(project_public_id), "type": "project", "key": f"project:{project_id}",
             "name": project_name, "description": project_description or "",
             "cover_image": project_icon or "", "updated_at": _iso(project_updated),
             "metrics": {"production_count": int(production_count or 0),
@@ -252,7 +254,7 @@ def venture_overview(venture_id: int) -> VentureOverview | None:
                         "duration_ms": int(duration_ms or 0),
                         "total_cost": float(total_cost or 0),
                         "current_sequence_cost": float(total_cost or 0)},
-        } for (project_id, project_name, project_description, project_icon,
+        } for (project_id, project_public_id, project_name, project_description, project_icon,
                project_updated, production_count, part_count, duration_ms,
                total_cost) in cur.fetchall()]
         # Cost on a Project card is spend attributable to all of its
@@ -321,7 +323,7 @@ def project_overview(project_id: int) -> ProjectOverview | None:
                    project.description,
                    coalesce(nullif(project.cover_image, ''), project.icon),
                    project.updated_at,
-                   venture.id, venture.name, venture.icon
+                   venture.id, venture.public_id, venture.name, venture.icon
               FROM work_projects project
               JOIN ventures venture ON venture.id = project.venture_id
              WHERE project.id = %s AND project.archived_at IS NULL
@@ -331,9 +333,9 @@ def project_overview(project_id: int) -> ProjectOverview | None:
         if not row:
             return None
         (ident, public_id, name, description, icon, updated_at,
-         venture_id, venture_name, venture_icon) = row
+         venture_id, venture_public_id, venture_name, venture_icon) = row
         cur.execute("""
-            SELECT series.id, series.name, series.description, series.icon,
+            SELECT series.id, series.public_id, series.name, series.description, series.icon,
                    series.defaults, series.updated_at,
                    count(DISTINCT production.id), count(part.generation_id),
                    coalesce(sum(
@@ -352,7 +354,7 @@ def project_overview(project_id: int) -> ProjectOverview | None:
              ORDER BY series.position NULLS LAST, series.updated_at DESC, series.name
         """, (project_id,))
         series_items = [{
-            "id": series_id, "type": "series", "key": f"series:{series_id}",
+            "id": series_id, "public_id": str(series_public_id), "type": "series", "key": f"series:{series_id}",
             "name": series_name, "description": series_description or "",
             "icon": series_icon or "", "defaults": defaults or {},
             "updated_at": _iso(series_updated),
@@ -360,7 +362,7 @@ def project_overview(project_id: int) -> ProjectOverview | None:
                         "part_count": int(part_count or 0),
                         "duration_ms": int(duration_ms or 0),
                         "total_cost": float(total_cost or 0)},
-        } for (series_id, series_name, series_description, series_icon, defaults,
+        } for (series_id, series_public_id, series_name, series_description, series_icon, defaults,
                series_updated, production_count, part_count, duration_ms,
                total_cost) in cur.fetchall()]
         standalone = _production_summaries(
@@ -389,7 +391,7 @@ def project_overview(project_id: int) -> ProjectOverview | None:
                      "description": description or "", "icon": icon or "",
                      "cover_image": icon or "",
                      "updated_at": _iso(updated_at)},
-        "trail": [{"id": venture_id, "type": "venture", "name": venture_name,
+        "trail": [{"id": venture_id, "public_id": str(venture_public_id), "type": "venture", "name": venture_name,
                    "icon": venture_icon or ""}],
         "series": series_items, "standalone_productions": standalone,
         "metrics": {"series_count": len(series_items),
@@ -409,8 +411,8 @@ def series_overview(series_id: int) -> SeriesOverview | None:
         cur.execute("""
             SELECT series.id, series.public_id, series.name, series.description,
                    series.icon, series.defaults, series.updated_at,
-                   project.id, project.name, venture.id, venture.name,
-                   venture.icon
+                   project.id, project.public_id, project.name,
+                   venture.id, venture.public_id, venture.name, venture.icon
               FROM series
               JOIN work_projects project ON project.id = series.project_id
               JOIN ventures venture ON venture.id = project.venture_id
@@ -421,16 +423,17 @@ def series_overview(series_id: int) -> SeriesOverview | None:
         if not row:
             return None
         (ident, public_id, name, description, icon, defaults, updated_at,
-         project_id, project_name, venture_id, venture_name, venture_icon) = row
+         project_id, project_public_id, project_name,
+         venture_id, venture_public_id, venture_name, venture_icon) = row
         productions = _production_summaries(cur, "production.series_id = %s", (series_id,))
     return {
         "resource": {"id": ident, "public_id": str(public_id), "type": "series",
                      "key": f"series:{ident}", "name": name,
                      "description": description or "", "icon": icon or "",
                      "project_id": project_id, "updated_at": _iso(updated_at)},
-        "trail": [{"id": venture_id, "type": "venture", "name": venture_name,
+        "trail": [{"id": venture_id, "public_id": str(venture_public_id), "type": "venture", "name": venture_name,
                    "icon": venture_icon or ""},
-                  {"id": project_id, "type": "project", "name": project_name}],
+                  {"id": project_id, "public_id": str(project_public_id), "type": "project", "name": project_name}],
         "defaults": defaults or {}, "productions": productions,
         "metrics": {"production_count": len(productions),
                     "part_count": sum(item["part_count"] for item in productions),

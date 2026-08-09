@@ -4,7 +4,7 @@ import { toast } from "sonner"
 import { AudioPlayerDock } from "@/components/audio-player-dock"
 import { SpeechTool } from "@/components/production-tools/speech-tool"
 import { ErrorState, PageLoading } from "@/components/state-panel"
-import { usePlayer } from "@/hooks/use-player"
+import { useGlobalPlayer } from "@/components/global-player-provider"
 import { useVoiceDirectory } from "@/hooks/use-voice-directory"
 import { studioApi } from "@/lib/api"
 import { playableGenerateResult } from "@/lib/generated-audio"
@@ -16,7 +16,7 @@ import "./speak-page.css"
 
 export function SpeakPage() {
   const voices = useVoiceDirectory()
-  const player = usePlayer()
+  const player = useGlobalPlayer()
 
   async function generate(payload: GeneratePayload): Promise<GenerateResult> {
     try {

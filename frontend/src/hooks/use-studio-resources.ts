@@ -7,17 +7,24 @@ import { useVoiceDirectory } from "@/hooks/use-voice-directory"
 export function useStudioResources(productionId: number) {
   const [assets, setAssets] = useState<VentureAsset[]>([])
   const [assetCollections, setAssetCollections] = useState<AssetCollection[]>([])
+  const [assetError, setAssetError] = useState<string | null>(null)
   const voices = useVoiceDirectory()
 
   const refreshAssets = useCallback(async () => {
-    const result = await studioApi.assets(productionId)
-    setAssets(result.assets || [])
-    setAssetCollections(result.collections || [])
+    try {
+      const result = await studioApi.assets(productionId)
+      setAssets(result.assets || [])
+      setAssetCollections(result.collections || [])
+      setAssetError(null)
+    } catch (error) {
+      setAssetError(error instanceof Error ? error.message : "The asset library is unavailable.")
+      throw error
+    }
   }, [productionId])
 
   useEffect(() => {
-    void refreshAssets().catch(() => setAssets([]))
+    void refreshAssets().catch(() => undefined)
   }, [refreshAssets])
 
-  return { assets, assetCollections, config: voices.config, cloned: voices.cloned, voiceDirectory: voices.directory, refreshAssets, refreshVoices: voices.refresh }
+  return { assets, assetCollections, assetError, config: voices.config, cloned: voices.cloned, voiceDirectory: voices.directory, refreshAssets, refreshVoices: voices.refresh }
 }

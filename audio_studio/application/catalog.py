@@ -7,7 +7,7 @@ import os
 import batch
 import naming
 import say
-import storage
+from audio_studio.infrastructure import object_storage as storage
 from services import voice_routing
 from services.alibaba import config as alibaba_config
 from services.alibaba import voice_registry

@@ -27,10 +27,20 @@ describe("ProductionTimeline", () => {
   it("locates a source clip and only advertises seeking for a loaded mix", () => {
     const locate = vi.fn()
     const { rerender } = render(<ProductionTimeline parts={parts} music={{}} currentTime={0} productionLoaded={false} onLocate={locate} onSeek={vi.fn()} />)
-    fireEvent.click(screen.getByTitle("1. speech · 0:08"))
+    fireEvent.click(screen.getByRole("button", { name: /Locate part 1/ }))
     expect(locate).toHaveBeenCalledWith(1)
     expect(screen.getByText(/Play the full production/)).toBeTruthy()
     rerender(<ProductionTimeline parts={parts} music={{}} currentTime={4} productionLoaded onLocate={locate} onSeek={vi.fn()} />)
     expect(screen.getByText(/Click the sequence lane to seek/)).toBeTruthy()
+  })
+
+  it("supports keyboard seeking on a loaded production", () => {
+    const seek = vi.fn()
+    render(<ProductionTimeline parts={parts} music={{}} currentTime={4} productionLoaded onLocate={vi.fn()} onSeek={seek} />)
+    const timeline = screen.getByRole("slider", { name: "Production position" })
+    fireEvent.keyDown(timeline, { key: "ArrowRight" })
+    expect(seek).toHaveBeenCalledWith(9)
+    fireEvent.keyDown(timeline, { key: "End" })
+    expect(seek).toHaveBeenLastCalledWith(Number(timeline.getAttribute("aria-valuemax")))
   })
 })

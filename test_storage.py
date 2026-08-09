@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import Mock, patch
 
-import storage
+from audio_studio.infrastructure import object_storage as storage
 
 from audio_studio.infrastructure.media_paths import contained
 

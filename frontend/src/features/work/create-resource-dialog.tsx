@@ -47,7 +47,7 @@ export function CreateResourceDialog({ kind, parent, open, onOpenChange, onCreat
       if (!created) throw new Error(`Unable to create this ${label}.`)
       onOpenChange(false)
       onCreated?.()
-      window.location.assign(resourceHref(created.type, created.id))
+      window.location.assign(resourceHref(created.type, created.public_id))
     } catch (error) {
       toast.error(error instanceof Error ? error.message : `Unable to create this ${label}.`)
     } finally {

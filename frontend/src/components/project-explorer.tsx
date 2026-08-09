@@ -56,7 +56,7 @@ export function ProductionExplorer({ nodes, activeKey }: { nodes: HierarchyNode[
           <button className="tree-toggle" onClick={() => toggle(node.key)} aria-label={`${isOpen ? "Collapse" : "Expand"} ${node.name}`} aria-expanded={hasChildren ? isOpen : undefined} disabled={!hasChildren}>
             {hasChildren && <ChevronRight className={cn(isOpen && "open")} />}
           </button>
-          <a href={resourceHref(node.type, node.id)} title={node.name}>
+          <a href={resourceHref(node.type, node.public_id)} title={node.name}>
             <Icon className="tree-icon" />
             <span><b>{node.name}</b><small>{typeLabel(node)}</small></span>
           </a>

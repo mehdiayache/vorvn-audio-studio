@@ -66,8 +66,9 @@ describe("ProductionPlayer resource contract", () => {
     expect(common.onToggle).not.toHaveBeenCalled()
   })
 
-  it("gets out of the way while a modal production tool is open", () => {
-    render(<ProductionPlayer {...common} source={null} state="idle" currentTime={0} duration={0} suppressed />)
-    expect(screen.queryByRole("region", { name: "Production player" })).toBeNull()
+  it("stays visible in compact mode while a production tool is open", () => {
+    render(<ProductionPlayer {...common} source={null} state="idle" currentTime={0} duration={0} compact />)
+    expect(screen.getByRole("region", { name: "Production player" }).classList.contains("compact")).toBe(true)
+    expect(screen.getByRole("button", { name: "Play full production" })).toBeTruthy()
   })
 })
