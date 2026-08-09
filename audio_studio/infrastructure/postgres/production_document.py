@@ -146,6 +146,10 @@ class ProductionDocumentRepository:
             item["cost"] = float(item["cost"] or 0)
             item["takes"] = int(item["takes"] or 0)
             item["languages"] = sorted(set(item["languages"] or []))
+            # Empty JSON is the persisted representation for generations that
+            # never ran a script-fidelity check. Expose absence as None so an
+            # empty object is not mistaken for a real fidelity result.
+            item["fidelity"] = item["fidelity"] or None
             result.append(item)
         return result
 
@@ -538,7 +542,7 @@ class ProductionDocumentRepository:
             "rate": float(row[5]), "pitch": float(row[6]), "seed": row[7],
             "filename": row[8], "size_bytes": row[9], "cost": float(row[10]),
             "text": row[11], "duration_ms": row[12], "instruction": row[13],
-            "language": row[14], "fidelity": row[15],
+            "language": row[14], "fidelity": row[15] or None,
         } for row in rows]
 
     def promote(self, production_id: int, part_id: int, take_id: int) -> bool:

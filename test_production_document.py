@@ -10,6 +10,7 @@ import psycopg
 from audio_studio.application.timeline import TimelineService
 from audio_studio.composition.work import work_service as work
 from audio_studio.config import settings
+from audio_studio.http.work_contracts import ProductionEditorEnvelope
 from audio_studio.infrastructure.postgres.production_document import (
     ProductionDocumentRepository,
 )
@@ -130,6 +131,7 @@ class ProductionDocumentTests(unittest.TestCase):
         parts = self.repository.parts(first_id)
         self.assertEqual([item["id"] for item in parts], [draft["id"], silence["id"]])
         self.assertEqual([item["position"] for item in parts], [0, 1])
+        self.assertIsNone(parts[0]["fidelity"])
 
         linked = self.timeline.insert_asset(first_id, intro["id"], None)
         self.assertEqual(
@@ -155,14 +157,15 @@ class ProductionDocumentTests(unittest.TestCase):
                 cursor.execute("""
                     INSERT INTO generations
                         (text, voice, engine, model, format, filename, path,
-                         kind, version_of, project_id)
+                         kind, version_of, project_id, fidelity)
                     VALUES ('Archived opening', 'Tina', 'audio', 'plus', 'mp3',
-                            '', '', 'draft', %s, %s) RETURNING id
+                            '', '', 'draft', %s, %s, '{}'::jsonb) RETURNING id
                 """, (draft["id"], legacy_id))
                 take_id = int(cursor.fetchone()[0])
             database.commit()
-        self.assertEqual(
-            self.timeline.takes(first_id, draft["id"])[0]["id"], take_id)
+        archived_take = self.timeline.takes(first_id, draft["id"])[0]
+        self.assertEqual(archived_take["id"], take_id)
+        self.assertIsNone(archived_take["fidelity"])
         promoted = self.timeline.promote(first_id, draft["id"], take_id)
         self.assertTrue(promoted["ok"])
         self.assertEqual(self.transcripts.stale, [draft["id"]])
@@ -195,6 +198,7 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual(len(editor["parts"]), 3)
         self.assertEqual(next(item for item in editor["parts"]
                               if item["id"] == draft["id"])["takes"], 1)
+        ProductionEditorEnvelope.model_validate({"data": editor})
 
 
 if __name__ == "__main__":
