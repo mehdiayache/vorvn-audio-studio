@@ -26,7 +26,6 @@ _STORAGE_ENV = {
     "endpoint": "RUSTFS_ENDPOINT", "access_key": "RUSTFS_ACCESS_KEY",
     "secret_key": "RUSTFS_SECRET_KEY", "bucket": "RUSTFS_BUCKET",
     "prefix": "RUSTFS_PREFIX", "region": "RUSTFS_REGION",
-    "public_url": "RUSTFS_PUBLIC_URL",
 }
 
 

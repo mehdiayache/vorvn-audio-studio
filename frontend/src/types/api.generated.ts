@@ -1748,11 +1748,6 @@ export interface components {
              */
             prefix: string;
             /**
-             * Public Url
-             * @default
-             */
-            public_url: string;
-            /**
              * Region
              * @default us-east-1
              */

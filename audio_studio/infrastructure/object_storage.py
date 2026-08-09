@@ -27,7 +27,6 @@ def settings() -> dict[str, str]:
         "bucket": os.getenv("RUSTFS_BUCKET") or "",
         "prefix": (os.getenv("RUSTFS_PREFIX") or "text-to-voice").strip("/"),
         "region": os.getenv("RUSTFS_REGION") or "us-east-1",
-        "public_url": (os.getenv("RUSTFS_PUBLIC_URL") or "").rstrip("/"),
         "organization_id": (os.getenv("AUDIO_STUDIO_ORGANIZATION_ID")
                             or "local-studio").strip(),
     }
@@ -114,8 +113,6 @@ def upload(local_path: str | Path, content_type: str = "audio/wav",
                       "retention": retention},
             Tagging=f"retention={retention}",
         )
-    if values["public_url"]:
-        return f"{values['public_url']}/{key}"
     return _client().generate_presigned_url(
         "get_object", Params={"Bucket": values["bucket"], "Key": key},
         ExpiresIn=LINK_TTL_SECONDS)

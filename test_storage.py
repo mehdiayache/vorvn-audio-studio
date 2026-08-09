@@ -32,7 +32,8 @@ class StorageContracts(unittest.TestCase):
         values = {
             "RUSTFS_ENDPOINT": "https://s3.test", "RUSTFS_ACCESS_KEY": "a",
             "RUSTFS_SECRET_KEY": "s", "RUSTFS_BUCKET": "bucket",
-            "RUSTFS_PREFIX": "audio-studio", "RUSTFS_PUBLIC_URL": "",
+            "RUSTFS_PREFIX": "audio-studio",
+            "RUSTFS_PUBLIC_URL": "https://public.example/ignored",
         }
         with TemporaryDirectory() as directory:
             path = Path(directory) / "human filename.wav"
@@ -49,6 +50,15 @@ class StorageContracts(unittest.TestCase):
         self.assertTrue(request["ChecksumSHA256"])
         self.assertEqual(
             client.generate_presigned_url.call_args.kwargs["ExpiresIn"], 900)
+
+    def test_user_names_and_invalid_tenant_segments_cannot_enter_keys(self):
+        with patch.dict("os.environ", {
+            "RUSTFS_PREFIX": "audio-studio",
+            "AUDIO_STUDIO_ORGANIZATION_ID": "../another-tenant",
+        }):
+            with self.assertRaisesRegex(ValueError, "ORGANIZATION"):
+                storage.object_key(kind="voice-references",
+                                   object_id="ref_12345678", extension="wav")
 
     def test_contained_path_rejects_escape(self):
         with TemporaryDirectory() as directory:

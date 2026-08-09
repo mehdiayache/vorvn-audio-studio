@@ -1187,11 +1187,6 @@
             "title": "Prefix",
             "type": "string"
           },
-          "public_url": {
-            "default": "",
-            "title": "Public Url",
-            "type": "string"
-          },
           "region": {
             "default": "us-east-1",
             "title": "Region",

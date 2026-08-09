@@ -41,7 +41,6 @@ class StorageUpdate(BaseModel):
     bucket: str = ""
     prefix: str = "text-to-voice"
     region: str = "us-east-1"
-    public_url: str = ""
     access_key: str = ""
     secret_key: str = ""
 
