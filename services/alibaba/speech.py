@@ -2,7 +2,7 @@
 
 import say
 
-from . import omni
+from audio_studio.infrastructure.alibaba import omni
 
 
 def synthesize(chunks, options, on_progress=None):

@@ -4,7 +4,7 @@ import base64
 import json
 import os
 
-import services.alibaba.omni as omni
+from audio_studio.infrastructure.alibaba import omni
 from services.alibaba import speech
 from audio_studio.infrastructure.alibaba import config
 from audio_studio.domain import speech_fidelity as fidelity
@@ -120,6 +120,36 @@ nested_audio, _, _ = omni._event_parts({
 })
 check("Omni accepts nested/list audio envelopes", nested_audio == [encoded])
 
+no_audio_error = ""
+original_stream_events = omni._stream_events
+
+def fake_transcript_only_events(_payload, _key):
+    yield {"choices": [{"delta": {"content": "مرحبا"}}]}
+    yield {"usage": {
+        "completion_tokens": 9,
+        "completion_tokens_details": {"audio_tokens": 9},
+    }}
+
+omni._stream_events = fake_transcript_only_events
+os.environ["DASHSCOPE_API_KEY"] = "test-key"
+try:
+    try:
+        omni._speak_chunk(
+            "مرحبا", "qwen3.5-omni-flash", "Tina", None)
+    except RuntimeError as error:
+        no_audio_error = str(error)
+finally:
+    omni._stream_events = original_stream_events
+    if original_key is None:
+        os.environ.pop("DASHSCOPE_API_KEY", None)
+    else:
+        os.environ["DASHSCOPE_API_KEY"] = original_key
+
+check("Omni rejects transcript-only streams even when audio tokens are billed",
+      "returned no audio across 2 SSE events" in no_audio_error
+      and "reported 9 output audio tokens" in no_audio_error
+      and "Text returned: مرحبا" in no_audio_error)
+
 original_omni_synthesize = omni.synthesize
 
 def fake_omni_synthesize(chunks, options, on_progress=None):
@@ -164,4 +194,4 @@ check("Voice counts are derived from bindings",
 check("Performance presets declare their compatible engines",
       registry["presets"] and all(item.get("engines") for item in registry["presets"]))
 
-print("25/25 passed")
+print("26/26 passed")

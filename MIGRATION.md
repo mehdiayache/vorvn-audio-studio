@@ -54,9 +54,9 @@ Current checkpoint: boundary baseline complete.
 - Application direct technical edges: 1.
 - HTTP to Infrastructure edges: 7.
 - Infrastructure to Application edges: 8.
-- Transitional root/`services` import edges: 18.
+- Transitional root/`services` import edges: 17.
 - Root business modules: 10.
-- `services` Python modules: 5.
+- `services` Python modules: 4.
 
 Current slice: Alibaba's immutable capability/language/model catalogue and its
 versioned voice snapshot now belong to Domain. Dynamic region, workspace and
@@ -79,3 +79,7 @@ been removed without adding an Application-to-Infrastructure edge.
 Alibaba text completion now belongs to its Infrastructure adapter. Translation
 and text preparation share that scoped client without a transitional
 `services` dependency.
+
+Qwen 3.5 Omni streaming and enrollment now belong to the Alibaba Infrastructure
+adapter. Its transcript/audio envelope diagnostics and exact failure semantics
+remain covered without provider calls.

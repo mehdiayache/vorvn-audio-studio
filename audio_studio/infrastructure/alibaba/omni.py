@@ -1,4 +1,4 @@
-"""Qwen 3.5 Omni speech and voice enrollment.
+"""Alibaba Qwen 3.5 Omni speech streaming and voice enrollment.
 
 This is intentionally separate from Qwen-Audio-TTS.  Their enrollment models,
 voice IDs, language coverage, billing and synthesis protocols are different.
