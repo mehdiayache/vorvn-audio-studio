@@ -12,6 +12,7 @@ from audio_studio.application.media import MediaService
 from audio_studio.domain.media import MediaFile
 from audio_studio.http.app import app
 from audio_studio.http.routers import media as media_router
+from audio_studio.http.routers import batches as batches_router
 from audio_studio.http.routers import timeline as timeline_router
 from audio_studio.http.routers import work as work_router
 from audio_studio.domain.work import DomainConflict
@@ -134,6 +135,23 @@ class NativeHttpTests(unittest.TestCase):
             headers={"Content-Length": "8000001", "X-Filename": "cover.png"})
         self.assertEqual(response.status_code, 413)
         self.assertEqual(response.json()["error"]["code"], "upload_too_large")
+
+    def test_batch_preview_uses_the_composed_intake_service(self):
+        preview = {
+            "token": "fixture-token", "name": "rows.csv",
+            "headers": ["text"], "rows": 1, "preview": [["Hello"]],
+            "guess": {"text": 0}, "voices": {"unknown": [], "checked": 0},
+            "truncated": False, "max_rows": 500,
+        }
+        with patch.object(
+                batches_router.batch_intake_service, "preview",
+                return_value=preview) as called:
+            response = self.client.post(
+                "/api/v1/batches/preview", content=b"text\nHello\n",
+                headers={"X-Filename": "rows.csv"})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["data"], preview)
+        called.assert_called_once_with(b"text\nHello\n", "rows.csv")
 
     def test_validation_uses_the_public_error_envelope(self):
         response = self.client.post("/api/v1/projects/3/series", json={})

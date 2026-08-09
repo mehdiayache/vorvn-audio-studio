@@ -52,7 +52,7 @@ Current checkpoint: boundary baseline complete.
 - Domain technical-dependency debt: 0.
 - Application to Infrastructure edges: 0.
 - Application direct technical edges: 0.
-- HTTP to Infrastructure edges: 4.
+- HTTP to Infrastructure edges: 2.
 - Infrastructure to Application edges: 8.
 - Transitional root/`services` import edges: 0.
 - Root business modules: 0.
@@ -179,3 +179,8 @@ workspace port. The filesystem adapter owns file creation and duration probing,
 while Application owns no Infrastructure type. This removes the final
 Application-to-Infrastructure edge without changing recordings, URLs or job
 results.
+
+Batch preview intake now uses one service assembled in Composition. HTTP owns
+only request limits and the public response envelope; spreadsheet parsing,
+temporary files and voice lookup remain behind Application ports. This removes
+both Batch HTTP-to-Infrastructure edges without changing worker generation.

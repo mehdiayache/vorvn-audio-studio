@@ -49,8 +49,6 @@ APPLICATION_INFRASTRUCTURE_DEBT: set[str] = set()
 APPLICATION_TECHNICAL_DEBT: set[str] = set()
 
 HTTP_INFRASTRUCTURE_DEBT = {
-    "audio_studio.http.routers.batches -> audio_studio.infrastructure.batch_workspace.FilesystemBatchWorkspace",
-    "audio_studio.http.routers.batches -> audio_studio.infrastructure.postgres.speech.SpeechRepository",
     "audio_studio.http.routers.subtitles -> audio_studio.infrastructure.media_paths.media_root",
     "audio_studio.http.routers.subtitles -> audio_studio.infrastructure.postgres.transcripts.TranscriptRepository",
 }
