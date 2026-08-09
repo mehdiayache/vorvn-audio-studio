@@ -50,7 +50,7 @@ edges from the matching allowlist in the same commit; new edges fail CI.
 Current checkpoint: boundary baseline complete.
 
 - Domain technical-dependency debt: 0.
-- Application to Infrastructure edges: 34.
+- Application to Infrastructure edges: 31.
 - Application direct technical edges: 1.
 - HTTP to Infrastructure edges: 6.
 - Infrastructure to Application edges: 8.
@@ -125,3 +125,8 @@ Environment persistence, Alibaba SDK refresh, S3 inspection and filesystem
 maintenance belong to Infrastructure; HTTP imports the service from the
 composition root. This removes eight Application-to-Infrastructure edges and
 the Settings router's direct S3 dependency without changing API contracts.
+
+Activity and System health now depend only on ledger, database-status and
+worker-status ports. Their PostgreSQL adapters are assembled in the operational
+composition root, removing three more Application-to-Infrastructure edges while
+preserving worker leases, cost history and public error sanitization.

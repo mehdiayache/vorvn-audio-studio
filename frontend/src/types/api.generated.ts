@@ -1284,6 +1284,136 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ActivityDayResponse */
+        ActivityDayResponse: {
+            /** Cost */
+            cost: number;
+            /** Day */
+            day: string;
+            /** Runs */
+            runs: number;
+        };
+        /** ActivityEnvelope */
+        ActivityEnvelope: {
+            data: components["schemas"]["ActivitySnapshotResponse"];
+        };
+        /** ActivityKindResponse */
+        ActivityKindResponse: {
+            /** Cost */
+            cost: number;
+            /** Kind */
+            kind: string;
+            /** Problems */
+            problems: number;
+            /** Runs */
+            runs: number;
+        };
+        /** ActivityRunResponse */
+        ActivityRunResponse: {
+            /** Actor Id */
+            actor_id: string | null;
+            /** Actor Label */
+            actor_label: string;
+            /** Chars */
+            chars: number;
+            /** Children */
+            children: number;
+            /** Cost */
+            cost: number;
+            /** Cost Basis */
+            cost_basis: string;
+            /** Cost Basis Raw */
+            cost_basis_raw: string;
+            /** Created At */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Detail */
+            detail: string | null;
+            /** Diagnostic Id */
+            diagnostic_id: string | null;
+            /** Elapsed Ms */
+            elapsed_ms: number | null;
+            /** Error */
+            error: string;
+            /** Estimated */
+            estimated: number;
+            /** Finished At */
+            finished_at: string | null;
+            /** Id */
+            id: string;
+            /** Internal Id */
+            internal_id: number;
+            /** Kind */
+            kind: string;
+            /** Kind Label */
+            kind_label: string;
+            /** Model */
+            model: string | null;
+            /** Operation */
+            operation: string;
+            /** Organization Id */
+            organization_id: string | null;
+            /** Output Ids */
+            output_ids: components["schemas"]["OutputReference"][];
+            /** Price Version */
+            price_version: string | null;
+            /** Production Id */
+            production_id: number | null;
+            /** Production Name */
+            production_name: string | null;
+            /** Provider Endpoint */
+            provider_endpoint: string | null;
+            /** Provider Region */
+            provider_region: string | null;
+            /** Provider Request Id */
+            provider_request_id: string | null;
+            /** Seconds */
+            seconds: number;
+            /** Source Tool */
+            source_tool: string;
+            /** Started At */
+            started_at: string | null;
+            /** Status */
+            status: string;
+            /** Usage */
+            usage: {
+                [key: string]: unknown;
+            };
+            /** Voice */
+            voice: string | null;
+            /** When */
+            when: string;
+            /** Where */
+            where: string;
+        };
+        /** ActivitySnapshotResponse */
+        ActivitySnapshotResponse: {
+            /** By Day */
+            by_day: components["schemas"]["ActivityDayResponse"][];
+            /** By Kind */
+            by_kind: components["schemas"]["ActivityKindResponse"][];
+            /** Cost Breakdown */
+            cost_breakdown: components["schemas"]["CostBasisResponse"][];
+            /** Kinds */
+            kinds: {
+                [key: string]: string;
+            };
+            /** Month */
+            month: number;
+            /** Problems */
+            problems: number;
+            /** Running */
+            running: components["schemas"]["ActivityRunResponse"][];
+            /** Runs */
+            runs: number;
+            /** Runs List */
+            runs_list: components["schemas"]["ActivityRunResponse"][];
+            /** Today */
+            today: number;
+            /** Total */
+            total: number;
+        };
         /** AssetBody */
         AssetBody: {
             /** Asset Id */
@@ -1357,6 +1487,26 @@ export interface components {
              * @default 50
              */
             volume: number;
+        };
+        /** CostBasisResponse */
+        CostBasisResponse: {
+            /** Basis */
+            basis: string;
+            /** Cost */
+            cost: number;
+            /** Raw Basis */
+            raw_basis: string;
+            /** Runs */
+            runs: number;
+        };
+        /** DatabaseStatusResponse */
+        DatabaseStatusResponse: {
+            /** Connected */
+            connected: boolean;
+            /** Count */
+            count?: number | null;
+            /** Reason */
+            reason?: string | null;
         };
         /** DeleteBody */
         DeleteBody: {
@@ -1519,6 +1669,13 @@ export interface components {
         OrderBody: {
             /** Order */
             order: number[];
+        };
+        /** OutputReference */
+        OutputReference: {
+            /** Id */
+            id: string | number;
+            /** Type */
+            type: string;
         };
         /** PronunciationUpdate */
         PronunciationUpdate: {
@@ -1758,6 +1915,21 @@ export interface components {
              */
             secret_key: string;
         };
+        /** SystemHealthEnvelope */
+        SystemHealthEnvelope: {
+            data: components["schemas"]["SystemHealthResponse"];
+        };
+        /** SystemHealthResponse */
+        SystemHealthResponse: {
+            database: components["schemas"]["DatabaseStatusResponse"];
+            /** Name */
+            name: string;
+            /** Status */
+            status: string;
+            /** Version */
+            version: string;
+            worker: components["schemas"]["WorkerStatusResponse"];
+        };
         /** TextBody */
         TextBody: {
             /** Text */
@@ -1989,6 +2161,23 @@ export interface components {
             /** Trait */
             trait?: string | null;
         };
+        /** WorkerStatusResponse */
+        WorkerStatusResponse: {
+            /** Detail */
+            detail?: {
+                [key: string]: unknown;
+            } | null;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /** Process Id */
+            process_id?: number | null;
+            /** Ready */
+            ready: boolean;
+            /** Started At */
+            started_at?: string | null;
+            /** Status */
+            status: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -2017,9 +2206,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ActivityEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -4148,9 +4335,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SystemHealthEnvelope"];
                 };
             };
         };

@@ -1,3 +1,5 @@
+import type { components } from "./api.generated"
+
 export type ResourceType = "venture" | "project" | "series" | "production"
 
 export type HierarchyNode = {
@@ -76,60 +78,9 @@ export type WorkMetrics = {
   current_sequence_cost?: number
 }
 
-export type ActivityRun = {
-  id: string
-  internal_id: number
-  when: string
-  kind: string
-  model?: string | null
-  status: string
-  estimated: number
-  cost: number
-  chars: number
-  seconds: number
-  voice?: string | null
-  detail?: string | null
-  error?: string | null
-  diagnostic_id?: string | null
-  where?: string | null
-  elapsed_ms?: number | null
-  generation_id?: number | null
-  project_id?: number | null
-  children: number
-  usage: Record<string, unknown>
-  cost_basis: string
-  cost_basis_raw: string
-  operation: string
-  kind_label: string
-  source_tool: string
-  actor_id?: string | null
-  actor_label: string
-  organization_id?: string | null
-  provider_request_id?: string | null
-  provider_region?: string | null
-  provider_endpoint?: string | null
-  price_version?: string | null
-  currency: string
-  output_ids: Array<{ type: string; id: string | number }>
-  production_name?: string | null
-  created_at: string
-  started_at?: string | null
-  finished_at?: string | null
-}
+export type ActivityRun = components["schemas"]["ActivityRunResponse"]
 
-export type ActivitySnapshot = {
-  today: number
-  month: number
-  total: number
-  runs: number
-  problems: number
-  running: ActivityRun[]
-  runs_list: ActivityRun[]
-  kinds: Record<string, string>
-  by_kind: Array<{ kind: string; runs: number; cost: number; problems: number }>
-  by_day: Array<{ day: string; cost: number; runs: number }>
-  cost_breakdown: Array<{ basis: string; raw_basis: string; runs: number; cost: number }>
-}
+export type ActivitySnapshot = components["schemas"]["ActivitySnapshotResponse"]
 
 export type SettingsSnapshot = {
   provider: {

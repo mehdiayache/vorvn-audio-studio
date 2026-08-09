@@ -1,6 +1,452 @@
 {
   "components": {
     "schemas": {
+      "ActivityDayResponse": {
+        "properties": {
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "day": {
+            "title": "Day",
+            "type": "string"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day",
+          "cost",
+          "runs"
+        ],
+        "title": "ActivityDayResponse",
+        "type": "object"
+      },
+      "ActivityEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ActivitySnapshotResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ActivityEnvelope",
+        "type": "object"
+      },
+      "ActivityKindResponse": {
+        "properties": {
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "problems": {
+            "title": "Problems",
+            "type": "integer"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "runs",
+          "cost",
+          "problems"
+        ],
+        "title": "ActivityKindResponse",
+        "type": "object"
+      },
+      "ActivityRunResponse": {
+        "properties": {
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "actor_label": {
+            "title": "Actor Label",
+            "type": "string"
+          },
+          "chars": {
+            "title": "Chars",
+            "type": "integer"
+          },
+          "children": {
+            "title": "Children",
+            "type": "integer"
+          },
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "cost_basis": {
+            "title": "Cost Basis",
+            "type": "string"
+          },
+          "cost_basis_raw": {
+            "title": "Cost Basis Raw",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "diagnostic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diagnostic Id"
+          },
+          "elapsed_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elapsed Ms"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "estimated": {
+            "title": "Estimated",
+            "type": "number"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "internal_id": {
+            "title": "Internal Id",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "kind_label": {
+            "title": "Kind Label",
+            "type": "string"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "operation": {
+            "title": "Operation",
+            "type": "string"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
+          },
+          "output_ids": {
+            "items": {
+              "$ref": "#/components/schemas/OutputReference"
+            },
+            "title": "Output Ids",
+            "type": "array"
+          },
+          "price_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Version"
+          },
+          "production_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Production Id"
+          },
+          "production_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Production Name"
+          },
+          "provider_endpoint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Endpoint"
+          },
+          "provider_region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Region"
+          },
+          "provider_request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Request Id"
+          },
+          "seconds": {
+            "title": "Seconds",
+            "type": "number"
+          },
+          "source_tool": {
+            "title": "Source Tool",
+            "type": "string"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "usage": {
+            "additionalProperties": true,
+            "title": "Usage",
+            "type": "object"
+          },
+          "voice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice"
+          },
+          "when": {
+            "title": "When",
+            "type": "string"
+          },
+          "where": {
+            "title": "Where",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "internal_id",
+          "when",
+          "created_at",
+          "started_at",
+          "finished_at",
+          "kind",
+          "kind_label",
+          "operation",
+          "source_tool",
+          "status",
+          "model",
+          "voice",
+          "detail",
+          "error",
+          "diagnostic_id",
+          "estimated",
+          "cost",
+          "chars",
+          "seconds",
+          "elapsed_ms",
+          "actor_id",
+          "actor_label",
+          "organization_id",
+          "provider_request_id",
+          "provider_region",
+          "provider_endpoint",
+          "price_version",
+          "currency",
+          "output_ids",
+          "usage",
+          "production_id",
+          "production_name",
+          "where",
+          "cost_basis",
+          "cost_basis_raw",
+          "children"
+        ],
+        "title": "ActivityRunResponse",
+        "type": "object"
+      },
+      "ActivitySnapshotResponse": {
+        "properties": {
+          "by_day": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityDayResponse"
+            },
+            "title": "By Day",
+            "type": "array"
+          },
+          "by_kind": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityKindResponse"
+            },
+            "title": "By Kind",
+            "type": "array"
+          },
+          "cost_breakdown": {
+            "items": {
+              "$ref": "#/components/schemas/CostBasisResponse"
+            },
+            "title": "Cost Breakdown",
+            "type": "array"
+          },
+          "kinds": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Kinds",
+            "type": "object"
+          },
+          "month": {
+            "title": "Month",
+            "type": "number"
+          },
+          "problems": {
+            "title": "Problems",
+            "type": "integer"
+          },
+          "running": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityRunResponse"
+            },
+            "title": "Running",
+            "type": "array"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          },
+          "runs_list": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityRunResponse"
+            },
+            "title": "Runs List",
+            "type": "array"
+          },
+          "today": {
+            "title": "Today",
+            "type": "number"
+          },
+          "total": {
+            "title": "Total",
+            "type": "number"
+          }
+        },
+        "required": [
+          "today",
+          "month",
+          "total",
+          "runs",
+          "problems",
+          "running",
+          "runs_list",
+          "kinds",
+          "by_kind",
+          "by_day",
+          "cost_breakdown"
+        ],
+        "title": "ActivitySnapshotResponse",
+        "type": "object"
+      },
       "AssetBody": {
         "properties": {
           "asset_id": {
@@ -180,6 +626,69 @@
           "model"
         ],
         "title": "BatchJobCreate",
+        "type": "object"
+      },
+      "CostBasisResponse": {
+        "properties": {
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "raw_basis": {
+            "title": "Raw Basis",
+            "type": "string"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "basis",
+          "raw_basis",
+          "runs",
+          "cost"
+        ],
+        "title": "CostBasisResponse",
+        "type": "object"
+      },
+      "DatabaseStatusResponse": {
+        "properties": {
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "connected"
+        ],
+        "title": "DatabaseStatusResponse",
         "type": "object"
       },
       "DeleteBody": {
@@ -617,6 +1126,31 @@
           "order"
         ],
         "title": "OrderBody",
+        "type": "object"
+      },
+      "OutputReference": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "title": "Id"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id"
+        ],
+        "title": "OutputReference",
         "type": "object"
       },
       "PronunciationUpdate": {
@@ -1199,6 +1733,49 @@
           }
         },
         "title": "StorageUpdate",
+        "type": "object"
+      },
+      "SystemHealthEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SystemHealthResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SystemHealthEnvelope",
+        "type": "object"
+      },
+      "SystemHealthResponse": {
+        "properties": {
+          "database": {
+            "$ref": "#/components/schemas/DatabaseStatusResponse"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          },
+          "worker": {
+            "$ref": "#/components/schemas/WorkerStatusResponse"
+          }
+        },
+        "required": [
+          "name",
+          "version",
+          "status",
+          "database",
+          "worker"
+        ],
+        "title": "SystemHealthResponse",
         "type": "object"
       },
       "TextBody": {
@@ -1816,6 +2393,69 @@
         },
         "title": "VoiceUpdate",
         "type": "object"
+      },
+      "WorkerStatusResponse": {
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "process_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Process Id"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ready",
+          "status"
+        ],
+        "title": "WorkerStatusResponse",
+        "type": "object"
       }
     }
   },
@@ -1867,9 +2507,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getactivity",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ActivityEnvelope"
                 }
               }
             },
@@ -4881,9 +5519,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Getsystemhealth",
-                  "type": "object"
+                  "$ref": "#/components/schemas/SystemHealthEnvelope"
                 }
               }
             },

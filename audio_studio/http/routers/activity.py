@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query
 
-from audio_studio.application import activity as activity_service
+from audio_studio.composition.operations import activity_service
+from audio_studio.http.operational_contracts import ActivityEnvelope
 
 
 router = APIRouter(prefix="/api/v1/activity", tags=["activity"])
 
 
-@router.get("", operation_id="getActivity")
+@router.get("", operation_id="getActivity", response_model=ActivityEnvelope)
 def activity(limit: int = Query(80, ge=1, le=200), kind: str = "",
              failed: bool = False) -> dict:
     return {"data": activity_service.snapshot(limit=limit, kind=kind,

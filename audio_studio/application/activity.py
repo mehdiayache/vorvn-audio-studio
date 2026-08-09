@@ -1,13 +1,20 @@
-"""Operator Activity use cases built from the durable Job ledger."""
+"""Operator Activity use case built from a durable ledger port."""
 
 from __future__ import annotations
 
-from audio_studio.infrastructure.postgres.activity import ActivityRepository
+from typing import Protocol
 
 
-repository = ActivityRepository()
+class ActivityLedger(Protocol):
+    def snapshot(self, *, limit: int = 80, kind: str = "",
+                 failed_only: bool = False) -> dict: ...
 
 
-def snapshot(*, limit: int = 80, kind: str = "",
-             failed_only: bool = False) -> dict:
-    return repository.snapshot(limit=limit, kind=kind, failed_only=failed_only)
+class ActivityService:
+    def __init__(self, ledger: ActivityLedger):
+        self.ledger = ledger
+
+    def snapshot(self, *, limit: int = 80, kind: str = "",
+                 failed_only: bool = False) -> dict:
+        return self.ledger.snapshot(
+            limit=limit, kind=kind, failed_only=failed_only)

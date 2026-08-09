@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import psycopg
 
-from audio_studio.application import system
+from audio_studio.composition.operations import system_service
 from audio_studio.config import settings
 from audio_studio.domain import speech_text
 from audio_studio.infrastructure.postgres.activity import ActivityRepository
@@ -42,7 +42,7 @@ class ControlPlaneRepositoryTests(unittest.TestCase):
             self.assertTrue(repository.database_status()["connected"])
             self.assertTrue(repository.spend_totals().keys() >= {
                 "today", "month", "all_time", "runs"})
-            health = system.health()
+            health = system_service.health()
             self.assertTrue(health["database"]["connected"])
             self.assertIn(health["status"], {"ok", "degraded"})
             self.assertIn("worker", health)

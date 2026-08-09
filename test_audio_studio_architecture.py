@@ -38,6 +38,13 @@ class AudioStudioArchitectureTests(unittest.TestCase):
         }
         self.assertTrue(expected.issubset(paths), expected - set(paths))
 
+    def test_operational_endpoints_publish_generated_response_contracts(self):
+        paths = app.openapi()["paths"]
+        for route in ("/api/v1/activity", "/api/v1/system/health"):
+            schema = paths[route]["get"]["responses"]["200"]["content"][
+                "application/json"]["schema"]
+            self.assertIn("$ref", schema, route)
+
     def test_every_speech_operation_has_the_required_target(self):
         SpeechJobCreate(text="Hello", voice="Tina", engine="omni", model="plus")
         with self.assertRaises(ValueError):
