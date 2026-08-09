@@ -6,9 +6,9 @@ from dataclasses import dataclass
 import re
 from typing import Callable, Protocol
 
+from audio_studio.domain import captions
 from audio_studio.domain.delivery_tags import TAG_RE
 from audio_studio.domain.jobs import Job
-from services import captions
 
 
 MODELS = {"fast": "qwen-mt-flash", "best": "qwen-mt-plus"}

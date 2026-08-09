@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Protocol
 
+from audio_studio.domain import captions
 from audio_studio.domain.jobs import Job
-from services import captions
 from audio_studio.domain.provider_pricing import transcription_cost
 
 

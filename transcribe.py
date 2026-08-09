@@ -6,7 +6,7 @@ from audio_studio.infrastructure.alibaba.transcription import (
     LANGUAGE_CODES,
     parse,
 )
-from services import captions
+from audio_studio.domain import captions
 
 
 def transcribe(url: str, language: str | None = None, words: bool = True,

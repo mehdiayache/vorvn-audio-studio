@@ -124,9 +124,6 @@ TRANSITIONAL_MODULE_DEBT = {
     "audio_studio.application.renders -> transcribe",
     "audio_studio.application.settings -> naming",
     "audio_studio.application.settings -> say",
-    "audio_studio.application.transcription -> services.captions",
-    "audio_studio.application.translation -> services.captions",
-    "audio_studio.http.routers.subtitles -> services.captions",
     "audio_studio.infrastructure.alibaba.speech_generation -> say",
     "audio_studio.infrastructure.alibaba.voice_cloning -> say",
     "audio_studio.infrastructure.batch_workspace -> batch",
@@ -138,10 +135,7 @@ ROOT_MODULE_DEBT = {
     "say.py", "streaming.py", "transcribe.py", "translate.py", "vocabulary.py",
 }
 
-SERVICES_MODULE_DEBT = {
-    "services/__init__.py",
-    "services/captions.py",
-}
+SERVICES_MODULE_DEBT: set[str] = set()
 
 
 class ArchitectureBoundaryTests(unittest.TestCase):

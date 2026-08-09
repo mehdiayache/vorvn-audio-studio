@@ -28,11 +28,10 @@ On macOS, `restart.command` performs the database startup, process restart, heal
 - `frontend/src/` — React + TypeScript + Vite application, organized by feature and shared component.
 - `audio_studio/http/` — FastAPI composition root, middleware and versioned routers.
 - `audio_studio/application/` — use cases and application policy.
-- `audio_studio/domain/` — transport-independent Job state and future domain entities.
+- `audio_studio/domain/` — transport-independent business policy, including caption layouts.
 - `audio_studio/infrastructure/` — PostgreSQL repositories, media/storage adapters and Alibaba provider clients.
 - `audio_studio/migrations/` — ordered, checksummed PostgreSQL migrations.
 - `audio_studio/worker.py` — separate durable Job worker.
-- `services/captions.py` — the final transitional caption-formatting module.
 
 FastAPI is the only HTTP process and is exposed on port 7860. The legacy HTTP
 server and UI have been removed; there is no compatibility port or hidden

@@ -1,4 +1,4 @@
-"""Pure subtitle layout and export helpers.
+"""Pure subtitle layout and export policy.
 
 Recognition is the expensive, canonical step.  These helpers only reshape the
 stored sentence/word timings, so an operator can switch presentation styles

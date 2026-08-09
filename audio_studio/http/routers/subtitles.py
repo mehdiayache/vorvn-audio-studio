@@ -6,10 +6,10 @@ from fastapi import APIRouter
 from pathlib import Path
 from typing import Literal
 
+from audio_studio.domain import captions
 from audio_studio.http.errors import ApiProblem
 from audio_studio.infrastructure.media_paths import media_root
 from audio_studio.infrastructure.postgres.transcripts import TranscriptRepository
-from services import captions
 
 
 router = APIRouter(prefix="/api/v1/subtitles", tags=["subtitles"])
