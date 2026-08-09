@@ -5,13 +5,54 @@ from __future__ import annotations
 import json
 import os
 
+import psycopg
+
+from audio_studio.config import settings
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 
 WORKER_ID = "audio-studio-primary"
+# Session-level PostgreSQL lock. This prevents an orphaned development worker
+# from consuming paid jobs after a newer application version has started.
+WORKER_LOCK_KEY = 0x415544494F535455
 
 
 class WorkerRuntimeRepository:
+    def __init__(self, lock_key: int = WORKER_LOCK_KEY) -> None:
+        self._lock_key = lock_key
+        self._lock_connection: psycopg.Connection | None = None
+
+    def acquire(self) -> bool:
+        """Become the one queue consumer for this Audio Studio database."""
+        if self._lock_connection is not None:
+            return True
+        connection = psycopg.connect(settings.database_url, autocommit=True)
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT pg_try_advisory_lock(%s)", (self._lock_key,))
+                acquired = bool(cursor.fetchone()[0])
+        except Exception:
+            connection.close()
+            raise
+        if not acquired:
+            connection.close()
+            return False
+        self._lock_connection = connection
+        return True
+
+    def release(self) -> None:
+        connection = self._lock_connection
+        self._lock_connection = None
+        if connection is None:
+            return
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT pg_advisory_unlock(%s)", (self._lock_key,))
+        finally:
+            connection.close()
+
     def heartbeat(self, *, status: str = "ready", detail: dict | None = None) -> None:
         with transaction() as cursor:
             cursor.execute("""
@@ -29,11 +70,14 @@ class WorkerRuntimeRepository:
             """, (WORKER_ID, os.getpid(), status, json.dumps(detail or {})))
 
     def stop(self) -> None:
-        with transaction() as cursor:
-            cursor.execute("""
-                UPDATE worker_leases SET status = 'stopped', last_seen_at = now()
-                 WHERE worker_id = %s AND process_id = %s
-            """, (WORKER_ID, os.getpid()))
+        try:
+            with transaction() as cursor:
+                cursor.execute("""
+                    UPDATE worker_leases SET status = 'stopped', last_seen_at = now()
+                     WHERE worker_id = %s AND process_id = %s
+                """, (WORKER_ID, os.getpid()))
+        finally:
+            self.release()
 
     def status(self, stale_seconds: int = 10) -> dict:
         with read_only() as cursor:
