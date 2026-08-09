@@ -1,4 +1,4 @@
-"""Versioned Alibaba catalogue pricing used for operator-facing accounting.
+"""Versioned provider catalogue pricing used for operator-facing accounting.
 
 This module never claims to reproduce an Alibaba invoice.  It records the
 public catalogue price applicable to the measured usage; free quotas, credits

@@ -7,7 +7,7 @@ from typing import Callable, Protocol
 
 from audio_studio.domain.jobs import Job
 from services import captions
-from services.alibaba.pricing import transcription_cost
+from audio_studio.domain.provider_pricing import transcription_cost
 
 
 QWEN_MODEL = "qwen3-asr-flash-filetrans"

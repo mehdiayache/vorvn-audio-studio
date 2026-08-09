@@ -2,7 +2,7 @@
 
 import unittest
 
-from services.alibaba.pricing import PRICE_VERSION, transcription_cost
+from audio_studio.domain.provider_pricing import PRICE_VERSION, transcription_cost
 
 
 class AlibabaPricingTests(unittest.TestCase):

@@ -1,4 +1,4 @@
-"""Compare requested speech with the text returned by a conversational talker."""
+"""Compare requested speech with text returned by a conversational talker."""
 
 import re
 from difflib import SequenceMatcher
