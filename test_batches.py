@@ -19,7 +19,7 @@ from audio_studio.http.routers.jobs import BatchJobCreate
 from audio_studio.infrastructure.alibaba.speech_generation import AlibabaSpeechProvider
 from audio_studio.infrastructure.batch_workspace import FilesystemBatchWorkspace
 from audio_studio.infrastructure.postgres.speech import SpeechRepository
-from services.alibaba import voice_registry
+from audio_studio.domain import voice_registry
 from audio_studio.domain.provider_pricing import qwen_audio_tts_cost
 
 

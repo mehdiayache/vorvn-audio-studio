@@ -6,7 +6,7 @@ import json
 from typing import Any
 
 from audio_studio.infrastructure.postgres.session import read_only, transaction
-from services.alibaba import voice_registry
+from audio_studio.domain import voice_registry
 
 
 _PART_KEYS = (

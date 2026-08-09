@@ -9,8 +9,8 @@ import naming
 import say
 from audio_studio.infrastructure import object_storage as storage
 from services import voice_routing
-from audio_studio.domain import provider_catalog as alibaba_catalog
-from services.alibaba import config as alibaba_environment, voice_registry
+from audio_studio.domain import provider_catalog as alibaba_catalog, voice_registry
+from services.alibaba import config as alibaba_environment
 
 from audio_studio.application.preferences import load_preferences
 from audio_studio.application.text_preparation import variables as tag_variables

@@ -8,7 +8,7 @@ import services.alibaba.omni as omni
 from services.alibaba import speech
 from services.alibaba import config
 from audio_studio.domain import speech_fidelity as fidelity
-from services.alibaba import voice_registry
+from audio_studio.domain import voice_registry
 from types import SimpleNamespace
 
 

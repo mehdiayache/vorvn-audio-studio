@@ -1,4 +1,4 @@
-"""Provider-owned voice registry assembled from documented and live sources.
+"""Voice registry assembled from documented and enrolled provider voices.
 
 UI clients consume this contract instead of reproducing model/voice compatibility
 rules. System voices come from the versioned Alibaba documentation snapshot;
