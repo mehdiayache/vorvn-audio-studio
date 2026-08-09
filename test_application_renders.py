@@ -1,0 +1,127 @@
+"""Render orchestration tests without FFmpeg, files or PostgreSQL."""
+
+from pathlib import Path
+import unittest
+
+from audio_studio.application.renders import RenderService
+from audio_studio.domain.rendering import FinishedExport, RenderError
+
+
+PART = {
+    "id": 7, "kind": "audio", "title": "Opening",
+    "filename": "opening.mp3", "duration_ms": 1000,
+    "missing": False,
+}
+
+
+class FakeRecords:
+    def __init__(self, parts=None):
+        self.part_items = list(parts if parts is not None else [dict(PART)])
+        self.created = []
+        self.fail_create = False
+
+    @staticmethod
+    def production(production_id):
+        return ({"id": production_id, "name": "Evening Reset"}
+                if production_id == 6 else None)
+
+    def parts(self, _production_id):
+        return self.part_items
+
+    @staticmethod
+    def music(_production_id):
+        return {}
+
+    @staticmethod
+    def transcript(generation_id):
+        if generation_id != 7:
+            return None
+        return {"sentences": [{"start": 0, "end": 700,
+                                "text": "Rest now"}], "stale": False}
+
+    def create_export(self, production_id, *, artifact):
+        if self.fail_create:
+            raise RuntimeError("database unavailable")
+        self.created.append((production_id, artifact))
+        return {"export_id": 91, "generation_id": 150}
+
+
+class FakeWorkspace:
+    def __init__(self):
+        self.previews = []
+        self.finished = []
+        self.discarded = []
+
+    @staticmethod
+    def duration_for_part(_part):
+        return 1000
+
+    def preview(
+            self, production_id, parts, music, *, skipped_drafts):
+        self.previews.append((production_id, parts, music, skipped_drafts))
+        return {"name": "preview.mp3", "cached": False,
+                "skipped_drafts": skipped_drafts}
+
+    def finish_export(
+            self, production_id, production_name, parts, music, subtitles):
+        artifact = FinishedExport(
+            target=Path("/media/final.mp3"),
+            manifest_path=Path("/media/final.manifest.json"),
+            caption_paths=(Path("/media/final.srt"),),
+            filename="final.mp3", manifest={"parts": parts},
+            renderer="fixture", duration_ms=1000, size_bytes=1000,
+            part_count=len(parts), subtitles=subtitles, mixed=bool(music),
+        )
+        self.finished.append(artifact)
+        return artifact
+
+    def discard_export(self, artifact):
+        self.discarded.append(artifact)
+
+
+class RenderServiceTests(unittest.TestCase):
+    def test_preview_skips_drafts_and_stitches(self):
+        records = FakeRecords([
+            dict(PART), {**PART, "id": 8, "kind": "draft"},
+            {**PART, "id": 9, "kind": "stitch"},
+        ])
+        workspace = FakeWorkspace()
+        result = RenderService(records, workspace).preview(6)
+        self.assertEqual(result["skipped_drafts"], 1)
+        self.assertEqual([part["id"] for part in workspace.previews[0][1]], [7])
+
+    def test_export_rejects_drafts_and_missing_audio_before_finishing(self):
+        workspace = FakeWorkspace()
+        with self.assertRaisesRegex(RenderError, "Draft"):
+            RenderService(FakeRecords([
+                dict(PART), {**PART, "id": 8, "kind": "draft"},
+            ]), workspace).export(6)
+        self.assertFalse(workspace.finished)
+        with self.assertRaisesRegex(RenderError, "missing"):
+            RenderService(FakeRecords([
+                {**PART, "missing": True},
+            ]), workspace).export(6)
+        self.assertFalse(workspace.finished)
+
+    def test_export_offsets_subtitles_and_records_canonical_identity(self):
+        records = FakeRecords([
+            {"id": 3, "kind": "silence", "title": "2"}, dict(PART),
+        ])
+        workspace = FakeWorkspace()
+        result = RenderService(records, workspace).export(6)
+        artifact = records.created[0][1]
+        self.assertEqual(result["export_id"], 91)
+        self.assertEqual(artifact.subtitles["cues"], 1)
+        self.assertIn("00:00:02,000", artifact.subtitles["srt"])
+
+    def test_failed_canonical_record_discards_all_new_export_files(self):
+        records = FakeRecords()
+        records.fail_create = True
+        workspace = FakeWorkspace()
+        with self.assertRaisesRegex(RuntimeError, "database"):
+            RenderService(records, workspace).export(6)
+        self.assertEqual(workspace.discarded, workspace.finished)
+
+
+if __name__ == "__main__":
+    unittest.main()

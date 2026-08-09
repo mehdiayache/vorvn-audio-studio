@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from audio_studio.application import renders
+from audio_studio.infrastructure import render_workspace as renders
 from audio_studio.application.speech import SpeechGenerationService
 
 

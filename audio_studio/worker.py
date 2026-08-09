@@ -7,7 +7,6 @@ import time
 import os
 import threading
 
-from audio_studio.application import renders
 from audio_studio.application.batches import (
     BatchGenerationService,
     BatchJobHandler,
@@ -33,6 +32,7 @@ from audio_studio.application.transcription import (
 from audio_studio.application.voice_cloning import VoiceCloningService
 
 from audio_studio.composition.jobs import job_service
+from audio_studio.composition.renders import render_service
 from audio_studio.infrastructure.alibaba.text_preparation import AlibabaTextProvider
 from audio_studio.infrastructure.alibaba.speech_generation import AlibabaSpeechProvider
 from audio_studio.infrastructure.alibaba.translation import AlibabaTranslationProvider
@@ -86,7 +86,7 @@ def main() -> int:
     service.register("rewrite", TextPreparationJobHandler(TextPreparationService(
         PostgresTextPreparationRepository(), AlibabaTextProvider(), load_preferences,
     )))
-    service.register("render", renders.handle_job)
+    service.register("render", render_service.handle_job)
     voice_cloning = VoiceCloningService(
         VoicePackageRepository(), AlibabaVoiceCloningProvider(),
         VoiceReferenceWorkspace(),

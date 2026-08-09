@@ -50,7 +50,7 @@ edges from the matching allowlist in the same commit; new edges fail CI.
 Current checkpoint: boundary baseline complete.
 
 - Domain technical-dependency debt: 0.
-- Application to Infrastructure edges: 16.
+- Application to Infrastructure edges: 10.
 - Application direct technical edges: 0.
 - HTTP to Infrastructure edges: 5.
 - Infrastructure to Application edges: 8.
@@ -155,3 +155,9 @@ Public media delivery now resolves persisted Export and Generation IDs through
 an Application service. PostgreSQL identity lookup and contained local-path
 resolution are composed adapters, removing three more direct infrastructure
 dependencies while preserving every browser and download URL.
+
+Production previews and immutable Exports now belong to an injected Render
+service. FFmpeg and file lifecycle live in a workspace adapter; Production,
+Part, transcript and Export persistence live in one PostgreSQL adapter. This
+removes six Application-to-Infrastructure edges while preserving preview
+caching, normalization, music mixing, manifests and timed subtitle exports.

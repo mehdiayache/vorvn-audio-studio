@@ -5,13 +5,14 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
 from uuid import uuid4
 
 import psycopg
 
-from audio_studio.application import renders, work
+from audio_studio.application import work
+from audio_studio.application.renders import RenderService
 from audio_studio.config import settings
+from audio_studio.domain.rendering import FinishedExport
 from audio_studio.infrastructure.postgres.exports import ProductionExportRepository
 
 
@@ -99,34 +100,63 @@ class RenderApplicationTests(unittest.TestCase):
                 "asset_of": None, "asset_version_id": None}
         recorded: dict = {}
 
-        def sequence(_parts, target: Path):
-            target.write_bytes(b"finished mp3")
-            return ([{"position": 0, "part_id": 42, "kind": "audio",
-                      "filename": "opening.mp3", "asset_of": None}],
-                    "test-renderer")
+        class Records:
+            @staticmethod
+            def production(_production_id):
+                return {"id": 6, "name": "Evening Reset"}
 
-        def create(production_id: int, **values):
-            recorded.update({"production_id": production_id, **values})
-            return {"export_id": 91, "generation_id": 150}
+            @staticmethod
+            def parts(_production_id):
+                return [part]
 
-        with TemporaryDirectory() as folder, \
-                patch.object(renders, "_output", return_value=Path(folder)), \
-                patch.object(renders, "_parts", return_value=(
-                    {"id": 6, "name": "Evening Reset"}, [part], [])), \
-                patch.object(renders, "_sequence", side_effect=sequence), \
-                patch.object(renders, "_measure", return_value=2000), \
-                patch.object(renders.document_repository, "music", return_value={}), \
-                patch.object(renders.transcript_repository,
-                             "source_for_generation", return_value=None), \
-                patch.object(renders.export_repository, "create",
-                             side_effect=create):
-            result = renders.export(6)
+            @staticmethod
+            def music(_production_id):
+                return {}
+
+            @staticmethod
+            def transcript(_generation_id):
+                return None
+
+            @staticmethod
+            def create_export(production_id, *, artifact):
+                recorded.update({"production_id": production_id,
+                                 "artifact": artifact})
+                return {"export_id": 91, "generation_id": 150}
+
+        class Workspace:
+            @staticmethod
+            def duration_for_part(_part):
+                return 2000
+
+            @staticmethod
+            def finish_export(
+                    production_id, production_name, parts, music, subtitles):
+                target = root / "evening-reset.mp3"
+                target.write_bytes(b"finished mp3")
+                manifest_path = root / "evening-reset.manifest.json"
+                manifest_path.write_text("{}")
+                return FinishedExport(
+                    target=target, manifest_path=manifest_path,
+                    caption_paths=(), filename=target.name,
+                    manifest={"parts": [{"part_id": parts[0]["id"]}]},
+                    renderer="test-renderer", duration_ms=2000,
+                    size_bytes=target.stat().st_size,
+                    part_count=len(parts), subtitles=subtitles, mixed=False)
+
+            @staticmethod
+            def discard_export(_artifact):
+                raise AssertionError("successful export must not be discarded")
+
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            result = RenderService(Records(), Workspace()).export(6)
 
         self.assertEqual(result["export_id"], 91)
         self.assertEqual(recorded["production_id"], 6)
-        self.assertEqual(recorded["part_count"], 1)
-        self.assertEqual(recorded["renderer"], "test-renderer")
-        self.assertEqual(recorded["manifest"]["parts"][0]["part_id"], 42)
+        artifact = recorded["artifact"]
+        self.assertEqual(artifact.part_count, 1)
+        self.assertEqual(artifact.renderer, "test-renderer")
+        self.assertEqual(artifact.manifest["parts"][0]["part_id"], 42)
 
 
 if __name__ == "__main__":

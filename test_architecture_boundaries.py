@@ -45,12 +45,6 @@ def _edges(paths: list[Path], prefixes: tuple[str, ...]) -> set[str]:
 
 
 APPLICATION_INFRASTRUCTURE_DEBT = {
-    "audio_studio.application.renders -> audio_studio.infrastructure.media_paths.media_root",
-    "audio_studio.application.renders -> audio_studio.infrastructure.postgres.exports.ProductionExportRepository",
-    "audio_studio.application.renders -> audio_studio.infrastructure.postgres.production_document.MUSIC_LEVELS",
-    "audio_studio.application.renders -> audio_studio.infrastructure.postgres.production_document.ProductionDocumentRepository",
-    "audio_studio.application.renders -> audio_studio.infrastructure.postgres.transcripts.TranscriptRepository",
-    "audio_studio.application.renders -> audio_studio.infrastructure.postgres.work",
     "audio_studio.application.speech -> audio_studio.infrastructure.audio_workspace.SavedAudio",
     "audio_studio.application.timeline -> audio_studio.infrastructure.media_paths.media_root",
     "audio_studio.application.timeline -> audio_studio.infrastructure.postgres.production_document.ProductionDocumentRepository",
