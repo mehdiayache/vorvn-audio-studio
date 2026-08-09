@@ -498,13 +498,7 @@ export type ExternalTranscriptSummary = {
   source_job_id?: string
 }
 
-export type ExternalAudioUpload = {
-  url: string
-  name: string
-  playable: string
-  size_bytes: number
-  duration_ms: number
-}
+export type ExternalAudioUpload = components["schemas"]["UploadedTranscriptionSourceResponse"]
 
 export type BatchPreview = {
   token: string

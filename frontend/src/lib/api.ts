@@ -43,6 +43,9 @@ import { ApiError } from "@/lib/api-error"
 import { observeJob } from "@/lib/job-observer"
 
 type GeneratedJob = paths["/api/v1/jobs/{job_id}"]["get"]["responses"][200]["content"]["application/json"]["data"]
+type UploadedImage = paths["/api/v1/project-covers/upload"]["post"]["responses"][200]["content"]["application/json"]["data"]
+type UploadedVoiceReference = paths["/api/v1/voice-references/upload"]["post"]["responses"][200]["content"]["application/json"]["data"]
+type UploadedAsset = paths["/api/v1/asset-collections/{collection_id}/assets/upload"]["post"]["responses"][201]["content"]["application/json"]["data"]
 
 export { ApiError } from "@/lib/api-error"
 
@@ -158,11 +161,11 @@ export const studioApi = {
     body: JSON.stringify(changes),
   }).then((response) => response.data),
   archiveVoiceProfile: (identityId: string) => request<{ data: VoiceProfile }>(`/api/v1/voices/${encodeURIComponent(identityId)}`, { method: "DELETE" }).then((response) => response.data),
-  uploadVoiceImage: (file: File) => uploadFile<{ data: { url: string } }>("/api/v1/voice-images/upload", file).then((response) => response.data),
+  uploadVoiceImage: (file: File) => uploadFile<{ data: UploadedImage }>("/api/v1/voice-images/upload", file).then((response) => response.data),
   voicePackagePreflight: (language: string, packageId: string) => postV1<VoicePackagePlan>("/api/v1/voice-packages/preflight", { language, package: packageId }),
   createVoicePackage: (payload: { name: string; language: string; reference_id: string; package: string; identity_id?: string; gender?: string; trait?: string; confirmed?: boolean }) => postV1<{ identity: VoiceProfile; queued: number; plan: VoicePackagePlan }>("/api/v1/voice-packages", payload),
   retryVoiceBinding: (identityId: string, modelId: string) => postV1<{ ok: boolean; job_id: string }>("/api/v1/voice-packages/retry", { identity_id: identityId, model_id: modelId }),
-  uploadVoiceReference: (file: File) => uploadFile<{ data: { name: string; reference_id: string } }>("/api/v1/voice-references/upload", file).then((response) => response.data),
+  uploadVoiceReference: (file: File) => uploadFile<{ data: UploadedVoiceReference }>("/api/v1/voice-references/upload", file).then((response) => response.data),
   projects: () => v1CollectionAll<HierarchyNode>("/api/v1/hierarchy"),
   resource: (type: "ventures" | "projects" | "series", id: number) =>
     v1<HierarchyNode>(`/api/v1/${type}/${id}`),
@@ -179,8 +182,8 @@ export const studioApi = {
     request<{ data: ProductionSummary }>(`/api/v1/productions/${productionId}`, { method: "PATCH", body: JSON.stringify({ series_id: seriesId }) }).then((response) => response.data),
   updateResource: <T>(type: "ventures" | "projects" | "series" | "productions", id: number, changes: Record<string, unknown>) =>
     request<{ data: T }>(`/api/v1/${type}/${id}`, { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
-  uploadProjectCover: (file: File) => uploadFile<{ data: { url: string } }>("/api/v1/project-covers/upload", file).then((response) => response.data),
-  uploadVentureLogo: (file: File) => uploadFile<{ data: { url: string } }>("/api/v1/venture-logos/upload", file).then((response) => response.data),
+  uploadProjectCover: (file: File) => uploadFile<{ data: UploadedImage }>("/api/v1/project-covers/upload", file).then((response) => response.data),
+  uploadVentureLogo: (file: File) => uploadFile<{ data: UploadedImage }>("/api/v1/venture-logos/upload", file).then((response) => response.data),
   archiveResource: (type: "ventures" | "projects" | "series" | "productions", id: number) =>
     request<{ data: unknown }>(`/api/v1/${type}/${id}${type === "series" ? "?strategy=make_standalone" : ""}`, { method: "DELETE" }),
   music: (id: number) => v1<MusicBed>(`/api/v1/productions/${id}/music`),
@@ -261,7 +264,7 @@ export const studioApi = {
     return waitForJob<CaptionMutationResult>(response.data.id)
   },
   uploadAsset: async (collectionId: number, file: File) => {
-    const response = await uploadFile<{ data: { id: number } }>(`/api/v1/asset-collections/${collectionId}/assets/upload`, file)
+    const response = await uploadFile<{ data: UploadedAsset }>(`/api/v1/asset-collections/${collectionId}/assets/upload`, file)
     return response.data
   },
 }

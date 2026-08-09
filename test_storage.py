@@ -6,8 +6,23 @@ import unittest
 from unittest.mock import Mock, patch
 
 from audio_studio.infrastructure import object_storage as storage
+from audio_studio.infrastructure import upload_workspace
 
 from audio_studio.infrastructure.media_paths import contained
+from audio_studio.infrastructure.upload_workspace import LocalUploadWorkspace
+
+
+class FakeObjects:
+    def __init__(self):
+        self.uploads = []
+
+    @staticmethod
+    def configured():
+        return True
+
+    def upload(self, path, **values):
+        self.uploads.append((path, values))
+        return "https://signed.test/source"
 
 
 class StorageContracts(unittest.TestCase):
@@ -67,6 +82,27 @@ class StorageContracts(unittest.TestCase):
                              (root / "ref_123/file.wav").resolve())
             with self.assertRaisesRegex(RuntimeError, "invalid"):
                 contained(root, "../secret")
+
+    def test_transcription_workspace_uses_stable_private_temporary_object(self):
+        objects = FakeObjects()
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "incoming.upload"
+            source.write_bytes(b"audio fixture")
+            workspace = LocalUploadWorkspace(
+                root=root, output=root / "media",
+                references=root / "references", objects=objects)
+            with patch.object(upload_workspace, "_audio_duration_ms",
+                              return_value=1250):
+                result = workspace.store_transcription_source(
+                    source, original_name="Human title.mp3",
+                    size_bytes=13, upload_id="upload_12345678")
+            self.assertTrue((root / ".inbox" / result["name"]).is_file())
+        values = objects.uploads[0][1]
+        self.assertEqual(values["object_id"], "upload_12345678")
+        self.assertEqual(values["kind"], "transcription-sources")
+        self.assertEqual(values["retention"], "temporary")
+        self.assertNotIn("Human title", objects.uploads[0][0])
 
 
 if __name__ == "__main__":

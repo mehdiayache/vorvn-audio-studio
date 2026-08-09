@@ -2482,6 +2482,161 @@
         "title": "TranslationJobCreate",
         "type": "object"
       },
+      "UploadedAssetEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UploadedAssetResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "UploadedAssetEnvelope",
+        "type": "object"
+      },
+      "UploadedAssetResponse": {
+        "properties": {
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "generation_id": {
+            "title": "Generation Id",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "version_id": {
+            "title": "Version Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "generation_id",
+          "version_id",
+          "name",
+          "filename",
+          "duration_ms",
+          "url"
+        ],
+        "title": "UploadedAssetResponse",
+        "type": "object"
+      },
+      "UploadedImageEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UploadedImageResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "UploadedImageEnvelope",
+        "type": "object"
+      },
+      "UploadedImageResponse": {
+        "properties": {
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "UploadedImageResponse",
+        "type": "object"
+      },
+      "UploadedTranscriptionSourceEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UploadedTranscriptionSourceResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "UploadedTranscriptionSourceEnvelope",
+        "type": "object"
+      },
+      "UploadedTranscriptionSourceResponse": {
+        "properties": {
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "playable": {
+            "title": "Playable",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "name",
+          "playable",
+          "size_bytes",
+          "duration_ms"
+        ],
+        "title": "UploadedTranscriptionSourceResponse",
+        "type": "object"
+      },
+      "UploadedVoiceReferenceEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UploadedVoiceReferenceResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "UploadedVoiceReferenceEnvelope",
+        "type": "object"
+      },
+      "UploadedVoiceReferenceResponse": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "reference_id": {
+            "title": "Reference Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "reference_id"
+        ],
+        "title": "UploadedVoiceReferenceResponse",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -4385,9 +4540,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Uploadventureasset",
-                  "type": "object"
+                  "$ref": "#/components/schemas/UploadedAssetEnvelope"
                 }
               }
             },
@@ -6115,9 +6268,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Uploadprojectcover",
-                  "type": "object"
+                  "$ref": "#/components/schemas/UploadedImageEnvelope"
                 }
               }
             },
@@ -7161,9 +7312,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Uploadsubtitlesource",
-                  "type": "object"
+                  "$ref": "#/components/schemas/UploadedTranscriptionSourceEnvelope"
                 }
               }
             },
@@ -7372,9 +7521,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Uploadventurelogo",
-                  "type": "object"
+                  "$ref": "#/components/schemas/UploadedImageEnvelope"
                 }
               }
             },
@@ -7862,9 +8009,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Uploadvoiceimage",
-                  "type": "object"
+                  "$ref": "#/components/schemas/UploadedImageEnvelope"
                 }
               }
             },
@@ -8051,9 +8196,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Uploadvoicereference",
-                  "type": "object"
+                  "$ref": "#/components/schemas/UploadedVoiceReferenceEnvelope"
                 }
               }
             },

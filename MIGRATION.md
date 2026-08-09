@@ -50,8 +50,8 @@ edges from the matching allowlist in the same commit; new edges fail CI.
 Current checkpoint: boundary baseline complete.
 
 - Domain technical-dependency debt: 0.
-- Application to Infrastructure edges: 24.
-- Application direct technical edges: 1.
+- Application to Infrastructure edges: 19.
+- Application direct technical edges: 0.
 - HTTP to Infrastructure edges: 5.
 - Infrastructure to Application edges: 8.
 - Transitional root/`services` import edges: 0.
@@ -145,3 +145,8 @@ Voice identities, historical links, capability plans and package budget checks
 now belong to one injected Application service. PostgreSQL profile and package
 stores are assembled only in Composition, removing two more direct
 Application-to-Infrastructure edges without changing provider enrollment.
+
+Upload rules and rollback orchestration now belong to one injected Application
+service. Local files, FFmpeg and private S3 publication live in one workspace
+adapter while PostgreSQL records live in one persistence adapter. This removes
+five Application-to-Infrastructure edges and the final direct technical import.

@@ -2230,6 +2230,64 @@ export interface components {
             /** Transcript Id */
             transcript_id: number;
         };
+        /** UploadedAssetEnvelope */
+        UploadedAssetEnvelope: {
+            data: components["schemas"]["UploadedAssetResponse"];
+        };
+        /** UploadedAssetResponse */
+        UploadedAssetResponse: {
+            /** Duration Ms */
+            duration_ms: number;
+            /** Filename */
+            filename: string;
+            /** Generation Id */
+            generation_id: number;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Url */
+            url: string;
+            /** Version Id */
+            version_id: number;
+        };
+        /** UploadedImageEnvelope */
+        UploadedImageEnvelope: {
+            data: components["schemas"]["UploadedImageResponse"];
+        };
+        /** UploadedImageResponse */
+        UploadedImageResponse: {
+            /** Url */
+            url: string;
+        };
+        /** UploadedTranscriptionSourceEnvelope */
+        UploadedTranscriptionSourceEnvelope: {
+            data: components["schemas"]["UploadedTranscriptionSourceResponse"];
+        };
+        /** UploadedTranscriptionSourceResponse */
+        UploadedTranscriptionSourceResponse: {
+            /** Duration Ms */
+            duration_ms: number;
+            /** Name */
+            name: string;
+            /** Playable */
+            playable: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Url */
+            url: string;
+        };
+        /** UploadedVoiceReferenceEnvelope */
+        UploadedVoiceReferenceEnvelope: {
+            data: components["schemas"]["UploadedVoiceReferenceResponse"];
+        };
+        /** UploadedVoiceReferenceResponse */
+        UploadedVoiceReferenceResponse: {
+            /** Name */
+            name: string;
+            /** Reference Id */
+            reference_id: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -2876,9 +2934,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["UploadedAssetEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -4035,9 +4091,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["UploadedImageEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -4835,9 +4889,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["UploadedTranscriptionSourceEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -4988,9 +5040,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["UploadedImageEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -5328,9 +5378,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["UploadedImageEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -5480,9 +5528,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["UploadedVoiceReferenceEnvelope"];
                 };
             };
             /** @description Validation Error */

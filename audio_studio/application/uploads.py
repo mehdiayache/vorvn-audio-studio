@@ -1,30 +1,18 @@
-"""Bounded local uploads that never contact a model provider."""
+"""Upload use cases independent from filesystems, PostgreSQL and S3."""
 
 from __future__ import annotations
 
 from pathlib import Path
-import mimetypes
-import shutil
-import subprocess
+from typing import Protocol
 from urllib.parse import unquote
 from uuid import uuid4
 
-import psycopg
-from audio_studio.infrastructure import object_storage as storage
-
-from audio_studio.config import settings
-from audio_studio.infrastructure.media_paths import (
-    media_root,
-    voice_reference_directory,
-)
-from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
-from audio_studio.infrastructure.postgres.venture_assets import (
-    VentureAssetRepository,
-)
+from audio_studio.domain.uploads import StoredAsset, StoredVoiceReference
 
 
-voice_packages = VoicePackageRepository()
-venture_assets = VentureAssetRepository()
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+VOICE_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".webm"}
+AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"}
 
 
 class UploadError(ValueError):
@@ -33,175 +21,136 @@ class UploadError(ValueError):
         self.needs_storage = needs_storage
 
 
+class UploadWorkspace(Protocol):
+    def store_image(self, raw: bytes, original_name: str) -> str: ...
+    def store_voice_reference(
+        self, raw: bytes, original_name: str, reference_id: str,
+    ) -> StoredVoiceReference: ...
+    def discard_voice_reference(self, reference_id: str) -> None: ...
+    def store_asset(
+        self, source: Path, *, original_name: str, size_bytes: int,
+    ) -> StoredAsset: ...
+    def discard_media(self, filename: str) -> None: ...
+    def reference_storage_ready(self) -> bool: ...
+    def store_transcription_source(
+        self, source: Path, *, original_name: str, size_bytes: int,
+        upload_id: str,
+    ) -> dict: ...
+
+
+class UploadRecords(Protocol):
+    def create_voice_reference(
+        self, *, reference_id: str, original_name: str,
+        original_path: str, normalized_path: str,
+    ) -> str: ...
+    def asset_collection(self, collection_id: int) -> dict | None: ...
+    def create_uploaded_asset(
+        self, collection_id: int, *, name: str, stored: StoredAsset,
+        size_bytes: int,
+    ) -> dict | None: ...
+
+
 def clean_name(encoded: str, fallback: str) -> str:
     return Path(unquote(encoded or fallback)).name or fallback
 
 
-def save_image(raw: bytes, encoded_name: str) -> dict[str, str]:
-    if not raw:
-        raise UploadError("Choose an image first.")
-    if len(raw) > 8_000_000:
-        raise UploadError("That image is over 8 MB.")
-    original = clean_name(encoded_name, "image.png")
-    suffix = Path(original).suffix.lower()
-    if suffix not in {".png", ".jpg", ".jpeg", ".webp", ".gif"}:
-        raise UploadError("Use a PNG, JPG, WEBP or GIF image.")
-    root = settings.root / ".icons"
-    root.mkdir(exist_ok=True)
-    stored = f"{Path(original).stem[:60] or 'image'}-{uuid4().hex[:12]}{suffix}"
-    (root / stored).write_bytes(raw)
-    return {"url": f"/icon/{stored}"}
+class UploadService:
+    def __init__(self, workspace: UploadWorkspace, records: UploadRecords):
+        self.workspace = workspace
+        self.records = records
 
+    def save_image(self, raw: bytes, encoded_name: str) -> dict[str, str]:
+        if not raw:
+            raise UploadError("Choose an image first.")
+        if len(raw) > 8_000_000:
+            raise UploadError("That image is over 8 MB.")
+        original = clean_name(encoded_name, "image.png")
+        if Path(original).suffix.lower() not in IMAGE_EXTENSIONS:
+            raise UploadError("Use a PNG, JPG, WEBP or GIF image.")
+        try:
+            return {"url": self.workspace.store_image(raw, original)}
+        except ValueError as exc:
+            raise UploadError(str(exc)) from exc
 
-def save_voice_reference(raw: bytes, encoded_name: str) -> dict[str, str]:
-    if not raw:
-        raise UploadError("Choose a recording first.")
-    if len(raw) > 10_000_000:
-        raise UploadError("That recording is over 10 MB.")
-    original_name = clean_name(encoded_name, "reference.wav")
-    if Path(original_name).suffix.lower() not in {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".webm"}:
-        raise UploadError("Use an MP3, WAV, M4A, AAC, OGG, FLAC or WebM recording.")
-    reference_id = f"ref_{uuid4().hex}"
-    root = voice_reference_directory(reference_id)
-    root.mkdir(parents=True, exist_ok=False)
-    suffix = Path(original_name).suffix.lower()
-    original = root / f"original{suffix}"
-    original.write_bytes(raw)
-    normalized = original
-    if shutil.which("ffmpeg"):
-        normalized = original.with_name("normalized-24k.wav")
-        result = subprocess.run(
-            ["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", str(original),
-             "-ac", "1", "-ar", "24000", "-c:a", "pcm_s16le", str(normalized)],
-            capture_output=True,
-        )
-        if result.returncode or not normalized.is_file():
-            original.unlink(missing_ok=True)
-            normalized.unlink(missing_ok=True)
-            raise UploadError("That recording could not be decoded as audio.")
-    try:
-        reference_id = voice_packages.create_reference(
-            original_name=original_name,
-            original_path=str(original.relative_to(voice_reference_directory(reference_id).parent)),
-            normalized_path=str(normalized.relative_to(voice_reference_directory(reference_id).parent)),
-            reference_id=reference_id,
-        )
-    except Exception:
-        shutil.rmtree(root, ignore_errors=True)
-        raise
-    return {"name": normalized.name, "reference_id": reference_id}
+    def save_voice_reference(
+        self, raw: bytes, encoded_name: str,
+    ) -> dict[str, str]:
+        if not raw:
+            raise UploadError("Choose a recording first.")
+        if len(raw) > 10_000_000:
+            raise UploadError("That recording is over 10 MB.")
+        original = clean_name(encoded_name, "reference.wav")
+        if Path(original).suffix.lower() not in VOICE_EXTENSIONS:
+            raise UploadError(
+                "Use an MP3, WAV, M4A, AAC, OGG, FLAC or WebM recording.")
+        reference_id = f"ref_{uuid4().hex}"
+        try:
+            stored = self.workspace.store_voice_reference(
+                raw, original, reference_id)
+        except ValueError as exc:
+            raise UploadError(str(exc)) from exc
+        try:
+            saved_id = self.records.create_voice_reference(
+                reference_id=reference_id,
+                original_name=original,
+                original_path=stored.original_path,
+                normalized_path=stored.normalized_path,
+            )
+        except Exception:
+            self.workspace.discard_voice_reference(reference_id)
+            raise
+        return {"name": stored.name, "reference_id": saved_id}
 
+    def save_asset_file(
+        self, collection_id: int, source: Path, size_bytes: int,
+        encoded_name: str,
+    ) -> dict:
+        if not self.records.asset_collection(collection_id):
+            raise UploadError(
+                "Choose an Intros, Outros, Music or Stingers library first.")
+        if size_bytes <= 0 or not source.is_file():
+            raise UploadError("That audio file is empty.")
+        if size_bytes > 250_000_000:
+            raise UploadError("That file is over 250 MB.")
+        original = clean_name(encoded_name, "audio.mp3")
+        if Path(original).suffix.lower() not in AUDIO_EXTENSIONS:
+            raise UploadError("Use MP3, WAV, M4A, AAC, OGG or FLAC audio.")
+        try:
+            stored = self.workspace.store_asset(
+                source, original_name=original, size_bytes=size_bytes)
+        except ValueError as exc:
+            raise UploadError(str(exc)) from exc
+        try:
+            created = self.records.create_uploaded_asset(
+                collection_id, name=Path(original).stem, stored=stored,
+                size_bytes=size_bytes)
+        except Exception:
+            self.workspace.discard_media(stored.filename)
+            raise
+        if not created:
+            self.workspace.discard_media(stored.filename)
+            raise RuntimeError("That Asset collection no longer exists.")
+        return {**created, "name": original,
+                "url": f"/audio/{stored.filename}"}
 
-def _audio_duration_ms(target: Path) -> int | None:
-    if not shutil.which("ffprobe"):
-        return None
-    result = subprocess.run(
-        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
-         "-of", "default=nw=1:nk=1", str(target)],
-        capture_output=True, text=True,
-    )
-    try:
-        return int(float(result.stdout.strip()) * 1000)
-    except (TypeError, ValueError):
-        return None
-
-
-def save_asset(collection_id: int, raw: bytes, encoded_name: str) -> dict:
-    source = settings.root / ".incoming" / f"asset-{uuid4().hex}.upload"
-    source.parent.mkdir(exist_ok=True)
-    source.write_bytes(raw)
-    try:
-        return save_asset_file(collection_id, source, len(raw), encoded_name)
-    finally:
-        source.unlink(missing_ok=True)
-
-
-def save_asset_file(collection_id: int, source: Path, size_bytes: int,
-                    encoded_name: str) -> dict:
-    """Store one reusable Venture Asset without contacting a model provider."""
-    if not venture_assets.collection(collection_id):
-        raise UploadError("Choose an Intros, Outros, Music or Stingers library first.")
-    if size_bytes <= 0 or not source.is_file():
-        raise UploadError("That audio file is empty.")
-    if size_bytes > 250_000_000:
-        raise UploadError("That file is over 250 MB.")
-    original = clean_name(encoded_name, "audio.mp3")
-    suffix = Path(original).suffix.lower()
-    if suffix not in {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"}:
-        raise UploadError("Use MP3, WAV, M4A, AAC, OGG or FLAC audio.")
-
-    output = media_root()
-    output.mkdir(parents=True, exist_ok=True)
-    stored = f"{uuid4().hex}{suffix}"
-    target = output / stored
-    shutil.move(str(source), target)
-    duration_ms = _audio_duration_ms(target)
-    if duration_ms is None:
-        target.unlink(missing_ok=True)
-        raise UploadError("That file could not be decoded as audio.")
-
-    mime_type = {
-        ".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg",
-        ".flac": "audio/flac", ".m4a": "audio/mp4", ".aac": "audio/aac",
-    }.get(suffix, "application/octet-stream")
-    try:
-        created = venture_assets.create_uploaded_asset(
-            collection_id, name=Path(original).stem, filename=stored,
-            path=str(target), size_bytes=size_bytes, duration_ms=duration_ms,
-            audio_format=suffix.lstrip("."), mime_type=mime_type,
-        )
-    except psycopg.OperationalError as exc:
-        target.unlink(missing_ok=True)
-        raise RuntimeError("The database could not save that Asset.") from exc
-    if not created:
-        target.unlink(missing_ok=True)
-        raise RuntimeError("That Asset collection no longer exists.")
-    return {**created, "name": original, "url": f"/audio/{stored}"}
-
-
-def save_transcription_source(raw: bytes, encoded_name: str) -> dict:
-    source = settings.root / ".incoming" / f"subtitle-{uuid4().hex}.upload"
-    source.parent.mkdir(exist_ok=True)
-    source.write_bytes(raw)
-    try:
-        return save_transcription_source_file(source, len(raw), encoded_name)
-    finally:
-        source.unlink(missing_ok=True)
-
-
-def save_transcription_source_file(source: Path, size_bytes: int,
-                                   encoded_name: str) -> dict:
-    """Keep a playable local source and create the short-lived worker URL."""
-    if not storage.configured():
-        raise UploadError(
-            "Set up Settings → Reference audio storage first.",
-            needs_storage=True,
-        )
-    if size_bytes <= 0 or not source.is_file():
-        raise UploadError("That audio file is empty.")
-    if size_bytes > 500_000_000:
-        raise UploadError("That file is over 500 MB.")
-    original = clean_name(encoded_name, "audio.mp3")
-    suffix = Path(original).suffix.lower()
-    if suffix not in {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"}:
-        raise UploadError("Use MP3, WAV, M4A, AAC, OGG or FLAC audio.")
-    root = settings.root / ".inbox"
-    root.mkdir(exist_ok=True)
-    local = root / f"{uuid4().hex}{suffix}"
-    shutil.move(str(source), local)
-    duration_ms = _audio_duration_ms(local)
-    if duration_ms is None:
-        local.unlink(missing_ok=True)
-        raise UploadError("That file could not be decoded as audio.")
-    content_type = mimetypes.guess_type(local.name)[0] or "application/octet-stream"
-    try:
-        url = storage.upload(
-            str(local), content_type=content_type, kind="transcription-sources",
-            object_id=f"upload_{local.stem}", retention="temporary")
-    except Exception:
-        local.unlink(missing_ok=True)
-        raise
-    return {
-        "url": url, "name": local.name, "playable": f"/inbox/{local.name}",
-        "size_bytes": size_bytes, "duration_ms": duration_ms,
-    }
+    def save_transcription_source_file(
+        self, source: Path, size_bytes: int, encoded_name: str,
+    ) -> dict:
+        if not self.workspace.reference_storage_ready():
+            raise UploadError(
+                "Set up Settings → Reference audio storage first.",
+                needs_storage=True,
+            )
+        if size_bytes <= 0 or not source.is_file():
+            raise UploadError("That audio file is empty.")
+        if size_bytes > 500_000_000:
+            raise UploadError("That file is over 500 MB.")
+        original = clean_name(encoded_name, "audio.mp3")
+        if Path(original).suffix.lower() not in AUDIO_EXTENSIONS:
+            raise UploadError("Use MP3, WAV, M4A, AAC, OGG or FLAC audio.")
+        try:
+            return self.workspace.store_transcription_source(
+                source, original_name=original, size_bytes=size_bytes,
+                upload_id=f"upload_{uuid4().hex}")
+        except ValueError as exc:
+            raise UploadError(str(exc)) from exc

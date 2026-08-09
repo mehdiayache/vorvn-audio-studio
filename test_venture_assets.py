@@ -10,11 +10,14 @@ from uuid import uuid4
 
 import psycopg
 
-from audio_studio.application import uploads
+from audio_studio.application.uploads import UploadService
 from audio_studio.config import settings
+from audio_studio.infrastructure import upload_workspace
+from audio_studio.infrastructure.postgres.uploads import PostgresUploadRecords
 from audio_studio.infrastructure.postgres.venture_assets import (
     VentureAssetRepository,
 )
+from audio_studio.infrastructure.upload_workspace import LocalUploadWorkspace
 
 
 class VentureAssetRepositoryTests(unittest.TestCase):
@@ -91,11 +94,19 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         collections = self.repository.ensure_collections(self.venture_id)
         music = next(item for item in collections if item["kind"] == "music")
         with TemporaryDirectory() as output:
-            with (patch.object(uploads, "media_root", return_value=Path(output)),
-                  patch.object(uploads, "_audio_duration_ms",
-                               return_value=1200)):
-                created = uploads.save_asset(
-                    music["id"], b"RIFF" + bytes(40), "Quiet bed.wav")
+            root = Path(output)
+            source = root / "incoming.upload"
+            source.write_bytes(b"RIFF" + bytes(40))
+            service = UploadService(
+                LocalUploadWorkspace(root=root, output=root,
+                                     references=root / "references"),
+                PostgresUploadRecords(assets=self.repository),
+            )
+            with patch.object(upload_workspace, "_audio_duration_ms",
+                              return_value=1200):
+                created = service.save_asset_file(
+                    music["id"], source, source.stat().st_size,
+                    "Quiet bed.wav")
             self.assertTrue((Path(output) / created["filename"]).is_file())
         self.generation_id = created["generation_id"]
         asset = self.repository.get(created["id"])

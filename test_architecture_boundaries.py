@@ -59,11 +59,6 @@ APPLICATION_INFRASTRUCTURE_DEBT = {
     "audio_studio.application.timeline -> audio_studio.infrastructure.postgres.production_document.ProductionDocumentRepository",
     "audio_studio.application.timeline -> audio_studio.infrastructure.postgres.venture_assets.VentureAssetRepository",
     "audio_studio.application.timeline -> audio_studio.infrastructure.postgres.work",
-    "audio_studio.application.uploads -> audio_studio.infrastructure.media_paths.media_root",
-    "audio_studio.application.uploads -> audio_studio.infrastructure.media_paths.voice_reference_directory",
-    "audio_studio.application.uploads -> audio_studio.infrastructure.object_storage",
-    "audio_studio.application.uploads -> audio_studio.infrastructure.postgres.venture_assets.VentureAssetRepository",
-    "audio_studio.application.uploads -> audio_studio.infrastructure.postgres.voice_packages.VoicePackageRepository",
     "audio_studio.application.work -> audio_studio.infrastructure.postgres.accounting.ProductionAccountingRepository",
     "audio_studio.application.work -> audio_studio.infrastructure.postgres.exports.ProductionExportRepository",
     "audio_studio.application.work -> audio_studio.infrastructure.postgres.production_document.ProductionDocumentRepository",
@@ -71,9 +66,7 @@ APPLICATION_INFRASTRUCTURE_DEBT = {
     "audio_studio.application.work -> audio_studio.infrastructure.postgres.work",
 }
 
-APPLICATION_TECHNICAL_DEBT = {
-    "audio_studio.application.uploads -> psycopg",
-}
+APPLICATION_TECHNICAL_DEBT: set[str] = set()
 
 HTTP_INFRASTRUCTURE_DEBT = {
     "audio_studio.http.routers.batches -> audio_studio.infrastructure.batch_workspace.FilesystemBatchWorkspace",

@@ -1,0 +1,43 @@
+"""PostgreSQL records written by upload use cases."""
+
+from __future__ import annotations
+
+import psycopg
+
+from audio_studio.domain.uploads import StoredAsset
+from audio_studio.infrastructure.postgres.venture_assets import VentureAssetRepository
+from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
+
+
+class PostgresUploadRecords:
+    def __init__(
+        self, *, voices: VoicePackageRepository | None = None,
+        assets: VentureAssetRepository | None = None,
+    ):
+        self.voices = voices or VoicePackageRepository()
+        self.assets = assets or VentureAssetRepository()
+
+    def create_voice_reference(
+        self, *, reference_id: str, original_name: str,
+        original_path: str, normalized_path: str,
+    ) -> str:
+        return self.voices.create_reference(
+            reference_id=reference_id, original_name=original_name,
+            original_path=original_path, normalized_path=normalized_path)
+
+    def asset_collection(self, collection_id: int) -> dict | None:
+        return self.assets.collection(collection_id)
+
+    def create_uploaded_asset(
+        self, collection_id: int, *, name: str, stored: StoredAsset,
+        size_bytes: int,
+    ) -> dict | None:
+        try:
+            return self.assets.create_uploaded_asset(
+                collection_id, name=name, filename=stored.filename,
+                path=stored.path, size_bytes=size_bytes,
+                duration_ms=stored.duration_ms,
+                audio_format=stored.audio_format, mime_type=stored.mime_type)
+        except psycopg.OperationalError as exc:
+            raise RuntimeError(
+                "The database could not save that Asset.") from exc
