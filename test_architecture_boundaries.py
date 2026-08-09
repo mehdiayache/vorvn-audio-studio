@@ -48,10 +48,7 @@ APPLICATION_INFRASTRUCTURE_DEBT: set[str] = set()
 
 APPLICATION_TECHNICAL_DEBT: set[str] = set()
 
-HTTP_INFRASTRUCTURE_DEBT = {
-    "audio_studio.http.routers.subtitles -> audio_studio.infrastructure.media_paths.media_root",
-    "audio_studio.http.routers.subtitles -> audio_studio.infrastructure.postgres.transcripts.TranscriptRepository",
-}
+HTTP_INFRASTRUCTURE_DEBT: set[str] = set()
 
 INFRASTRUCTURE_APPLICATION_DEBT = {
     "audio_studio.infrastructure.alibaba.text_preparation -> audio_studio.application.text_preparation.Completion",

@@ -52,7 +52,7 @@ Current checkpoint: boundary baseline complete.
 - Domain technical-dependency debt: 0.
 - Application to Infrastructure edges: 0.
 - Application direct technical edges: 0.
-- HTTP to Infrastructure edges: 2.
+- HTTP to Infrastructure edges: 0.
 - Infrastructure to Application edges: 8.
 - Transitional root/`services` import edges: 0.
 - Root business modules: 0.
@@ -184,3 +184,8 @@ Batch preview intake now uses one service assembled in Composition. HTTP owns
 only request limits and the public response envelope; spreadsheet parsing,
 temporary files and voice lookup remain behind Application ports. This removes
 both Batch HTTP-to-Infrastructure edges without changing worker generation.
+
+The saved Subtitle catalogue now belongs to one Application service composed
+with PostgreSQL and the shared media resolver. HTTP owns only routes and public
+not-found errors. This removes the final HTTP-to-Infrastructure edges while
+preserving stored timings, layout profiles, costs and missing-audio behavior.
