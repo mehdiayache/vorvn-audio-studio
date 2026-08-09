@@ -15,13 +15,6 @@ import type {
   Take,
   Transcript,
   TranscriptSummary,
-  VoiceMeta,
-  VoiceDirectory,
-  VoiceRegistry,
-  VoicePackagePlan,
-  VoiceProfile,
-  HistoricalVoiceReference,
-  VoiceRouteDecision,
   TextPassResult,
   CaptionMutationResult,
   AssetCollection,
@@ -48,6 +41,23 @@ type SubtitleListEnvelope = paths["/api/v1/subtitles"]["get"]["responses"][200][
 type SubtitleEnvelope = paths["/api/v1/subtitles/{transcript_id}"]["get"]["responses"][200]["content"]["application/json"]
 type SubtitleDeletedEnvelope = paths["/api/v1/subtitles/{transcript_id}"]["delete"]["responses"][200]["content"]["application/json"]
 type CaptionLayoutEnvelope = paths["/api/v1/subtitles/{transcript_id}/layouts/{profile}"]["get"]["responses"][200]["content"]["application/json"]
+type VoiceRegistryEnvelope = paths["/api/v1/voice-registry"]["get"]["responses"][200]["content"]["application/json"]
+type VoiceMetadataEnvelope = paths["/api/v1/voice-meta"]["get"]["responses"][200]["content"]["application/json"]
+type VoiceUsageEnvelope = paths["/api/v1/voice-usage"]["get"]["responses"][200]["content"]["application/json"]
+type VoiceRouteEnvelope = paths["/api/v1/voice-routes/resolve"]["post"]["responses"][200]["content"]["application/json"]
+type VoiceRouteBody = paths["/api/v1/voice-routes/resolve"]["post"]["requestBody"]["content"]["application/json"]
+type VoiceProfileCollectionEnvelope = paths["/api/v1/voices"]["get"]["responses"][200]["content"]["application/json"]
+type VoiceProfileEnvelope = paths["/api/v1/voices/{identity_id}"]["get"]["responses"][200]["content"]["application/json"]
+type VoiceUpdateBody = paths["/api/v1/voices/{identity_id}"]["patch"]["requestBody"]["content"]["application/json"]
+type HistoricalVoiceCollectionEnvelope = paths["/api/v1/voice-history/unlinked"]["get"]["responses"][200]["content"]["application/json"]
+type VoiceHistoryLinkEnvelope = paths["/api/v1/voices/{identity_id}/link-history"]["post"]["responses"][200]["content"]["application/json"]
+type VoiceHistoryLinkBody = paths["/api/v1/voices/{identity_id}/link-history"]["post"]["requestBody"]["content"]["application/json"]
+type VoicePackagePlanEnvelope = paths["/api/v1/voice-packages/preflight"]["post"]["responses"][200]["content"]["application/json"]
+type VoicePackagePreflightBody = paths["/api/v1/voice-packages/preflight"]["post"]["requestBody"]["content"]["application/json"]
+type VoicePackageCreateEnvelope = paths["/api/v1/voice-packages"]["post"]["responses"][202]["content"]["application/json"]
+type VoicePackageCreateBody = paths["/api/v1/voice-packages"]["post"]["requestBody"]["content"]["application/json"]
+type VoicePackageRetryEnvelope = paths["/api/v1/voice-packages/retry"]["post"]["responses"][202]["content"]["application/json"]
+type VoicePackageRetryBody = paths["/api/v1/voice-packages/retry"]["post"]["requestBody"]["content"]["application/json"]
 
 export { ApiError } from "@/lib/api-error"
 
@@ -145,28 +155,29 @@ export const studioApi = {
     const response = await request<{ data: DurableJob<BatchResult> }>("/api/v1/jobs/batch", { method: "POST", headers: { "Idempotency-Key": `batch-${crypto.randomUUID()}` }, body: JSON.stringify(payload) })
     return waitForJob<BatchResult>(response.data.id)
   },
-  voiceRegistry: () => v1<VoiceRegistry>("/api/v1/voice-registry"),
-  voiceMeta: () => v1<Record<string, VoiceMeta>>("/api/v1/voice-meta").then((voices) => ({ voices })),
-  voiceUsage: () => v1<VoiceDirectory["usage"]>("/api/v1/voice-usage").then((usage) => ({ usage })),
-  voiceProfiles: () => v1CollectionAll<VoiceProfile>("/api/v1/voices"),
-  unlinkedVoiceHistory: () => v1CollectionAll<HistoricalVoiceReference>("/api/v1/voice-history/unlinked"),
+  voiceRegistry: () => request<VoiceRegistryEnvelope>("/api/v1/voice-registry").then((response) => response.data),
+  voiceMeta: () => request<VoiceMetadataEnvelope>("/api/v1/voice-meta").then((response) => ({ voices: response.data })),
+  voiceUsage: () => request<VoiceUsageEnvelope>("/api/v1/voice-usage").then((response) => ({ usage: response.data })),
+  voiceProfiles: () => request<VoiceProfileCollectionEnvelope>("/api/v1/voices?limit=100").then((response) => response.data),
+  unlinkedVoiceHistory: () => request<HistoricalVoiceCollectionEnvelope>("/api/v1/voice-history/unlinked?limit=100").then((response) => response.data),
   linkVoiceHistory: (identityId: string, providerVoiceId: string) =>
-    postV1<{ linked: number; profile: VoiceProfile }>(`/api/v1/voices/${encodeURIComponent(identityId)}/link-history`, { provider_voice_id: providerVoiceId }),
-  resolveVoiceRoute: (request: { voice_identity_id?: string | null; voice?: string; engine?: "audio" | "omni"; model?: "plus" | "flash"; language?: string; text?: string }) =>
-    postV1<VoiceRouteDecision>("/api/v1/voice-routes/resolve", request),
-  voiceProfile: (identityId: string) => v1<VoiceProfile>(`/api/v1/voices/${encodeURIComponent(identityId)}`),
-  updateVoiceProfile: (identityId: string, changes: Partial<{
-    name: string; image: string; gender: string; age: number | null; accent: string;
-    trait: string; scene: string; notes: string; favourite: boolean; status: "active" | "archived"
-  }>) => request<{ data: VoiceProfile }>(`/api/v1/voices/${encodeURIComponent(identityId)}`, {
+    request<VoiceHistoryLinkEnvelope>(`/api/v1/voices/${encodeURIComponent(identityId)}/link-history`, { method: "POST", body: JSON.stringify({ provider_voice_id: providerVoiceId } satisfies VoiceHistoryLinkBody) }).then((response) => response.data),
+  resolveVoiceRoute: (payload: VoiceRouteBody) =>
+    request<VoiceRouteEnvelope>("/api/v1/voice-routes/resolve", { method: "POST", body: JSON.stringify(payload) }).then((response) => response.data),
+  voiceProfile: (identityId: string) => request<VoiceProfileEnvelope>(`/api/v1/voices/${encodeURIComponent(identityId)}`).then((response) => response.data),
+  updateVoiceProfile: (identityId: string, changes: VoiceUpdateBody) => request<VoiceProfileEnvelope>(`/api/v1/voices/${encodeURIComponent(identityId)}`, {
     method: "PATCH",
     body: JSON.stringify(changes),
   }).then((response) => response.data),
-  archiveVoiceProfile: (identityId: string) => request<{ data: VoiceProfile }>(`/api/v1/voices/${encodeURIComponent(identityId)}`, { method: "DELETE" }).then((response) => response.data),
+  archiveVoiceProfile: (identityId: string) => request<VoiceProfileEnvelope>(`/api/v1/voices/${encodeURIComponent(identityId)}`, { method: "DELETE" }).then((response) => response.data),
   uploadVoiceImage: (file: File) => uploadFile<{ data: UploadedImage }>("/api/v1/voice-images/upload", file).then((response) => response.data),
-  voicePackagePreflight: (language: string, packageId: string) => postV1<VoicePackagePlan>("/api/v1/voice-packages/preflight", { language, package: packageId }),
-  createVoicePackage: (payload: { name: string; language: string; reference_id: string; package: string; identity_id?: string; gender?: string; trait?: string; confirmed?: boolean }) => postV1<{ identity: VoiceProfile; queued: number; plan: VoicePackagePlan }>("/api/v1/voice-packages", payload),
-  retryVoiceBinding: (identityId: string, modelId: string) => postV1<{ ok: boolean; job_id: string }>("/api/v1/voice-packages/retry", { identity_id: identityId, model_id: modelId }),
+  voicePackagePreflight: (language: string, packageId: VoicePackagePreflightBody["package"]) => request<VoicePackagePlanEnvelope>("/api/v1/voice-packages/preflight", { method: "POST", body: JSON.stringify({ language, package: packageId } satisfies VoicePackagePreflightBody) }).then((response) => response.data),
+  createVoicePackage: async (payload: VoicePackageCreateBody) => {
+    const response = await request<VoicePackageCreateEnvelope>("/api/v1/voice-packages", { method: "POST", body: JSON.stringify(payload) })
+    if ("needs_confirmation" in response.data) throw new ApiError("Voice creation requires cost confirmation.", 409)
+    return response.data
+  },
+  retryVoiceBinding: (identityId: string, modelId: string) => request<VoicePackageRetryEnvelope>("/api/v1/voice-packages/retry", { method: "POST", body: JSON.stringify({ identity_id: identityId, model_id: modelId } satisfies VoicePackageRetryBody) }).then((response) => response.data),
   uploadVoiceReference: (file: File) => uploadFile<{ data: UploadedVoiceReference }>("/api/v1/voice-references/upload", file).then((response) => response.data),
   projects: () => v1CollectionAll<HierarchyNode>("/api/v1/hierarchy"),
   resource: (type: "ventures" | "projects" | "series", id: number) =>

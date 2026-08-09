@@ -201,3 +201,9 @@ response envelopes. React consumes their generated OpenAPI path and component
 types, while `domain.ts` keeps aliases only for UI-facing use. This removes the
 duplicate handwritten wire contracts without changing Batch intake, saved
 captions, layout profiles or deletion behavior.
+
+The React Voice client now consumes generated OpenAPI request and response
+contracts for the registry, metadata, usage, routing, profiles, historical
+voices and package lifecycle. The client also distinguishes a cost-confirmation
+response from a successfully queued package instead of casting both to the same
+shape. Voice creation, provider routing and saved identities remain unchanged.
