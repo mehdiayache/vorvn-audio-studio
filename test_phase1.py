@@ -145,4 +145,5 @@ check("provider is not called before destination validation", not provider.calle
 
 failed = [name for name, ok, _ in results if not ok]
 print(f"\n{len(results) - len(failed)}/{len(results)} passed")
-raise SystemExit(1 if failed else 0)
+if __name__ == "__main__":
+    raise SystemExit(1 if failed else 0)

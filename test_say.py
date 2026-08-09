@@ -101,4 +101,5 @@ check("progress fires once per chunk", seen == [(1, 2), (2, 2)], seen)
 
 failed = [name for name, ok, _ in results if not ok]
 print(f"\n{len(results) - len(failed)}/{len(results)} passed")
-sys.exit(1 if failed else 0)
+if __name__ == "__main__":
+    sys.exit(1 if failed else 0)

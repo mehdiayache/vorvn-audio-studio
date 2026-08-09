@@ -58,13 +58,36 @@ Voices and tools belong to Audio Studio, not to one Venture. A Venture owns its 
 
 ```bash
 pnpm check
-.venv/bin/python -m unittest -v test_audio_studio_architecture
-.venv/bin/python test_say.py
-.venv/bin/python test_alibaba_services.py
-.venv/bin/python check_domain.py
+.venv/bin/python -m unittest discover
 ```
 
 `pnpm check` regenerates TypeScript types from FastAPI OpenAPI, builds the production UI, and runs the frontend test suite. The architecture and provider-contract tests are local and mocked; they never synthesize, clone, translate or transcribe.
+
+GitHub Actions runs both commands against a clean PostgreSQL 17 service on
+every pull request and push to `main`.
+
+## Media and object storage
+
+Local media uses one deployment-owned root (`AUDIO_STUDIO_OUTPUT_DIR`). Changing
+that root is a deployment operation, not a UI preference, so existing media
+cannot be orphaned accidentally. Original voice-clone recordings live in the
+durable `.media/voice-references` store and are protected from working-file
+cleanup.
+
+Alibaba-fetchable inputs use a private S3-compatible bucket. Object keys are
+tenant- and ID-scoped:
+
+```text
+{prefix}/v1/organizations/{organization_id}/objects/{kind}/{object_id}/source.{ext}
+```
+
+Display names never become keys. Uploads include SHA-256 checksums and
+`retention=temporary|durable` tags; access is normally a 15-minute presigned
+URL. Configure bucket lifecycle rules to expire only `retention=temporary`
+objects. Before hosting remotely, enable bucket versioning, encryption and a
+tested backup for PostgreSQL, the media root and durable voice references as
+one recovery unit. The application deliberately refuses non-loopback binding
+until authentication and tenant authorization exist.
 
 ## HTTP contracts
 
