@@ -207,6 +207,7 @@ class JobRepository:
                 return False
             kind = job_row[0] if job_row else "job"
             outputs = _output_ids(kind, result)
+            generation_id = result.get("id") if kind == "speech" else None
             final_status = "cancelled" if job_row[3] else status
             cursor.execute("""
                 UPDATE jobs SET status = %s, result = %s::jsonb, cost = %s,
@@ -234,7 +235,7 @@ class JobRepository:
                   result.get("provider_region"), result.get("provider_endpoint"),
                   json.dumps({"model": result.get("model"),
                               "region": result.get("provider_region")}),
-                  json.dumps(outputs), result.get("id"), job_id))
+                  json.dumps(outputs), generation_id, job_id))
             if cursor.rowcount != 1:
                 return False
             event_kind = "cancelled" if final_status == "cancelled" else "completed"

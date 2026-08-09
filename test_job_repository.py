@@ -64,11 +64,12 @@ class JobRepositoryTests(unittest.TestCase):
             self.assertTrue(repository.finish(job_id, {"id": 99}, cost=.25))
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT status, cost, result FROM jobs WHERE id = %s", (job_id,))
-                status, cost, result = cursor.fetchone()
+                    "SELECT status, cost, result, generation_id FROM jobs WHERE id = %s", (job_id,))
+                status, cost, result, generation_id = cursor.fetchone()
             self.assertEqual(status, "cancelled")
             self.assertEqual(float(cost), .25)
             self.assertEqual(result["id"], 99)
+            self.assertIsNone(generation_id)
         finally:
             if job_id is not None:
                 with connection.cursor() as cursor:
