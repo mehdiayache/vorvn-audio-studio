@@ -12,9 +12,7 @@ import subprocess
 from urllib.parse import quote
 from uuid import uuid4
 
-import say
-
-from audio_studio.domain import captions
+from audio_studio.domain import captions, speech_text
 from audio_studio.infrastructure.media_paths import media_root
 from audio_studio.infrastructure.postgres import work as work_repository
 from audio_studio.infrastructure.postgres.exports import ProductionExportRepository
@@ -56,7 +54,7 @@ def _measure(target: Path) -> int | None:
 
 def _name(stem: str, suffix: str = "mp3") -> str:
     extension = suffix if suffix.startswith(".") else f".{suffix}"
-    return (f"{say.slugify(stem) or 'audio'}-{datetime.now():%Y%m%d-%H%M%S-%f}-"
+    return (f"{speech_text.slugify(stem)}-{datetime.now():%Y%m%d-%H%M%S-%f}-"
             f"{uuid4().hex[:8]}{extension.lower()}")
 
 

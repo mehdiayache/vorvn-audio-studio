@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
-import say
-from audio_studio.domain import batch, naming
+from audio_studio.domain import (
+    batch,
+    delivery_tags,
+    naming,
+    provider_catalog,
+    speech_text,
+)
 from audio_studio.infrastructure import object_storage as storage
 from audio_studio.domain import (
     provider_catalog as alibaba_catalog,
@@ -33,13 +38,14 @@ def configuration() -> dict:
     metadata = repository.catalog_metadata()
     environment = alibaba_environment()
     return {
-        "voices": say.VOICES,
-        "default_voice": say.DEFAULT_VOICE,
+        "voices": provider_catalog.AUDIO_SYSTEM_VOICES,
+        "default_voice": provider_catalog.AUDIO_DEFAULT_VOICES,
         "chosen_default_voice": preferences.get("default_voice", ""),
-        "models": say.MODELS,
-        "formats": list(say.FORMATS),
-        "tags": {"Moods": say.MOOD_TAGS, "Sounds": say.SOUND_TAGS},
-        "retired_tags": say.RETIRED_TAGS,
+        "models": provider_catalog.CAPABILITIES["audio"]["models"],
+        "formats": list(speech_text.OUTPUT_FORMATS),
+        "tags": {"Moods": delivery_tags.MOOD_TAGS,
+                 "Sounds": delivery_tags.SOUND_TAGS},
+        "retired_tags": delivery_tags.RETIRED_TAGS,
         "tag_variables": tag_variables(),
         "naming": naming.merged(
             control_repository.setting(
@@ -61,8 +67,8 @@ def configuration() -> dict:
         "instruction_max": 100,
         "rates": alibaba_catalog.CAPABILITIES["audio"]["rates_per_million_chars"],
         "batch_max_rows": batch.MAX_ROWS,
-        "synth_flags": say.SYNTH_FLAGS,
-        "chunk_size": say.MAX_CHARS,
+        "synth_flags": speech_text.SYNTH_FLAGS,
+        "chunk_size": speech_text.MAX_CHARS,
         "has_key": environment.api_key_configured,
         "out_dir": str(media_root()),
         "prefs": {**preferences, "out_dir": str(media_root())},

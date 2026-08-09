@@ -9,6 +9,7 @@ from threading import RLock
 from typing import Any
 
 import say
+from audio_studio.domain import speech_text
 from audio_studio.infrastructure import object_storage as storage
 
 from audio_studio.config import settings
@@ -80,7 +81,8 @@ def update_storage(values: dict[str, Any]) -> None:
 
 
 def pronunciation_preview(text: str) -> dict[str, Any]:
-    prepared, applied = say.apply_pronunciations(text)
+    prepared, applied = speech_text.apply_pronunciations(
+        text, pronunciation_repository.list(enabled_only=True))
     return {"text": prepared, "applied": applied}
 
 

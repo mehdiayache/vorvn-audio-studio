@@ -7,7 +7,7 @@ import os
 import re
 
 import say
-from audio_studio.domain import voice_routing
+from audio_studio.domain import delivery_tags, provider_catalog, speech_text, voice_routing
 from audio_studio.infrastructure.alibaba import config, omni
 from audio_studio.domain import speech_fidelity as alibaba_fidelity
 from audio_studio.domain.provider_pricing import PRICE_VERSION, qwen_audio_tts_cost
@@ -22,9 +22,9 @@ def synthesize(chunks, options, on_progress=None):
     """Route speech through the Alibaba product selected by one voice route."""
     if options.engine == "omni":
         if any(
-            tag.casefold() in say.KNOWN_TAGS
+            tag.casefold() in delivery_tags.KNOWN_TAGS
             for chunk in chunks
-            for tag in say.TAG_RE.findall(chunk)
+            for tag in delivery_tags.TAG_RE.findall(chunk)
         ):
             raise ValueError(
                 "Qwen 3.5 Omni does not support inline delivery tags. "
@@ -52,7 +52,8 @@ class _Options:
         self.language = None if language in (None, "", "Auto") else str(language)
         self.voice_identity_id = route.identity_id
         self.voice = route.provider_voice_id or (
-            "Tina" if route.engine == "omni" else say.DEFAULT_VOICE[route.tier])
+            "Tina" if route.engine == "omni"
+            else provider_catalog.AUDIO_DEFAULT_VOICES[route.tier])
         self.engine = route.engine
         self.model = route.tier
         self.model_id = route.model_id
@@ -70,10 +71,10 @@ class _Options:
         self.volume = int(values.get("volume", 50))
         self.seed = int(values.get("seed") or 0)
         defaults = preferences.get("synth_flags") or {}
-        for flag in say.SYNTH_FLAGS:
+        for flag in speech_text.SYNTH_FLAGS:
             value = values.get(flag, defaults.get(flag))
             setattr(self, flag, None if value is None else bool(value))
-        self.hot_fix = say.build_hot_fix(pronunciations)
+        self.hot_fix = speech_text.build_hot_fix(pronunciations)
         extra = values.get("extra_params", preferences.get("extra_params"))
         if isinstance(extra, str) and extra.strip():
             try:
@@ -110,16 +111,16 @@ class AlibabaSpeechProvider:
                 "That cloned voice has no active Alibaba model version. "
                 "Reload Voices before generating.")
         options = _Options(values, bindings, pronunciations, preferences)
-        tagged = [tag for tag in say.TAG_RE.findall(text)
-                  if tag.casefold() in say.KNOWN_TAGS]
+        tagged = [tag for tag in delivery_tags.TAG_RE.findall(text)
+                  if tag.casefold() in delivery_tags.KNOWN_TAGS]
         if options.engine == "omni" and tagged:
             raise ValueError(
                 "Qwen 3.5 Omni does not support inline delivery tags. "
                 "Choose Raw or Spoken text, or use a Qwen Audio voice.")
-        spoken, applied = say.apply_pronunciations(text, pronunciations)
+        spoken, applied = speech_text.apply_pronunciations(text, pronunciations)
         rewrites: list = []
         if preferences.get("fix_dates_phones", True):
-            spoken, rewrites = say.normalise_ambiguous(
+            spoken, rewrites = speech_text.normalise_ambiguous(
                 spoken, day_first=bool(preferences.get("day_first", True)))
         return PreparedSpeech(
             original_text=text, spoken_text=spoken, voice=options.voice,
@@ -129,7 +130,7 @@ class AlibabaSpeechProvider:
             extension=_extension(options.format), language=options.language,
             instruction=options.instruction, speech_mode=options.speech_mode,
             rate=options.rate, pitch=options.pitch, volume=options.volume,
-            seed=options.seed, request_count=len(say.chunk_text(spoken)),
+            seed=options.seed, request_count=len(speech_text.chunk_text(spoken)),
             estimated_cost=_guard_estimate(spoken, options.engine, options.model),
             voice_route=options.voice_route, pronunciations=applied,
             rewrites=rewrites, context=options,
@@ -137,13 +138,13 @@ class AlibabaSpeechProvider:
 
     def synthesize(self, prepared: PreparedSpeech,
                    on_progress=None) -> SynthesizedSpeech:
-        chunks = say.chunk_text(prepared.spoken_text)
+        chunks = speech_text.chunk_text(prepared.spoken_text)
         audio, failures, transcripts, usage = synthesize(
             chunks, prepared.context, on_progress=on_progress)
         failure_rows = [item._asdict() for item in failures]
         provider_text = " ".join(
             item.strip() for item in transcripts if item.strip()) or None
-        compared = (say.strip_known_tags(prepared.spoken_text)
+        compared = (speech_text.strip_known_tags(prepared.spoken_text)
                     if prepared.engine == "omni" else prepared.spoken_text)
         fidelity = (alibaba_fidelity.assess(compared, provider_text or "")
                     if prepared.engine == "omni" else {})

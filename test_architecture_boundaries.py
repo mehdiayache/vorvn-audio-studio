@@ -116,9 +116,6 @@ INFRASTRUCTURE_APPLICATION_DEBT = {
 
 TRANSITIONAL_MODULE_DEBT = {
     "audio_studio.application.administration -> say",
-    "audio_studio.application.catalog -> say",
-    "audio_studio.application.renders -> say",
-    "audio_studio.application.settings -> say",
     "audio_studio.infrastructure.alibaba.speech_generation -> say",
     "audio_studio.infrastructure.alibaba.voice_cloning -> say",
     "audio_studio.worker -> say",

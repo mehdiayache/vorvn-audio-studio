@@ -5,8 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import say
-from audio_studio.domain import naming
+from audio_studio.domain import naming, speech_text
 from audio_studio.infrastructure import object_storage as storage
 from audio_studio.config import alibaba_environment
 
@@ -43,8 +42,8 @@ def snapshot() -> dict[str, Any]:
         "speech": {
             "fix_dates_phones": bool(preferences.get("fix_dates_phones", True)),
             "day_first": bool(preferences.get("day_first", True)),
-            "synth_flags": {key: bool(value) for key, value in (preferences.get("synth_flags") or {}).items() if key in say.SYNTH_FLAGS},
-            "supported_flags": say.SYNTH_FLAGS,
+            "synth_flags": {key: bool(value) for key, value in (preferences.get("synth_flags") or {}).items() if key in speech_text.SYNTH_FLAGS},
+            "supported_flags": speech_text.SYNTH_FLAGS,
             "extra_params": str(preferences.get("extra_params") or ""),
         },
         "naming": naming.merged(
@@ -92,7 +91,7 @@ def update(changes: dict[str, Any]) -> dict[str, Any]:
     if "synth_flags" in changes:
         preferences["synth_flags"] = {
             key: bool(value) for key, value in (changes["synth_flags"] or {}).items()
-            if key in say.SYNTH_FLAGS
+            if key in speech_text.SYNTH_FLAGS
         }
     if "naming" in changes:
         value = changes["naming"]

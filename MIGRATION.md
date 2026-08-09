@@ -54,7 +54,7 @@ Current checkpoint: boundary baseline complete.
 - Application direct technical edges: 1.
 - HTTP to Infrastructure edges: 7.
 - Infrastructure to Application edges: 8.
-- Transitional root/`services` import edges: 7.
+- Transitional root/`services` import edges: 4.
 - Root business modules: 7.
 - `services` Python modules: 0.
 
@@ -102,3 +102,8 @@ catalogue no longer depend on the root naming module.
 Batch column policy now belongs to Domain; CSV/TSV/XLSX decoding and ZIP
 assembly belong to Infrastructure. Batch intake still uses the same workspace
 port, and the root Batch module has been removed.
+
+Speech text preparation is now pure Domain policy: chunking, delivery-tag
+handling, pronunciation rules, ambiguous date/phone normalization, output
+names and supported request flags. Catalog, Settings and Production rendering
+no longer depend on the root speech CLI.

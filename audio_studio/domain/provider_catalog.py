@@ -42,6 +42,7 @@ AUDIO_SYSTEM_VOICES = {
     }
     for tier in ("plus", "flash")
 }
+AUDIO_DEFAULT_VOICES = {"plus": "longanlingxin", "flash": "loongeva_v3.6"}
 OMNI_SYSTEM_VOICES = {
     item["id"]: item.get("description", "") for item in _VOICE_CATALOG["omni"]
 }
