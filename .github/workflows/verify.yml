@@ -35,5 +35,6 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: python -m venv .venv && .venv/bin/pip install -r requirements.txt
       - run: pnpm install --frozen-lockfile
+      - run: .venv/bin/python -m audio_studio.migrations
       - run: pnpm check
       - run: .venv/bin/python -m unittest discover

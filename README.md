@@ -4,6 +4,12 @@ Audio Studio turns scripts and reusable media into spoken Productions. The same 
 
 ## Run locally
 
+Prepare a new database explicitly with:
+
+```bash
+.venv/bin/python -m audio_studio.migrations
+```
+
 ```bash
 docker compose up -d
 .venv/bin/pip install -r requirements.txt
