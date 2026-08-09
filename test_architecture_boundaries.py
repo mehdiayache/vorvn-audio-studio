@@ -150,7 +150,6 @@ TRANSITIONAL_MODULE_DEBT = {
     "audio_studio.infrastructure.alibaba.voice_cloning -> services.alibaba.omni",
     "audio_studio.infrastructure.alibaba.voice_cloning -> services.alibaba.pricing.PRICE_VERSION",
     "audio_studio.infrastructure.batch_workspace -> batch",
-    "audio_studio.infrastructure.postgres.jobs -> services.alibaba.config",
     "audio_studio.infrastructure.postgres.speech -> services.alibaba.voice_registry",
     "audio_studio.worker -> say",
 }

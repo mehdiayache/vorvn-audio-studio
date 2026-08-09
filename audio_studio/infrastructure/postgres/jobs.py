@@ -14,7 +14,7 @@ from audio_studio.domain.jobs import (
     JobStatus,
 )
 from audio_studio.infrastructure.postgres.session import read_only, transaction
-from services.alibaba import config as alibaba_config
+from audio_studio.domain import provider_catalog as alibaba_config
 from audio_studio.application.transcription import FUN_MODEL, QWEN_MODEL
 
 

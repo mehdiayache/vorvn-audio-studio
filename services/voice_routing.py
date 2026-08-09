@@ -8,7 +8,7 @@ through so improving the registry never breaks recordings that already work.
 from dataclasses import asdict, dataclass
 import re
 
-from services.alibaba import config
+from audio_studio.domain import provider_catalog as config
 
 
 UNAVAILABLE_STATUSES = {"deleted", "undeployed", "failed", "archived"}

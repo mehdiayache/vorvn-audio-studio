@@ -38,6 +38,14 @@ class NativeHttpTests(unittest.TestCase):
             with self.subTest(route=route):
                 self.assertEqual(self.client.post(route, json={}).status_code, 404)
 
+    def test_configuration_contract_is_live(self):
+        response = self.client.get("/api/v1/config")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()["data"]
+        self.assertIn("audio", payload["capabilities"])
+        self.assertIn("omni", payload["capabilities"])
+        self.assertIn(payload["workspace"]["region"], {"intl", "beijing"})
+
     def test_media_is_typed_seekable_and_security_hardened(self):
         with TemporaryDirectory() as directory:
             target = Path(directory) / "brand.png"

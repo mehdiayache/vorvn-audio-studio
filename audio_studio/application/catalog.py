@@ -9,8 +9,8 @@ import naming
 import say
 from audio_studio.infrastructure import object_storage as storage
 from services import voice_routing
-from services.alibaba import config as alibaba_config
-from services.alibaba import voice_registry
+from audio_studio.domain import provider_catalog as alibaba_catalog
+from services.alibaba import config as alibaba_environment, voice_registry
 
 from audio_studio.application.preferences import load_preferences
 from audio_studio.application.text_preparation import variables as tag_variables
@@ -47,18 +47,20 @@ def configuration() -> dict:
         "voice_favourites": [voice for voice, value in metadata.items() if value.get("favourite")],
         "naming_tokens": list(naming.TOKENS),
         "languages": LANGUAGES,
-        "capabilities": alibaba_config.CAPABILITIES,
+        "capabilities": alibaba_catalog.CAPABILITIES,
         "performance_presets": voice_registry.presets(),
-        "clone_languages": alibaba_config.AUDIO_CLONE_LANGUAGES,
+        "clone_languages": alibaba_catalog.AUDIO_CLONE_LANGUAGES,
         "workspace": {
-            "configured": bool(alibaba_config.workspace_id()),
-            "id": alibaba_config.workspace_id(),
-            "region": alibaba_config.region(),
-            "region_label": "Beijing" if alibaba_config.region() == "cn" else "Singapore",
-            "http_base": alibaba_config.http_base(),
+            "configured": bool(alibaba_environment.workspace_id()),
+            "id": alibaba_environment.workspace_id(),
+            "region": alibaba_environment.region(),
+            "region_label": (
+                "Beijing" if alibaba_environment.region() == "cn" else "Singapore"
+            ),
+            "http_base": alibaba_environment.http_base(),
         },
         "instruction_max": 100,
-        "rates": alibaba_config.CAPABILITIES["audio"]["rates_per_million_chars"],
+        "rates": alibaba_catalog.CAPABILITIES["audio"]["rates_per_million_chars"],
         "batch_max_rows": batch.MAX_ROWS,
         "synth_flags": say.SYNTH_FLAGS,
         "chunk_size": say.MAX_CHARS,

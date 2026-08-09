@@ -1,6 +1,7 @@
 """Provider-independent planning for one human voice and its model bindings."""
 
-from services.alibaba import config
+from audio_studio.domain import provider_catalog as catalog
+from services.alibaba import config as endpoint_config
 
 
 PACKAGE_LABELS = {
@@ -14,7 +15,9 @@ PACKAGE_LABELS = {
 def _language_code(value: str) -> str:
     value = (value or "").strip().lower()
     aliases = {name.lower(): code for code, name in {
-        **config.AUDIO_CLONE_LANGUAGES, **config.OMNI_CLONE_LANGUAGES}.items()}
+        **catalog.AUDIO_CLONE_LANGUAGES,
+        **catalog.OMNI_CLONE_LANGUAGES,
+    }.items()}
     return aliases.get(value, value)
 
 
@@ -22,7 +25,7 @@ def installed_routes(language: str) -> list[dict]:
     """Every clone binding the installed application can actually consume."""
     code = _language_code(language)
     routes = []
-    for engine, capability in config.CAPABILITIES.items():
+    for engine, capability in catalog.CAPABILITIES.items():
         if code not in capability.get("clone_languages", {}):
             continue
         for tier in capability.get("clone_tiers", []):
@@ -58,8 +61,10 @@ def plan(language: str, package: str = "complete") -> dict:
                          "models": [route["model_id"] for route in routes],
                          "available": bool(routes)})
     return {
-        "region": config.region(),
-        "region_label": "Beijing" if config.region() == "beijing" else "Singapore",
+        "region": endpoint_config.region(),
+        "region_label": (
+            "Beijing" if endpoint_config.region() == "beijing" else "Singapore"
+        ),
         "language": code, "package": package,
         "routes": selected, "available_routes": available, "packages": packages,
         "total_estimated_creation_cost": round(sum(

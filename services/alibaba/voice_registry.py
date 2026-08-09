@@ -8,7 +8,7 @@ custom voices come from the account's live enrollment APIs.
 import json
 from pathlib import Path
 
-from . import config
+from audio_studio.domain import provider_catalog as config
 
 
 ROOT = Path(__file__).parent
@@ -19,7 +19,7 @@ def _read(name: str):
 
 
 def catalog() -> dict:
-    return _read("voice_catalog.json")
+    return config.documented_voice_catalog()
 
 
 def presets() -> list[dict]:

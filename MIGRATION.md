@@ -54,10 +54,14 @@ Current checkpoint: boundary baseline complete.
 - Application direct technical edges: 1.
 - HTTP to Infrastructure edges: 7.
 - Infrastructure to Application edges: 8.
-- Transitional root/`services` import edges: 38.
+- Transitional root/`services` import edges: 37.
 - Root business modules: 10.
 - `services` Python modules: 12.
 
-Next checkpoint: migrate pure Alibaba configuration, pricing, fidelity and
-voice-registry ownership without changing provider payloads or paid-call
-behavior.
+Current slice: Alibaba's immutable capability/language/model catalogue and its
+versioned voice snapshot now belong to Domain. Endpoint and environment
+selection remain in the transitional provider configuration until the
+Infrastructure port is introduced.
+
+Next checkpoint: migrate pure Alibaba pricing and fidelity ownership without
+changing provider payloads or paid-call behavior.
