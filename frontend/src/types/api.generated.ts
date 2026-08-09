@@ -1609,6 +1609,35 @@ export interface components {
         JobEnvelope: {
             data: components["schemas"]["JobResponse"];
         };
+        /** JobEventResponse */
+        JobEventResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Detail */
+            detail: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id: number;
+            /** Kind */
+            kind: string;
+            /** Progress */
+            progress?: number | null;
+        };
+        /** JobEventsEnvelope */
+        JobEventsEnvelope: {
+            /** Data */
+            data: components["schemas"]["JobEventResponse"][];
+            meta: components["schemas"]["JobEventsMeta"];
+        };
+        /** JobEventsMeta */
+        JobEventsMeta: {
+            /** Count */
+            count: number;
+        };
         /** JobMeta */
         JobMeta: {
             /** Created */
@@ -2978,9 +3007,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["JobEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -3011,9 +3038,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["JobEventsEnvelope"];
                 };
             };
             /** @description Validation Error */

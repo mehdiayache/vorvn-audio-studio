@@ -14,12 +14,11 @@ from audio_studio.domain.jobs import Job
 from audio_studio.application.text_preparation import MODEL as TEXT_PREPARATION_MODEL
 from audio_studio.application.translation import MODELS as TRANSLATION_MODELS
 from audio_studio.application.transcription import FUN_MODEL, QWEN_MODEL
+from audio_studio.composition.jobs import job_service
 from audio_studio.http.errors import ApiProblem
-from audio_studio.infrastructure.postgres.jobs import JobRepository
 
 
 router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
-repository = JobRepository()
 
 
 class JobResponse(BaseModel):
@@ -46,6 +45,23 @@ class JobEnvelope(BaseModel):
 
 class JobCreatedEnvelope(JobEnvelope):
     meta: JobMeta
+
+
+class JobEventResponse(BaseModel):
+    id: int
+    created_at: datetime
+    kind: str
+    progress: float | None = None
+    detail: dict[str, Any]
+
+
+class JobEventsMeta(BaseModel):
+    count: int
+
+
+class JobEventsEnvelope(BaseModel):
+    data: list[JobEventResponse]
+    meta: JobEventsMeta
 
 
 class SpeechJobCreate(BaseModel):
@@ -198,7 +214,7 @@ def create_speech_job(payload: SpeechJobCreate,
     # Keep explicit nulls: selecting a system voice intentionally clears a
     # previous cloned-voice identity on a replacement Take.
     values = payload.model_dump(exclude_unset=True)
-    job, created = repository.enqueue(
+    job, created = job_service.enqueue(
         "speech", values,
         idempotency_key=(idempotency_key or f"speech-{uuid4()}")[:200],
         production_id=payload.production_id,
@@ -212,7 +228,7 @@ def create_speech_job(payload: SpeechJobCreate,
              response_model=JobCreatedEnvelope)
 def create_batch_job(payload: BatchJobCreate,
                      idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
-    job, created = repository.enqueue(
+    job, created = job_service.enqueue(
         "batch", payload.model_dump(exclude_none=True),
         idempotency_key=(idempotency_key or f"batch-{uuid4()}")[:200],
         source_tool="batch", operation_label="Generate batch",
@@ -224,7 +240,7 @@ def create_batch_job(payload: BatchJobCreate,
              response_model=JobCreatedEnvelope)
 def create_render_job(payload: RenderJobCreate,
                       idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
-    job, created = repository.enqueue(
+    job, created = job_service.enqueue(
         "render", payload.model_dump(),
         idempotency_key=(idempotency_key or f"render-{uuid4()}")[:200],
         production_id=payload.production_id,
@@ -239,7 +255,7 @@ def create_transcription_job(payload: TranscriptionJobCreate,
                              idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
     values = {**payload.model_dump(exclude_none=True),
               "model": FUN_MODEL if payload.vocabulary_id else QWEN_MODEL}
-    job, created = repository.enqueue(
+    job, created = job_service.enqueue(
         "transcribe", values,
         idempotency_key=(idempotency_key or f"transcribe-{uuid4()}")[:200],
         production_id=payload.production_id,
@@ -255,7 +271,7 @@ def create_translation_job(payload: TranslationJobCreate,
                            idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
     values = {**payload.model_dump(exclude_none=True),
               "model": TRANSLATION_MODELS[payload.quality]}
-    job, created = repository.enqueue(
+    job, created = job_service.enqueue(
         "translate", values,
         idempotency_key=(idempotency_key or f"translate-{uuid4()}")[:200],
         source_tool="subtitles", operation_label="Translate subtitles",
@@ -269,7 +285,7 @@ def create_text_job(payload: TextJobCreate,
                     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
     values = {**payload.model_dump(exclude_none=True),
               "model": TEXT_PREPARATION_MODEL}
-    job, created = repository.enqueue(
+    job, created = job_service.enqueue(
         "rewrite", values,
         idempotency_key=(idempotency_key or f"rewrite-{uuid4()}")[:200],
         production_id=payload.production_id,
@@ -281,23 +297,29 @@ def create_text_job(payload: TextJobCreate,
 
 @router.get("/{job_id}", operation_id="getJob", response_model=JobEnvelope)
 def get_job(job_id: UUID) -> dict:
-    job = repository.get(job_id)
+    job = job_service.get(job_id)
     if not job:
         raise ApiProblem(404, "job_not_found", "That Job does not exist.")
     return {"data": _payload(job)}
 
 
-@router.get("/{job_id}/events", operation_id="listJobEvents")
+@router.get(
+    "/{job_id}/events", operation_id="listJobEvents",
+    response_model=JobEventsEnvelope,
+)
 def get_job_events(job_id: UUID) -> dict:
-    if not repository.get(job_id):
+    if not job_service.get(job_id):
         raise ApiProblem(404, "job_not_found", "That Job does not exist.")
-    events = repository.events(job_id)
+    events = job_service.events(job_id)
     return {"data": events, "meta": {"count": len(events)}}
 
 
-@router.post("/{job_id}/cancel", operation_id="cancelJob")
+@router.post(
+    "/{job_id}/cancel", operation_id="cancelJob",
+    response_model=JobEnvelope,
+)
 def cancel_job(job_id: UUID) -> dict:
-    job = repository.cancel(job_id)
+    job = job_service.cancel(job_id)
     if not job:
         raise ApiProblem(404, "job_not_found", "That Job does not exist.")
     return {"data": _payload(job)}

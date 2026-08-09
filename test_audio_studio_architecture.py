@@ -59,6 +59,24 @@ class AudioStudioArchitectureTests(unittest.TestCase):
                 "application/json"]["schema"]
             self.assertIn("$ref", schema, route)
 
+    def test_job_endpoints_publish_generated_response_contracts(self):
+        paths = app.openapi()["paths"]
+        routes = (
+            ("/api/v1/jobs/speech", "post", "202"),
+            ("/api/v1/jobs/batch", "post", "202"),
+            ("/api/v1/jobs/render", "post", "202"),
+            ("/api/v1/jobs/transcription", "post", "202"),
+            ("/api/v1/jobs/translation", "post", "202"),
+            ("/api/v1/jobs/text", "post", "202"),
+            ("/api/v1/jobs/{job_id}", "get", "200"),
+            ("/api/v1/jobs/{job_id}/events", "get", "200"),
+            ("/api/v1/jobs/{job_id}/cancel", "post", "200"),
+        )
+        for route, method, status in routes:
+            schema = paths[route][method]["responses"][status]["content"][
+                "application/json"]["schema"]
+            self.assertIn("$ref", schema, route)
+
     def test_every_speech_operation_has_the_required_target(self):
         SpeechJobCreate(text="Hello", voice="Tina", engine="omni", model="plus")
         with self.assertRaises(ValueError):

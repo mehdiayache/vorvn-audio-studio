@@ -2,20 +2,54 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any, Callable, Iterable, Protocol
 import threading
+from uuid import UUID
 
 from audio_studio.domain.jobs import Job, JobCancelled
-from audio_studio.infrastructure.postgres.jobs import JobRepository
 
 
-JobHandler = Callable[[Job, JobRepository], dict[str, Any]]
+class JobProgress(Protocol):
+    def progress(self, job_id: int, done: int, total: int,
+                 detail: str = "") -> None: ...
+
+
+class JobStore(JobProgress, Protocol):
+    def heartbeat(self, job_id: int) -> bool: ...
+    def claim_next(self, kinds: Iterable[str]) -> Job | None: ...
+    def finish(self, job_id: int, result: dict[str, Any], **values) -> bool: ...
+    def fail(self, job_id: int, error: str, retry: bool = False) -> None: ...
+    def enqueue(self, kind: str, payload: dict[str, Any], **values) \
+            -> tuple[Job, bool]: ...
+    def get(self, public_id: UUID) -> Job | None: ...
+    def events(self, public_id: UUID) -> list[dict[str, Any]]: ...
+    def cancel(self, public_id: UUID) -> Job | None: ...
+    def abandon_stale(self, older_than_seconds: int = 120) -> int: ...
+
+
+JobHandler = Callable[[Job, JobProgress], dict[str, Any]]
 
 
 class JobService:
-    def __init__(self, repository: JobRepository | None = None):
-        self.repository = repository or JobRepository()
+    def __init__(self, repository: JobStore):
+        self.repository = repository
         self.handlers: dict[str, JobHandler] = {}
+
+    def enqueue(self, kind: str, payload: dict[str, Any], **values) \
+            -> tuple[Job, bool]:
+        return self.repository.enqueue(kind, payload, **values)
+
+    def get(self, public_id: UUID) -> Job | None:
+        return self.repository.get(public_id)
+
+    def events(self, public_id: UUID) -> list[dict[str, Any]]:
+        return self.repository.events(public_id)
+
+    def cancel(self, public_id: UUID) -> Job | None:
+        return self.repository.cancel(public_id)
+
+    def abandon_stale(self, older_than_seconds: int = 120) -> int:
+        return self.repository.abandon_stale(older_than_seconds)
 
     def register(self, kind: str, handler: JobHandler) -> None:
         self.handlers[kind] = handler

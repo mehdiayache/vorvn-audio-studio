@@ -32,7 +32,7 @@ from audio_studio.application.transcription import (
 )
 from audio_studio.application.voice_cloning import VoiceCloningService
 
-from audio_studio.application.jobs import JobService
+from audio_studio.composition.jobs import job_service
 from audio_studio.infrastructure.alibaba.text_preparation import AlibabaTextProvider
 from audio_studio.infrastructure.alibaba.speech_generation import AlibabaSpeechProvider
 from audio_studio.infrastructure.alibaba.translation import AlibabaTranslationProvider
@@ -48,7 +48,6 @@ from audio_studio.infrastructure.postgres.speech import SpeechRepository
 from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
 from audio_studio.infrastructure.transcription_source import TranscriptionSourceResolver
 from audio_studio.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
-from audio_studio.infrastructure.postgres.jobs import JobRepository
 from audio_studio.infrastructure.postgres.worker_runtime import WorkerRuntimeRepository
 from audio_studio.infrastructure.runtime_environment import (
     reload_owned_environment,
@@ -58,7 +57,7 @@ from audio_studio.infrastructure.runtime_environment import (
 
 def main() -> int:
     reload_owned_environment()
-    service = JobService()
+    service = job_service
     speech = SpeechRepository()
     speech_provider = AlibabaSpeechProvider()
     service.register("speech", SpeechJobHandler(SpeechGenerationService(
@@ -94,7 +93,6 @@ def main() -> int:
     )
     stopping = False
     runtime = WorkerRuntimeRepository()
-    jobs = JobRepository()
     last_maintenance = 0.0
     loaded_revision = environment_revision()
 
@@ -125,7 +123,7 @@ def main() -> int:
                 reload_owned_environment()
                 loaded_revision = current_revision
             if now - last_maintenance >= 30:
-                jobs.abandon_stale()
+                service.abandon_stale()
                 last_maintenance = now
             if service.work_once():
                 continue

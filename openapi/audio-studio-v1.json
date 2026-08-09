@@ -899,6 +899,80 @@
         "title": "JobEnvelope",
         "type": "object"
       },
+      "JobEventResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "detail": {
+            "additionalProperties": true,
+            "title": "Detail",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "kind",
+          "detail"
+        ],
+        "title": "JobEventResponse",
+        "type": "object"
+      },
+      "JobEventsEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/JobEventResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/JobEventsMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "JobEventsEnvelope",
+        "type": "object"
+      },
+      "JobEventsMeta": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count"
+        ],
+        "title": "JobEventsMeta",
+        "type": "object"
+      },
       "JobMeta": {
         "properties": {
           "created": {
@@ -4127,9 +4201,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Canceljob",
-                  "type": "object"
+                  "$ref": "#/components/schemas/JobEnvelope"
                 }
               }
             },
@@ -4172,9 +4244,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Listjobevents",
-                  "type": "object"
+                  "$ref": "#/components/schemas/JobEventsEnvelope"
                 }
               }
             },
