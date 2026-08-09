@@ -34,7 +34,46 @@ class Settings:
             ),
             output_dir=Path(os.getenv("AUDIO_STUDIO_OUTPUT_DIR", str(ROOT / "out"))),
         )
+
+
 settings = Settings.from_env()
+
+
+@dataclass(frozen=True, slots=True)
+class AlibabaEnvironment:
+    """Current non-secret provider deployment selected for this process.
+
+    This value is deliberately created on demand. The worker refreshes its
+    owned environment without restarting, so freezing these values at import
+    time would send jobs to the previous region or workspace.
+    """
+
+    region: str
+    workspace_id: str
+    api_key_configured: bool
+
+    @property
+    def region_label(self) -> str:
+        return "Beijing" if self.region == "beijing" else "Singapore"
+
+    @property
+    def native_http_base(self) -> str:
+        if self.workspace_id:
+            zone = "cn-beijing" if self.region == "beijing" else "ap-southeast-1"
+            return f"https://{self.workspace_id}.{zone}.maas.aliyuncs.com/api/v1"
+        host = ("dashscope.aliyuncs.com" if self.region == "beijing"
+                else "dashscope-intl.aliyuncs.com")
+        return f"https://{host}/api/v1"
+
+
+def alibaba_environment() -> AlibabaEnvironment:
+    """Read the current Alibaba deployment without exposing its API key."""
+    region = (os.getenv("DASHSCOPE_REGION") or "intl").strip().casefold()
+    return AlibabaEnvironment(
+        region="beijing" if region == "beijing" else "intl",
+        workspace_id=(os.getenv("DASHSCOPE_WORKSPACE_ID") or "").strip(),
+        api_key_configured=bool((os.getenv("DASHSCOPE_API_KEY") or "").strip()),
+    )
 
 
 def require_local_bind() -> None:

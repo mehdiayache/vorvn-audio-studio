@@ -54,14 +54,14 @@ Current checkpoint: boundary baseline complete.
 - Application direct technical edges: 1.
 - HTTP to Infrastructure edges: 7.
 - Infrastructure to Application edges: 8.
-- Transitional root/`services` import edges: 28.
+- Transitional root/`services` import edges: 20.
 - Root business modules: 10.
-- `services` Python modules: 8.
+- `services` Python modules: 6.
 
 Current slice: Alibaba's immutable capability/language/model catalogue and its
-versioned voice snapshot now belong to Domain. Endpoint and environment
-selection remain in the transitional provider configuration until the
-Infrastructure port is introduced.
+versioned voice snapshot now belong to Domain. Dynamic region, workspace and
+key-presence configuration has one runtime owner; protocol-specific endpoint
+resolution belongs to the Alibaba Infrastructure adapter.
 
 Pricing and transcript-fidelity rules are now pure Domain modules; their
 transitional `services/alibaba` files have been removed.
@@ -72,6 +72,6 @@ the transitional registry module has been removed.
 Voice/model routing is now a pure Domain policy; its transitional service has
 been removed.
 
-Provider endpoint/environment configuration is deferred until its Application
-port can be introduced without adding a new Application-to-Infrastructure edge.
-The next safe checkpoint is pure voice-package planning.
+Voice-package planning is now deterministic Domain policy with an explicit
+region input. The transitional endpoint and package-planning services have
+been removed without adding an Application-to-Infrastructure edge.

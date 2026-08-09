@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from openai import OpenAI
 
-from . import config
+from audio_studio.infrastructure.alibaba import config
 
 
 @dataclass(frozen=True, slots=True)

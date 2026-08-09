@@ -3,18 +3,9 @@
 import unittest
 
 from audio_studio.domain import provider_catalog
-from services.alibaba import config as transitional_config
 
 
 class ProviderCatalogTests(unittest.TestCase):
-    def test_transitional_config_reexports_the_canonical_catalog(self):
-        self.assertIs(transitional_config.CAPABILITIES,
-                      provider_catalog.CAPABILITIES)
-        self.assertIs(transitional_config.AUDIO_CLONE_LANGUAGES,
-                      provider_catalog.AUDIO_CLONE_LANGUAGES)
-        self.assertIs(transitional_config.OMNI_CLONE_LANGUAGES,
-                      provider_catalog.OMNI_CLONE_LANGUAGES)
-
     def test_documented_snapshot_supplies_every_system_voice(self):
         snapshot = provider_catalog.documented_voice_catalog()
         expected_audio = {

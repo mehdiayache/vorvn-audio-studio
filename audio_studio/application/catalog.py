@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-
 import batch
 import naming
 import say
@@ -13,7 +11,7 @@ from audio_studio.domain import (
     voice_registry,
     voice_routing,
 )
-from services.alibaba import config as alibaba_environment
+from audio_studio.config import alibaba_environment
 
 from audio_studio.application.preferences import load_preferences
 from audio_studio.application.text_preparation import variables as tag_variables
@@ -34,6 +32,7 @@ control_repository = ControlPlaneRepository()
 def configuration() -> dict:
     preferences = load_preferences()
     metadata = repository.catalog_metadata()
+    environment = alibaba_environment()
     return {
         "voices": say.VOICES,
         "default_voice": say.DEFAULT_VOICE,
@@ -54,20 +53,18 @@ def configuration() -> dict:
         "performance_presets": voice_registry.presets(),
         "clone_languages": alibaba_catalog.AUDIO_CLONE_LANGUAGES,
         "workspace": {
-            "configured": bool(alibaba_environment.workspace_id()),
-            "id": alibaba_environment.workspace_id(),
-            "region": alibaba_environment.region(),
-            "region_label": (
-                "Beijing" if alibaba_environment.region() == "cn" else "Singapore"
-            ),
-            "http_base": alibaba_environment.http_base(),
+            "configured": bool(environment.workspace_id),
+            "id": environment.workspace_id,
+            "region": environment.region,
+            "region_label": environment.region_label,
+            "http_base": environment.native_http_base,
         },
         "instruction_max": 100,
         "rates": alibaba_catalog.CAPABILITIES["audio"]["rates_per_million_chars"],
         "batch_max_rows": batch.MAX_ROWS,
         "synth_flags": say.SYNTH_FLAGS,
         "chunk_size": say.MAX_CHARS,
-        "has_key": bool(os.getenv("DASHSCOPE_API_KEY")),
+        "has_key": environment.api_key_configured,
         "out_dir": str(media_root()),
         "prefs": {**preferences, "out_dir": str(media_root())},
         "spend": control_repository.spend_totals(),

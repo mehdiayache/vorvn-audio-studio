@@ -13,7 +13,7 @@ from audio_studio.application.transcription import (
     ProviderTranscript,
     QWEN_MODEL,
 )
-from services.alibaba import config
+from audio_studio.infrastructure.alibaba import config
 
 
 LANGUAGE_CODES = {

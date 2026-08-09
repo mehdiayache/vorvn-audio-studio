@@ -16,7 +16,7 @@ from typing import NamedTuple
 
 from openai import APIStatusError, OpenAI
 
-from . import config
+from audio_studio.infrastructure.alibaba import config
 
 
 class ChunkFailure(NamedTuple):

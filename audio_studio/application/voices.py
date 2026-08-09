@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from services import voice_packages
+from audio_studio.config import alibaba_environment
+from audio_studio.domain import voice_packages
 from audio_studio.application.preferences import load_preferences
 from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
 from audio_studio.infrastructure.postgres.voices import VoiceRepository
@@ -23,7 +24,8 @@ def profiles() -> list[dict[str, Any]]:
             language for binding in identity["bindings"]
             for language in binding.get("languages", []) if language), "")
         identity["metadata"] = {**metadata, "language": language}
-        identity["available_routes"] = (voice_packages.plan(language)["available_routes"]
+        identity["available_routes"] = (voice_packages.plan(
+            language, region=alibaba_environment().region)["available_routes"]
                                                  if language else [])
         identity["usage"] = usage.get(identity["id"], {
             "uses": 0, "productions": 0, "spend": 0.0,
@@ -60,7 +62,8 @@ def link_history(identity_id: str, provider_voice_id: str) -> dict[str, Any] | N
 def package_plan(language: str, package: str = "complete") -> dict:
     if not language.strip():
         raise ValueError("Choose the recording language first.")
-    return voice_packages.plan(language, package)
+    return voice_packages.plan(
+        language, package, region=alibaba_environment().region)
 
 
 def _check_creation_budget(estimate: float, confirmed: bool) -> dict | None:

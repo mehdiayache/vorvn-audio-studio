@@ -8,7 +8,7 @@ import re
 
 import say
 from audio_studio.domain import voice_routing
-from services.alibaba import config
+from audio_studio.infrastructure.alibaba import config
 from audio_studio.domain import speech_fidelity as alibaba_fidelity
 from services.alibaba import speech as alibaba_speech
 from audio_studio.domain.provider_pricing import PRICE_VERSION, qwen_audio_tts_cost

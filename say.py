@@ -48,7 +48,7 @@ load_dotenv()
 
 import dashscope  # noqa: E402
 from dashscope.audio.tts_v2 import AudioFormat, SpeechSynthesizer  # noqa: E402
-from services.alibaba import config as alibaba_config  # noqa: E402
+from audio_studio.infrastructure.alibaba import config as alibaba_config  # noqa: E402
 from audio_studio.infrastructure.postgres.pronunciations import (  # noqa: E402
     PronunciationRepository,
 )

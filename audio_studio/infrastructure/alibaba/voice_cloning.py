@@ -10,7 +10,8 @@ import time
 
 import say
 from audio_studio.infrastructure import object_storage as storage
-from services.alibaba import config, omni
+from audio_studio.infrastructure.alibaba import config
+from services.alibaba import omni
 from audio_studio.domain.provider_pricing import PRICE_VERSION
 
 from audio_studio.domain.voice_packages import (

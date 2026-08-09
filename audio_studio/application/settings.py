@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 
 import naming
 import say
 from audio_studio.infrastructure import object_storage as storage
-from services.alibaba import config as alibaba_config
+from audio_studio.config import alibaba_environment
 
 from audio_studio.application.preferences import load_preferences, save_preferences
 from audio_studio.infrastructure.postgres.control_plane import (
@@ -24,15 +23,16 @@ repository = ControlPlaneRepository()
 def snapshot() -> dict[str, Any]:
     preferences = load_preferences()
     storage_values = storage.settings()
+    environment = alibaba_environment()
     return {
         "provider": {
             "name": "Alibaba Model Studio",
-            "configured": bool(os.getenv("DASHSCOPE_API_KEY")),
-            "workspace_configured": bool(alibaba_config.workspace_id()),
-            "workspace_id": alibaba_config.workspace_id(),
-            "region": alibaba_config.region(),
-            "region_label": "Beijing" if alibaba_config.region() == "beijing" else "Singapore",
-            "http_base": alibaba_config.http_base(),
+            "configured": environment.api_key_configured,
+            "workspace_configured": bool(environment.workspace_id),
+            "workspace_id": environment.workspace_id,
+            "region": environment.region,
+            "region_label": environment.region_label,
+            "http_base": environment.native_http_base,
         },
         "output_directory": str(media_root()),
         "spending": {
