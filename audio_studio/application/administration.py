@@ -13,6 +13,7 @@ import storage
 
 from audio_studio.config import settings
 from audio_studio.infrastructure.media_paths import media_root, voice_reference_root
+from audio_studio.infrastructure.runtime_environment import REVISION_FILE
 from audio_studio.infrastructure.postgres.pronunciations import (
     PronunciationRepository,
 )
@@ -32,6 +33,10 @@ _STORAGE_ENV = {
 def _write_environment(changes: dict[str, str | None]) -> None:
     """Atomically update only owned keys while preserving unrelated settings."""
     with _lock:
+        for key, value in changes.items():
+            if "\n" in key or "\r" in key or (value is not None and (
+                    "\n" in value or "\r" in value)):
+                raise ValueError("Settings values cannot contain line breaks.")
         lines = ENV_FILE.read_text().splitlines() if ENV_FILE.exists() else []
         owned = set(changes)
         kept = [line for line in lines if not any(line.startswith(f"{key}=") for key in owned)]
@@ -43,6 +48,9 @@ def _write_environment(changes: dict[str, str | None]) -> None:
         temporary.write_text("\n".join(kept).rstrip() + "\n")
         temporary.chmod(0o600)
         temporary.replace(ENV_FILE)
+        revision = REVISION_FILE.with_suffix(".tmp")
+        revision.write_text(str(time.time_ns()))
+        revision.replace(REVISION_FILE)
 
 
 def update_provider(values: dict[str, Any]) -> None:
@@ -81,11 +89,13 @@ def disk_snapshot() -> dict[str, Any]:
     output = media_root()
     scratch_paths = {
         ".batches": (settings.root / ".batches", "parsed spreadsheets"),
-        ".uploads": (settings.root / ".uploads", "legacy reference recordings"),
-        "voice-references": (voice_reference_root(), "durable voice masters"),
         ".blocks": (settings.root / ".blocks", "per-block script audio"),
         ".inbox": (settings.root / ".inbox", "subtitle source audio"),
         ".tagged": (settings.root / ".tagged", "temporary tagged copies"),
+    }
+    protected_paths = {
+        ".uploads": (settings.root / ".uploads", "protected legacy voice masters"),
+        "voice-references": (voice_reference_root(), "durable voice masters"),
     }
     def measure(path: Path) -> tuple[int, int]:
         files = [item for item in path.rglob("*") if item.is_file()] if path.exists() else []
@@ -95,8 +105,14 @@ def disk_snapshot() -> dict[str, Any]:
     for name, (path, description) in scratch_paths.items():
         size, count = measure(path)
         scratch[name] = {"bytes": size, "files": count, "what": description}
+    protected = {}
+    for name, (path, description) in protected_paths.items():
+        size, count = measure(path)
+        protected[name] = {"bytes": size, "files": count, "what": description}
     return {"finished": {"bytes": finished_bytes, "files": finished_files,
                           "where": str(output)}, "scratch": scratch,
+            "protected": protected,
+            "protected_total": sum(item["bytes"] for item in protected.values()),
             "scratch_total": sum(item["bytes"] for item in scratch.values()),
             "keep_days": 7}
 

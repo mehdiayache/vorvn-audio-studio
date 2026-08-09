@@ -21,6 +21,10 @@ class JobStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class JobCancelled(RuntimeError):
+    """Cooperative stop raised at a safe Job progress boundary."""
+
+
 TERMINAL_STATUSES = {JobStatus.SUCCEEDED, JobStatus.WARNING, JobStatus.FAILED,
                      JobStatus.BLOCKED, JobStatus.LOST, JobStatus.CANCELLED}
 

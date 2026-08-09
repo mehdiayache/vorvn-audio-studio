@@ -5,6 +5,7 @@ from __future__ import annotations
 import signal
 import subprocess
 import sys
+import threading
 
 import uvicorn
 
@@ -15,8 +16,56 @@ from audio_studio.infrastructure.voice_reference_workspace import VoiceReference
 from audio_studio.application.reference_storage import migrate_legacy_references
 
 
+class WorkerSupervisor:
+    """Keep the local worker alive while FastAPI owns the foreground process."""
+
+    def __init__(self):
+        self._stopping = threading.Event()
+        self._lock = threading.Lock()
+        self._process: subprocess.Popen | None = None
+        self._thread: threading.Thread | None = None
+
+    def _spawn(self) -> subprocess.Popen:
+        return subprocess.Popen(
+            [sys.executable, "-m", "audio_studio.worker"], cwd=settings.root)
+
+    def start(self) -> None:
+        with self._lock:
+            self._process = self._spawn()
+        self._thread = threading.Thread(
+            target=self._watch, name="audio-studio-worker-supervisor", daemon=True)
+        self._thread.start()
+
+    def _watch(self) -> None:
+        while not self._stopping.wait(1):
+            with self._lock:
+                process = self._process
+                if process is not None and process.poll() is None:
+                    continue
+                code = process.returncode if process is not None else "missing"
+                print(f"Audio Studio worker exited ({code}); restarting.")
+                self._process = self._spawn()
+
+    def stop(self) -> None:
+        self._stopping.set()
+        with self._lock:
+            process = self._process
+        if process is not None and process.poll() is None:
+            process.send_signal(signal.SIGINT)
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.terminate()
+                try:
+                    process.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+        if self._thread is not None:
+            self._thread.join(timeout=2)
+
+
 def main() -> int:
-    worker = None
+    supervisor = WorkerSupervisor()
     try:
         applied = run_migrations()
         if applied:
@@ -29,18 +78,10 @@ def main() -> int:
         if migrated_references:
             print(f"Protected {migrated_references} legacy voice reference(s).")
         voice_repository.abandon_running()
-        worker = subprocess.Popen(
-            [sys.executable, "-m", "audio_studio.worker"],
-            cwd=settings.root,
-        )
+        supervisor.start()
         print(f"Audio Studio: http://localhost:{settings.port}{settings.web_prefix}/")
         uvicorn.run("audio_studio.http.app:app", host=settings.host,
                     port=settings.port, log_level="info")
     finally:
-        if worker is not None and worker.poll() is None:
-            worker.send_signal(signal.SIGINT)
-            try:
-                worker.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                worker.terminate()
+        supervisor.stop()
     return 0

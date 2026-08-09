@@ -172,6 +172,8 @@ export type DiskSnapshot = {
   finished: { bytes: number; files: number; where: string }
   scratch: Record<string, { bytes: number; files: number; what: string }>
   scratch_total: number
+  protected: Record<string, { bytes: number; files: number; what: string }>
+  protected_total: number
   keep_days: number
 }
 

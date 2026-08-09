@@ -15,6 +15,9 @@ def run() -> list[str]:
     applied_now: list[str] = []
     with psycopg.connect(settings.database_url) as connection:
         with connection.cursor() as cursor:
+            # One database may briefly see multiple app instances during a
+            # deploy. Serialize schema ownership before checking pending files.
+            cursor.execute("SELECT pg_advisory_xact_lock(%s)", (0x415544494F,))
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS schema_migrations (
                     version TEXT PRIMARY KEY,

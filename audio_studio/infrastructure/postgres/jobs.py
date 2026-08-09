@@ -6,7 +6,7 @@ import json
 from typing import Any, Iterable
 from uuid import UUID
 
-from audio_studio.domain.jobs import Job, JobStatus
+from audio_studio.domain.jobs import Job, JobCancelled, JobStatus
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 from services.alibaba import config as alibaba_config
 from audio_studio.application.transcription import FUN_MODEL, QWEN_MODEL
@@ -48,6 +48,14 @@ def _job(row) -> Job:
 
 
 class JobRepository:
+    def heartbeat(self, job_id: int) -> bool:
+        with transaction() as cursor:
+            cursor.execute("""
+                UPDATE jobs SET last_heartbeat_at = now()
+                 WHERE id = %s AND status = 'running'
+            """, (job_id,))
+            return cursor.rowcount == 1
+
     def enqueue(self, kind: str, payload: dict[str, Any], *,
                 idempotency_key: str, actor_id: str | None = None,
                 organization_id: str | None = None,
@@ -124,6 +132,25 @@ class JobRepository:
     def progress(self, job_id: int, done: int, total: int,
                  detail: str = "") -> None:
         with transaction() as cursor:
+            cursor.execute(
+                "SELECT status, cancel_requested FROM jobs WHERE id = %s FOR UPDATE",
+                (job_id,),
+            )
+            state = cursor.fetchone()
+            if not state or state[0] != "running":
+                raise JobCancelled("This Job is no longer running.")
+            if state[1]:
+                cursor.execute("""
+                    UPDATE jobs SET status = 'cancelled', finished_at = now(),
+                           last_heartbeat_at = now(),
+                           detail = 'Cancelled by operator'
+                     WHERE id = %s AND status = 'running'
+                """, (job_id,))
+                cursor.execute("""
+                    INSERT INTO job_events (job_id, kind, detail)
+                    VALUES (%s, 'cancelled', '{"reason":"operator"}'::jsonb)
+                """, (job_id,))
+                raise JobCancelled("Cancelled by operator.")
             cursor.execute("""
                 UPDATE jobs SET done = %s, total = %s, detail = %s,
                                 last_heartbeat_at = now()
@@ -138,12 +165,18 @@ class JobRepository:
     def finish(self, job_id: int, result: dict[str, Any], *,
                cost: float = 0, usage: dict | None = None,
                provider_request_id: str | None = None,
-               status: str = "ok") -> None:
+               status: str = "ok") -> bool:
         with transaction() as cursor:
-            cursor.execute("SELECT kind, actor_id, organization_id FROM jobs WHERE id = %s", (job_id,))
+            cursor.execute("""
+                SELECT kind, actor_id, organization_id, cancel_requested
+                  FROM jobs WHERE id = %s FOR UPDATE
+            """, (job_id,))
             job_row = cursor.fetchone()
+            if not job_row:
+                return False
             kind = job_row[0] if job_row else "job"
             outputs = _output_ids(kind, result)
+            final_status = "cancelled" if job_row[3] else status
             cursor.execute("""
                 UPDATE jobs SET status = %s, result = %s::jsonb, cost = %s,
                        estimated = greatest(estimated, %s),
@@ -159,8 +192,8 @@ class JobRepository:
                        finished_at = now(), last_heartbeat_at = now(),
                        elapsed_ms = greatest(0, extract(epoch from
                            (now() - coalesce(started_at, created_at))) * 1000)::int
-                 WHERE id = %s
-            """, (status, json.dumps(result), cost,
+                 WHERE id = %s AND status = 'running'
+            """, (final_status, json.dumps(result), cost,
                   float(result.get("estimated_cost") or result.get("estimate") or 0),
                   int(result.get("chars") or 0), result.get("model") or None,
                   result.get("engine") or None, result.get("voice") or None,
@@ -171,12 +204,16 @@ class JobRepository:
                   json.dumps({"model": result.get("model"),
                               "region": result.get("provider_region")}),
                   json.dumps(outputs), result.get("id"), job_id))
-            cursor.execute("INSERT INTO job_events (job_id, kind, progress) VALUES (%s, 'completed', 1)",
-                           (job_id,))
+            if cursor.rowcount != 1:
+                return False
+            event_kind = "cancelled" if final_status == "cancelled" else "completed"
+            cursor.execute("INSERT INTO job_events (job_id, kind, progress) VALUES (%s, %s, 1)",
+                           (job_id, event_kind))
             if job_row:
                 self._audit(cursor, job_row[1], job_row[2], "job.completed",
-                            job_id, {"kind": kind, "status": status,
+                            job_id, {"kind": kind, "status": final_status,
                                      "cost": cost, "outputs": outputs})
+            return True
 
     def fail(self, job_id: int, error: str, retry: bool = False) -> None:
         with transaction() as cursor:
@@ -184,8 +221,10 @@ class JobRepository:
                 UPDATE jobs SET status = %s, error = %s, retries = retries + 1,
                        available_at = CASE WHEN %s THEN now() + interval '10 seconds' ELSE available_at END,
                        finished_at = CASE WHEN %s THEN NULL ELSE now() END
-                 WHERE id = %s
+                 WHERE id = %s AND status = 'running'
             """, ("retrying" if retry else "failed", error[:400], retry, retry, job_id))
+            if cursor.rowcount != 1:
+                return
             cursor.execute("INSERT INTO job_events (job_id, kind, detail) VALUES (%s, %s, %s::jsonb)",
                            (job_id, "retrying" if retry else "failed",
                             json.dumps({"error": error[:400]})))
@@ -194,6 +233,18 @@ class JobRepository:
             if row:
                 self._audit(cursor, row[0], row[1], "job.failed", job_id,
                             {"kind": row[2], "error": error[:400]})
+
+    def abandon_stale(self, older_than_seconds: int = 120) -> int:
+        """Expire only Jobs whose worker lease stopped being refreshed."""
+        with transaction() as cursor:
+            cursor.execute("""
+                UPDATE jobs SET status = 'lost', finished_at = now(),
+                       error = 'The worker stopped before this Job finished.'
+                 WHERE status = 'running'
+                   AND coalesce(last_heartbeat_at, started_at, created_at)
+                       < now() - make_interval(secs => %s)
+            """, (older_than_seconds,))
+            return cursor.rowcount
 
     def cancel(self, public_id: UUID) -> Job | None:
         with transaction() as cursor:

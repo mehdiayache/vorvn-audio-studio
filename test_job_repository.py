@@ -11,6 +11,77 @@ from audio_studio.infrastructure.postgres import jobs as jobs_module
 
 
 class JobRepositoryTests(unittest.TestCase):
+    def test_running_cancel_preserves_completed_cost_but_finishes_cancelled(self):
+        try:
+            connection = psycopg.connect(settings.database_url)
+        except psycopg.OperationalError as exc:
+            self.skipTest(str(exc))
+        repository = jobs_module.JobRepository()
+        job_id = None
+        try:
+            job, _ = repository.enqueue(
+                "fixture_cancel", {},
+                idempotency_key=f"cancel-test-{uuid4()}")
+            job_id = job.id
+            claimed = repository.claim_next(["fixture_cancel"])
+            self.assertEqual(claimed.id, job_id)
+            repository.cancel(job.public_id)
+            self.assertTrue(repository.finish(job_id, {"id": 99}, cost=.25))
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT status, cost, result FROM jobs WHERE id = %s", (job_id,))
+                status, cost, result = cursor.fetchone()
+            self.assertEqual(status, "cancelled")
+            self.assertEqual(float(cost), .25)
+            self.assertEqual(result["id"], 99)
+        finally:
+            if job_id is not None:
+                with connection.cursor() as cursor:
+                    cursor.execute("DELETE FROM jobs WHERE id = %s", (job_id,))
+                connection.commit()
+            connection.close()
+
+    def test_lease_prevents_false_loss_and_terminal_state_cannot_be_overwritten(self):
+        try:
+            connection = psycopg.connect(settings.database_url)
+        except psycopg.OperationalError as exc:
+            self.skipTest(str(exc))
+        repository = jobs_module.JobRepository()
+        job_id = None
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO jobs
+                        (kind, status, payload, requested_route, created_at,
+                         started_at, last_heartbeat_at)
+                    VALUES ('fixture_lease', 'running', '{}'::jsonb,
+                            '{"executor":"audio-studio-worker-v1"}'::jsonb,
+                            now() - interval '2 hours',
+                            now() - interval '2 hours', now()) RETURNING id
+                """)
+                job_id = cursor.fetchone()[0]
+            connection.commit()
+            repository.abandon_stale(3600)
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT status FROM jobs WHERE id = %s", (job_id,))
+                self.assertEqual(cursor.fetchone()[0], "running")
+                cursor.execute("""
+                    UPDATE jobs SET last_heartbeat_at = now() - interval '2 hours'
+                     WHERE id = %s
+                """, (job_id,))
+            connection.commit()
+            self.assertEqual(repository.abandon_stale(3600), 1)
+            self.assertFalse(repository.finish(job_id, {"id": 99}, cost=.25))
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT status, cost FROM jobs WHERE id = %s", (job_id,))
+                self.assertEqual(cursor.fetchone(), ("lost", 0.0))
+        finally:
+            if job_id is not None:
+                with connection.cursor() as cursor:
+                    cursor.execute("DELETE FROM jobs WHERE id = %s", (job_id,))
+                connection.commit()
+            connection.close()
+
     def test_enqueue_records_identity_route_and_audit_atomically(self):
         try:
             connection = psycopg.connect(settings.database_url)
@@ -43,6 +114,10 @@ class JobRepositoryTests(unittest.TestCase):
                     RETURNING id
                 """)
                 saved_generation_id = cursor.fetchone()[0]
+                cursor.execute("""
+                    UPDATE jobs SET status = 'running', started_at = now(),
+                           last_heartbeat_at = now() WHERE id = %s
+                """, (job.id,))
             jobs_module.JobRepository().finish(job.id, {
                 "id": saved_generation_id, "cost_basis": "catalog_duration",
                 "price_version": "fixture-price", "provider_region": "intl",

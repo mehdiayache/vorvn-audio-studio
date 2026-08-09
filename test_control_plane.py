@@ -11,6 +11,7 @@ import say
 from audio_studio.application import system
 from audio_studio.config import settings
 from audio_studio.infrastructure.postgres.activity import ActivityRepository
+from audio_studio.infrastructure.postgres.jobs import JobRepository
 from audio_studio.infrastructure.postgres.control_plane import (
     ControlPlaneRepository,
 )
@@ -41,7 +42,10 @@ class ControlPlaneRepositoryTests(unittest.TestCase):
             self.assertTrue(repository.database_status()["connected"])
             self.assertTrue(repository.spend_totals().keys() >= {
                 "today", "month", "all_time", "runs"})
-            self.assertEqual(system.health()["status"], "ok")
+            health = system.health()
+            self.assertTrue(health["database"]["connected"])
+            self.assertIn(health["status"], {"ok", "degraded"})
+            self.assertIn("worker", health)
         finally:
             repository.save_setting(key, None)
 
@@ -113,7 +117,7 @@ class ControlPlaneRepositoryTests(unittest.TestCase):
                     job_id = int(cursor.fetchone()[0])
                 database.commit()
 
-            self.assertGreaterEqual(repository.abandon_stale(3600), 1)
+            self.assertGreaterEqual(JobRepository().abandon_stale(3600), 1)
             snapshot = repository.snapshot(
                 limit=200, kind="fixture_control", failed_only=True)
             run = next(item for item in snapshot["runs_list"]

@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import signal
 import time
+import os
+import threading
+
+import say
 
 from audio_studio.application import renders
 from audio_studio.application.batches import (
@@ -46,9 +50,16 @@ from audio_studio.infrastructure.postgres.speech import SpeechRepository
 from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
 from audio_studio.infrastructure.transcription_source import TranscriptionSourceResolver
 from audio_studio.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
+from audio_studio.infrastructure.postgres.jobs import JobRepository
+from audio_studio.infrastructure.postgres.worker_runtime import WorkerRuntimeRepository
+from audio_studio.infrastructure.runtime_environment import (
+    reload_owned_environment,
+    revision as environment_revision,
+)
 
 
 def main() -> int:
+    reload_owned_environment()
     service = JobService()
     speech = SpeechRepository()
     speech_provider = AlibabaSpeechProvider()
@@ -84,6 +95,10 @@ def main() -> int:
         VoiceReferenceWorkspace(),
     )
     stopping = False
+    runtime = WorkerRuntimeRepository()
+    jobs = JobRepository()
+    last_maintenance = 0.0
+    loaded_revision = environment_revision()
 
     def stop(*_):
         nonlocal stopping
@@ -91,12 +106,39 @@ def main() -> int:
 
     signal.signal(signal.SIGINT, stop)
     signal.signal(signal.SIGTERM, stop)
-    while not stopping:
-        if service.work_once():
-            continue
-        if voice_cloning.work_once():
-            continue
-        time.sleep(.5)
+    lease_stop = threading.Event()
+
+    def pulse_worker() -> None:
+        while not lease_stop.is_set():
+            try:
+                runtime.heartbeat(detail={"pid": os.getpid()})
+            except Exception:
+                pass
+            lease_stop.wait(2)
+
+    lease_thread = threading.Thread(
+        target=pulse_worker, daemon=True, name="worker-readiness-heartbeat")
+    lease_thread.start()
+    try:
+        while not stopping:
+            now = time.monotonic()
+            current_revision = environment_revision()
+            if current_revision != loaded_revision:
+                reload_owned_environment()
+                say.apply_credentials()
+                loaded_revision = current_revision
+            if now - last_maintenance >= 30:
+                jobs.abandon_stale()
+                last_maintenance = now
+            if service.work_once():
+                continue
+            if voice_cloning.work_once():
+                continue
+            time.sleep(.25)
+    finally:
+        lease_stop.set()
+        lease_thread.join(timeout=3)
+        runtime.stop()
     return 0
 
 

@@ -64,16 +64,6 @@ def _run(row) -> dict[str, Any]:
 
 
 class ActivityRepository:
-    def abandon_stale(self, older_than_seconds: int = 3600) -> int:
-        with transaction() as cursor:
-            cursor.execute("""
-                UPDATE jobs SET status = 'lost',
-                       error = 'the app stopped before this finished'
-                 WHERE status = 'running'
-                   AND created_at < now() - make_interval(secs => %s)
-            """, (older_than_seconds,))
-            return cursor.rowcount
-
     def snapshot(self, *, limit: int = 80, kind: str = "",
                  failed_only: bool = False) -> dict:
         where, parameters = ["1=1"], []
