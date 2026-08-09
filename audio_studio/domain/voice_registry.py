@@ -68,7 +68,11 @@ def assemble(custom_voices: list[dict], metadata: dict, references: dict) -> dic
         engine = item.get("engine") or saved.get("engine") or (
             "omni" if provider_voice_id.startswith("qwen-omni-vc-") else "audio")
         model_id = item.get("target_model") or item.get("targetModel") or saved.get("target_model") or ""
-        tier = "flash" if "flash" in model_id else "plus"
+        capability = config.CAPABILITIES.get(str(engine), {})
+        tier = item.get("tier") or next((
+            name for name, model in capability.get("models", {}).items()
+            if model == model_id
+        ), "flash" if "flash" in model_id else "plus")
         language = item.get("language") or item.get("languages") or saved.get("languages") or ""
         if isinstance(language, (list, tuple, set)):
             languages = [str(part).strip() for part in language if str(part).strip()]
@@ -90,6 +94,7 @@ def assemble(custom_voices: list[dict], metadata: dict, references: dict) -> dic
             "source": "custom", "provider": "alibaba",
             "engine": engine, "tier": tier, "model_id": model_id,
             "status": item.get("status") or saved.get("provider_status") or "active",
+            "reference_id": item.get("reference_id"),
             "reference": references.get(provider_voice_id),
         })
     models = []

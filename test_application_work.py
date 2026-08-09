@@ -132,7 +132,7 @@ class WorkServiceTests(unittest.TestCase):
             "engine": "omni", "language": "Arabic"})
         with self.assertRaisesRegex(DomainValidation, "Unknown Series default"):
             self.service.update("series", 4, {"defaults": {"mystery": True}})
-        with self.assertRaisesRegex(DomainValidation, "Audio or Omni"):
+        with self.assertRaisesRegex(DomainValidation, "Audio, Omni or Qwen3 TTS"):
             self.service.update("series", 4, {"defaults": {"engine": "tts"}})
 
     def test_moving_a_production_does_not_mutate_the_caller_payload(self):

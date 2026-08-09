@@ -155,10 +155,13 @@ class WorkService:
         if unknown:
             raise DomainValidation(
                 f"Unknown Series default: {sorted(unknown)[0]}.")
-        if defaults.get("engine") not in {None, "", "audio", "omni"}:
-            raise DomainValidation("Series speech engine must be Audio or Omni.")
-        if defaults.get("model") not in {None, "", "plus", "flash"}:
-            raise DomainValidation("Series quality must be Plus or Flash.")
+        if defaults.get("engine") not in {
+                None, "", "audio", "omni", "qwen_tts"}:
+            raise DomainValidation(
+                "Series speech engine must be Audio, Omni or Qwen3 TTS.")
+        if defaults.get("model") not in {None, "", "plus", "flash", "vc"}:
+            raise DomainValidation(
+                "Series quality must be Plus, Flash or Voice Clone.")
         if defaults.get("speech_mode") not in {
                 None, "", "exact", "directed"}:
             raise DomainValidation(

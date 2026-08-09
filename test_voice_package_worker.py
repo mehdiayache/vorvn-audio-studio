@@ -3,6 +3,7 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 from uuid import uuid4
 
 import psycopg
@@ -14,6 +15,7 @@ from audio_studio.domain.voice_packages import (
     VoicePackageJob,
 )
 from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
+from audio_studio.infrastructure.alibaba.voice_cloning import AlibabaVoiceCloningProvider
 from audio_studio.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
 
 
@@ -77,6 +79,32 @@ class FakeProvider:
 
 
 class VoicePackageWorkerTests(unittest.TestCase):
+    def test_qwen_tts_clone_uses_qwen_enrollment_with_transcript(self):
+        job = package_job(
+            engine="qwen_tts", tier="vc",
+            model_id="qwen3-tts-vc-2026-01-22",
+            metadata={"language": "en", "transcript": "Reference words"},
+        )
+        with TemporaryDirectory() as directory:
+            local = Path(directory) / "source.wav"
+            local.write_bytes(b"RIFF-test")
+            with patch.dict("os.environ", {"DASHSCOPE_API_KEY": "fixture"}), \
+                    patch(
+                        "audio_studio.infrastructure.alibaba.voice_cloning.storage.configured",
+                        return_value=True), \
+                    patch(
+                        "audio_studio.infrastructure.alibaba.voice_cloning.storage.upload",
+                        return_value="https://storage.test/reference.wav"), \
+                    patch(
+                        "audio_studio.infrastructure.alibaba.voice_cloning.omni.create_voice",
+                        return_value="qwen3-tts-vc-fixture") as create:
+                binding = AlibabaVoiceCloningProvider().create(job, local)
+        self.assertEqual(binding.provider_voice_id, "qwen3-tts-vc-fixture")
+        create.assert_called_once_with(
+            "qwen3-tts-vc-2026-01-22", "testvoice",
+            "https://storage.test/reference.wav",
+            transcript="Reference words")
+
     def test_service_claims_resolves_and_completes_one_capability(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)

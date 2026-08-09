@@ -9,6 +9,7 @@ from audio_studio.domain.provider_catalog import (
     CAPABILITIES,
     OMNI_CLONE_LANGUAGES,
     OMNI_SYSTEM_VOICES,
+    QWEN_TTS_CLONE_LANGUAGES,
     model_id,
     normalise_engine,
     omni_usage_cost,
@@ -26,6 +27,13 @@ def region() -> str:
 
 def http_base() -> str:
     return alibaba_environment().native_http_base
+
+
+def regional_http_base() -> str:
+    """Regional DashScope HTTP API used by Qwen-TTS synthesis."""
+    host = ("dashscope.aliyuncs.com" if region() == "beijing"
+            else "dashscope-intl.aliyuncs.com")
+    return f"https://{host}/api/v1"
 
 
 def websocket_base() -> str:

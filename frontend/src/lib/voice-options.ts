@@ -1,7 +1,7 @@
 import type { VoiceModelSummary, VoiceRegistry } from "@/types/domain"
 
-export type SpeechEngine = "audio" | "omni"
-export type SpeechModel = "plus" | "flash"
+export type SpeechEngine = "audio" | "omni" | "qwen_tts"
+export type SpeechModel = "plus" | "flash" | "vc"
 
 export type VoiceChoice = {
   id: string

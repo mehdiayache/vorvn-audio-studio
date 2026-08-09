@@ -31,8 +31,18 @@ class VoiceRoute:
 def _binding(item: dict) -> dict:
     provider_id = str(item.get("provider_voice_id") or item.get("voice_id") or "")
     model_id = str(item.get("model_id") or item.get("target_model") or "")
-    engine = str(item.get("engine") or ("omni" if provider_id.startswith("qwen-omni-vc-") else "audio"))
-    tier = str(item.get("tier") or ("flash" if "flash" in model_id else "plus"))
+    inferred_engine = (
+        "omni" if provider_id.startswith("qwen-omni-vc-")
+        else "qwen_tts" if model_id.startswith("qwen3-tts-vc-")
+        else "audio"
+    )
+    engine = str(item.get("engine") or inferred_engine)
+    models = config.CAPABILITIES.get(engine, {}).get("models", {})
+    inferred_tier = next(
+        (name for name, model in models.items() if model == model_id),
+        "flash" if "flash" in model_id else "plus",
+    )
+    tier = str(item.get("tier") or inferred_tier)
     return {**item, "provider_voice_id": provider_id, "model_id": model_id,
             "identity_id": str(item.get("identity_id") or "") or None,
             "engine": engine, "tier": tier,
@@ -61,7 +71,10 @@ def resolve(payload: dict, bindings: list[dict] | None = None) -> VoiceRoute:
 
     requested_provider = str(payload.get("voice") or "").strip()
     requested_engine = config.normalise_engine(payload.get("engine"))
-    requested_tier = payload.get("model") if payload.get("model") in ("plus", "flash") else "plus"
+    engine_models = config.CAPABILITIES[requested_engine]["models"]
+    requested_tier = (payload.get("model")
+                      if payload.get("model") in engine_models
+                      else next(iter(engine_models)))
     language_requires_omni = (
         language in config.CAPABILITIES["omni"]["system_languages"]
         and language not in config.CAPABILITIES["audio"]["system_languages"]
@@ -82,6 +95,18 @@ def resolve(payload: dict, bindings: list[dict] | None = None) -> VoiceRoute:
     candidates = [item for item in available if identity_id and item["identity_id"] == identity_id]
 
     if candidates:
+        if language not in (None, "", "Auto"):
+            compatible = [
+                item for item in candidates
+                if str(language).casefold() in {
+                    str(value).casefold()
+                    for value in item.get("languages", [])
+                }
+            ]
+            if not compatible:
+                raise ValueError(
+                    f"That voice has no ready capability for {language}.")
+            candidates = compatible
         exact = [item for item in candidates
                  if item["engine"] == requested_engine and item["tier"] == requested_tier]
         chosen = next((item for item in exact

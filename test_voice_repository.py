@@ -51,9 +51,10 @@ class VoiceRepositoryTests(unittest.TestCase):
                     cursor.execute("""
                         INSERT INTO voice_bindings
                             (provider_voice_id, model_id, identity_id, engine,
-                             tier, languages)
-                        VALUES (%s, %s, %s, 'omni', 'plus', '["en"]'::jsonb)
-                    """, (provider_id, model_id, identity_id))
+                             tier, languages, reference_id)
+                        VALUES (%s, %s, %s, 'omni', 'plus', '["English"]'::jsonb,
+                                %s)
+                    """, (provider_id, model_id, identity_id, reference_id))
                     cursor.execute("""
                         INSERT INTO voices (id, image, favourite, name)
                         VALUES (%s, 'fixture.png', true, 'Fixture system voice')

@@ -10,6 +10,12 @@ import type { VoiceChoice } from "@/lib/voice-options"
 import type { PlayerSource, VoiceDirectory } from "@/types/domain"
 import type { VoiceModelSummary } from "@/types/domain"
 
+function routeLabel(choice: VoiceChoice) {
+  const engine = choice.engine === "omni" ? "Omni" : choice.engine === "qwen_tts" ? "Qwen3 TTS" : "Audio"
+  const model = choice.model === "vc" ? "Voice Clone" : choice.model === "plus" ? "Plus" : "Flash"
+  return `${engine} ${model}`
+}
+
 export function VoicePicker({ choices, summary, value, directory, engineLabel, modelLabel, playingKey, playerPlaying, onChange, onPlay }: {
   choices: VoiceChoice[]
   summary: VoiceModelSummary | null
@@ -77,7 +83,7 @@ export function VoicePicker({ choices, summary, value, directory, engineLabel, m
             const key = `voice:${choice.identityId}`
             const playing = playerPlaying && playingKey === key
             const selected = routes.some((route) => value === route.id)
-            const routeLabels = [...new Set(routes.map((route) => `${route.engine === "omni" ? "Omni" : "Audio"} ${route.model === "plus" ? "Plus" : "Flash"}`))]
+            const routeLabels = [...new Set(routes.map(routeLabel))]
             return <div className={cn("voice-picker-row", selected && "selected")} key={choice.identityId}>
               <button type="button" className="voice-picker-select" onClick={() => { onChange(choice); setOpen(false) }}>
                 <VoiceIdentity voice={choice.id} directory={directory} compact />

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 
 import { studioApi } from "@/lib/api"
 import type { ProductionPart, TextPassResult } from "@/types/domain"
+import type { SpeechEngine } from "@/lib/voice-options"
 
 export type TextView = "raw" | "shaped" | "tagged"
 
@@ -13,7 +14,7 @@ function initial(part?: ProductionPart | null) {
   }
 }
 
-export function useComposerText(part: ProductionPart | null | undefined, productionId: number, engine: "audio" | "omni") {
+export function useComposerText(part: ProductionPart | null | undefined, productionId: number, engine: SpeechEngine) {
   const [states, setStates] = useState(initial(part))
   const [view, setView] = useState<TextView>((part?.text_state as TextView) || "raw")
   const [review, setReview] = useState<{ kind: "shape" | "tag"; result: TextPassResult } | null>(null)

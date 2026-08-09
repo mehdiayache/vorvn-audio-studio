@@ -86,6 +86,9 @@ class LocalUploadWorkspace:
             name=normalized.name,
             original_path=str(original.relative_to(self.references)),
             normalized_path=str(normalized.relative_to(self.references)),
+            duration_ms=_audio_duration_ms(normalized),
+            sample_rate=24000 if normalized != original else None,
+            channels=1 if normalized != original else None,
         )
 
     def discard_voice_reference(self, reference_id: str) -> None:

@@ -28,6 +28,12 @@ OMNI_CLONE_LANGUAGES = {
     "vi": "Vietnamese",
 }
 
+QWEN_TTS_CLONE_LANGUAGES = {
+    "zh": "Chinese", "en": "English", "de": "German", "it": "Italian",
+    "pt": "Portuguese", "es": "Spanish", "ja": "Japanese",
+    "ko": "Korean", "fr": "French", "ru": "Russian",
+}
+
 
 def documented_voice_catalog() -> dict:
     path = Path(__file__).with_name("alibaba_voice_catalog.json")
@@ -57,6 +63,7 @@ CAPABILITIES = {
         },
         "clone_tiers": ["flash"],
         "clone_languages": AUDIO_CLONE_LANGUAGES,
+        "output_languages": list(AUDIO_CLONE_LANGUAGES.values()),
         "system_languages": ["Chinese", "English"],
         "rates_per_million_chars": {"plus": 20.0, "flash": 15.0},
         "estimate_rates_per_million_chars": {"plus": 20.0, "flash": 15.0},
@@ -75,6 +82,7 @@ CAPABILITIES = {
         },
         "clone_tiers": ["plus", "flash"],
         "clone_languages": OMNI_CLONE_LANGUAGES,
+        "output_languages": list(OMNI_CLONE_LANGUAGES.values()),
         "system_languages": list(dict.fromkeys(OMNI_CLONE_LANGUAGES.values())),
         "system_voices": OMNI_SYSTEM_VOICES,
         "rates_per_million_chars": {},
@@ -97,6 +105,22 @@ CAPABILITIES = {
             },
         },
     },
+    "qwen_tts": {
+        "label": "Qwen3 TTS Voice Clone",
+        "purpose": "faithful long-form speech with a cloned voice",
+        "models": {"vc": "qwen3-tts-vc-2026-01-22"},
+        "clone_tiers": ["vc"],
+        "clone_languages": QWEN_TTS_CLONE_LANGUAGES,
+        "output_languages": list(QWEN_TTS_CLONE_LANGUAGES.values()),
+        "system_languages": [],
+        "rates_per_million_chars": {"vc": 11.5},
+        "estimate_rates_per_million_chars": {"vc": 11.5},
+        "clone_cost": 0.01,
+        "exact_text": True,
+        "inline_tags": False,
+        "instruction_control": False,
+        "fidelity_check": False,
+    },
 }
 
 
@@ -118,7 +142,8 @@ def normalise_engine(value: str | None) -> str:
 
 def model_id(engine: str, tier: str) -> str:
     engine = normalise_engine(engine)
-    tier = tier if tier in CAPABILITIES[engine]["models"] else "plus"
+    models = CAPABILITIES[engine]["models"]
+    tier = tier if tier in models else next(iter(models))
     return CAPABILITIES[engine]["models"][tier]
 
 

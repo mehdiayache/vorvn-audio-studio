@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from uuid import uuid4
 
+from audio_studio.domain import provider_catalog
 from audio_studio.domain.voice_packages import (
     CreatedVoiceBinding,
     VoicePackageJob,
@@ -60,7 +61,9 @@ class VoicePackageRepository:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT id, identity_id, original_name, original_path,
-                       normalized_path, source_url, created_at
+                       normalized_path, source_url, source_language,
+                       transcript, sha256, duration_ms, sample_rate, channels,
+                       metadata, created_at, updated_at
                   FROM voice_references WHERE id = %s
             """, (reference_id,))
             row = cursor.fetchone()
@@ -70,20 +73,29 @@ class VoicePackageRepository:
             "id": row[0], "identity_id": row[1],
             "original_name": row[2] or "", "original_path": row[3] or "",
             "normalized_path": row[4] or "", "source_url": row[5] or "",
-            "created_at": row[6].isoformat(),
+            "source_language": row[6] or "", "transcript": row[7] or "",
+            "sha256": row[8] or "", "duration_ms": row[9],
+            "sample_rate": row[10], "channels": row[11],
+            "metadata": row[12] or {}, "created_at": row[13].isoformat(),
+            "updated_at": row[14].isoformat(),
         }
 
     def create_reference(self, *, original_name: str, original_path: str,
                          normalized_path: str, source_url: str = "",
-                         reference_id: str | None = None) -> str:
+                         reference_id: str | None = None, sha256: str = "",
+                         duration_ms: int | None = None,
+                         sample_rate: int | None = None,
+                         channels: int | None = None) -> str:
         reference_id = reference_id or f"ref_{uuid4().hex}"
         with transaction() as cursor:
             cursor.execute("""
                 INSERT INTO voice_references
-                    (id, original_name, original_path, normalized_path, source_url)
-                VALUES (%s, %s, %s, %s, %s)
+                    (id, original_name, original_path, normalized_path,
+                     source_url, sha256, duration_ms, sample_rate, channels)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (reference_id, original_name or None, original_path or None,
-                  normalized_path or None, source_url or None))
+                  normalized_path or None, source_url or None,
+                  sha256 or None, duration_ms, sample_rate, channels))
         return reference_id
 
     def create_package(self, *, name: str, metadata: dict, reference_id: str,
@@ -130,8 +142,11 @@ class VoicePackageRepository:
                         metadata.get("language") or None,
                     ))
             cursor.execute("""
-                UPDATE voice_references SET identity_id = %s WHERE id = %s
-            """, (identity_id, reference_id))
+                UPDATE voice_references
+                   SET identity_id = %s, source_language = %s,
+                       updated_at = now()
+                 WHERE id = %s
+            """, (identity_id, metadata.get("language") or None, reference_id))
             for route in routes:
                 cursor.execute("""
                     SELECT 1 FROM voice_bindings
@@ -225,9 +240,15 @@ class VoicePackageRepository:
                 )
                 SELECT claimed.id, claimed.identity_id, claimed.reference_id,
                        claimed.model_id, claimed.engine, claimed.tier,
-                       claimed.attempts, identity.name, identity.metadata
+                       claimed.attempts, identity.name,
+                       identity.metadata || jsonb_strip_nulls(
+                           jsonb_build_object(
+                               'language', reference.source_language,
+                               'transcript', reference.transcript))
                   FROM claimed JOIN voice_identities identity
                     ON identity.id = claimed.identity_id
+                  JOIN voice_references reference
+                    ON reference.id = claimed.reference_id
             """, (job_id, job_id))
             return _job(cursor.fetchone())
 
@@ -257,7 +278,8 @@ class VoicePackageRepository:
 
     def complete(self, job: VoicePackageJob, activity_id: int,
                  binding: CreatedVoiceBinding) -> None:
-        language = str(job.metadata.get("language") or "").strip()
+        output_languages = provider_catalog.CAPABILITIES.get(
+            job.engine, {}).get("output_languages", [])
         with transaction() as cursor:
             cursor.execute("""
                 SELECT status FROM voice_package_jobs
@@ -269,17 +291,19 @@ class VoicePackageRepository:
             cursor.execute("""
                 INSERT INTO voice_bindings
                     (provider_voice_id, model_id, identity_id, engine, tier,
-                     status, languages)
-                VALUES (%s, %s, %s, %s, %s, 'active', %s::jsonb)
+                     status, languages, reference_id)
+                VALUES (%s, %s, %s, %s, %s, 'active', %s::jsonb, %s)
                 ON CONFLICT (provider_voice_id, model_id) DO UPDATE SET
                     identity_id = EXCLUDED.identity_id,
                     engine = EXCLUDED.engine, tier = EXCLUDED.tier,
                     status = EXCLUDED.status, languages = EXCLUDED.languages,
+                    reference_id = EXCLUDED.reference_id,
                     updated_at = now()
             """, (
                 binding.provider_voice_id, job.model_id, job.identity_id,
                 job.engine, job.tier,
-                json.dumps([language] if language else []),
+                json.dumps(output_languages),
+                job.reference_id,
             ))
             cursor.execute("""
                 UPDATE voice_references SET identity_id = %s WHERE id = %s

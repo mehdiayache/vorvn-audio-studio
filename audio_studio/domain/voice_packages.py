@@ -10,11 +10,11 @@ from audio_studio.domain import provider_catalog as catalog
 PACKAGE_LABELS = {
     "complete": (
         "Complete production voice",
-        "Exact speech plus best-quality and economical Omni variants.",
+        "Every compatible exact-reading and performance capability.",
     ),
     "exact": (
         "Exact TTS only",
-        "Faithful reading, inline delivery tags and streaming.",
+        "Compatible faithful-reading capabilities for this recording.",
     ),
     "omni": (
         "Omni multilingual",
@@ -45,14 +45,17 @@ def installed_routes(language: str) -> list[dict]:
         for tier in capability.get("clone_tiers", []):
             model = capability["models"][tier]
             role = (
-                "Exact production" if engine == "audio"
+                "Exact expressive speech" if engine == "audio"
+                else "Exact long-form narration" if engine == "qwen_tts"
                 else "Best-quality performance" if tier == "plus"
                 else "Economical performance"
             )
             routes.append({
                 "provider": "alibaba", "engine": engine, "tier": tier,
                 "model_id": model,
-                "label": f"{capability['label']} · {tier.title()}",
+                "label": (f"{capability['label']} · Voice Clone"
+                          if tier == "vc" else
+                          f"{capability['label']} · {tier.title()}"),
                 "role": role, "language": code,
                 "estimated_creation_cost": float(
                     capability.get("clone_cost") or 0),
@@ -66,7 +69,8 @@ def plan(language: str, package: str = "complete", *, region: str) -> dict:
     code = _language_code(language)
     available = installed_routes(code)
     if package == "exact":
-        selected = [route for route in available if route["engine"] == "audio"]
+        selected = [route for route in available
+                    if route["engine"] != "omni"]
     elif package == "omni":
         selected = [route for route in available if route["engine"] == "omni"]
     else:
@@ -75,7 +79,7 @@ def plan(language: str, package: str = "complete", *, region: str) -> dict:
     packages = []
     for key, (name, description) in PACKAGE_LABELS.items():
         routes = (
-            [route for route in available if route["engine"] == "audio"]
+            [route for route in available if route["engine"] != "omni"]
             if key == "exact"
             else [route for route in available if route["engine"] == "omni"]
             if key == "omni"

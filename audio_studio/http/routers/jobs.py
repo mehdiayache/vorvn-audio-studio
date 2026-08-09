@@ -79,8 +79,8 @@ class SpeechJobCreate(BaseModel):
     insert_at: int | None = Field(default=None, ge=0)
     voice: str = Field(min_length=1, max_length=300)
     voice_identity_id: str | None = Field(default=None, max_length=120)
-    engine: Literal["audio", "omni"]
-    model: Literal["plus", "flash"]
+    engine: Literal["audio", "omni", "qwen_tts"]
+    model: Literal["plus", "flash", "vc"]
     format: Literal["mp3", "mp3-24k", "wav", "opus"] = "mp3"
     language: str = Field(default="Auto", max_length=80)
     instruction: str = Field(default="", max_length=100)
@@ -121,8 +121,8 @@ class BatchJobCreate(BaseModel):
     columns: BatchColumns
     voice: str = Field(min_length=1, max_length=300)
     voice_identity_id: str | None = Field(default=None, max_length=120)
-    engine: Literal["audio", "omni"]
-    model: Literal["plus", "flash"]
+    engine: Literal["audio", "omni", "qwen_tts"]
+    model: Literal["plus", "flash", "vc"]
     format: Literal["mp3", "mp3-24k", "wav", "opus"] = "mp3"
     language: str = Field(default="", max_length=80)
     instruction: str = Field(default="", max_length=100)
@@ -187,7 +187,7 @@ class TextJobCreate(BaseModel):
         validation_alias=AliasChoices("part_id", "id"),
     )
     density: Literal["none", "light", "normal", "heavy"] = "normal"
-    engine: Literal["audio", "omni"] = "audio"
+    engine: Literal["audio", "omni", "qwen_tts"] = "audio"
     confirmed: bool = False
 
 

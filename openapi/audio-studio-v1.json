@@ -764,7 +764,8 @@
           "engine": {
             "enum": [
               "audio",
-              "omni"
+              "omni",
+              "qwen_tts"
             ],
             "title": "Engine",
             "type": "string"
@@ -795,7 +796,8 @@
           "model": {
             "enum": [
               "plus",
-              "flash"
+              "flash",
+              "vc"
             ],
             "title": "Model",
             "type": "string"
@@ -2512,7 +2514,8 @@
             "items": {
               "enum": [
                 "audio",
-                "omni"
+                "omni",
+                "qwen_tts"
               ],
               "type": "string"
             },
@@ -4328,7 +4331,8 @@
           "engine": {
             "enum": [
               "audio",
-              "omni"
+              "omni",
+              "qwen_tts"
             ],
             "title": "Engine",
             "type": "string"
@@ -4371,7 +4375,8 @@
           "model": {
             "enum": [
               "plus",
-              "flash"
+              "flash",
+              "vc"
             ],
             "title": "Model",
             "type": "string"
@@ -5623,7 +5628,8 @@
             "default": "audio",
             "enum": [
               "audio",
-              "omni"
+              "omni",
+              "qwen_tts"
             ],
             "title": "Engine",
             "type": "string"
@@ -6420,7 +6426,8 @@
           "engine": {
             "enum": [
               "audio",
-              "omni"
+              "omni",
+              "qwen_tts"
             ],
             "title": "Engine",
             "type": "string"
@@ -6484,6 +6491,17 @@
               }
             ]
           },
+          "reference_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Id"
+          },
           "scene": {
             "anyOf": [
               {
@@ -6510,7 +6528,8 @@
           "tier": {
             "enum": [
               "plus",
-              "flash"
+              "flash",
+              "vc"
             ],
             "title": "Tier",
             "type": "string"
@@ -6739,7 +6758,8 @@
           "engine": {
             "enum": [
               "audio",
-              "omni"
+              "omni",
+              "qwen_tts"
             ],
             "title": "Engine",
             "type": "string"
@@ -6759,7 +6779,8 @@
           "tier": {
             "enum": [
               "plus",
-              "flash"
+              "flash",
+              "vc"
             ],
             "title": "Tier",
             "type": "string"
@@ -6933,7 +6954,8 @@
           "engine": {
             "enum": [
               "audio",
-              "omni"
+              "omni",
+              "qwen_tts"
             ],
             "title": "Engine",
             "type": "string"
@@ -6983,7 +7005,8 @@
           "tier": {
             "enum": [
               "plus",
-              "flash"
+              "flash",
+              "vc"
             ],
             "title": "Tier",
             "type": "string"
@@ -7207,7 +7230,8 @@
           "engine": {
             "enum": [
               "audio",
-              "omni"
+              "omni",
+              "qwen_tts"
             ],
             "title": "Engine",
             "type": "string"
@@ -7239,7 +7263,8 @@
           "tier": {
             "enum": [
               "plus",
-              "flash"
+              "flash",
+              "vc"
             ],
             "title": "Tier",
             "type": "string"
@@ -7267,7 +7292,8 @@
           "engine": {
             "enum": [
               "audio",
-              "omni"
+              "omni",
+              "qwen_tts"
             ],
             "title": "Engine",
             "type": "string"
@@ -7287,6 +7313,17 @@
             "title": "Provider Voice Id",
             "type": "string"
           },
+          "reference_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Id"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -7294,7 +7331,8 @@
           "tier": {
             "enum": [
               "plus",
-              "flash"
+              "flash",
+              "vc"
             ],
             "title": "Tier",
             "type": "string"
@@ -7640,6 +7678,17 @@
               }
             ],
             "title": "Original Path"
+          },
+          "source_language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Language"
           }
         },
         "title": "VoiceReferenceResponse",
@@ -7647,13 +7696,40 @@
       },
       "VoiceReferenceSummaryResponse": {
         "properties": {
+          "channels": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channels"
+          },
           "created_at": {
             "title": "Created At",
             "type": "string"
           },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
           },
           "normalized_path": {
             "title": "Normalized Path",
@@ -7662,13 +7738,44 @@
           "original_name": {
             "title": "Original Name",
             "type": "string"
+          },
+          "sample_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Rate"
+          },
+          "sha256": {
+            "default": "",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "source_language": {
+            "default": "",
+            "title": "Source Language",
+            "type": "string"
+          },
+          "transcript": {
+            "default": "",
+            "title": "Transcript",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "original_name",
           "normalized_path",
-          "created_at"
+          "created_at",
+          "updated_at"
         ],
         "title": "VoiceReferenceSummaryResponse",
         "type": "object"

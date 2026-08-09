@@ -1523,7 +1523,7 @@ export interface components {
              * Engine
              * @enum {string}
              */
-            engine: "audio" | "omni";
+            engine: "audio" | "omni" | "qwen_tts";
             /**
              * Format
              * @default mp3
@@ -1544,7 +1544,7 @@ export interface components {
              * Model
              * @enum {string}
              */
-            model: "plus" | "flash";
+            model: "plus" | "flash" | "vc";
             /**
              * Pitch
              * @default 1
@@ -2134,7 +2134,7 @@ export interface components {
         /** PerformancePresetResponse */
         PerformancePresetResponse: {
             /** Engines */
-            engines: ("audio" | "omni")[];
+            engines: ("audio" | "omni" | "qwen_tts")[];
             /** Id */
             id: string;
             /** Instruction */
@@ -2727,7 +2727,7 @@ export interface components {
              * Engine
              * @enum {string}
              */
-            engine: "audio" | "omni";
+            engine: "audio" | "omni" | "qwen_tts";
             /**
              * Format
              * @default mp3
@@ -2750,7 +2750,7 @@ export interface components {
              * Model
              * @enum {string}
              */
-            model: "plus" | "flash";
+            model: "plus" | "flash" | "vc";
             /**
              * Operation
              * @default create
@@ -3204,7 +3204,7 @@ export interface components {
              * @default audio
              * @enum {string}
              */
-            engine: "audio" | "omni";
+            engine: "audio" | "omni" | "qwen_tts";
             /**
              * Operation
              * @enum {string}
@@ -3489,7 +3489,7 @@ export interface components {
              * Engine
              * @enum {string}
              */
-            engine: "audio" | "omni";
+            engine: "audio" | "omni" | "qwen_tts";
             /** Gender */
             gender?: string | null;
             /** Identity Id */
@@ -3507,6 +3507,8 @@ export interface components {
             /** Provider Voice Id */
             provider_voice_id: string;
             reference?: components["schemas"]["VoiceReferenceResponse"] | null;
+            /** Reference Id */
+            reference_id?: string | null;
             /** Scene */
             scene?: string | null;
             /**
@@ -3520,7 +3522,7 @@ export interface components {
              * Tier
              * @enum {string}
              */
-            tier: "plus" | "flash";
+            tier: "plus" | "flash" | "vc";
         };
         /** VoiceHistoryLinkEnvelope */
         VoiceHistoryLinkEnvelope: {
@@ -3578,7 +3580,7 @@ export interface components {
              * Engine
              * @enum {string}
              */
-            engine: "audio" | "omni";
+            engine: "audio" | "omni" | "qwen_tts";
             /** Label */
             label: string;
             /** Model Id */
@@ -3589,7 +3591,7 @@ export interface components {
              * Tier
              * @enum {string}
              */
-            tier: "plus" | "flash";
+            tier: "plus" | "flash" | "vc";
             /** Total Count */
             total_count: number;
         };
@@ -3650,7 +3652,7 @@ export interface components {
              * Engine
              * @enum {string}
              */
-            engine: "audio" | "omni";
+            engine: "audio" | "omni" | "qwen_tts";
             /** Error */
             error?: string | null;
             /** Id */
@@ -3669,7 +3671,7 @@ export interface components {
              * Tier
              * @enum {string}
              */
-            tier: "plus" | "flash";
+            tier: "plus" | "flash" | "vc";
             /** Updated At */
             updated_at: string;
         };
@@ -3755,7 +3757,7 @@ export interface components {
              * Engine
              * @enum {string}
              */
-            engine: "audio" | "omni";
+            engine: "audio" | "omni" | "qwen_tts";
             /** Estimated Creation Cost */
             estimated_creation_cost: number;
             /** Label */
@@ -3772,7 +3774,7 @@ export interface components {
              * Tier
              * @enum {string}
              */
-            tier: "plus" | "flash";
+            tier: "plus" | "flash" | "vc";
         };
         /** VoiceProfileBindingResponse */
         VoiceProfileBindingResponse: {
@@ -3782,20 +3784,22 @@ export interface components {
              * Engine
              * @enum {string}
              */
-            engine: "audio" | "omni";
+            engine: "audio" | "omni" | "qwen_tts";
             /** Languages */
             languages: string[];
             /** Model Id */
             model_id: string;
             /** Provider Voice Id */
             provider_voice_id: string;
+            /** Reference Id */
+            reference_id?: string | null;
             /** Status */
             status: string;
             /**
              * Tier
              * @enum {string}
              */
-            tier: "plus" | "flash";
+            tier: "plus" | "flash" | "vc";
         };
         /** VoiceProfileCollectionEnvelope */
         VoiceProfileCollectionEnvelope: {
@@ -3883,17 +3887,46 @@ export interface components {
             original_name?: string | null;
             /** Original Path */
             original_path?: string | null;
+            /** Source Language */
+            source_language?: string | null;
         };
         /** VoiceReferenceSummaryResponse */
         VoiceReferenceSummaryResponse: {
+            /** Channels */
+            channels?: number | null;
             /** Created At */
             created_at: string;
+            /** Duration Ms */
+            duration_ms?: number | null;
             /** Id */
             id: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
             /** Normalized Path */
             normalized_path: string;
             /** Original Name */
             original_name: string;
+            /** Sample Rate */
+            sample_rate?: number | null;
+            /**
+             * Sha256
+             * @default
+             */
+            sha256: string;
+            /**
+             * Source Language
+             * @default
+             */
+            source_language: string;
+            /**
+             * Transcript
+             * @default
+             */
+            transcript: string;
+            /** Updated At */
+            updated_at: string;
         };
         /** VoiceRegistryEnvelope */
         VoiceRegistryEnvelope: {

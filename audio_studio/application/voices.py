@@ -40,9 +40,14 @@ class VoiceService:
         usage = self.profiles_store.profile_usage()
         for identity in identities:
             metadata = identity.get("metadata") or {}
-            language = metadata.get("language") or next((
-                language for binding in identity["bindings"]
-                for language in binding.get("languages", []) if language), "")
+            # Recording provenance belongs to the preserved master, while a
+            # binding's languages describe what it can synthesize. Never infer
+            # one from the other.
+            language = next((
+                reference.get("source_language", "")
+                for reference in identity["references"]
+                if reference.get("source_language")
+            ), "") or metadata.get("language") or ""
             identity["metadata"] = {**metadata, "language": language}
             identity["available_routes"] = (voice_packages.plan(
                 language,

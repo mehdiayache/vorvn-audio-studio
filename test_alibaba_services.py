@@ -22,13 +22,18 @@ check("Arabic defaults to Omni", config.recommended_engine("Arabic") == "omni")
 check("English defaults to exact-script Audio", config.recommended_engine("English") == "audio")
 check("Audio cloning does not advertise Arabic", "ar" not in config.AUDIO_CLONE_LANGUAGES)
 check("Omni cloning advertises Arabic", config.OMNI_CLONE_LANGUAGES["ar"] == "Arabic")
+check("Qwen3 TTS cloning keeps its documented ten-language boundary",
+      "en" in config.QWEN_TTS_CLONE_LANGUAGES
+      and "ar" not in config.QWEN_TTS_CLONE_LANGUAGES)
 check("Audio clone is Flash-only", config.CAPABILITIES["audio"]["clone_tiers"] == ["flash"])
 check("Only Audio advertises inline delivery tags",
       config.CAPABILITIES["audio"]["inline_tags"] is True
-      and config.CAPABILITIES["omni"]["inline_tags"] is False)
+      and config.CAPABILITIES["omni"]["inline_tags"] is False
+      and config.CAPABILITIES["qwen_tts"]["inline_tags"] is False)
 check("Only conversational Omni requires a returned-text fidelity check",
       config.CAPABILITIES["audio"]["fidelity_check"] is False
-      and config.CAPABILITIES["omni"]["fidelity_check"] is True)
+      and config.CAPABILITIES["omni"]["fidelity_check"] is True
+      and config.CAPABILITIES["qwen_tts"]["fidelity_check"] is False)
 
 pcm = bytes(range(64))
 encoded = base64.b64encode(pcm).decode()
@@ -197,11 +202,12 @@ model_counts = {(item["engine"], item["tier"]): item["system_count"]
                 for item in registry["models"]}
 check("The registry exposes the complete documented system catalog",
       model_counts == {("audio", "plus"): 2, ("audio", "flash"): 12,
-                       ("omni", "plus"): 56, ("omni", "flash"): 56})
+                       ("omni", "plus"): 56, ("omni", "flash"): 56,
+                       ("qwen_tts", "vc"): 0})
 check("Voice counts are derived from bindings",
       all(item["total_count"] == item["system_count"] + item["custom_count"]
           for item in registry["models"]))
 check("Performance presets declare their compatible engines",
       registry["presets"] and all(item.get("engines") for item in registry["presets"]))
 
-print("29/29 passed")
+print("31/31 passed")

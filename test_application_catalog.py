@@ -80,6 +80,8 @@ class CatalogServiceTests(unittest.TestCase):
         self.assertEqual(result["prefs"]["out_dir"], "/durable/media")
         self.assertEqual(result["spend"], {"today": 1.25})
         self.assertEqual(result["storage"]["bucket"], "audio")
+        self.assertEqual(result["clone_languages"]["ar"], "Arabic")
+        self.assertEqual(result["clone_languages"]["de"], "German")
 
     def test_voice_reads_are_delegated_without_mutation(self):
         self.assertIs(self.service.voice_metadata(), self.voices.metadata)

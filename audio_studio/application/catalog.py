@@ -62,6 +62,11 @@ class CatalogService:
         metadata = self.voices.catalog_metadata()
         environment = alibaba_environment()
         media_root = self.environment.media_root()
+        clone_languages = {
+            code: label
+            for capability in alibaba_catalog.CAPABILITIES.values()
+            for code, label in capability.get("clone_languages", {}).items()
+        }
         return {
             "voices": provider_catalog.AUDIO_SYSTEM_VOICES,
             "default_voice": provider_catalog.AUDIO_DEFAULT_VOICES,
@@ -85,7 +90,7 @@ class CatalogService:
             "languages": LANGUAGES,
             "capabilities": alibaba_catalog.CAPABILITIES,
             "performance_presets": voice_registry.presets(),
-            "clone_languages": alibaba_catalog.AUDIO_CLONE_LANGUAGES,
+            "clone_languages": clone_languages,
             "workspace": {
                 "configured": bool(environment.workspace_id),
                 "id": environment.workspace_id,

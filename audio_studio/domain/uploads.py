@@ -8,6 +8,10 @@ class StoredVoiceReference:
     name: str
     original_path: str
     normalized_path: str
+    sha256: str = ""
+    duration_ms: int | None = None
+    sample_rate: int | None = None
+    channels: int | None = None
 
 
 @dataclass(frozen=True, slots=True)

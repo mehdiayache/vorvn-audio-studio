@@ -23,8 +23,9 @@ _REFERENCE_URL_LOCK = threading.Lock()
 
 
 def _prefix(name: str, engine: str) -> str:
-    limit = 16 if engine == "omni" else 10
-    pattern = r"[^a-z0-9_]" if engine == "omni" else r"[^a-z0-9]"
+    qwen_enrollment = engine in {"omni", "qwen_tts"}
+    limit = 16 if qwen_enrollment else 10
+    pattern = r"[^a-z0-9_]" if qwen_enrollment else r"[^a-z0-9]"
     clean = re.sub(pattern, "", name.casefold())
     return (clean or "voice")[:limit]
 
@@ -62,6 +63,12 @@ class AlibabaVoiceCloningProvider:
             provider_voice_id = omni.create_voice(
                 job.model_id, prefix, url, language=language)
             endpoint = config.compatible_base_url()
+        elif job.engine == "qwen_tts":
+            provider_voice_id = omni.create_voice(
+                job.model_id, prefix, url,
+                transcript=str(job.metadata.get("transcript") or "").strip()
+                or None)
+            endpoint = config.http_base()
         else:
             from dashscope.audio.tts_v2 import VoiceEnrollmentService
             sdk_runtime.apply_credentials()

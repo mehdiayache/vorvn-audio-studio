@@ -88,7 +88,7 @@ class NativeHttpTests(unittest.TestCase):
         self.assertIsInstance(history.json()["data"], list)
         package = plan.json()["data"]
         self.assertEqual(package["region"], "intl")
-        self.assertEqual(len(package["available_routes"]), 3)
+        self.assertEqual(len(package["available_routes"]), 4)
 
     def test_media_is_typed_seekable_and_security_hardened(self):
         with TemporaryDirectory() as directory:

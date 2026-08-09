@@ -11,7 +11,7 @@ class PerformancePresetResponse(BaseModel):
     id: str
     name: str
     instruction: str
-    engines: list[Literal["audio", "omni"]]
+    engines: list[Literal["audio", "omni", "qwen_tts"]]
 
 
 class WorkspaceResponse(BaseModel):
@@ -66,6 +66,7 @@ class VoiceReferenceResponse(BaseModel):
     original_name: str | None = None
     original_path: str | None = None
     normalized_path: str | None = None
+    source_language: str | None = None
 
 
 class VoiceBindingResponse(BaseModel):
@@ -78,10 +79,11 @@ class VoiceBindingResponse(BaseModel):
     languages: list[str]
     source: Literal["system", "custom"]
     provider: str
-    engine: Literal["audio", "omni"]
-    tier: Literal["plus", "flash"]
+    engine: Literal["audio", "omni", "qwen_tts"]
+    tier: Literal["plus", "flash", "vc"]
     model_id: str
     status: str
+    reference_id: str | None = None
     image: str | None = None
     gender: str | None = None
     age: int | None = None
@@ -91,8 +93,8 @@ class VoiceBindingResponse(BaseModel):
 
 
 class VoiceModelSummaryResponse(BaseModel):
-    engine: Literal["audio", "omni"]
-    tier: Literal["plus", "flash"]
+    engine: Literal["audio", "omni", "qwen_tts"]
+    tier: Literal["plus", "flash", "vc"]
     model_id: str
     label: str
     system_count: int

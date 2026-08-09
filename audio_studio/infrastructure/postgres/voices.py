@@ -62,31 +62,42 @@ class VoiceRepository:
 
             cursor.execute("""
                 SELECT id, identity_id, original_name, normalized_path,
-                       created_at
+                       source_language, transcript, sha256, duration_ms,
+                       sample_rate, channels, metadata, created_at, updated_at
                   FROM voice_references
                  WHERE identity_id IS NOT NULL
                  ORDER BY created_at DESC
             """)
-            for reference_id, identity_id, name, path, created_at in cursor.fetchall():
+            for row in cursor.fetchall():
+                (reference_id, identity_id, name, path, source_language,
+                 transcript, sha256, duration_ms, sample_rate, channels,
+                 metadata, created_at, updated_at) = row
                 if identity_id in by_id:
                     by_id[identity_id]["references"].append({
                         "id": reference_id, "original_name": name or "",
                         "normalized_path": path or "",
+                        "source_language": source_language or "",
+                        "transcript": transcript or "", "sha256": sha256 or "",
+                        "duration_ms": duration_ms, "sample_rate": sample_rate,
+                        "channels": channels, "metadata": metadata or {},
                         "created_at": created_at.isoformat(),
+                        "updated_at": updated_at.isoformat(),
                     })
 
             cursor.execute("""
                 SELECT provider_voice_id, model_id, identity_id, engine, tier,
-                       status, languages, created_at
+                       status, languages, reference_id, created_at
                   FROM voice_bindings ORDER BY created_at
             """)
             for row in cursor.fetchall():
-                provider_id, model_id, identity_id, engine, tier, status, languages, created_at = row
+                (provider_id, model_id, identity_id, engine, tier, status,
+                 languages, reference_id, created_at) = row
                 if identity_id in by_id:
                     by_id[identity_id]["bindings"].append({
                         "provider_voice_id": provider_id, "model_id": model_id,
                         "engine": engine, "tier": tier, "status": status,
                         "languages": languages or [],
+                        "reference_id": reference_id,
                         "created_at": created_at.isoformat(),
                     })
 
@@ -232,7 +243,8 @@ class VoiceRepository:
             cursor.execute("""
                 SELECT binding.provider_voice_id, binding.model_id,
                        binding.engine, binding.tier, binding.status,
-                       binding.languages, identity.id, identity.name,
+                       binding.languages, binding.reference_id,
+                       identity.id, identity.name,
                        identity.image, identity.gender, identity.age,
                        identity.accent, identity.trait, identity.scene,
                        identity.notes
@@ -248,11 +260,12 @@ class VoiceRepository:
             "voice_id": provider_id, "target_model": model_id,
             "source": "custom", "engine": engine, "tier": tier,
             "status": status, "languages": languages or [],
+            "reference_id": reference_id,
             "identity_id": identity_id, "name": name,
             "image": image or "", "gender": gender or "", "age": age,
             "accent": accent or "", "trait": trait or "",
             "scene": scene or "", "notes": notes or "",
-        } for provider_id, model_id, engine, tier, status, languages,
+        } for provider_id, model_id, engine, tier, status, languages, reference_id,
             identity_id, name, image, gender, age, accent, trait, scene, notes
             in rows]
 
@@ -261,22 +274,25 @@ class VoiceRepository:
             cursor.execute("""
                 SELECT binding.provider_voice_id, binding.identity_id,
                        reference.id, reference.original_name,
-                       reference.original_path, reference.normalized_path
+                       reference.original_path, reference.normalized_path,
+                       reference.source_language
                   FROM voice_bindings binding
                   LEFT JOIN voice_references reference
-                    ON reference.identity_id = binding.identity_id
+                    ON reference.id = binding.reference_id
                  ORDER BY reference.created_at DESC NULLS LAST
             """)
             rows = cursor.fetchall()
         result: dict[str, dict] = {}
-        for provider_id, identity_id, reference_id, name, original, normalized in rows:
-            item = result.setdefault(provider_id, {"identity_id": identity_id})
-            if reference_id and "id" not in item:
-                item.update({
+        for (provider_id, identity_id, reference_id, name, original,
+             normalized, source_language) in rows:
+            if reference_id and provider_id not in result:
+                result[provider_id] = {
+                    "identity_id": identity_id,
                     "id": reference_id, "original_name": name or "",
                     "original_path": original or "",
                     "normalized_path": normalized or "",
-                })
+                    "source_language": source_language or "",
+                }
         return result
 
     def catalog_metadata(self) -> dict:

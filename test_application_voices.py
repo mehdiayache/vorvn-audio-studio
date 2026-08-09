@@ -10,7 +10,12 @@ from audio_studio.application.voices import VoiceService
 
 PROFILE = {
     "id": "voice_fixture", "name": "Fixture Voice", "metadata": {},
-    "references": [],
+    "references": [{
+        "id": "ref_fixture", "source_language": "en",
+        "original_name": "fixture.wav", "normalized_path": "fixture.wav",
+        "created_at": "2026-08-09T00:00:00+00:00",
+        "updated_at": "2026-08-09T00:00:00+00:00",
+    }],
     "bindings": [{
         "provider_voice_id": "provider-fixture", "model_id": "model-fixture",
         "engine": "omni", "tier": "plus", "status": "active",
@@ -99,7 +104,7 @@ class VoiceServiceTests(unittest.TestCase):
         with self.runtime():
             profile = service.profile("voice_fixture")
         self.assertEqual(profile["metadata"]["language"], "en")
-        self.assertEqual(len(profile["available_routes"]), 3)
+        self.assertEqual(len(profile["available_routes"]), 4)
         self.assertEqual(profile["usage"]["uses"], 4)
 
     def test_profile_updates_archive_and_history_use_one_store(self):
@@ -123,7 +128,7 @@ class VoiceServiceTests(unittest.TestCase):
                 "reference_id": "ref_fixture", "package": "complete",
             })
         self.assertTrue(result["needs_confirmation"])
-        self.assertEqual(result["estimate"], .02)
+        self.assertEqual(result["estimate"], .03)
         self.assertFalse(packages.created)
 
     def test_daily_cap_records_block_without_queueing(self):
@@ -134,7 +139,7 @@ class VoiceServiceTests(unittest.TestCase):
                 "name": "Fixture", "language": "English",
                 "reference_id": "ref_fixture", "package": "complete",
             })
-        self.assertEqual(packages.blocked[0]["estimate"], .02)
+        self.assertEqual(packages.blocked[0]["estimate"], .03)
         self.assertFalse(packages.created)
 
     def test_confirmed_package_and_retry_return_application_results(self):
@@ -147,7 +152,7 @@ class VoiceServiceTests(unittest.TestCase):
             })
         self.assertEqual(result["identity"]["id"], "voice_fixture")
         self.assertEqual(result["queued"], 3)
-        self.assertEqual(len(packages.created[0]["routes"]), 3)
+        self.assertEqual(len(packages.created[0]["routes"]), 4)
         self.assertEqual(
             service.retry_binding(" voice_fixture ", " model "),
             {"ok": True, "job_id": "job-retry"},

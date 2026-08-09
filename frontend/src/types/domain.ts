@@ -188,7 +188,7 @@ export type StudioConfig = {
   capabilities: Record<string, {
     label: string
     purpose: string
-    models: Record<"plus" | "flash", string>
+    models: Record<string, string>
     system_languages: string[]
     system_voices?: Record<string, string>
     clone_tiers?: string[]
@@ -204,7 +204,7 @@ export type StudioConfig = {
 export type ClonedVoice = {
   voice_id?: string
   voice?: string
-  engine?: "audio" | "omni"
+  engine?: "audio" | "omni" | "qwen_tts"
   target_model?: string
   targetModel?: string
   name?: string
@@ -233,8 +233,8 @@ export type VoiceBinding = {
   languages: string[]
   source: "system" | "custom"
   provider: string
-  engine: "audio" | "omni"
-  tier: "plus" | "flash"
+  engine: "audio" | "omni" | "qwen_tts"
+  tier: "plus" | "flash" | "vc"
   model_id: string
   status: string
   image?: string
@@ -242,12 +242,13 @@ export type VoiceBinding = {
   age?: number | null
   accent?: string
   scene?: string
-  reference?: { id?: string; identity_id?: string; original_name?: string; original_path?: string; normalized_path?: string }
+  reference_id?: string | null
+  reference?: { id?: string; identity_id?: string; original_name?: string; original_path?: string; normalized_path?: string; source_language?: string }
 }
 
 export type VoiceModelSummary = {
-  engine: "audio" | "omni"
-  tier: "plus" | "flash"
+  engine: "audio" | "omni" | "qwen_tts"
+  tier: "plus" | "flash" | "vc"
   model_id: string
   label: string
   system_count: number
@@ -260,7 +261,7 @@ export type PerformancePreset = {
   id: string
   name: string
   instruction: string
-  engines: Array<"audio" | "omni">
+  engines: Array<"audio" | "omni" | "qwen_tts">
 }
 
 export type VoiceRegistry = components["schemas"]["VoiceRegistryResponse"]
@@ -382,8 +383,8 @@ export type GeneratePayload = {
   insert_at: number | null
   voice: string
   voice_identity_id?: string | null
-  engine: "audio" | "omni"
-  model: "plus" | "flash"
+  engine: "audio" | "omni" | "qwen_tts"
+  model: "plus" | "flash" | "vc"
   format: string
   language: string
   instruction: string
@@ -398,8 +399,8 @@ export type GeneratePayload = {
 export type VoiceRouteDecision = {
   identity_id?: string | null
   provider_voice_id: string
-  engine: "audio" | "omni"
-  tier: "plus" | "flash"
+  engine: "audio" | "omni" | "qwen_tts"
+  tier: "plus" | "flash" | "vc"
   model_id: string
   reason: string
   registry_matched: boolean

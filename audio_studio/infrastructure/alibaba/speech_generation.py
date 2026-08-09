@@ -7,7 +7,7 @@ import os
 import re
 
 from audio_studio.domain import delivery_tags, provider_catalog, speech_text, voice_routing
-from audio_studio.infrastructure.alibaba import audio_tts, config, omni
+from audio_studio.infrastructure.alibaba import audio_tts, config, omni, qwen_tts
 from audio_studio.domain import speech_fidelity as alibaba_fidelity
 from audio_studio.domain.provider_pricing import PRICE_VERSION, qwen_audio_tts_cost
 
@@ -32,6 +32,9 @@ def synthesize(chunks, options, on_progress=None):
         audio, failures, transcripts, usage, request_ids, diagnostics = omni.synthesize(
             chunks, options, on_progress)
         return audio, failures, transcripts, usage, request_ids, diagnostics
+    if options.engine == "qwen_tts":
+        return qwen_tts.synthesize(
+            chunks, options, on_progress=on_progress)
     audio, failures = audio_tts.synthesize(
         chunks, options, on_progress=on_progress)
     return audio, failures, [], {}, [], []
@@ -48,11 +51,14 @@ class _Options:
             language = "Arabic"
         route = voice_routing.resolve(
             {**values, "language": language, "text": text}, bindings)
+        if route.engine == "qwen_tts" and not route.provider_voice_id:
+            raise ValueError("Choose a ready Qwen3 TTS cloned voice.")
         self.language = None if language in (None, "", "Auto") else str(language)
         self.voice_identity_id = route.identity_id
         self.voice = route.provider_voice_id or (
             "Tina" if route.engine == "omni"
-            else provider_catalog.AUDIO_DEFAULT_VOICES[route.tier])
+            else provider_catalog.AUDIO_DEFAULT_VOICES.get(
+                route.tier, provider_catalog.AUDIO_DEFAULT_VOICES["plus"]))
         self.engine = route.engine
         self.model = route.tier
         self.model_id = route.model_id
@@ -91,8 +97,8 @@ def _guard_estimate(text: str, engine: str, tier: str) -> float:
     if engine == "audio":
         return qwen_audio_tts_cost(
             len(text), config.region(), tier).catalog_cost
-    rates = config.CAPABILITIES["omni"]["estimate_rates_per_million_chars"]
-    return round(len(text) * rates.get(tier, rates["plus"]) / 1_000_000, 6)
+    rates = config.CAPABILITIES[engine]["estimate_rates_per_million_chars"]
+    return round(len(text) * rates[tier] / 1_000_000, 6)
 
 
 class AlibabaSpeechProvider:
@@ -112,10 +118,11 @@ class AlibabaSpeechProvider:
         options = _Options(values, bindings, pronunciations, preferences)
         tagged = [tag for tag in delivery_tags.TAG_RE.findall(text)
                   if tag.casefold() in delivery_tags.KNOWN_TAGS]
-        if options.engine == "omni" and tagged:
+        if options.engine in {"omni", "qwen_tts"} and tagged:
             raise ValueError(
-                "Qwen 3.5 Omni does not support inline delivery tags. "
-                "Choose Raw or Spoken text, or use a Qwen Audio voice.")
+                f"{provider_catalog.CAPABILITIES[options.engine]['label']} "
+                "does not support inline delivery tags. Choose Raw or Spoken "
+                "text, or use a Qwen Audio voice.")
         spoken, applied = speech_text.apply_pronunciations(text, pronunciations)
         rewrites: list = []
         if preferences.get("fix_dates_phones", True):
@@ -154,7 +161,7 @@ class AlibabaSpeechProvider:
             basis = "actual_tokens" if actual is not None else "estimate"
             endpoint = config.compatible_base_url()
             rate = None
-        else:
+        elif prepared.engine == "audio":
             generated_characters = max(
                 0, len(prepared.spoken_text)
                 - sum(len(str(item.get("text") or "")) for item in failure_rows))
@@ -167,6 +174,20 @@ class AlibabaSpeechProvider:
             cost, basis = priced.catalog_cost, priced.cost_basis
             endpoint = config.websocket_base()
             rate = priced.catalog_rate
+        else:
+            generated_characters = max(
+                0, len(prepared.spoken_text)
+                - sum(len(str(item.get("text") or ""))
+                      for item in failure_rows))
+            measured_usage.update({
+                "submitted_characters": len(prepared.spoken_text),
+                "generated_characters": generated_characters,
+            })
+            rate = float(config.CAPABILITIES[prepared.engine]
+                         ["rates_per_million_chars"][prepared.tier])
+            cost = round(generated_characters * rate / 1_000_000, 6)
+            basis = "catalog_characters"
+            endpoint = config.regional_http_base()
         return SynthesizedSpeech(
             audio=audio, cost=cost, cost_basis=basis,
             usage=measured_usage, failures=failure_rows,

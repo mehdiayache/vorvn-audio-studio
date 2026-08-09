@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 from typing import Protocol
 from urllib.parse import unquote
 from uuid import uuid4
@@ -42,6 +43,8 @@ class UploadRecords(Protocol):
     def create_voice_reference(
         self, *, reference_id: str, original_name: str,
         original_path: str, normalized_path: str,
+        sha256: str = "", duration_ms: int | None = None,
+        sample_rate: int | None = None, channels: int | None = None,
     ) -> str: ...
     def asset_collection(self, collection_id: int) -> dict | None: ...
     def create_uploaded_asset(
@@ -95,6 +98,10 @@ class UploadService:
                 original_name=original,
                 original_path=stored.original_path,
                 normalized_path=stored.normalized_path,
+                sha256=stored.sha256 or hashlib.sha256(raw).hexdigest(),
+                duration_ms=stored.duration_ms,
+                sample_rate=stored.sample_rate,
+                channels=stored.channels,
             )
         except Exception:
             self.workspace.discard_voice_reference(reference_id)

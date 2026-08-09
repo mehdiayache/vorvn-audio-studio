@@ -10,7 +10,7 @@ afterEach(cleanup)
 const profile: VoiceProfile = {
   id: "voice-serinity", name: "Serinity", metadata: { language: "en" },
   created_at: "2026-08-07", updated_at: "2026-08-07",
-  references: [{ id: "ref-1", original_name: "serinity.wav", normalized_path: "serinity-24k.wav", created_at: "2026-08-07" }],
+  references: [{ id: "ref-1", original_name: "serinity.wav", normalized_path: "serinity-24k.wav", source_language: "en", transcript: "", sha256: "fixture", created_at: "2026-08-07", updated_at: "2026-08-07" }],
   bindings: [{ provider_voice_id: "audio-serinity", model_id: "audio-flash", engine: "audio", tier: "flash", status: "active", languages: ["en"], created_at: "2026-08-07" }],
   jobs: [],
   usage: { uses: 0, productions: 0, spend: 0, last_used: null, preview_filename: "" },

@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
-Engine = Literal["audio", "omni"]
-Tier = Literal["plus", "flash"]
+Engine = Literal["audio", "omni", "qwen_tts"]
+Tier = Literal["plus", "flash", "vc"]
 
 
 class VoicePackageRouteResponse(BaseModel):
@@ -61,7 +61,15 @@ class VoiceReferenceSummaryResponse(BaseModel):
     id: str
     original_name: str
     normalized_path: str
+    source_language: str = ""
+    transcript: str = ""
+    sha256: str = ""
+    duration_ms: int | None = None
+    sample_rate: int | None = None
+    channels: int | None = None
+    metadata: dict = Field(default_factory=dict)
     created_at: str
+    updated_at: str
 
 
 class VoiceProfileBindingResponse(BaseModel):
@@ -71,6 +79,7 @@ class VoiceProfileBindingResponse(BaseModel):
     tier: Tier
     status: str
     languages: list[str]
+    reference_id: str | None = None
     created_at: str
 
 

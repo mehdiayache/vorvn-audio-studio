@@ -19,11 +19,15 @@ class PostgresUploadRecords:
 
     def create_voice_reference(
         self, *, reference_id: str, original_name: str,
-        original_path: str, normalized_path: str,
+        original_path: str, normalized_path: str, sha256: str = "",
+        duration_ms: int | None = None, sample_rate: int | None = None,
+        channels: int | None = None,
     ) -> str:
         return self.voices.create_reference(
             reference_id=reference_id, original_name=original_name,
-            original_path=original_path, normalized_path=normalized_path)
+            original_path=original_path, normalized_path=normalized_path,
+            sha256=sha256, duration_ms=duration_ms,
+            sample_rate=sample_rate, channels=channels)
 
     def asset_collection(self, collection_id: int) -> dict | None:
         return self.assets.collection(collection_id)

@@ -80,7 +80,7 @@ def create_voice(target_model: str, preferred_name: str, audio_url: str,
     try:
         return result["output"]["voice"]
     except (KeyError, TypeError) as exc:
-        raise RuntimeError("Alibaba returned no Omni voice ID") from exc
+        raise RuntimeError("Alibaba returned no cloned voice ID") from exc
 
 
 def list_voices() -> list[dict]:
