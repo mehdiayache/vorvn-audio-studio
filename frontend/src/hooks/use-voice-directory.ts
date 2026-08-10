@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { studioApi } from "@/lib/api"
+import { listenForVoiceDirectoryChanges } from "@/lib/voice-directory-events"
 import type { ClonedVoice, StudioConfig, VoiceCatalogItem, VoiceDirectory, VoiceMeta, VoiceRegistry } from "@/types/domain"
 
 export function useVoiceDirectory() {
@@ -39,14 +40,13 @@ export function useVoiceDirectory() {
   useEffect(() => {
     void refresh()
     const refreshWhenCurrent = () => { if (document.visibilityState === "visible") void refresh() }
-    const refreshFromAnotherTab = (event: StorageEvent) => { if (event.key === "vorvn:voices-revision") void refresh() }
+    const stopListening = listenForVoiceDirectoryChanges(() => { void refresh() })
     window.addEventListener("focus", refreshWhenCurrent)
     document.addEventListener("visibilitychange", refreshWhenCurrent)
-    window.addEventListener("storage", refreshFromAnotherTab)
     return () => {
       window.removeEventListener("focus", refreshWhenCurrent)
       document.removeEventListener("visibilitychange", refreshWhenCurrent)
-      window.removeEventListener("storage", refreshFromAnotherTab)
+      stopListening()
     }
   }, [refresh])
 

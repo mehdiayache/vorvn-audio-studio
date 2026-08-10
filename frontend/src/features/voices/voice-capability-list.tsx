@@ -12,9 +12,9 @@ function stateFor(route: VoicePackageRoute, bindings: VoiceProfileBinding[], job
 }
 
 function capabilityName(route: VoicePackageRoute) {
-  if (route.engine === "audio") return "Exact reading"
-  if (route.engine === "qwen_tts") return "Faithful narration"
-  return route.tier === "flash" ? "Fast performance" : "Directed performance"
+  if (route.engine === "audio") return "Expressive + tags"
+  if (route.engine === "qwen_tts") return "Clean long reading"
+  return "Arabic & multilingual"
 }
 
 export function VoiceCapabilityList({ routes, bindings, jobs, onRetry }: {

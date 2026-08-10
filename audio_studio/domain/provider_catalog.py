@@ -56,12 +56,12 @@ OMNI_SYSTEM_VOICES = {
 CAPABILITIES = {
     "audio": {
         "label": "Qwen Audio TTS",
-        "operator_title": "Expressive narration",
-        "purpose": "Reads the full script with emotions and vocal effects.",
+        "operator_title": "Expressive + tags",
+        "purpose": "Best for emotional stories and character narration.",
         "operator_notes": [
-            "Supports emotion and sound tags",
-            "Supports a natural performance direction",
-            "Long scripts are handled automatically",
+            "Use emotion and vocal-effect tags",
+            "Give the recording a natural direction",
+            "Adjust speed, pitch and volume",
         ],
         "models": {
             "plus": "qwen-audio-3.0-tts-plus",
@@ -81,12 +81,12 @@ CAPABILITIES = {
     },
     "omni": {
         "label": "Qwen 3.5 Omni",
-        "operator_title": "Multilingual Omni",
-        "purpose": "Arabic and extended multilingual narration.",
+        "operator_title": "Arabic & multilingual",
+        "purpose": "Best for Arabic and extended multilingual narration.",
         "operator_notes": [
-            "Long scripts use short verified passages",
-            "Supports one natural performance direction",
-            "Does not use inline emotion tags",
+            "Keeps every requested word under review",
+            "Accepts one overall tone direction",
+            "Long recordings can vary slightly between joined passages",
         ],
         "models": {
             "plus": "qwen3.5-omni-plus",
@@ -119,12 +119,12 @@ CAPABILITIES = {
     },
     "qwen_tts": {
         "label": "Qwen3 TTS Voice Clone",
-        "operator_title": "Faithful narration",
-        "purpose": "Reads the complete prepared script with a cloned voice.",
+        "operator_title": "Clean long reading",
+        "purpose": "Best for audiobooks, lessons and straightforward narration.",
         "operator_notes": [
-            "Designed for long-form cloned narration",
-            "No emotion tags or performance instructions",
-            "Long scripts are handled automatically",
+            "Reads your text as written",
+            "Designed for long cloned-voice narration",
+            "No emotion tags or performance directions",
         ],
         "models": {"vc": "qwen3-tts-vc-2026-01-22"},
         "clone_tiers": ["vc"],

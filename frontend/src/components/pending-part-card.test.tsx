@@ -15,6 +15,7 @@ describe("PendingPartCard", () => {
     render(<PendingPartCard task={task} index={0} directory={directory} onRetry={() => undefined} onDismiss={() => undefined} />)
     expect(screen.getByLabelText("Speech is generating")).toBeTruthy()
     expect(screen.getByText("Generating audio…")).toBeTruthy()
+    expect(screen.getByText("Qwen Omni · Plus · English")).toBeTruthy()
     expect(screen.getByText("In the beginning")).toBeTruthy()
   })
 

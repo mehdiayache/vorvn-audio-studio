@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { VoiceIdentity } from "@/components/voice-identity"
+import { speechEngineLabel, speechModelLabel } from "@/components/speech-route-label"
 import { usePartDetailData } from "@/hooks/use-part-detail-data"
 import { audioUrl } from "@/lib/api"
 import { formatDuration, formatMoney, textDirection } from "@/lib/format"
@@ -50,7 +51,7 @@ export function PartDetailSheet({ productionId, part, directory, playingKey, pla
                 <section><h3>Words</h3><p className="detail-script" dir={textDirection(part.text)}>{part.text || "This part has no written script."}</p></section>
                 {part.provider_text && <section><h3>Alibaba returned</h3><p className="detail-script" dir={textDirection(part.provider_text)}>{part.provider_text}</p></section>}
                 <Separator />
-                <section><h3>Recording</h3><dl><div><dt>Engine</dt><dd>{part.engine || "—"}</dd></div><div><dt>Model</dt><dd>{part.model || "—"}</dd></div><div><dt>Language</dt><dd>{part.language || "Auto"}</dd></div><div><dt>Mode</dt><dd>{part.speech_mode || "Exact"}</dd></div></dl></section>
+                <section><h3>Recording</h3><dl><div><dt>Method</dt><dd>{speechEngineLabel(part.engine)}</dd></div><div><dt>Quality</dt><dd>{speechModelLabel(part.model) || "—"}</dd></div><div><dt>Language</dt><dd>{part.language || "Auto"}</dd></div><div><dt>Delivery</dt><dd>{part.speech_mode === "directed" ? "Directed performance" : "Exact reading"}</dd></div></dl></section>
                 <Separator />
                 <section><h3>Review</h3><div className="detail-badges"><Badge variant={part.subtitled ? "secondary" : "outline"}><Captions /> {part.subtitled ? "Captions available" : "No captions"}</Badge>{part.subtitles_stale && <Badge variant="destructive">Captions need refresh</Badge>}{part.languages?.map((language) => <Badge key={language} variant="outline">{language}</Badge>)}</div></section>
                 <div className="detail-actions"><Button variant="outline" onClick={() => onDuplicate(part)}><Copy /> Duplicate</Button><Button variant="outline" className="danger" onClick={() => onDelete(part)}><Trash2 /> Delete</Button></div>

@@ -1,4 +1,4 @@
-import { AudioLines, CircleDollarSign, Gauge, Mic2, Plus, Settings2, WandSparkles } from "lucide-react"
+import { AudioLines, CircleDollarSign, Gauge, Mic2, Plus, WandSparkles } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -9,8 +9,7 @@ import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 import { VoicePicker } from "@/components/voice-picker"
 import { useComposerText, type TextView } from "@/hooks/use-composer-text"
-import { resolveVoice } from "@/lib/voice"
-import { getVoiceOptions, languageForVoice, type SpeechEngine, type SpeechModel, type VoiceChoice } from "@/lib/voice-options"
+import { chooseIdentityRoute, getVoiceIdentities, routesForIdentity, type SpeechEngine, type SpeechModel, type VoiceChoice, type VoiceIdentityChoice } from "@/lib/voice-options"
 import { cn } from "@/lib/utils"
 import type { ClonedVoice, GeneratePayload, GenerateResult, PlayerSource, ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
 
@@ -47,6 +46,7 @@ export function SpeechTool({ projectId, nextPartNumber = 1, insertAt = null, par
   const [section, setSection] = useState<ComposerSection>("voice")
   const [model, setModel] = useState<SpeechModel>((part?.model as SpeechModel) || "plus")
   const [voice, setVoice] = useState(part?.voice || "")
+  const [identityId, setIdentityId] = useState(part?.voice_identity_id || "")
   const [language, setLanguage] = useState(part?.language || "Auto")
   const [format, setFormat] = useState(part?.format || "mp3")
   const [speechMode, setSpeechMode] = useState<"exact" | "directed">((part?.speech_mode as "exact" | "directed") || "exact")
@@ -57,41 +57,54 @@ export function SpeechTool({ projectId, nextPartNumber = 1, insertAt = null, par
   const [busy, setBusy] = useState<"draft" | "generate" | null>(null)
   const [confirmEstimate, setConfirmEstimate] = useState<number | null>(null)
   const [pendingPayload, setPendingPayload] = useState<GeneratePayload | null>(null)
-  const [pendingVoiceRoute, setPendingVoiceRoute] = useState<VoiceChoice | null>(null)
 
   useEffect(() => {
     setSection("voice")
-    setEngine((part?.engine as SpeechEngine) || "audio"); setModel((part?.model as SpeechModel) || "plus"); setVoice(part?.voice || "")
+    setEngine((part?.engine as SpeechEngine) || "audio"); setModel((part?.model as SpeechModel) || "plus"); setVoice(part?.voice || ""); setIdentityId(part?.voice_identity_id || "")
     setLanguage(part?.language || "Auto"); setFormat(part?.format || "mp3"); setSpeechMode((part?.speech_mode as "exact" | "directed") || "exact")
     setInstruction(part?.instruction || ""); setRate(part?.rate ?? 1); setPitch(part?.pitch ?? 1); setVolume(part?.volume ?? 50)
   }, [part?.id])
 
-  const voices = useMemo(() => {
-    return getVoiceOptions(directory.registry ?? null, engine, model)
-  }, [directory.registry, engine, model])
+  const identities = useMemo(() => getVoiceIdentities(directory.registry ?? null, directory.identities), [directory.identities, directory.registry])
+  const selectedIdentity = identities.find((identity) => identity.identityId === identityId)
+  const compatibleRoutes = useMemo(
+    () => routesForIdentity(selectedIdentity, language),
+    [language, selectedIdentity],
+  )
+  const currentRoute = compatibleRoutes.find((route) => route.id === voice)
+  const languageOptions = Array.from(new Set([
+    "Auto",
+    ...(selectedIdentity?.routes.flatMap((route) => route.languages) || []),
+  ]))
+
+  function applyRoute(route: VoiceChoice | undefined) {
+    if (!route) { setVoice(""); return }
+    setEngine(route.engine); setModel(route.model); setVoice(route.id)
+  }
+
+  function selectIdentity(identity: VoiceIdentityChoice) {
+    setIdentityId(identity.identityId)
+    applyRoute(chooseIdentityRoute(routesForIdentity(identity, language), { engine, model }))
+  }
 
   useEffect(() => {
-    const routes = (directory.registry?.models || []).filter((route) => route.engine === engine)
-    if (routes.length && !routes.some((route) => route.tier === model)) {
-      setModel(routes[0]!.tier)
+    if (!identities.length) return
+    if (!identityId) {
+      const partBinding = directory.registry?.bindings.find((item) => item.provider_voice_id === part?.voice)
+      const initial = identities.find((item) => item.identityId === (part?.voice_identity_id || partBinding?.identity_id)) || identities[0]!
+      setIdentityId(initial.identityId)
+      applyRoute(chooseIdentityRoute(routesForIdentity(initial, language), { engine, model }))
+      return
     }
-  }, [directory.registry, engine, model])
+    if (!selectedIdentity) return
+    if (!currentRoute) applyRoute(chooseIdentityRoute(compatibleRoutes, { engine, model }))
+  // `applyRoute` is intentionally an atomic state transition, not an effect dependency.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compatibleRoutes, currentRoute, directory.registry?.bindings, engine, identities, identityId, language, model, part?.voice, part?.voice_identity_id, selectedIdentity])
 
-  useEffect(() => {
-    if (!config) return
-    const currentIdentity = directory.registry?.bindings.find((item) => item.provider_voice_id === voice)?.identity_id
-    const next = voices.compatible.find((item) => item.identityId === currentIdentity)?.id || voices.compatible[0]?.id || ""
-    if (!voices.compatible.some((item) => item.id === voice)) setVoice(next)
-  }, [config, directory.registry, engine, model, voice, voices])
-  useEffect(() => {
-    if (part || language !== "Auto" || !voice) return
-    const choice = voices.compatible.find((item) => item.id === voice)
-    const binding = directory.registry?.bindings.find((item) => item.provider_voice_id === voice)
-    if (choice) setLanguage(languageForVoice(choice, binding, config?.clone_languages))
-  }, [config?.clone_languages, directory.registry, language, part, voice, voices.compatible])
   useEffect(() => {
     if (part || !/[\u0600-\u06ff]/.test(textSession.text)) return
-    setEngine("omni"); setLanguage("Arabic")
+    setLanguage("Arabic")
   }, [part, textSession.text])
 
   const estimateRate = config?.capabilities[engine]?.estimate_rates_per_million_chars?.[model] || 0
@@ -106,9 +119,8 @@ export function SpeechTool({ projectId, nextPartNumber = 1, insertAt = null, par
   const estimate = textSession.text.length * estimateRate / 1_000_000
   const destination = !projectId ? "Standalone recording" : part ? part.kind === "draft" ? `Record Part ${(part.position ?? 0) + 1}` : `New take for Part ${(part.position ?? 0) + 1}` : insertAt === null ? `New Part ${nextPartNumber}` : `Insert as Part ${insertAt + 1}`
   function payload(confirmed = false): GeneratePayload {
-    const binding = directory.registry?.bindings.find((item) => item.provider_voice_id === voice)
-    const identityId = binding?.source === "custom" ? binding.identity_id : part?.voice === voice ? part.voice_identity_id : null
-    return { text: textSession.text, text_raw: textSession.states.raw || null, text_shaped: textSession.states.shaped || null, text_tagged: textSession.states.tagged || null, text_state: textSession.view, ...(projectId ? { production_id: projectId } : {}), insert_at: insertAt, voice, voice_identity_id: identityId, engine, model, format, language, instruction, speech_mode: engine === "omni" ? speechMode : "exact", rate, pitch, volume, seed: part?.seed ?? 0, confirmed }
+    const identity = selectedIdentity?.source === "mine" ? selectedIdentity.identityId : null
+    return { text: textSession.text, text_raw: textSession.states.raw || null, text_shaped: textSession.states.shaped || null, text_tagged: textSession.states.tagged || null, text_state: textSession.view, ...(projectId ? { production_id: projectId } : {}), insert_at: insertAt, voice, voice_identity_id: identity, engine, model, format, language, instruction, speech_mode: engine === "omni" ? speechMode : "exact", rate, pitch, volume, seed: part?.seed ?? 0, confirmed }
   }
   async function generate(next = payload()) {
     const warnAbove = Number(config?.prefs?.warn_above || 0)
@@ -118,21 +130,17 @@ export function SpeechTool({ projectId, nextPartNumber = 1, insertAt = null, par
     catch { /* The Production-owned render task keeps the actionable failure. */ }
     finally { setBusy(null) }
   }
-  function applyVoiceLanguage(choice: VoiceChoice) {
-    const binding = directory.registry?.bindings.find((item) => item.provider_voice_id === choice.id)
-    setLanguage(languageForVoice(choice, binding, config?.clone_languages, language))
-  }
-
-  const routeModels = directory.registry?.models || []
-  const engineOptions = Array.from(new Set(routeModels.map((route) => route.engine)))
-  const tierOptions = routeModels.filter((route) => route.engine === engine)
+  const engineOptions = Array.from(new Set(compatibleRoutes.map((route) => route.engine)))
+  const allIdentityEngines = Array.from(new Set((selectedIdentity?.routes || []).map((route) => route.engine)))
+  const unavailableEngines = allIdentityEngines.filter((item) => !engineOptions.includes(item))
+  const tierOptions = compatibleRoutes.filter((route) => route.engine === engine)
   const performancePresets = (directory.registry?.presets || []).filter((preset) => preset.engines.includes(engine))
 
   const nav: Array<{ key: ComposerSection; label: string; detail: string; icon: typeof AudioLines }> = [
-    { key: "voice", label: "Voice", detail: voice ? resolveVoice(voice, directory).name : "Choose a voice", icon: Mic2 },
+    { key: "voice", label: "Voice", detail: selectedIdentity?.name || "Choose a voice", icon: Mic2 },
     { key: "script", label: "Script", detail: textSession.text ? `${textSession.text.length} characters` : "Write the words", icon: AudioLines },
-    { key: "delivery", label: "Delivery", detail: engine === "omni" ? "Verified passages" : engine === "qwen_tts" ? "Faithful narration" : "Tags and direction", icon: WandSparkles },
-    { key: "output", label: "Output", detail: engine === "audio" ? `${format.toUpperCase()} · ${rate.toFixed(2)}×` : `${format.toUpperCase()} · model controlled`, icon: Gauge },
+    { key: "delivery", label: "Delivery", detail: capabilityTitle(engine, config), icon: WandSparkles },
+    { key: "output", label: "Output", detail: `${language} · ${tierLabel(model)}`, icon: Gauge },
   ]
 
   return <div className="speech-composer">
@@ -143,7 +151,7 @@ export function SpeechTool({ projectId, nextPartNumber = 1, insertAt = null, par
         {textSession.error && <p className="composer-warning">{textSession.error}</p>}
         {textSession.review && <div className="text-review"><header><div><b>{textSession.review.kind === "shape" ? "Spoken version ready" : "Tagged version ready"}</b><span>${Number(textSession.review.result.cost || 0).toFixed(4)} · review before accepting</span></div><div><Button variant="ghost" onClick={textSession.reject}>Reject</Button><Button onClick={() => void textSession.accept()}>Accept version</Button></div></header><p>{textSession.review.result.difference?.map((change, index) => change.kind === "added" ? <ins key={index}>{change.text}</ins> : change.kind === "removed" ? <del key={index}>{change.text}</del> : <span key={index}>{change.text}</span>)}</p></div>}
       </section>}
-      {section === "voice" && <section className="composer-section"><header><div><span className="eyebrow">Voice and capability</span><h3>Choose how this voice should work</h3></div></header><div className="capability-choice-grid">{engineOptions.map((item) => { const info = config?.capabilities[item]; return <button type="button" key={item} className={cn(engine === item && "selected")} onClick={() => setEngine(item)}><span>{info?.operator_title || engineLabel(item)}</span><b>{info?.purpose || engineLabel(item)}</b><ul>{(info?.operator_notes || []).map((note) => <li key={note}>{note}</li>)}</ul><small>{info?.label || engineLabel(item)}</small></button> })}</div><div className="composer-route-grid"><label className="wide"><span>Voice</span><VoicePicker choices={voices.choices} summary={voices.summary} value={voice} directory={directory} engineLabel={capabilityTitle(engine, config)} modelLabel={tierLabel(model)} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onChange={(choice) => { if (choice.compatible) { setVoice(choice.id); applyVoiceLanguage(choice) } else setPendingVoiceRoute(choice) }} /></label><label><span>Output language</span><Select value={language} onValueChange={setLanguage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(config?.languages || []).filter((item) => item === "Auto" || voices.compatible.some((choice) => choice.languages.some((language) => language.toLocaleLowerCase() === item.toLocaleLowerCase()))).map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></label><label><span>Model version</span><Select value={model} onValueChange={(value) => setModel(value as SpeechModel)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{tierOptions.map((route) => <SelectItem key={route.model_id} value={route.tier}>{tierLabel(route.tier)} · {route.total_count} voices</SelectItem>)}</SelectContent></Select></label></div>{voices.summary && <p className="composer-registry-note">{voices.summary.system_count} Alibaba voices · {voices.summary.custom_count} of your voices · catalogue verified {directory.registry?.source.verified_at}</p>}</section>}
+      {section === "voice" && <section className="composer-section voice-capability-section"><header><div><span className="eyebrow">Voice and recording method</span><h3>Choose the voice, language and result</h3></div></header><div className="composer-route-grid voice-first-grid"><label className="wide"><span>Voice</span><VoicePicker identities={identities} value={identityId} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onChange={selectIdentity} />{selectedIdentity?.sourceLanguage && <small className="voice-source-note">Its source language is profile information only. It does not limit what this voice can say.</small>}</label><label className="wide"><span>Output language</span><Select value={language} onValueChange={(nextLanguage) => { setLanguage(nextLanguage); applyRoute(chooseIdentityRoute(routesForIdentity(selectedIdentity, nextLanguage), { engine, model })) }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{languageOptions.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></label></div><div className="method-heading"><b>What are you making?</b><span>Only methods available for this voice and language are shown.</span></div>{engineOptions.length > 0 ? <div className="capability-choice-grid">{engineOptions.map((item) => { const info = config?.capabilities[item]; return <button type="button" key={item} className={cn(engine === item && "selected")} onClick={() => applyRoute(chooseIdentityRoute(compatibleRoutes.filter((route) => route.engine === item), { engine: item, model }))}><span>{info?.operator_title || engineLabel(item)}</span><b>{info?.purpose || engineLabel(item)}</b><ul>{(info?.operator_notes || []).map((note) => <li key={note}>{note}</li>)}</ul><small>{info?.label || engineLabel(item)}</small></button> })}</div> : <div className="composer-warning capability-empty"><b>This voice has no method for {language}.</b><span>Choose another output language or another voice. The source-language label is not the restriction; provider capabilities are.</span></div>}{unavailableEngines.length > 0 && language !== "Auto" && <p className="capability-unavailable">Not available for {language}: {unavailableEngines.map((item) => capabilityTitle(item, config)).join(" · ")}</p>}{tierOptions.length > 1 && <div className="composer-route-grid quality-grid"><label><span>Quality and cost</span><Select value={model} onValueChange={(nextModel) => applyRoute(tierOptions.find((route) => route.model === nextModel))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{tierOptions.map((route) => <SelectItem key={route.id} value={route.model}>{route.model === "plus" ? "Best quality · Plus" : route.model === "flash" ? "Faster & economical · Flash" : "Voice Clone"}</SelectItem>)}</SelectContent></Select></label></div>} {currentRoute && <p className="composer-registry-note"><b>Ready:</b> {selectedIdentity?.name} · {language} · {capabilityTitle(currentRoute.engine, config)} · {tierLabel(currentRoute.model)}</p>}</section>}
       {section === "delivery" && <section className="composer-section"><header><div><span className="eyebrow">Performance</span><h3>How should it sound?</h3></div></header>{engine === "omni" && <div className="delivery-mode"><div><span>Omni delivery</span><Button variant={speechMode === "exact" ? "secondary" : "outline"} onClick={() => setSpeechMode("exact")}>Keep the script</Button><Button variant={speechMode === "directed" ? "secondary" : "outline"} onClick={() => setSpeechMode("directed")}>Add direction</Button></div><p>{speechMode === "exact" ? "Audio Studio reads the script in short passages and verifies every returned transcript before assembling the Take." : "The same verified-passage process is used with one overall natural-language direction. Inline emotion tags are unavailable."}</p></div>}{engine === "qwen_tts" ? <p className="composer-engine-note">Faithful narration reads the prepared script without emotion tags or performance instructions.</p> : <label><span>{engine === "omni" ? "Overall performance direction" : "Voice direction"}</span><Input value={instruction} disabled={engine === "omni" && speechMode === "exact"} maxLength={config?.instruction_max || 100} onChange={(event) => setInstruction(event.target.value)} placeholder="Describe the performance in natural language" />{engine === "omni" && speechMode === "exact" && <small>Choose Add direction to control the overall performance.</small>}</label>}{performancePresets.length > 0 && <div className="performance-presets"><span>Presets</span><div>{performancePresets.map((preset) => <Button key={preset.id} type="button" variant={instruction === preset.instruction ? "secondary" : "outline"} onClick={() => { setInstruction(preset.instruction); if (engine === "omni") setSpeechMode("directed") }}><b>{preset.name}</b><small>{preset.instruction}</small></Button>)}</div></div>}</section>}
       {section === "output" && <section className="composer-section"><header><div><span className="eyebrow">Output</span><h3>{engine === "audio" ? "Output and voice tuning" : "File settings"}</h3></div></header>{engine !== "audio" && <p className="composer-engine-note">{engine === "omni" ? "Qwen 3.5 Omni interprets pace, emotion, and volume from the natural-language direction in Delivery." : "Qwen3 TTS Voice Clone controls delivery from the cloned voice and prepared script."} Precise numeric speed, pitch, and volume controls are unavailable.</p>}<div className="composer-fine-grid">{engine === "audio" && <><label><span>Speed <b>{rate.toFixed(2)}×</b></span><Slider value={[rate]} min={0.5} max={2} step={0.05} onValueChange={([value = 1]) => setRate(value)} /></label><label><span>Pitch <b>{pitch.toFixed(2)}×</b></span><Slider value={[pitch]} min={0.5} max={2} step={0.05} onValueChange={([value = 1]) => setPitch(value)} /></label><label><span>Volume <b>{volume}</b></span><Slider value={[volume]} min={0} max={100} step={1} onValueChange={([value = 50]) => setVolume(value)} /></label></>}<label><span>File type</span><Select value={format} onValueChange={setFormat}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(config?.formats || ["mp3"]).map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></label></div></section>}
     </div>
@@ -151,6 +159,5 @@ export function SpeechTool({ projectId, nextPartNumber = 1, insertAt = null, par
     {!config?.has_key && <p className="composer-warning footer-warning">Add the Alibaba API key in Settings before generating. Drafts still work.</p>}
     <Dialog open={confirmEstimate !== null} onOpenChange={(open) => { if (!open) { setConfirmEstimate(null); setPendingPayload(null) } }}><DialogContent><DialogHeader><DialogTitle>Generate this take?</DialogTitle><DialogDescription>This request is estimated at ${confirmEstimate?.toFixed(4)}. Actual provider usage is stored after completion.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => { setConfirmEstimate(null); setPendingPayload(null) }}>Cancel</Button><Button onClick={() => { const next = pendingPayload; setConfirmEstimate(null); setPendingPayload(null); if (next) void generate({ ...next, confirmed: true }) }}>Generate</Button></DialogFooter></DialogContent></Dialog>
     <Dialog open={Boolean(textSession.pending)} onOpenChange={(open) => { if (!open) textSession.cancelPending() }}><DialogContent><DialogHeader><DialogTitle>Run this text pass?</DialogTitle><DialogDescription>This Alibaba rewrite is estimated at ${Number(textSession.pending?.estimate || 0).toFixed(4)}. You will review the result before accepting it.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={textSession.cancelPending}>Cancel</Button><Button onClick={() => void textSession.confirmPending()}>Continue</Button></DialogFooter></DialogContent></Dialog>
-    <Dialog open={Boolean(pendingVoiceRoute)} onOpenChange={(open) => { if (!open) setPendingVoiceRoute(null) }}><DialogContent><DialogHeader><DialogTitle>Use this voice capability?</DialogTitle><DialogDescription>{pendingVoiceRoute ? `${resolveVoice(pendingVoiceRoute.id, directory).name} is ready through ${engineLabel(pendingVoiceRoute.engine)} · ${tierLabel(pendingVoiceRoute.model)}. The Composer will select that compatible capability without changing the voice identity.` : ""}</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setPendingVoiceRoute(null)}>Keep current setup</Button><Button onClick={() => { if (!pendingVoiceRoute) return; setEngine(pendingVoiceRoute.engine); setModel(pendingVoiceRoute.model); setVoice(pendingVoiceRoute.id); applyVoiceLanguage(pendingVoiceRoute); setPendingVoiceRoute(null) }}>Use this capability</Button></DialogFooter></DialogContent></Dialog>
   </div>
 }

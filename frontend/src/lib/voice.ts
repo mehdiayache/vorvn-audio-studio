@@ -22,9 +22,18 @@ function stockFallbackName(key: string) {
   return humanize(withoutFamily || withoutVersion)
 }
 
-function languageDisplay(value?: string) {
+export function languageDisplay(value?: string) {
   const names: Record<string, string> = { en: "English", ar: "Arabic", zh: "Chinese", fr: "French", de: "German", es: "Spanish", id: "Indonesian" }
   return String(value || "").split(/[, ]+/).filter(Boolean).map((language) => names[language.toLowerCase()] || language).join(", ")
+}
+
+export function languageFlag(value?: string) {
+  const flags: Record<string, string> = {
+    en: "🇬🇧", english: "🇬🇧", ar: "🇸🇦", arabic: "🇸🇦", zh: "🇨🇳", chinese: "🇨🇳",
+    fr: "🇫🇷", french: "🇫🇷", de: "🇩🇪", german: "🇩🇪", es: "🇪🇸", spanish: "🇪🇸",
+    id: "🇮🇩", indonesian: "🇮🇩", ja: "🇯🇵", japanese: "🇯🇵", ko: "🇰🇷", korean: "🇰🇷",
+  }
+  return flags[String(value || "").trim().toLocaleLowerCase()] || "🌐"
 }
 
 export type ResolvedVoice = {
@@ -52,7 +61,9 @@ export function resolveVoice(id: string | undefined, directory: VoiceDirectory, 
   const fallbackCloneName = cloneMatch?.[1] || cloned?.name || key.replace(/-[0-9a-f]{16,}$/i, "")
   const configDescription = Object.values(directory.config?.voices || {}).map((tier) => tier[technicalId] || Object.entries(tier).find(([voice]) => voiceKey(voice) === key)?.[1]).find(Boolean)
   const name = identity?.name || meta?.name || binding?.name || cloned?.name || catalogue?.name || (omniDescription ? technicalId : isClone ? `${humanize(fallbackCloneName)} · your voice` : stockFallbackName(key || "Unknown voice"))
-  const identityDetail = [identity?.metadata.language ? `Speaks ${languageDisplay(String(identity.metadata.language))}` : "", identity?.metadata.trait, identity?.metadata.accent].filter(Boolean).join(" · ")
+  const sourceLanguage = identity?.metadata.language
+    || (binding?.source === "custom" ? binding.reference?.source_language : "")
+  const identityDetail = [sourceLanguage ? `${languageFlag(String(sourceLanguage))} ${languageDisplay(String(sourceLanguage))} source` : "", identity?.metadata.trait, identity?.metadata.accent].filter(Boolean).join(" · ")
   const detail = identity ? identityDetail || "Your cloned voice" : isClone
     ? [meta?.languages ? `Speaks ${languageDisplay(meta.languages)}` : "Cloned voice", cloned?.engine === "omni" || /omni/i.test(technicalId) ? "Qwen Omni" : "Qwen Audio"].filter(Boolean).join(" · ")
     : binding?.description || omniDescription || [catalogue?.gender, catalogue?.age, catalogue?.trait].filter(Boolean).join(", ") || configDescription || meta?.note || "Voice"

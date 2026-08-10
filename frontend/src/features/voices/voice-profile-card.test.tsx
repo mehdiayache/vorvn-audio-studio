@@ -25,7 +25,7 @@ describe("VoiceProfileCard", () => {
     render(<VoiceProfileCard profile={profile} onComplete={() => undefined} onRetry={() => undefined} onEdit={() => undefined} onPreview={() => undefined} />)
     expect(screen.getByRole("heading", { name: "Serinity" })).toBeTruthy()
     expect(screen.getByText((_, element) => Boolean(element?.classList.contains("voice-profile-count") && element.textContent === "1 of 2 ready"))).toBeTruthy()
-    expect(screen.getByText("Exact reading")).toBeTruthy()
+    expect(screen.getByText("Expressive + tags")).toBeTruthy()
     expect(screen.getByText(/Exact production · Qwen Audio/)).toBeTruthy()
     expect(screen.getByRole("button", { name: /Add 1 missing capability/ })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Edit Serinity" })).toBeTruthy()

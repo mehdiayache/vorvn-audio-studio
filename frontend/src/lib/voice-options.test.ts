@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { VoiceBinding, VoiceRegistry } from "@/types/domain"
-import { getVoiceOptions, languageForVoice } from "./voice-options"
+import { chooseIdentityRoute, getVoiceIdentities, getVoiceOptions, routesForIdentity } from "./voice-options"
 
 function binding(id: string, engine: "audio" | "omni", tier: "plus" | "flash", source: "system" | "custom"): VoiceBinding {
   return { identity_id: `${source}:${id}`, provider_voice_id: id, name: id, description: "", languages: ["English"], source, provider: "alibaba", engine, tier, model_id: `${engine}-${tier}`, status: "active" }
@@ -31,17 +31,24 @@ describe("getVoiceOptions", () => {
   })
 })
 
-describe("languageForVoice", () => {
-  it("uses a cloned voice master language as an editable initial preference", () => {
-    const voice = { ...getVoiceOptions(registry, "omni", "plus").compatible.find((item) => item.id === "Mehdi")!, languages: ["English", "Arabic"] }
-    const custom = { ...bindings.find((item) => item.provider_voice_id === "Mehdi")!, reference: { source_language: "ar" } }
-    expect(languageForVoice(voice, custom, { ar: "Arabic" })).toBe("Arabic")
-    expect(languageForVoice(voice, custom, { ar: "Arabic" }, "English")).toBe("English")
+describe("voice-first routing", () => {
+  it("groups provider bindings into one human identity", () => {
+    const identities = getVoiceIdentities(registry)
+    const tina = identities.find((item) => item.name === "Tina")!
+    expect(tina.routes).toHaveLength(2)
+    expect(identities.filter((item) => item.name === "Tina")).toHaveLength(1)
   })
 
-  it("does not infer a cloned-language preference for provider voices", () => {
-    const voice = getVoiceOptions(registry, "omni", "plus").compatible.find((item) => item.id === "Tina")!
-    const system = { ...bindings.find((item) => item.provider_voice_id === "Tina")!, reference: { source_language: "ar" } }
-    expect(languageForVoice(voice, system, { ar: "Arabic" })).toBe("English")
+  it("treats source language as metadata and output language as route capability", () => {
+    const customRegistry = { ...registry, bindings: registry.bindings.map((item) => item.provider_voice_id === "Mehdi" ? { ...item, languages: ["English", "Arabic"], reference: { source_language: "ar" } } : item) }
+    const mehdi = getVoiceIdentities(customRegistry).find((item) => item.name === "Mehdi")!
+    expect(mehdi.sourceLanguage).toBe("ar")
+    expect(routesForIdentity(mehdi, "English")).toHaveLength(1)
+    expect(routesForIdentity(mehdi, "Arabic")).toHaveLength(1)
+  })
+
+  it("chooses the preferred route without changing identity", () => {
+    const tina = getVoiceIdentities(registry).find((item) => item.name === "Tina")!
+    expect(chooseIdentityRoute(tina.routes, { engine: "omni", model: "flash" })?.model).toBe("flash")
   })
 })

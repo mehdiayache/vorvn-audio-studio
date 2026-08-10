@@ -107,6 +107,8 @@
 .pending-card-icon svg { width: 18px; }
 .pending-card-body { min-width: 0; }
 .pending-card-body > p { margin-top: 7px; overflow: hidden; color: var(--foreground); font-size: var(--type-small); text-overflow: ellipsis; white-space: nowrap; }
+.pending-route { margin-top: 6px; }
+.speech-route-label { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: var(--type-caption); font-weight: 650; }
 .pending-card-status { display: flex; flex-direction: column; align-items: flex-end; }
 .pending-card-status b { font-size: var(--type-small); }
 .pending-card-status small { margin-top: 2px; color: var(--muted-foreground); font-size: var(--type-caption); }
