@@ -109,7 +109,7 @@ def _request(payload: dict) -> dict:
             result = json.load(response)
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode(errors="replace")[:1000]
-        raise RuntimeError(f"Alibaba Omni enrollment failed ({exc.code}): {detail}") from exc
+        raise RuntimeError(f"Alibaba voice enrollment failed ({exc.code}): {detail}") from exc
     if result.get("code") or result.get("message") and not result.get("output"):
         raise RuntimeError(result.get("message") or result.get("code"))
     return result

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 
 from audio_studio.domain import delivery_tags, provider_catalog, speech_text, voice_routing
 from audio_studio.infrastructure.alibaba import audio_tts, config, omni, qwen_tts
@@ -68,8 +67,6 @@ class _Options:
                  pronunciations: list[dict], preferences: dict):
         language = values.get("language")
         text = str(values.get("text") or "")
-        if language in (None, "", "Auto") and re.search(r"[\u0600-\u06ff]", text):
-            language = "Arabic"
         route = voice_routing.resolve(
             {**values, "language": language, "text": text}, bindings)
         if route.engine == "qwen_tts" and not route.provider_voice_id:

@@ -15,10 +15,10 @@ const qwen3: VoiceChoice = {
 }
 
 describe("VoiceLanguageSupport", () => {
-  it("shows experimental output without blocking a cloned voice", () => {
+  it("shows exact-model coverage without blaming the cloned identity", () => {
     render(<VoiceLanguageSupport route={qwen3} language="Arabic" customVoice />)
-    expect(screen.getByText("Arabic is experimental with this model")).toBeTruthy()
-    expect(screen.getByText(/You can still try it/)).toBeTruthy()
+    expect(screen.getByText("Arabic is not documented for this model")).toBeTruthy()
+    expect(screen.getByText(/You can still generate/)).toBeTruthy()
     fireEvent.click(screen.getByText("3 documented languages"))
     expect(screen.getByText("English")).toBeTruthy()
     expect(screen.getByText("French")).toBeTruthy()

@@ -20,10 +20,11 @@ type FormState = {
   trait: string
   scene: string
   notes: string
+  editorialLanguage: string
   favourite: boolean
 }
 
-const emptyForm: FormState = { name: "", gender: "", age: "", accent: "", trait: "", scene: "", notes: "", favourite: false }
+const emptyForm: FormState = { name: "", gender: "", age: "", accent: "", trait: "", scene: "", notes: "", editorialLanguage: "", favourite: false }
 
 export function EditVoiceDialog({ profile, onOpenChange, onSaved, onArchived }: {
   profile: VoiceProfile | null
@@ -46,6 +47,7 @@ export function EditVoiceDialog({ profile, onOpenChange, onSaved, onArchived }: 
       trait: String(profile.metadata.trait || ""),
       scene: String(profile.metadata.scene || ""),
       notes: String(profile.metadata.notes || ""),
+      editorialLanguage: String(profile.metadata.editorial_language || ""),
       favourite: Boolean(profile.metadata.favourite),
     })
     setImage(null); setBusy(""); setError("")
@@ -65,6 +67,7 @@ export function EditVoiceDialog({ profile, onOpenChange, onSaved, onArchived }: 
         name: form.name.trim(), image: imageUrl, gender: form.gender,
         age: form.age ? Number(form.age) : null, accent: form.accent.trim(),
         trait: form.trait.trim(), scene: form.scene.trim(), notes: form.notes.trim(),
+        editorial_language: form.editorialLanguage.trim().toLocaleLowerCase(),
         favourite: form.favourite,
       })
       onSaved(saved); onOpenChange(false); toast.success("Voice details saved.")
@@ -84,7 +87,7 @@ export function EditVoiceDialog({ profile, onOpenChange, onSaved, onArchived }: 
     } finally { setBusy("") }
   }
 
-  const language = String(profile?.metadata.language || "")
+  const recordingLanguage = String(profile?.metadata.recording_language || profile?.metadata.language || "")
   return <Dialog open={Boolean(profile)} onOpenChange={(open) => { if (!busy) onOpenChange(open) }}>
     <DialogContent className="voice-edit-dialog">
       <DialogHeader><DialogTitle>Edit voice</DialogTitle><DialogDescription>This identity supplies its name, portrait and casting details everywhere in Audio Studio.</DialogDescription></DialogHeader>
@@ -98,11 +101,12 @@ export function EditVoiceDialog({ profile, onOpenChange, onSaved, onArchived }: 
           <label><span>Gender description</span><Select value={form.gender || "unspecified"} onValueChange={(value) => change("gender", value === "unspecified" ? "" : value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unspecified">Not specified</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="male">Male</SelectItem><SelectItem value="non-binary">Non-binary</SelectItem></SelectContent></Select></label>
           <label><span>Perceived age</span><Input type="number" min="1" max="120" value={form.age} placeholder="e.g. 35" onChange={(event) => change("age", event.target.value)} /></label>
           <label><span>Accent</span><Input value={form.accent} placeholder="e.g. neutral American" onChange={(event) => change("accent", event.target.value)} /></label>
+          <label><span>Team language tag</span><Input value={form.editorialLanguage} maxLength={12} placeholder="e.g. ar or en" onChange={(event) => change("editorialLanguage", event.target.value)} /><small>Optional casting tag and flag. Never limits output.</small></label>
           <label><span>Voice character</span><Input value={form.trait} placeholder="e.g. warm, grounded, intimate" onChange={(event) => change("trait", event.target.value)} /></label>
           <label className="wide"><span>Best used for</span><Input value={form.scene} placeholder="e.g. bedtime stories and quiet narration" onChange={(event) => change("scene", event.target.value)} /></label>
           <label className="wide"><span>Team notes</span><Textarea value={form.notes} placeholder="Pronunciation, casting or recording notes" onChange={(event) => change("notes", event.target.value)} /></label>
         </div>
-        <div className="voice-edit-facts"><span><b>Source language</b>{language || "Not recorded"}</span><span><b>Internal ID</b><code>{profile?.id}</code></span></div>
+        <div className="voice-edit-facts"><span><b>Reference recording</b>{recordingLanguage ? `${recordingLanguage} · technical provenance` : "Not recorded"}</span><span><b>Internal ID</b><code>{profile?.id}</code></span></div>
         <label className="voice-edit-favourite"><Checkbox checked={form.favourite} onCheckedChange={(checked) => change("favourite", checked === true)} /><Star /> Pin this voice as a team favourite</label>
         {error && <p className="voice-create-error">{error}</p>}
       </div>

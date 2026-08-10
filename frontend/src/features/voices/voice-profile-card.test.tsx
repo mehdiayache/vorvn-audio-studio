@@ -24,17 +24,17 @@ describe("VoiceProfileCard", () => {
   it("presents one identity with model capabilities underneath", () => {
     render(<VoiceProfileCard profile={profile} onComplete={() => undefined} onRetry={() => undefined} onEdit={() => undefined} onPreview={() => undefined} />)
     expect(screen.getByRole("heading", { name: "Serinity" })).toBeTruthy()
-    expect(screen.getByText("1 ready method · 1 to create")).toBeTruthy()
-    expect(screen.getByText("Expressive + tags")).toBeTruthy()
+    expect(screen.getByText("1 of 2 capabilities · 1/2 model versions")).toBeTruthy()
+    expect(screen.getByText("Expressive speech + tags")).toBeTruthy()
     expect(screen.getByText(/Exact production · Qwen Audio/)).toBeTruthy()
     expect(screen.getByText("2 documented output languages")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Create 1 missing method" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Complete 1 model version" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Edit Serinity" })).toBeTruthy()
   })
 
   it("does not pretend a historical voice can build versions without its source", () => {
     render(<VoiceProfileCard profile={{ ...profile, references: [] }} onComplete={() => undefined} onRetry={() => undefined} onEdit={() => undefined} onPreview={() => undefined} />)
     expect(screen.getByText("Source recording needed")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Add source recording for 1 more method" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Add reference for 1 model version" })).toBeTruthy()
   })
 })

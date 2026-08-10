@@ -135,8 +135,10 @@ class VoicePackageRepository:
                     cursor.execute("""
                         INSERT INTO voice_identities
                             (id, name, metadata, gender, age, accent, trait,
-                             scene, notes, recording_language)
-                        VALUES (%s, %s, %s::jsonb, %s, %s, %s, %s, %s, %s, %s)
+                             scene, notes, recording_language,
+                             editorial_language)
+                        VALUES (%s, %s, %s::jsonb, %s, %s, %s, %s, %s, %s,
+                                %s, %s)
                     """, (
                         identity_id, name, json.dumps(metadata or {}),
                         metadata.get("gender") or None,
@@ -146,6 +148,7 @@ class VoicePackageRepository:
                         metadata.get("scene") or None,
                         metadata.get("notes") or None,
                         metadata.get("language") or None,
+                        metadata.get("editorial_language") or None,
                     ))
             cursor.execute("""
                 UPDATE voice_references
@@ -169,16 +172,26 @@ class VoicePackageRepository:
                          status)
                     VALUES (%s, %s, %s, %s, %s, %s, 'queued')
                     ON CONFLICT (identity_id, model_id) DO UPDATE SET
-                        reference_id = EXCLUDED.reference_id,
+                        reference_id = CASE
+                            WHEN voice_package_jobs.status IN
+                                ('ready', 'creating')
+                            THEN voice_package_jobs.reference_id
+                            ELSE EXCLUDED.reference_id END,
                         status = CASE
                             WHEN voice_package_jobs.status IN
-                                ('ready', 'creating', 'interrupted', 'failed')
+                                ('ready', 'creating')
                             THEN voice_package_jobs.status
-                            ELSE 'queued' END,
+                            WHEN voice_package_jobs.reference_id IS DISTINCT FROM
+                                 EXCLUDED.reference_id
+                            THEN 'queued'
+                            ELSE voice_package_jobs.status END,
                         error = CASE
-                            WHEN voice_package_jobs.status IN
-                                ('interrupted', 'failed')
-                            THEN voice_package_jobs.error ELSE NULL END,
+                            WHEN voice_package_jobs.status IN ('ready', 'creating')
+                            THEN voice_package_jobs.error
+                            WHEN voice_package_jobs.reference_id IS DISTINCT FROM
+                                 EXCLUDED.reference_id
+                            THEN NULL
+                            ELSE voice_package_jobs.error END,
                         updated_at = now()
                     RETURNING id, status
                 """, (proposed, identity_id, reference_id, route["model_id"],

@@ -291,7 +291,7 @@ class BatchTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 workspace.write_audio(folder, "../escape.mp3", b"audio")
 
-    def test_provider_preflight_routes_arabic_and_rejects_omni_tags(self):
+    def test_auto_language_preserves_route_and_omni_rejects_tags(self):
         provider = AlibabaSpeechProvider()
         bindings = voice_registry.system_bindings()
         prepared = provider.prepare(
@@ -299,8 +299,9 @@ class BatchTests(unittest.TestCase):
                                   "engine": "audio", "model": "plus",
                                   "format": "mp3"},
             bindings=bindings, pronunciations=[], preferences={})
-        self.assertEqual(prepared.engine, "omni")
-        self.assertEqual(prepared.voice, "Tina")
+        self.assertEqual(prepared.engine, "audio")
+        self.assertEqual(prepared.voice, "longanlingxin")
+        self.assertIsNone(prepared.language)
         with self.assertRaisesRegex(ValueError, "does not support inline"):
             provider.prepare(
                 text="[laughing] Hello",

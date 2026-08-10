@@ -34,6 +34,7 @@ class VoiceUpdate(BaseModel):
     scene: str | None = Field(default=None, max_length=160)
     notes: str | None = Field(default=None, max_length=1000)
     recording_language: str | None = Field(default=None, max_length=160)
+    editorial_language: str | None = Field(default=None, max_length=160)
     favourite: bool | None = None
     status: str | None = None
 
@@ -54,6 +55,7 @@ class VoicePackageCreate(VoicePackagePreflight):
     identity_id: str | None = Field(default=None, max_length=120)
     gender: str | None = Field(default=None, max_length=160)
     trait: str | None = Field(default=None, max_length=160)
+    editorial_language: str | None = Field(default=None, max_length=160)
     confirmed: bool = False
 
 

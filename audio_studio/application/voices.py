@@ -43,16 +43,22 @@ class VoiceService:
             # Recording provenance belongs to the preserved master, while a
             # binding's languages describe what it can synthesize. Never infer
             # one from the other.
-            language = next((
+            recording_language = next((
                 reference.get("source_language", "")
                 for reference in identity["references"]
                 if reference.get("source_language")
-            ), "") or metadata.get("language") or ""
-            identity["metadata"] = {**metadata, "language": language}
+            ), "") or metadata.get("recording_language") or metadata.get("language") or ""
+            identity["metadata"] = {
+                **metadata,
+                "recording_language": recording_language,
+                # Temporary read alias for older API clients. New UI code uses
+                # the explicit recording/editorial fields.
+                "language": recording_language,
+            }
             identity["available_routes"] = (voice_packages.plan(
-                language,
+                recording_language,
                 region=alibaba_environment().region,
-            )["available_routes"] if language else [])
+            )["available_routes"] if recording_language else [])
             identity["usage"] = usage.get(identity["id"], {
                 "uses": 0, "productions": 0, "spend": 0.0,
                 "last_used": None, "preview_filename": "",
@@ -131,6 +137,8 @@ class VoiceService:
 
         metadata = {
             "language": plan["language"], "package": plan["package"],
+            "editorial_language": str(
+                payload.get("editorial_language") or "").strip().lower(),
             "gender": payload.get("gender") or None,
             "trait": str(payload.get("trait") or "").strip() or None,
         }

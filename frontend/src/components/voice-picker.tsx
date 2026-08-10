@@ -25,7 +25,7 @@ export function VoicePicker({ identities, value, directory, playingKey, playerPl
     return identities.filter((identity) => {
       const route = identity.routes[0]
       const voice = resolveVoice(route?.id, directory, identity.identityId)
-      return `${voice.name} ${voice.detail} ${identity.name} ${identity.description} ${identity.sourceLanguage}`
+      return `${voice.name} ${voice.detail} ${identity.name} ${identity.description} ${identity.editorialLanguage}`
         .toLocaleLowerCase().includes(normalizedQuery)
     })
   }, [directory, identities, normalizedQuery])
@@ -46,7 +46,7 @@ export function VoicePicker({ identities, value, directory, playingKey, playerPl
       </Button>
     </PopoverTrigger>
     <PopoverContent className="voice-picker-popover" align="start" sideOffset={6}>
-      <header className="voice-picker-header"><div><b>Choose a voice</b><span>{identities.length} available</span></div><small>Choose the person first. Language and recording style come next.</small></header>
+      <header className="voice-picker-header"><div><b>Choose a voice</b><span>{identities.length} available</span></div><small>Choose the identity first. Output language and capability come next.</small></header>
       <label className="voice-picker-search">
         <Search />
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search all voices" autoFocus />
@@ -60,10 +60,10 @@ export function VoicePicker({ identities, value, directory, playingKey, playerPl
             const key = `voice:${identity.identityId}`
             const playing = playerPlaying && playingKey === key
             const isSelected = value === identity.identityId
-            const methodCount = new Set(identity.routes.map((item) => item.engine)).size
-            const qualification = identity.sourceLanguage
-              ? `${languageFlag(identity.sourceLanguage)} ${languageDisplay(identity.sourceLanguage)} source · ${methodCount} ${methodCount === 1 ? "method" : "methods"}`
-              : identity.description
+            const capabilityCount = new Set(identity.routes.map((item) => item.engine)).size
+            const qualification = identity.editorialLanguage
+              ? `${languageFlag(identity.editorialLanguage)} ${languageDisplay(identity.editorialLanguage)} focus · ${capabilityCount} ${capabilityCount === 1 ? "capability" : "capabilities"}`
+              : identity.description || `${capabilityCount} ${capabilityCount === 1 ? "capability" : "capabilities"}`
             return <div className={cn("voice-picker-row", isSelected && "selected")} key={identity.identityId}>
               <button type="button" className="voice-picker-select" onClick={() => { onChange(identity); setOpen(false) }}>
                 <VoiceIdentity voice={route.id} identityId={identity.identityId} directory={directory} compact showDetail={false} />

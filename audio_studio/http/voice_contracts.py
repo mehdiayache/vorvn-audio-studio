@@ -47,6 +47,8 @@ class VoiceProfileMetadataResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     language: str | None = None
+    recording_language: str | None = None
+    editorial_language: str | None = None
     package: str | None = None
     image: str | None = None
     gender: str | None = None

@@ -66,6 +66,7 @@ class AlibabaVoiceCloningProvider:
         elif job.engine == "qwen_tts":
             provider_voice_id = omni.create_voice(
                 job.model_id, prefix, url,
+                language=language,
                 transcript=str(job.metadata.get("transcript") or "").strip()
                 or None)
             endpoint = config.http_base()

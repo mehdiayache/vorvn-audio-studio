@@ -10,7 +10,7 @@ from audio_studio.infrastructure.postgres.session import read_only, transaction
 _VOICE_PREFIX = re.compile(r"^qwen[\w.-]*?-tts-(?:plus|flash)-", re.I)
 _PROFILE_FIELDS = {
     "name", "image", "gender", "age", "accent", "trait", "scene", "notes",
-    "recording_language", "favourite", "status",
+    "recording_language", "editorial_language", "favourite", "status",
 }
 
 
@@ -29,7 +29,7 @@ class VoiceRepository:
                        identity.image, identity.gender, identity.age,
                        identity.accent, identity.trait, identity.scene,
                        identity.notes, identity.recording_language,
-                       identity.favourite, identity.status,
+                       identity.editorial_language, identity.favourite, identity.status,
                        identity.created_at, identity.updated_at
                   FROM voice_identities identity
                  WHERE EXISTS (
@@ -50,12 +50,14 @@ class VoiceRepository:
                     "gender": row[4] or "", "age": row[5],
                     "accent": row[6] or "", "trait": row[7] or "",
                     "scene": row[8] or "", "notes": row[9] or "",
+                    "recording_language": row[10] or (row[2] or {}).get("language", ""),
                     "language": row[10] or (row[2] or {}).get("language", ""),
-                    "favourite": bool(row[11]),
-                    "status": row[12] or "active",
+                    "editorial_language": row[11] or "",
+                    "favourite": bool(row[12]),
+                    "status": row[13] or "active",
                 },
-                "created_at": row[13].isoformat(),
-                "updated_at": row[14].isoformat(),
+                "created_at": row[14].isoformat(),
+                "updated_at": row[15].isoformat(),
                 "references": [], "bindings": [], "jobs": [],
             } for row in cursor.fetchall()]
             by_id = {item["id"]: item for item in identities}
@@ -158,7 +160,7 @@ class VoiceRepository:
                 raise ValueError("A voice name cannot be empty.")
         for key in (
                 "image", "gender", "accent", "trait", "scene", "notes",
-                "recording_language", "status"):
+                "recording_language", "editorial_language", "status"):
             if key in allowed:
                 limit = 1000 if key in ("image", "notes") else 160
                 allowed[key] = str(allowed[key] or "").strip()[:limit] or None

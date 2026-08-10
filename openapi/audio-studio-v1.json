@@ -7011,6 +7011,18 @@
             "title": "Confirmed",
             "type": "boolean"
           },
+          "editorial_language": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Editorial Language"
+          },
           "gender": {
             "anyOf": [
               {
@@ -7596,6 +7608,17 @@
             ],
             "title": "Age"
           },
+          "editorial_language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Editorial Language"
+          },
           "favourite": {
             "anyOf": [
               {
@@ -7661,6 +7684,17 @@
               }
             ],
             "title": "Package"
+          },
+          "recording_language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recording Language"
           },
           "scene": {
             "anyOf": [
@@ -8177,6 +8211,18 @@
               }
             ],
             "title": "Age"
+          },
+          "editorial_language": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Editorial Language"
           },
           "favourite": {
             "anyOf": [

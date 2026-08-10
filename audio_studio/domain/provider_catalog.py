@@ -56,7 +56,7 @@ OMNI_SYSTEM_VOICES = {
 CAPABILITIES = {
     "audio": {
         "label": "Qwen Audio TTS",
-        "operator_title": "Expressive + tags",
+        "operator_title": "Expressive speech + tags",
         "purpose": "Best for emotional stories and character narration.",
         "operator_notes": [
             "Use emotion and vocal-effect tags",
@@ -82,8 +82,8 @@ CAPABILITIES = {
     },
     "omni": {
         "label": "Qwen 3.5 Omni",
-        "operator_title": "Arabic & multilingual",
-        "purpose": "Best for Arabic and extended multilingual narration.",
+        "operator_title": "Natural performance",
+        "purpose": "Best for natural, directed multilingual narration.",
         "operator_notes": [
             "No inline emotion or sound tags",
             "Use one overall tone direction",
@@ -120,7 +120,7 @@ CAPABILITIES = {
     },
     "qwen_tts": {
         "label": "Qwen3 TTS Voice Clone",
-        "operator_title": "Clean long reading",
+        "operator_title": "Exact long reading",
         "purpose": "Best for audiobooks, lessons and straightforward narration.",
         "operator_notes": [
             "Reads your text as written",

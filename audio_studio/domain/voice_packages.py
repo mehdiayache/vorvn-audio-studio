@@ -9,16 +9,16 @@ from audio_studio.domain import provider_catalog as catalog
 
 PACKAGE_LABELS = {
     "complete": (
-        "Complete production voice",
-        "Every installed exact-reading and performance capability.",
+        "All available capabilities",
+        "Every installed recording capability for this identity.",
     ),
     "exact": (
-        "Exact TTS only",
-        "Installed faithful-reading capabilities for this voice.",
+        "Exact narration",
+        "Installed exact-reading capabilities for this identity.",
     ),
     "omni": (
-        "Omni multilingual",
-        "Best-quality and economical multilingual performance versions.",
+        "Natural performance",
+        "Best-quality and economical Qwen Omni versions.",
     ),
 }
 
@@ -75,22 +75,25 @@ def plan(language: str, package: str = "complete", *, region: str) -> dict:
     normalized_region = "beijing" if region == "beijing" else "intl"
     code = _language_code(language)
     available = installed_routes(code)
+    creatable = [route for route in available
+                 if route["source_language_documented"]]
     if package == "exact":
-        selected = [route for route in available
+        selected = [route for route in creatable
                     if route["engine"] != "omni"]
     elif package == "omni":
-        selected = [route for route in available if route["engine"] == "omni"]
+        selected = [route for route in creatable
+                    if route["engine"] == "omni"]
     else:
         package = "complete"
-        selected = available
+        selected = creatable
     packages = []
     for key, (name, description) in PACKAGE_LABELS.items():
         routes = (
-            [route for route in available if route["engine"] != "omni"]
+            [route for route in creatable if route["engine"] != "omni"]
             if key == "exact"
-            else [route for route in available if route["engine"] == "omni"]
+            else [route for route in creatable if route["engine"] == "omni"]
             if key == "omni"
-            else available
+            else creatable
         )
         packages.append({
             "id": key, "name": name, "description": description,

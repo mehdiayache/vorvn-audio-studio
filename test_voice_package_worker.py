@@ -129,6 +129,7 @@ class VoicePackageWorkerTests(unittest.TestCase):
         create.assert_called_once_with(
             "qwen3-tts-vc-2026-01-22", "testvoice",
             "https://storage.test/reference.wav",
+            language="en",
             transcript="Reference words")
 
     def test_service_claims_resolves_and_completes_one_capability(self):

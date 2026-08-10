@@ -3694,6 +3694,8 @@ export interface components {
              * @default false
              */
             confirmed: boolean;
+            /** Editorial Language */
+            editorial_language?: string | null;
             /** Gender */
             gender?: string | null;
             /** Identity Id */
@@ -3901,6 +3903,8 @@ export interface components {
             accent?: string | null;
             /** Age */
             age?: number | null;
+            /** Editorial Language */
+            editorial_language?: string | null;
             /** Favourite */
             favourite?: boolean | null;
             /** Gender */
@@ -3913,6 +3917,8 @@ export interface components {
             notes?: string | null;
             /** Package */
             package?: string | null;
+            /** Recording Language */
+            recording_language?: string | null;
             /** Scene */
             scene?: string | null;
             /** Status */
@@ -4094,6 +4100,8 @@ export interface components {
             accent?: string | null;
             /** Age */
             age?: number | null;
+            /** Editorial Language */
+            editorial_language?: string | null;
             /** Favourite */
             favourite?: boolean | null;
             /** Gender */

@@ -219,6 +219,18 @@ class SpeechGenerationTests(unittest.TestCase):
         self.assertEqual(provider.prepared[0].language, "Arabic")
         self.assertEqual(provider.prepared[0].engine, "audio")
 
+    def test_auto_language_does_not_infer_or_change_a_cloned_route(self):
+        repository = FakeRepository()
+        provider = RoutedFakeProvider()
+        service, _, _, _ = self.service(
+            repository=repository, provider=provider)
+        result = service.run(payload(
+            text="مرحبا بالعالم", language="Auto"))
+        self.assertEqual(result["id"], 701)
+        self.assertEqual(provider.prepared[0].voice, "voice-one")
+        self.assertIsNone(provider.prepared[0].language)
+        self.assertEqual(provider.prepared[0].engine, "audio")
+
     def test_new_speech_inherits_missing_series_defaults_from_production(self):
         repository = FakeRepository(production_settings={
             "language": "Arabic", "engine": "omni",

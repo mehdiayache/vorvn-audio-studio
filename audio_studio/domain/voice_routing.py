@@ -63,10 +63,7 @@ def resolve(payload: dict, bindings: list[dict] | None = None) -> VoiceRoute:
     An exact compatible binding wins. A request is never silently moved to a
     different model capability. Unknown legacy clones pass through untouched.
     """
-    text = str(payload.get("text") or "")
     language = payload.get("language")
-    if language in (None, "", "Auto") and re.search(r"[\u0600-\u06ff]", text):
-        language = "Arabic"
 
     requested_provider = str(payload.get("voice") or "").strip()
     requested_engine = config.normalise_engine(payload.get("engine"))

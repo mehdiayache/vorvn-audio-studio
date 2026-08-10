@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { VoiceBinding, VoiceRegistry } from "@/types/domain"
-import { chooseIdentityRoute, detectedOutputLanguage, getVoiceIdentities, getVoiceOptions, routesForIdentity } from "./voice-options"
+import { chooseIdentityRoute, getVoiceIdentities, getVoiceOptions, routesForIdentity } from "./voice-options"
 
 function binding(id: string, engine: "audio" | "omni", tier: "plus" | "flash", source: "system" | "custom"): VoiceBinding {
   return { identity_id: `${source}:${id}`, provider_voice_id: id, name: id, description: "", languages: ["English"], source, provider: "alibaba", engine, tier, model_id: `${engine}-${tier}`, status: "active" }
@@ -39,19 +39,19 @@ describe("voice-first routing", () => {
     expect(identities.filter((item) => item.name === "Tina")).toHaveLength(1)
   })
 
-  it("never restricts a cloned voice by its source or requested language", () => {
+  it("keeps published language coverage out of identity casting", () => {
     const customRegistry = { ...registry, bindings: registry.bindings.map((item) => item.provider_voice_id === "Mehdi" ? { ...item, languages: ["English"], reference: { source_language: "ar" } } : item) }
     const mehdi = getVoiceIdentities(customRegistry).find((item) => item.name === "Mehdi")!
-    expect(mehdi.sourceLanguage).toBe("ar")
+    expect(mehdi.editorialLanguage).toBe("")
     expect(routesForIdentity(mehdi, "English")).toHaveLength(1)
     expect(routesForIdentity(mehdi, "Arabic")).toHaveLength(1)
     expect(routesForIdentity(mehdi, "French")).toHaveLength(1)
   })
 
-  it("keeps provider catalogue language restrictions separate", () => {
+  it("keeps provider catalogue coverage informational too", () => {
     const lingxin = getVoiceIdentities(registry).find((item) => item.name === "Lingxin")!
     expect(routesForIdentity(lingxin, "English")).toHaveLength(1)
-    expect(routesForIdentity(lingxin, "Arabic")).toHaveLength(0)
+    expect(routesForIdentity(lingxin, "Arabic")).toHaveLength(1)
   })
 
   it("chooses the preferred route without changing identity", () => {
@@ -69,9 +69,4 @@ describe("voice-first routing", () => {
     expect(getVoiceIdentities(creating).some((item) => item.name === "Mehdi")).toBe(false)
   })
 
-  it("detects Arabic for Auto without changing an explicit language", () => {
-    expect(detectedOutputLanguage("Auto", "مرحبا بالعالم")).toBe("Arabic")
-    expect(detectedOutputLanguage("English", "مرحبا بالعالم")).toBe("English")
-    expect(detectedOutputLanguage("Auto", "Hello world")).toBe("Auto")
-  })
 })

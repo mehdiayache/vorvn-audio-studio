@@ -58,11 +58,36 @@ runtime dependencies on the replaced system remain.
 
 Application-owned cloned voices are the primary voice product; Alibaba system
 voices are secondary catalogue options. A clone's source language, accent, flag
-and name are descriptive provenance and best-performance guidance only. They
-must never restrict output languages. A cloned voice may use every ready
-provider capability bound to its stable identity, and output-language support
-is determined at execution time by the selected provider model. Source language
-must never silently change, hide, disable, or reroute a cloned capability.
+and editorial positioning are descriptive metadata only. A person recorded in
+Arabic, English, Indonesian, or any other language remains one language-agnostic
+voice identity. These fields must never be treated as the languages that person
+is allowed to produce.
+
+A cloned identity may use every ready provider capability bound to its stable
+identity. Output-language support is determined only by the selected provider
+model's documented output contract. Changing the output language must never
+rename the identity, reinterpret its flag, or silently hide, switch, disable, or
+reroute an otherwise compatible binding.
+
+Keep provider enrollment constraints separate from product identity. A provider
+may reject a particular reference recording for a particular target model; that
+is a capability-creation state, not a language restriction on the human voice.
+Never project such a failure onto the identity or describe the person as an
+"Arabic voice", "English voice", or equivalent.
+
+Do not overload one language field. Store the language actually spoken in each
+reference recording as private technical provenance for provider enrollment.
+Store editorial fit or preferred use (for example, "Arabic narration") as
+separate identity metadata shown to operators. Neither field is an output
+permission; the selected model's contract remains the only output-language
+authority.
+
+Operator-facing capability names must describe the recording behavior, not a
+favoured language. Do not invent language-led names such as "Arabic &
+multilingual" for Qwen Omni. Always show the exact provider model separately
+from a short neutral capability label. Counts must say what they count (for
+example, provider bindings versus recording capabilities) and must not call both
+of those things "methods".
 
 Audio Studio is expected to support hundreds of cloned identities. Use stable
 identity and binding IDs, shared selectors and repository-backed capability

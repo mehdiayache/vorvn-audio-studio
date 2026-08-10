@@ -43,13 +43,13 @@ describe("voice identity", () => {
 
   it("uses the stable identity for historical provider ids", () => {
     const withIdentity: VoiceDirectory = { ...directory, identities: [{
-      id: "voice_serenity", name: "Eve Serenity", metadata: { language: "en", trait: "gentle", image: "/icon/eve.png" },
+      id: "voice_serenity", name: "Eve Serenity", metadata: { language: "en", recording_language: "en", editorial_language: "en", trait: "gentle", image: "/icon/eve.png" },
       references: [], bindings: [], jobs: [], available_routes: [],
       usage: { uses: 0, productions: 0, spend: 0, last_used: null, preview_filename: "" },
       created_at: "2026-08-01", updated_at: "2026-08-01",
     }] }
     expect(resolveVoice("qwen-audio-3.0-tts-flash-serinity1-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", withIdentity, "voice_serenity")).toMatchObject({
-      key: "voice_serenity", name: "Eve Serenity", detail: "🇬🇧 English source · gentle", image: "/icon/eve.png", unavailable: false, sourceLanguage: "en",
+      key: "voice_serenity", name: "Eve Serenity", detail: "🇬🇧 English focus · gentle", image: "/icon/eve.png", unavailable: false, editorialLanguage: "en",
     })
   })
 })

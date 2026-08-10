@@ -11,9 +11,9 @@ const route: VoiceChoice = {
 }
 
 describe("voice capability language policy", () => {
-  it("separates official model coverage from cloned-voice freedom", () => {
+  it("uses the exact model as the only output-language authority", () => {
     expect(voiceLanguageStatus(route, "English", true)).toBe("documented")
-    expect(voiceLanguageStatus(route, "Arabic", true)).toBe("experimental")
+    expect(voiceLanguageStatus(route, "Arabic", true)).toBe("unavailable")
     expect(voiceLanguageStatus({ ...route, source: "alibaba" }, "Arabic", false)).toBe("unavailable")
     expect(voiceLanguageStatus(route, "Auto", true)).toBe("undetermined")
   })
@@ -21,7 +21,7 @@ describe("voice capability language policy", () => {
   it("reports the real documented list and keeps Studio languages selectable", () => {
     const identity: VoiceIdentityChoice = {
       identityId: "voice-x", name: "Voice X", description: "",
-      source: "mine", sourceLanguage: "en", routes: [route],
+      source: "mine", editorialLanguage: "en", routes: [route],
     }
     expect(officialCoverageLabel(route)).toBe("2 documented languages")
     expect(outputLanguageOptions({ languages: ["Auto", "Arabic"], capabilities: {} } as never, identity)).toEqual(["Auto", "Arabic", "English", "French"])

@@ -45,7 +45,7 @@ export type ResolvedVoice = {
   cloned: boolean
   unavailable: boolean
   preview?: string
-  sourceLanguage?: string
+  editorialLanguage?: string
 }
 
 export function resolveVoice(id: string | undefined, directory: VoiceDirectory, identityId?: string | null): ResolvedVoice {
@@ -62,9 +62,8 @@ export function resolveVoice(id: string | undefined, directory: VoiceDirectory, 
   const fallbackCloneName = cloneMatch?.[1] || cloned?.name || key.replace(/-[0-9a-f]{16,}$/i, "")
   const configDescription = Object.values(directory.config?.voices || {}).map((tier) => tier[technicalId] || Object.entries(tier).find(([voice]) => voiceKey(voice) === key)?.[1]).find(Boolean)
   const name = identity?.name || meta?.name || binding?.name || cloned?.name || catalogue?.name || (omniDescription ? technicalId : isClone ? `${humanize(fallbackCloneName)} · your voice` : stockFallbackName(key || "Unknown voice"))
-  const sourceLanguage = identity?.metadata.language
-    || (binding?.source === "custom" ? binding.reference?.source_language : "")
-  const identityDetail = [sourceLanguage ? `${languageFlag(String(sourceLanguage))} ${languageDisplay(String(sourceLanguage))} source` : "", identity?.metadata.trait, identity?.metadata.accent].filter(Boolean).join(" · ")
+  const editorialLanguage = identity?.metadata.editorial_language
+  const identityDetail = [editorialLanguage ? `${languageFlag(String(editorialLanguage))} ${languageDisplay(String(editorialLanguage))} focus` : "", identity?.metadata.trait, identity?.metadata.accent].filter(Boolean).join(" · ")
   const detail = identity ? identityDetail || "Your cloned voice" : isClone
     ? [meta?.languages ? `Speaks ${languageDisplay(meta.languages)}` : "Cloned voice", cloned?.engine === "omni" || /omni/i.test(technicalId) ? "Qwen Omni" : "Qwen Audio"].filter(Boolean).join(" · ")
     : binding?.description || omniDescription || [catalogue?.gender, catalogue?.age, catalogue?.trait].filter(Boolean).join(", ") || configDescription || meta?.note || "Voice"
@@ -73,5 +72,5 @@ export function resolveVoice(id: string | undefined, directory: VoiceDirectory, 
   const made = directory.usage?.[key]?.mine
   const previewFilename = identity?.usage?.preview_filename
   const preview = previewFilename ? `/audio/${encodeURIComponent(previewFilename)}` : catalogue?.sample ? `/samples/${encodeURIComponent(catalogue.sample)}` : made ? `/audio/${encodeURIComponent(made)}` : undefined
-  return { id: technicalId, key: identity?.id || key, name: name.trim() || "Unavailable voice", detail, image: String(identity?.metadata.image || binding?.image || meta?.image || directory.config?.voice_images?.[key] || "") || undefined, cloned: Boolean(identity || isClone), unavailable, preview, sourceLanguage: String(sourceLanguage || "") || undefined }
+  return { id: technicalId, key: identity?.id || key, name: name.trim() || "Unavailable voice", detail, image: String(identity?.metadata.image || binding?.image || meta?.image || directory.config?.voice_images?.[key] || "") || undefined, cloned: Boolean(identity || isClone), unavailable, preview, editorialLanguage: String(editorialLanguage || "") || undefined }
 }

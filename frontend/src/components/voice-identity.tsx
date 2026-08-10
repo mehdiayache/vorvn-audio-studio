@@ -16,7 +16,7 @@ export function VoiceIdentity({ voice, identityId, directory, compact = false, s
   return (
     <span className={cn("voice-identity", compact && "compact")}>
       <span className="voice-portrait">{resolved.image ? <img src={resolved.image} alt="" /> : resolved.id ? initials : <Mic2 />}</span>
-      <span className="voice-copy"><b className="voice-name-row">{resolved.sourceLanguage && <span className="voice-source-flag" title={`${languageDisplay(resolved.sourceLanguage)} source recording`} aria-label={`${languageDisplay(resolved.sourceLanguage)} source recording`}>{languageFlag(resolved.sourceLanguage)}</span>}<span>{resolved.name}</span></b>{showDetail && <small>{resolved.unavailable ? "Unavailable voice · existing recording" : resolved.detail}</small>}</span>
+      <span className="voice-copy"><b className="voice-name-row">{resolved.editorialLanguage && <span className="voice-source-flag" title={`${languageDisplay(resolved.editorialLanguage)} editorial focus`} aria-label={`${languageDisplay(resolved.editorialLanguage)} editorial focus`}>{languageFlag(resolved.editorialLanguage)}</span>}<span>{resolved.name}</span></b>{showDetail && <small>{resolved.unavailable ? "Unavailable voice · existing recording" : resolved.detail}</small>}</span>
     </span>
   )
 }

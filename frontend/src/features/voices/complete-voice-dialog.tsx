@@ -5,31 +5,81 @@ import { toast } from "sonner"
 import { FileDropZone } from "@/components/file-drop-zone"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { studioApi } from "@/lib/api"
-import type { VoiceProfile } from "@/types/domain"
+import type { StudioConfig, VoiceProfile } from "@/types/domain"
 
-export function CompleteVoiceDialog({ profile, onOpenChange, onQueued }: {
+export function CompleteVoiceDialog({ profile, config, onOpenChange, onQueued }: {
   profile: VoiceProfile | null
+  config: StudioConfig | null
   onOpenChange: (open: boolean) => void
   onQueued: () => void
 }) {
   const [busy, setBusy] = useState(false)
   const [file, setFile] = useState<File | null>(null)
+  const [recordingLanguage, setRecordingLanguage] = useState("")
   const [error, setError] = useState("")
   const readyModels = useMemo(() => new Set(profile?.bindings.map((binding) => binding.model_id)), [profile])
   const activeModels = useMemo(() => new Set(profile?.jobs.filter((job) => ["queued", "creating"].includes(job.status)).map((job) => job.model_id)), [profile])
   const missing = profile?.available_routes.filter((route) => !readyModels.has(route.model_id) && !activeModels.has(route.model_id)) || []
   const savedReference = profile?.references[0]?.id || ""
-  useEffect(() => { setFile(null); setError("") }, [profile?.id])
+  const needsCompatibleReference = missing.some((route) => !route.source_language_documented)
+  const requiresUpload = !savedReference || needsCompatibleReference
+  const languages = useMemo(() => {
+    const map = new Map<string, string>()
+    Object.values(config?.capabilities || {}).forEach((capability) => {
+      Object.entries(capability.clone_languages || {}).forEach(([code, label]) => map.set(code, label))
+    })
+    return [...map.entries()].sort((left, right) => left[1].localeCompare(right[1]))
+  }, [config])
+
+  useEffect(() => {
+    setFile(null)
+    setRecordingLanguage(needsCompatibleReference ? "" : String(profile?.metadata.recording_language || profile?.metadata.language || ""))
+    setError("")
+  }, [needsCompatibleReference, profile?.id, profile?.metadata.language, profile?.metadata.recording_language])
+
   async function complete() {
-    if (!profile || (!savedReference && !file)) return
+    if (!profile || (requiresUpload && !file)) return
     setBusy(true)
     try {
-      const referenceId = savedReference || (await studioApi.uploadVoiceReference(file!)).reference_id
-      const result = await studioApi.createVoicePackage({ identity_id: profile.id, name: profile.name, language: String(profile.metadata.language || ""), reference_id: referenceId, package: "complete", confirmed: true })
-      onOpenChange(false); onQueued(); toast.success(`${profile.name} is being completed`, { description: `${result.queued} missing version${result.queued === 1 ? "" : "s"} queued.` })
-    } catch (reason) { const message = reason instanceof Error ? reason.message : "Unable to complete this voice."; setError(message); toast.error(message) }
-    finally { setBusy(false) }
+      const referenceId = file ? (await studioApi.uploadVoiceReference(file)).reference_id : savedReference
+      const result = await studioApi.createVoicePackage({
+        identity_id: profile.id,
+        name: profile.name,
+        language: recordingLanguage,
+        editorial_language: String(profile.metadata.editorial_language || ""),
+        reference_id: referenceId,
+        package: "complete",
+        confirmed: true,
+      })
+      onOpenChange(false)
+      onQueued()
+      toast.success(`${profile.name} is being completed`, { description: `${result.queued} missing model version${result.queued === 1 ? "" : "s"} queued.` })
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "Unable to complete this voice."
+      setError(message)
+      toast.error(message)
+    } finally { setBusy(false) }
   }
-  return <Dialog open={Boolean(profile)} onOpenChange={(open) => { if (!open && !busy) onOpenChange(false) }}><DialogContent className="voice-complete-dialog"><DialogHeader><DialogTitle>Complete {profile?.name}</DialogTitle><DialogDescription>Create only the installed model versions that are still missing. The source language remains profile information and existing bindings are untouched.</DialogDescription></DialogHeader>{!savedReference && <section className="voice-complete-source"><h3>Source recording needed</h3><p>This older voice has no preserved source. Add one clean recording to build its missing versions.</p><FileDropZone file={file} accept="audio/wav,audio/mpeg,audio/mp4,.wav,.mp3,.m4a" disabled={busy} onFile={(next) => { setFile(next); setError("") }} hint="WAV, MP3 or M4A · up to 10 MB" /></section>}<div className="voice-complete-routes">{missing.map((route) => <div key={route.model_id}><span><b>{route.label}</b><small>{route.role} · {route.documented_output_languages.length} documented output languages</small></span><em>{route.estimated_creation_cost ? `up to $${route.estimated_creation_cost.toFixed(2)}` : "Free creation"}</em></div>)}</div>{error && <p className="voice-create-error">{error}</p>}<DialogFooter><Button variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>Cancel</Button><Button disabled={busy || !missing.length || (!savedReference && !file)} onClick={() => void complete()}>{busy ? <><LoaderCircle className="spin" /> Preparing…</> : <><Sparkles /> Create {missing.length} version{missing.length === 1 ? "" : "s"}</>}</Button></DialogFooter></DialogContent></Dialog>
+
+  return <Dialog open={Boolean(profile)} onOpenChange={(open) => { if (!open && !busy) onOpenChange(false) }}>
+    <DialogContent className="voice-complete-dialog">
+      <DialogHeader>
+        <DialogTitle>Complete {profile?.name}</DialogTitle>
+        <DialogDescription>Create only the missing provider model versions. Existing working versions remain untouched.</DialogDescription>
+      </DialogHeader>
+      {requiresUpload && <section className="voice-complete-source">
+        <h3>{savedReference ? "This model needs another source language" : "Reference recording needed"}</h3>
+        <p>{savedReference
+          ? "Your original master is saved and still belongs to every working version. The missing model does not accept the language spoken in that file, so add another recording of the same person for this model only."
+          : "This historical voice has no preserved reference. Add one clean recording to create its missing model versions."}</p>
+        <label><span>Language actually spoken in the new recording</span><Select value={recordingLanguage || undefined} onValueChange={setRecordingLanguage}><SelectTrigger><SelectValue placeholder="Choose the spoken language" /></SelectTrigger><SelectContent>{languages.map(([code, label]) => <SelectItem value={code} key={code}>{label}</SelectItem>)}</SelectContent></Select><small>Required provider enrollment fact. It never restricts the voice identity.</small></label>
+        <FileDropZone file={file} accept="audio/wav,audio/mpeg,audio/mp4,.wav,.mp3,.m4a" disabled={busy} onFile={(next) => { setFile(next); setError("") }} hint="WAV, MP3 or M4A · up to 10 MB" />
+      </section>}
+      <div className="voice-complete-routes">{missing.map((route) => <div key={route.model_id}><span><b>{route.label}</b><small>{route.role} · {route.documented_output_languages.length} documented output languages</small></span><em>{route.estimated_creation_cost ? `up to $${route.estimated_creation_cost.toFixed(2)}` : "Free creation"}</em></div>)}</div>
+      {error && <p className="voice-create-error">{error}</p>}
+      <DialogFooter><Button variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>Cancel</Button><Button disabled={busy || !missing.length || (requiresUpload && (!file || !recordingLanguage))} onClick={() => void complete()}>{busy ? <><LoaderCircle className="spin" /> Preparing…</> : <><Sparkles /> Create {missing.length} model version{missing.length === 1 ? "" : "s"}</>}</Button></DialogFooter>
+    </DialogContent>
+  </Dialog>
 }
