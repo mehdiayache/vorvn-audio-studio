@@ -129,6 +129,29 @@ class OmniPassageTests(unittest.TestCase):
         self.assertTrue(all(len(item) <= omni.PASSAGE_TARGET_CHARS
                             for item in passages))
 
+    def test_pathological_trailing_silence_is_trimmed_per_passage(self):
+        speech = (1000).to_bytes(2, "little", signed=True) * 24_000
+        padding = (0).to_bytes(2, "little", signed=True) * (24_000 * 145)
+
+        trimmed, removed_ms = omni._trim_pathological_trailing_silence(
+            speech + padding)
+
+        self.assertEqual(removed_ms, 144_650)
+        self.assertEqual(
+            len(trimmed),
+            (24_000 + int(24_000 * omni.KEPT_TRAILING_SILENCE_SECONDS)) * 2,
+        )
+
+    def test_natural_trailing_pause_is_preserved(self):
+        speech = (1000).to_bytes(2, "little", signed=True) * 24_000
+        pause = (0).to_bytes(2, "little", signed=True) * (24_000 * 2)
+
+        untouched, removed_ms = omni._trim_pathological_trailing_silence(
+            speech + pause)
+
+        self.assertEqual(untouched, speech + pause)
+        self.assertEqual(removed_ms, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

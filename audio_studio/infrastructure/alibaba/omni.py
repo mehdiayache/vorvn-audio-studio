@@ -38,6 +38,11 @@ class ChunkResponse(NamedTuple):
 PASSAGE_TARGET_CHARS = 240
 RECOVERY_TARGET_CHARS = 120
 MAX_ATTEMPTS_PER_PASSAGE = 2
+PCM_SAMPLE_RATE = 24_000
+PCM_SAMPLE_WIDTH = 2
+SILENCE_AMPLITUDE = 128
+MAX_TRAILING_SILENCE_SECONDS = 3.0
+KEPT_TRAILING_SILENCE_SECONDS = 0.35
 
 
 class OmniSynthesisError(RuntimeError):
@@ -50,6 +55,45 @@ class OmniSynthesisError(RuntimeError):
         self.usage = usage
         self.request_ids = request_ids
         self.diagnostics = diagnostics
+
+
+def _trim_pathological_trailing_silence(audio: bytes) -> tuple[bytes, int]:
+    """Remove only provider padding that is far beyond a natural pause.
+
+    Omni streams 24 kHz, mono, signed 16-bit PCM. A documented provider edge
+    case can fill the remaining audio-token budget with silence after the
+    spoken words. Inspect each provider passage before concatenation so this
+    padding cannot become minutes of silence between otherwise valid sections.
+    """
+    frame_count = len(audio) // PCM_SAMPLE_WIDTH
+    if frame_count <= int(MAX_TRAILING_SILENCE_SECONDS * PCM_SAMPLE_RATE):
+        return audio, 0
+
+    last_active = -1
+    for index in range(frame_count - 1, -1, -1):
+        start = index * PCM_SAMPLE_WIDTH
+        sample = int.from_bytes(
+            audio[start:start + PCM_SAMPLE_WIDTH], "little", signed=True)
+        if abs(sample) > SILENCE_AMPLITUDE:
+            last_active = index
+            break
+    if last_active < 0:
+        return audio, 0
+
+    trailing_frames = frame_count - last_active - 1
+    if trailing_frames <= int(MAX_TRAILING_SILENCE_SECONDS * PCM_SAMPLE_RATE):
+        return audio, 0
+
+    keep_frames = min(
+        frame_count,
+        last_active + 1
+        + int(KEPT_TRAILING_SILENCE_SECONDS * PCM_SAMPLE_RATE),
+    )
+    removed_frames = frame_count - keep_frames
+    return (
+        audio[:keep_frames * PCM_SAMPLE_WIDTH],
+        round(removed_frames * 1000 / PCM_SAMPLE_RATE),
+    )
 
 
 def _request(payload: dict) -> dict:
@@ -407,6 +451,9 @@ def synthesize(chunks, options, on_progress=None):
             request_ids.append(response.request_id)
         for kind in usage:
             usage[kind] += int(response.usage.get(kind) or 0)
+        accepted_audio, trimmed_silence_ms = (
+            _trim_pathological_trailing_silence(response.audio)
+        )
         fidelity = speech_fidelity.assess(text, response.text)
         complete = _is_complete(fidelity)
         diagnostic = {
@@ -417,10 +464,14 @@ def synthesize(chunks, options, on_progress=None):
             "event_count": response.event_count,
             "usage": response.usage,
             "fidelity": fidelity,
+            "audio_duration_ms": round(
+                len(response.audio) * 1000
+                / (PCM_SAMPLE_RATE * PCM_SAMPLE_WIDTH)),
+            "trimmed_trailing_silence_ms": trimmed_silence_ms,
             "status": "accepted" if complete else "incomplete",
         }
         diagnostics.append(diagnostic)
-        return (response.audio if complete else b"", response.text,
+        return (accepted_audio if complete else b"", response.text,
                 complete, False)
 
     def render(text: str, root_index: int,
