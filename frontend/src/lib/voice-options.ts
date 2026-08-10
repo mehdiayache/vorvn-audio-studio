@@ -26,7 +26,10 @@ export type VoiceIdentityChoice = {
   routes: VoiceChoice[]
 }
 
-const unavailable = new Set(["undeployed", "deleted", "failed", "archived"])
+// A provider binding is castable only after Alibaba has confirmed it.  Keep
+// this as a positive list: a new job/interruption status must never become a
+// selectable voice route by accident.
+const readyStatuses = new Set(["active", "ready"])
 
 function toChoice(binding: VoiceRegistry["bindings"][number]): VoiceChoice {
   return {
@@ -38,7 +41,7 @@ function toChoice(binding: VoiceRegistry["bindings"][number]): VoiceChoice {
     engine: binding.engine,
     model: binding.tier,
     modelId: binding.model_id,
-    compatible: !unavailable.has(binding.status.toLocaleLowerCase()),
+    compatible: readyStatuses.has(binding.status.toLocaleLowerCase()),
     languages: binding.languages,
     status: binding.status,
   }
@@ -79,6 +82,11 @@ export function routeSupportsLanguage(route: VoiceChoice, language: string) {
   return route.languages.some(
     (item) => item.toLocaleLowerCase() === language.toLocaleLowerCase(),
   )
+}
+
+export function detectedOutputLanguage(language: string, text: string) {
+  if (language && language !== "Auto") return language
+  return /[\u0600-\u06ff]/.test(text) ? "Arabic" : "Auto"
 }
 
 export function routesForIdentity(

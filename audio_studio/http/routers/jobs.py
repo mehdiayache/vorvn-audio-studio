@@ -15,6 +15,7 @@ from audio_studio.application.text_preparation import MODEL as TEXT_PREPARATION_
 from audio_studio.application.translation import MODELS as TRANSLATION_MODELS
 from audio_studio.domain.transcription import FUN_MODEL, QWEN_MODEL
 from audio_studio.composition.jobs import job_service
+from audio_studio.composition.catalog import catalog_service
 from audio_studio.http.errors import ApiProblem
 
 
@@ -95,6 +96,14 @@ class SpeechJobCreate(BaseModel):
 
     @model_validator(mode="after")
     def part_is_present_for_replacement(self):
+        valid_models = {
+            "audio": {"plus", "flash"},
+            "omni": {"plus", "flash"},
+            "qwen_tts": {"vc"},
+        }
+        if self.model not in valid_models[self.engine]:
+            raise ValueError(
+                f"{self.model} is not a valid quality for {self.engine}.")
         if self.operation != "create" and (not self.part_id or not self.production_id):
             raise ValueError(
                 "A Production and Part are required for that speech operation.")
@@ -214,6 +223,15 @@ def create_speech_job(payload: SpeechJobCreate,
     # Keep explicit nulls: selecting a system voice intentionally clears a
     # previous cloned-voice identity on a replacement Take.
     values = payload.model_dump(exclude_unset=True)
+    try:
+        catalog_service.resolve_voice(values)
+    except ValueError as exc:
+        raise ApiProblem(409, "voice_route_unavailable", str(exc), {
+            "voice_identity_id": payload.voice_identity_id,
+            "engine": payload.engine,
+            "model": payload.model,
+            "language": payload.language,
+        }) from exc
     job, created = job_service.enqueue(
         "speech", values,
         idempotency_key=(idempotency_key or f"speech-{uuid4()}")[:200],

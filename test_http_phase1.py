@@ -15,6 +15,7 @@ from audio_studio.http.routers import media as media_router
 from audio_studio.http.routers import batches as batches_router
 from audio_studio.http.routers import timeline as timeline_router
 from audio_studio.http.routers import work as work_router
+from audio_studio.http.routers import jobs as jobs_router
 from audio_studio.domain.work import DomainConflict
 from audio_studio.infrastructure.media_workspace import LocalMediaWorkspace
 
@@ -69,6 +70,31 @@ class NativeHttpTests(unittest.TestCase):
         resolved = route.json()["data"]
         self.assertEqual(resolved["engine"], "omni")
         self.assertTrue(resolved["provider_voice_id"])
+
+    def test_speech_route_conflicts_fail_before_a_job_is_created(self):
+        with patch.object(
+                jobs_router.catalog_service, "resolve_voice",
+                side_effect=ValueError(
+                    "Qwen Audio TTS cannot produce Arabic with this voice. "
+                    "Choose Arabic & multilingual.")), patch.object(
+                        jobs_router.job_service, "enqueue") as enqueue:
+            response = self.client.post("/api/v1/jobs/speech", json={
+                "text": "مرحبا", "voice": "custom-audio",
+                "voice_identity_id": "voice_test", "engine": "audio",
+                "model": "flash", "language": "Arabic",
+            })
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertEqual(
+            response.json()["error"]["code"], "voice_route_unavailable")
+        enqueue.assert_not_called()
+
+    def test_speech_engine_and_quality_must_match(self):
+        response = self.client.post("/api/v1/jobs/speech", json={
+            "text": "Hello", "voice": "custom-voice",
+            "engine": "qwen_tts", "model": "flash",
+        })
+        self.assertEqual(response.status_code, 422, response.text)
+        self.assertEqual(response.json()["error"]["code"], "validation_error")
 
     def test_voice_identity_contracts_are_live_without_provider_calls(self):
         profiles = self.client.get("/api/v1/voices?limit=100")

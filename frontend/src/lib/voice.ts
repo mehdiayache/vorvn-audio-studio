@@ -45,6 +45,7 @@ export type ResolvedVoice = {
   cloned: boolean
   unavailable: boolean
   preview?: string
+  sourceLanguage?: string
 }
 
 export function resolveVoice(id: string | undefined, directory: VoiceDirectory, identityId?: string | null): ResolvedVoice {
@@ -72,5 +73,5 @@ export function resolveVoice(id: string | undefined, directory: VoiceDirectory, 
   const made = directory.usage?.[key]?.mine
   const previewFilename = identity?.usage?.preview_filename
   const preview = previewFilename ? `/audio/${encodeURIComponent(previewFilename)}` : catalogue?.sample ? `/samples/${encodeURIComponent(catalogue.sample)}` : made ? `/audio/${encodeURIComponent(made)}` : undefined
-  return { id: technicalId, key: identity?.id || key, name: name.trim() || "Unavailable voice", detail, image: String(identity?.metadata.image || binding?.image || meta?.image || directory.config?.voice_images?.[key] || "") || undefined, cloned: Boolean(identity || isClone), unavailable, preview }
+  return { id: technicalId, key: identity?.id || key, name: name.trim() || "Unavailable voice", detail, image: String(identity?.metadata.image || binding?.image || meta?.image || directory.config?.voice_images?.[key] || "") || undefined, cloned: Boolean(identity || isClone), unavailable, preview, sourceLanguage: String(sourceLanguage || "") || undefined }
 }

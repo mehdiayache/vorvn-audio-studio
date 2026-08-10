@@ -11,7 +11,7 @@ import re
 from audio_studio.domain import provider_catalog as config
 
 
-UNAVAILABLE_STATUSES = {"deleted", "undeployed", "failed", "archived"}
+READY_STATUSES = {"active", "ready"}
 
 
 @dataclass(frozen=True)
@@ -81,7 +81,7 @@ def resolve(payload: dict, bindings: list[dict] | None = None) -> VoiceRoute:
     requested_identity = str(payload.get("voice_identity_id") or "").strip() or None
     available = [_binding(item) for item in (bindings or [])]
     available = [item for item in available
-                 if item["provider_voice_id"] and item["status"] not in UNAVAILABLE_STATUSES]
+                 if item["provider_voice_id"] and item["status"] in READY_STATUSES]
     provider_matches = [item for item in available
                         if item["provider_voice_id"] == requested_provider]
     provider_match = next((item for item in provider_matches
@@ -113,6 +113,20 @@ def resolve(payload: dict, bindings: list[dict] | None = None) -> VoiceRoute:
         chosen = chosen or (exact[0] if exact else None)
         if not chosen:
             label = config.CAPABILITIES[requested_engine]["label"]
+            engine_exists = any(
+                item["engine"] == requested_engine
+                for item in available
+                if identity_id and item["identity_id"] == identity_id)
+            if language not in (None, "", "Auto") and engine_exists:
+                alternatives = sorted({
+                    config.CAPABILITIES[item["engine"]]["operator_title"]
+                    for item in candidates
+                })
+                suggestion = (f" Choose {', '.join(alternatives)}."
+                              if alternatives else "")
+                raise ValueError(
+                    f"{label} cannot produce {language} with this voice."
+                    f"{suggestion}")
             raise ValueError(
                 f"That voice has no ready {label} {requested_tier} capability.")
         reason = ("selected_binding"

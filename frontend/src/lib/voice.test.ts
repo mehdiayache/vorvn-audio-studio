@@ -49,7 +49,7 @@ describe("voice identity", () => {
       created_at: "2026-08-01", updated_at: "2026-08-01",
     }] }
     expect(resolveVoice("qwen-audio-3.0-tts-flash-serinity1-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", withIdentity, "voice_serenity")).toMatchObject({
-      key: "voice_serenity", name: "Eve Serenity", detail: "🇬🇧 English source · gentle", image: "/icon/eve.png", unavailable: false,
+      key: "voice_serenity", name: "Eve Serenity", detail: "🇬🇧 English source · gentle", image: "/icon/eve.png", unavailable: false, sourceLanguage: "en",
     })
   })
 })

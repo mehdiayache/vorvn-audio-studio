@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { VoiceBinding, VoiceRegistry } from "@/types/domain"
-import { chooseIdentityRoute, getVoiceIdentities, getVoiceOptions, routesForIdentity } from "./voice-options"
+import { chooseIdentityRoute, detectedOutputLanguage, getVoiceIdentities, getVoiceOptions, routesForIdentity } from "./voice-options"
 
 function binding(id: string, engine: "audio" | "omni", tier: "plus" | "flash", source: "system" | "custom"): VoiceBinding {
   return { identity_id: `${source}:${id}`, provider_voice_id: id, name: id, description: "", languages: ["English"], source, provider: "alibaba", engine, tier, model_id: `${engine}-${tier}`, status: "active" }
@@ -50,5 +50,21 @@ describe("voice-first routing", () => {
   it("chooses the preferred route without changing identity", () => {
     const tina = getVoiceIdentities(registry).find((item) => item.name === "Tina")!
     expect(chooseIdentityRoute(tina.routes, { engine: "omni", model: "flash" })?.model).toBe("flash")
+  })
+
+  it("never casts a binding whose provider creation is not ready", () => {
+    const creating = {
+      ...registry,
+      bindings: registry.bindings.map((item) => item.provider_voice_id === "Mehdi"
+        ? { ...item, status: "creating" }
+        : item),
+    }
+    expect(getVoiceIdentities(creating).some((item) => item.name === "Mehdi")).toBe(false)
+  })
+
+  it("detects Arabic for Auto without changing an explicit language", () => {
+    expect(detectedOutputLanguage("Auto", "مرحبا بالعالم")).toBe("Arabic")
+    expect(detectedOutputLanguage("English", "مرحبا بالعالم")).toBe("English")
+    expect(detectedOutputLanguage("Auto", "Hello world")).toBe("Auto")
   })
 })

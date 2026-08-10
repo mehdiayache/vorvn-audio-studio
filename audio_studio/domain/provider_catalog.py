@@ -84,9 +84,9 @@ CAPABILITIES = {
         "operator_title": "Arabic & multilingual",
         "purpose": "Best for Arabic and extended multilingual narration.",
         "operator_notes": [
-            "Keeps every requested word under review",
-            "Accepts one overall tone direction",
-            "Long recordings can vary slightly between joined passages",
+            "No inline emotion or sound tags",
+            "Use one overall tone direction",
+            "Long scripts are verified passage by passage",
         ],
         "models": {
             "plus": "qwen3.5-omni-plus",

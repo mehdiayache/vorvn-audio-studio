@@ -8,6 +8,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict
 
 from audio_studio.composition.catalog import catalog_service
+from audio_studio.http.errors import ApiProblem
 from audio_studio.http.catalog_contracts import (
     StudioConfigEnvelope,
     VoiceMetadataEnvelope,
@@ -67,4 +68,12 @@ def get_voice_meta() -> dict:
     response_model=VoiceRouteEnvelope,
 )
 def resolve_voice_route(payload: VoiceRouteRequest) -> dict[str, Any]:
-    return {"data": catalog_service.resolve_voice(payload.model_dump())}
+    try:
+        return {"data": catalog_service.resolve_voice(payload.model_dump())}
+    except ValueError as exc:
+        raise ApiProblem(
+            409, "voice_route_unavailable", str(exc),
+            {"voice_identity_id": payload.voice_identity_id,
+             "engine": payload.engine, "model": payload.model,
+             "language": payload.language},
+        ) from exc
