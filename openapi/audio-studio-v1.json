@@ -8380,6 +8380,17 @@
       },
       "WorkerStatusResponse": {
         "properties": {
+          "actual_runtime_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Runtime Id"
+          },
           "detail": {
             "anyOf": [
               {
@@ -8391,6 +8402,17 @@
               }
             ],
             "title": "Detail"
+          },
+          "expected_runtime_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Runtime Id"
           },
           "last_seen_at": {
             "anyOf": [

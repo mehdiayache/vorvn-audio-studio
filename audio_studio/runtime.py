@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import os
 import signal
 import subprocess
 import sys
 import threading
+from uuid import uuid4
 
 import uvicorn
 
@@ -20,15 +22,21 @@ from audio_studio.application.reference_storage import migrate_legacy_references
 class WorkerSupervisor:
     """Keep the local worker alive while FastAPI owns the foreground process."""
 
-    def __init__(self):
+    def __init__(self, runtime_id: str, parent_pid: int):
+        self.runtime_id = runtime_id
+        self.parent_pid = parent_pid
         self._stopping = threading.Event()
         self._lock = threading.Lock()
         self._process: subprocess.Popen | None = None
         self._thread: threading.Thread | None = None
 
     def _spawn(self) -> subprocess.Popen:
+        environment = os.environ.copy()
+        environment["AUDIO_STUDIO_RUNTIME_ID"] = self.runtime_id
+        environment["AUDIO_STUDIO_PARENT_PID"] = str(self.parent_pid)
         return subprocess.Popen(
-            [sys.executable, "-m", "audio_studio.worker"], cwd=settings.root)
+            [sys.executable, "-m", "audio_studio.worker"], cwd=settings.root,
+            env=environment)
 
     def start(self) -> None:
         with self._lock:
@@ -38,13 +46,27 @@ class WorkerSupervisor:
         self._thread.start()
 
     def _watch(self) -> None:
+        ownership_notice_shown = False
         while not self._stopping.wait(1):
             with self._lock:
                 process = self._process
-                if process is not None and process.poll() is None:
-                    continue
-                code = process.returncode if process is not None else "missing"
+            if process is not None and process.poll() is None:
+                continue
+            code = process.returncode if process is not None else "missing"
+            if code == 75:
+                if not ownership_notice_shown:
+                    print(
+                        "Audio Studio queue is owned by another worker; "
+                        "waiting for it to stop.")
+                    ownership_notice_shown = True
+                if self._stopping.wait(4):
+                    return
+            else:
+                ownership_notice_shown = False
                 print(f"Audio Studio worker exited ({code}); restarting.")
+            with self._lock:
+                if self._stopping.is_set():
+                    return
                 self._process = self._spawn()
 
     def stop(self) -> None:
@@ -66,7 +88,11 @@ class WorkerSupervisor:
 
 
 def main() -> int:
-    supervisor = WorkerSupervisor()
+    runtime_id = uuid4().hex
+    parent_pid = os.getpid()
+    os.environ["AUDIO_STUDIO_RUNTIME_ID"] = runtime_id
+    os.environ["AUDIO_STUDIO_PARENT_PID"] = str(parent_pid)
+    supervisor = WorkerSupervisor(runtime_id, parent_pid)
     try:
         # The local `.env` is the persisted control-plane configuration. Load
         # it before FastAPI, migrations or the worker inspect provider state.

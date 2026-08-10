@@ -7,6 +7,7 @@ import time
 import os
 import threading
 
+from audio_studio import __version__
 from audio_studio.application.batches import (
     BatchGenerationService,
     BatchJobHandler,
@@ -57,6 +58,8 @@ from audio_studio.infrastructure.runtime_environment import (
 
 def main() -> int:
     reload_owned_environment()
+    runtime_id = (os.getenv("AUDIO_STUDIO_RUNTIME_ID") or "").strip()
+    expected_parent_pid = int(os.getenv("AUDIO_STUDIO_PARENT_PID") or 0)
     service = job_service
     speech = SpeechRepository()
     speech_provider = AlibabaSpeechProvider()
@@ -110,7 +113,12 @@ def main() -> int:
     def pulse_worker() -> None:
         while not lease_stop.is_set():
             try:
-                runtime.heartbeat(detail={"pid": os.getpid()})
+                runtime.heartbeat(detail={
+                    "pid": os.getpid(),
+                    "parent_pid": expected_parent_pid or os.getppid(),
+                    "runtime_id": runtime_id,
+                    "version": __version__,
+                })
             except Exception:
                 pass
             lease_stop.wait(2)
@@ -120,6 +128,11 @@ def main() -> int:
     lease_thread.start()
     try:
         while not stopping:
+            if expected_parent_pid and os.getppid() != expected_parent_pid:
+                print(
+                    "Audio Studio worker parent disappeared; "
+                    "releasing the queue.")
+                break
             now = time.monotonic()
             current_revision = environment_revision()
             if current_revision != loaded_revision:

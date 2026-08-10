@@ -105,6 +105,8 @@ class WorkerStatusResponse(BaseModel):
     started_at: str | None = None
     last_seen_at: str | None = None
     detail: dict[str, Any] | None = None
+    expected_runtime_id: str | None = None
+    actual_runtime_id: str | None = None
 
 
 class SystemHealthResponse(BaseModel):

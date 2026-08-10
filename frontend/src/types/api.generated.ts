@@ -4107,10 +4107,14 @@ export interface components {
         };
         /** WorkerStatusResponse */
         WorkerStatusResponse: {
+            /** Actual Runtime Id */
+            actual_runtime_id?: string | null;
             /** Detail */
             detail?: {
                 [key: string]: unknown;
             } | null;
+            /** Expected Runtime Id */
+            expected_runtime_id?: string | null;
             /** Last Seen At */
             last_seen_at?: string | null;
             /** Process Id */

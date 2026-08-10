@@ -16,6 +16,7 @@ from audio_studio.domain.jobs import Job, JobStatus
 from audio_studio.domain.speech import PreparedSpeech, StoredAudio, SynthesizedSpeech
 from audio_studio.http.routers.jobs import SpeechJobCreate
 from audio_studio.infrastructure.audio_workspace import AudioWorkspace
+from audio_studio.infrastructure.alibaba.speech_generation import AlibabaSpeechProvider
 from audio_studio.infrastructure.postgres.speech import SpeechRepository
 
 
@@ -111,6 +112,25 @@ class FakeProvider:
         )
 
 
+class RoutedFakeProvider(AlibabaSpeechProvider):
+    """Use the real Alibaba preparation route without making a provider call."""
+
+    def __init__(self):
+        self.prepared = []
+
+    def is_configured(self):
+        return True
+
+    def synthesize(self, prepared, on_progress=None):
+        self.prepared.append(prepared)
+        return SynthesizedSpeech(
+            audio=b"generated-audio", cost=.001,
+            cost_basis="catalog_characters", usage={}, failures=[],
+            returned_text=None, fidelity={}, provider_region="intl",
+            provider_endpoint="provider.test", price_version="fixture",
+        )
+
+
 class FakeWorkspace:
     def __init__(self):
         self.saved = []
@@ -153,6 +173,26 @@ def existing(kind="audio"):
 
 
 class SpeechGenerationTests(unittest.TestCase):
+    def test_complete_service_path_never_language_gates_a_cloned_binding(self):
+        repository = FakeRepository()
+        repository.voice_bindings = lambda: [{
+            "provider_voice_id": "custom-audio", "voice_id": "custom-audio",
+            "identity_id": "identity-one", "engine": "audio",
+            "tier": "flash", "model_id": "qwen-audio-3.0-tts-flash",
+            "source": "custom", "status": "active",
+            "languages": ["English"],
+        }]
+        provider = RoutedFakeProvider()
+        service, _, _, _ = self.service(
+            repository=repository, provider=provider)
+        result = service.run(payload(
+            text="[whispers] مرحبا بالعالم", voice="custom-audio",
+            engine="audio", model="flash", language="Arabic"))
+        self.assertEqual(result["id"], 701)
+        self.assertEqual(provider.prepared[0].voice, "custom-audio")
+        self.assertEqual(provider.prepared[0].language, "Arabic")
+        self.assertEqual(provider.prepared[0].engine, "audio")
+
     def test_new_speech_inherits_missing_series_defaults_from_production(self):
         repository = FakeRepository(production_settings={
             "language": "Arabic", "engine": "omni",

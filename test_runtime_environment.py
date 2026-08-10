@@ -5,6 +5,7 @@ from tempfile import TemporaryDirectory
 import os
 import unittest
 from unittest.mock import patch
+from unittest.mock import Mock
 
 from audio_studio import runtime
 from audio_studio.infrastructure import runtime_environment
@@ -16,6 +17,15 @@ from dataclasses import replace
 
 
 class RuntimeEnvironmentTests(unittest.TestCase):
+    def test_supervisor_passes_one_runtime_identity_to_its_worker(self):
+        supervisor = runtime.WorkerSupervisor("runtime-test", 1234)
+        process = Mock()
+        with patch.object(runtime.subprocess, "Popen", return_value=process) as spawn:
+            self.assertIs(supervisor._spawn(), process)
+        environment = spawn.call_args.kwargs["env"]
+        self.assertEqual(environment["AUDIO_STUDIO_RUNTIME_ID"], "runtime-test")
+        self.assertEqual(environment["AUDIO_STUDIO_PARENT_PID"], "1234")
+
     def test_alibaba_deployment_is_dynamic_and_secret_free(self):
         with patch.dict(os.environ, {
             "DASHSCOPE_REGION": "beijing",

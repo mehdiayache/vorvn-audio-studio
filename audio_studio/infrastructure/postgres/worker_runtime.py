@@ -89,9 +89,22 @@ class WorkerRuntimeRepository:
             row = cursor.fetchone()
         if not row:
             return {"ready": False, "status": "missing"}
-        ready = bool(row[4]) and row[1] == "ready"
+        detail = row[5] or {}
+        expected_runtime_id = (
+            os.getenv("AUDIO_STUDIO_RUNTIME_ID") or "").strip()
+        actual_runtime_id = str(detail.get("runtime_id") or "").strip()
+        same_runtime = (
+            not expected_runtime_id
+            or actual_runtime_id == expected_runtime_id)
+        ready = bool(row[4]) and row[1] == "ready" and same_runtime
+        status = (
+            "runtime_mismatch" if bool(row[4]) and row[1] == "ready"
+            and not same_runtime
+            else row[1] if row[4] else "stale")
         return {
-            "ready": ready, "status": row[1] if row[4] else "stale",
+            "ready": ready, "status": status,
             "process_id": row[0], "started_at": row[2].isoformat(),
-            "last_seen_at": row[3].isoformat(), "detail": row[5] or {},
+            "last_seen_at": row[3].isoformat(), "detail": detail,
+            "expected_runtime_id": expected_runtime_id or None,
+            "actual_runtime_id": actual_runtime_id or None,
         }
