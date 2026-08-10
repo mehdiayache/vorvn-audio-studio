@@ -45,6 +45,8 @@ class UploadRecords(Protocol):
         original_path: str, normalized_path: str,
         sha256: str = "", duration_ms: int | None = None,
         sample_rate: int | None = None, channels: int | None = None,
+        source_language: str = "", transcript: str = "",
+        metadata: dict | None = None,
     ) -> str: ...
     def asset_collection(self, collection_id: int) -> dict | None: ...
     def create_uploaded_asset(
@@ -76,7 +78,8 @@ class UploadService:
             raise UploadError(str(exc)) from exc
 
     def save_voice_reference(
-        self, raw: bytes, encoded_name: str,
+        self, raw: bytes, encoded_name: str, *, source_language: str = "",
+        transcript: str = "", metadata: dict | None = None,
     ) -> dict[str, str]:
         if not raw:
             raise UploadError("Choose a recording first.")
@@ -102,6 +105,9 @@ class UploadService:
                 duration_ms=stored.duration_ms,
                 sample_rate=stored.sample_rate,
                 channels=stored.channels,
+                source_language=source_language.strip().lower(),
+                transcript=transcript.strip(),
+                metadata=metadata or {},
             )
         except Exception:
             self.workspace.discard_voice_reference(reference_id)

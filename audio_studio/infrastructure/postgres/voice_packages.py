@@ -85,17 +85,23 @@ class VoicePackageRepository:
                          reference_id: str | None = None, sha256: str = "",
                          duration_ms: int | None = None,
                          sample_rate: int | None = None,
-                         channels: int | None = None) -> str:
+                         channels: int | None = None,
+                         source_language: str = "", transcript: str = "",
+                         metadata: dict | None = None) -> str:
         reference_id = reference_id or f"ref_{uuid4().hex}"
         with transaction() as cursor:
             cursor.execute("""
                 INSERT INTO voice_references
                     (id, original_name, original_path, normalized_path,
-                     source_url, sha256, duration_ms, sample_rate, channels)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     source_url, sha256, duration_ms, sample_rate, channels,
+                     source_language, transcript, metadata)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s::jsonb)
             """, (reference_id, original_name or None, original_path or None,
                   normalized_path or None, source_url or None,
-                  sha256 or None, duration_ms, sample_rate, channels))
+                  sha256 or None, duration_ms, sample_rate, channels,
+                  source_language or None, transcript or None,
+                  json.dumps(metadata or {})))
         return reference_id
 
     def create_package(self, *, name: str, metadata: dict, reference_id: str,

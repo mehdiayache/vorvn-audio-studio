@@ -97,10 +97,17 @@ class UploadServiceTests(unittest.TestCase):
 
     def test_voice_reference_uses_a_stable_id_and_rolls_back_on_db_failure(self):
         service, workspace, records = self.service()
-        result = service.save_voice_reference(b"audio", "voice.mp3")
+        result = service.save_voice_reference(
+            b"audio", "voice.mp3", source_language="AR",
+            transcript="  words spoken  ",
+            metadata={"source": "recovered_generation", "job_id": 148},
+        )
         reference_id = result["reference_id"]
         self.assertTrue(reference_id.startswith("ref_"))
         self.assertEqual(records.references[0]["reference_id"], reference_id)
+        self.assertEqual(records.references[0]["source_language"], "ar")
+        self.assertEqual(records.references[0]["transcript"], "words spoken")
+        self.assertEqual(records.references[0]["metadata"]["job_id"], 148)
         records.fail_reference = True
         with self.assertRaisesRegex(RuntimeError, "database"):
             service.save_voice_reference(b"audio", "second.mp3")

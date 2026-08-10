@@ -22,12 +22,16 @@ class PostgresUploadRecords:
         original_path: str, normalized_path: str, sha256: str = "",
         duration_ms: int | None = None, sample_rate: int | None = None,
         channels: int | None = None,
+        source_language: str = "", transcript: str = "",
+        metadata: dict | None = None,
     ) -> str:
         return self.voices.create_reference(
             reference_id=reference_id, original_name=original_name,
             original_path=original_path, normalized_path=normalized_path,
             sha256=sha256, duration_ms=duration_ms,
-            sample_rate=sample_rate, channels=channels)
+            sample_rate=sample_rate, channels=channels,
+            source_language=source_language, transcript=transcript,
+            metadata=metadata or {})
 
     def asset_collection(self, collection_id: int) -> dict | None:
         return self.assets.collection(collection_id)
