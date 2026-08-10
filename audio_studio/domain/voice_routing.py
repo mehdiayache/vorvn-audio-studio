@@ -94,7 +94,12 @@ def resolve(payload: dict, bindings: list[dict] | None = None) -> VoiceRoute:
     candidates = [item for item in available if identity_id and item["identity_id"] == identity_id]
 
     if candidates:
-        if language not in (None, "", "Auto"):
+        custom_identity = any(item.get("source") == "custom" for item in candidates)
+        # Source language is clone provenance, not an output-language gate.
+        # Custom voices may be cast in any requested language; only the
+        # existence and readiness of the selected provider binding matter.
+        # Provider-owned catalogue voices keep their documented restrictions.
+        if not custom_identity and language not in (None, "", "Auto"):
             compatible = [
                 item for item in candidates
                 if str(language).casefold() in {
@@ -117,7 +122,7 @@ def resolve(payload: dict, bindings: list[dict] | None = None) -> VoiceRoute:
                 item["engine"] == requested_engine
                 for item in available
                 if identity_id and item["identity_id"] == identity_id)
-            if language not in (None, "", "Auto") and engine_exists:
+            if not custom_identity and language not in (None, "", "Auto") and engine_exists:
                 alternatives = sorted({
                     config.CAPABILITIES[item["engine"]]["operator_title"]
                     for item in candidates

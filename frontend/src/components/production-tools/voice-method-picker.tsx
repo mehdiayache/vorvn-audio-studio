@@ -6,11 +6,12 @@ import type { StudioConfig } from "@/types/domain"
 
 const order: SpeechEngine[] = ["audio", "qwen_tts", "omni"]
 
-export function VoiceMethodPicker({ routes, availableRoutes, selectedEngine, language, config, onSelect }: {
+export function VoiceMethodPicker({ routes, availableRoutes, selectedEngine, language, customVoice, config, onSelect }: {
   routes: VoiceChoice[]
   availableRoutes: VoiceChoice[]
   selectedEngine: SpeechEngine
   language: string
+  customVoice: boolean
   config: StudioConfig | null
   onSelect: (engine: SpeechEngine) => void
 }) {
@@ -32,7 +33,7 @@ export function VoiceMethodPicker({ routes, availableRoutes, selectedEngine, lan
         <b>{info?.purpose || "Speech recording"}</b>
         <ul>{(info?.operator_notes || []).map((note) => <li key={note}>{note}</li>)}</ul>
         <small className="capability-card-state">{available
-          ? <><Check /> Ready for {language === "Auto" ? "automatic language" : language}</>
+          ? <><Check /> {customVoice ? "Ready with this cloned voice" : `Ready for ${language === "Auto" ? "automatic language" : language}`}</>
           : <><LockKeyhole /> Not available in {language}</>}</small>
       </button>
     })}

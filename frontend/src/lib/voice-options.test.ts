@@ -39,12 +39,19 @@ describe("voice-first routing", () => {
     expect(identities.filter((item) => item.name === "Tina")).toHaveLength(1)
   })
 
-  it("treats source language as metadata and output language as route capability", () => {
-    const customRegistry = { ...registry, bindings: registry.bindings.map((item) => item.provider_voice_id === "Mehdi" ? { ...item, languages: ["English", "Arabic"], reference: { source_language: "ar" } } : item) }
+  it("never restricts a cloned voice by its source or requested language", () => {
+    const customRegistry = { ...registry, bindings: registry.bindings.map((item) => item.provider_voice_id === "Mehdi" ? { ...item, languages: ["English"], reference: { source_language: "ar" } } : item) }
     const mehdi = getVoiceIdentities(customRegistry).find((item) => item.name === "Mehdi")!
     expect(mehdi.sourceLanguage).toBe("ar")
     expect(routesForIdentity(mehdi, "English")).toHaveLength(1)
     expect(routesForIdentity(mehdi, "Arabic")).toHaveLength(1)
+    expect(routesForIdentity(mehdi, "French")).toHaveLength(1)
+  })
+
+  it("keeps provider catalogue language restrictions separate", () => {
+    const lingxin = getVoiceIdentities(registry).find((item) => item.name === "Lingxin")!
+    expect(routesForIdentity(lingxin, "English")).toHaveLength(1)
+    expect(routesForIdentity(lingxin, "Arabic")).toHaveLength(0)
   })
 
   it("chooses the preferred route without changing identity", () => {

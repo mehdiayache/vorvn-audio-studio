@@ -93,6 +93,14 @@ export function routesForIdentity(
   identity: VoiceIdentityChoice | undefined,
   language: string,
 ) {
+  // A clone's source language is provenance, never a casting restriction.
+  // Our production tests prove that a clone can speak beyond its source
+  // recording language, so the provider—not a catalogue hint—gets to evaluate
+  // the requested output. Catalogue voices remain limited by their documented
+  // language list because those voices are owned by the provider, not us.
+  if (identity?.source === "mine") {
+    return identity.routes.filter((route) => route.compatible)
+  }
   return (identity?.routes || []).filter(
     (route) => route.compatible && routeSupportsLanguage(route, language),
   )

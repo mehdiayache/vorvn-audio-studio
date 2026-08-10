@@ -7,10 +7,10 @@ from audio_studio.domain import voice_routing
 BINDINGS = [
     {"identity_id": "voice_eve", "voice_id": "eve-audio", "engine": "audio",
      "tier": "flash", "target_model": "qwen-audio-3.0-tts-flash", "status": "active",
-     "languages": ["English"]},
+     "languages": ["English"], "source": "custom"},
     {"identity_id": "voice_eve", "voice_id": "eve-omni", "engine": "omni",
      "tier": "plus", "target_model": "qwen3.5-omni-plus", "status": "active",
-     "languages": ["English", "Arabic"]},
+     "languages": ["English", "Arabic"], "source": "custom"},
 ]
 
 SYSTEM_BINDINGS = [{"identity_id": "alibaba:audio:eva", "provider_voice_id": "eva",
@@ -25,13 +25,12 @@ switched = voice_routing.resolve({"voice_identity_id": "voice_eve", "voice": "ev
                                   "engine": "omni", "model": "plus"}, BINDINGS)
 assert switched.provider_voice_id == "eve-omni" and switched.engine == "omni"
 
-try:
-    voice_routing.resolve({"voice_identity_id": "voice_eve", "voice": "eve-audio",
-                           "engine": "audio", "model": "flash", "language": "Auto",
-                           "text": "مرحبا بالعالم"}, BINDINGS)
-    raise AssertionError("Arabic was sent to a binding that cannot produce it")
-except ValueError as error:
-    assert "cannot produce Arabic" in str(error) and "Arabic & multilingual" in str(error)
+custom_arabic = voice_routing.resolve({
+    "voice_identity_id": "voice_eve", "voice": "eve-audio",
+    "engine": "audio", "model": "flash", "language": "Auto",
+    "text": "مرحبا بالعالم"}, BINDINGS)
+assert custom_arabic.provider_voice_id == "eve-audio"
+assert custom_arabic.engine == "audio"
 
 not_ready = [{**BINDINGS[0], "status": "creating"}, BINDINGS[1]]
 try:
