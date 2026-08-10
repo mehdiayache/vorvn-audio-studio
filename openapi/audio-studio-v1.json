@@ -7227,6 +7227,13 @@
       },
       "VoicePackageRouteResponse": {
         "properties": {
+          "documented_output_languages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Documented Output Languages",
+            "type": "array"
+          },
           "engine": {
             "enum": [
               "audio",
@@ -7260,6 +7267,10 @@
             "title": "Role",
             "type": "string"
           },
+          "source_language_documented": {
+            "title": "Source Language Documented",
+            "type": "boolean"
+          },
           "tier": {
             "enum": [
               "plus",
@@ -7278,6 +7289,8 @@
           "label",
           "role",
           "language",
+          "source_language_documented",
+          "documented_output_languages",
           "estimated_creation_cost"
         ],
         "title": "VoicePackageRouteResponse",

@@ -19,6 +19,8 @@ class VoicePackageRouteResponse(BaseModel):
     label: str
     role: str
     language: str
+    source_language_documented: bool
+    documented_output_languages: list[str]
     estimated_creation_cost: float
 
 

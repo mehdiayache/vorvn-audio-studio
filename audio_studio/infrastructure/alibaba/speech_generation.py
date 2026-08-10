@@ -218,6 +218,29 @@ class AlibabaSpeechProvider:
             cost = round(generated_characters * rate / 1_000_000, 6)
             basis = "catalog_characters"
             endpoint = config.regional_http_base()
+        if not audio and failure_rows:
+            first_error = str(failure_rows[0].get("error") or "").strip()
+            label = provider_catalog.CAPABILITIES[prepared.engine]["label"]
+            message = f"{label} did not produce audio."
+            if first_error:
+                message += f" {first_error}"
+            raise SpeechSynthesisError(
+                message,
+                {
+                    "cost": cost,
+                    "cost_basis": basis,
+                    "usage": measured_usage,
+                    "failures": failure_rows,
+                    "provider_diagnostics": diagnostics,
+                    "request_ids": request_ids,
+                    "provider_request_id": (request_ids[0]
+                                            if len(request_ids) == 1
+                                            else None),
+                    "provider_region": config.region(),
+                    "provider_endpoint": endpoint,
+                    "price_version": PRICE_VERSION,
+                },
+            )
         return SynthesizedSpeech(
             audio=audio, cost=cost, cost_basis=basis,
             usage=measured_usage, failures=failure_rows,

@@ -24,7 +24,8 @@ RETRIES = 3
 BACKOFF = 1.5
 FATAL_SIGNS = (
     "api key", "apikey", "unauthorized", "forbidden", "arrearage",
-    "invalid parameter", "model not exist", "voice not exist",
+    "invalid parameter", "invalid_parameter", "unsupported language",
+    "language_type", "model not exist", "voice not exist",
 )
 
 

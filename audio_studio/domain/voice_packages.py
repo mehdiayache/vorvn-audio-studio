@@ -10,15 +10,15 @@ from audio_studio.domain import provider_catalog as catalog
 PACKAGE_LABELS = {
     "complete": (
         "Complete production voice",
-        "Every compatible exact-reading and performance capability.",
+        "Every installed exact-reading and performance capability.",
     ),
     "exact": (
         "Exact TTS only",
-        "Compatible faithful-reading capabilities for this recording.",
+        "Installed faithful-reading capabilities for this voice.",
     ),
     "omni": (
         "Omni multilingual",
-        "Best-quality and economical multilingual performance.",
+        "Best-quality and economical multilingual performance versions.",
     ),
 }
 
@@ -36,12 +36,16 @@ def _language_code(value: str) -> str:
 
 
 def installed_routes(language: str) -> list[dict]:
-    """Every clone binding the installed application can consume."""
+    """Every clone binding the installed application can consume.
+
+    ``language`` describes the uploaded reference recording.  It is useful
+    provider provenance, but it is not an output-language policy and must not
+    decide which model bindings belong to the human voice identity.
+    """
     code = _language_code(language)
     routes = []
     for engine, capability in catalog.CAPABILITIES.items():
-        if code not in capability.get("clone_languages", {}):
-            continue
+        documented_sources = capability.get("clone_languages", {})
         for tier in capability.get("clone_tiers", []):
             model = capability["models"][tier]
             role = (
@@ -57,6 +61,9 @@ def installed_routes(language: str) -> list[dict]:
                           if tier == "vc" else
                           f"{capability['label']} · {tier.title()}"),
                 "role": role, "language": code,
+                "source_language_documented": code in documented_sources,
+                "documented_output_languages": list(
+                    capability.get("output_languages", [])),
                 "estimated_creation_cost": float(
                     capability.get("clone_cost") or 0),
             })

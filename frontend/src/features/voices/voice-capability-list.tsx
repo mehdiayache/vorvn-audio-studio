@@ -25,9 +25,10 @@ export function VoiceCapabilityList({ routes, bindings, jobs, onRetry }: {
 }) {
   return <div className="voice-capability-list">{routes.map((route) => {
     const state = stateFor(route, bindings, jobs)
+    const languages = state.binding?.languages || route.documented_output_languages || []
     return <article key={route.model_id} className={`voice-capability voice-capability-${state.status}`}>
       <span className="voice-capability-state">{state.status === "ready" ? <Check /> : ["queued", "creating"].includes(state.status) ? <LoaderCircle className="spin" /> : state.status === "failed" || state.status === "interrupted" ? <CircleAlert /> : <span />}</span>
-      <div><b>{capabilityName(route)}</b><small>{route.role} · {route.label}</small><span>{state.detail}</span></div>
+      <div><b>{capabilityName(route)}</b><small>{route.role} · {route.label}</small>{languages.length > 0 && <details className="voice-capability-languages"><summary>{languages.length} documented output language{languages.length === 1 ? "" : "s"}</summary><p>{languages.join(" · ")}</p></details>}<span>{state.detail}</span></div>
       {(state.status === "failed" || state.status === "interrupted") && onRetry && <Button variant="outline" size="sm" onClick={() => onRetry(route.model_id)}><RotateCw /> Retry</Button>}
     </article>
   })}</div>

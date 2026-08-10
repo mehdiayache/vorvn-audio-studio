@@ -121,7 +121,7 @@ class VoiceService:
         plan = self.package_plan(
             language, str(payload.get("package") or "complete"))
         if not plan["routes"]:
-            raise ValueError("No installed voice model supports that language.")
+            raise ValueError("No cloned-voice capability is installed.")
         confirmation = self._check_creation_budget(
             float(plan["total_estimated_creation_cost"]),
             bool(payload.get("confirmed")),

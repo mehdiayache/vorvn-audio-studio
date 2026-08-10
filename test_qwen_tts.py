@@ -87,6 +87,19 @@ class QwenTtsTests(unittest.TestCase):
         self.assertEqual((audio, failures), (b"mp3", []))
         self.assertEqual(call.call_count, 2)
 
+    def test_unsupported_language_is_not_retried(self):
+        with patch.object(
+                qwen_tts, "_render",
+                side_effect=RuntimeError(
+                    "invalid_parameter: unsupported language_type Arabic")) as call, \
+                patch.object(qwen_tts.time, "sleep") as sleep:
+            audio, failures, *_ = qwen_tts.synthesize(
+                ["مرحبا"], self.options())
+        self.assertEqual(audio, b"")
+        self.assertIn("unsupported language_type Arabic", failures[0].error)
+        self.assertEqual(call.call_count, 1)
+        sleep.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

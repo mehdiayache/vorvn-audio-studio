@@ -45,6 +45,9 @@
 .voice-capability > div { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; }
 .voice-capability b { font-size: var(--type-small); }
 .voice-capability small { overflow: hidden; color: var(--muted-foreground); font-size: var(--type-caption); text-overflow: ellipsis; white-space: nowrap; }
+.voice-capability-languages { grid-column: 1 / -1; margin-top: 3px; }
+.voice-capability-languages summary { width: fit-content; color: var(--primary); font-size: var(--type-caption); font-weight: 650; cursor: pointer; }
+.voice-capability-languages p { margin: 6px 0 0; color: var(--muted-foreground); font-size: 11px; line-height: 1.5; }
 .voice-capability > div > span { grid-column: 2; grid-row: 1 / 3; align-self: center; color: var(--muted-foreground); font-size: var(--type-caption); }
 .voice-profile-card > footer { min-height: 74px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 20px; }
 .voice-profile-footer-copy { min-width: 0; display: grid; gap: 6px; }

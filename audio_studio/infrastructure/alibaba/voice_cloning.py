@@ -72,9 +72,12 @@ class AlibabaVoiceCloningProvider:
         else:
             from dashscope.audio.tts_v2 import VoiceEnrollmentService
             sdk_runtime.apply_credentials()
+            documented_sources = config.CAPABILITIES[job.engine].get(
+                "clone_languages", {})
+            language_hint = language if language in documented_sources else None
             provider_voice_id = VoiceEnrollmentService().create_voice(
                 target_model=job.model_id, prefix=prefix, url=url,
-                language_hints=[language] if language else None,
+                language_hints=[language_hint] if language_hint else None,
                 max_prompt_audio_length=30.0,
             )
             endpoint = config.http_base()

@@ -3,6 +3,7 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 from uuid import uuid4
 
 import psycopg
@@ -13,10 +14,11 @@ from audio_studio.application.speech import (
 )
 from audio_studio.config import settings
 from audio_studio.domain.jobs import Job, JobStatus
-from audio_studio.domain.speech import PreparedSpeech, StoredAudio, SynthesizedSpeech
+from audio_studio.domain.speech import PreparedSpeech, SpeechSynthesisError, StoredAudio, SynthesizedSpeech
 from audio_studio.http.routers.jobs import SpeechJobCreate
 from audio_studio.infrastructure.audio_workspace import AudioWorkspace
 from audio_studio.infrastructure.alibaba.speech_generation import AlibabaSpeechProvider
+from audio_studio.infrastructure.alibaba.qwen_tts import ChunkFailure
 from audio_studio.infrastructure.postgres.speech import SpeechRepository
 
 
@@ -173,6 +175,30 @@ def existing(kind="audio"):
 
 
 class SpeechGenerationTests(unittest.TestCase):
+    def test_empty_qwen_tts_result_keeps_the_provider_failure_evidence(self):
+        prepared = PreparedSpeech(
+            original_text="مرحبا", spoken_text="مرحبا",
+            voice="qwen-tts-vc-fixture", voice_identity_id="identity-one",
+            engine="qwen_tts", tier="vc",
+            model_id="qwen3-tts-vc-2026-01-22", output_format="mp3",
+            extension="mp3", language="Arabic", instruction=None,
+            speech_mode="exact", rate=1, pitch=1, volume=50, seed=0,
+            request_count=1, estimated_cost=.0001,
+            voice_route={"provider_voice_id": "qwen-tts-vc-fixture"},
+            context=object(),
+        )
+        failure = ChunkFailure(
+            1, "مرحبا",
+            "RuntimeError: invalid_parameter: unsupported language_type Arabic")
+        with patch(
+                "audio_studio.infrastructure.alibaba.speech_generation.synthesize",
+                return_value=(b"", [failure], [], {}, [], [])):
+            with self.assertRaises(SpeechSynthesisError) as raised:
+                AlibabaSpeechProvider().synthesize(prepared)
+        self.assertIn("unsupported language_type Arabic", str(raised.exception))
+        self.assertEqual(raised.exception.result["failures"][0]["index"], 1)
+        self.assertEqual(raised.exception.result["usage"]["generated_characters"], 0)
+
     def test_complete_service_path_never_language_gates_a_cloned_binding(self):
         repository = FakeRepository()
         repository.voice_bindings = lambda: [{

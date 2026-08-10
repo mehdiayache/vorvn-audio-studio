@@ -15,8 +15,8 @@ const profile: VoiceProfile = {
   jobs: [],
   usage: { uses: 0, productions: 0, spend: 0, last_used: null, preview_filename: "" },
   available_routes: [
-    { provider: "alibaba", engine: "audio", tier: "flash", model_id: "audio-flash", label: "Qwen Audio · Flash", role: "Exact production", language: "en", estimated_creation_cost: 0 },
-    { provider: "alibaba", engine: "omni", tier: "plus", model_id: "omni-plus", label: "Qwen Omni · Plus", role: "Best-quality performance", language: "en", estimated_creation_cost: .01 },
+    { provider: "alibaba", engine: "audio", tier: "flash", model_id: "audio-flash", label: "Qwen Audio · Flash", role: "Exact production", language: "en", source_language_documented: true, documented_output_languages: ["English", "French"], estimated_creation_cost: 0 },
+    { provider: "alibaba", engine: "omni", tier: "plus", model_id: "omni-plus", label: "Qwen Omni · Plus", role: "Best-quality performance", language: "en", source_language_documented: true, documented_output_languages: ["English", "Arabic"], estimated_creation_cost: .01 },
   ],
 }
 
@@ -27,6 +27,7 @@ describe("VoiceProfileCard", () => {
     expect(screen.getByText((_, element) => Boolean(element?.classList.contains("voice-profile-count") && element.textContent === "1 of 2 ready"))).toBeTruthy()
     expect(screen.getByText("Expressive + tags")).toBeTruthy()
     expect(screen.getByText(/Exact production · Qwen Audio/)).toBeTruthy()
+    expect(screen.getByText("2 documented output languages")).toBeTruthy()
     expect(screen.getByRole("button", { name: /Add 1 missing capability/ })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Edit Serinity" })).toBeTruthy()
   })

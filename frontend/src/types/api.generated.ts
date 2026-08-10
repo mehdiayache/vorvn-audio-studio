@@ -3753,6 +3753,8 @@ export interface components {
         };
         /** VoicePackageRouteResponse */
         VoicePackageRouteResponse: {
+            /** Documented Output Languages */
+            documented_output_languages: string[];
             /**
              * Engine
              * @enum {string}
@@ -3770,6 +3772,8 @@ export interface components {
             provider: string;
             /** Role */
             role: string;
+            /** Source Language Documented */
+            source_language_documented: boolean;
             /**
              * Tier
              * @enum {string}

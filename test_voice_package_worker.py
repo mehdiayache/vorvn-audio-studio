@@ -79,6 +79,32 @@ class FakeProvider:
 
 
 class VoicePackageWorkerTests(unittest.TestCase):
+    def test_qwen_audio_clone_does_not_turn_source_language_into_a_gate(self):
+        job = package_job(
+            engine="audio", tier="flash",
+            model_id="qwen-audio-3.0-tts-flash",
+            metadata={"language": "ar"},
+        )
+        with TemporaryDirectory() as directory:
+            local = Path(directory) / "source.wav"
+            local.write_bytes(b"RIFF-test")
+            with patch.dict("os.environ", {"DASHSCOPE_API_KEY": "fixture"}), \
+                    patch(
+                        "audio_studio.infrastructure.alibaba.voice_cloning.storage.configured",
+                        return_value=True), \
+                    patch(
+                        "audio_studio.infrastructure.alibaba.voice_cloning.storage.upload",
+                        return_value="https://storage.test/reference.wav"), \
+                    patch("dashscope.audio.tts_v2.VoiceEnrollmentService") as service:
+                service.return_value.create_voice.return_value = "audio-fixture"
+                binding = AlibabaVoiceCloningProvider().create(job, local)
+        self.assertEqual(binding.provider_voice_id, "audio-fixture")
+        service.return_value.create_voice.assert_called_once_with(
+            target_model="qwen-audio-3.0-tts-flash", prefix="testvoice",
+            url="https://storage.test/reference.wav", language_hints=None,
+            max_prompt_audio_length=30.0,
+        )
+
     def test_qwen_tts_clone_uses_qwen_enrollment_with_transcript(self):
         job = package_job(
             engine="qwen_tts", tier="vc",
