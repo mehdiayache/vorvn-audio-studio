@@ -3706,6 +3706,155 @@
         "title": "ProviderUpdate",
         "type": "object"
       },
+      "RecordingAttemptResponse": {
+        "properties": {
+          "audio_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Url"
+          },
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "cost_basis": {
+            "title": "Cost Basis",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "fidelity": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fidelity"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "request": {
+            "additionalProperties": true,
+            "title": "Request",
+            "type": "object"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "warning": {
+            "title": "Warning",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "created_at",
+          "started_at",
+          "finished_at",
+          "request",
+          "error",
+          "warning",
+          "cost",
+          "cost_basis",
+          "duration_ms",
+          "size_bytes",
+          "audio_url",
+          "fidelity"
+        ],
+        "title": "RecordingAttemptResponse",
+        "type": "object"
+      },
+      "RecordingSessionEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RecordingSessionResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "RecordingSessionEnvelope",
+        "type": "object"
+      },
+      "RecordingSessionResponse": {
+        "properties": {
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/RecordingAttemptResponse"
+            },
+            "title": "Attempts",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "total_cost": {
+            "title": "Total Cost",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "attempts",
+          "total_cost"
+        ],
+        "title": "RecordingSessionResponse",
+        "type": "object"
+      },
       "RenderJobCreate": {
         "additionalProperties": false,
         "properties": {
@@ -4436,6 +4585,18 @@
             "title": "Seed",
             "type": "integer"
           },
+          "session_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
           "speech_mode": {
             "default": "exact",
             "enum": [
@@ -4970,6 +5131,11 @@
             "title": "Tags",
             "type": "object"
           },
+          "text_preparation": {
+            "additionalProperties": true,
+            "title": "Text Preparation",
+            "type": "object"
+          },
           "voice_favourites": {
             "items": {
               "type": "string"
@@ -5017,6 +5183,7 @@
           "clone_languages",
           "workspace",
           "instruction_max",
+          "text_preparation",
           "rates",
           "batch_max_rows",
           "synth_flags",
@@ -11288,6 +11455,49 @@
         "summary": "Test Storage",
         "tags": [
           "settings"
+        ]
+      }
+    },
+    "/api/v1/speak/sessions/{session_id}": {
+      "get": {
+        "operationId": "getRecordingSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingSessionEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Recording Session",
+        "tags": [
+          "speak"
         ]
       }
     },

@@ -863,6 +863,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/speak/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Recording Session */
+        get: operations["getRecordingSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/subtitles": {
         parameters: {
             query?: never;
@@ -2521,6 +2538,57 @@ export interface components {
              */
             workspace_id: string;
         };
+        /** RecordingAttemptResponse */
+        RecordingAttemptResponse: {
+            /** Audio Url */
+            audio_url: string | null;
+            /** Cost */
+            cost: number;
+            /** Cost Basis */
+            cost_basis: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Error */
+            error: string;
+            /** Fidelity */
+            fidelity: {
+                [key: string]: unknown;
+            } | null;
+            /** Finished At */
+            finished_at: string | null;
+            /** Id */
+            id: string;
+            /** Request */
+            request: {
+                [key: string]: unknown;
+            };
+            /** Size Bytes */
+            size_bytes: number;
+            /** Started At */
+            started_at: string | null;
+            /** Status */
+            status: string;
+            /** Warning */
+            warning: string;
+        };
+        /** RecordingSessionEnvelope */
+        RecordingSessionEnvelope: {
+            data: components["schemas"]["RecordingSessionResponse"];
+        };
+        /** RecordingSessionResponse */
+        RecordingSessionResponse: {
+            /** Attempts */
+            attempts: components["schemas"]["RecordingAttemptResponse"][];
+            /** Id */
+            id: string;
+            /** Total Cost */
+            total_cost: number;
+        };
         /** RenderJobCreate */
         RenderJobCreate: {
             /**
@@ -2776,6 +2844,8 @@ export interface components {
              * @default 0
              */
             seed: number;
+            /** Session Id */
+            session_id?: string | null;
             /**
              * Speech Mode
              * @default exact
@@ -3007,6 +3077,10 @@ export interface components {
                 [key: string]: {
                     [key: string]: string;
                 };
+            };
+            /** Text Preparation */
+            text_preparation: {
+                [key: string]: unknown;
             };
             /** Voice Favourites */
             voice_favourites: string[];
@@ -6036,6 +6110,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StorageTestEnvelope"];
+                };
+            };
+        };
+    };
+    getRecordingSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingSessionEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

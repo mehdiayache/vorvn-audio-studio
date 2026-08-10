@@ -21,8 +21,9 @@
 .composer-section > label { display: grid; gap: 8px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: 650; }
 .script-section textarea { field-sizing: fixed; width: 100%; height: clamp(260px, 42vh, 430px); min-height: 220px; max-height: 55vh; overflow-y: auto; resize: vertical; font-size: var(--type-heading-md); line-height: 1.7; }
 .script-section textarea:dir(rtl) { text-align: right; font-size: var(--type-heading-md); line-height: 1.9; }
-.text-pass-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.text-pass-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
 .text-pass-actions [data-slot="select-trigger"] { width: 140px; margin-left: auto; }
+.text-pass-cost { flex-basis: 100%; color: var(--muted-foreground); font-size: var(--type-caption); text-align: right; }
 .text-review { margin-top: 15px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-subtle); overflow: hidden; }
 .text-review > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 13px; border-bottom: 1px solid var(--border); background: var(--surface-raised); }
 .text-review > header > div:first-child { display: flex; flex-direction: column; }
@@ -205,6 +206,7 @@
   .script-section textarea { height: clamp(200px, 30vh, 270px); min-height: 180px; max-height: 34vh; }
   .text-pass-actions { align-items: stretch; flex-direction: column; }
   .text-pass-actions [data-slot="select-trigger"] { width: 100%; margin-left: 0; }
+  .text-pass-cost { text-align: left; }
   .composer-footer { grid-column: 1; align-items: stretch; flex-direction: column; }
   .footer-warning { position: static; }
   .composer-route-grid, .composer-fine > div { grid-template-columns: 1fr; }

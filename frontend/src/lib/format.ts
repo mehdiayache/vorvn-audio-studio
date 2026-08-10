@@ -11,6 +11,11 @@ export function formatMoney(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: value < 0.01 ? 4 : 2 }).format(value || 0)
 }
 
+export function formatMicroMoney(value: number) {
+  const amount = Number(value || 0)
+  return `$${amount.toFixed(amount > 0 && amount < 0.0001 ? 6 : 4)}`
+}
+
 export function formatUpdated(value?: string | null) {
   if (!value) return ""
   const date = new Date(value)

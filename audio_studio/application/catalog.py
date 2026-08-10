@@ -17,7 +17,12 @@ from audio_studio.domain import (
     voice_registry,
     voice_routing,
 )
-from audio_studio.application.text_preparation import variables as tag_variables
+from audio_studio.application.text_preparation import (
+    INPUT_PRICE_PER_MILLION as TEXT_INPUT_PRICE_PER_MILLION,
+    MODEL as TEXT_PREPARATION_MODEL,
+    OUTPUT_PRICE_PER_MILLION as TEXT_OUTPUT_PRICE_PER_MILLION,
+    variables as tag_variables,
+)
 
 
 LANGUAGES = ["Auto", "English", "Chinese", "Japanese", "Korean", "French",
@@ -99,6 +104,16 @@ class CatalogService:
                 "http_base": environment.native_http_base,
             },
             "instruction_max": 100,
+            "text_preparation": {
+                "model": TEXT_PREPARATION_MODEL,
+                "reasoning": False,
+                "input_price_per_million_tokens": TEXT_INPUT_PRICE_PER_MILLION,
+                "output_price_per_million_tokens": TEXT_OUTPUT_PRICE_PER_MILLION,
+                "estimated_price_per_million_characters": (
+                    TEXT_INPUT_PRICE_PER_MILLION
+                    + TEXT_OUTPUT_PRICE_PER_MILLION
+                ) / 4,
+            },
             "rates": alibaba_catalog.CAPABILITIES[
                 "audio"]["rates_per_million_chars"],
             "batch_max_rows": batch.MAX_ROWS,

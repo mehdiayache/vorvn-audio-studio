@@ -32,6 +32,7 @@ from audio_studio.http.routers.timeline import router as timeline_router
 from audio_studio.http.routers.voices import router as voices_router
 from audio_studio.http.routers.uploads import router as uploads_router
 from audio_studio.http.routers.batches import router as batches_router
+from audio_studio.http.routers.speak import router as speak_router
 from audio_studio.migrations import run as run_migrations
 
 
@@ -62,6 +63,7 @@ app.include_router(timeline_router)
 app.include_router(voices_router)
 app.include_router(uploads_router)
 app.include_router(batches_router)
+app.include_router(speak_router)
 
 
 # The React product has no public dependency on the historical HTTP surface.

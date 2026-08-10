@@ -180,6 +180,13 @@ export type StudioConfig = {
   languages: string[]
   clone_languages?: Record<string, string>
   instruction_max: number
+  text_preparation?: {
+    model: string
+    reasoning: boolean
+    input_price_per_million_tokens: number
+    output_price_per_million_tokens: number
+    estimated_price_per_million_characters: number
+  }
   has_key: boolean
   workspace?: { configured: boolean; id?: string; region: string; region_label: string; http_base?: string }
   prefs?: { warn_above?: number; daily_cap?: number }
@@ -397,6 +404,7 @@ export type GeneratePayload = {
   volume: number
   seed: number
   confirmed?: boolean
+  session_id?: string
 }
 
 export type VoiceRouteDecision = {
@@ -410,6 +418,7 @@ export type VoiceRouteDecision = {
 }
 
 export type GenerateResult = {
+  job_id?: string
   id?: number
   url?: string
   name?: string
@@ -422,6 +431,29 @@ export type GenerateResult = {
   needs_confirmation?: boolean
   estimate?: number
   voice_route?: VoiceRouteDecision
+}
+
+export type RecordingAttempt = {
+  id: string
+  status: DurableJob["status"]
+  created_at: string
+  started_at?: string | null
+  finished_at?: string | null
+  request: GeneratePayload
+  error: string
+  warning: string
+  cost: number
+  cost_basis: string
+  duration_ms: number
+  size_bytes: number
+  audio_url?: string | null
+  fidelity?: FidelityResult | null
+}
+
+export type RecordingSession = {
+  id: string
+  attempts: RecordingAttempt[]
+  total_cost: number
 }
 
 export type FidelityResult = {
@@ -444,6 +476,7 @@ export type TextPassResult = {
   style_used?: boolean
   needs_confirmation?: boolean
   estimate?: number
+  estimated_cost?: number
   model?: string
   usage?: Record<string, unknown>
   provider_request_id?: string | null

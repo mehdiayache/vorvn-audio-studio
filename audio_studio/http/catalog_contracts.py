@@ -41,6 +41,7 @@ class StudioConfigResponse(BaseModel):
     clone_languages: dict[str, str]
     workspace: WorkspaceResponse
     instruction_max: int
+    text_preparation: dict[str, Any]
     rates: dict[str, float]
     batch_max_rows: int
     synth_flags: dict[str, Any]

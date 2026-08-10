@@ -9,6 +9,7 @@ import type {
   StudioConfig,
   GeneratePayload,
   GenerateResult,
+  RecordingSession,
   Take,
   Transcript,
   TranscriptSummary,
@@ -253,8 +254,10 @@ export const studioApi = {
       headers: { "Idempotency-Key": `speech-${crypto.randomUUID()}` },
       body: JSON.stringify(payload),
     })
-    return waitForJob<GenerateResult>(response.data.id)
+    const result = await waitForJob<GenerateResult>(response.data.id)
+    return { ...result, job_id: response.data.id }
   },
+  recordingSession: (id: string) => v1<RecordingSession>(`/api/v1/speak/sessions/${encodeURIComponent(id)}`),
   renderDraft: async (id: number, payload: GeneratePayload) => {
     const response = await request<{ data: DurableJob<GenerateResult> }>("/api/v1/jobs/speech", { method: "POST", headers: { "Idempotency-Key": `render-draft-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ ...payload, operation: "render_draft", part_id: id }) })
     return waitForJob<GenerateResult>(response.data.id)

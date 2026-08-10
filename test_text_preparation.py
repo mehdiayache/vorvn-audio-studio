@@ -83,6 +83,10 @@ class TextPreparationTests(unittest.TestCase):
         self.assertEqual(result["model"], MODEL)
         self.assertEqual(result["provider_request_id"], "provider-request")
         self.assertEqual(result["usage"]["prompt_tokens"], 12)
+        self.assertFalse(provider.calls[0]["reasoning"])
+        self.assertEqual(result["cost_basis"], "actual_tokens")
+        self.assertEqual(result["cost"], .000008)
+        self.assertIn("estimated_cost", result)
 
     def test_tag_rejects_omni_before_any_provider_call(self):
         provider = FakeProvider()
@@ -97,6 +101,12 @@ class TextPreparationTests(unittest.TestCase):
             operation="tag", text="Hello there", density="heavy")
         self.assertEqual(result["after"], "[sad] Hello there [laughing]")
         self.assertIn("add tags generously", provider.calls[0]["messages"][0]["content"].lower())
+
+    def test_tag_rejects_any_provider_rewrite_and_preserves_source_truth(self):
+        provider = FakeProvider("[sad] Hello changed")
+        with self.assertRaisesRegex(ValueError, "rejected that version"):
+            self.service(provider=provider).prepare(
+                operation="tag", text="Hello there")
 
     def test_warning_blocks_before_provider_until_confirmed(self):
         provider = FakeProvider()

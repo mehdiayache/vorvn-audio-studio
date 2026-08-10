@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import difflib
 import re
+import unicodedata
 from typing import Callable, Protocol
 
 from audio_studio.domain.delivery_tags import (
@@ -59,7 +60,8 @@ DEFAULTS = {
 
 class TextProvider(Protocol):
     def complete(self, *, model: str,
-                 messages: list[dict[str, str]]) -> ProviderText: ...
+                 messages: list[dict[str, str]],
+                 reasoning: bool = False) -> ProviderText: ...
 
 
 class TextPreparationRepository(Protocol):
@@ -98,7 +100,20 @@ def _fill(template: str, extra: dict | None = None) -> str:
 def estimate(text: str) -> float:
     tokens = max(1, len(text) / 4)
     return round((tokens * INPUT_PRICE_PER_MILLION
-                  + tokens * OUTPUT_PRICE_PER_MILLION) / 1_000_000, 5)
+                  + tokens * OUTPUT_PRICE_PER_MILLION) / 1_000_000, 6)
+
+
+def usage_cost(usage: dict | None) -> float | None:
+    """Price a completed text pass from the tokens Alibaba returned."""
+    if not usage:
+        return None
+    input_tokens = usage.get("prompt_tokens", usage.get("input_tokens"))
+    output_tokens = usage.get("completion_tokens", usage.get("output_tokens"))
+    if input_tokens is None or output_tokens is None:
+        return None
+    return round((float(input_tokens) * INPUT_PRICE_PER_MILLION
+                  + float(output_tokens) * OUTPUT_PRICE_PER_MILLION)
+                 / 1_000_000, 6)
 
 
 def _with_style(prompt: str, style: str, kept: dict) -> str:
@@ -125,6 +140,29 @@ def strip_unknown(text: str) -> str:
         lambda match: match.group(0)
         if match.group(1).lower() in known else "", text)
     return re.sub(r"[ \t]{2,}", " ", cleaned).strip()
+
+
+def _without_delivery_tags(text: str) -> str:
+    known = {tag.lower() for tag in KNOWN_TAGS}
+    return TAG_RE.sub(
+        lambda match: "" if match.group(1).lower() in known else match.group(0),
+        text,
+    )
+
+
+def _canonical_words(text: str) -> str:
+    return " ".join(unicodedata.normalize("NFC", text).split())
+
+
+def assert_tag_fidelity(before: str, tagged: str) -> None:
+    """Tags are metadata; the provider is never allowed to rewrite words."""
+    returned = _canonical_words(_without_delivery_tags(tagged))
+    requested = _canonical_words(before)
+    if returned != requested:
+        raise ValueError(
+            "Alibaba changed the script while adding delivery tags. "
+            "Audio Studio rejected that version so your original words stay safe."
+        )
 
 
 def difference(before: str, after: str) -> list[dict[str, str]]:
@@ -190,14 +228,21 @@ class TextPreparationService:
             model=MODEL,
             messages=[{"role": "system", "content": prompt},
                       {"role": "user", "content": before}],
+            reasoning=False,
         )
-        after = completion.text if operation == "shape" else strip_unknown(completion.text)
+        if operation == "shape":
+            after = completion.text
+        else:
+            after = strip_unknown(completion.text)
+            assert_tag_fidelity(before, after)
+        actual_cost = usage_cost(completion.usage)
         return {
             "before": before,
             "after": after,
             "difference": difference(before, after),
-            "cost": estimated,
-            "cost_basis": "estimate",
+            "cost": actual_cost if actual_cost is not None else estimated,
+            "estimated_cost": estimated,
+            "cost_basis": "actual_tokens" if actual_cost is not None else "estimate",
             "price_version": PRICE_VERSION,
             "style_used": bool(style),
             "part": part_id or 0,
