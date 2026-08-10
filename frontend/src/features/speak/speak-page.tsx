@@ -88,7 +88,7 @@ export function SpeakPage() {
 
   return <main className="speak-page">
     <header className="speak-hero"><span><Mic2 /></span><div><small>Standalone tool</small><h1>Speak</h1><p>Create and compare recordings without choosing a Project. Every attempt stays in this session and in Activity.</p></div><Button variant="outline" onClick={newSession}><Plus /> New session</Button></header>
-    <section className="speak-workspace"><SpeechTool config={voices.config} clonedVoices={voices.cloned} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} /></section>
+    <section className="speak-workspace"><SpeechTool key={sessionId} config={voices.config} clonedVoices={voices.cloned} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} /></section>
     <section className="speak-takes" aria-live="polite">
       <header><div><small>Recording session</small><h2>Takes</h2></div><span>{session?.attempts.length || 0} attempts · ${Number(session?.total_cost || 0).toFixed(4)}</span></header>
       {pending && <RecordingTakeCard take={{ id: "pending", status: "pending", voice: pending.voice, voiceIdentityId: pending.voice_identity_id, language: pending.language, method: capabilityTitle(pending.engine, voices.config), script: pending.text }} directory={voices.directory} />}

@@ -89,6 +89,32 @@ class OmniPassageTests(unittest.TestCase):
         self.assertEqual(len(request_ids), len(calls))
         self.assertEqual(usage["total"], 9 * len(calls))
 
+    def test_incomplete_short_child_is_recovered_at_a_finer_boundary(self):
+        source = (
+            "فقط ابقي قريبة منه وخذي يومك كما يأتي. "
+            "تكلمي معه. دعيه يهدي خطاك. وثقي أنه سيقودك خطوة بعد خطوة."
+        )
+        calls = []
+
+        def fake(text, *_args):
+            calls.append(text)
+            returned = " ".join(text.split()[:9]) if len(text) > 72 else text
+            return response(text, returned, len(calls))
+
+        omni._speak_chunk = fake
+        audio, failures, transcripts, _usage, _request_ids, diagnostics = \
+            omni.synthesize([source], self.options)
+
+        self.assertTrue(audio)
+        self.assertEqual(failures, [])
+        self.assertEqual(" ".join(transcripts).split(), source.split())
+        self.assertTrue(any(item["path"].count(".") >= 1
+                            for item in diagnostics))
+        self.assertTrue(all(
+            item["status"] in {"accepted", "replaced"}
+            for item in diagnostics
+        ))
+
     def test_unrecoverable_later_passage_fails_the_whole_render(self):
         first = "this complete opening has enough words to remain accepted"
         second = " ".join(f"missing{index}" for index in range(16))

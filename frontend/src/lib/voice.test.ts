@@ -16,7 +16,7 @@ const directory: VoiceDirectory = {
   cloned: [],
   meta: {
     "mehdi1-06ca5c1ad8d44b1daa5510448cd0e6da": { image: "/icon/mehdi.png" },
-    "qwen-omni-vc-mehdi_ar-voice-20260804171956804-9ab9": { name: "Mehdi Arabic Omni", languages: "ar" },
+    "qwen-omni-vc-mehdi_ar-voice-20260804171956804-9ab9": { name: "Mehdi Ayache", languages: "ar" },
   },
   catalog: [],
 }
@@ -38,7 +38,7 @@ describe("voice identity", () => {
   })
 
   it("prefers a saved name for an Omni clone", () => {
-    expect(resolveVoice("qwen-omni-vc-mehdi_ar-voice-20260804171956804-9ab9", directory).name).toBe("Mehdi Arabic Omni")
+    expect(resolveVoice("qwen-omni-vc-mehdi_ar-voice-20260804171956804-9ab9", directory).name).toBe("Mehdi Ayache")
   })
 
   it("uses the stable identity for historical provider ids", () => {

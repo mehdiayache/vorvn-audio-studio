@@ -37,6 +37,8 @@ class ChunkResponse(NamedTuple):
 
 PASSAGE_TARGET_CHARS = 240
 RECOVERY_TARGET_CHARS = 120
+MIN_RECOVERY_CHARS = 72
+MAX_RECOVERY_DEPTH = 2
 MAX_ATTEMPTS_PER_PASSAGE = 2
 PCM_SAMPLE_RATE = 24_000
 PCM_SAMPLE_WIDTH = 2
@@ -405,8 +407,20 @@ def plan_passages(chunks) -> list[str]:
 
 
 def _recovery_passages(text: str) -> list[str]:
-    """Split one incomplete planned passage once, at a semantic boundary."""
-    children = speech_text.chunk_text(text, limit=RECOVERY_TARGET_CHARS)
+    """Split an incomplete passage more finely at a semantic boundary.
+
+    Omni can stop halfway through a passage that is already below the normal
+    recovery target.  In that case repeating the same request usually repeats
+    the same omission.  Halve sufficiently large passages instead, while
+    leaving genuinely short passages to the bounded identical retry.
+    """
+    if len(text) <= MIN_RECOVERY_CHARS:
+        return []
+    target = min(
+        RECOVERY_TARGET_CHARS,
+        max(MIN_RECOVERY_CHARS // 2, len(text) // 2),
+    )
+    children = speech_text.chunk_text(text, limit=target)
     return children if len(children) > 1 else []
 
 
@@ -474,8 +488,8 @@ def synthesize(chunks, options, on_progress=None):
         return (accepted_audio if complete else b"", response.text,
                 complete, False)
 
-    def render(text: str, root_index: int,
-               path: str) -> tuple[bytes, str, bool]:
+    def render(text: str, root_index: int, path: str,
+               depth: int = 0) -> tuple[bytes, str, bool]:
         audio, returned, complete, provider_error = call(
             text, root_index, path, 1)
         if complete:
@@ -483,7 +497,10 @@ def synthesize(chunks, options, on_progress=None):
         if provider_error:
             return b"", "", False
 
-        children = _recovery_passages(text)
+        children = (
+            _recovery_passages(text)
+            if depth < MAX_RECOVERY_DEPTH else []
+        )
         if not children:
             # One bounded repeat is useful for a short non-deterministic Omni
             # omission. It repeats the identical request and never changes the
@@ -504,20 +521,9 @@ def synthesize(chunks, options, on_progress=None):
         recovered_audio = bytearray()
         recovered_text = []
         for child_index, child in enumerate(children, 1):
-            child_audio, child_text, child_complete, provider_error = call(
-                child, root_index, f"{path}.{child_index}", 1)
-            if provider_error:
-                return b"", "", False
+            child_audio, child_text, child_complete = render(
+                child, root_index, f"{path}.{child_index}", depth + 1)
             if not child_complete:
-                child_audio, child_text, child_complete, provider_error = call(
-                    child, root_index, f"{path}.{child_index}",
-                    MAX_ATTEMPTS_PER_PASSAGE)
-                if provider_error:
-                    return b"", "", False
-            if not child_complete:
-                failures.append(ChunkFailure(
-                    root_index, child,
-                    "Alibaba returned incomplete speech for this passage."))
                 return b"", "", False
             recovered_audio.extend(child_audio)
             recovered_text.append(child_text)
