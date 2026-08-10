@@ -1,6 +1,7 @@
 import { AlertCircle, CheckCircle2, LoaderCircle, Pause, Play, RotateCw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { SpeechModelIdentity } from "@/components/speech-model-identity"
 import { VoiceIdentity } from "@/components/voice-identity"
 import { formatDuration, formatMoney } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -19,6 +20,9 @@ export type RecordingTakeView = {
   costBasis?: string
   language?: string
   method?: string
+  engine?: string
+  model?: string
+  modelId?: string
   audioUrl?: string | null
   message?: string
   script?: string
@@ -43,6 +47,7 @@ export function RecordingTakeCard({ take, directory, active = false, onPlay, onS
     <VoiceIdentity voice={take.voice} identityId={take.voiceIdentityId} directory={directory} compact showDetail={false} />
     <div className="recording-take-summary">
       <b>{[take.method, take.language].filter(Boolean).join(" · ")}</b>
+      <SpeechModelIdentity engine={take.engine} model={take.model} modelId={take.modelId} config={directory.config} compact />
       <small>{[
         take.durationMs ? formatDuration(take.durationMs / 1000) : "",
         take.cost !== undefined ? formatMoney(take.cost) : "",

@@ -52,7 +52,7 @@ export function SequencePartCard({ part, renderTask, index, count, selected, pla
         <p dir={textDirection(part.text || part.title || "")}>{clipText(part.text || part.title || "Untitled part", 190)}</p>
         <div className="sequence-card-meta">
           <span>{kindLabel(part)}</span>
-          {!asset && part.engine && <SpeechRouteLabel route={part} />}
+          {!asset && part.engine && <SpeechRouteLabel route={part} config={directory.config} />}
           <span>{part.spent ? `${formatMoney(part.spent)} generated` : "Free reuse"}</span>
           {part.takes ? <span>{part.takes} {part.takes === 1 ? "take" : "takes"}</span> : null}
           {part.subtitled && <span><Captions /> Captions{part.subtitles_stale ? " stale" : ""}</span>}

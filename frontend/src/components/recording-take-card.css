@@ -6,6 +6,7 @@
 .recording-take-status { display: flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: 680; }
 .recording-take-status svg { width: 17px; height: 17px; }
 .recording-take-summary { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.recording-take-summary .speech-model-identity { margin: 2px 0; }
 .recording-take-summary > b, .recording-take-summary > small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .recording-take-summary > small { color: var(--muted-foreground); font-size: var(--type-small); }
 .recording-take-summary > p { margin: 3px 0 0; color: var(--muted-foreground); font-size: var(--type-small); }

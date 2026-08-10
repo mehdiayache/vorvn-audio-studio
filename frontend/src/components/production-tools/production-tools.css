@@ -58,6 +58,9 @@
 .capability-choice-grid .capability-card-state.documented { color: var(--success); }
 .capability-choice-grid .capability-card-state.experimental { color: #a76000; }
 .capability-choice-grid .capability-card-state svg { width: 13px; height: 13px; }
+.capability-card-models { width: 100%; display: grid; gap: 4px; margin: 4px 0 2px; padding: 7px 8px; border-radius: 8px; background: color-mix(in oklch, var(--surface-muted) 72%, transparent); }
+.capability-choice-grid .capability-card-models span { color: var(--foreground); }
+.capability-choice-grid .capability-card-models code { color: var(--muted-foreground); }
 .voice-language-support { display: grid; gap: 10px; margin-top: 12px; padding: 12px 13px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-subtle); }
 .voice-language-support.documented { border-color: color-mix(in oklch, var(--success) 28%, var(--border)); background: color-mix(in oklch, var(--success) 5%, var(--surface-raised)); }
 .voice-language-support.experimental { border-color: color-mix(in oklch, #b86a00 36%, var(--border)); background: color-mix(in oklch, #f0a000 7%, var(--surface-raised)); }
@@ -159,7 +162,8 @@
 .composer-warning > span { display: block; margin-top: 4px; color: var(--muted-foreground); }
 .composer-warning > div { display: flex; gap: 8px; margin-top: 10px; }
 .composer-engine-note { margin: 0; color: var(--muted-foreground); font-size: var(--type-small); align-self: center; }
-.composer-registry-note { margin: 12px 0 0; color: var(--muted-foreground); font-size: var(--type-small); }
+.composer-registry-note { display: grid; gap: 5px; margin: 12px 0 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-subtle); color: var(--muted-foreground); font-size: var(--type-small); }
+.composer-registry-note > b { color: var(--foreground); }
 .performance-presets { display: grid; gap: 8px; margin-top: 18px; }
 .performance-presets > span { color: var(--muted-foreground); font-size: var(--type-small); font-weight: 650; }
 .performance-presets > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }

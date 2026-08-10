@@ -165,6 +165,8 @@ class ProductionDocumentTests(unittest.TestCase):
             database.commit()
         archived_take = self.timeline.takes(first_id, draft["id"])[0]
         self.assertEqual(archived_take["id"], take_id)
+        self.assertEqual(archived_take["engine"], "audio")
+        self.assertEqual(archived_take["model"], "plus")
         self.assertIsNone(archived_take["fidelity"])
         promoted = self.timeline.promote(first_id, draft["id"], take_id)
         self.assertTrue(promoted["ok"])

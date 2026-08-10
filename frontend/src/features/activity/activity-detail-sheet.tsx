@@ -2,6 +2,7 @@ import { Copy } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { SpeechModelIdentity } from "@/components/speech-model-identity"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { formatMoney } from "@/lib/format"
 import type { ActivityRun } from "@/types/domain"
@@ -39,7 +40,7 @@ export function ActivityDetailSheet({ run, onClose }: { run: ActivityRun | null;
           <dl>
             <Field label="Status">{run.status}</Field><Field label="Started by">{run.actor_label}</Field>
             <Field label="Workspace">{run.organization_id}</Field><Field label="Tool">{run.source_tool}</Field>
-            <Field label="Production">{run.production_name}</Field><Field label="Model">{run.model}</Field>
+            <Field label="Production">{run.production_name}</Field><Field label="Model">{run.model ? <SpeechModelIdentity modelId={run.model} /> : null}</Field>
             <Field label="Region">{run.provider_region}</Field><Field label="Price version">{run.price_version}</Field>
             <Field label="Provider request ID">{run.provider_request_id}</Field><Field label="Duration">{run.seconds ? `${run.seconds.toFixed(2)} seconds` : null}</Field>
           </dl>

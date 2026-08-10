@@ -1,23 +1,17 @@
 import type { GeneratePayload, ProductionPart } from "@/types/domain"
+import type { StudioConfig } from "@/types/domain"
+import { SpeechModelIdentity, speechProductName, speechTierName } from "@/components/speech-model-identity"
 
 type SpeechRoute = Pick<GeneratePayload, "engine" | "model" | "language"> | Pick<ProductionPart, "engine" | "model" | "language">
 
 export function speechEngineLabel(engine?: string | null) {
-  if (engine === "audio") return "Qwen Audio"
-  if (engine === "omni") return "Qwen Omni"
-  if (engine === "qwen_tts") return "Qwen3 TTS"
-  return engine || "Speech"
+  return engine ? speechProductName(engine) : "Speech"
 }
 
 export function speechModelLabel(model?: string | null) {
-  if (model === "plus") return "Plus"
-  if (model === "flash") return "Flash"
-  if (model === "vc") return "Voice Clone"
-  return model || ""
+  return speechTierName(model)
 }
 
-export function SpeechRouteLabel({ route, includeLanguage = false }: { route: SpeechRoute; includeLanguage?: boolean }) {
-  const parts = [speechEngineLabel(route.engine), speechModelLabel(route.model)]
-  if (includeLanguage && route.language) parts.push(route.language)
-  return <span className="speech-route-label">{parts.filter(Boolean).join(" · ")}</span>
+export function SpeechRouteLabel({ route, includeLanguage = false, config = null }: { route: SpeechRoute; includeLanguage?: boolean; config?: StudioConfig | null }) {
+  return <span className="speech-route-label"><SpeechModelIdentity engine={route.engine} tier={route.model} config={config} compact />{includeLanguage && route.language && <em>{route.language}</em>}</span>
 }

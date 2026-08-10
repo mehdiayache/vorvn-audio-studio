@@ -1,6 +1,7 @@
 import { Check, CircleAlert, LockKeyhole } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { SpeechModelIdentity } from "@/components/speech-model-identity"
 import { capabilityTitle, officialCoverageLabel, voiceLanguageStatus } from "@/lib/voice-capabilities"
 import type { SpeechEngine, VoiceChoice } from "@/lib/voice-options"
 import type { StudioConfig } from "@/types/domain"
@@ -23,6 +24,7 @@ export function VoiceMethodPicker({ routes, availableRoutes, selectedEngine, lan
       const info = config?.capabilities[engine]
       const available = availableRoutes.some((route) => route.engine === engine)
       const route = routes.find((item) => item.engine === engine)
+      const modelRoutes = routes.filter((item) => item.engine === engine)
       const languageStatus = route
         ? voiceLanguageStatus(route, language, customVoice)
         : "unavailable"
@@ -37,6 +39,7 @@ export function VoiceMethodPicker({ routes, availableRoutes, selectedEngine, lan
       >
         <span className="capability-card-title">{capabilityTitle(engine, config)}</span>
         <b>{info?.purpose || "Speech recording"}</b>
+        <div className="capability-card-models">{modelRoutes.map((modelRoute) => <SpeechModelIdentity key={modelRoute.modelId} engine={modelRoute.engine} tier={modelRoute.model} modelId={modelRoute.modelId} config={config} compact />)}</div>
         <ul>{(info?.operator_notes || []).map((note) => <li key={note}>{note}</li>)}</ul>
         {route && <small className="capability-card-coverage">{officialCoverageLabel(route)}</small>}
         <small className={cn("capability-card-state", languageStatus)}>{available

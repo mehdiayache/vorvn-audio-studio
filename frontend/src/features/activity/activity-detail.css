@@ -1,5 +1,7 @@
 .activity-run { width: 100%; color: var(--foreground); text-align: left; transition: border-color .15s ease, box-shadow .15s ease; }
 .activity-run:hover { border-color: color-mix(in oklch, var(--primary) 38%, var(--border)); box-shadow: 0 5px 18px rgb(20 25 35 / 6%); }
+.activity-run-copy .speech-model-identity { margin: 3px 0; }
+.activity-run-copy .speech-model-identity code { max-width: min(520px, 70vw); }
 .activity-accounting-note { margin: -22px 0 0; color: var(--muted-foreground); font-size: var(--type-small); }
 .activity-id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .activity-detail { width: min(520px, 92vw) !important; max-width: 520px !important; }

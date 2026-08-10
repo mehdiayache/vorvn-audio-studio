@@ -5610,6 +5610,10 @@
             ],
             "title": "Duration Ms"
           },
+          "engine": {
+            "title": "Engine",
+            "type": "string"
+          },
           "fidelity": {
             "anyOf": [
               {
@@ -5698,6 +5702,7 @@
           "id",
           "when",
           "voice",
+          "engine",
           "model",
           "rate",
           "pitch",

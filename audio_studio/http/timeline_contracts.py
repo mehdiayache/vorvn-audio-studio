@@ -66,6 +66,7 @@ class TakeResponse(BaseModel):
     when: str
     voice: str
     voice_identity_id: str | None = None
+    engine: str
     model: str
     rate: float
     pitch: float

@@ -28,6 +28,8 @@ describe("VoiceMethodPicker", () => {
     />)
     const method = screen.getByRole("button", { name: /Clean long reading/ })
     expect(method.hasAttribute("disabled")).toBe(false)
+    expect(screen.getByText("Qwen3 TTS Voice Clone · Voice Clone")).toBeTruthy()
+    expect(screen.getByText("qwen3-tts-vc-2026-01-22")).toBeTruthy()
     expect(screen.getByText("Experimental for Arabic")).toBeTruthy()
     fireEvent.click(method)
     expect(onSelect).toHaveBeenCalledWith("qwen_tts")

@@ -3217,6 +3217,8 @@ export interface components {
             cost: number;
             /** Duration Ms */
             duration_ms?: number | null;
+            /** Engine */
+            engine: string;
             fidelity?: components["schemas"]["FidelityResponse"] | null;
             /** Filename */
             filename: string;

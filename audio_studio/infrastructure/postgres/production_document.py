@@ -530,7 +530,7 @@ class ProductionDocumentRepository:
             return None
         with read_only() as cursor:
             cursor.execute("""
-                SELECT id, created_at, voice, voice_identity_id, model, rate,
+                SELECT id, created_at, voice, voice_identity_id, engine, model, rate,
                        pitch, seed, filename, size_bytes, cost, text, duration_ms,
                        instruction, language, fidelity
                   FROM generations WHERE version_of = %s ORDER BY created_at DESC
@@ -538,11 +538,11 @@ class ProductionDocumentRepository:
             rows = cursor.fetchall()
         return [{
             "id": row[0], "when": row[1].isoformat(), "voice": row[2],
-            "voice_identity_id": row[3], "model": row[4],
-            "rate": float(row[5]), "pitch": float(row[6]), "seed": row[7],
-            "filename": row[8], "size_bytes": row[9], "cost": float(row[10]),
-            "text": row[11], "duration_ms": row[12], "instruction": row[13],
-            "language": row[14], "fidelity": row[15] or None,
+            "voice_identity_id": row[3], "engine": row[4], "model": row[5],
+            "rate": float(row[6]), "pitch": float(row[7]), "seed": row[8],
+            "filename": row[9], "size_bytes": row[10], "cost": float(row[11]),
+            "text": row[12], "duration_ms": row[13], "instruction": row[14],
+            "language": row[15], "fidelity": row[16] or None,
         } for row in rows]
 
     def promote(self, production_id: int, part_id: int, take_id: int) -> bool:

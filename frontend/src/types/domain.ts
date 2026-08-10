@@ -314,6 +314,7 @@ export type Take = {
   when: string
   voice: string
   voice_identity_id?: string | null
+  engine: string
   model: string
   rate: number
   pitch: number

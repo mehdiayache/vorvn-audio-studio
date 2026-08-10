@@ -3,3 +3,4 @@
 .batch-methods { display: grid; gap: 7px; }
 .batch-methods > span { color: var(--muted-foreground); font-size: var(--type-small); font-weight: 650; }
 .batch-setup .voice-language-support { grid-column: 1 / -1; }
+.batch-result-setup { display: grid; gap: 3px; margin-top: 9px; padding: 9px 11px; border-radius: 9px; background: var(--surface-subtle); color: var(--muted-foreground); font-size: var(--type-small); }

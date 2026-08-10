@@ -77,6 +77,8 @@ export function SpeakPage() {
       cost: attempt.cost, costBasis: attempt.cost_basis,
       language: attempt.request.language,
       method: capabilityTitle(attempt.request.engine, voices.config),
+      engine: attempt.request.engine,
+      model: attempt.request.model,
       audioUrl: attempt.audio_url,
       message: attempt.error || attempt.warning,
       script: attempt.request.text,
@@ -91,7 +93,7 @@ export function SpeakPage() {
     <section className="speak-workspace"><SpeechTool key={sessionId} config={voices.config} clonedVoices={voices.cloned} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} /></section>
     <section className="speak-takes" aria-live="polite">
       <header><div><small>Recording session</small><h2>Takes</h2></div><span>{session?.attempts.length || 0} attempts · ${Number(session?.total_cost || 0).toFixed(4)}</span></header>
-      {pending && <RecordingTakeCard take={{ id: "pending", status: "pending", voice: pending.voice, voiceIdentityId: pending.voice_identity_id, language: pending.language, method: capabilityTitle(pending.engine, voices.config), script: pending.text }} directory={voices.directory} />}
+      {pending && <RecordingTakeCard take={{ id: "pending", status: "pending", voice: pending.voice, voiceIdentityId: pending.voice_identity_id, language: pending.language, method: capabilityTitle(pending.engine, voices.config), engine: pending.engine, model: pending.model, script: pending.text }} directory={voices.directory} />}
       {sessionLoading && !session?.attempts.length ? <p className="speak-empty">Loading this session…</p> : session?.attempts.length ? session.attempts.map((attempt) => {
         const sourceKey = `job:${attempt.id}`
         return <RecordingTakeCard key={attempt.id} take={takeView(attempt)} directory={voices.directory} active={player.source?.key === sourceKey && player.state === "playing"} onPlay={attempt.audio_url ? () => void player.toggleSource({ key: sourceKey, url: attempt.audio_url!, title: "Generated recording", subtitle: resolveVoice(attempt.request.voice, voices.directory, attempt.request.voice_identity_id).name, kind: "part" }) : undefined} onSecondaryAction={() => void generate({ ...attempt.request, session_id: sessionId })} secondaryLabel="Another take · same setup" />

@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, LoaderCircle } from "lucide-react"
 
+import { SpeechModelIdentity } from "@/components/speech-model-identity"
 import { formatMoney } from "@/lib/format"
 import type { ActivityRun } from "@/types/domain"
 
@@ -18,6 +19,7 @@ export function ActivityRunCard({ run, onOpen }: { run: ActivityRun; onOpen: () 
     <div className="activity-run-copy">
       <header><b>{run.operation}</b><span>{run.status}</span></header>
       <p>{run.production_name || run.kind_label} · {run.actor_label}</p>
+      {run.model && <SpeechModelIdentity modelId={run.model} compact />}
       {run.error && <em>{run.error}</em>}
       <footer><span>{new Date(run.when).toLocaleString()}</span><span>{costBasisLabel(run.cost_basis)}</span><span className="activity-id">{run.id.slice(0, 8)}</span></footer>
     </div>
