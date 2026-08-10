@@ -13,6 +13,7 @@ out/
 .blocks/
 .inbox/
 .batches/
+.backups/
 .prefs.json
 __pycache__/
 *.py[cod]
