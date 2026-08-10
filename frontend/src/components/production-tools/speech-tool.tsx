@@ -41,7 +41,7 @@ export function SpeechTool({ projectId, nextPartNumber = 1, insertAt = null, par
   onPlay: (source: PlayerSource) => void
 }) {
   const [engine, setEngine] = useState<SpeechEngine>((part?.engine as SpeechEngine) || "audio")
-  const textSession = useComposerText(part, projectId || 0, engine)
+  const textSession = useComposerText(part, projectId, engine)
   const [section, setSection] = useState<ComposerSection>("voice")
   const [model, setModel] = useState<SpeechModel>((part?.model as SpeechModel) || "plus")
   const [voice, setVoice] = useState(part?.voice || "")

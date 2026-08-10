@@ -14,7 +14,7 @@ function initial(part?: ProductionPart | null) {
   }
 }
 
-export function useComposerText(part: ProductionPart | null | undefined, productionId: number, engine: SpeechEngine) {
+export function useComposerText(part: ProductionPart | null | undefined, productionId: number | undefined, engine: SpeechEngine) {
   const [states, setStates] = useState(initial(part))
   const [view, setView] = useState<TextView>((part?.text_state as TextView) || "raw")
   const [review, setReview] = useState<{ kind: "shape" | "tag"; result: TextPassResult } | null>(null)
@@ -47,7 +47,14 @@ export function useComposerText(part: ProductionPart | null | undefined, product
     if (!before) { setError("Write something first."); return }
     setBusy(kind); setError("")
     try {
-      const result = await studioApi.textPass(kind, { text: before, production_id: productionId, part_id: part?.id, density, engine, confirmed })
+      const result = await studioApi.textPass(kind, {
+        text: before,
+        ...(productionId ? { production_id: productionId } : {}),
+        ...(part?.id ? { part_id: part.id } : {}),
+        density,
+        engine,
+        confirmed,
+      })
       if (result.needs_confirmation) { setPending({ kind, estimate: result.estimate || 0 }); return }
       if (!result.after) throw new Error("The text pass returned no rewritten text.")
       setReview({ kind, result })
@@ -65,7 +72,7 @@ export function useComposerText(part: ProductionPart | null | undefined, product
       [nextView]: review.result.after,
     }
     setStates(nextStates); setView(nextView); setReview(null)
-    if (part) await studioApi.saveTextStates(productionId, part.id, { text: review.result.after, text_raw: nextStates.raw || null, text_shaped: nextStates.shaped || null, text_tagged: nextStates.tagged || null, text_state: nextView })
+    if (part && productionId) await studioApi.saveTextStates(productionId, part.id, { text: review.result.after, text_raw: nextStates.raw || null, text_shaped: nextStates.shaped || null, text_tagged: nextStates.tagged || null, text_state: nextView })
   }
 
   return { text, states, view, review, pending, busy, error, density,

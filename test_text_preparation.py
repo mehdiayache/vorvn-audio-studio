@@ -138,6 +138,14 @@ class TextPreparationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             TextJobCreate(operation="tag", text="Hello", density="extreme")
 
+    def test_http_contract_accepts_standalone_text_preparation_without_work_ids(self):
+        payload = TextJobCreate(
+            operation="tag", text="مرحبا", density="normal", engine="audio")
+        values = payload.model_dump(exclude_none=True)
+        self.assertNotIn("production_id", values)
+        self.assertNotIn("part_id", values)
+        self.assertEqual(values["operation"], "tag")
+
     def test_legacy_text_execution_routes_are_removed(self):
         legacy_jobs = ROOT / "audio_studio/infrastructure/legacy_jobs.py"
         worker = (ROOT / "audio_studio/worker.py").read_text()
