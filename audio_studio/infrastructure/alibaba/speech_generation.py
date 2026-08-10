@@ -21,27 +21,44 @@ from audio_studio.domain.speech import (
 INSTRUCTION_MAX = 100
 
 
-def synthesize(chunks, options, on_progress=None):
+def synthesize(plan, options, on_progress=None):
     """Route speech through the Alibaba product selected by one voice route."""
+    if options.engine == "audio":
+        texts = [text for session in plan.sessions for text in session]
+    elif options.engine == "qwen_tts":
+        texts = list(plan.segments)
+    else:
+        texts = list(plan)
+    if options.engine in {"omni", "qwen_tts"} and any(
+        tag.casefold() in delivery_tags.KNOWN_TAGS
+        for text in texts for tag in delivery_tags.TAG_RE.findall(text)
+    ):
+        raise ValueError(
+            f"{provider_catalog.CAPABILITIES[options.engine]['label']} "
+            "does not support inline delivery tags. Choose Raw or Spoken "
+            "text, or use a Qwen Audio voice."
+        )
     if options.engine == "omni":
-        if any(
-            tag.casefold() in delivery_tags.KNOWN_TAGS
-            for chunk in chunks
-            for tag in delivery_tags.TAG_RE.findall(chunk)
-        ):
-            raise ValueError(
-                "Qwen 3.5 Omni does not support inline delivery tags. "
-                "Choose Raw or Spoken text, or use a Qwen Audio voice."
-            )
         audio, failures, transcripts, usage, request_ids, diagnostics = omni.synthesize(
-            chunks, options, on_progress)
+            plan, options, on_progress)
         return audio, failures, transcripts, usage, request_ids, diagnostics
     if options.engine == "qwen_tts":
         return qwen_tts.synthesize(
-            chunks, options, on_progress=on_progress)
-    audio, failures = audio_tts.synthesize(
-        chunks, options, on_progress=on_progress)
-    return audio, failures, [], {}, [], []
+            plan, options, on_progress=on_progress)
+    return audio_tts.synthesize(plan, options, on_progress=on_progress)
+
+
+def _plan(text: str, options):
+    if options.engine == "audio":
+        return audio_tts.plan(text)
+    if options.engine == "qwen_tts":
+        return qwen_tts.plan(text)
+    return tuple(omni.plan_passages(text))
+
+
+def _request_count(plan, engine: str) -> int:
+    return int(plan.request_count) if engine in {"audio", "qwen_tts"} \
+        else len(plan)
 
 
 class _Options:
@@ -132,10 +149,8 @@ class AlibabaSpeechProvider:
         if preferences.get("fix_dates_phones", True):
             spoken, rewrites = speech_text.normalise_ambiguous(
                 spoken, day_first=bool(preferences.get("day_first", True)))
-        generic_chunks = speech_text.chunk_text(spoken)
-        request_count = (len(omni.plan_passages(generic_chunks))
-                         if options.engine == "omni"
-                         else len(generic_chunks))
+        options.synthesis_plan = _plan(spoken, options)
+        request_count = _request_count(options.synthesis_plan, options.engine)
         return PreparedSpeech(
             original_text=text, spoken_text=spoken, voice=options.voice,
             voice_identity_id=options.voice_identity_id,
@@ -152,10 +167,11 @@ class AlibabaSpeechProvider:
 
     def synthesize(self, prepared: PreparedSpeech,
                    on_progress=None) -> SynthesizedSpeech:
-        chunks = speech_text.chunk_text(prepared.spoken_text)
         try:
+            planned = getattr(
+                prepared.context, "synthesis_plan", prepared.spoken_text)
             audio, failures, transcripts, usage, request_ids, diagnostics = synthesize(
-                chunks, prepared.context, on_progress=on_progress)
+                planned, prepared.context, on_progress=on_progress)
         except omni.OmniSynthesisError as exc:
             actual = config.omni_usage_cost(exc.usage, prepared.tier)
             cost = actual if actual is not None else prepared.estimated_cost
@@ -192,9 +208,11 @@ class AlibabaSpeechProvider:
             endpoint = config.compatible_base_url()
             rate = None
         elif prepared.engine == "audio":
-            generated_characters = max(
-                0, len(prepared.spoken_text)
-                - sum(len(str(item.get("text") or "")) for item in failure_rows))
+            generated_characters = sum(
+                int(item.get("characters") or 0) for item in diagnostics
+                if item.get("status") == "accepted")
+            if not diagnostics and not failure_rows:
+                generated_characters = len(prepared.spoken_text)
             measured_usage.update({
                 "submitted_characters": len(prepared.spoken_text),
                 "generated_characters": generated_characters,
@@ -205,10 +223,11 @@ class AlibabaSpeechProvider:
             endpoint = config.websocket_base()
             rate = priced.catalog_rate
         else:
-            generated_characters = max(
-                0, len(prepared.spoken_text)
-                - sum(len(str(item.get("text") or ""))
-                      for item in failure_rows))
+            generated_characters = sum(
+                int(item.get("characters") or 0) for item in diagnostics
+                if item.get("status") == "accepted")
+            if not diagnostics and not failure_rows:
+                generated_characters = len(prepared.spoken_text)
             measured_usage.update({
                 "submitted_characters": len(prepared.spoken_text),
                 "generated_characters": generated_characters,
@@ -218,10 +237,10 @@ class AlibabaSpeechProvider:
             cost = round(generated_characters * rate / 1_000_000, 6)
             basis = "catalog_characters"
             endpoint = config.regional_http_base()
-        if not audio and failure_rows:
+        if failure_rows:
             first_error = str(failure_rows[0].get("error") or "").strip()
             label = provider_catalog.CAPABILITIES[prepared.engine]["label"]
-            message = f"{label} did not produce audio."
+            message = f"{label} could not complete every speech section."
             if first_error:
                 message += f" {first_error}"
             raise SpeechSynthesisError(

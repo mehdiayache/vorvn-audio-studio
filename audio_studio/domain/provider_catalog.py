@@ -62,6 +62,7 @@ CAPABILITIES = {
             "Use emotion and vocal-effect tags",
             "Give the recording a natural direction",
             "Adjust speed, pitch and volume",
+            "Long text uses continuous recording sessions",
         ],
         "models": {
             "plus": "qwen-audio-3.0-tts-plus",
@@ -86,7 +87,7 @@ CAPABILITIES = {
         "operator_notes": [
             "No inline emotion or sound tags",
             "Use one overall tone direction",
-            "Long scripts are verified passage by passage",
+            "Your authored paragraphs are checked for missing words",
         ],
         "models": {
             "plus": "qwen3.5-omni-plus",
@@ -123,7 +124,7 @@ CAPABILITIES = {
         "purpose": "Best for audiobooks, lessons and straightforward narration.",
         "operator_notes": [
             "Reads your text as written",
-            "Designed for long cloned-voice narration",
+            "Long text is joined into one valid recording",
             "No emotion tags or performance directions",
         ],
         "models": {"vc": "qwen3-tts-vc-2026-01-22"},
@@ -138,6 +139,23 @@ CAPABILITIES = {
         "inline_tags": False,
         "instruction_control": False,
         "fidelity_check": False,
+    },
+}
+
+
+SEGMENTATION = {
+    "audio": {
+        "mode": "continuous_session",
+        "characters_per_submission": 20_000,
+        "characters_per_session": 200_000,
+    },
+    "qwen_tts": {
+        "mode": "token_budget",
+        "provider_token_limit": 512,
+        "planned_token_budget": 480,
+    },
+    "omni": {
+        "mode": "authored_paragraphs_with_fidelity_recovery",
     },
 }
 

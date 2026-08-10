@@ -183,6 +183,32 @@ class BatchTests(unittest.TestCase):
         self.assertEqual(progress[-1][:2], (3, 3))
         self.assertEqual(len(provider.calls), 3)
 
+    def test_incomplete_provider_row_is_not_written_to_the_batch(self):
+        service, workspace, provider = self.service(rows=[
+            ["one", "hello", "", ""],
+        ])
+        original = provider.synthesize
+
+        def incomplete(prepared, on_progress=None):
+            result = original(prepared, on_progress)
+            result.failures.append({
+                "index": 1, "text": "hello", "error": "provider stopped",
+            })
+            return result
+
+        provider.synthesize = incomplete
+        result = service.run(
+            token="20260808-120000-deadbeef",
+            columns={"text": 1, "name": 0, "voice": None,
+                     "language": None},
+            voice="voice-one", engine="audio", model="plus",
+            run_id="run-incomplete",
+        )
+        self.assertEqual(result["made"], 0)
+        self.assertEqual(result["failed"], 1)
+        self.assertEqual(workspace.written, {})
+        self.assertIn("No incomplete row", result["failures"][0]["error"])
+
     def test_voice_and_budget_guards_run_before_paid_calls_or_output(self):
         service, workspace, provider = self.service(
             rows=[["one", "Hello", "unknown", ""]])

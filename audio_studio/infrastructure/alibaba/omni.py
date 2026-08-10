@@ -5,19 +5,17 @@ voice IDs, language coverage, billing and synthesis protocols are different.
 """
 
 import base64
-import io
 import json
 import os
-import subprocess
 import urllib.error
 import urllib.request
-import wave
 from typing import NamedTuple
 
 from openai import APIStatusError, OpenAI
 
-from audio_studio.domain import speech_fidelity, speech_text
+from audio_studio.domain import speech_fidelity, speech_segments, speech_text
 from audio_studio.infrastructure.alibaba import config
+from audio_studio.infrastructure import audio_codec
 
 
 class ChunkFailure(NamedTuple):
@@ -35,10 +33,8 @@ class ChunkResponse(NamedTuple):
     event_count: int
 
 
-PASSAGE_TARGET_CHARS = 240
-RECOVERY_TARGET_CHARS = 120
 MIN_RECOVERY_CHARS = 72
-MAX_RECOVERY_DEPTH = 2
+MAX_RECOVERY_DEPTH = 6
 MAX_ATTEMPTS_PER_PASSAGE = 2
 PCM_SAMPLE_RATE = 24_000
 PCM_SAMPLE_WIDTH = 2
@@ -162,30 +158,9 @@ def is_voice(voice: str) -> bool:
     return str(voice).startswith("qwen-omni-vc-")
 
 
-def _pcm_to_wav(pcm: bytes) -> bytes:
-    target = io.BytesIO()
-    with wave.open(target, "wb") as wav:
-        wav.setnchannels(1)
-        wav.setsampwidth(2)
-        wav.setframerate(24000)
-        wav.writeframes(pcm)
-    return target.getvalue()
-
-
 def _encode(pcm: bytes, output_format: str) -> bytes:
-    wav = _pcm_to_wav(pcm)
-    if output_format == "wav":
-        return wav
-    codec = (["-f", "ogg", "-c:a", "libopus", "-b:a", "64k"]
-             if output_format == "opus" else
-             ["-f", "mp3", "-b:a", "256k"])
-    done = subprocess.run(
-        ["ffmpeg", "-nostdin", "-loglevel", "error", "-f", "wav", "-i", "pipe:0", *codec, "pipe:1"],
-        input=wav, capture_output=True,
-    )
-    if done.returncode != 0 or not done.stdout:
-        raise RuntimeError(done.stderr.decode(errors="replace") or "ffmpeg could not encode Omni audio")
-    return done.stdout
+    return audio_codec.encode_pcm(
+        pcm, sample_rate=PCM_SAMPLE_RATE, output_format=output_format)
 
 
 def _event_parts(event: dict) -> tuple[list[str], list[str], list[str]]:
@@ -399,11 +374,15 @@ def _speak_chunk(text: str, model: str, voice: str,
     )
 
 
-def plan_passages(chunks) -> list[str]:
-    """Plan short semantic Omni requests before any paid provider call."""
-    return [passage for chunk in chunks
-            for passage in speech_text.chunk_text(
-                str(chunk), limit=PASSAGE_TARGET_CHARS)]
+def plan_passages(text) -> list[str]:
+    """Use authored paragraphs as Omni's initial conversational turns.
+
+    No undocumented character ceiling is imposed. If Alibaba returns an
+    incomplete reading, recovery narrows only the affected paragraph.
+    """
+    if not isinstance(text, str):
+        text = "\n\n".join(str(item) for item in text)
+    return speech_segments.paragraphs(text)
 
 
 def _recovery_passages(text: str) -> list[str]:
@@ -416,11 +395,8 @@ def _recovery_passages(text: str) -> list[str]:
     """
     if len(text) <= MIN_RECOVERY_CHARS:
         return []
-    target = min(
-        RECOVERY_TARGET_CHARS,
-        max(MIN_RECOVERY_CHARS // 2, len(text) // 2),
-    )
-    children = speech_text.chunk_text(text, limit=target)
+    target = max(MIN_RECOVERY_CHARS // 2, len(text) // 2)
+    children = speech_segments.split_text(text, limit=target)
     return children if len(children) > 1 else []
 
 

@@ -6,26 +6,17 @@ import re
 
 from audio_studio.domain.delivery_tags import (
     KNOWN_TAGS,
-    MOOD_TAGS,
-    RETIRED_TAGS,
     TAG_RE,
 )
 
 
 OUTPUT_FORMATS = ("mp3", "mp3-24k", "wav", "opus")
-MAX_CHARS = 500
 SYNTH_FLAGS = {
     "enable_tn": "Read numbers, dates, currency and units the way a person would",
     "optimize_instructions": "Let the model refine your performance direction first",
     "enable_markdown_filter": "Strip markdown syntax instead of reading it aloud",
     "enable_ssml": "Treat the text as SSML markup",
 }
-
-
-def active_mood(text: str) -> str | None:
-    found = [match for match in TAG_RE.findall(text)
-             if match.lower() in MOOD_TAGS or match.lower() in RETIRED_TAGS]
-    return found[-1] if found else None
 
 
 def strip_tags(text: str) -> str:
@@ -37,61 +28,6 @@ def strip_known_tags(text: str) -> str:
         lambda match: "" if match.group(1).lower() in KNOWN_TAGS
         else match.group(0), text)
     return re.sub(r"[ \t]{2,}", " ", cleaned).strip()
-
-
-def chunk_text(text: str, limit: int = MAX_CHARS) -> list[str]:
-    """Split at speech boundaries while carrying a continuing mood tag."""
-    text = re.sub(r"\s+", " ", text).strip()
-    if len(text) <= limit:
-        return [text] if text else []
-
-    sentences = re.split(r"(?<=[.!?。！？\n])\s+", text)
-    chunks: list[str] = []
-    current = ""
-    for sentence in sentences:
-        while len(sentence) > limit:
-            cut = sentence.rfind(",", 0, limit)
-            if cut > limit // 2:
-                cut += 1
-            else:
-                space = sentence.rfind(" ", 0, limit + 1)
-                cut = space if space > limit // 2 else limit
-            chunks.append(sentence[:cut].strip())
-            sentence = sentence[cut:].strip()
-        if len(current) + len(sentence) + 1 > limit:
-            if current:
-                chunks.append(current.strip())
-            current = sentence
-        else:
-            current = f"{current} {sentence}".strip()
-    if current:
-        chunks.append(current.strip())
-
-    carried: list[str] = []
-    mood = None
-    for index, chunk in enumerate(chunks):
-        opening = TAG_RE.match(chunk.lstrip())
-        starts_with_mood = bool(
-            opening and opening.group(1).lower() in MOOD_TAGS)
-        candidate = (chunk if index == 0 or not mood or starts_with_mood
-                     else f"[{mood}] {chunk}")
-        while len(candidate) > limit:
-            cut = candidate.rfind(" ", 0, limit + 1)
-            cut = cut if cut > limit // 2 else limit
-            segment = candidate[:cut].strip()
-            carried.append(segment)
-            mood = active_mood(segment) or mood
-            remainder = candidate[cut:].strip()
-            opening = TAG_RE.match(remainder)
-            candidate = (
-                remainder if not mood or (
-                    opening and opening.group(1).lower() in MOOD_TAGS)
-                else f"[{mood}] {remainder}"
-            )
-        if candidate:
-            carried.append(candidate)
-            mood = active_mood(candidate) or mood
-    return carried
 
 
 MONTHS = ("January", "February", "March", "April", "May", "June", "July",

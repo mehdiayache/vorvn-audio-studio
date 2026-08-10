@@ -3004,8 +3004,6 @@ export interface components {
             };
             /** Chosen Default Voice */
             chosen_default_voice: string;
-            /** Chunk Size */
-            chunk_size: number;
             /** Clone Languages */
             clone_languages: {
                 [key: string]: string;
@@ -3051,6 +3049,12 @@ export interface components {
             /** Retired Tags */
             retired_tags: {
                 [key: string]: string;
+            };
+            /** Segmentation */
+            segmentation: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
             };
             /** Spend */
             spend: {

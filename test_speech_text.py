@@ -6,17 +6,6 @@ from audio_studio.domain import speech_text
 
 
 class SpeechTextPolicyTests(unittest.TestCase):
-    def test_chunking_carries_a_mood_without_losing_words(self):
-        text = "[asmr] " + "A calm sentence. " * 80
-        chunks = speech_text.chunk_text(text, limit=120)
-        self.assertGreater(len(chunks), 1)
-        self.assertTrue(all(len(chunk) <= 120 for chunk in chunks))
-        self.assertTrue(all(chunk.startswith("[asmr]") for chunk in chunks))
-        self.assertEqual(
-            speech_text.strip_tags(" ".join(chunks)).count("A calm sentence."),
-            80,
-        )
-
     def test_known_tags_are_removed_but_literal_brackets_survive(self):
         result = speech_text.strip_known_tags(
             "[whispers] Read [Section 2] carefully [sighing]")

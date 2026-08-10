@@ -28,6 +28,20 @@ class ProviderCatalogTests(unittest.TestCase):
         self.assertEqual(provider_catalog.recommended_engine("Arabic"), "omni")
         self.assertEqual(provider_catalog.recommended_engine("English"), "audio")
 
+    def test_each_provider_owns_its_real_segmentation_contract(self):
+        self.assertEqual(
+            provider_catalog.SEGMENTATION["audio"], {
+                "mode": "continuous_session",
+                "characters_per_submission": 20_000,
+                "characters_per_session": 200_000,
+            })
+        self.assertEqual(
+            provider_catalog.SEGMENTATION["qwen_tts"]
+            ["provider_token_limit"], 512)
+        self.assertEqual(
+            provider_catalog.SEGMENTATION["omni"]["mode"],
+            "authored_paragraphs_with_fidelity_recovery")
+
 
 if __name__ == "__main__":
     unittest.main()

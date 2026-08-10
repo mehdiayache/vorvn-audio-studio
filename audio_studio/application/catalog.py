@@ -12,11 +12,7 @@ from audio_studio.domain import (
     provider_catalog,
     speech_text,
 )
-from audio_studio.domain import (
-    provider_catalog as alibaba_catalog,
-    voice_registry,
-    voice_routing,
-)
+from audio_studio.domain import voice_registry, voice_routing
 from audio_studio.application.text_preparation import (
     INPUT_PRICE_PER_MILLION as TEXT_INPUT_PRICE_PER_MILLION,
     MODEL as TEXT_PREPARATION_MODEL,
@@ -69,7 +65,7 @@ class CatalogService:
         media_root = self.environment.media_root()
         clone_languages = {
             code: label
-            for capability in alibaba_catalog.CAPABILITIES.values()
+            for capability in provider_catalog.CAPABILITIES.values()
             for code, label in capability.get("clone_languages", {}).items()
         }
         return {
@@ -93,7 +89,7 @@ class CatalogService:
                 if value.get("favourite")],
             "naming_tokens": list(naming.TOKENS),
             "languages": LANGUAGES,
-            "capabilities": alibaba_catalog.CAPABILITIES,
+            "capabilities": provider_catalog.CAPABILITIES,
             "performance_presets": voice_registry.presets(),
             "clone_languages": clone_languages,
             "workspace": {
@@ -114,11 +110,11 @@ class CatalogService:
                     + TEXT_OUTPUT_PRICE_PER_MILLION
                 ) / 4,
             },
-            "rates": alibaba_catalog.CAPABILITIES[
+            "rates": provider_catalog.CAPABILITIES[
                 "audio"]["rates_per_million_chars"],
             "batch_max_rows": batch.MAX_ROWS,
             "synth_flags": speech_text.SYNTH_FLAGS,
-            "chunk_size": speech_text.MAX_CHARS,
+            "segmentation": provider_catalog.SEGMENTATION,
             "has_key": environment.api_key_configured,
             "out_dir": media_root,
             "prefs": {**preferences, "out_dir": media_root},

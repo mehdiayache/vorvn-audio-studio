@@ -5000,10 +5000,6 @@
             "title": "Chosen Default Voice",
             "type": "string"
           },
-          "chunk_size": {
-            "title": "Chunk Size",
-            "type": "integer"
-          },
           "clone_languages": {
             "additionalProperties": {
               "type": "string"
@@ -5092,6 +5088,14 @@
               "type": "string"
             },
             "title": "Retired Tags",
+            "type": "object"
+          },
+          "segmentation": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Segmentation",
             "type": "object"
           },
           "spend": {
@@ -5187,7 +5191,7 @@
           "rates",
           "batch_max_rows",
           "synth_flags",
-          "chunk_size",
+          "segmentation",
           "has_key",
           "out_dir",
           "prefs",

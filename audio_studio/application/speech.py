@@ -80,14 +80,6 @@ def _fidelity_warning(result: SynthesizedSpeech) -> str | None:
     return None
 
 
-def _partial_warning(result: SynthesizedSpeech) -> str | None:
-    if not result.failures:
-        return None
-    count = len(result.failures)
-    return (f"Alibaba could not complete {count} internal speech section"
-            f"{'s' if count != 1 else ''}. This Take is incomplete.")
-
-
 def _record(prepared: PreparedSpeech, result: SynthesizedSpeech,
             saved: StoredAudio, values: dict) -> dict[str, Any]:
     return {
@@ -209,6 +201,22 @@ class SpeechGenerationService:
             raise JobFailed(str(exc), evidence) from exc
         if not made.audio:
             raise RuntimeError("Alibaba returned no audio.")
+        if made.failures:
+            raise JobFailed(
+                "The provider could not complete every speech section. "
+                "No incomplete recording was saved.",
+                {
+                    "failures": made.failures,
+                    "usage": made.usage,
+                    "cost": made.cost,
+                    "cost_basis": made.cost_basis,
+                    "model": prepared.model_id,
+                    "engine": prepared.engine,
+                    "voice": prepared.voice,
+                    "request_ids": made.request_ids,
+                    "provider_diagnostics": made.diagnostics,
+                },
+            )
         saved = self.workspace.save(made.audio, prepared.extension)
         row = _record(prepared, made, saved, effective)
         mutation: dict[str, int] = {}
@@ -225,8 +233,7 @@ class SpeechGenerationService:
             on_progress(max(1, prepared.request_count),
                         max(1, prepared.request_count), "Speech ready")
 
-        warning = (_partial_warning(made) or _fidelity_warning(made)
-                   or _truncation_warning(
+        warning = (_fidelity_warning(made) or _truncation_warning(
             prepared, saved.duration_ms)
         )
         request_ids = list(made.request_ids)

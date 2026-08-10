@@ -26,8 +26,8 @@ class OmniPassageTests(unittest.TestCase):
     def tearDown(self):
         omni._speak_chunk = self.original
 
-    def test_long_input_is_planned_before_the_first_provider_call(self):
-        source = " ".join(f"word{index}" for index in range(100))
+    def test_authored_paragraphs_are_planned_before_the_first_provider_call(self):
+        source = "First paragraph remains one performance.\n\nSecond paragraph too."
         calls = []
 
         def fake(text, *_args):
@@ -40,9 +40,10 @@ class OmniPassageTests(unittest.TestCase):
 
         self.assertTrue(audio)
         self.assertEqual(failures, [])
-        self.assertGreater(len(calls), 1)
-        self.assertTrue(all(len(item) <= omni.PASSAGE_TARGET_CHARS
-                            for item in calls))
+        self.assertEqual(calls, [
+            "First paragraph remains one performance.",
+            "Second paragraph too.",
+        ])
         self.assertEqual(" ".join(transcripts).split(), source.split())
         self.assertTrue(all(item["status"] == "accepted"
                             for item in diagnostics))
@@ -147,13 +148,13 @@ class OmniPassageTests(unittest.TestCase):
         self.assertEqual(len(caught.exception.failures), 1)
         self.assertEqual(caught.exception.diagnostics[0]["status"], "error")
 
-    def test_arabic_passages_keep_every_word_and_order(self):
-        source = ("الله لم ينسك اليوم. " * 30).strip()
-        passages = omni.plan_passages([source])
-        self.assertGreater(len(passages), 1)
+    def test_arabic_paragraphs_keep_every_word_and_order(self):
+        first = "الله لم ينسك اليوم."
+        second = "ابق قريباً وخذ يومك كما يأتي."
+        source = f"{first}\n\n{second}"
+        passages = omni.plan_passages(source)
+        self.assertEqual(passages, [first, second])
         self.assertEqual(" ".join(passages).split(), source.split())
-        self.assertTrue(all(len(item) <= omni.PASSAGE_TARGET_CHARS
-                            for item in passages))
 
     def test_pathological_trailing_silence_is_trimmed_per_passage(self):
         speech = (1000).to_bytes(2, "little", signed=True) * 24_000

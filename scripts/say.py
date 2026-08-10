@@ -70,8 +70,8 @@ def main() -> int:
             f"'{rule['replacement']}' x{rule['count']}",
             file=sys.stderr,
         )
-    chunks = speech_text.chunk_text(text)
-    if not chunks:
+    plan = audio_tts.plan(text)
+    if not plan.sessions:
         print("Nothing to say — the text was empty.", file=sys.stderr)
         return 1
     extension = "ogg" if options.format == "opus" else options.format.split("-")[0]
@@ -82,11 +82,12 @@ def main() -> int:
         target = settings.output_dir / f"{basename}.{extension}"
     target.parent.mkdir(parents=True, exist_ok=True)
     print(
-        f"{len(text)} chars -> {len(chunks)} request(s) "
+        f"{len(text)} chars -> {plan.request_count} continuous task(s), "
+        f"{plan.segment_count} submission(s) "
         f"| {models[options.model]} | voice={options.voice}",
         file=sys.stderr,
     )
-    audio, failures = audio_tts.synthesize(chunks, options)
+    audio, failures, *_ = audio_tts.synthesize(plan, options)
     if not audio:
         print("Nothing rendered — every chunk failed.", file=sys.stderr)
         return 1
@@ -94,8 +95,8 @@ def main() -> int:
     print(f"{target}  ({len(audio) / 1_000_000:.1f} MB)")
     if failures:
         print(
-            f"\n{len(failures)} of {len(chunks)} chunks failed and are "
-            "MISSING from the audio:",
+            f"\n{len(failures)} of {plan.request_count} provider tasks failed; "
+            "no incomplete audio was saved:",
             file=sys.stderr,
         )
         for failure in failures:

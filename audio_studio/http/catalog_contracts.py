@@ -45,7 +45,7 @@ class StudioConfigResponse(BaseModel):
     rates: dict[str, float]
     batch_max_rows: int
     synth_flags: dict[str, Any]
-    chunk_size: int
+    segmentation: dict[str, dict[str, Any]]
     has_key: bool
     out_dir: str
     prefs: dict[str, Any]

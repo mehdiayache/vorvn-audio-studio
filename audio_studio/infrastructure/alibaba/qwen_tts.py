@@ -7,21 +7,26 @@ one valid output file. Callers never need to shorten their content manually.
 
 from __future__ import annotations
 
-import io
 import json
 import os
-import subprocess
 import time
 import urllib.error
 import urllib.request
-import wave
+from dataclasses import dataclass
 from typing import NamedTuple
 
+from audio_studio.domain import provider_catalog, speech_segments, token_budget
 from audio_studio.infrastructure.alibaba import config
+from audio_studio.infrastructure import audio_codec
 
 
 RETRIES = 3
 BACKOFF = 1.5
+PROVIDER_TOKEN_LIMIT = int(provider_catalog.SEGMENTATION["qwen_tts"]
+                           ["provider_token_limit"])
+TOKEN_BUDGET = int(provider_catalog.SEGMENTATION["qwen_tts"]
+                   ["planned_token_budget"])
+MAX_LIMIT_RECOVERY_DEPTH = 3
 FATAL_SIGNS = (
     "api key", "apikey", "unauthorized", "forbidden", "arrearage",
     "invalid parameter", "invalid_parameter", "unsupported language",
@@ -42,6 +47,29 @@ class ChunkResult(NamedTuple):
     finish_reason: str | None
 
 
+@dataclass(frozen=True, slots=True)
+class QwenTtsPlan:
+    segments: tuple[str, ...]
+
+    @property
+    def request_count(self) -> int:
+        return len(self.segments)
+
+
+def plan(text: str) -> QwenTtsPlan:
+    return QwenTtsPlan(tuple(token_budget.split_to_budget(
+        text, budget=TOKEN_BUDGET)))
+
+
+def _language_type(language: str | None) -> str:
+    """Use an explicit label only when Qwen-TTS documents that language."""
+    requested = str(language or "").casefold()
+    for label in provider_catalog.CAPABILITIES["qwen_tts"]["output_languages"]:
+        if requested == label.casefold():
+            return label
+    return "Auto"
+
+
 def _post(text: str, options) -> dict:
     key = os.getenv("DASHSCOPE_API_KEY", "").strip()
     if not key:
@@ -51,7 +79,7 @@ def _post(text: str, options) -> dict:
         "input": {
             "text": text,
             "voice": options.voice,
-            "language_type": options.language or "Auto",
+            "language_type": _language_type(options.language),
         },
     }
     request = urllib.request.Request(
@@ -91,45 +119,12 @@ def _download(url: str) -> bytes:
 
 
 def _pcm(audio: bytes) -> bytes:
-    done = subprocess.run(
-        ["ffmpeg", "-nostdin", "-loglevel", "error", "-i", "pipe:0",
-         "-f", "s16le", "-ar", "24000", "-ac", "1", "pipe:1"],
-        input=audio, capture_output=True,
-    )
-    if done.returncode or not done.stdout:
-        raise RuntimeError(
-            done.stderr.decode(errors="replace")
-            or "ffmpeg could not decode Qwen3 TTS audio")
-    return done.stdout
-
-
-def _wav(pcm: bytes) -> bytes:
-    target = io.BytesIO()
-    with wave.open(target, "wb") as output:
-        output.setnchannels(1)
-        output.setsampwidth(2)
-        output.setframerate(24000)
-        output.writeframes(pcm)
-    return target.getvalue()
+    return audio_codec.decode_pcm(audio, sample_rate=24_000)
 
 
 def _encode(pcm: bytes, output_format: str) -> bytes:
-    wav = _wav(pcm)
-    if output_format == "wav":
-        return wav
-    codec = (["-f", "ogg", "-c:a", "libopus", "-b:a", "64k"]
-             if output_format == "opus" else
-             ["-f", "mp3", "-b:a", "256k"])
-    done = subprocess.run(
-        ["ffmpeg", "-nostdin", "-loglevel", "error", "-f", "wav",
-         "-i", "pipe:0", *codec, "pipe:1"],
-        input=wav, capture_output=True,
-    )
-    if done.returncode or not done.stdout:
-        raise RuntimeError(
-            done.stderr.decode(errors="replace")
-            or "ffmpeg could not encode Qwen3 TTS audio")
-    return done.stdout
+    return audio_codec.encode_pcm(
+        pcm, sample_rate=24_000, output_format=output_format)
 
 
 def _render(text: str, options) -> ChunkResult:
@@ -150,37 +145,83 @@ def _fatal(message: str) -> bool:
     return any(sign in lowered for sign in FATAL_SIGNS)
 
 
-def synthesize(chunks, options, on_progress=None, retries: int = RETRIES):
+def _length_error(message: str) -> bool:
+    lowered = message.casefold()
+    return any(sign in lowered for sign in (
+        "maximum input length", "input length", "too long",
+        "token limit", "tokens limit", "exceeds the limit",
+    ))
+
+
+def synthesize(plan: QwenTtsPlan, options, on_progress=None,
+               retries: int = RETRIES):
     pcm = bytearray()
     failures: list[ChunkFailure] = []
     usage: dict[str, int] = {}
     request_ids: list[str] = []
     diagnostics: list[dict] = []
-    for index, chunk in enumerate(chunks, 1):
-        if on_progress:
-            on_progress(index, len(chunks), chunk)
+
+    def render_segment(text: str, index: int, path: str,
+                       depth: int = 0) -> tuple[bytes, bool]:
         last_error = ""
         for attempt in range(1, retries + 1):
             try:
-                rendered = _render(chunk, options)
-                pcm.extend(_pcm(rendered.audio))
+                rendered = _render(text, options)
+                decoded = _pcm(rendered.audio)
                 for key, value in rendered.usage.items():
                     if isinstance(value, (int, float)):
                         usage[key] = int(usage.get(key, 0) + value)
                 if rendered.request_id:
                     request_ids.append(rendered.request_id)
                 diagnostics.append({
-                    "chunk": index, "request_id": rendered.request_id,
+                    "segment": index, "path": path,
+                    "request_id": rendered.request_id,
                     "finish_reason": rendered.finish_reason,
-                    "characters": len(chunk), "attempts": attempt,
+                    "characters": len(text),
+                    "estimated_tokens": (
+                        token_budget.conservative_qwen_tokens(text)),
+                    "attempts": attempt, "status": "accepted",
                 })
-                break
+                return decoded, True
             except Exception as exc:
                 last_error = f"{type(exc).__name__}: {exc}"
+                if _length_error(last_error) and depth < MAX_LIMIT_RECOVERY_DEPTH:
+                    children = speech_segments.split_text(
+                        text, limit=max(1, len(text) // 2))
+                    if len(children) > 1:
+                        diagnostics.append({
+                            "segment": index, "path": path,
+                            "characters": len(text), "attempts": attempt,
+                            "status": "provider_limit_replanned",
+                            "error": last_error,
+                            "recovery_segments": len(children),
+                        })
+                        recovered = bytearray()
+                        for child_index, child in enumerate(children, 1):
+                            child_pcm, complete = render_segment(
+                                child, index, f"{path}.{child_index}", depth + 1)
+                            if not complete:
+                                return b"", False
+                            recovered.extend(child_pcm)
+                        return bytes(recovered), True
                 if _fatal(last_error) or attempt == retries:
-                    failures.append(ChunkFailure(index, chunk, last_error))
                     break
                 time.sleep(BACKOFF * 2 ** (attempt - 1))
+        failures.append(ChunkFailure(index, text, last_error))
+        diagnostics.append({
+            "segment": index, "path": path, "characters": len(text),
+            "estimated_tokens": token_budget.conservative_qwen_tokens(text),
+            "attempts": attempt, "status": "failed", "error": last_error,
+        })
+        return b"", False
+
+    for index, segment in enumerate(plan.segments, 1):
+        if on_progress:
+            on_progress(index, len(plan.segments), segment)
+        rendered_pcm, complete = render_segment(segment, index, str(index))
+        if not complete:
+            return b"", failures, [], usage, request_ids, diagnostics
+        pcm.extend(rendered_pcm)
     return (
         _encode(bytes(pcm), options.format) if pcm else b"",
         failures, [], usage, request_ids, diagnostics,

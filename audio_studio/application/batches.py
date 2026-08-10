@@ -236,6 +236,10 @@ class BatchGenerationService:
                 made = self.provider.synthesize(prepared)
                 if not made.audio:
                     raise RuntimeError("Alibaba returned no audio.")
+                if made.failures:
+                    raise RuntimeError(
+                        "The provider could not complete every speech "
+                        "section. No incomplete row was saved.")
                 filename = _unique_filename(
                     label, f"row-{row_number}", prepared.extension, used_names)
                 self.workspace.write_audio(folder, filename, made.audio)
@@ -268,11 +272,6 @@ class BatchGenerationService:
                     "catalog_rate": made.catalog_rate,
                     "failed_parts": len(made.failures),
                 }
-                if made.failures:
-                    item["warning"] = (
-                        f"{len(made.failures)} speech chunk(s) are missing.")
-                    problems.append({"row": row_number,
-                                     "error": item["warning"]})
                 results.append(item)
             except Exception as error:
                 item = {"row": row_number,

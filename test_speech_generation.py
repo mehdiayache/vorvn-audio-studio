@@ -13,7 +13,7 @@ from audio_studio.application.speech import (
     SpeechJobHandler,
 )
 from audio_studio.config import settings
-from audio_studio.domain.jobs import Job, JobStatus
+from audio_studio.domain.jobs import Job, JobFailed, JobStatus
 from audio_studio.domain.speech import PreparedSpeech, SpeechSynthesisError, StoredAudio, SynthesizedSpeech
 from audio_studio.http.routers.jobs import SpeechJobCreate
 from audio_studio.infrastructure.audio_workspace import AudioWorkspace
@@ -331,15 +331,16 @@ class SpeechGenerationTests(unittest.TestCase):
                                 part_id=4))
         self.assertEqual((provider.calls, workspace.saved), ([], []))
 
-    def test_failures_and_fidelity_survive_the_single_result_contract(self):
+    def test_partial_provider_result_is_never_saved_as_a_take(self):
         provider = FakeProvider(
             failures=[{"index": 1, "text": "world", "error": "timeout"}],
             fidelity={"status": "warning", "message": "Review this Take."})
-        service, _, _, _ = self.service(provider=provider)
-        result = service.run(payload())
-        self.assertEqual(result["failures"][0]["index"], 1)
-        self.assertIn("This Take is incomplete", result["warning"])
-        self.assertEqual(result["fidelity"]["status"], "warning")
+        service, repository, _, workspace = self.service(provider=provider)
+        with self.assertRaisesRegex(JobFailed, "No incomplete recording") as caught:
+            service.run(payload())
+        self.assertEqual(caught.exception.result["failures"][0]["index"], 1)
+        self.assertEqual(workspace.saved, [])
+        self.assertEqual(repository.created, [])
 
     def test_job_handler_reports_durable_chunk_progress(self):
         service, _, _, _ = self.service()

@@ -11,6 +11,11 @@ from audio_studio.infrastructure.alibaba import qwen_tts
 
 
 class QwenTtsTests(unittest.TestCase):
+    def test_documented_language_is_explicit_and_experimental_uses_auto(self):
+        self.assertEqual(qwen_tts._language_type("English"), "English")
+        self.assertEqual(qwen_tts._language_type("Arabic"), "Auto")
+        self.assertEqual(qwen_tts._language_type("Auto"), "Auto")
+
     def options(self):
         return SimpleNamespace(
             model_id="qwen3-tts-vc-2026-01-22",
@@ -26,7 +31,7 @@ class QwenTtsTests(unittest.TestCase):
                 patch.object(qwen_tts, "_pcm", return_value=b"pcm"), \
                 patch.object(qwen_tts, "_encode", return_value=b"mp3") as encode:
             result = qwen_tts.synthesize(
-                ["hello", "world"], self.options(),
+                qwen_tts.QwenTtsPlan(("hello", "world")), self.options(),
                 on_progress=lambda *values: progress.append(values))
         audio, failures, transcripts, usage, request_ids, diagnostics = result
         self.assertEqual(audio, b"mp3")
@@ -59,7 +64,23 @@ class QwenTtsTests(unittest.TestCase):
         self.assertEqual(payload["input"]["language_type"], "English")
         self.assertEqual(payload["input"]["voice"], "qwen3-tts-vc-fixture")
 
-    def test_failed_chunk_is_explicit_and_good_audio_survives(self):
+    def test_experimental_language_keeps_a_valid_auto_request(self):
+        response = io.BytesIO(json.dumps({
+            "output": {"audio": {"url": "https://audio.example/out.wav"}},
+            "usage": {},
+        }).encode())
+        experimental = self.options()
+        experimental.language = "Arabic"
+        with patch.dict("os.environ", {"DASHSCOPE_API_KEY": "test-key"}), \
+                patch.object(qwen_tts.config, "regional_http_base",
+                             return_value="https://provider.example/api/v1"), \
+                patch.object(qwen_tts.urllib.request, "urlopen",
+                             return_value=nullcontext(response)) as urlopen:
+            qwen_tts._post("مرحبا", experimental)
+        payload = json.loads(urlopen.call_args.args[0].data)
+        self.assertEqual(payload["input"]["language_type"], "Auto")
+
+    def test_failed_segment_makes_the_whole_take_atomic(self):
         with patch.object(
                 qwen_tts, "_render",
                 side_effect=[RuntimeError("provider timeout"),
@@ -68,8 +89,9 @@ class QwenTtsTests(unittest.TestCase):
                 patch.object(qwen_tts, "_pcm", return_value=b"pcm"), \
                 patch.object(qwen_tts, "_encode", return_value=b"mp3"):
             audio, failures, *_ = qwen_tts.synthesize(
-                ["first", "second"], self.options(), retries=1)
-        self.assertEqual(audio, b"mp3")
+                qwen_tts.QwenTtsPlan(("first", "second")),
+                self.options(), retries=1)
+        self.assertEqual(audio, b"")
         self.assertEqual(failures[0].index, 1)
         self.assertIn("provider timeout", failures[0].error)
 
@@ -83,7 +105,7 @@ class QwenTtsTests(unittest.TestCase):
                 patch.object(qwen_tts, "_encode", return_value=b"mp3"), \
                 patch.object(qwen_tts.time, "sleep"):
             audio, failures, *_ = qwen_tts.synthesize(
-                ["retry me"], self.options())
+                qwen_tts.QwenTtsPlan(("retry me",)), self.options())
         self.assertEqual((audio, failures), (b"mp3", []))
         self.assertEqual(call.call_count, 2)
 
@@ -94,11 +116,35 @@ class QwenTtsTests(unittest.TestCase):
                     "invalid_parameter: unsupported language_type Arabic")) as call, \
                 patch.object(qwen_tts.time, "sleep") as sleep:
             audio, failures, *_ = qwen_tts.synthesize(
-                ["مرحبا"], self.options())
+                qwen_tts.QwenTtsPlan(("مرحبا",)), self.options())
         self.assertEqual(audio, b"")
         self.assertIn("unsupported language_type Arabic", failures[0].error)
         self.assertEqual(call.call_count, 1)
         sleep.assert_not_called()
+
+    def test_planner_uses_a_qwen_specific_token_budget(self):
+        planned = qwen_tts.plan("Arabic مرحبا. " * 300)
+        self.assertGreater(planned.request_count, 1)
+        self.assertTrue(all(
+            qwen_tts.token_budget.conservative_qwen_tokens(segment)
+            <= qwen_tts.TOKEN_BUDGET
+            for segment in planned.segments))
+
+    def test_provider_length_error_replans_at_a_natural_boundary(self):
+        source = "First complete sentence. Second complete sentence."
+        rendered = qwen_tts.ChunkResult(
+            b"wav", {}, "request", "stop")
+        with patch.object(
+                qwen_tts, "_render",
+                side_effect=[RuntimeError("maximum input length exceeded"),
+                             rendered, rendered]) as call, \
+                patch.object(qwen_tts, "_pcm", return_value=b"pcm"), \
+                patch.object(qwen_tts, "_encode", return_value=b"mp3"):
+            audio, failures, *_rest, diagnostics = qwen_tts.synthesize(
+                qwen_tts.QwenTtsPlan((source,)), self.options())
+        self.assertEqual((audio, failures), (b"mp3", []))
+        self.assertEqual(call.call_count, 3)
+        self.assertEqual(diagnostics[0]["status"], "provider_limit_replanned")
 
 
 if __name__ == "__main__":
