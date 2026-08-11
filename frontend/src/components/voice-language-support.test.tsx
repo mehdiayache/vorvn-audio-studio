@@ -11,6 +11,7 @@ const qwen3: VoiceChoice = {
   id: "qwen3-voice", identityId: "voice-x", name: "Voice X",
   description: "", source: "mine", engine: "qwen_tts", model: "vc",
   modelId: "qwen3-tts-vc-2026-01-22", compatible: true,
+  provider: "alibaba", region: "intl", adapterKey: "qwen_tts", capabilities: [],
   languages: ["English", "French", "German"], status: "active",
 }
 

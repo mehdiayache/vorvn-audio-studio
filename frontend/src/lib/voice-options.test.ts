@@ -4,7 +4,7 @@ import type { VoiceBinding, VoiceRegistry } from "@/types/domain"
 import { getVoiceIdentities, getVoiceOptions, routesForIdentity } from "./voice-options"
 
 function binding(id: string, engine: "audio" | "omni", tier: "plus" | "flash", source: "system" | "custom"): VoiceBinding {
-  return { identity_id: `${source}:${id}`, provider_voice_id: id, name: id, description: "", languages: ["English"], source, provider: "alibaba", region: "intl", adapter_key: engine, engine, tier, model_id: `${engine}-${tier}`, status: "active" }
+  return { identity_id: `${source}:${id}`, provider_voice_id: id, name: id, description: "", languages: ["English"], source, provider: "alibaba", region: "intl", adapter_key: engine, engine, tier, model_id: `${engine}-${tier}`, status: "active", capabilities: [{ id: `${engine}_mode`, name: `${engine} mode`, description: "Provider capability" }] }
 }
 
 const bindings = [binding("Tina", "omni", "plus", "system"), binding("Tina", "omni", "flash", "system"), binding("Mehdi", "omni", "plus", "custom"), binding("Lingxin", "audio", "plus", "system"), binding("Sarah", "audio", "flash", "custom")]
@@ -37,6 +37,14 @@ describe("voice-first routing", () => {
     const tina = identities.find((item) => item.name === "Tina")!
     expect(tina.routes).toHaveLength(2)
     expect(identities.filter((item) => item.name === "Tina")).toHaveLength(1)
+  })
+
+  it("preserves complete route capability data for the Composer", () => {
+    const tina = getVoiceIdentities(registry).find((item) => item.name === "Tina")!
+    expect(tina.routes[0]).toMatchObject({
+      provider: "alibaba", region: "intl", adapterKey: "omni",
+      capabilities: [{ id: "omni_mode", name: "omni mode", description: "Provider capability" }],
+    })
   })
 
   it("keeps published language coverage out of identity casting", () => {

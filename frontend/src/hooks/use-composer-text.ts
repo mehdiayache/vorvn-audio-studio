@@ -14,7 +14,7 @@ function initial(part?: ProductionPart | null) {
   }
 }
 
-export function useComposerText(part: ProductionPart | null | undefined, productionId: number | undefined, engine: SpeechEngine) {
+export function useComposerText(part: ProductionPart | null | undefined, productionId: number | undefined, engine: SpeechEngine | null) {
   const [states, setStates] = useState(initial(part))
   const [view, setView] = useState<TextView>((part?.text_state as TextView) || "raw")
   const [review, setReview] = useState<{ kind: "shape" | "tag"; result: TextPassResult } | null>(null)
@@ -45,6 +45,7 @@ export function useComposerText(part: ProductionPart | null | undefined, product
   async function run(kind: "shape" | "tag", confirmed = false) {
     const before = text.trim()
     if (!before) { setError("Write something first."); return }
+    if (!engine) { setError("Choose an exact recording route first."); return }
     setBusy(kind); setError("")
     try {
       const result = await studioApi.textPass(kind, {

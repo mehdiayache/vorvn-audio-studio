@@ -381,3 +381,32 @@ Export and Generation downloads are described as files rather than fake JSON.
 The final responsive audit removed the Production metrics mini-scrollbar on
 mobile: the same metric pills now wrap inside the available width. Desktop and
 mobile route smoke checks show no document overflow or browser diagnostics.
+
+## Composer contract migration — started
+
+Checkpoint 1 installs the shared provider-neutral Composer backbone beneath
+the existing Speak and Production presentation. It is deliberately not the
+future dock and does not change Player or durable Job ownership.
+
+- `CompositionContext` distinguishes a Standalone recording session from a
+  Production new Part, Draft render or new Take.
+- `CompositionDraft` owns mutable text, exact route, delivery and output state;
+  `EditorialBaseline` remains read-only and `EditorialPatch` describes proposed
+  changes without pretending they are already Part truth.
+- `RouteSelection` is exactly one owned `binding_id` or one provider
+  `catalogue_voice_id`. Multi-mode routes additionally require an explicit
+  capability. Fresh Speak selects neither a first identity nor a first route.
+- The Composer generation command contains no engine/model/provider-voice
+  routing truth. The current HTTP payload receives those legacy display fields
+  only through a temporary adapter that derives them from the selected exact
+  route.
+- Complete capability records remain attached to each route, so multiple modes
+  on one binding are representable without reconstructing capability from an
+  engine name.
+- Composer UI state is separate from the persistable Draft contract. Job and
+  playback lifecycles remain outside Composer in this checkpoint.
+
+Deferred to later approved checkpoints: persisted Draft recovery, global Job
+observation, pre-provider Pending Part creation, stable insertion anchors,
+explicit Part editorial mutations, outdated-Take confirmation and the visual
+Composer/Player redesign.

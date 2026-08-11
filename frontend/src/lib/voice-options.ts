@@ -3,6 +3,12 @@ import type { VoiceModelSummary, VoiceProfile, VoiceRegistry } from "@/types/dom
 export type SpeechEngine = "audio" | "omni" | "qwen_tts"
 export type SpeechModel = "plus" | "flash" | "vc"
 
+export type VoiceCapabilityChoice = {
+  id: string
+  name: string
+  description: string
+}
+
 export type VoiceChoice = {
   id: string
   bindingId?: string | null
@@ -15,6 +21,10 @@ export type VoiceChoice = {
   engine: SpeechEngine
   model: SpeechModel
   modelId: string
+  provider: string
+  region: string
+  adapterKey: string
+  capabilities: VoiceCapabilityChoice[]
   compatible: boolean
   languages: string[]
   status: string
@@ -35,6 +45,15 @@ export type VoiceIdentityChoice = {
 const readyStatuses = new Set(["active", "ready"])
 
 function toChoice(binding: VoiceRegistry["bindings"][number]): VoiceChoice {
+  const capabilities = (binding.capabilities || []).flatMap((item) => {
+    const id = String(item.id || "").trim()
+    if (!id) return []
+    return [{
+      id,
+      name: String(item.name || id),
+      description: String(item.description || ""),
+    }]
+  })
   return {
     id: binding.binding_id || binding.catalogue_voice_id || binding.provider_voice_id,
     bindingId: binding.binding_id,
@@ -47,6 +66,10 @@ function toChoice(binding: VoiceRegistry["bindings"][number]): VoiceChoice {
     engine: binding.engine,
     model: binding.tier,
     modelId: binding.model_id,
+    provider: binding.provider,
+    region: binding.region,
+    adapterKey: binding.adapter_key,
+    capabilities,
     compatible: readyStatuses.has(binding.status.toLocaleLowerCase()),
     languages: binding.languages,
     status: binding.status,

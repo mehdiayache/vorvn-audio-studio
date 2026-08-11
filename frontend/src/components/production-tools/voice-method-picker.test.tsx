@@ -11,6 +11,7 @@ const qwen3: VoiceChoice = {
   id: "qwen3-voice", identityId: "voice-x", name: "Voice X",
   description: "", source: "mine", engine: "qwen_tts", model: "vc",
   modelId: "qwen3-tts-vc-2026-01-22", compatible: true,
+  provider: "alibaba", region: "intl", adapterKey: "qwen_tts", capabilities: [],
   languages: ["English", "French", "German"], status: "active",
 }
 
@@ -33,6 +34,27 @@ describe("VoiceMethodPicker", () => {
     expect(screen.getByText("Not documented for Arabic")).toBeTruthy()
     expect(screen.getByText("Details")).toBeTruthy()
     fireEvent.click(method)
-    expect(onSelect).toHaveBeenCalledWith(qwen3)
+    expect(onSelect).toHaveBeenCalledWith(qwen3, null)
+  })
+
+  it("makes each capability explicit when one binding has multiple modes", () => {
+    const onSelect = vi.fn()
+    const multi = { ...qwen3, capabilities: [
+      { id: "narration", name: "Narration", description: "Straight reading" },
+      { id: "character", name: "Character", description: "Character performance" },
+    ] }
+    render(<VoiceMethodPicker
+      routes={[multi]}
+      availableRoutes={[multi]}
+      selectedRouteId="qwen3-voice"
+      selectedCapabilityId="character"
+      language="English"
+      customVoice
+      config={null}
+      onSelect={onSelect}
+    />)
+    expect(screen.getByRole("button", { name: /Character/ }).getAttribute("aria-pressed")).toBe("true")
+    fireEvent.click(screen.getByRole("button", { name: /Narration/ }))
+    expect(onSelect).toHaveBeenCalledWith(multi, "narration")
   })
 })
