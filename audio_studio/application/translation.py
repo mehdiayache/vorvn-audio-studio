@@ -253,9 +253,6 @@ class SubtitleTranslationService:
                 self.operations.repository.finish_attempt(
                     attempt_id, status, cost=0, usage={}, request_ids=[],
                     error={"type": type(exc).__name__, "message": str(exc)[:600]})
-                self.operations.repository.release_budget(
-                    reservation_id, estimate if status == "ambiguous" else 0,
-                    status)
             raise
         translated_sentences = [
             {**sentence, "text": line, "words": []}
@@ -273,8 +270,6 @@ class SubtitleTranslationService:
             self.operations.repository.finish_attempt(
                 attempt_id, "succeeded", cost=cost, usage=translated.usage,
                 request_ids=translated.request_ids, error={})
-            self.operations.repository.release_budget(
-                reservation_id, cost, "succeeded")
         name = f"{transcript['name']} [{target}]"
         new_id = self.repository.save({
             "name": name,

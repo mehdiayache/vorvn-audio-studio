@@ -60,7 +60,6 @@ class ProviderOperationTests(unittest.TestCase):
         self.records.finish_attempt(
             first, "ambiguous", cost=.0123, usage={}, request_ids=[],
             error={"message": "response lost"})
-        self.records.release_budget(reservation, .0123, "ambiguous")
 
         second_job = self.job()
         second_reservation = self.service.authorize(
@@ -90,6 +89,36 @@ class ProviderOperationTests(unittest.TestCase):
         self.assertEqual(reservation_row[0], "ambiguous")
         self.assertAlmostEqual(float(reservation_row[1]), .0123)
         self.assertEqual(take_count, 0)
+
+    def test_lost_sent_attempt_becomes_ambiguous_with_budget_evidence(self):
+        job_id = self.job()
+        reservation = self.service.authorize(
+            job_id, "speech", .02,
+            {"daily_cap": 0, "warn_above": 0}, True)
+        attempt = self.records.begin_attempt(
+            job_id, "speech",
+            {"provider": "alibaba", "region": "intl", "model": "fixture"},
+            {"text_hash": "lost"}, reservation)
+        self.records.mark_sent(attempt)
+        with psycopg.connect(settings.database_url) as database:
+            database.execute("""
+                UPDATE jobs SET status='running', started_at=now()-interval '1 hour',
+                       last_heartbeat_at=now()-interval '1 hour'
+                 WHERE id=%s
+            """, (job_id,))
+            database.commit()
+        self.assertEqual(self.jobs.abandon_stale(30), 1)
+        with psycopg.connect(settings.database_url) as database:
+            attempt_row = database.execute(
+                "SELECT status,cost FROM provider_attempts WHERE id=%s",
+                (int(attempt),)).fetchone()
+            budget_row = database.execute(
+                "SELECT status,actual_cost FROM budget_reservations WHERE id=%s",
+                (int(reservation),)).fetchone()
+        self.assertEqual(attempt_row[0], "ambiguous")
+        self.assertAlmostEqual(float(attempt_row[1]), .02)
+        self.assertEqual(budget_row[0], "ambiguous")
+        self.assertAlmostEqual(float(budget_row[1]), .02)
 
     def test_failure_classification_is_conservative_after_send(self):
         self.assertEqual(self.service.failure_status(

@@ -9,7 +9,7 @@ export function VoiceProfileCard({ profile, playing = false, onComplete, onRetry
   profile: VoiceProfile
   playing?: boolean
   onComplete: () => void
-  onRetry: (modelId: string) => void
+  onRetry: (enrollmentJobId: string) => void
   onEdit: () => void
   onPreview: () => void
 }) {

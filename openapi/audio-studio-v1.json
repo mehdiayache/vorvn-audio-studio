@@ -1717,11 +1717,6 @@
       "EnrollmentSelection": {
         "additionalProperties": false,
         "properties": {
-          "documented": {
-            "default": false,
-            "title": "Documented",
-            "type": "boolean"
-          },
           "identity_id": {
             "maxLength": 120,
             "minLength": 1,
@@ -4507,6 +4502,20 @@
         "title": "SavedPronunciationResponse",
         "type": "object"
       },
+      "ScriptBody": {
+        "additionalProperties": false,
+        "properties": {
+          "script": {
+            "title": "Script",
+            "type": "string"
+          }
+        },
+        "required": [
+          "script"
+        ],
+        "title": "ScriptBody",
+        "type": "object"
+      },
       "SeriesOverviewEnvelope": {
         "properties": {
           "data": {
@@ -7060,6 +7069,10 @@
             ],
             "title": "Accent"
           },
+          "adapter_key": {
+            "title": "Adapter Key",
+            "type": "string"
+          },
           "age": {
             "anyOf": [
               {
@@ -7232,6 +7245,7 @@
           "languages",
           "source",
           "provider",
+          "adapter_key",
           "engine",
           "tier",
           "model_id",
@@ -7875,22 +7889,15 @@
       "VoicePackageRetry": {
         "additionalProperties": false,
         "properties": {
-          "identity_id": {
-            "maxLength": 120,
-            "minLength": 1,
-            "title": "Identity Id",
-            "type": "string"
-          },
-          "model_id": {
+          "enrollment_job_id": {
             "maxLength": 200,
             "minLength": 1,
-            "title": "Model Id",
+            "title": "Enrollment Job Id",
             "type": "string"
           }
         },
         "required": [
-          "identity_id",
-          "model_id"
+          "enrollment_job_id"
         ],
         "title": "VoicePackageRetry",
         "type": "object"
@@ -8873,18 +8880,6 @@
               }
             ],
             "title": "Notes"
-          },
-          "recording_language": {
-            "anyOf": [
-              {
-                "maxLength": 160,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Recording Language"
           },
           "scene": {
             "anyOf": [
@@ -11062,6 +11057,67 @@
         ]
       }
     },
+    "/api/v1/productions/{production_id}/parts/{part_id}/draft": {
+      "patch": {
+        "operationId": "updateProductionPartDraft",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "part_id",
+            "required": true,
+            "schema": {
+              "title": "Part Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TextBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Part Text",
+        "tags": [
+          "timeline"
+        ]
+      }
+    },
     "/api/v1/productions/{production_id}/parts/{part_id}/duplicate": {
       "post": {
         "operationId": "duplicateProductionPart",
@@ -11108,6 +11164,67 @@
           }
         },
         "summary": "Duplicate Part",
+        "tags": [
+          "timeline"
+        ]
+      }
+    },
+    "/api/v1/productions/{production_id}/parts/{part_id}/script": {
+      "patch": {
+        "operationId": "updateProductionPartScript",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "part_id",
+            "required": true,
+            "schema": {
+              "title": "Part Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScriptBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Part Script",
         "tags": [
           "timeline"
         ]
@@ -11280,67 +11397,6 @@
           }
         },
         "summary": "Promote Take",
-        "tags": [
-          "timeline"
-        ]
-      }
-    },
-    "/api/v1/productions/{production_id}/parts/{part_id}/text": {
-      "patch": {
-        "operationId": "updateProductionPartText",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "production_id",
-            "required": true,
-            "schema": {
-              "title": "Production Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "path",
-            "name": "part_id",
-            "required": true,
-            "schema": {
-              "title": "Part Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TextBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Update Part Text",
         "tags": [
           "timeline"
         ]

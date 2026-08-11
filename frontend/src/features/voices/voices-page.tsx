@@ -50,8 +50,8 @@ export function VoicesPage() {
     }
     priorWorking.current = current
   }, [activeProfiles])
-  async function retry(profile: VoiceProfile, modelId: string) {
-    try { await studioApi.retryVoiceBinding(profile.id, modelId); announceVoiceDirectoryChange(); toast.success("Voice version queued again."); void resources.refresh() }
+  async function retry(_profile: VoiceProfile, enrollmentJobId: string) {
+    try { await studioApi.retryVoiceBinding(enrollmentJobId); announceVoiceDirectoryChange(); toast.success("Voice version queued again."); void resources.refresh() }
     catch (reason) { toast.error(reason instanceof Error ? reason.message : "Unable to retry this version.") }
   }
   function preview(profile: VoiceProfile) {

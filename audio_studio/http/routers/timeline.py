@@ -91,6 +91,11 @@ class TextBody(BaseModel):
     text_state: str | None = None
 
 
+class ScriptBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    script: str
+
+
 def _run(operation):
     try:
         return {"data": operation()}
@@ -185,11 +190,19 @@ def promote_take(production_id: int, part_id: int, take_id: int) -> dict:
         production_id, part_id, take_id))
 
 
-@router.patch("/parts/{part_id}/text", operation_id="updateProductionPartText",
+@router.patch("/parts/{part_id}/draft", operation_id="updateProductionPartDraft",
               response_model=OkEnvelope)
 def update_part_text(production_id: int, part_id: int, payload: TextBody) -> dict:
-    return _run(lambda: timeline_service.save_text(
+    return _run(lambda: timeline_service.save_draft(
         production_id, part_id, payload.model_dump(exclude_none=False)))
+
+
+@router.patch("/parts/{part_id}/script", operation_id="updateProductionPartScript",
+              response_model=OkEnvelope)
+def update_part_script(production_id: int, part_id: int,
+                       payload: ScriptBody) -> dict:
+    return _run(lambda: timeline_service.save_script(
+        production_id, part_id, payload.script))
 
 
 @router.get("/parts/{part_id}/captions", operation_id="listProductionPartCaptions",

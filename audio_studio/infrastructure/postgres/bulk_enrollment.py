@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+from audio_studio.domain.voice_packages import language_code
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 
@@ -61,6 +62,7 @@ class BulkEnrollmentRepository:
                    selections: list[dict]) -> tuple[dict, list[dict]]:
         cursor.execute("""
             SELECT id, provider, region, model_id, tier, adapter_key,
+                   enrollment_languages,
                    coalesce(pricing->>'enrollment_cost_usd','0')::numeric
               FROM provider_models WHERE id=%s AND enrollment_supported
         """, (provider_model_id,))
@@ -68,7 +70,7 @@ class BulkEnrollmentRepository:
         if not model:
             raise LookupError("That provider model cannot enroll voices here.")
         route = dict(zip(("id", "provider", "region", "model_id", "tier",
-                          "engine", "cost"), model))
+                          "engine", "enrollment_languages", "cost"), model))
         validated = []
         seen = set()
         for selection in selections:
@@ -90,7 +92,8 @@ class BulkEnrollmentRepository:
             if not row or not (row[2] or row[3]):
                 raise ValueError(
                     f"{identity_id} has no usable explicitly selected reference.")
-            documented = bool(selection.get("documented", False))
+            documented = language_code(row[1] or "") in set(
+                route["enrollment_languages"] or [])
             validated.append({
                 "identity_id": identity_id, "reference_id": reference_id,
                 "name": row[0], "reference_language": row[1] or "",
@@ -102,7 +105,7 @@ class BulkEnrollmentRepository:
         with read_only() as cursor:
             route, items = self._validated(cursor, provider_model_id, selections)
         return {"provider_model": {key: value for key, value in route.items()
-                                    if key != "cost"},
+                                    if key not in {"cost", "enrollment_languages"}},
                 "items": items, "estimated_cost": round(
                     float(route["cost"] or 0) * len(items), 6)}
 

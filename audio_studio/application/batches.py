@@ -308,7 +308,8 @@ class BatchGenerationService:
                 if attempt_id:
                     self.operations.repository.finish_attempt(
                         attempt_id, "succeeded", cost=float(made.cost),
-                        usage=made.usage, request_ids=made.request_ids, error={})
+                        usage=made.usage, request_ids=made.request_ids, error={},
+                        reconcile_budget=False)
             except Exception as error:
                 if self.operations and job_id and attempt_id:
                     status = self.operations.failure_status(error)
@@ -318,11 +319,12 @@ class BatchGenerationService:
                               if status == "ambiguous" else 0),
                         usage={}, request_ids=[],
                         error={"type": type(error).__name__,
-                               "message": str(error)[:600], "row": row_number})
+                               "message": str(error)[:600], "row": row_number},
+                        reconcile_budget=False)
                     if status == "ambiguous":
-                        self.operations.repository.release_budget(
-                            reservation_id,
-                            total_cost + prepared.estimated_cost, "ambiguous")
+                        self.operations.repository.reconcile_budget(
+                            job_id, total_cost + prepared.estimated_cost,
+                            "ambiguous")
                         raise JobFailed(
                             "A Batch row lost its provider response. Review the "
                             "ambiguous attempt before retrying this paid Batch.",
@@ -340,9 +342,9 @@ class BatchGenerationService:
 
         if on_progress:
             on_progress(len(prepared_rows), len(prepared_rows), "Batch complete")
-        if self.operations and reservation_id:
-            self.operations.repository.release_budget(
-                reservation_id, total_cost, "succeeded")
+        if self.operations and reservation_id and job_id:
+            self.operations.repository.reconcile_budget(
+                job_id, total_cost, "succeeded")
         zipped = self.workspace.write_zip(folder, files) if files else False
         usage.update({"rows_made": len(files),
                       "rows_failed": len(results) - len(files),

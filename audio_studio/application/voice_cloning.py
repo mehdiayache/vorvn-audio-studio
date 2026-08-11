@@ -81,8 +81,6 @@ class VoiceCloningService:
                 self.operations.repository.finish_attempt(
                     attempt_id, "succeeded", cost=binding.cost, usage={},
                     request_ids=[], error={})
-                self.operations.repository.release_budget(
-                    reservation_id, binding.cost, "succeeded")
         except Exception as exc:
             message = str(exc).strip()[:600] or type(exc).__name__
             if attempt_id:
@@ -90,8 +88,5 @@ class VoiceCloningService:
                 self.operations.repository.finish_attempt(
                     attempt_id, status, cost=0, usage={}, request_ids=[],
                     error={"type": type(exc).__name__, "message": message})
-                self.operations.repository.release_budget(
-                    reservation_id, estimate if status == "ambiguous" else 0,
-                    status)
             self.repository.fail(job, activity_id, message)
         return True

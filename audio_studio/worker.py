@@ -40,6 +40,9 @@ from audio_studio.infrastructure.alibaba.translation import AlibabaTranslationPr
 from audio_studio.infrastructure.alibaba.transcription import AlibabaTranscriptionProvider
 from audio_studio.infrastructure.alibaba.voice_cloning import AlibabaVoiceCloningProvider
 from audio_studio.infrastructure.audio_workspace import AudioWorkspace
+from audio_studio.infrastructure.speech_provider_registry import (
+    ExactSpeechProviderRegistry,
+)
 from audio_studio.infrastructure.batch_workspace import FilesystemBatchWorkspace
 from audio_studio.infrastructure.postgres.text_preparation import (
     PostgresTextPreparationRepository,
@@ -66,7 +69,11 @@ def main() -> int:
     expected_parent_pid = int(os.getenv("AUDIO_STUDIO_PARENT_PID") or 0)
     service = job_service
     speech = SpeechRepository()
-    speech_provider = AlibabaSpeechProvider()
+    alibaba_speech = AlibabaSpeechProvider()
+    speech_provider = ExactSpeechProviderRegistry({
+        ("alibaba", adapter_key): alibaba_speech
+        for adapter_key in ("audio", "omni", "qwen_tts")
+    })
     provider_operations = ProviderOperationService(ProviderOperationRepository())
     service.register("speech", SpeechJobHandler(SpeechGenerationService(
         speech, speech_provider, AudioWorkspace(), load_preferences,

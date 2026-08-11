@@ -38,6 +38,7 @@ class FakeRepository:
     def voice_bindings(self):
         return [{"binding_id": "binding-one", "provider_voice_id": "voice-one", "voice_id": "voice-one",
                  "identity_id": "identity-one", "engine": "audio",
+                 "adapter_key": "audio",
                  "tier": "plus", "model_id": "qwen-audio-3.0-tts-plus",
                  "source": "custom", "status": "active", "provider": "alibaba",
                  "region": "intl", "reference_id": "reference-one",
@@ -66,12 +67,6 @@ class FakeRepository:
     def create_part(self, production_id, insert_at, values):
         self.created.append((production_id, insert_at, values))
         return 701
-
-    def prepare_part(self, part_id, production_id, expected_revision, script):
-        self.current_part = {**self.current_part, "text": script,
-                             "revision": expected_revision + 1}
-        return {**self.current_part, "id": part_id,
-                "production_id": production_id}
 
     def replace_part(self, part_id, production_id, expected_created_at,
                      values, *, operation):
@@ -217,6 +212,7 @@ class SpeechGenerationTests(unittest.TestCase):
             "binding_id": "binding-one",
             "provider_voice_id": "custom-audio", "voice_id": "custom-audio",
             "identity_id": "identity-one", "engine": "audio",
+            "adapter_key": "audio",
             "tier": "flash", "model_id": "qwen-audio-3.0-tts-flash",
             "source": "custom", "status": "active",
             "languages": ["English"], "provider": "alibaba", "region": "intl",
@@ -305,6 +301,8 @@ class SpeechGenerationTests(unittest.TestCase):
         self.assertEqual(result["id"], 44)
         self.assertEqual((result["takes"], result["subtitles_stale"]), (3, 2))
         self.assertEqual(repository.replaced[0][4], "regenerate")
+        self.assertEqual(repository.replaced[0][2], 1)
+        self.assertEqual(repository.current_part["text"], "Old words")
 
         repository = FakeRepository(part=existing("draft"))
         service, _, _, _ = self.service(repository=repository)
@@ -459,9 +457,17 @@ class SpeechGenerationTests(unittest.TestCase):
             with psycopg.connect(settings.database_url) as verify:
                 with verify.cursor() as cursor:
                     cursor.execute(
-                        "SELECT spoken_text FROM takes WHERE part_id = %s ORDER BY id",
+                        "SELECT spoken_text,source_script_hash FROM takes WHERE part_id = %s ORDER BY id",
                         (part_id,))
-                    self.assertEqual(cursor.fetchone()[0], marker)
+                    first_take = cursor.fetchone()
+                    second_take = cursor.fetchone()
+                    self.assertEqual(first_take[0], marker)
+                    self.assertEqual(second_take[0], marker + " changed")
+                    self.assertEqual(first_take[1], second_take[1])
+                    cursor.execute(
+                        "SELECT script,revision FROM production_parts WHERE id=%s",
+                        (part_id,))
+                    self.assertEqual(cursor.fetchone(), (marker, 1))
         finally:
             if part_id is not None:
                 with psycopg.connect(settings.database_url) as cleanup:

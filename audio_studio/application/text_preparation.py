@@ -252,9 +252,6 @@ class TextPreparationService:
                 self.operations.repository.finish_attempt(
                     attempt_id, status, cost=0, usage={}, request_ids=[],
                     error={"type": type(exc).__name__, "message": str(exc)[:600]})
-                self.operations.repository.release_budget(
-                    reservation_id, estimated if status == "ambiguous" else 0,
-                    status)
             raise
         if operation == "shape":
             after = completion.text
@@ -269,8 +266,6 @@ class TextPreparationService:
                 usage=completion.usage or {},
                 request_ids=[completion.request_id]
                 if completion.request_id else [], error={})
-            self.operations.repository.release_budget(
-                reservation_id, final_cost, "succeeded")
         return {
             "before": before,
             "after": after,

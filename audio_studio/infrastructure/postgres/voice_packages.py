@@ -152,6 +152,7 @@ class VoicePackageRepository:
                        identity_id: str | None, routes: list[dict],
                        estimate: float) -> tuple[str, list[str]]:
         queued: list[str] = []
+        source_language = str((routes[0] if routes else {}).get("language") or "")
         with transaction() as cursor:
             cursor.execute("""
                 SELECT identity_id FROM voice_references
@@ -179,10 +180,9 @@ class VoicePackageRepository:
                     cursor.execute("""
                         INSERT INTO voice_identities
                             (id, name, metadata, gender, age, accent, trait,
-                             scene, notes, recording_language,
-                             editorial_language)
+                             scene, notes, editorial_language)
                         VALUES (%s, %s, %s::jsonb, %s, %s, %s, %s, %s, %s,
-                                %s, %s)
+                                %s)
                     """, (
                         identity_id, name, json.dumps(metadata or {}),
                         metadata.get("gender") or None,
@@ -191,7 +191,6 @@ class VoicePackageRepository:
                         metadata.get("trait") or None,
                         metadata.get("scene") or None,
                         metadata.get("notes") or None,
-                        metadata.get("language") or None,
                         metadata.get("editorial_language") or None,
                     ))
             cursor.execute("""
@@ -199,7 +198,7 @@ class VoicePackageRepository:
                    SET identity_id = %s, source_language = %s,
                        updated_at = now()
                  WHERE id = %s
-            """, (identity_id, metadata.get("language") or None, reference_id))
+            """, (identity_id, source_language or None, reference_id))
             for route in routes:
                 cursor.execute("""
                     SELECT 1 FROM voice_package_jobs
@@ -265,14 +264,14 @@ class VoicePackageRepository:
                         'Create voice capabilities', now())
             """, (estimate, detail[:300]))
 
-    def retry(self, identity_id: str, model_id: str) -> str | None:
+    def retry(self, enrollment_job_id: str) -> str | None:
         with transaction() as cursor:
             cursor.execute("""
                 UPDATE voice_package_jobs
                    SET status = 'queued', error = NULL, updated_at = now()
-                 WHERE identity_id = %s AND model_id = %s
+                 WHERE id = %s
                    AND status = ANY(%s) RETURNING id
-            """, (identity_id, model_id, list(_RETRYABLE)))
+            """, (enrollment_job_id, list(_RETRYABLE)))
             row = cursor.fetchone()
             return row[0] if row else None
 

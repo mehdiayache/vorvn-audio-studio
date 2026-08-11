@@ -121,6 +121,10 @@ export function useProductionActions({ production, music, directory, player, ref
 
   const regeneratePart = useCallback(async (part: ProductionPart, payload: GeneratePayload): Promise<GenerateResult> => {
     try {
+      const canonical = (payload.text_raw || payload.text || "").trim()
+      if (canonical && canonical !== (part.text || "").trim()) {
+        await studioApi.savePartScript(production.id, part.id, canonical)
+      }
       const result = await studioApi.regenerate(part.id, payload)
       if (result.needs_confirmation) return result
       return settleSuccessfulRender(result, {
@@ -132,10 +136,14 @@ export function useProductionActions({ production, music, directory, player, ref
       toast.error(error instanceof Error ? error.message : "The new take failed.")
       throw error
     }
-  }, [directory, settleSuccessfulRender])
+  }, [directory, production.id, settleSuccessfulRender])
 
   const renderDraft = useCallback(async (part: ProductionPart, payload: GeneratePayload): Promise<GenerateResult> => {
     try {
+      const canonical = (payload.text_raw || payload.text || "").trim()
+      if (canonical && canonical !== (part.text || "").trim()) {
+        await studioApi.savePartScript(production.id, part.id, canonical)
+      }
       const result = await studioApi.renderDraft(part.id, payload)
       if (result.needs_confirmation) return result
       return settleSuccessfulRender(result, {
@@ -147,7 +155,7 @@ export function useProductionActions({ production, music, directory, player, ref
       toast.error(error instanceof Error ? error.message : "The draft could not be recorded.")
       throw error
     }
-  }, [directory, settleSuccessfulRender])
+  }, [directory, production.id, settleSuccessfulRender])
 
   const movePart = useCallback((part: ProductionPart, direction: -1 | 1) => {
     const order = production.parts.filter((item) => item.kind !== "stitch").map((item) => item.id)

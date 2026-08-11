@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 
-from audio_studio.domain import voice_registry
+from audio_studio.domain import provider_catalog, voice_registry
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 
@@ -23,11 +23,15 @@ class ProviderCatalogueRepository:
                 cursor.execute("""
                     INSERT INTO provider_models
                         (id,provider,region,model_id,tier,operation,
-                         output_languages,status,adapter_key,
+                         enrollment_languages,output_languages,status,adapter_key,
                          enrollment_supported,metadata,updated_at)
-                    VALUES (%s,%s,%s,%s,%s,'speech',%s::jsonb,%s,%s,false,
+                    VALUES (%s,%s,%s,%s,%s,'speech',%s::jsonb,%s::jsonb,%s,%s,false,
                             %s::jsonb,now())
                     ON CONFLICT (id) DO UPDATE SET
+                        enrollment_languages=CASE
+                            WHEN provider_models.enrollment_supported
+                            THEN EXCLUDED.enrollment_languages
+                            ELSE provider_models.enrollment_languages END,
                         output_languages=EXCLUDED.output_languages,
                         status=EXCLUDED.status,
                         adapter_key=EXCLUDED.adapter_key,
@@ -36,6 +40,8 @@ class ProviderCatalogueRepository:
                 """, (
                     provider_model_id, item["provider"], item["region"],
                     item["model_id"], item["tier"],
+                    json.dumps(list(provider_catalog.CAPABILITIES.get(
+                        item["engine"], {}).get("clone_languages", {}).keys())),
                     json.dumps(item.get("languages") or []),
                     item.get("status") or "active", item["engine"],
                     json.dumps({"catalogue_source": "documented_snapshot"}),
@@ -82,6 +88,7 @@ class ProviderCatalogueRepository:
                        catalogue.model_id,catalogue.tier,
                        catalogue.provider_voice_id,catalogue.engine,
                        catalogue.status,catalogue.languages,catalogue.metadata,
+                       coalesce(model.adapter_key,catalogue.engine),
                        coalesce(jsonb_agg(jsonb_build_object(
                            'id',capability.id,'name',capability.name
                        ) ORDER BY capability.id)
@@ -101,6 +108,7 @@ class ProviderCatalogueRepository:
                        catalogue.model_id,catalogue.tier,
                        catalogue.provider_voice_id,catalogue.engine,
                        catalogue.status,catalogue.languages,catalogue.metadata
+                       ,model.adapter_key
                  ORDER BY catalogue.engine,catalogue.model_id,
                           catalogue.provider_voice_id
             """)
@@ -117,6 +125,7 @@ class ProviderCatalogueRepository:
                 "languages": row[8] or [],
                 "name": metadata.get("name") or row[5],
                 "description": metadata.get("description") or "",
-                "source": "system", "capabilities": row[10] or [],
+                "adapter_key": row[10] or row[6],
+                "source": "system", "capabilities": row[11] or [],
             })
         return result

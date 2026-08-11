@@ -107,7 +107,8 @@ class CastRepository:
     def recast(self, role_public_id: str, values: dict) -> dict:
         with transaction() as cursor:
             cursor.execute("""
-                SELECT role.id, production.public_id
+                SELECT role.id, production.public_id, role.voice_source_kind,
+                       role.voice_identity_id, role.catalogue_voice_id
                   FROM production_cast_roles role
                   JOIN productions production ON production.id = role.production_id
                  WHERE role.public_id = %s FOR UPDATE OF role
@@ -116,6 +117,14 @@ class CastRepository:
             if not role:
                 raise LookupError("That Cast Role no longer exists.")
             self._validate_voice(cursor, values)
+            requested = (
+                values["voice_source_kind"], values.get("voice_identity_id"),
+                values.get("catalogue_voice_id"))
+            if requested == (role[2], role[3], role[4]):
+                production_public_id = str(role[1])
+                result = next(item for item in self.cast(production_public_id)
+                              if item["id"] == role_public_id)
+                return {**result, "parts_revised": 0}
             cursor.execute("""
                 UPDATE production_cast_roles
                    SET voice_source_kind=%s, voice_identity_id=%s,

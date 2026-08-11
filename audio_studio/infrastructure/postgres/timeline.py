@@ -76,5 +76,11 @@ class PostgresTimelineRecords:
     def promote(self, production_id: int, part_id: int, take_id: int) -> bool:
         return self.documents.promote(production_id, part_id, take_id)
 
-    def save_text(self, production_id: int, part_id: int, values: dict) -> bool:
-        return self.documents.save_text(production_id, part_id, values)
+    def save_script(self, production_id: int, part_id: int, script: str,
+                    values: dict | None = None) -> bool:
+        return self.documents.save_script(
+            production_id, part_id, script, values)
+
+    def save_draft(self, production_id: int, part_id: int,
+                   values: dict) -> bool:
+        return self.documents.save_draft(production_id, part_id, values)

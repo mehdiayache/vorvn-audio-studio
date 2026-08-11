@@ -264,6 +264,7 @@ export type VoiceBinding = {
   source: "system" | "custom"
   provider: string
   region: string
+  adapter_key: string
   engine: "audio" | "omni" | "qwen_tts"
   tier: "plus" | "flash" | "vc"
   model_id: string

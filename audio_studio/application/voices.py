@@ -22,7 +22,7 @@ class VoicePackageStore(Protocol):
     def reference(self, reference_id: str) -> dict | None: ...
     def record_blocked(self, *, estimate: float, detail: str) -> None: ...
     def create_package(self, **values) -> tuple[str, list[str]]: ...
-    def retry(self, identity_id: str, model_id: str) -> str | None: ...
+    def retry(self, enrollment_job_id: str) -> str | None: ...
 
 
 class VoiceService:
@@ -137,7 +137,7 @@ class VoiceService:
             return confirmation
 
         metadata = {
-            "language": plan["language"], "package": plan["package"],
+            "package": plan["package"],
             "editorial_language": str(
                 payload.get("editorial_language") or "").strip().lower(),
             "gender": payload.get("gender") or None,
@@ -154,8 +154,6 @@ class VoiceService:
             "queued": len(job_ids), "plan": plan,
         }
 
-    def retry_binding(self, identity_id: str,
-                      model_id: str) -> dict | None:
-        job_id = self.package_store.retry(
-            identity_id.strip(), model_id.strip())
+    def retry_binding(self, enrollment_job_id: str) -> dict | None:
+        job_id = self.package_store.retry(enrollment_job_id.strip())
         return {"ok": True, "job_id": job_id} if job_id else None

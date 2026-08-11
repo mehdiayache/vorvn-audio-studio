@@ -395,13 +395,14 @@ class ProductionDocumentRepository:
                                (position, part_id))
             return True
 
-    def update_part(self, production_id: int, part_id: int,
-                    values: dict[str, Any]) -> bool:
+    def save_script(self, production_id: int, part_id: int, script: str,
+                    values: dict[str, Any] | None = None) -> bool:
+        values = values or {}
         with transaction() as cursor:
             row = self._part_row(cursor, production_id, part_id, lock=True)
             if not row:
                 return False
-            next_script = row[5] if values.get("text") is None else str(values["text"])
+            next_script = str(script)
             next_title = row[6] if "title" not in values else str(values.get("title") or "")
             next_duration = row[13] if "duration_ms" not in values else values["duration_ms"]
             changed = next_script != row[5]
@@ -411,16 +412,20 @@ class ProductionDocumentRepository:
                        revision=revision + %s, updated_at=now()
                  WHERE id=%s
             """, (next_script, next_title, next_duration, 1 if changed else 0, part_id))
-            draft_state = {key: value for key, value in values.items()
-                           if key not in {"title", "duration_ms"}}
-            if draft_state:
-                cursor.execute("""
-                    INSERT INTO composition_drafts (part_id, production_id, state)
-                    VALUES (%s,%s,%s::jsonb)
-                    ON CONFLICT (part_id) DO UPDATE SET
-                        state=composition_drafts.state || EXCLUDED.state,
-                        updated_at=now()
-                """, (part_id, production_id, json.dumps(draft_state)))
+            return True
+
+    def save_draft(self, production_id: int, part_id: int,
+                   values: dict[str, Any]) -> bool:
+        with transaction() as cursor:
+            if not self._part_row(cursor, production_id, part_id, lock=True):
+                return False
+            cursor.execute("""
+                INSERT INTO composition_drafts (part_id, production_id, state)
+                VALUES (%s,%s,%s::jsonb)
+                ON CONFLICT (part_id) DO UPDATE SET
+                    state=composition_drafts.state || EXCLUDED.state,
+                    updated_at=now()
+            """, (part_id, production_id, json.dumps(values)))
             return True
 
     def duplicate(self, production_id: int, part_id: int,
@@ -577,7 +582,3 @@ class ProductionDocumentRepository:
             cursor.execute("UPDATE production_parts SET selected_take_id=%s, updated_at=now() WHERE id=%s",
                            (take_id, part_id))
             return True
-
-    def save_text(self, production_id: int, part_id: int,
-                  values: dict[str, Any]) -> bool:
-        return self.update_part(production_id, part_id, values)

@@ -21,12 +21,15 @@ class SpeechRepository:
                        binding.languages, identity.id, identity.name,
                        binding.reference_id, binding.provider,
                        binding.provider_region,
+                       provider_model.adapter_key,
                        coalesce(jsonb_agg(jsonb_build_object(
                            'id', capability.id, 'name', capability.name
                        )) FILTER (WHERE capability.id IS NOT NULL), '[]'::jsonb)
                   FROM voice_bindings binding
                   JOIN voice_identities identity
                     ON identity.id = binding.identity_id
+             LEFT JOIN provider_models provider_model
+                    ON provider_model.id=binding.provider_model_id
              LEFT JOIN provider_model_capabilities model_capability
                     ON model_capability.provider_model_id = binding.provider_model_id
              LEFT JOIN capabilities capability
@@ -40,7 +43,7 @@ class SpeechRepository:
                        binding.engine, binding.tier, binding.status,
                        binding.languages, identity.id, identity.name,
                        binding.reference_id, binding.provider,
-                       binding.provider_region
+                       binding.provider_region, provider_model.adapter_key
                  ORDER BY identity.name, binding.model_id, binding.created_at
             """)
             custom = [{
@@ -50,7 +53,8 @@ class SpeechRepository:
                 "languages": row[6] or [], "identity_id": row[7],
                 "name": row[8], "reference_id": row[9],
                 "source": "custom", "provider": row[10], "region": row[11],
-                "capabilities": row[12] or [],
+                "adapter_key": row[12] or row[3],
+                "capabilities": row[13] or [],
             } for row in cursor.fetchall()]
         return custom
 
@@ -104,7 +108,7 @@ class SpeechRepository:
             cursor.execute("""
                 SELECT part.id, part.created_at, part.kind, part.title,
                        part.script, part.revision, part.selected_take_id,
-                       draft.settings, take.provider_voice_id,
+                       draft.state, take.provider_voice_id,
                        take.voice_identity_id, take.provider, take.model_id,
                        take.tier, take.language, take.delivery,
                        take.raw_text, take.spoken_text, take.tagged_text,
@@ -176,24 +180,6 @@ class SpeechRepository:
             "persona_id": row[2], "persona_name": row[3] or "",
         }
 
-    def prepare_part(self, part_id: int, production_id: int,
-                     expected_revision: int, script: str) -> dict[str, Any]:
-        with transaction() as cursor:
-            cursor.execute("""
-                UPDATE production_parts
-                   SET script = %s, revision = revision + 1, updated_at = now()
-                 WHERE id = %s AND production_id = %s AND revision = %s
-                   AND archived_at IS NULL
-             RETURNING revision
-            """, (script, part_id, production_id, expected_revision))
-            row = cursor.fetchone()
-            if not row:
-                raise RuntimeError("That Part changed. Reload before generating.")
-        prepared = self.part(part_id, production_id)
-        if not prepared:
-            raise LookupError("That Part no longer exists.")
-        return prepared
-
     def create_part(self, production_id: int | None, insert_at: int | None,
                     values: dict[str, Any]) -> int:
         if production_id is None:
@@ -211,6 +197,8 @@ class SpeechRepository:
             position = next_position if insert_at is None else max(0, min(int(insert_at), next_position))
             cursor.execute("UPDATE production_parts SET position = position + 1 WHERE production_id = %s AND archived_at IS NULL AND position >= %s",
                            (production_id, position))
+            canonical_script = str(values.get("text_raw") or
+                                   values.get("text") or "")
             cursor.execute("""
                 INSERT INTO production_parts
                     (production_id, position, kind, script, title,
@@ -223,14 +211,16 @@ class SpeechRepository:
                     ON role.public_id=wanted.public_id
                    AND role.production_id=%s
                 RETURNING id
-            """, (production_id, position, values.get("text") or "",
+            """, (production_id, position, canonical_script,
                   values.get("title") or "",
                   int((values.get("_cast_snapshot") or {}).get(
                       "assignment_revision") or 0),
                   values.get("cast_role_id"),
                   production_id))
             part_id = int(cursor.fetchone()[0])
-            take_id = self._insert_take(cursor, part_id, 1, values)
+            take_id = self._insert_take(
+                cursor, part_id, 1, values,
+                canonical_script=canonical_script)
             cursor.execute("""
                 UPDATE production_parts SET selected_take_id=%s
                  WHERE id=%s AND revision=1
@@ -242,7 +232,7 @@ class SpeechRepository:
                      operation: str) -> dict[str, int]:
         with transaction() as cursor:
             cursor.execute("""
-                SELECT revision, kind FROM production_parts
+                SELECT revision, kind, script FROM production_parts
                  WHERE id = %s AND production_id = %s
                    AND archived_at IS NULL FOR UPDATE
             """, (part_id, production_id))
@@ -255,7 +245,9 @@ class SpeechRepository:
                 raise ValueError("That Draft has already been recorded.")
             if operation == "regenerate" and kind not in {"audio", "speech"}:
                 raise ValueError("Only recorded speech can receive another Take.")
-            take_id = self._insert_take(cursor, part_id, int(expected_created_at), values)
+            take_id = self._insert_take(
+                cursor, part_id, int(expected_created_at), values,
+                canonical_script=str(current[2] or ""))
             selected = current_revision == int(expected_created_at)
             if selected:
                 cursor.execute("""
@@ -281,8 +273,11 @@ class SpeechRepository:
 
     @staticmethod
     def _insert_take(cursor, part_id: int, source_revision: int,
-                     values: dict[str, Any]) -> int:
-        script = str(values.get("text") or "")
+                     values: dict[str, Any], *,
+                     canonical_script: str | None = None) -> int:
+        spoken_script = str(values.get("text") or "")
+        canonical_script = (spoken_script if canonical_script is None
+                            else canonical_script)
         cursor.execute("""
             SELECT role.id, role.name, role.assignment_revision,
                    persona.id, persona.name
@@ -319,7 +314,7 @@ class SpeechRepository:
             RETURNING id
         """, (
             part_id, source_revision,
-            hashlib.sha256(script.encode("utf-8")).hexdigest(),
+            hashlib.sha256(canonical_script.encode("utf-8")).hexdigest(),
             int(expected_cast.get("assignment_revision", cast[2] or 0)),
             expected_cast.get("persona_id", cast[3]),
             expected_cast.get("persona_name", cast[4]), cast[0],
@@ -334,7 +329,7 @@ class SpeechRepository:
             values.get("provider_region"), values.get("provider_voice_id") or values.get("voice"),
             values.get("model_id"), values.get("tier") or values.get("model"),
             values.get("language"), values.get("text_raw"),
-            values.get("text_shaped") or script, values.get("text_tagged"),
+            values.get("text_shaped") or spoken_script, values.get("text_tagged"),
             json.dumps({key: values.get(key) for key in
                         ("instruction", "speech_mode", "rate", "pitch", "volume", "seed")}),
             json.dumps(values.get("segmentation") or {}),

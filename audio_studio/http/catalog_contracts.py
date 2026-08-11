@@ -83,6 +83,7 @@ class VoiceBindingResponse(BaseModel):
     source: Literal["system", "custom"]
     provider: str
     region: str = "intl"
+    adapter_key: str
     engine: Literal["audio", "omni", "qwen_tts"]
     tier: Literal["plus", "flash", "vc"]
     model_id: str

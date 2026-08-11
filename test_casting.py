@@ -62,6 +62,11 @@ class CastingTests(unittest.TestCase):
                 "catalogue_voice_id": None})
             self.assertEqual(changed["parts_revised"], 1)
             self.assertEqual(changed["assignment_revision"], 2)
+            unchanged = casting.recast(role["id"], {
+                "voice_source_kind": "identity", "voice_identity_id": identity_b,
+                "catalogue_voice_id": None})
+            self.assertEqual(unchanged["parts_revised"], 0)
+            self.assertEqual(unchanged["assignment_revision"], 2)
             speech = SpeechRepository()
             with self.assertRaisesRegex(ValueError, "does not belong"):
                 speech.cast_assignment(

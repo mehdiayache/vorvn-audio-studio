@@ -16,7 +16,6 @@ class EnrollmentSelection(BaseModel):
     model_config = ConfigDict(extra="forbid")
     identity_id: str = Field(min_length=1, max_length=120)
     reference_id: str = Field(min_length=1, max_length=120)
-    documented: bool = False
 
 
 class BulkEnrollmentRequest(BaseModel):

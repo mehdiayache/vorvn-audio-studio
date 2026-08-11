@@ -45,10 +45,8 @@ class BulkEnrollmentTests(unittest.TestCase):
         store = FakeCampaignStore()
         service = BulkEnrollmentService(store)
         selections = [
-            {"identity_id": "voice-a", "reference_id": "reference-a",
-             "documented": False},
-            {"identity_id": "voice-b", "reference_id": "reference-b",
-             "documented": False},
+            {"identity_id": "voice-a", "reference_id": "reference-a"},
+            {"identity_id": "voice-b", "reference_id": "reference-b"},
         ]
         preview = service.preflight("provider-model", selections)
         self.assertTrue(all(item["classification"] == "experimental"

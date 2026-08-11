@@ -13,7 +13,7 @@ from audio_studio.infrastructure.postgres.provider_catalogue import (
 _VOICE_PREFIX = re.compile(r"^qwen[\w.-]*?-tts-(?:plus|flash)-", re.I)
 _PROFILE_FIELDS = {
     "name", "image", "gender", "age", "accent", "trait", "scene", "notes",
-    "recording_language", "editorial_language", "favourite", "status",
+    "editorial_language", "favourite", "status",
 }
 
 
@@ -168,7 +168,7 @@ class VoiceRepository:
                 raise ValueError("A voice name cannot be empty.")
         for key in (
                 "image", "gender", "accent", "trait", "scene", "notes",
-                "recording_language", "editorial_language", "status"):
+                "editorial_language", "status"):
             if key in allowed:
                 limit = 1000 if key in ("image", "notes") else 160
                 allowed[key] = str(allowed[key] or "").strip()[:limit] or None

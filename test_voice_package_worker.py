@@ -209,8 +209,7 @@ class VoicePackageWorkerTests(unittest.TestCase):
             )
             self.assertEqual(duplicate_queue, [])
             self.assertIsNone(repository.claim_next(job_id))
-            self.assertEqual(repository.retry(identity_id, "fixture-omni-flash"),
-                             job_id)
+            self.assertEqual(repository.retry(job_id), job_id)
             claimed = repository.claim_next(job_id)
             self.assertEqual(claimed.id, job_id)
             self.assertEqual(claimed.attempts, 1)

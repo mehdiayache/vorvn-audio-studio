@@ -74,7 +74,7 @@ type TimelineReorderEnvelope = paths["/api/v1/productions/{production_id}/parts/
 type TimelinePartEnvelope = paths["/api/v1/productions/{production_id}/parts/silence"]["post"]["responses"][200]["content"]["application/json"]
 type TimelineDeleteEnvelope = paths["/api/v1/productions/{production_id}/parts"]["delete"]["responses"][200]["content"]["application/json"]
 type TimelineMoveEnvelope = paths["/api/v1/productions/{production_id}/parts/move"]["post"]["responses"][200]["content"]["application/json"]
-type TimelineOkEnvelope = paths["/api/v1/productions/{production_id}/parts/{part_id}/text"]["patch"]["responses"][200]["content"]["application/json"]
+type TimelineOkEnvelope = paths["/api/v1/productions/{production_id}/parts/{part_id}/draft"]["patch"]["responses"][200]["content"]["application/json"]
 
 export { ApiError } from "@/lib/api-error"
 
@@ -182,7 +182,7 @@ export const studioApi = {
     if ("needs_confirmation" in response.data) throw new ApiError("Voice creation requires cost confirmation.", 409)
     return response.data
   },
-  retryVoiceBinding: (identityId: string, modelId: string) => request<VoicePackageRetryEnvelope>("/api/v1/voice-packages/retry", { method: "POST", body: JSON.stringify({ identity_id: identityId, model_id: modelId } satisfies VoicePackageRetryBody) }).then((response) => response.data),
+  retryVoiceBinding: (enrollmentJobId: string) => request<VoicePackageRetryEnvelope>("/api/v1/voice-packages/retry", { method: "POST", body: JSON.stringify({ enrollment_job_id: enrollmentJobId } satisfies VoicePackageRetryBody) }).then((response) => response.data),
   uploadVoiceReference: (file: File) => uploadFile<{ data: UploadedVoiceReference }>("/api/v1/voice-references/upload", file).then((response) => response.data),
   projects: async () => {
     const items: HierarchyNode[] = []
@@ -275,7 +275,9 @@ export const studioApi = {
     return waitForJob<TextPassResult>(response.data.id)
   },
   saveTextStates: (productionId: number, id: number, states: { text: string; text_raw: string | null; text_shaped: string | null; text_tagged: string | null; text_state: string }) =>
-    request<TimelineOkEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/text`, { method: "PATCH", body: JSON.stringify(states) }).then((response) => response.data),
+    request<TimelineOkEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/draft`, { method: "PATCH", body: JSON.stringify(states) }).then((response) => response.data),
+  savePartScript: (productionId: number, id: number, script: string) =>
+    request<TimelineOkEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/script`, { method: "PATCH", body: JSON.stringify({ script }) }).then((response) => response.data),
   takes: (productionId: number, id: number) => v1<Take[]>(`/api/v1/productions/${productionId}/parts/${id}/takes`).then((takes) => ({ takes })),
   promoteTake: (productionId: number, partId: number, takeId: number) => postV1<{ ok: boolean; subtitles_stale?: number }>(`/api/v1/productions/${productionId}/parts/${partId}/takes/${takeId}/promote`, {}),
   captions: (productionId: number, id: number) => v1<TranscriptSummary[]>(`/api/v1/productions/${productionId}/parts/${id}/captions`).then((transcripts) => ({ transcripts })),

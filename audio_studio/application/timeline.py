@@ -33,7 +33,10 @@ class TimelineRecords(Protocol):
     ) -> bool: ...
     def takes(self, production_id: int, part_id: int) -> list[dict] | None: ...
     def promote(self, production_id: int, part_id: int, take_id: int) -> bool: ...
-    def save_text(self, production_id: int, part_id: int, values: dict) -> bool: ...
+    def save_script(self, production_id: int, part_id: int,
+                    script: str, values: dict | None = None) -> bool: ...
+    def save_draft(self, production_id: int, part_id: int,
+                   values: dict) -> bool: ...
 
 
 class TimelineWorkspace(Protocol):
@@ -150,9 +153,9 @@ class TimelineService:
         if part.get("kind") != "silence":
             raise TimelineError("That Part is not silence.")
         seconds = max(0.1, min(120.0, float(seconds)))
-        if not self.records.save_text(production_id, part_id, {
+        if not self.records.save_script(production_id, part_id,
+                                        f"{seconds:g} seconds of silence", {
                 "title": f"{seconds:g}",
-                "text": f"{seconds:g} seconds of silence",
                 "duration_ms": round(seconds * 1000)}):
             raise TimelineError("The silence could not be updated.")
         return {"id": part_id, "seconds": seconds}
@@ -230,12 +233,23 @@ class TimelineService:
         return {"ok": True,
                 "subtitles_stale": self.transcripts.mark_stale(part_id)}
 
-    def save_text(
+    def save_draft(
         self, production_id: int, part_id: int, values: dict[str, Any],
     ) -> dict[str, Any]:
         self._part(production_id, part_id)
-        if not self.records.save_text(production_id, part_id, values):
+        if not self.records.save_draft(production_id, part_id, values):
             raise TimelineError("The text states could not be saved.")
+        return {"ok": True}
+
+    def save_script(
+        self, production_id: int, part_id: int, script: str,
+    ) -> dict[str, Any]:
+        part = self._part(production_id, part_id)
+        canonical = str(script).strip()
+        if part.get("kind") in {"speech", "audio", "draft"} and not canonical:
+            raise TimelineError("A speech Part needs a script.")
+        if not self.records.save_script(production_id, part_id, canonical):
+            raise TimelineError("The Part script could not be saved.")
         return {"ok": True}
 
     def captions(

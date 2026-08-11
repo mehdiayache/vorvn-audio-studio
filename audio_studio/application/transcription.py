@@ -102,10 +102,6 @@ class TranscriptionService:
                 self.operations.repository.finish_attempt(
                     attempt_id, status, cost=0, usage={}, request_ids=[],
                     error={"type": type(exc).__name__, "message": str(exc)[:600]})
-                self.operations.repository.release_budget(
-                    reservation_id,
-                    estimate.catalog_cost if status == "ambiguous" else 0,
-                    status)
             raise
         cues = captions.build_cues(result.sentences, "standard")
         srt, vtt = captions.render_srt(cues), captions.render_vtt(cues)
@@ -118,8 +114,6 @@ class TranscriptionService:
                 usage=result.usage or {},
                 request_ids=[result.request_id] if result.request_id else [],
                 error={})
-            self.operations.repository.release_budget(
-                reservation_id, cost.catalog_cost, "succeeded")
         transcript_id = self.repository.save({
             "name": source.name, "source_url": source.url,
             "audio_url": source.playable, "language": language or None,

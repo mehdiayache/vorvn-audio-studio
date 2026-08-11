@@ -4,7 +4,14 @@ import { Button } from "@/components/ui/button"
 import { languageDisplay } from "@/lib/voice"
 import type { VoicePackageJob, VoicePackageRoute, VoiceProfileBinding } from "@/types/domain"
 
-function stateFor(route: VoicePackageRoute, bindings: VoiceProfileBinding[], jobs: VoicePackageJob[], sourceAvailable: boolean) {
+type CapabilityState = {
+  status: string
+  detail: string
+  binding?: VoiceProfileBinding
+  job?: VoicePackageJob
+}
+
+function stateFor(route: VoicePackageRoute, bindings: VoiceProfileBinding[], jobs: VoicePackageJob[], sourceAvailable: boolean): CapabilityState {
   const binding = bindings.find((item) => item.model_id === route.model_id)
   if (binding) return { status: "ready", detail: "Ready", binding }
   const job = jobs.find((item) => item.model_id === route.model_id)
@@ -17,7 +24,7 @@ function stateFor(route: VoicePackageRoute, bindings: VoiceProfileBinding[], job
         detail: `Alibaba identified ${detected} in this saved reference; ${route.label} cannot register that source language.`,
       }
     }
-    return { status: job.status, detail: job.status === "creating" ? "Creating at Alibaba" : job.status === "queued" ? "Waiting to start" : job.status === "failed" ? "Provider setup failed" : job.status === "interrupted" ? "Interrupted · ready to retry" : job.status }
+    return { status: job.status, detail: job.status === "creating" ? "Creating at Alibaba" : job.status === "queued" ? "Waiting to start" : job.status === "failed" ? "Provider setup failed" : job.status === "interrupted" ? "Interrupted · ready to retry" : job.status, job }
   }
   return { status: "missing", detail: sourceAvailable ? "Not created" : "Source recording needed" }
 }
@@ -33,15 +40,16 @@ export function VoiceCapabilityList({ routes, bindings, jobs, sourceAvailable = 
   bindings: VoiceProfileBinding[]
   jobs: VoicePackageJob[]
   sourceAvailable?: boolean
-  onRetry?: (modelId: string) => void
+  onRetry?: (enrollmentJobId: string) => void
 }) {
   return <div className="voice-capability-list">{routes.map((route) => {
     const state = stateFor(route, bindings, jobs, sourceAvailable)
     const languages = state.binding?.languages || route.documented_output_languages || []
+    const retryJobId = state.job?.id
     return <article key={route.model_id} className={`voice-capability voice-capability-${state.status}`}>
       <span className="voice-capability-state">{state.status === "ready" ? <Check /> : ["queued", "creating"].includes(state.status) ? <LoaderCircle className="spin" /> : ["failed", "interrupted", "needs-reference"].includes(state.status) ? <CircleAlert /> : <span />}</span>
       <div><b>{capabilityName(route)}</b><small>{route.role} · {route.label}</small>{languages.length > 0 && <details className="voice-capability-languages"><summary>{languages.length} documented output language{languages.length === 1 ? "" : "s"}</summary><p>{languages.join(" · ")}</p></details>}<span>{state.detail}</span></div>
-      {(state.status === "failed" || state.status === "interrupted") && onRetry && <Button variant="outline" size="sm" onClick={() => onRetry(route.model_id)}><RotateCw /> Retry</Button>}
+      {(state.status === "failed" || state.status === "interrupted") && retryJobId && onRetry && <Button variant="outline" size="sm" onClick={() => onRetry(retryJobId)}><RotateCw /> Retry</Button>}
     </article>
   })}</div>
 }

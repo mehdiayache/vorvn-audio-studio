@@ -23,7 +23,7 @@ PACKAGE_LABELS = {
 }
 
 
-def _language_code(value: str) -> str:
+def language_code(value: str) -> str:
     value = (value or "").strip().lower()
     aliases = {
         name.lower(): code
@@ -42,7 +42,7 @@ def installed_routes(language: str) -> list[dict]:
     provider provenance, but it is not an output-language policy and must not
     decide which model bindings belong to the human voice identity.
     """
-    code = _language_code(language)
+    code = language_code(language)
     routes = []
     for engine, capability in catalog.CAPABILITIES.items():
         documented_sources = capability.get("clone_languages", {})
@@ -73,7 +73,7 @@ def installed_routes(language: str) -> list[dict]:
 def plan(language: str, package: str = "complete", *, region: str) -> dict:
     """Return a deterministic package plan for an explicit deployment."""
     normalized_region = "beijing" if region == "beijing" else "intl"
-    code = _language_code(language)
+    code = language_code(language)
     available = [{**route, "region": normalized_region,
                   "provider_model_id":
                       f"alibaba:{normalized_region}:{route['model_id']}"}

@@ -17,17 +17,26 @@ class ProviderOperationRepository:
                 raise LookupError("That paid Job no longer exists.")
             cursor.execute("SELECT pg_advisory_xact_lock(hashtext('audio-studio-daily-spend'))")
             cursor.execute("""
-                SELECT coalesce((SELECT sum(job.cost) FROM jobs job
-                    WHERE job.created_at::date=current_date
-                      AND NOT EXISTS (
-                          SELECT 1 FROM budget_reservations reservation
-                           WHERE reservation.job_id=job.id
-                             AND reservation.status IN ('reserved','ambiguous'))),0)
-                     + coalesce((SELECT sum(greatest(
-                           estimated_cost,coalesce(actual_cost,0)))
-                          FROM budget_reservations
-                    WHERE status IN ('reserved','ambiguous')
-                      AND created_at::date=current_date),0)
+                SELECT
+                  coalesce((SELECT sum(CASE
+                      WHEN attempt.status='ambiguous' THEN greatest(
+                          attempt.estimated_cost, coalesce(attempt.cost,0))
+                      ELSE coalesce(attempt.cost,0) END)
+                    FROM provider_attempts attempt
+                   WHERE attempt.status IN
+                         ('succeeded','definitive_failed','ambiguous')
+                     AND attempt.created_at::date=current_date),0)
+                  + coalesce((SELECT sum(greatest(
+                        reservation.estimated_cost,
+                        coalesce(reservation.actual_cost,0)))
+                    FROM budget_reservations reservation
+                   WHERE reservation.status IN ('reserved','ambiguous')
+                     AND reservation.created_at::date=current_date
+                     AND NOT EXISTS (
+                         SELECT 1 FROM provider_attempts attempt
+                          WHERE attempt.job_id=reservation.job_id
+                            AND attempt.status IN
+                                ('succeeded','definitive_failed','ambiguous'))),0)
             """)
             committed = float(cursor.fetchone()[0] or 0)
             if daily_cap > 0 and committed + amount > daily_cap:
@@ -40,16 +49,6 @@ class ProviderOperationRepository:
                 VALUES (%s,%s,%s,now()) RETURNING id
             """, (job_id, operation, amount))
             return str(cursor.fetchone()[0])
-
-    def release_budget(self, reservation_id: str, actual_cost: float,
-                       status: str) -> None:
-        target = "ambiguous" if status == "ambiguous" else "reconciled"
-        with transaction() as cursor:
-            cursor.execute("""
-                UPDATE budget_reservations
-                   SET actual_cost=%s, status=%s, updated_at=now()
-                 WHERE id=%s AND status='reserved'
-            """, (actual_cost, target, int(reservation_id)))
 
     def begin_attempt(self, job_id: int, operation: str, route: dict,
                       payload: dict, reservation_id: str | None) -> str:
@@ -97,7 +96,8 @@ class ProviderOperationRepository:
             """, (int(attempt_id),))
 
     def finish_attempt(self, attempt_id: str, status: str, *, cost: float,
-                       usage: dict, request_ids: list[str], error: dict) -> None:
+                       usage: dict, request_ids: list[str], error: dict,
+                       reconcile_budget: bool = True) -> None:
         if status not in {"succeeded", "definitive_failed", "ambiguous"}:
             raise ValueError("Invalid terminal ProviderAttempt state.")
         with transaction() as cursor:
@@ -111,3 +111,42 @@ class ProviderOperationRepository:
                   request_ids[0] if len(request_ids) == 1 else None,
                   json.dumps(error or {}), json.dumps({"request_ids": request_ids}),
                   int(attempt_id)))
+            if cursor.rowcount != 1:
+                return
+            if reconcile_budget:
+                self._reconcile_budget(
+                    cursor, cost, status, attempt_id=int(attempt_id))
+
+    def reconcile_budget(self, job_id: int, actual_cost: float,
+                         status: str) -> None:
+        with transaction() as cursor:
+            self._reconcile_budget(
+                cursor, actual_cost, status, job_id=job_id)
+
+    @staticmethod
+    def _reconcile_budget(cursor, actual_cost: float, status: str, *,
+                          attempt_id: int | None = None,
+                          job_id: int | None = None) -> None:
+        if status not in {"succeeded", "definitive_failed", "ambiguous"}:
+            raise ValueError("Invalid budget reconciliation state.")
+        if attempt_id is not None:
+            cursor.execute("""
+                UPDATE budget_reservations reservation
+                   SET actual_cost=%s,
+                       status=CASE WHEN %s='ambiguous'
+                                   THEN 'ambiguous' ELSE 'reconciled' END,
+                       updated_at=now()
+                  FROM provider_attempts attempt
+                 WHERE attempt.id=%s
+                   AND reservation.job_id=attempt.job_id
+                   AND reservation.status='reserved'
+            """, (actual_cost, status, attempt_id))
+        else:
+            cursor.execute("""
+                UPDATE budget_reservations
+                   SET actual_cost=%s,
+                       status=CASE WHEN %s='ambiguous'
+                                   THEN 'ambiguous' ELSE 'reconciled' END,
+                       updated_at=now()
+                 WHERE job_id=%s AND status='reserved'
+            """, (actual_cost, status, job_id))

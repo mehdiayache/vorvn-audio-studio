@@ -550,6 +550,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/productions/{production_id}/parts/{part_id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Part Text */
+        patch: operations["updateProductionPartDraft"];
+        trace?: never;
+    };
     "/api/v1/productions/{production_id}/parts/{part_id}/duplicate": {
         parameters: {
             query?: never;
@@ -565,6 +582,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/productions/{production_id}/parts/{part_id}/script": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Part Script */
+        patch: operations["updateProductionPartScript"];
         trace?: never;
     };
     "/api/v1/productions/{production_id}/parts/{part_id}/silence": {
@@ -616,23 +650,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/parts/{part_id}/text": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update Part Text */
-        patch: operations["updateProductionPartText"];
         trace?: never;
     };
     "/api/v1/productions/{resource_id}": {
@@ -2035,11 +2052,6 @@ export interface components {
         };
         /** EnrollmentSelection */
         EnrollmentSelection: {
-            /**
-             * Documented
-             * @default false
-             */
-            documented: boolean;
             /** Identity Id */
             identity_id: string;
             /** Reference Id */
@@ -2931,6 +2943,11 @@ export interface components {
             id: number;
             /** Rules */
             rules: components["schemas"]["PronunciationRuleResponse"][];
+        };
+        /** ScriptBody */
+        ScriptBody: {
+            /** Script */
+            script: string;
         };
         /** SeriesOverviewEnvelope */
         SeriesOverviewEnvelope: {
@@ -3837,6 +3854,8 @@ export interface components {
         VoiceBindingResponse: {
             /** Accent */
             accent?: string | null;
+            /** Adapter Key */
+            adapter_key: string;
             /** Age */
             age?: number | null;
             /** Binding Id */
@@ -4103,10 +4122,8 @@ export interface components {
         };
         /** VoicePackageRetry */
         VoicePackageRetry: {
-            /** Identity Id */
-            identity_id: string;
-            /** Model Id */
-            model_id: string;
+            /** Enrollment Job Id */
+            enrollment_job_id: string;
         };
         /** VoicePackageRetryEnvelope */
         VoicePackageRetryEnvelope: {
@@ -4406,8 +4423,6 @@ export interface components {
             name?: string | null;
             /** Notes */
             notes?: string | null;
-            /** Recording Language */
-            recording_language?: string | null;
             /** Scene */
             scene?: string | null;
             /** Status */
@@ -5672,6 +5687,42 @@ export interface operations {
             };
         };
     };
+    updateProductionPartDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: number;
+                part_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TextBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     duplicateProductionPart: {
         parameters: {
             query?: never;
@@ -5691,6 +5742,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PartCreatedEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateProductionPartScript: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: number;
+                part_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScriptBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -5784,42 +5871,6 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    updateProductionPartText: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-                part_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TextBody"];
-            };
-        };
         responses: {
             /** @description Successful Response */
             200: {

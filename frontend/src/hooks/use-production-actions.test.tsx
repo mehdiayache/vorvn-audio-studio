@@ -10,7 +10,7 @@ import { useProductionActions } from "./use-production-actions"
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }))
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>()
-  return { ...actual, studioApi: { ...actual.studioApi, regenerate: vi.fn() } }
+  return { ...actual, studioApi: { ...actual.studioApi, regenerate: vi.fn(), savePartScript: vi.fn() } }
 })
 
 const payload: GeneratePayload = {
@@ -45,6 +45,7 @@ describe("useProductionActions render completion", () => {
     await act(async () => { rendered = await result.current.regeneratePart(part, payload) })
 
     expect(rendered).toMatchObject({ id: 127, url: "/audio/legacy%20take.mp3" })
+    expect(studioApi.savePartScript).toHaveBeenCalledWith(28, 127, "In the beginning")
     expect(toggleSource).toHaveBeenCalledWith(expect.objectContaining({ url: "/audio/legacy%20take.mp3" }))
     expect(toast.warning).toHaveBeenCalledWith(expect.stringMatching(/audio created.*timeline/i))
     expect(toast.error).not.toHaveBeenCalled()

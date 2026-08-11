@@ -72,7 +72,11 @@ class Records:
         return take_id == 12
 
     @staticmethod
-    def save_text(_production_id, _part_id, _values):
+    def save_script(_production_id, _part_id, _script, _values=None):
+        return True
+
+    @staticmethod
+    def save_draft(_production_id, _part_id, _values):
         return True
 
 

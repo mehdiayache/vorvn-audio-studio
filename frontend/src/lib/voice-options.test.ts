@@ -4,7 +4,7 @@ import type { VoiceBinding, VoiceRegistry } from "@/types/domain"
 import { getVoiceIdentities, getVoiceOptions, routesForIdentity } from "./voice-options"
 
 function binding(id: string, engine: "audio" | "omni", tier: "plus" | "flash", source: "system" | "custom"): VoiceBinding {
-  return { identity_id: `${source}:${id}`, provider_voice_id: id, name: id, description: "", languages: ["English"], source, provider: "alibaba", region: "intl", engine, tier, model_id: `${engine}-${tier}`, status: "active" }
+  return { identity_id: `${source}:${id}`, provider_voice_id: id, name: id, description: "", languages: ["English"], source, provider: "alibaba", region: "intl", adapter_key: engine, engine, tier, model_id: `${engine}-${tier}`, status: "active" }
 }
 
 const bindings = [binding("Tina", "omni", "plus", "system"), binding("Tina", "omni", "flash", "system"), binding("Mehdi", "omni", "plus", "custom"), binding("Lingxin", "audio", "plus", "system"), binding("Sarah", "audio", "flash", "custom")]

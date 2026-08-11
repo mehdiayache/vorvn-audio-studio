@@ -21,6 +21,7 @@ class VoiceRoute:
     provider_voice_id: str
     provider: str
     region: str
+    adapter_key: str
     engine: str
     tier: str
     model_id: str
@@ -41,6 +42,7 @@ def _normalise(item: dict) -> dict:
         "provider_voice_id": str(item.get("provider_voice_id") or ""),
         "provider": str(item.get("provider") or ""),
         "region": str(item.get("region") or item.get("provider_region") or ""),
+        "adapter_key": str(item.get("adapter_key") or ""),
         "engine": str(item.get("engine") or ""),
         "tier": str(item.get("tier") or ""),
         "model_id": str(item.get("model_id") or ""),
@@ -73,7 +75,8 @@ def resolve(payload: dict, bindings: list[dict] | None = None,
     if chosen["status"] not in READY_STATUSES:
         raise ValueError("That exact voice route is not ready.")
     if not all(chosen.get(field) for field in (
-            "provider_voice_id", "provider", "region", "model_id", "tier")):
+            "provider_voice_id", "provider", "region", "adapter_key",
+            "model_id", "tier")):
         raise ValueError("That voice route is incomplete and cannot be billed safely.")
 
     capabilities = chosen["capabilities"]
@@ -97,6 +100,7 @@ def resolve(payload: dict, bindings: list[dict] | None = None,
         reference_id=chosen["reference_id"] if binding_id else None,
         provider_voice_id=chosen["provider_voice_id"],
         provider=chosen["provider"], region=chosen["region"],
+        adapter_key=chosen["adapter_key"],
         engine=chosen["engine"], tier=chosen["tier"],
         model_id=chosen["model_id"], capability_id=capability_id,
         capability_name=capability_name,

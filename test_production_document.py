@@ -136,8 +136,16 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual((edited["title"], edited["duration_ms"]), ("3.5", 3500))
 
         duplicate = self.timeline.duplicate(first_id, draft["id"])
-        self.timeline.save_text(first_id, duplicate["id"], {
-            "text": "A revised opening", "text_state": "raw",
+        self.timeline.save_script(
+            first_id, duplicate["id"], "A revised opening")
+        self.assertEqual(
+            self.repository.generation(duplicate["id"])["text"],
+            "A revised opening",
+        )
+        self.timeline.save_draft(first_id, duplicate["id"], {
+            "text_raw": "A revised opening",
+            "text_shaped": "A softly revised opening",
+            "text_state": "shaped",
         })
         self.assertEqual(
             self.repository.generation(duplicate["id"])["text"],

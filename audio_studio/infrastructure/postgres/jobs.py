@@ -291,16 +291,67 @@ class JobRepository:
                             {"kind": row[2], "error": error[:400]})
 
     def abandon_stale(self, older_than_seconds: int = 120) -> int:
-        """Expire only Jobs whose worker lease stopped being refreshed."""
+        """Expire stopped leases and preserve conservative paid-call evidence."""
         with transaction() as cursor:
+            cursor.execute("""
+                SELECT id FROM jobs
+                 WHERE status='running'
+                   AND coalesce(last_heartbeat_at, started_at, created_at)
+                       < now() - make_interval(secs => %s)
+                 FOR UPDATE
+            """, (older_than_seconds,))
+            job_ids = [int(row[0]) for row in cursor.fetchall()]
+            if not job_ids:
+                return 0
             cursor.execute("""
                 UPDATE jobs SET status = 'lost', finished_at = now(),
                        error = 'The worker stopped before this Job finished.'
-                 WHERE status = 'running'
-                   AND coalesce(last_heartbeat_at, started_at, created_at)
-                       < now() - make_interval(secs => %s)
-            """, (older_than_seconds,))
-            return cursor.rowcount
+                 WHERE id=ANY(%s)
+            """, (job_ids,))
+            cursor.execute("""
+                UPDATE provider_attempts
+                   SET status=CASE WHEN status='sent' THEN 'ambiguous'
+                                   ELSE 'definitive_failed' END,
+                       cost=CASE WHEN status='sent'
+                                 THEN greatest(coalesce(cost,0),estimated_cost)
+                                 ELSE coalesce(cost,0) END,
+                       finished_at=now(),
+                       error=error || jsonb_build_object(
+                           'message','The worker stopped after this provider operation began.',
+                           'reason','worker_lease_lost')
+                 WHERE job_id=ANY(%s) AND status IN ('not_sent','sent')
+            """, (job_ids,))
+            cursor.execute("""
+                UPDATE budget_reservations reservation
+                   SET status=CASE WHEN evidence.has_ambiguous
+                                   THEN 'ambiguous' ELSE 'released' END,
+                       actual_cost=CASE WHEN evidence.has_ambiguous
+                           THEN greatest(reservation.estimated_cost,
+                                         evidence.known_cost)
+                           ELSE evidence.known_cost END,
+                       updated_at=now()
+                  FROM (
+                    SELECT job_id,
+                           bool_or(status='ambiguous') AS has_ambiguous,
+                           coalesce(sum(cost),0) AS known_cost
+                      FROM provider_attempts
+                     WHERE job_id=ANY(%s)
+                       AND status IN ('ambiguous','definitive_failed')
+                     GROUP BY job_id
+                  ) evidence
+                 WHERE reservation.job_id=evidence.job_id
+                   AND reservation.status='reserved'
+            """, (job_ids,))
+            cursor.execute("""
+                UPDATE budget_reservations reservation
+                   SET status='released', actual_cost=0, updated_at=now()
+                 WHERE reservation.job_id=ANY(%s)
+                   AND reservation.status='reserved'
+                   AND NOT EXISTS (
+                       SELECT 1 FROM provider_attempts attempt
+                        WHERE attempt.job_id=reservation.job_id)
+            """, (job_ids,))
+            return len(job_ids)
 
     def cancel(self, public_id: UUID) -> Job | None:
         with transaction() as cursor:

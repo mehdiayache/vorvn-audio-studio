@@ -34,8 +34,6 @@ class SpeechRepository(Protocol):
     def cast_assignment(self, production_id: int, role_id: str,
                         *, voice_identity_id: str | None,
                         catalogue_voice_id: str | None) -> dict: ...
-    def prepare_part(self, part_id: int, production_id: int,
-                     expected_revision: int, script: str) -> dict: ...
     def create_part(self, production_id: int | None, insert_at: int | None,
                     values: dict[str, Any]) -> int: ...
     def replace_part(self, part_id: int, production_id: int,
@@ -177,10 +175,10 @@ class SpeechGenerationService:
             overrides = {key: value for key, value in values.items()
                          if key in _SETTING_FIELDS or key == "title"}
             effective = _defaults({**inherited, **overrides})
-            if str(effective.get("text") or "").strip() != str(part.get("text") or "").strip():
-                part = self.repository.prepare_part(
-                    part_id, production_id, int(part["revision"]),
-                    str(effective.get("text") or "").strip())
+            # The submitted text belongs to this composition attempt.  It is
+            # intentionally allowed to differ from the Part's canonical
+            # script; only an explicit Part edit may change that script and
+            # increment its revision.
 
         text = str(effective.get("text") or "").strip()
         if not text:
@@ -261,8 +259,6 @@ class SpeechGenerationService:
                     usage=evidence.get("usage") or {},
                     request_ids=evidence.get("request_ids") or [],
                     error={"message": str(exc)})
-                self.operations.repository.release_budget(
-                    reservation_id, cost, status)
                 evidence["ambiguous"] = status == "ambiguous"
             raise JobFailed(str(exc), evidence) from exc
         except Exception as exc:
@@ -271,8 +267,6 @@ class SpeechGenerationService:
                     attempt_id, "ambiguous", cost=estimate, usage={},
                     request_ids=[], error={"message": str(exc),
                                            "type": type(exc).__name__})
-                self.operations.repository.release_budget(
-                    reservation_id, estimate, "ambiguous")
             raise JobFailed(
                 "The provider response was lost after the paid request was sent. "
                 "Review this ambiguous attempt before retrying.",
@@ -284,8 +278,6 @@ class SpeechGenerationService:
                     attempt_id, "definitive_failed", cost=float(made.cost or 0),
                     usage=made.usage, request_ids=made.request_ids,
                     error={"message": "Provider returned no audio."})
-                self.operations.repository.release_budget(
-                    reservation_id, float(made.cost or 0), "definitive_failed")
             raise JobFailed("Alibaba returned no audio.", {
                 "provider_attempt_id": attempt_id, "cost": float(made.cost or 0),
                 "usage": made.usage, "request_ids": made.request_ids,
@@ -297,8 +289,6 @@ class SpeechGenerationService:
                     usage=made.usage, request_ids=made.request_ids,
                     error={"message": "Provider returned incomplete speech.",
                            "failures": made.failures})
-                self.operations.repository.release_budget(
-                    reservation_id, float(made.cost or 0), "definitive_failed")
             raise JobFailed(
                 "The provider could not complete every speech section. "
                 "No incomplete recording was saved.",
@@ -320,8 +310,6 @@ class SpeechGenerationService:
             self.operations.repository.finish_attempt(
                 attempt_id, "succeeded", cost=float(made.cost or 0),
                 usage=made.usage, request_ids=made.request_ids, error={})
-            self.operations.repository.release_budget(
-                reservation_id, float(made.cost or 0), "succeeded")
         row = _record(prepared, made, saved, effective)
         row["provider_attempt_id"] = int(attempt_id) if attempt_id else None
         mutation: dict[str, int] = {}

@@ -33,7 +33,6 @@ class VoiceUpdate(BaseModel):
     trait: str | None = Field(default=None, max_length=160)
     scene: str | None = Field(default=None, max_length=160)
     notes: str | None = Field(default=None, max_length=1000)
-    recording_language: str | None = Field(default=None, max_length=160)
     editorial_language: str | None = Field(default=None, max_length=160)
     favourite: bool | None = None
     status: str | None = None
@@ -61,8 +60,7 @@ class VoicePackageCreate(VoicePackagePreflight):
 
 class VoicePackageRetry(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    identity_id: str = Field(min_length=1, max_length=120)
-    model_id: str = Field(min_length=1, max_length=200)
+    enrollment_job_id: str = Field(min_length=1, max_length=200)
 
 
 @router.get(
@@ -182,7 +180,7 @@ def create_voice_package(payload: VoicePackageCreate) -> dict:
     status_code=202, response_model=VoicePackageRetryEnvelope,
 )
 def retry_voice_package(payload: VoicePackageRetry) -> dict:
-    result = voice_service.retry_binding(payload.identity_id, payload.model_id)
+    result = voice_service.retry_binding(payload.enrollment_job_id)
     if not result:
         raise ApiProblem(409, "voice_package_not_retryable",
                          "That failed variant is no longer retryable.")

@@ -68,8 +68,35 @@ Composition Draft -> ProviderAttempt + budget reservation -> immutable Take
 - Provider catalogue discovery stays technical and creates no business
   attempt; its exact routes are refreshed into one canonical PostgreSQL store.
 - Speak, Production and Batch share the same exact speech pipeline.
-- Migrations `011` through `017` install this model and retire Generation as a
+- Migrations `011` through `018` install this model and retire Generation as a
   canonical Part identity while retaining honest historical provenance.
+
+### Final invariant hardening
+
+- Canonical Part script changes and Composition Draft changes are separate
+  commands. Preparing Spoken/Tagged text never rewrites the Part script.
+- A Take snapshots the canonical Part revision and script hash separately from
+  the exact prepared text sent for synthesis.
+- Re-enrollment retries target one exact enrollment Job ID; they cannot update
+  another binding for the same voice/model combination.
+- ProviderAttempt terminal state and budget-reservation reconciliation commit
+  atomically. Spend truth is derived from terminal attempts plus genuinely
+  outstanding reservations, not from a later Job status update.
+- A worker loss converts every already-sent provider request to `ambiguous`,
+  preserves its estimated billing evidence and forbids automatic retry.
+- Exact speech adapters are selected through a small `(provider, adapter_key)`
+  registry. The requested binding/catalogue route is validated before dispatch
+  and cannot fall back to a different provider or model.
+- Bulk enrollment classification is derived on the server from the selected
+  Voice Reference and provider-model catalogue. Undocumented language remains
+  selectable as Experimental and never becomes a language gate.
+- Recasting to the identical assignment is a true no-op. A real recast still
+  revises all affected Parts in one transaction.
+- Recording language belongs to Voice Reference only. Voice Identity exposes a
+  derived historical compatibility label but has no synthesis restriction.
+- Migration `018_provider_attempt_reconciliation` repairs historical lost-job
+  attempts to honest ambiguous state and backfills current enrollment-language
+  facts.
 
 ## Architecture hardening
 

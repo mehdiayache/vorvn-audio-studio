@@ -78,9 +78,9 @@ class FakePackageStore:
         self.created.append(values)
         return "voice_fixture", ["job-1", "job-2", "job-3"]
 
-    def retry(self, identity_id, model_id):
-        self.retried.append((identity_id, model_id))
-        return "job-retry" if identity_id == "voice_fixture" else None
+    def retry(self, enrollment_job_id):
+        self.retried.append(enrollment_job_id)
+        return "job-retry" if enrollment_job_id == "job-retry" else None
 
 
 class VoiceServiceTests(unittest.TestCase):
@@ -154,7 +154,7 @@ class VoiceServiceTests(unittest.TestCase):
         self.assertEqual(result["queued"], 3)
         self.assertEqual(len(packages.created[0]["routes"]), 4)
         self.assertEqual(
-            service.retry_binding(" voice_fixture ", " model "),
+            service.retry_binding(" job-retry "),
             {"ok": True, "job_id": "job-retry"},
         )
 
