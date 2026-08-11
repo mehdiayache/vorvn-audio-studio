@@ -122,7 +122,8 @@ class VoiceRepositoryTests(unittest.TestCase):
             self.assertTrue(binding.keys() >= {
                 "voice_id", "identity_id", "target_model",
                 "provider_voice_id", "model_id", "provider", "region",
-                "adapter_key"})
+                "adapter_key", "capabilities",
+                "estimate_rate_per_million_chars"})
             self.assertEqual(
                 repository.binding_references()[provider_id]["id"], reference_id)
 

@@ -617,3 +617,12 @@ shapes, a genuinely multimode binding, dynamic tag authorization, catalogue
 control persistence and fresh-database migration. Speak and Production still
 share the same `SpeechTool`, Draft contract and generation command. No Alibaba
 operation was called.
+
+The exact-runtime smoke exposed and closed one final projection gap: the Voice
+registry's cloned-binding reader had been dropping capability controls and
+route pricing even though the speech repository already read them correctly.
+The registry now joins the same provider-model capability records and preserves
+provider, adapter and price facts through assembly. Speak and Production both
+showed the expected tag/direction/tuning controls for the same cloned routes,
+with a clean browser console. Final verification passes 312 Python tests and
+114 React tests plus generated OpenAPI, TypeScript and the production build.

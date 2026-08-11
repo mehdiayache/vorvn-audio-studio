@@ -118,6 +118,32 @@ class CatalogServiceTests(unittest.TestCase):
         self.assertEqual(route["model_id"], "qwen3-tts-vc")
         self.assertEqual(route["capability_id"], "exact_longform")
 
+    def test_registry_preserves_exact_route_capability_controls_and_pricing(self):
+        controls = {
+            "delivery_tags": True, "natural_direction": True,
+            "rate": True, "pitch": True, "volume": True,
+        }
+        self.voices.custom = [{
+            "binding_id": "binding-eve", "identity_id": "voice-eve",
+            "provider_voice_id": "provider-eve", "model_id": "qwen-audio",
+            "provider": "alibaba", "region": "intl", "adapter_key": "audio",
+            "engine": "audio", "tier": "flash", "status": "active",
+            "reference_id": "reference-eve", "languages": ["English"],
+            "estimate_rate_per_million_chars": 15.0,
+            "capabilities": [{
+                "id": "expressive_tags", "name": "Expressive speech + tags",
+                "description": "Expressive speech", "controls": controls,
+                "ui_metadata": {"direction_label": "Voice direction"},
+            }],
+        }]
+
+        binding = next(
+            item for item in self.service.registry()["bindings"]
+            if item.get("binding_id") == "binding-eve")
+        self.assertEqual(binding["capabilities"][0]["controls"], controls)
+        self.assertEqual(binding["estimate_rate_per_million_chars"], 15.0)
+        self.assertEqual(binding["adapter_key"], "audio")
+
     def test_storage_adapter_never_exposes_keys(self):
         values = {
             "endpoint": "https://storage.example", "bucket": "audio",

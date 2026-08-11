@@ -82,7 +82,9 @@ def assemble(custom_voices: list[dict], metadata: dict, references: dict,
              catalogue_voices: list[dict] | None = None) -> dict:
     bindings = list(catalogue_voices) if catalogue_voices is not None else system_bindings()
     for item in custom_voices:
-        provider_voice_id = str(item.get("voice_id") or item.get("voice") or "")
+        provider_voice_id = str(
+            item.get("provider_voice_id") or item.get("voice_id")
+            or item.get("voice") or "")
         if not provider_voice_id:
             continue
         saved = metadata.get(provider_voice_id.casefold(), {})
@@ -113,10 +115,12 @@ def assemble(custom_voices: list[dict], metadata: dict, references: dict,
             "accent": item.get("accent") or "",
             "scene": item.get("scene") or saved.get("scene") or "",
             "languages": languages,
-            "source": "custom", "provider": "alibaba",
+            "source": "custom", "provider": item.get("provider") or "alibaba",
             "region": item.get("region") or item.get("provider_region") or "intl",
-            "engine": engine, "adapter_key": engine,
+            "engine": engine, "adapter_key": item.get("adapter_key") or engine,
             "tier": tier, "model_id": model_id,
+            "estimate_rate_per_million_chars": float(
+                item.get("estimate_rate_per_million_chars") or 0),
             "capabilities": item.get("capabilities") or [{
                 "id": CAPABILITY_IDS.get(engine, engine),
                 "name": capability.get("operator_title") or engine,

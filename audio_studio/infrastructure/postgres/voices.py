@@ -269,7 +269,14 @@ class VoiceRepository:
                        binding.engine, binding.tier, binding.status,
                        binding.languages, binding.reference_id,
                        binding.provider, binding.provider_region,
-                       provider_model.adapter_key,
+                       provider_model.adapter_key, provider_model.pricing,
+                       coalesce(jsonb_agg(jsonb_build_object(
+                           'id', capability.id, 'name', capability.name,
+                           'description', capability.description,
+                           'controls', capability.controls,
+                           'ui_metadata', capability.ui_metadata
+                       ) ORDER BY capability.id)
+                       FILTER (WHERE capability.id IS NOT NULL), '[]'::jsonb),
                        identity.id, identity.name,
                        identity.image, identity.gender, identity.age,
                        identity.accent, identity.trait, identity.scene,
@@ -279,9 +286,21 @@ class VoiceRepository:
                     ON identity.id = binding.identity_id
              LEFT JOIN provider_models provider_model
                     ON provider_model.id = binding.provider_model_id
+             LEFT JOIN provider_model_capabilities model_capability
+                    ON model_capability.provider_model_id = provider_model.id
+             LEFT JOIN capabilities capability
+                    ON capability.id = model_capability.capability_id
                  WHERE binding.source = 'custom'
                    AND identity.status = 'active'
                    AND binding.archived_at IS NULL
+              GROUP BY binding.id, binding.provider_voice_id, binding.model_id,
+                       binding.engine, binding.tier, binding.status,
+                       binding.languages, binding.reference_id,
+                       binding.provider, binding.provider_region,
+                       provider_model.adapter_key, provider_model.pricing,
+                       identity.id, identity.name, identity.image,
+                       identity.gender, identity.age, identity.accent,
+                       identity.trait, identity.scene, identity.notes
                  ORDER BY identity.name, binding.model_id
             """)
             rows = cursor.fetchall()
@@ -295,12 +314,15 @@ class VoiceRepository:
             "provider": provider or "alibaba",
             "region": provider_region or "intl",
             "adapter_key": adapter_key or engine,
+            "estimate_rate_per_million_chars": float(
+                (pricing or {}).get("speech_per_million_chars") or 0),
+            "capabilities": capabilities or [],
             "identity_id": identity_id, "name": name,
             "image": image or "", "gender": gender or "", "age": age,
             "accent": accent or "", "trait": trait or "",
             "scene": scene or "", "notes": notes or "",
         } for binding_id, provider_id, model_id, engine, tier, status, languages, reference_id,
-            provider, provider_region, adapter_key,
+            provider, provider_region, adapter_key, pricing, capabilities,
             identity_id, name, image, gender, age, accent, trait, scene, notes
             in rows]
 
