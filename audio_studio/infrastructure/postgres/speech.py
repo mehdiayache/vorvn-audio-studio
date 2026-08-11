@@ -175,11 +175,11 @@ class SpeechRepository:
         }
 
     def create_part(self, production_id: int | None, insert_at: int | None,
-                    values: dict[str, Any]) -> int:
+                    values: dict[str, Any]) -> int | None:
         if production_id is None:
             # Standalone Speak history is the durable Job/ProviderAttempt.  It
             # must not manufacture a fake Production Part.
-            return 0
+            return None
         with transaction() as cursor:
             cursor.execute("SELECT id FROM productions WHERE id = %s AND archived_at IS NULL FOR UPDATE",
                            (production_id,))

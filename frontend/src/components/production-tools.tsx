@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react"
 
 import type { AssetMode } from "@/components/production-tools/asset-tool"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import type { ClonedVoice, GeneratePayload, GenerateResult, PlayerSource, ProductionCastRole, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
+import type { ClonedVoice, DurableJob, GeneratePayload, GenerateResult, PlayerSource, ProductionCastRole, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
 
 import "@/components/production-tools/production-tools.css"
 
@@ -28,7 +28,7 @@ export function ProductionToolSheet({ open, projectId, nextPartNumber, insertAt,
   playerPlaying: boolean
   onClose: () => void
   onSaveDraft: (payload: Omit<GeneratePayload, "confirmed">) => Promise<void>
-  onGenerate: (payload: GeneratePayload) => Promise<GenerateResult>
+  onGenerate: (payload: GeneratePayload) => Promise<DurableJob<GenerateResult>>
   onAddSilence: (seconds: number) => Promise<void>
   onInsertAsset: (asset: VentureAsset) => Promise<void>
   onSetMusic: (asset: VentureAsset) => Promise<void>

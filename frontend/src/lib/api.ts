@@ -25,7 +25,7 @@ import type {
 } from "@/types/domain"
 import type { paths } from "@/types/api.generated"
 import { ApiError } from "@/lib/api-error"
-import { observeJob } from "@/lib/job-observer"
+import { jobObserver, observeJob } from "@/lib/job-observer"
 
 type GeneratedJob = paths["/api/v1/jobs/{job_id}"]["get"]["responses"][200]["content"]["application/json"]["data"]
 type UploadedImage = paths["/api/v1/project-covers/upload"]["post"]["responses"][200]["content"]["application/json"]["data"]
@@ -119,7 +119,23 @@ function postV1<T>(path: string, body: unknown) {
 }
 
 async function waitForJob<T>(jobId: string): Promise<T> {
-  return observeJob<T>(jobId, (id) => v1<GeneratedJob>(`/api/v1/jobs/${encodeURIComponent(id)}`))
+  return observeJob<T>(jobId, (id) => v1<GeneratedJob>(`/api/v1/jobs/${encodeURIComponent(id)}`).then((job) => job as DurableJob<T>))
+}
+
+function registerJob<T>(job: DurableJob<T>) {
+  jobObserver.register(job, (id) => v1<DurableJob<T>>(`/api/v1/jobs/${encodeURIComponent(id)}`))
+  return job
+}
+
+async function enqueueSpeech(payload: GeneratePayload, operation?: "render_draft" | "regenerate", partId?: number) {
+  const { voice: _voice, engine: _engine, model: _model, ...requestPayload } = payload
+  const prefix = operation === "render_draft" ? `render-draft-${partId}` : operation === "regenerate" ? `regenerate-${partId}` : "speech"
+  const response = await request<{ data: DurableJob<GenerateResult> }>("/api/v1/jobs/speech", {
+    method: "POST",
+    headers: { "Idempotency-Key": `${prefix}-${crypto.randomUUID()}` },
+    body: JSON.stringify(operation ? { ...requestPayload, operation, part_id: partId } : requestPayload),
+  })
+  return registerJob(response.data)
 }
 
 export const studioApi = {
@@ -249,26 +265,23 @@ export const studioApi = {
     const { production_id, voice: _voice, engine: _engine, model: _model, ...draft } = payload
     return postV1<{ id: number }>(`/api/v1/productions/${production_id}/parts/drafts`, draft)
   },
+  job: <T>(id: string) => v1<DurableJob<T>>(`/api/v1/jobs/${encodeURIComponent(id)}`),
+  enqueueGenerate: (payload: GeneratePayload) => enqueueSpeech(payload),
+  enqueueRenderDraft: (id: number, payload: GeneratePayload) => enqueueSpeech(payload, "render_draft", id),
+  enqueueRegenerate: (id: number, payload: GeneratePayload) => enqueueSpeech(payload, "regenerate", id),
   generate: async (payload: GeneratePayload) => {
-    const { voice: _voice, engine: _engine, model: _model, ...requestPayload } = payload
-    const response = await request<{ data: DurableJob<GenerateResult> }>("/api/v1/jobs/speech", {
-      method: "POST",
-      headers: { "Idempotency-Key": `speech-${crypto.randomUUID()}` },
-      body: JSON.stringify(requestPayload),
-    })
-    const result = await waitForJob<GenerateResult>(response.data.id)
-    return { ...result, job_id: response.data.id }
+    const job = await enqueueSpeech(payload)
+    const result = await jobObserver.completion<GenerateResult>(job.id)
+    return { ...result, job_id: job.id }
   },
   recordingSession: (id: string) => v1<RecordingSession>(`/api/v1/speak/sessions/${encodeURIComponent(id)}`),
   renderDraft: async (id: number, payload: GeneratePayload) => {
-    const { voice: _voice, engine: _engine, model: _model, ...requestPayload } = payload
-    const response = await request<{ data: DurableJob<GenerateResult> }>("/api/v1/jobs/speech", { method: "POST", headers: { "Idempotency-Key": `render-draft-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ ...requestPayload, operation: "render_draft", part_id: id }) })
-    return waitForJob<GenerateResult>(response.data.id)
+    const job = await enqueueSpeech(payload, "render_draft", id)
+    return jobObserver.completion<GenerateResult>(job.id)
   },
   regenerate: async (id: number, payload: GeneratePayload) => {
-    const { voice: _voice, engine: _engine, model: _model, ...requestPayload } = payload
-    const response = await request<{ data: DurableJob<GenerateResult> }>("/api/v1/jobs/speech", { method: "POST", headers: { "Idempotency-Key": `regenerate-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ ...requestPayload, operation: "regenerate", part_id: id }) })
-    return waitForJob<GenerateResult>(response.data.id)
+    const job = await enqueueSpeech(payload, "regenerate", id)
+    return jobObserver.completion<GenerateResult>(job.id)
   },
   textPass: async (kind: "shape" | "tag", payload: { text: string; production_id?: number; part_id?: number; density?: "none" | "light" | "normal" | "heavy"; engine: "audio" | "omni" | "qwen_tts"; confirmed?: boolean }) => {
     const response = await request<{ data: DurableJob<TextPassResult> }>("/api/v1/jobs/text", { method: "POST", headers: { "Idempotency-Key": `rewrite-${kind}-${crypto.randomUUID()}` }, body: JSON.stringify({ ...payload, operation: kind }) })

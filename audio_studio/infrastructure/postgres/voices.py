@@ -268,6 +268,8 @@ class VoiceRepository:
                 SELECT binding.id, binding.provider_voice_id, binding.model_id,
                        binding.engine, binding.tier, binding.status,
                        binding.languages, binding.reference_id,
+                       binding.provider, binding.provider_region,
+                       provider_model.adapter_key,
                        identity.id, identity.name,
                        identity.image, identity.gender, identity.age,
                        identity.accent, identity.trait, identity.scene,
@@ -275,6 +277,8 @@ class VoiceRepository:
                   FROM voice_bindings binding
                   JOIN voice_identities identity
                     ON identity.id = binding.identity_id
+             LEFT JOIN provider_models provider_model
+                    ON provider_model.id = binding.provider_model_id
                  WHERE binding.source = 'custom'
                    AND identity.status = 'active'
                    AND binding.archived_at IS NULL
@@ -283,15 +287,20 @@ class VoiceRepository:
             rows = cursor.fetchall()
         return [{
             "binding_id": str(binding_id),
-            "voice_id": provider_id, "target_model": model_id,
+            "provider_voice_id": provider_id, "voice_id": provider_id,
+            "model_id": model_id, "target_model": model_id,
             "source": "custom", "engine": engine, "tier": tier,
             "status": status, "languages": languages or [],
             "reference_id": reference_id,
+            "provider": provider or "alibaba",
+            "region": provider_region or "intl",
+            "adapter_key": adapter_key or engine,
             "identity_id": identity_id, "name": name,
             "image": image or "", "gender": gender or "", "age": age,
             "accent": accent or "", "trait": trait or "",
             "scene": scene or "", "notes": notes or "",
         } for binding_id, provider_id, model_id, engine, tier, status, languages, reference_id,
+            provider, provider_region, adapter_key,
             identity_id, name, image, gender, age, accent, trait, scene, notes
             in rows]
 

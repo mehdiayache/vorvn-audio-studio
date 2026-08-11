@@ -322,9 +322,11 @@ export type VoiceDirectory = {
 }
 
 export type RenderTask = {
+  /** Temporary Production presentation shell. This is the durable backend Job ID. */
   id: string
+  jobId: string
   mode: "new" | "draft" | "take"
-  status: "generating" | "failed"
+  status: DurableJob["status"]
   payload: GeneratePayload
   text: string
   voice: string
@@ -332,6 +334,7 @@ export type RenderTask = {
   targetPartId?: number
   startedAt: number
   error?: string
+  detail?: string
 }
 
 export type Take = {

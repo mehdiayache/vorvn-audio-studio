@@ -1,5 +1,5 @@
 import { Mic2, Plus } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { AudioPlayerDock } from "@/components/audio-player-dock"
@@ -8,15 +8,47 @@ import { SpeechTool } from "@/components/production-tools/speech-tool"
 import { ErrorState, PageLoading } from "@/components/state-panel"
 import { Button } from "@/components/ui/button"
 import { useGlobalPlayer } from "@/components/global-player-provider"
+import { useJobExecution } from "@/hooks/use-job-execution"
 import { useVoiceDirectory } from "@/hooks/use-voice-directory"
 import { studioApi } from "@/lib/api"
 import { playableGenerateResult } from "@/lib/generated-audio"
 import { capabilityTitle } from "@/lib/voice-capabilities"
 import { resolveVoice } from "@/lib/voice"
-import type { GeneratePayload, GenerateResult, RecordingAttempt, RecordingSession } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, RecordingAttempt, RecordingSession } from "@/types/domain"
+import { belongsToRecordingSession } from "./speak-execution"
 
 import "@/components/production-tools/production-tools.css"
 import "./speak-page.css"
+
+type SpeakExecution = { jobId: string; sessionId: string; payload: GeneratePayload }
+
+function PendingSpeakExecution({ execution, directory, onTerminal }: {
+  execution: SpeakExecution
+  directory: ReturnType<typeof useVoiceDirectory>["directory"]
+  onTerminal: (execution: SpeakExecution, job: DurableJob<GenerateResult>) => void
+}) {
+  const job = useJobExecution<GenerateResult>(execution.jobId)
+  const reported = useRef(false)
+  const terminal = job && ["ok", "warning", "blocked", "failed", "lost", "cancelled"].includes(job.status)
+  useEffect(() => {
+    if (!job || !terminal || reported.current) return
+    reported.current = true
+    onTerminal(execution, job)
+  }, [execution, job, onTerminal, terminal])
+  const status = job && ["failed", "lost", "cancelled"].includes(job.status) ? "failed" : job?.status === "warning" ? "warning" : "pending"
+  return <RecordingTakeCard take={{
+    id: execution.jobId,
+    status,
+    voice: execution.payload.voice,
+    voiceIdentityId: execution.payload.voice_identity_id,
+    language: execution.payload.language,
+    method: capabilityTitle(execution.payload.engine, directory.config),
+    engine: execution.payload.engine,
+    model: execution.payload.model,
+    script: execution.payload.text,
+    message: job?.error || job?.detail,
+  }} directory={directory} />
+}
 
 export function SpeakPage() {
   const voices = useVoiceDirectory()
@@ -27,7 +59,9 @@ export function SpeakPage() {
   })
   const [session, setSession] = useState<RecordingSession | null>(null)
   const [sessionLoading, setSessionLoading] = useState(true)
-  const [pending, setPending] = useState<GeneratePayload | null>(null)
+  const [executions, setExecutions] = useState<SpeakExecution[]>([])
+  const sessionIdRef = useRef(sessionId)
+  useEffect(() => { sessionIdRef.current = sessionId }, [sessionId])
 
   const refreshSession = useCallback(async (id = sessionId) => {
     setSessionLoading(true)
@@ -43,28 +77,44 @@ export function SpeakPage() {
     void refreshSession(sessionId)
   }, [refreshSession, sessionId])
 
-  async function generate(payload: GeneratePayload): Promise<GenerateResult> {
+  async function generate(payload: GeneratePayload): Promise<DurableJob<GenerateResult>> {
     const request = { ...payload, session_id: sessionId }
-    setPending(request)
     try {
-      const raw = await studioApi.generate(request)
-      if (raw.needs_confirmation) return raw
-      const result = playableGenerateResult(raw)
-      const name = resolveVoice(request.voice, voices.directory, request.voice_identity_id).name
-      await player.toggleSource({ key: result.job_id ? `job:${result.job_id}` : result.id ? `part:${result.id}` : `generated:${Date.now()}`, url: result.url, title: "Generated recording", subtitle: `${name} · ${result.cost_basis || "estimated cost"}`, kind: "part" })
-      if (result.warning) toast.warning(result.warning)
-      else toast.success(`Audio ready${result.cost !== undefined ? ` · $${result.cost.toFixed(4)}` : ""}`)
-      return result
+      const job = await studioApi.enqueueGenerate(request)
+      setExecutions((current) => [...current, { jobId: job.id, sessionId, payload: request }])
+      return job
     } catch (reason) {
       toast.error(reason instanceof Error ? reason.message : "Generation failed.")
       throw reason
-    } finally { setPending(null); await refreshSession() }
+    }
   }
+
+  const settleExecution = useCallback(async (execution: SpeakExecution, job: DurableJob<GenerateResult>) => {
+    // A durable Job keeps running globally, but a result from an abandoned
+    // session must never mutate or start playback in the current session.
+    if (!belongsToRecordingSession(execution.sessionId, sessionIdRef.current)) return
+    try {
+      if (job.status === "ok" || job.status === "warning") {
+        const result = playableGenerateResult(job.result)
+        const name = resolveVoice(execution.payload.voice, voices.directory, execution.payload.voice_identity_id).name
+        await player.toggleSource({ key: `job:${job.id}`, url: result.url, title: "Generated recording", subtitle: `${name} · ${result.cost_basis || "estimated cost"}`, kind: "part" })
+        if (result.warning) toast.warning(result.warning)
+        else toast.success(`Audio ready${result.cost !== undefined ? ` · $${result.cost.toFixed(4)}` : ""}`)
+      } else if (job.status === "blocked") {
+        toast.warning(job.detail || "This generation needs review before it can continue.")
+      } else {
+        toast.error(job.error || "Generation failed.")
+      }
+      await refreshSession(execution.sessionId)
+    } finally {
+      if (belongsToRecordingSession(execution.sessionId, sessionIdRef.current)) setExecutions((current) => current.filter((item) => item.jobId !== execution.jobId))
+    }
+  }, [player, refreshSession, voices.directory])
 
   function newSession() {
     player.close()
     setSession(null)
-    setPending(null)
+    setExecutions([])
     setSessionId(crypto.randomUUID())
   }
 
@@ -92,12 +142,12 @@ export function SpeakPage() {
     <header className="speak-hero"><span><Mic2 /></span><div><small>Standalone tool</small><h1>Speak</h1><p>Create and compare recordings without choosing a Project. Every attempt stays in this session and in Activity.</p></div><Button variant="outline" onClick={newSession}><Plus /> New session</Button></header>
     <section className="speak-workspace"><SpeechTool key={sessionId} sessionId={sessionId} config={voices.config} clonedVoices={voices.cloned} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} /></section>
     <section className="speak-takes" aria-live="polite">
-      <header><div><small>Recording session</small><h2>Takes</h2></div><span>{session?.attempts.length || 0} attempts · ${Number(session?.total_cost || 0).toFixed(4)}</span></header>
-      {pending && <RecordingTakeCard take={{ id: "pending", status: "pending", voice: pending.voice, voiceIdentityId: pending.voice_identity_id, language: pending.language, method: capabilityTitle(pending.engine, voices.config), engine: pending.engine, model: pending.model, script: pending.text }} directory={voices.directory} />}
+      <header><div><small>Recording session</small><h2>Takes</h2></div><span>{(session?.attempts.length || 0) + executions.length} attempts · ${Number(session?.total_cost || 0).toFixed(4)}</span></header>
+      {executions.map((execution) => <PendingSpeakExecution key={execution.jobId} execution={execution} directory={voices.directory} onTerminal={(item, job) => void settleExecution(item, job)} />)}
       {sessionLoading && !session?.attempts.length ? <p className="speak-empty">Loading this session…</p> : session?.attempts.length ? session.attempts.map((attempt) => {
         const sourceKey = `job:${attempt.id}`
         return <RecordingTakeCard key={attempt.id} take={takeView(attempt)} directory={voices.directory} active={player.source?.key === sourceKey && player.state === "playing"} onPlay={attempt.audio_url ? () => void player.toggleSource({ key: sourceKey, url: attempt.audio_url!, title: "Generated recording", subtitle: resolveVoice(attempt.request.voice, voices.directory, attempt.request.voice_identity_id).name, kind: "part" }) : undefined} onSecondaryAction={() => void generate({ ...attempt.request, session_id: sessionId })} secondaryLabel="Another take · same setup" />
-      }) : !pending && <p className="speak-empty">Your first generated recording will appear here. Another take keeps the exact same voice, model, language, script and settings.</p>}
+      }) : !executions.length && <p className="speak-empty">Your first generated recording will appear here. Another take keeps the exact same voice, model, language, script and settings.</p>}
     </section>
     <AudioPlayerDock label="Generated audio" source={player.source} state={player.state} currentTime={player.currentTime} duration={player.duration} onToggle={() => void player.toggle()} onSeek={player.seek} onClose={player.close} />
   </main>

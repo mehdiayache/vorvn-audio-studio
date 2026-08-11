@@ -9,10 +9,10 @@ import type { ConfirmAction } from "@/features/production/production-overlays"
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { usePlayerShortcuts } from "@/hooks/use-player-shortcuts"
 import { useProductionActions } from "@/hooks/use-production-actions"
-import { useRenderTasks } from "@/hooks/use-render-tasks"
+import { useRenderTasks, type RenderTaskDraft } from "@/hooks/use-render-tasks"
 import { partDurationMs } from "@/lib/format"
 import { studioApi } from "@/lib/api"
-import type { AssetCollection, ClonedVoice, GeneratePayload, GenerateResult, HierarchyNode, MusicBed, Production, ProductionCastRole, ProductionPart, RenderTask, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
+import type { AssetCollection, ClonedVoice, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, MusicBed, Production, ProductionCastRole, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
 
 const ProductionOverlays = lazy(() => import("@/features/production/production-overlays"))
 
@@ -40,7 +40,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const [cast, setCast] = useState<ProductionCastRole[]>([])
   const player = useGlobalPlayer()
   const closeTool = useCallback(() => { setTool(null); setComposerPart(null) }, [])
-  const actions = useProductionActions({ production, music, directory, player, refresh, refreshAssets, closeTool })
+  const actions = useProductionActions({ production, music, directory, player, refresh, refreshAssets })
   useEffect(() => {
     let active = true
     void studioApi.productionCast(production.public_id)
@@ -49,29 +49,25 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     return () => { active = false }
   }, [production.public_id])
 
-  const executeRender = useCallback(async (task: RenderTask): Promise<GenerateResult> => {
+  const executeRender = useCallback(async (task: RenderTaskDraft): Promise<DurableJob<GenerateResult>> => {
     const target = task.targetPartId ? production.parts.find((part) => part.id === task.targetPartId) : null
     return task.mode === "new" ? actions.generatePart(task.payload)
       : task.mode === "draft" && target ? actions.renderDraft(target, task.payload)
         : target ? actions.regeneratePart(target, task.payload) : actions.generatePart(task.payload)
   }, [actions, production.parts])
-  const renderQueue = useRenderTasks(executeRender)
+  const renderQueue = useRenderTasks(executeRender, async (task, result) => { await actions.settleRender(task, result) })
 
   const queueRender = useCallback((payload: GeneratePayload) => {
     const target = composerPart
-    const task: RenderTask = {
-      id: globalThis.crypto?.randomUUID?.() || `render-${Date.now()}-${Math.random()}`,
+    const task: RenderTaskDraft = {
       mode: target?.kind === "draft" ? "draft" : target ? "take" : "new",
-      status: "generating",
       payload,
       text: payload.text,
       voice: payload.voice,
       insertAt: payload.insert_at,
       targetPartId: target?.id,
-      startedAt: Date.now(),
     }
-    closeTool()
-    return renderQueue.enqueue(task)
+    return renderQueue.enqueue(task).then((job) => { closeTool(); return job })
   }, [closeTool, composerPart, renderQueue])
 
   const sourceParts = useMemo(() => production.parts.filter((part) => part.kind !== "stitch"), [production.parts])

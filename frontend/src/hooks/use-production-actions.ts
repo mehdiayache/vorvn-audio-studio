@@ -5,18 +5,17 @@ import type { usePlayer } from "@/hooks/use-player"
 import { studioApi } from "@/lib/api"
 import { playableGenerateResult } from "@/lib/generated-audio"
 import { resolveVoice } from "@/lib/voice"
-import type { GeneratePayload, GenerateResult, MusicBed, Production, ProductionPart, VentureAsset, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, Production, ProductionPart, RenderTask, VentureAsset, VoiceDirectory } from "@/types/domain"
 
 type Player = ReturnType<typeof usePlayer>
 
-export function useProductionActions({ production, music, directory, player, refresh, refreshAssets, closeTool }: {
+export function useProductionActions({ production, music, directory, player, refresh, refreshAssets }: {
   production: Production
   music: MusicBed
   directory: VoiceDirectory
   player: Player
   refresh: () => Promise<void>
   refreshAssets: () => Promise<void>
-  closeTool: () => void
 }) {
   const [previewing, setPreviewing] = useState(false)
   const [previewRevision, setPreviewRevision] = useState(0)
@@ -35,7 +34,6 @@ export function useProductionActions({ production, music, directory, player, ref
   ): Promise<GenerateResult> => {
     const result = playableGenerateResult(rawResult)
     invalidatePreview()
-    closeTool()
 
     // The provider call has already succeeded and may already be billed. A
     // stale timeline request must never relabel that completed render as a
@@ -55,7 +53,7 @@ export function useProductionActions({ production, music, directory, player, ref
       toast.success(`${success}${result.cost !== undefined ? ` · $${result.cost.toFixed(4)}` : ""}`)
     }
     return result
-  }, [closeTool, invalidatePreview, player, refresh])
+  }, [invalidatePreview, player, refresh])
 
   const mutate = useCallback(async (action: () => Promise<unknown>, success?: string) => {
     try {
@@ -104,58 +102,56 @@ export function useProductionActions({ production, music, directory, player, ref
     }
   }, [production.id, refresh])
 
-  const generatePart = useCallback(async (payload: GeneratePayload): Promise<GenerateResult> => {
+  const generatePart = useCallback(async (payload: GeneratePayload): Promise<DurableJob<GenerateResult>> => {
     try {
-      const result = await studioApi.generate(payload)
-      if (result.needs_confirmation) return result
-      return settleSuccessfulRender(result, {
-        key: result.id ? `part:${result.id}` : `generated:${Date.now()}`,
-        title: `New part in ${production.name}`,
-        subtitle: `${resolveVoice(payload.voice, directory).name} · ${result.cost_basis || "estimated cost"}`,
-      }, "Part generated")
+      return await studioApi.enqueueGenerate(payload)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Generation failed.")
       throw error
     }
-  }, [directory, production.name, settleSuccessfulRender])
+  }, [])
 
-  const regeneratePart = useCallback(async (part: ProductionPart, payload: GeneratePayload): Promise<GenerateResult> => {
+  const regeneratePart = useCallback(async (part: ProductionPart, payload: GeneratePayload): Promise<DurableJob<GenerateResult>> => {
     try {
       const canonical = (payload.text_raw || payload.text || "").trim()
       if (canonical && canonical !== (part.text || "").trim()) {
         await studioApi.savePartScript(production.id, part.id, canonical)
       }
-      const result = await studioApi.regenerate(part.id, payload)
-      if (result.needs_confirmation) return result
-      return settleSuccessfulRender(result, {
-        key: `part:${part.id}`,
-        title: `New take · Part ${(part.position ?? 0) + 1}`,
-        subtitle: resolveVoice(payload.voice, directory).name,
-      }, "New take ready")
+      return await studioApi.enqueueRegenerate(part.id, payload)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "The new take failed.")
       throw error
     }
-  }, [directory, production.id, settleSuccessfulRender])
+  }, [production.id])
 
-  const renderDraft = useCallback(async (part: ProductionPart, payload: GeneratePayload): Promise<GenerateResult> => {
+  const renderDraft = useCallback(async (part: ProductionPart, payload: GeneratePayload): Promise<DurableJob<GenerateResult>> => {
     try {
       const canonical = (payload.text_raw || payload.text || "").trim()
       if (canonical && canonical !== (part.text || "").trim()) {
         await studioApi.savePartScript(production.id, part.id, canonical)
       }
-      const result = await studioApi.renderDraft(part.id, payload)
-      if (result.needs_confirmation) return result
-      return settleSuccessfulRender(result, {
-        key: `part:${part.id}`,
-        title: `Recorded · Part ${(part.position ?? 0) + 1}`,
-        subtitle: resolveVoice(payload.voice, directory).name,
-      }, "Draft recorded")
+      return await studioApi.enqueueRenderDraft(part.id, payload)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "The draft could not be recorded.")
       throw error
     }
-  }, [directory, production.id, settleSuccessfulRender])
+  }, [production.id])
+
+  const settleRender = useCallback(async (task: RenderTask, result: GenerateResult) => {
+    if (task.mode === "new") {
+      return settleSuccessfulRender(result, {
+        key: result.id ? `part:${result.id}` : `job:${task.jobId}`,
+        title: `New part in ${production.name}`,
+        subtitle: `${resolveVoice(task.payload.voice, directory).name} · ${result.cost_basis || "estimated cost"}`,
+      }, "Part generated")
+    }
+    const part = task.targetPartId ? production.parts.find((item) => item.id === task.targetPartId) : null
+    return settleSuccessfulRender(result, {
+      key: part ? `part:${part.id}` : `job:${task.jobId}`,
+      title: task.mode === "draft" ? `Recorded · Part ${(part?.position ?? 0) + 1}` : `New take · Part ${(part?.position ?? 0) + 1}`,
+      subtitle: resolveVoice(task.payload.voice, directory).name,
+    }, task.mode === "draft" ? "Draft recorded" : "New take ready")
+  }, [directory, production.name, production.parts, settleSuccessfulRender])
 
   const movePart = useCallback((part: ProductionPart, direction: -1 | 1) => {
     const order = production.parts.filter((item) => item.kind !== "stitch").map((item) => item.id)
@@ -182,5 +178,5 @@ export function useProductionActions({ production, music, directory, player, ref
     toast.success(`${file.name} uploaded to ${folder}`)
   }, [refreshAssets])
 
-  return { previewing, exporting, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, regeneratePart, renderDraft, movePart, setMusic, duplicatePart, deletePart, editSilence, deleteParts, saveDraft, addSilence, insertAsset, setMusicAsset, moveParts, uploadAsset }
+  return { previewing, exporting, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, regeneratePart, renderDraft, settleRender, movePart, setMusic, duplicatePart, deletePart, editSilence, deleteParts, saveDraft, addSilence, insertAsset, setMusicAsset, moveParts, uploadAsset }
 }

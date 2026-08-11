@@ -14,12 +14,13 @@ class FakeVoices:
             "Tina": {"image": "tina.png", "favourite": True},
             "Cindy": {"image": "", "favourite": False},
         }
+        self.custom = []
 
     def catalog_metadata(self):
         return self.metadata
 
     def custom_bindings(self):
-        return []
+        return self.custom
 
     def binding_references(self):
         return {}
@@ -103,6 +104,19 @@ class CatalogServiceTests(unittest.TestCase):
         registry = self.service.registry()
         self.assertTrue(registry["bindings"])
         self.assertTrue(registry["models"])
+
+    def test_owned_binding_resolves_from_the_same_canonical_record_the_registry_shows(self):
+        self.voices.custom = [{
+            "binding_id": "binding-eve", "identity_id": "voice-eve",
+            "provider_voice_id": "provider-eve", "model_id": "qwen3-tts-vc",
+            "provider": "alibaba", "region": "intl", "adapter_key": "qwen_tts",
+            "engine": "qwen_tts", "tier": "vc", "status": "active",
+            "reference_id": "reference-eve", "languages": ["English"],
+        }]
+        route = self.service.resolve_voice({"binding_id": "binding-eve"})
+        self.assertEqual(route["provider_voice_id"], "provider-eve")
+        self.assertEqual(route["model_id"], "qwen3-tts-vc")
+        self.assertEqual(route["capability_id"], "exact_longform")
 
     def test_storage_adapter_never_exposes_keys(self):
         values = {

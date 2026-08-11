@@ -1,29 +1,83 @@
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
-import type { GenerateResult, RenderTask } from "@/types/domain"
+import { jobObserver } from "@/lib/job-observer"
+import type { DurableJob, GenerateResult, RenderTask } from "@/types/domain"
 
-export function useRenderTasks(executor: (task: RenderTask) => Promise<GenerateResult>) {
+export type RenderTaskDraft = Omit<RenderTask, "id" | "jobId" | "status" | "startedAt" | "error" | "detail">
+
+export function useRenderTasks(
+  executor: (task: RenderTaskDraft) => Promise<DurableJob<GenerateResult>>,
+  onSuccess: (task: RenderTask, result: GenerateResult) => Promise<void>,
+) {
   const [tasks, setTasks] = useState<RenderTask[]>([])
+  const mounted = useRef(true)
+  const subscriptions = useRef(new Map<string, () => void>())
 
-  const run = useCallback(async (task: RenderTask) => {
-    setTasks((current) => current.map((item) => item.id === task.id ? { ...item, status: "generating", error: undefined, startedAt: Date.now() } : item))
-    try {
-      const result = await executor(task)
-      if (!result.needs_confirmation) setTasks((current) => current.filter((item) => item.id !== task.id))
-      return result
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "The provider could not generate this audio."
-      setTasks((current) => current.map((item) => item.id === task.id ? { ...item, status: "failed", error: message } : item))
-      throw error
+  useEffect(() => () => {
+    mounted.current = false
+    for (const unsubscribe of subscriptions.current.values()) unsubscribe()
+    subscriptions.current.clear()
+  }, [])
+
+  const track = useCallback((task: RenderTask) => {
+    const sync = () => {
+      const job = jobObserver.getSnapshot<GenerateResult>(task.jobId)
+      if (!job || !mounted.current) return
+      setTasks((current) => current.map((item) => item.jobId === task.jobId ? {
+        ...item,
+        status: job.status,
+        detail: job.detail,
+        error: job.error || undefined,
+      } : item))
     }
-  }, [executor])
+    subscriptions.current.get(task.jobId)?.()
+    subscriptions.current.set(task.jobId, jobObserver.subscribe(task.jobId, sync))
+    sync()
+    void jobObserver.completion<GenerateResult>(task.jobId)
+      .then(async (result) => {
+        if (!mounted.current) return
+        const snapshot = jobObserver.getSnapshot<GenerateResult>(task.jobId)
+        if (snapshot?.status === "blocked") return
+        await onSuccess(task, result)
+        if (mounted.current) setTasks((current) => current.filter((item) => item.jobId !== task.jobId))
+      })
+      .catch((error) => {
+        if (!mounted.current) return
+        sync()
+        setTasks((current) => current.map((item) => item.jobId === task.jobId ? {
+          ...item,
+          error: error instanceof Error ? error.message : "The provider could not generate this audio.",
+        } : item))
+      })
+      .finally(() => {
+        subscriptions.current.get(task.jobId)?.()
+        subscriptions.current.delete(task.jobId)
+      })
+  }, [onSuccess])
 
-  const enqueue = useCallback((task: RenderTask) => {
-    setTasks((current) => [...current, task])
-    return run(task)
-  }, [run])
-  const retry = useCallback((task: RenderTask) => { void run(task).catch(() => undefined) }, [run])
-  const dismiss = useCallback((id: string) => setTasks((current) => current.filter((task) => task.id !== id)), [])
+  const enqueue = useCallback(async (draft: RenderTaskDraft) => {
+    const job = await executor(draft)
+    const task: RenderTask = {
+      ...draft,
+      id: job.id,
+      jobId: job.id,
+      status: job.status,
+      detail: job.detail,
+      error: job.error || undefined,
+      startedAt: Date.now(),
+    }
+    if (mounted.current) setTasks((current) => [...current, task])
+    track(task)
+    return job
+  }, [executor, track])
+
+  const retry = useCallback((task: RenderTask) => {
+    const { id: _id, jobId: _jobId, status: _status, startedAt: _startedAt, error: _error, detail: _detail, ...draft } = task
+    void enqueue(draft).then(() => {
+      if (mounted.current) setTasks((current) => current.filter((item) => item.jobId !== task.jobId))
+    }).catch(() => undefined)
+  }, [enqueue])
+  const dismiss = useCallback((id: string) => setTasks((current) => current.filter((task) => task.jobId !== id)), [])
 
   return { tasks, enqueue, retry, dismiss }
 }

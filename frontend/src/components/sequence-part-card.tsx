@@ -77,7 +77,7 @@ export function SequencePartCard({ part, renderTask, index, count, selected, pla
         </DropdownMenu>
       </div>
       {renderTask && <div className={`take-render-status ${renderTask.status}`} role="status" aria-live="polite">
-        {renderTask.status === "generating" ? <><LoaderCircle className="spin" /><span><b>{renderTask.mode === "draft" ? "Recording this draft…" : "Generating a new take…"}</b><small>The current card stays usable while Alibaba works.</small></span></> : <><CircleAlert /><span><b>New take failed</b><small>{renderTask.error}</small></span><Button variant="outline" size="sm" onClick={() => onRetryRender(renderTask)}><RefreshCw /> Retry</Button><Button variant="ghost" size="icon" aria-label="Dismiss failed take" onClick={() => onDismissRender(renderTask.id)}><X /></Button></>}
+        {["queued", "running", "retrying"].includes(renderTask.status) ? <><LoaderCircle className="spin" /><span><b>{renderTask.mode === "draft" ? "Recording this draft…" : "Generating a new take…"}</b><small>{renderTask.detail || "The current card stays usable while Alibaba works."}</small></span></> : <><CircleAlert /><span><b>{renderTask.status === "blocked" ? "New take needs review" : "New take failed"}</b><small>{renderTask.error || renderTask.detail}</small></span>{renderTask.status !== "blocked" && <Button variant="outline" size="sm" onClick={() => onRetryRender(renderTask)}><RefreshCw /> Retry</Button>}<Button variant="ghost" size="icon" aria-label="Dismiss failed take" onClick={() => onDismissRender(renderTask.jobId)}><X /></Button></>}
       </div>}
     </article>
   )

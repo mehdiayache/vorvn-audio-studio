@@ -67,7 +67,7 @@ class FakeRepository:
 
     def create_part(self, production_id, insert_at, values):
         self.created.append((production_id, insert_at, values))
-        return 701
+        return 701 if production_id is not None else None
 
     def replace_part(self, part_id, production_id, expected_created_at,
                      values, *, operation):
@@ -258,7 +258,7 @@ class SpeechGenerationTests(unittest.TestCase):
         result = service.run(payload(
             text="[whispers] مرحبا بالعالم", voice="custom-audio",
             engine="audio", model="flash", language="Arabic"))
-        self.assertEqual(result["id"], 701)
+        self.assertIsNone(result["id"])
         self.assertEqual(provider.prepared[0].voice, "custom-audio")
         self.assertEqual(provider.prepared[0].language, "Arabic")
         self.assertEqual(provider.prepared[0].engine, "audio")
@@ -270,7 +270,7 @@ class SpeechGenerationTests(unittest.TestCase):
             repository=repository, provider=provider)
         result = service.run(payload(
             text="مرحبا بالعالم", language="Auto"))
-        self.assertEqual(result["id"], 701)
+        self.assertIsNone(result["id"])
         self.assertEqual(provider.prepared[0].voice, "voice-one")
         self.assertIsNone(provider.prepared[0].language)
         self.assertEqual(provider.prepared[0].engine, "audio")
@@ -322,7 +322,8 @@ class SpeechGenerationTests(unittest.TestCase):
     def test_standalone_speech_has_no_fake_production(self):
         service, repository, _, _ = self.service()
         result = service.run(payload())
-        self.assertEqual(result["id"], 701)
+        self.assertIsNone(result["id"])
+        self.assertIsNone(result["part_id"])
         self.assertEqual(repository.created[0][:2], (None, None))
 
     def test_regenerate_and_render_draft_have_distinct_persistence_rules(self):
@@ -417,7 +418,7 @@ class SpeechGenerationTests(unittest.TestCase):
         progress = Progress()
         job = Job(9, uuid4(), "speech", JobStatus.RUNNING, payload())
         result = handler(job, progress)
-        self.assertEqual(result["id"], 701)
+        self.assertIsNone(result["id"])
         self.assertEqual(progress.events[0][1:3], (0, 2))
         self.assertEqual(progress.events[-1][1:3], (2, 2))
 

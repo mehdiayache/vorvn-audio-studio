@@ -382,7 +382,7 @@ The final responsive audit removed the Production metrics mini-scrollbar on
 mobile: the same metric pills now wrap inside the available width. Desktop and
 mobile route smoke checks show no document overflow or browser diagnostics.
 
-## Composer contract migration — started
+## Composer contract migration — in progress
 
 Checkpoint 1 installs the shared provider-neutral Composer backbone beneath
 the existing Speak and Production presentation. It is deliberately not the
@@ -408,7 +408,42 @@ future dock and does not change Player or durable Job ownership.
 - Composer UI state is separate from the persistable Draft contract. Job and
   playback lifecycles remain outside Composer in this checkpoint.
 
-Deferred to later approved checkpoints: persisted Draft recovery, global Job
-observation, pre-provider Pending Part creation, stable insertion anchors,
-explicit Part editorial mutations, outdated-Take confirmation and the visual
-Composer/Player redesign.
+Checkpoint 2 moves speech execution out of the submitting Composer without
+changing the Composer layout, Part/Take semantics or provider retry policy.
+
+- Speech enqueue now returns the durable backend Job immediately. A small
+  application-wide observer owns polling by public Job ID, deduplicates reads,
+  retains backend status as truth and continues after the submitting component
+  unmounts.
+- React consumers subscribe through `useJobExecution`; they do not own the Job
+  lifetime. Compatibility Promise wrappers remain for unrelated tools that
+  have not entered this migration checkpoint.
+- Speak records the originating recording-session ID with every execution. A
+  completion from an abandoned session remains durable in Activity/history but
+  cannot refresh, play into or otherwise mutate the newly opened session.
+- Production creates its pending presentation only after enqueue and uses the
+  real backend Job ID. The previous random client task identity is gone. The
+  temporary `RenderTask` shell now mirrors queued/running/retrying/blocked and
+  terminal backend states; blocked work requires review and is not presented as
+  a generic automatic retry.
+- New Part, Draft render and new Take enqueue through the same observable Job
+  path. Existing Part/Take persistence and successful settlement behavior are
+  unchanged; successful completion refreshes the durable Production result.
+- Two full-path defects exposed by the live smoke were fixed below the UI. The
+  owned-voice repository now returns the same canonical provider/model/region
+  route fields that the registry displays, so billing validation and execution
+  resolve one binding record. Standalone Speak now persists no fabricated
+  `part_id=0`; its durable truth is the Job/ProviderAttempt/session result.
+
+Live verification used distinct, explicitly submitted paid operations. One
+provider-successful request exposed the old standalone `part_id=0` persistence
+fault; its evidence and cost were retained and it was not retried. After the
+fix, a new standalone Qwen3 Voice Clone Job completed with playable audio. A
+separate Production Qwen3 Voice Clone Job displayed an immediate pending card,
+survived independently of the Composer, and settled into a persistent Part
+using the exact backend Job route. Browser diagnostics remained clean.
+
+Deferred to later approved checkpoints: persisted Draft recovery,
+pre-provider Pending Part creation, stable insertion anchors, explicit Part
+editorial mutations, outdated-Take confirmation and the visual Composer/Player
+redesign.

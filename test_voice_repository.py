@@ -120,7 +120,9 @@ class VoiceRepositoryTests(unittest.TestCase):
                 item for item in repository.custom_bindings()
                 if item["voice_id"] == provider_id)
             self.assertTrue(binding.keys() >= {
-                "voice_id", "identity_id", "target_model"})
+                "voice_id", "identity_id", "target_model",
+                "provider_voice_id", "model_id", "provider", "region",
+                "adapter_key"})
             self.assertEqual(
                 repository.binding_references()[provider_id]["id"], reference_id)
 

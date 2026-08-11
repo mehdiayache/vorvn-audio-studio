@@ -1,28 +1,38 @@
 // @vitest-environment jsdom
 import { act, renderHook } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
-import type { RenderTask } from "@/types/domain"
-import { useRenderTasks } from "./use-render-tasks"
+import { jobObserver } from "@/lib/job-observer"
+import type { DurableJob, GenerateResult } from "@/types/domain"
+import { useRenderTasks, type RenderTaskDraft } from "./use-render-tasks"
 
-const task: RenderTask = { id: "task-1", mode: "new", status: "generating", text: "Hello", voice: "Tina", insertAt: null, startedAt: Date.now(), payload: { text: "Hello", production_id: 28, insert_at: null, voice: "Tina", engine: "omni", model: "plus", format: "mp3", language: "English", instruction: "", speech_mode: "exact", rate: 1, pitch: 1, volume: 50, seed: 0 } }
+const draft: RenderTaskDraft = { mode: "new", text: "Hello", voice: "Tina", insertAt: null, payload: { text: "Hello", production_id: 28, insert_at: null, voice: "Tina", engine: "omni", model: "plus", format: "mp3", language: "English", instruction: "", speech_mode: "exact", rate: 1, pitch: 1, volume: 50, seed: 0 } }
+const durable = (status: DurableJob<GenerateResult>["status"], result = {} as GenerateResult): DurableJob<GenerateResult> => ({ id: "backend-job-77", type: "speech", status, progress: 0, detail: status, retries: 0, result })
+
+afterEach(() => { jobObserver.reset(); vi.useRealTimers() })
 
 describe("useRenderTasks", () => {
-  it("owns a pending task until the render resolves", async () => {
-    let finish: (value: { id: number; url: string }) => void = () => undefined
-    const executor = vi.fn(() => new Promise<{ id: number; url: string }>((resolve) => { finish = resolve }))
-    const { result } = renderHook(() => useRenderTasks(executor))
-    let pending!: Promise<unknown>
-    act(() => { pending = result.current.enqueue(task) })
-    expect(result.current.tasks).toHaveLength(1)
-    await act(async () => { finish({ id: 127, url: "/audio/ready.mp3" }); await pending })
+  it("uses the backend Job ID immediately and settles from global observation", async () => {
+    vi.useFakeTimers()
+    const read = vi.fn().mockResolvedValue(durable("ok", { id: 127, url: "/audio/ready.mp3" }))
+    const executor = vi.fn(async () => { const job = durable("queued"); jobObserver.register(job, read); return job })
+    const success = vi.fn(async () => undefined)
+    const { result } = renderHook(() => useRenderTasks(executor, success))
+    let returned!: DurableJob<GenerateResult>
+    await act(async () => { returned = await result.current.enqueue(draft) })
+    expect(returned.id).toBe("backend-job-77")
+    expect(result.current.tasks[0]).toMatchObject({ id: "backend-job-77", jobId: "backend-job-77", status: "queued" })
+    await act(async () => { await vi.advanceTimersByTimeAsync(0) })
+    expect(success).toHaveBeenCalledWith(expect.objectContaining({ jobId: "backend-job-77" }), expect.objectContaining({ id: 127 }))
     expect(result.current.tasks).toHaveLength(0)
   })
 
-  it("retains a failed task for retry", async () => {
-    const executor = vi.fn(async () => { throw new Error("Provider timeout") })
-    const { result } = renderHook(() => useRenderTasks(executor))
-    await act(async () => { await result.current.enqueue(task).catch(() => undefined) })
-    expect(result.current.tasks[0]).toMatchObject({ status: "failed", error: "Provider timeout" })
+  it("retains backend failure evidence for an explicit retry", async () => {
+    vi.useFakeTimers()
+    const read = vi.fn().mockResolvedValue({ ...durable("failed"), error: "Provider timeout" })
+    const executor = vi.fn(async () => { const job = durable("running"); jobObserver.register(job, read); return job })
+    const { result } = renderHook(() => useRenderTasks(executor, vi.fn(async () => undefined)))
+    await act(async () => { await result.current.enqueue(draft); await vi.advanceTimersByTimeAsync(0) })
+    expect(result.current.tasks[0]).toMatchObject({ id: "backend-job-77", status: "failed", error: "Provider timeout" })
   })
 })

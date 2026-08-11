@@ -3,7 +3,7 @@ import { ProductionToolSheet, type ToolKind } from "@/components/production-tool
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import type { ClonedVoice, GeneratePayload, GenerateResult, HierarchyNode, PlayerSource, ProductionCastRole, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
+import type { ClonedVoice, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, PlayerSource, ProductionCastRole, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
 
 export type ConfirmAction = { title: string; description: string; action: () => void }
 
@@ -28,7 +28,7 @@ export default function ProductionOverlays({ tool, projectId, nextPartNumber, in
   confirmAction: ConfirmAction | null
   onCloseTool: () => void
   onSaveDraft: (payload: Omit<GeneratePayload, "confirmed">) => Promise<void>
-  onGenerate: (payload: GeneratePayload) => Promise<GenerateResult>
+  onGenerate: (payload: GeneratePayload) => Promise<DurableJob<GenerateResult>>
   onAddSilence: (seconds: number) => Promise<void>
   onInsertAsset: (asset: VentureAsset) => Promise<void>
   onSetMusic: (asset: VentureAsset) => Promise<void>

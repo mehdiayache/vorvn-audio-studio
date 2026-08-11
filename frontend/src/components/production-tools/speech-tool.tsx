@@ -29,7 +29,7 @@ import { capabilityTitle, outputLanguageOptions } from "@/lib/voice-capabilities
 import { formatMicroMoney } from "@/lib/format"
 import { getVoiceIdentities, routesForIdentity, type SpeechEngine, type SpeechModel, type VoiceChoice, type VoiceIdentityChoice } from "@/lib/voice-options"
 import { cn } from "@/lib/utils"
-import type { ClonedVoice, GeneratePayload, GenerateResult, PlayerSource, ProductionCastRole, ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
+import type { ClonedVoice, DurableJob, GeneratePayload, GenerateResult, PlayerSource, ProductionCastRole, ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
 
 type ComposerSection = "script" | "voice" | "delivery" | "output"
 
@@ -54,7 +54,7 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
   playingKey?: string
   playerPlaying: boolean
   onSave?: (payload: Omit<GeneratePayload, "confirmed">) => Promise<void>
-  onGenerate: (payload: GeneratePayload) => Promise<GenerateResult>
+  onGenerate: (payload: GeneratePayload) => Promise<DurableJob<GenerateResult>>
   onPlay: (source: PlayerSource) => void
 }) {
   const [route, setRoute] = useState(routeSelectionFromPersistedDraft(part))
@@ -195,7 +195,7 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
     const warnAbove = Number(config?.prefs?.warn_above || 0)
     if (!next.confirmed && warnAbove > 0 && estimate > warnAbove) { setPendingCommand(next); setConfirmEstimate(estimate); return }
     setBusy("generate")
-    try { const result = await onGenerate(payload(next)); if (result.needs_confirmation) { setPendingCommand(next); setConfirmEstimate(result.estimate || estimate) } }
+    try { await onGenerate(payload(next)) }
     catch { /* The Production-owned render task keeps the actionable failure. */ }
     finally { setBusy(null) }
   }
