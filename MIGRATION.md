@@ -514,3 +514,41 @@ outdated promotion. React tests cover the required editorial decision and the
 explicit revision-guarded mutation. The complete checkpoint passes 304 Python
 tests and 103 React tests plus generated OpenAPI, TypeScript and production
 build. No Alibaba generation was triggered.
+
+Checkpoint 5 gives the shared Composer one small durable preparation owner
+without turning Drafts into Parts or Jobs and without changing the visual
+Composer architecture.
+
+- `composer_working_drafts` stores only recoverable preparation state: exact
+  binding or catalogue route, Voice/Cast choice, Raw/Spoken/Tagged text,
+  delivery and output. Editorial patches, UI sections, confirmation dialogs,
+  Job state, Take history and Player state are deliberately excluded.
+- One deterministic context owns each preparation. Speak uses its recording
+  session UUID; an existing Production Part uses its operation and Part ID; a
+  future Part uses the Production plus the public UUID of the Part before
+  which it will be inserted (or an explicit end anchor). No timeline index is
+  persistence truth.
+- Speak and Production use the same HTTP contract, Application service,
+  PostgreSQL repository, serializer and React recovery hook. There is no
+  local-storage fallback or second per-tool persistence implementation.
+- Saving is debounced and version guarded. Two open views cannot silently
+  overwrite each other's preparation; HTTP 409 is surfaced as a Draft
+  conflict. Deleted Productions, Parts and insertion anchors fail validation
+  rather than restoring a Draft into the wrong context.
+- A Composer restores its preparation after close, navigation or reload.
+  Purely visual state resets normally. A successful Production enqueue or an
+  explicit `Save as draft` removes the working preparation only after the
+  durable backend action succeeds. Speak intentionally retains its setup so
+  the operator can create another Take in the same recording session.
+- A pristine Composer creates no database row. The loading boundary briefly
+  prevents generation before recovery completes, so a restored Draft cannot
+  be bypassed or erased by a fast click.
+
+Verification is provider-free. PostgreSQL tests cover round-trip persistence,
+optimistic conflicts, deletion and Production Part/insertion validation;
+React tests cover exact serialization, meaningful-state detection, hydration,
+autosave and cleanup. The full checkpoint passes 310 Python tests and 108 React
+tests plus generated OpenAPI, TypeScript and the production build. Live browser
+smoke proved Speak reload recovery and Production close/reopen recovery at a
+real insertion point with no console warnings or errors. The temporary smoke
+Draft rows were deleted afterward. No Alibaba generation was triggered.

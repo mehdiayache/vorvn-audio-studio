@@ -58,6 +58,13 @@ export type CompositionDraft = {
   editorialPatch: EditorialPatch
 }
 
+export type RecoverableCompositionDraft = Omit<CompositionDraft, "editorialPatch">
+
+export function recoverableDraft(draft: CompositionDraft): RecoverableCompositionDraft {
+  const { editorialPatch: _editorialPatch, ...recoverable } = draft
+  return recoverable
+}
+
 export type ComposerUI = {
   section: "script" | "voice" | "delivery" | "output"
   busy: "draft" | "generate" | null

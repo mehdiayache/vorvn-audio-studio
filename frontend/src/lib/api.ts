@@ -26,6 +26,8 @@ import type {
 import type { paths } from "@/types/api.generated"
 import { ApiError } from "@/lib/api-error"
 import { jobObserver, observeJob } from "@/lib/job-observer"
+import { contextWire, draftFromWire, draftWire, type ComposerDraftRecord, type ComposerDraftWireRecord } from "@/lib/composer-draft-persistence"
+import type { CompositionContext, RecoverableCompositionDraft } from "@/lib/composer-contract"
 
 type GeneratedJob = paths["/api/v1/jobs/{job_id}"]["get"]["responses"][200]["content"]["application/json"]["data"]
 type UploadedImage = paths["/api/v1/project-covers/upload"]["post"]["responses"][200]["content"]["application/json"]["data"]
@@ -276,6 +278,11 @@ export const studioApi = {
     return { ...result, job_id: job.id }
   },
   recordingSession: (id: string) => v1<RecordingSession>(`/api/v1/speak/sessions/${encodeURIComponent(id)}`),
+  composerDraft: (context: CompositionContext) => postV1<ComposerDraftWireRecord | null>("/api/v1/composer-drafts/resolve", { context: contextWire(context) }).then((record) => record ? draftFromWire(record) : null),
+  saveComposerDraft: (context: CompositionContext, state: RecoverableCompositionDraft, expectedVersion: number | null) =>
+    request<{ data: ComposerDraftWireRecord }>("/api/v1/composer-drafts", { method: "PUT", body: JSON.stringify({ context: contextWire(context), state: draftWire(state), expected_version: expectedVersion }) }).then((response) => draftFromWire(response.data) as ComposerDraftRecord),
+  deleteComposerDraft: (context: CompositionContext, expectedVersion: number | null) =>
+    request<{ data: { deleted: boolean } }>("/api/v1/composer-drafts", { method: "DELETE", body: JSON.stringify({ context: contextWire(context), expected_version: expectedVersion }) }).then((response) => response.data),
   renderDraft: async (id: number, payload: GeneratePayload) => {
     const job = await enqueueSpeech(payload, "render_draft", id)
     return jobObserver.completion<GenerateResult>(job.id)

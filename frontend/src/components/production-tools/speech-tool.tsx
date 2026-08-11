@@ -12,11 +12,13 @@ import { VoiceLanguageSupport } from "@/components/voice-language-support"
 import { VoiceMethodPicker } from "@/components/production-tools/voice-method-picker"
 import { SpeechModelIdentity } from "@/components/speech-model-identity"
 import { useComposerText, type TextView } from "@/hooks/use-composer-text"
+import { useComposerDraftRecovery } from "@/hooks/use-composer-draft-recovery"
 import {
   buildSpeechCommand,
   compositionContext,
   editorialBaseline,
   resolveSelectedRoute,
+  recoverableDraft,
   routeSelection,
   routeSelectionFromPersistedDraft,
   routeSelectionId,
@@ -188,6 +190,24 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
       ...(baseline && (castRoleId || null) !== baseline.castRoleId ? { castRoleId: castRoleId || null } : {}),
     },
   }
+  const recovery = useComposerDraftRecovery({
+    context,
+    draft: recoverableDraft(draft),
+    onRestore: (saved) => {
+      setIdentityId(saved.voiceIdentityId || "")
+      setCastRoleId(saved.castRoleId || "")
+      setRoute(saved.route)
+      textSession.restore(saved.text)
+      setSpeechMode(saved.delivery.modeId === "directed" ? "directed" : "exact")
+      setInstruction(saved.delivery.instruction)
+      setRate(saved.delivery.rate)
+      setPitch(saved.delivery.pitch)
+      setVolume(saved.delivery.volume)
+      setFormat(saved.output.format)
+      setLanguage(saved.output.language)
+    },
+    enabled: context.kind === "production" || Boolean(context.sessionId),
+  })
   function command(confirmed = false) {
     return buildSpeechCommand({ context, draft, confirmed })
   }
@@ -202,6 +222,7 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
         await onUpdateEditorial({ expected_revision: baseline.revision, ...next.editorialPatch })
       }
       await onGenerate({ ...payload(next), select_result: selectResult })
+      if (context.kind === "production") await recovery.clear()
     }
     catch { /* The Production-owned render task keeps the actionable failure. */ }
     finally { setBusy(null) }
@@ -246,7 +267,7 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
       {section === "delivery" && <section className="composer-section"><header><div><span className="eyebrow">Performance</span><h3>How should it sound?</h3></div></header>{engine === "omni" && <div className="delivery-mode"><div><span>Omni delivery</span><Button variant={speechMode === "exact" ? "secondary" : "outline"} onClick={() => setSpeechMode("exact")}>Keep the script</Button><Button variant={speechMode === "directed" ? "secondary" : "outline"} onClick={() => setSpeechMode("directed")}>Add direction</Button></div><p>{speechMode === "exact" ? "Audio Studio reads the script in short passages and verifies every returned transcript before assembling the Take." : "The same verified-passage process is used with one overall natural-language direction. Inline emotion tags are unavailable."}</p></div>}{engine === "qwen_tts" ? <p className="composer-engine-note">Faithful narration reads the prepared script without emotion tags or performance instructions.</p> : <label><span>{engine === "omni" ? "Overall performance direction" : "Voice direction"}</span><Input value={instruction} disabled={engine === "omni" && speechMode === "exact"} maxLength={config?.instruction_max || 100} onChange={(event) => setInstruction(event.target.value)} placeholder="Describe the performance in natural language" />{engine === "omni" && speechMode === "exact" && <small>Choose Add direction to control the overall performance.</small>}</label>}{performancePresets.length > 0 && <div className="performance-presets"><span>Presets</span><div>{performancePresets.map((preset) => <Button key={preset.id} type="button" variant={instruction === preset.instruction ? "secondary" : "outline"} onClick={() => { setInstruction(preset.instruction); if (engine === "omni") setSpeechMode("directed") }}><b>{preset.name}</b><small>{preset.instruction}</small></Button>)}</div></div>}</section>}
       {section === "output" && <section className="composer-section"><header><div><span className="eyebrow">Output</span><h3>{engine === "audio" ? "Output and voice tuning" : "File settings"}</h3></div></header>{!engine ? <p className="composer-engine-note">Choose an exact route before configuring model-specific output.</p> : engine !== "audio" && <p className="composer-engine-note">{engine === "omni" ? "Qwen 3.5 Omni interprets pace, emotion, and volume from the natural-language direction in Delivery." : "Qwen3 TTS Voice Clone controls delivery from the cloned voice and prepared script."} Precise numeric speed, pitch, and volume controls are unavailable.</p>}<div className="composer-fine-grid">{engine === "audio" && <><label><span>Speed <b>{rate.toFixed(2)}×</b></span><Slider value={[rate]} min={0.5} max={2} step={0.05} onValueChange={([value = 1]) => setRate(value)} /></label><label><span>Pitch <b>{pitch.toFixed(2)}×</b></span><Slider value={[pitch]} min={0.5} max={2} step={0.05} onValueChange={([value = 1]) => setPitch(value)} /></label><label><span>Volume <b>{volume}</b></span><Slider value={[volume]} min={0} max={100} step={1} onValueChange={([value = 50]) => setVolume(value)} /></label></>}<label><span>File type</span><Select value={format} onValueChange={setFormat}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(config?.formats || ["mp3"]).map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></label></div></section>}
     </div>
-    <footer className="composer-footer"><div className="composer-cost"><CircleDollarSign /><span>{engine && taggedIncompatible ? `${capabilityTitle(engine, config)} does not use inline tags` : `${textSession.text.length.toLocaleString()} characters`}</span><b>{taggedIncompatible ? "Open Script to remove tags" : currentRoute ? `about $${estimate.toFixed(4)}` : "Choose an exact route"}</b></div><div className="composer-actions">{!part && projectId && onSave && <Button variant="outline" disabled={!textSession.text.trim() || !currentRoute || Boolean(busy)} onClick={async () => { setBusy("draft"); try { await onSave(payload()); } finally { setBusy(null) } }}><Plus />{busy === "draft" ? "Saving…" : "Save as draft"}</Button>}<Button disabled={!config?.has_key || !textSession.text.trim() || !currentRoute || Boolean(busy) || taggedIncompatible} onClick={() => void generate()}><WandSparkles />{busy === "generate" ? "Generating…" : !projectId ? "Generate audio" : part?.kind === "draft" ? `Record Part ${(part.position ?? 0) + 1}` : part ? `Generate new take · Part ${(part.position ?? 0) + 1}` : `Generate and add Part ${insertAt === null ? nextPartNumber : insertAt + 1}`}</Button></div></footer>
+    <footer className="composer-footer"><div className="composer-cost"><CircleDollarSign /><span>{engine && taggedIncompatible ? `${capabilityTitle(engine, config)} does not use inline tags` : `${textSession.text.length.toLocaleString()} characters`}</span><b>{taggedIncompatible ? "Open Script to remove tags" : currentRoute ? `about $${estimate.toFixed(4)}` : "Choose an exact route"}</b>{recovery.status === "saving" && <small>Saving preparation…</small>}{recovery.status === "saved" && <small>Preparation saved</small>}{recovery.status === "conflict" && <small className="composer-save-error">Draft changed in another view</small>}{recovery.status === "error" && <small className="composer-save-error">Preparation could not be saved</small>}</div><div className="composer-actions">{!part && projectId && onSave && <Button variant="outline" disabled={!textSession.text.trim() || !currentRoute || Boolean(busy) || recovery.status === "loading"} onClick={async () => { setBusy("draft"); try { await onSave(payload()); await recovery.clear() } finally { setBusy(null) } }}><Plus />{busy === "draft" ? "Saving…" : "Save as draft"}</Button>}<Button disabled={!config?.has_key || !textSession.text.trim() || !currentRoute || Boolean(busy) || taggedIncompatible || recovery.status === "loading"} onClick={() => void generate()}><WandSparkles />{busy === "generate" ? "Generating…" : !projectId ? "Generate audio" : part?.kind === "draft" ? `Record Part ${(part.position ?? 0) + 1}` : part ? `Generate new take · Part ${(part.position ?? 0) + 1}` : `Generate and add Part ${insertAt === null ? nextPartNumber : insertAt + 1}`}</Button></div></footer>
     {!config?.has_key && <p className="composer-warning footer-warning">Add the Alibaba API key in Settings before generating. Drafts still work.</p>}
     <Dialog open={Boolean(editorialCommand)} onOpenChange={(open) => { if (!open) setEditorialCommand(null) }}><DialogContent><DialogHeader><DialogTitle>The Part has unsaved editorial changes</DialogTitle><DialogDescription>Choose whether these words and Cast Role become the Part’s new editorial truth. Audio Studio will never decide this for you.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => { const next = editorialCommand; setEditorialCommand(null); if (next) continueGeneration(next, false, false) }}>Generate alternative only</Button><Button onClick={() => { const next = editorialCommand; setEditorialCommand(null); if (next) continueGeneration(next, true, true) }}>Update Part and generate</Button></DialogFooter></DialogContent></Dialog>
     <Dialog open={confirmEstimate !== null} onOpenChange={(open) => { if (!open) { setConfirmEstimate(null); setPendingCommand(null) } }}><DialogContent><DialogHeader><DialogTitle>Generate this take?</DialogTitle><DialogDescription>This request is estimated at ${confirmEstimate?.toFixed(4)}. Actual provider usage is stored after completion.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => { setConfirmEstimate(null); setPendingCommand(null) }}>Cancel</Button><Button onClick={() => { const next = pendingCommand; setConfirmEstimate(null); setPendingCommand(null); if (next) void executeGeneration({ ...next.command, confirmed: true }, next.selectResult, next.updateEditorial) }}>Generate</Button></DialogFooter></DialogContent></Dialog>

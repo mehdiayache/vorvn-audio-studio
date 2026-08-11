@@ -72,6 +72,41 @@ export interface paths {
         patch: operations["recast_api_v1_cast_roles__role_id__assignment_patch"];
         trace?: never;
     };
+    "/api/v1/composer-drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save Draft */
+        put: operations["saveComposerDraft"];
+        post?: never;
+        /** Delete Draft */
+        delete: operations["deleteComposerDraft"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/composer-drafts/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Draft */
+        post: operations["resolveComposerDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/config": {
         parameters: {
             query?: never;
@@ -1910,6 +1945,17 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** ComposerState */
+        ComposerState: {
+            /** Cast Role Id */
+            cast_role_id?: string | null;
+            delivery: components["schemas"]["DeliveryState"];
+            output: components["schemas"]["OutputState"];
+            route?: components["schemas"]["RouteState"] | null;
+            text: components["schemas"]["TextState"];
+            /** Voice Identity Id */
+            voice_identity_id?: string | null;
+        };
         /** CostBasisResponse */
         CostBasisResponse: {
             /** Basis */
@@ -1943,6 +1989,36 @@ export interface components {
         DeletedPronunciationResponse: {
             /** Deleted */
             deleted: boolean;
+        };
+        /** DeliveryState */
+        DeliveryState: {
+            /**
+             * Instruction
+             * @default
+             */
+            instruction: string;
+            /** Mode Id */
+            mode_id?: string | null;
+            /**
+             * Pitch
+             * @default 1
+             */
+            pitch: number;
+            /**
+             * Rate
+             * @default 1
+             */
+            rate: number;
+            /**
+             * Seed
+             * @default 0
+             */
+            seed: number;
+            /**
+             * Volume
+             * @default 50
+             */
+            volume: number;
         };
         /** DiskLocationResponse */
         DiskLocationResponse: {
@@ -2049,6 +2125,55 @@ export interface components {
              * @default 50
              */
             volume: number;
+        };
+        /** DraftDelete */
+        DraftDelete: {
+            /** Context */
+            context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProductionContext"];
+            /** Expected Version */
+            expected_version?: number | null;
+        };
+        /** DraftDeleteEnvelope */
+        DraftDeleteEnvelope: {
+            data: components["schemas"]["DraftDeleteResponse"];
+        };
+        /** DraftDeleteResponse */
+        DraftDeleteResponse: {
+            /** Deleted */
+            deleted: boolean;
+        };
+        /** DraftEnvelope */
+        DraftEnvelope: {
+            data: components["schemas"]["DraftResponse"] | null;
+        };
+        /** DraftLookup */
+        DraftLookup: {
+            /** Context */
+            context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProductionContext"];
+        };
+        /** DraftResponse */
+        DraftResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            state: components["schemas"]["ComposerState"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** DraftWrite */
+        DraftWrite: {
+            /** Context */
+            context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProductionContext"];
+            /** Expected Version */
+            expected_version?: number | null;
+            state: components["schemas"]["ComposerState"];
         };
         /** EditorialBody */
         EditorialBody: {
@@ -2336,6 +2461,20 @@ export interface components {
             /** Type */
             type: string;
         };
+        /** OutputState */
+        OutputState: {
+            /**
+             * Format
+             * @default mp3
+             * @enum {string}
+             */
+            format: "mp3" | "wav";
+            /**
+             * Language
+             * @default Auto
+             */
+            language: string;
+        };
         /** OverviewResourceResponse */
         OverviewResourceResponse: {
             /** Description */
@@ -2477,6 +2616,25 @@ export interface components {
             tracked_spend: number;
             /** Untracked Legacy Spend */
             untracked_legacy_spend: number;
+        };
+        /** ProductionContext */
+        ProductionContext: {
+            /** Insert Before Part Id */
+            insert_before_part_id?: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "production";
+            /**
+             * Operation
+             * @enum {string}
+             */
+            operation: "new_part" | "render_draft" | "new_take";
+            /** Part Id */
+            part_id?: number | null;
+            /** Production Id */
+            production_id: number;
         };
         /** ProductionEditorEnvelope */
         ProductionEditorEnvelope: {
@@ -3007,6 +3165,20 @@ export interface components {
             /** Item Ids */
             item_ids: string[];
         };
+        /** RouteState */
+        RouteState: {
+            /** Binding Id */
+            binding_id?: string | null;
+            /** Capability Id */
+            capability_id?: string | null;
+            /** Catalogue Voice Id */
+            catalogue_voice_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "owned" | "catalogue";
+        };
         /** SavedPronunciationEnvelope */
         SavedPronunciationEnvelope: {
             data: components["schemas"]["SavedPronunciationResponse"];
@@ -3256,6 +3428,19 @@ export interface components {
             today: number;
             /** Warn Above */
             warn_above: number;
+        };
+        /** StandaloneContext */
+        StandaloneContext: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "standalone";
+            /**
+             * Session Id
+             * Format: uuid
+             */
+            session_id: string;
         };
         /** StorageSettingsResponse */
         StorageSettingsResponse: {
@@ -3655,6 +3840,30 @@ export interface components {
             production_id?: number | null;
             /** Text */
             text: string;
+        };
+        /** TextState */
+        TextState: {
+            /**
+             * Active
+             * @default raw
+             * @enum {string}
+             */
+            active: "raw" | "shaped" | "tagged";
+            /**
+             * Raw
+             * @default
+             */
+            raw: string;
+            /**
+             * Shaped
+             * @default
+             */
+            shaped: string;
+            /**
+             * Tagged
+             * @default
+             */
+            tagged: string;
         };
         /** TidyResultEnvelope */
         TidyResultEnvelope: {
@@ -4776,6 +4985,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ItemEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    saveComposerDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteComposerDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftDelete"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftDeleteEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolveComposerDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftLookup"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftEnvelope"];
                 };
             };
             /** @description Validation Error */

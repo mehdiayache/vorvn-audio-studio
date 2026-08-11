@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { studioApi } from "@/lib/api"
 import type { ProductionPart, TextPassResult } from "@/types/domain"
 import type { SpeechEngine } from "@/lib/voice-options"
+import type { ComposerText } from "@/lib/composer-contract"
 
 export type TextView = "raw" | "shaped" | "tagged"
 
@@ -40,6 +41,12 @@ export function useComposerText(part: ProductionPart | null | undefined, product
     if (!states[next] && next !== "raw") return false
     setView(next); setError("")
     return true
+  }
+
+  function restore(next: ComposerText) {
+    setStates({ raw: next.raw, shaped: next.shaped, tagged: next.tagged })
+    setView(next[next.active] || next.active === "raw" ? next.active : "raw")
+    setReview(null); setPending(null); setError("")
   }
 
   async function run(kind: "shape" | "tag", confirmed = false) {
@@ -82,5 +89,5 @@ export function useComposerText(part: ProductionPart | null | undefined, product
         setDensity(value as "none" | "light" | "normal" | "heavy")
       }
     },
-    updateText, select, run, accept, reject: () => setReview(null), cancelPending: () => setPending(null), confirmPending: async () => { const kind = pending?.kind; setPending(null); if (kind) await run(kind, true) } }
+    updateText, select, restore, run, accept, reject: () => setReview(null), cancelPending: () => setPending(null), confirmPending: async () => { const kind = pending?.kind; setPending(null); if (kind) await run(kind, true) } }
 }

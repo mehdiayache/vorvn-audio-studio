@@ -45,6 +45,7 @@ class MigrationTests(unittest.TestCase):
                     "018_provider_attempt_reconciliation.sql",
                     "019_exact_enrollment_routes.sql",
                     "020_provider_model_catalogue_truth.sql",
+                    "021_composer_working_drafts.sql",
         ])
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:
@@ -57,6 +58,7 @@ class MigrationTests(unittest.TestCase):
                     "production_parts", "production_mixes", "assets",
                     "asset_versions", "exports", "jobs", "job_events",
                     "audit_records", "transcripts", "schema_migrations",
+                    "composer_working_drafts",
                 }.issubset(tables))
                 fixtures = dict(database.execute("""
                     SELECT system_role, count(*) FROM projects

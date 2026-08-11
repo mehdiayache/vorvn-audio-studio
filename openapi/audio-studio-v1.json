@@ -1361,6 +1361,59 @@
         "title": "CollectionMetaResponse",
         "type": "object"
       },
+      "ComposerState": {
+        "additionalProperties": false,
+        "properties": {
+          "cast_role_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cast Role Id"
+          },
+          "delivery": {
+            "$ref": "#/components/schemas/DeliveryState"
+          },
+          "output": {
+            "$ref": "#/components/schemas/OutputState"
+          },
+          "route": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RouteState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "text": {
+            "$ref": "#/components/schemas/TextState"
+          },
+          "voice_identity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Identity Id"
+          }
+        },
+        "required": [
+          "text",
+          "delivery",
+          "output"
+        ],
+        "title": "ComposerState",
+        "type": "object"
+      },
       "CostBasisResponse": {
         "properties": {
           "basis": {
@@ -1453,6 +1506,55 @@
           "deleted"
         ],
         "title": "DeletedPronunciationResponse",
+        "type": "object"
+      },
+      "DeliveryState": {
+        "additionalProperties": false,
+        "properties": {
+          "instruction": {
+            "default": "",
+            "title": "Instruction",
+            "type": "string"
+          },
+          "mode_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode Id"
+          },
+          "pitch": {
+            "default": 1,
+            "maximum": 4.0,
+            "minimum": 0.25,
+            "title": "Pitch",
+            "type": "number"
+          },
+          "rate": {
+            "default": 1,
+            "maximum": 4.0,
+            "minimum": 0.25,
+            "title": "Rate",
+            "type": "number"
+          },
+          "seed": {
+            "default": 0,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "volume": {
+            "default": 50,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Volume",
+            "type": "integer"
+          }
+        },
+        "title": "DeliveryState",
         "type": "object"
       },
       "DiskLocationResponse": {
@@ -1712,6 +1814,191 @@
           "text"
         ],
         "title": "DraftBody",
+        "type": "object"
+      },
+      "DraftDelete": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "discriminator": {
+              "mapping": {
+                "production": "#/components/schemas/ProductionContext",
+                "standalone": "#/components/schemas/StandaloneContext"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StandaloneContext"
+              },
+              {
+                "$ref": "#/components/schemas/ProductionContext"
+              }
+            ],
+            "title": "Context"
+          },
+          "expected_version": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          }
+        },
+        "required": [
+          "context"
+        ],
+        "title": "DraftDelete",
+        "type": "object"
+      },
+      "DraftDeleteEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DraftDeleteResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "DraftDeleteEnvelope",
+        "type": "object"
+      },
+      "DraftDeleteResponse": {
+        "properties": {
+          "deleted": {
+            "title": "Deleted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "title": "DraftDeleteResponse",
+        "type": "object"
+      },
+      "DraftEnvelope": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DraftResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "DraftEnvelope",
+        "type": "object"
+      },
+      "DraftLookup": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "discriminator": {
+              "mapping": {
+                "production": "#/components/schemas/ProductionContext",
+                "standalone": "#/components/schemas/StandaloneContext"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StandaloneContext"
+              },
+              {
+                "$ref": "#/components/schemas/ProductionContext"
+              }
+            ],
+            "title": "Context"
+          }
+        },
+        "required": [
+          "context"
+        ],
+        "title": "DraftLookup",
+        "type": "object"
+      },
+      "DraftResponse": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ComposerState"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "version",
+          "updated_at"
+        ],
+        "title": "DraftResponse",
+        "type": "object"
+      },
+      "DraftWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "discriminator": {
+              "mapping": {
+                "production": "#/components/schemas/ProductionContext",
+                "standalone": "#/components/schemas/StandaloneContext"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StandaloneContext"
+              },
+              {
+                "$ref": "#/components/schemas/ProductionContext"
+              }
+            ],
+            "title": "Context"
+          },
+          "expected_version": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ComposerState"
+          }
+        },
+        "required": [
+          "context",
+          "state"
+        ],
+        "title": "DraftWrite",
         "type": "object"
       },
       "EditorialBody": {
@@ -2693,6 +2980,29 @@
         "title": "OutputReference",
         "type": "object"
       },
+      "OutputState": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "mp3",
+            "enum": [
+              "mp3",
+              "wav"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "language": {
+            "default": "Auto",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Language",
+            "type": "string"
+          }
+        },
+        "title": "OutputState",
+        "type": "object"
+      },
       "OverviewResourceResponse": {
         "additionalProperties": true,
         "properties": {
@@ -3058,6 +3368,61 @@
           "untracked_legacy_spend"
         ],
         "title": "ProductionAccountingResponse",
+        "type": "object"
+      },
+      "ProductionContext": {
+        "additionalProperties": false,
+        "properties": {
+          "insert_before_part_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Insert Before Part Id"
+          },
+          "kind": {
+            "const": "production",
+            "title": "Kind",
+            "type": "string"
+          },
+          "operation": {
+            "enum": [
+              "new_part",
+              "render_draft",
+              "new_take"
+            ],
+            "title": "Operation",
+            "type": "string"
+          },
+          "part_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Part Id"
+          },
+          "production_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Production Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "production_id",
+          "operation"
+        ],
+        "title": "ProductionContext",
         "type": "object"
       },
       "ProductionEditorEnvelope": {
@@ -4705,6 +5070,57 @@
         "title": "RetryEnrollmentItemsRequest",
         "type": "object"
       },
+      "RouteState": {
+        "additionalProperties": false,
+        "properties": {
+          "binding_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding Id"
+          },
+          "capability_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Id"
+          },
+          "catalogue_voice_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Voice Id"
+          },
+          "kind": {
+            "enum": [
+              "owned",
+              "catalogue"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "RouteState",
+        "type": "object"
+      },
       "SavedPronunciationEnvelope": {
         "properties": {
           "data": {
@@ -5419,6 +5835,27 @@
           "runs"
         ],
         "title": "SpendingSettingsResponse",
+        "type": "object"
+      },
+      "StandaloneContext": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "standalone",
+            "title": "Kind",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "session_id"
+        ],
+        "title": "StandaloneContext",
         "type": "object"
       },
       "StorageSettingsResponse": {
@@ -6541,6 +6978,38 @@
           "text"
         ],
         "title": "TextJobCreate",
+        "type": "object"
+      },
+      "TextState": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "default": "raw",
+            "enum": [
+              "raw",
+              "shaped",
+              "tagged"
+            ],
+            "title": "Active",
+            "type": "string"
+          },
+          "raw": {
+            "default": "",
+            "title": "Raw",
+            "type": "string"
+          },
+          "shaped": {
+            "default": "",
+            "title": "Shaped",
+            "type": "string"
+          },
+          "tagged": {
+            "default": "",
+            "title": "Tagged",
+            "type": "string"
+          }
+        },
+        "title": "TextState",
         "type": "object"
       },
       "TidyResultEnvelope": {
@@ -9912,6 +10381,127 @@
         "summary": "Recast",
         "tags": [
           "casting"
+        ]
+      }
+    },
+    "/api/v1/composer-drafts": {
+      "delete": {
+        "operationId": "deleteComposerDraft",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftDelete"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftDeleteEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Draft",
+        "tags": [
+          "composer"
+        ]
+      },
+      "put": {
+        "operationId": "saveComposerDraft",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Draft",
+        "tags": [
+          "composer"
+        ]
+      }
+    },
+    "/api/v1/composer-drafts/resolve": {
+      "post": {
+        "operationId": "resolveComposerDraft",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftLookup"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Draft",
+        "tags": [
+          "composer"
         ]
       }
     },
