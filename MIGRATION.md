@@ -194,6 +194,10 @@ model facts and registering its exact adapter; the canonical Voice planner does
 not require provider-specific changes. Undocumented source languages remain
 Experimental and are still queued.
 
+The historical API package ID `omni` remains a compatibility alias only. Its
+canonical human label and description are provider-neutral Natural performance
+language and no longer brand the package as Qwen-specific.
+
 This checkpoint is covered by 299 Python tests, 82 React tests and 11 live
 PostgreSQL domain checks. The provider-neutral discovery test includes a future
 provider fixture, and the repository/UI tests preserve two bindings for one

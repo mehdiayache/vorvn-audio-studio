@@ -15,7 +15,7 @@ PACKAGE_LABELS = {
     ),
     "omni": (
         "Natural performance",
-        "Best-quality and economical Qwen Omni versions.",
+        "Installed natural-performance capabilities.",
     ),
 }
 

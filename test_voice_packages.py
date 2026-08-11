@@ -46,6 +46,11 @@ assert next(item for item in exact_arabic["packages"]
             if item["id"] == "exact")["available"] is True
 
 assert voice_packages.plan("en", methods, "omni")["routes"] == english["routes"][1:2]
+natural_package = next(item for item in english["packages"]
+                       if item["id"] == "omni")
+assert natural_package["name"] == "Natural performance"
+assert "qwen" not in natural_package["description"].lower()
+assert "alibaba" not in natural_package["description"].lower()
 assert [route["engine"] for route in
         voice_packages.plan("en", methods, "exact")["routes"]] == ["audio"]
 assert any(route["provider"] == "cosy" for route in english["routes"])
