@@ -581,4 +581,6 @@ Verification is provider-free. Contract tests prove that only a Job pointer is
 persisted, immediate-save tests cover the pre-result window, and React tests
 cover remount recovery plus durable Accept. The full checkpoint passes 311
 Python tests and 112 React tests, generated OpenAPI, TypeScript and production
-build. No Alibaba operation was called.
+build. The exact-commit runtime smoke additionally caught and fixed UUID JSON
+serialization at the HTTP boundary before release. No Alibaba operation was
+called.

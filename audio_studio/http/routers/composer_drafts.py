@@ -149,6 +149,10 @@ def _context(payload: DraftLookup) -> dict:
     return payload.context.model_dump(mode="json")
 
 
+def _state(payload: DraftWrite) -> dict:
+    return payload.state.model_dump(mode="json")
+
+
 def _conflict(operation):
     try:
         return operation()
@@ -169,7 +173,7 @@ def resolve_draft(payload: DraftLookup) -> dict:
             response_model=DraftEnvelope)
 def save_draft(payload: DraftWrite) -> dict:
     return {"data": _conflict(lambda: composer_draft_service.put(
-        _context(payload), payload.state.model_dump(), payload.expected_version))}
+        _context(payload), _state(payload), payload.expected_version))}
 
 
 @router.api_route("", methods=["DELETE"], operation_id="deleteComposerDraft",

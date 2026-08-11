@@ -14,6 +14,7 @@ from audio_studio.http.routers.composer_drafts import (
     ComposerState,
     DraftLookup,
     DraftWrite,
+    _state,
 )
 from audio_studio.config import settings
 from audio_studio.infrastructure.postgres.composer_drafts import ComposerDraftRepository
@@ -117,10 +118,11 @@ class ComposerDraftTests(unittest.TestCase):
         payload = DraftWrite(
             context={"kind": "standalone", "session_id": uuid4()},
             state=pending)
-        prepared = payload.model_dump(mode="json")["state"][
-            "text_preparation"]
+        serialized = _state(payload)
+        prepared = serialized["text_preparation"]
         self.assertEqual(prepared["pending_review"]["job_id"],
                          str(review_job_id))
+        self.assertIsInstance(prepared["pending_review"]["job_id"], str)
         self.assertNotIn("result", prepared["pending_review"])
 
 
