@@ -24,6 +24,13 @@ class PostgresUploadRecords:
         channels: int | None = None,
         source_language: str = "", transcript: str = "",
         metadata: dict | None = None,
+        storage_backend: str = "filesystem", storage_bucket: str | None = None,
+        storage_key: str | None = None,
+        original_storage_key: str | None = None,
+        normalized_storage_key: str | None = None,
+        original_sha256: str = "", normalized_sha256: str = "",
+        original_size_bytes: int | None = None,
+        normalized_size_bytes: int | None = None,
     ) -> str:
         return self.voices.create_reference(
             reference_id=reference_id, original_name=original_name,
@@ -31,7 +38,14 @@ class PostgresUploadRecords:
             sha256=sha256, duration_ms=duration_ms,
             sample_rate=sample_rate, channels=channels,
             source_language=source_language, transcript=transcript,
-            metadata=metadata or {})
+            metadata=metadata or {}, storage_backend=storage_backend,
+            storage_bucket=storage_bucket, storage_key=storage_key,
+            original_storage_key=original_storage_key,
+            normalized_storage_key=normalized_storage_key,
+            original_sha256=original_sha256,
+            normalized_sha256=normalized_sha256,
+            original_size_bytes=original_size_bytes,
+            normalized_size_bytes=normalized_size_bytes)
 
     def asset_collection(self, collection_id: int) -> dict | None:
         return self.assets.collection(collection_id)

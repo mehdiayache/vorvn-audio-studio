@@ -243,6 +243,28 @@
             ],
             "title": "Production Name"
           },
+          "provider_attempt_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Attempt Id"
+          },
+          "provider_attempt_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Attempt Status"
+          },
           "provider_diagnostics": {
             "items": {
               "additionalProperties": true,
@@ -290,6 +312,11 @@
             },
             "title": "Provider Request Ids",
             "type": "array"
+          },
+          "requires_review": {
+            "default": false,
+            "title": "Requires Review",
+            "type": "boolean"
           },
           "seconds": {
             "title": "Seconds",
@@ -753,6 +780,42 @@
       "BatchJobCreate": {
         "additionalProperties": false,
         "properties": {
+          "binding_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding Id"
+          },
+          "capability_id": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Id"
+          },
+          "catalogue_voice_id": {
+            "anyOf": [
+              {
+                "maxLength": 700,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Voice Id"
+          },
           "columns": {
             "$ref": "#/components/schemas/BatchColumns"
           },
@@ -760,15 +823,6 @@
             "default": false,
             "title": "Confirmed",
             "type": "boolean"
-          },
-          "engine": {
-            "enum": [
-              "audio",
-              "omni",
-              "qwen_tts"
-            ],
-            "title": "Engine",
-            "type": "string"
           },
           "format": {
             "default": "mp3",
@@ -793,15 +847,6 @@
             "title": "Language",
             "type": "string"
           },
-          "model": {
-            "enum": [
-              "plus",
-              "flash",
-              "vc"
-            ],
-            "title": "Model",
-            "type": "string"
-          },
           "pitch": {
             "default": 1,
             "maximum": 2.0,
@@ -819,12 +864,6 @@
           "token": {
             "pattern": "^[A-Za-z0-9-]{1,120}$",
             "title": "Token",
-            "type": "string"
-          },
-          "voice": {
-            "maxLength": 300,
-            "minLength": 1,
-            "title": "Voice",
             "type": "string"
           },
           "voice_identity_id": {
@@ -849,10 +888,7 @@
         },
         "required": [
           "token",
-          "columns",
-          "voice",
-          "engine",
-          "model"
+          "columns"
         ],
         "title": "BatchJobCreate",
         "type": "object"
@@ -966,6 +1002,51 @@
           "checked"
         ],
         "title": "BatchVoiceCheckResponse",
+        "type": "object"
+      },
+      "BulkEnrollmentEnvelope": {
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "BulkEnrollmentEnvelope",
+        "type": "object"
+      },
+      "BulkEnrollmentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed": {
+            "default": false,
+            "title": "Confirmed",
+            "type": "boolean"
+          },
+          "provider_model_id": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Provider Model Id",
+            "type": "string"
+          },
+          "selections": {
+            "items": {
+              "$ref": "#/components/schemas/EnrollmentSelection"
+            },
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Selections",
+            "type": "array"
+          }
+        },
+        "required": [
+          "provider_model_id",
+          "selections"
+        ],
+        "title": "BulkEnrollmentRequest",
         "type": "object"
       },
       "CaptionCueResponse": {
@@ -1170,6 +1251,84 @@
           "text"
         ],
         "title": "CaptionWordResponse",
+        "type": "object"
+      },
+      "CastRoleCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "catalogue_voice_id": {
+            "anyOf": [
+              {
+                "maxLength": 700,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Voice Id"
+          },
+          "color": {
+            "default": "",
+            "maxLength": 40,
+            "title": "Color",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "persona_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persona Id"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "voice_identity_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Identity Id"
+          },
+          "voice_source_kind": {
+            "enum": [
+              "identity",
+              "catalogue"
+            ],
+            "title": "Voice Source Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "voice_source_kind",
+          "name"
+        ],
+        "title": "CastRoleCreate",
         "type": "object"
       },
       "CollectionMetaResponse": {
@@ -1394,15 +1553,54 @@
       "DraftBody": {
         "additionalProperties": false,
         "properties": {
+          "binding_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding Id"
+          },
+          "capability_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Id"
+          },
+          "cast_role_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cast Role Id"
+          },
+          "catalogue_voice_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Voice Id"
+          },
           "confirmed": {
             "default": false,
             "title": "Confirmed",
             "type": "boolean"
-          },
-          "engine": {
-            "default": "audio",
-            "title": "Engine",
-            "type": "string"
           },
           "format": {
             "default": "mp3",
@@ -1428,11 +1626,6 @@
           "language": {
             "default": "Auto",
             "title": "Language",
-            "type": "string"
-          },
-          "model": {
-            "default": "plus",
-            "title": "Model",
             "type": "string"
           },
           "pitch": {
@@ -1498,11 +1691,6 @@
             ],
             "title": "Text Tagged"
           },
-          "voice": {
-            "minLength": 1,
-            "title": "Voice",
-            "type": "string"
-          },
           "voice_identity_id": {
             "anyOf": [
               {
@@ -1521,10 +1709,37 @@
           }
         },
         "required": [
-          "text",
-          "voice"
+          "text"
         ],
         "title": "DraftBody",
+        "type": "object"
+      },
+      "EnrollmentSelection": {
+        "additionalProperties": false,
+        "properties": {
+          "documented": {
+            "default": false,
+            "title": "Documented",
+            "type": "boolean"
+          },
+          "identity_id": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Identity Id",
+            "type": "string"
+          },
+          "reference_id": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Reference Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identity_id",
+          "reference_id"
+        ],
+        "title": "EnrollmentSelection",
         "type": "object"
       },
       "FidelityResponse": {
@@ -1815,6 +2030,20 @@
         "title": "HistoryLink",
         "type": "object"
       },
+      "ItemEnvelope": {
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ItemEnvelope",
+        "type": "object"
+      },
       "JobCreatedEnvelope": {
         "properties": {
           "data": {
@@ -2019,6 +2248,23 @@
           "result"
         ],
         "title": "JobResponse",
+        "type": "object"
+      },
+      "ListEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ListEnvelope",
         "type": "object"
       },
       "MoveBody": {
@@ -2544,6 +2790,58 @@
         "title": "PerformancePresetResponse",
         "type": "object"
       },
+      "PersonaCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Aliases",
+            "type": "array"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 5000,
+            "title": "Description",
+            "type": "string"
+          },
+          "image": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Image",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "default": "",
+            "maxLength": 20000,
+            "title": "Notes",
+            "type": "string"
+          },
+          "presentation": {
+            "additionalProperties": true,
+            "title": "Presentation",
+            "type": "object"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "PersonaCreate",
+        "type": "object"
+      },
       "ProductionAccountingResponse": {
         "properties": {
           "current_sequence_cost": {
@@ -2822,17 +3120,6 @@
             "title": "Filename",
             "type": "string"
           },
-          "generation_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Generation Id"
-          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -2858,7 +3145,6 @@
         "required": [
           "id",
           "production_id",
-          "generation_id",
           "filename",
           "manifest",
           "renderer",
@@ -2904,6 +3190,61 @@
               }
             ],
             "title": "Asset Version Id"
+          },
+          "binding_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding Id"
+          },
+          "capability_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Id"
+          },
+          "cast_role_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cast Role Id"
+          },
+          "cast_role_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cast Role Name"
+          },
+          "catalogue_voice_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Voice Id"
           },
           "chars": {
             "anyOf": [
@@ -3048,6 +3389,11 @@
             ],
             "title": "Model"
           },
+          "outdated": {
+            "default": false,
+            "title": "Outdated",
+            "type": "boolean"
+          },
           "pitch": {
             "anyOf": [
               {
@@ -3092,6 +3438,11 @@
             ],
             "title": "Rate"
           },
+          "revision": {
+            "default": 1,
+            "title": "Revision",
+            "type": "integer"
+          },
           "seed": {
             "anyOf": [
               {
@@ -3102,6 +3453,17 @@
               }
             ],
             "title": "Seed"
+          },
+          "selected_take_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Take Id"
           },
           "size_bytes": {
             "anyOf": [
@@ -4093,6 +4455,25 @@
         "title": "ResourceUpdate",
         "type": "object"
       },
+      "RetryEnrollmentItemsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "item_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Item Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "item_ids"
+        ],
+        "title": "RetryEnrollmentItemsRequest",
+        "type": "object"
+      },
       "SavedPronunciationEnvelope": {
         "properties": {
           "data": {
@@ -4472,19 +4853,58 @@
       "SpeechJobCreate": {
         "additionalProperties": false,
         "properties": {
+          "binding_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding Id"
+          },
+          "capability_id": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Id"
+          },
+          "cast_role_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cast Role Id"
+          },
+          "catalogue_voice_id": {
+            "anyOf": [
+              {
+                "maxLength": 700,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Voice Id"
+          },
           "confirmed": {
             "default": false,
             "title": "Confirmed",
             "type": "boolean"
-          },
-          "engine": {
-            "enum": [
-              "audio",
-              "omni",
-              "qwen_tts"
-            ],
-            "title": "Engine",
-            "type": "string"
           },
           "format": {
             "default": "mp3",
@@ -4519,15 +4939,6 @@
             "default": "Auto",
             "maxLength": 80,
             "title": "Language",
-            "type": "string"
-          },
-          "model": {
-            "enum": [
-              "plus",
-              "flash",
-              "vc"
-            ],
-            "title": "Model",
             "type": "string"
           },
           "operation": {
@@ -4658,12 +5069,6 @@
             ],
             "title": "Text Tagged"
           },
-          "voice": {
-            "maxLength": 300,
-            "minLength": 1,
-            "title": "Voice",
-            "type": "string"
-          },
           "voice_identity_id": {
             "anyOf": [
               {
@@ -4685,10 +5090,7 @@
           }
         },
         "required": [
-          "text",
-          "voice",
-          "engine",
-          "model"
+          "text"
         ],
         "title": "SpeechJobCreate",
         "type": "object"
@@ -5599,6 +6001,28 @@
       "TakeResponse": {
         "additionalProperties": true,
         "properties": {
+          "binding_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding Id"
+          },
+          "capability_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Id"
+          },
           "cost": {
             "title": "Cost",
             "type": "number"
@@ -5662,6 +6086,10 @@
             "title": "Model",
             "type": "string"
           },
+          "outdated": {
+            "title": "Outdated",
+            "type": "boolean"
+          },
           "pitch": {
             "title": "Pitch",
             "type": "number"
@@ -5677,6 +6105,14 @@
           "size_bytes": {
             "title": "Size Bytes",
             "type": "integer"
+          },
+          "source_part_revision": {
+            "title": "Source Part Revision",
+            "type": "integer"
+          },
+          "source_script_hash": {
+            "title": "Source Script Hash",
+            "type": "string"
           },
           "text": {
             "title": "Text",
@@ -5714,7 +6150,10 @@
           "filename",
           "size_bytes",
           "cost",
-          "text"
+          "text",
+          "source_part_revision",
+          "source_script_hash",
+          "outdated"
         ],
         "title": "TakeResponse",
         "type": "object"
@@ -6057,18 +6496,6 @@
             "title": "File",
             "type": "string"
           },
-          "generation_id": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Generation Id"
-          },
           "language": {
             "default": "",
             "maxLength": 80,
@@ -6080,6 +6507,18 @@
             "maxLength": 500,
             "title": "Name",
             "type": "string"
+          },
+          "part_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Part Id"
           },
           "playable": {
             "default": "",
@@ -6192,10 +6631,6 @@
             "title": "Filename",
             "type": "string"
           },
-          "generation_id": {
-            "title": "Generation Id",
-            "type": "integer"
-          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -6215,7 +6650,6 @@
         },
         "required": [
           "id",
-          "generation_id",
           "version_id",
           "name",
           "filename",
@@ -6570,6 +7004,48 @@
         "title": "VentureOverviewResponse",
         "type": "object"
       },
+      "VoiceAssignment": {
+        "additionalProperties": false,
+        "properties": {
+          "catalogue_voice_id": {
+            "anyOf": [
+              {
+                "maxLength": 700,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Voice Id"
+          },
+          "voice_identity_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Identity Id"
+          },
+          "voice_source_kind": {
+            "enum": [
+              "identity",
+              "catalogue"
+            ],
+            "title": "Voice Source Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "voice_source_kind"
+        ],
+        "title": "VoiceAssignment",
+        "type": "object"
+      },
       "VoiceBindingResponse": {
         "additionalProperties": false,
         "properties": {
@@ -6594,6 +7070,38 @@
               }
             ],
             "title": "Age"
+          },
+          "binding_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding Id"
+          },
+          "capabilities": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "catalogue_voice_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Voice Id"
           },
           "description": {
             "title": "Description",
@@ -6677,6 +7185,11 @@
               }
             ],
             "title": "Reference Id"
+          },
+          "region": {
+            "default": "intl",
+            "title": "Region",
+            "type": "string"
           },
           "scene": {
             "anyOf": [
@@ -7934,6 +8447,11 @@
             "title": "Created At",
             "type": "string"
           },
+          "diagnostics": {
+            "additionalProperties": true,
+            "title": "Diagnostics",
+            "type": "object"
+          },
           "duration_ms": {
             "anyOf": [
               {
@@ -8094,29 +8612,47 @@
       "VoiceRouteRequest": {
         "additionalProperties": false,
         "properties": {
-          "engine": {
-            "default": "audio",
-            "title": "Engine",
-            "type": "string"
+          "binding_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding Id"
+          },
+          "capability_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Id"
+          },
+          "catalogue_voice_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Voice Id"
           },
           "language": {
             "default": "Auto",
             "title": "Language",
             "type": "string"
           },
-          "model": {
-            "default": "plus",
-            "title": "Model",
-            "type": "string"
-          },
           "text": {
             "default": "",
             "title": "Text",
-            "type": "string"
-          },
-          "voice": {
-            "default": "",
-            "title": "Voice",
             "type": "string"
           },
           "voice_identity_id": {
@@ -8136,6 +8672,50 @@
       },
       "VoiceRouteResponse": {
         "properties": {
+          "binding_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding Id"
+          },
+          "capability_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Id"
+          },
+          "capability_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Name"
+          },
+          "catalogue_voice_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Voice Id"
+          },
           "engine": {
             "title": "Engine",
             "type": "string"
@@ -8155,17 +8735,28 @@
             "title": "Model Id",
             "type": "string"
           },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
           "provider_voice_id": {
             "title": "Provider Voice Id",
             "type": "string"
           },
-          "reason": {
-            "title": "Reason",
-            "type": "string"
+          "reference_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Id"
           },
-          "registry_matched": {
-            "title": "Registry Matched",
-            "type": "boolean"
+          "region": {
+            "title": "Region",
+            "type": "string"
           },
           "tier": {
             "title": "Tier",
@@ -8175,11 +8766,11 @@
         "required": [
           "identity_id",
           "provider_voice_id",
+          "provider",
+          "region",
           "engine",
           "tier",
-          "model_id",
-          "reason",
-          "registry_matched"
+          "model_id"
         ],
         "title": "VoiceRouteResponse",
         "type": "object"
@@ -8970,6 +9561,58 @@
         ]
       }
     },
+    "/api/v1/cast-roles/{role_id}/assignment": {
+      "patch": {
+        "operationId": "recast_api_v1_cast_roles__role_id__assignment_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "role_id",
+            "required": true,
+            "schema": {
+              "title": "Role Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoiceAssignment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recast",
+        "tags": [
+          "casting"
+        ]
+      }
+    },
     "/api/v1/config": {
       "get": {
         "operationId": "getStudioConfig",
@@ -8988,6 +9631,224 @@
         "summary": "Get Config",
         "tags": [
           "catalog"
+        ]
+      }
+    },
+    "/api/v1/enrollment-campaigns": {
+      "post": {
+        "operationId": "createEnrollmentCampaign",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkEnrollmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkEnrollmentEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create",
+        "tags": [
+          "voices"
+        ]
+      }
+    },
+    "/api/v1/enrollment-campaigns/preflight": {
+      "post": {
+        "operationId": "preflightEnrollmentCampaign",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkEnrollmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkEnrollmentEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preflight",
+        "tags": [
+          "voices"
+        ]
+      }
+    },
+    "/api/v1/enrollment-campaigns/{campaign_id}": {
+      "get": {
+        "operationId": "getEnrollmentCampaign",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaign_id",
+            "required": true,
+            "schema": {
+              "title": "Campaign Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkEnrollmentEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Campaign",
+        "tags": [
+          "voices"
+        ]
+      }
+    },
+    "/api/v1/enrollment-campaigns/{campaign_id}/cancel": {
+      "post": {
+        "operationId": "cancelEnrollmentCampaign",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaign_id",
+            "required": true,
+            "schema": {
+              "title": "Campaign Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkEnrollmentEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Campaign",
+        "tags": [
+          "voices"
+        ]
+      }
+    },
+    "/api/v1/enrollment-campaigns/{campaign_id}/retry": {
+      "post": {
+        "operationId": "retryEnrollmentCampaignItems",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaign_id",
+            "required": true,
+            "schema": {
+              "title": "Campaign Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetryEnrollmentItemsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkEnrollmentEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retry Campaign Items",
+        "tags": [
+          "voices"
         ]
       }
     },
@@ -9021,41 +9882,6 @@
           }
         },
         "summary": "Download Export",
-        "tags": [
-          "media"
-        ]
-      }
-    },
-    "/api/v1/generations/{generation_id}/download": {
-      "get": {
-        "operationId": "downloadGeneration",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "generation_id",
-            "required": true,
-            "schema": {
-              "title": "Generation Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Download Generation",
         "tags": [
           "media"
         ]
@@ -9615,7 +10441,7 @@
             "required": true,
             "schema": {
               "title": "Production Id",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -9647,6 +10473,98 @@
         ]
       }
     },
+    "/api/v1/productions/{production_id}/cast": {
+      "get": {
+        "operationId": "production_cast_api_v1_productions__production_id__cast_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Production Cast",
+        "tags": [
+          "casting"
+        ]
+      },
+      "post": {
+        "operationId": "create_cast_role_api_v1_productions__production_id__cast_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CastRoleCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Cast Role",
+        "tags": [
+          "casting"
+        ]
+      }
+    },
     "/api/v1/productions/{production_id}/editor": {
       "get": {
         "operationId": "getProductionEditor",
@@ -9657,7 +10575,7 @@
             "required": true,
             "schema": {
               "title": "Production Id",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -10478,7 +11396,7 @@
             "required": true,
             "schema": {
               "title": "Resource Id",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -10757,7 +11675,7 @@
             "required": true,
             "schema": {
               "title": "Resource Id",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -10849,7 +11767,7 @@
             "required": true,
             "schema": {
               "title": "Resource Id",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -10941,7 +11859,7 @@
             "required": true,
             "schema": {
               "title": "Resource Id",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -11033,7 +11951,7 @@
             "required": true,
             "schema": {
               "title": "Resource Id",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -11802,6 +12720,41 @@
         ]
       }
     },
+    "/api/v1/takes/{take_id}/download": {
+      "get": {
+        "operationId": "downloadTake",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "take_id",
+            "required": true,
+            "schema": {
+              "title": "Take Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Take",
+        "tags": [
+          "media"
+        ]
+      }
+    },
     "/api/v1/venture-logos/upload": {
       "post": {
         "operationId": "uploadVentureLogo",
@@ -11995,7 +12948,7 @@
             "required": true,
             "schema": {
               "title": "Resource Id",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -12087,7 +13040,7 @@
             "required": true,
             "schema": {
               "title": "Resource Id",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -12129,7 +13082,7 @@
             "required": true,
             "schema": {
               "title": "Resource Id",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -12158,6 +13111,98 @@
         "summary": "Get Venture Overview",
         "tags": [
           "work"
+        ]
+      }
+    },
+    "/api/v1/ventures/{venture_id}/personas": {
+      "get": {
+        "operationId": "list_personas_api_v1_ventures__venture_id__personas_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "venture_id",
+            "required": true,
+            "schema": {
+              "title": "Venture Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Personas",
+        "tags": [
+          "casting"
+        ]
+      },
+      "post": {
+        "operationId": "create_persona_api_v1_ventures__venture_id__personas_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "venture_id",
+            "required": true,
+            "schema": {
+              "title": "Venture Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Persona",
+        "tags": [
+          "casting"
         ]
       }
     },

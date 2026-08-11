@@ -78,22 +78,25 @@ def status() -> dict:
         return {"configured": False, "reason": _explain(exc)}
 
 
-def object_key(*, kind: str, object_id: str, extension: str) -> str:
+def object_key(*, kind: str, object_id: str, extension: str,
+               variant: str = "source") -> str:
     values = settings(); organization = values["organization_id"]
     if not _SEGMENT.fullmatch(organization):
         raise ValueError("AUDIO_STUDIO_ORGANIZATION_ID is invalid.")
-    if not _SEGMENT.fullmatch(kind) or not _SEGMENT.fullmatch(object_id):
+    if (not _SEGMENT.fullmatch(kind) or not _SEGMENT.fullmatch(object_id)
+            or not _SEGMENT.fullmatch(variant)):
         raise ValueError("The storage object identity is invalid.")
     suffix = extension.casefold().lstrip(".")
     if not re.fullmatch(r"[a-z0-9]{1,10}", suffix):
         raise ValueError("The storage object extension is invalid.")
     return (f"{values['prefix']}/v1/organizations/{organization}/"
-            f"objects/{kind}/{object_id}/source.{suffix}")
+            f"objects/{kind}/{object_id}/{variant}.{suffix}")
 
 
-def upload(local_path: str | Path, content_type: str = "audio/wav",
-           kind: str = "voice-clone", *, object_id: str | None = None,
-           retention: str = "temporary") -> str:
+def put(local_path: str | Path, content_type: str = "audio/wav",
+        kind: str = "voice-clone", *, object_id: str | None = None,
+        retention: str = "temporary", variant: str = "source") -> dict:
+    """Persist an object and return its durable locator, never a signed URL."""
     if not configured():
         raise RuntimeError("Object storage isn't set up. Add its details in Settings.")
     if retention not in {"temporary", "durable"}:
@@ -101,7 +104,7 @@ def upload(local_path: str | Path, content_type: str = "audio/wav",
     values = settings(); target = Path(local_path)
     identity = object_id or f"obj_{uuid4().hex}"
     key = object_key(kind=kind, object_id=identity,
-                     extension=target.suffix or ".bin")
+                     extension=target.suffix or ".bin", variant=variant)
     with target.open("rb") as source:
         digest = hashlib.file_digest(source, "sha256").digest()
     with target.open("rb") as source:
@@ -110,9 +113,39 @@ def upload(local_path: str | Path, content_type: str = "audio/wav",
             ContentType=content_type,
             ChecksumSHA256=base64.b64encode(digest).decode("ascii"),
             Metadata={"audio-studio-object-id": identity,
-                      "retention": retention},
+                      "retention": retention,
+                      "variant": variant},
             Tagging=f"retention={retention}",
         )
+    return {"backend": "s3", "bucket": values["bucket"], "key": key,
+            "sha256": digest.hex(), "size_bytes": target.stat().st_size}
+
+
+def signed_url(*, bucket: str, key: str,
+               expires_in: int = LINK_TTL_SECONDS) -> str:
+    if not configured():
+        raise RuntimeError("Object storage isn't set up. Add its details in Settings.")
     return _client().generate_presigned_url(
-        "get_object", Params={"Bucket": values["bucket"], "Key": key},
-        ExpiresIn=LINK_TTL_SECONDS)
+        "get_object", Params={"Bucket": bucket, "Key": key},
+        ExpiresIn=expires_in)
+
+
+def download(*, bucket: str, key: str, target: str | Path) -> Path:
+    """Restore a private durable object into an application-owned cache."""
+    destination = Path(target)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_suffix(destination.suffix + ".partial")
+    try:
+        _client().download_file(bucket, key, str(temporary))
+        temporary.replace(destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return destination
+
+
+def upload(local_path: str | Path, content_type: str = "audio/wav",
+           kind: str = "voice-clone", *, object_id: str | None = None,
+           retention: str = "temporary") -> str:
+    locator = put(local_path, content_type=content_type, kind=kind,
+                  object_id=object_id, retention=retention)
+    return signed_url(bucket=locator["bucket"], key=locator["key"])

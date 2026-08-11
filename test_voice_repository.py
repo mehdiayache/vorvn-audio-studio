@@ -33,7 +33,7 @@ class VoiceRepositoryTests(unittest.TestCase):
         model_id = f"fixture-model-{marker}"
         reference_id = f"ref_repo_{marker}"
         metadata_id = f"qwen-audio-3.0-tts-plus-repo-{marker}"
-        generation_id = None
+        part_id = None
         try:
             with psycopg.connect(settings.database_url) as database:
                 with database.cursor() as cursor:
@@ -54,20 +54,33 @@ class VoiceRepositoryTests(unittest.TestCase):
                              tier, languages, reference_id)
                         VALUES (%s, %s, %s, 'omni', 'plus', '["English"]'::jsonb,
                                 %s)
+                        RETURNING id
                     """, (provider_id, model_id, identity_id, reference_id))
+                    binding_id = cursor.fetchone()[0]
                     cursor.execute("""
                         INSERT INTO voices (id, image, favourite, name)
                         VALUES (%s, 'fixture.png', true, 'Fixture system voice')
                     """, (metadata_id,))
+                    cursor.execute("SELECT id FROM productions ORDER BY id LIMIT 1")
+                    production = cursor.fetchone()
+                    if not production:
+                        self.skipTest("No Production exists for canonical Take fixture")
                     cursor.execute("""
-                        INSERT INTO generations
-                            (text, voice, model, format, filename, path,
-                             voice_identity_id, cost)
-                        VALUES ('Fixture', %s, %s, 'mp3', 'fixture.mp3',
-                                'fixture.mp3', NULL, 0.25)
-                        RETURNING id
-                    """, (provider_id, model_id))
-                    generation_id = int(cursor.fetchone()[0])
+                        INSERT INTO production_parts
+                            (production_id, position, kind, script)
+                        VALUES (%s, (SELECT coalesce(max(position),-1)+1
+                                      FROM production_parts WHERE production_id=%s),
+                                'speech', 'Fixture') RETURNING id
+                    """, (production[0], production[0]))
+                    part_id = int(cursor.fetchone()[0])
+                    cursor.execute("""
+                        INSERT INTO takes
+                            (part_id, source_part_revision, source_script_hash,
+                             binding_id, binding_resolution_status,
+                             provider_voice_id, model_id, cost, filename, path)
+                        VALUES (%s,1,'fixture',%s,'unresolved',%s,%s,0.25,
+                                'fixture.mp3','fixture.mp3')
+                    """, (part_id, binding_id, provider_id, model_id))
                 database.commit()
 
             profile = next(item for item in repository.profiles()
@@ -105,8 +118,8 @@ class VoiceRepositoryTests(unittest.TestCase):
             with psycopg.connect(settings.database_url) as database:
                 with database.cursor() as cursor:
                     cursor.execute("""
-                        SELECT voice_identity_id FROM generations WHERE id = %s
-                    """, (generation_id,))
+                        SELECT voice_identity_id FROM takes WHERE part_id = %s
+                    """, (part_id,))
                     self.assertEqual(cursor.fetchone()[0], identity_id)
                     cursor.execute("""
                         SELECT count(*) FROM jobs
@@ -120,10 +133,9 @@ class VoiceRepositoryTests(unittest.TestCase):
                     cursor.execute(
                         "DELETE FROM jobs WHERE voice_identity_id = %s",
                         (identity_id,))
-                    if generation_id:
-                        cursor.execute(
-                            "DELETE FROM generations WHERE id = %s",
-                            (generation_id,))
+                    if part_id:
+                        cursor.execute("DELETE FROM production_parts WHERE id = %s",
+                                       (part_id,))
                     cursor.execute("DELETE FROM voice_bindings WHERE identity_id = %s",
                                    (identity_id,))
                     cursor.execute("DELETE FROM voice_references WHERE id = %s",

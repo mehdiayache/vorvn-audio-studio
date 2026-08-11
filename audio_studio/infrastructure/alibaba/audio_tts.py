@@ -19,7 +19,9 @@ from audio_studio.infrastructure import audio_codec
 from audio_studio.infrastructure.alibaba.sdk_runtime import apply_credentials
 
 
-RETRIES = 3
+# A transport failure after opening a paid synthesis request is ambiguous.
+# Retrying it here could bill the same segment twice without operator consent.
+RETRIES = 1
 BACKOFF = 1.5
 TEXT_PER_SEND = int(provider_catalog.SEGMENTATION["audio"]
                     ["characters_per_submission"])

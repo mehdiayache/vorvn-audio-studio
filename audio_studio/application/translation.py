@@ -10,6 +10,9 @@ from audio_studio.domain import captions
 from audio_studio.domain.delivery_tags import TAG_RE
 from audio_studio.domain.jobs import Job
 from audio_studio.domain.text import ProviderText
+from audio_studio.application.provider_operations import (
+    ProviderOperationService, enforce_daily_cap,
+)
 
 
 MODELS = {"fast": "qwen-mt-flash", "best": "qwen-mt-plus"}
@@ -189,10 +192,12 @@ class Translator:
 
 class SubtitleTranslationService:
     def __init__(self, repository: TranslationRepository,
-                 translator: Translator, preferences: Callable[[], dict]):
+                 translator: Translator, preferences: Callable[[], dict],
+                 operations: ProviderOperationService | None = None):
         self.repository = repository
         self.translator = translator
         self.preferences = preferences
+        self.operations = operations
 
     def translate(self, *, transcript_id: int, target: str,
                   source: str = "", quality: str = "fast",
@@ -214,24 +219,44 @@ class SubtitleTranslationService:
                          for sentence in sentences)
         estimate = estimate_cost(characters)
         preferences = self.preferences()
-        cap = float(preferences.get("daily_cap") or 0)
-        spent = self.repository.today_spend() if cap > 0 else 0.0
-        if cap > 0 and spent + estimate > cap:
-            raise PermissionError(
-                f"Daily cap reached. You've spent ${spent:.4f} today and this "
-                f"would add about ${estimate:.4f}, over your ${cap:.2f} cap. "
-                "Raise it in Settings if you want to continue.")
+        if not (self.operations and source_job_id):
+            enforce_daily_cap(
+                estimate, preferences, self.repository.today_spend())
         warning = float(preferences.get("warn_above") or 0)
         if warning > 0 and estimate > warning and not confirmed:
             return {"needs_confirmation": True, "estimate": round(estimate, 4),
                     "warn_above": warning, "model": MODELS[quality],
                     "cost_basis": "estimate"}
 
-        translated = self.translator.translate_lines(
-            [str(sentence.get("text") or "") for sentence in sentences],
-            target=target, source=source or None, quality=quality,
-            on_progress=on_progress,
-        )
+        reservation_id = None
+        attempt_id = None
+        model = MODELS[quality]
+        if self.operations and source_job_id:
+            reservation_id = self.operations.authorize(
+                source_job_id, "translation", estimate, preferences, confirmed)
+            attempt_id = self.operations.repository.begin_attempt(
+                source_job_id, "translation", {
+                    "provider": "alibaba", "region": "intl", "model": model,
+                }, {"transcript_id": transcript_id, "source": source,
+                    "target": target, "quality": quality}, reservation_id)
+        try:
+            if attempt_id:
+                self.operations.repository.mark_sent(attempt_id)
+            translated = self.translator.translate_lines(
+                [str(sentence.get("text") or "") for sentence in sentences],
+                target=target, source=source or None, quality=quality,
+                on_progress=on_progress,
+            )
+        except Exception as exc:
+            if attempt_id:
+                status = self.operations.failure_status(exc)
+                self.operations.repository.finish_attempt(
+                    attempt_id, status, cost=0, usage={}, request_ids=[],
+                    error={"type": type(exc).__name__, "message": str(exc)[:600]})
+                self.operations.repository.release_budget(
+                    reservation_id, estimate if status == "ambiguous" else 0,
+                    status)
+            raise
         translated_sentences = [
             {**sentence, "text": line, "words": []}
             for sentence, line in zip(sentences, translated.lines)
@@ -240,11 +265,16 @@ class SubtitleTranslationService:
         cues = captions.build_cues(translated_sentences, "standard")
         srt = captions.render_srt(cues)
         vtt = captions.render_vtt(cues)
-        model = MODELS[quality]
         region = translated.provider_region or "intl"
         actual = usage_cost(translated.usage, model, region)
         cost = actual if actual is not None else estimate
         cost_basis = "actual_tokens" if actual is not None else "estimate"
+        if attempt_id:
+            self.operations.repository.finish_attempt(
+                attempt_id, "succeeded", cost=cost, usage=translated.usage,
+                request_ids=translated.request_ids, error={})
+            self.operations.repository.release_budget(
+                reservation_id, cost, "succeeded")
         name = f"{transcript['name']} [{target}]"
         new_id = self.repository.save({
             "name": name,
@@ -256,7 +286,8 @@ class SubtitleTranslationService:
             "srt": srt,
             "vtt": vtt,
             "sentences": translated_sentences,
-            "generation_id": transcript.get("generation_id"),
+            "part_id": transcript.get("part_id"),
+            "take_id": transcript.get("take_id"),
             "translated_from": transcript["id"],
             "source_job_id": source_job_id,
             "model": model,

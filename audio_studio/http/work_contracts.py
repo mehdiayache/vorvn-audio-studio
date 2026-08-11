@@ -277,6 +277,14 @@ class ProductionPartResponse(BaseModel):
     text_state: str | None = None
     voice: str | None = None
     voice_identity_id: str | None = None
+    binding_id: str | None = None
+    catalogue_voice_id: str | None = None
+    capability_id: str | None = None
+    cast_role_id: str | None = None
+    cast_role_name: str | None = None
+    revision: int = 1
+    selected_take_id: int | None = None
+    outdated: bool = False
     engine: str | None = None
     model: str | None = None
     format: str | None = None
@@ -309,7 +317,6 @@ class ProductionPartResponse(BaseModel):
 class ProductionExportResponse(BaseModel):
     id: int
     production_id: int
-    generation_id: int | None
     filename: str
     manifest: dict[str, Any]
     renderer: str

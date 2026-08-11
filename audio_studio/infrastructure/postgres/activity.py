@@ -51,7 +51,8 @@ def _run(row) -> dict[str, Any]:
      actor_id, organization_id, provider_request_id, provider_region,
      provider_endpoint, price_version, currency, output_ids, usage,
      production_id, production_name, cost_basis, created_at, started_at,
-     finished_at, provider_diagnostics, provider_request_ids) = row
+     finished_at, provider_diagnostics, provider_request_ids,
+     provider_attempt_status, provider_attempt_id) = row
     label = KIND_LABELS.get(kind, kind.replace("_", " ").title())
     public_error, diagnostic_id = _public_error(error, public_id)
     return {
@@ -76,6 +77,9 @@ def _run(row) -> dict[str, Any]:
         "output_ids": output_ids or [], "usage": usage or {},
         "provider_diagnostics": provider_diagnostics or [],
         "provider_request_ids": provider_request_ids or [],
+        "provider_attempt_status": provider_attempt_status,
+        "provider_attempt_id": str(provider_attempt_id) if provider_attempt_id else None,
+        "requires_review": provider_attempt_status == "ambiguous",
         "production_id": production_id, "production_name": production_name,
         "where": production_name or source_tool or "Audio Studio",
         "cost_basis": _basis(cost_basis),
@@ -104,10 +108,14 @@ class ActivityRepository:
                    job.production_id, production.name, job.cost_basis,
                    job.created_at, job.started_at, job.finished_at,
                    job.result->'provider_diagnostics',
-                   job.result->'request_ids'
+                   job.result->'request_ids', attempt.status, attempt.public_id
               FROM jobs job
               LEFT JOIN productions production
                 ON production.id = job.production_id
+              LEFT JOIN LATERAL (
+                SELECT status, public_id FROM provider_attempts
+                 WHERE job_id=job.id ORDER BY created_at DESC, id DESC LIMIT 1
+              ) attempt ON true
              WHERE {' AND '.join(where)}
              ORDER BY job.created_at DESC LIMIT %s
         """

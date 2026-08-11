@@ -30,6 +30,10 @@ class PostgresWorkRecords:
         return work.hierarchy()
 
     @staticmethod
+    def resolve_id(collection: str, identifier: str) -> int | None:
+        return work.resolve_id(collection, identifier)
+
+    @staticmethod
     def production(production_id: int) -> dict | None:
         return work.production_get(production_id)
 

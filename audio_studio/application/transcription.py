@@ -13,6 +13,9 @@ from audio_studio.domain.transcription import (
     ProviderTranscript,
     QWEN_MODEL,
 )
+from audio_studio.application.provider_operations import (
+    ProviderOperationService, enforce_daily_cap,
+)
 
 
 class TranscriptionProvider(Protocol):
@@ -23,15 +26,15 @@ class TranscriptionProvider(Protocol):
 
 class AudioSourceResolver(Protocol):
     def prepare(self, *, url: str, name: str, playable: str,
-                duration_ms: int, generation_id: int | None,
+                duration_ms: int, part_id: int | None,
                 production_id: int | None, file: str) -> PreparedAudio: ...
     def publish(self, source: PreparedAudio) -> PreparedAudio: ...
 
 
 class TranscriptPersistence(Protocol):
     def save(self, values: dict) -> int: ...
-    def finish_generation(self, generation_id: int, duration_ms: int,
-                          transcript_id: int) -> None: ...
+    def finish_part(self, part_id: int, take_id: int | None,
+                    duration_ms: int, transcript_id: int) -> None: ...
     def today_spend(self) -> float: ...
 
 
@@ -39,15 +42,17 @@ class TranscriptionService:
     def __init__(self, repository: TranscriptPersistence,
                  provider: TranscriptionProvider,
                  source_resolver: AudioSourceResolver,
-                 preferences: Callable[[], dict]):
+                 preferences: Callable[[], dict],
+                 operations: ProviderOperationService | None = None):
         self.repository = repository
         self.provider = provider
         self.source_resolver = source_resolver
         self.preferences = preferences
+        self.operations = operations
 
     def transcribe(self, *, url: str = "", name: str = "", file: str = "",
                    playable: str = "", duration_ms: int = 0,
-                   generation_id: int | None = None, language: str = "",
+                   part_id: int | None = None, language: str = "",
                    production_id: int | None = None,
                    enable_itn: bool = False,
                    vocabulary_id: str | None = None,
@@ -55,18 +60,14 @@ class TranscriptionService:
                    on_progress=None) -> dict:
         source = self.source_resolver.prepare(
             url=url, name=name, playable=playable, duration_ms=duration_ms,
-            generation_id=generation_id, production_id=production_id, file=file)
+            part_id=part_id, production_id=production_id, file=file)
         model = FUN_MODEL if vocabulary_id else QWEN_MODEL
         region = getattr(self.provider, "region", "intl") or "intl"
         estimate = transcription_cost(source.duration_ms, region, model)
         preferences = self.preferences()
-        cap = float(preferences.get("daily_cap") or 0)
-        spent = self.repository.today_spend() if cap > 0 else 0.0
-        if cap > 0 and spent + estimate.catalog_cost > cap:
-            raise PermissionError(
-                f"Daily cap reached. You've spent ${spent:.4f} today and this "
-                f"would add about ${estimate.catalog_cost:.4f}, over your "
-                f"${cap:.2f} cap. Raise it in Settings if you want to continue.")
+        if not (self.operations and source_job_id):
+            enforce_daily_cap(
+                estimate.catalog_cost, preferences, self.repository.today_spend())
         warning = float(preferences.get("warn_above") or 0)
         if warning > 0 and estimate.catalog_cost > warning and not confirmed:
             return {"needs_confirmation": True,
@@ -74,23 +75,57 @@ class TranscriptionService:
                     "estimated_cost": estimate.catalog_cost,
                     "model": model, "cost_basis": "estimate"}
 
+        reservation_id = None
+        attempt_id = None
+        if self.operations and source_job_id:
+            reservation_id = self.operations.authorize(
+                source_job_id, "transcription", estimate.catalog_cost,
+                preferences, confirmed)
+            attempt_id = self.operations.repository.begin_attempt(
+                source_job_id, "transcription", {
+                    "provider": "alibaba", "region": region, "model": model,
+                }, {"part_id": source.part_id, "take_id": source.take_id,
+                    "duration_ms": source.duration_ms, "language": language},
+                reservation_id)
         source = self.source_resolver.publish(source)
         if on_progress:
             on_progress(0, 1)
-        result = self.provider.transcribe(
-            url=source.url, language=language or None, words=True,
-            vocabulary_id=vocabulary_id, enable_itn=enable_itn)
+        try:
+            if attempt_id:
+                self.operations.repository.mark_sent(attempt_id)
+            result = self.provider.transcribe(
+                url=source.url, language=language or None, words=True,
+                vocabulary_id=vocabulary_id, enable_itn=enable_itn)
+        except Exception as exc:
+            if attempt_id:
+                status = self.operations.failure_status(exc)
+                self.operations.repository.finish_attempt(
+                    attempt_id, status, cost=0, usage={}, request_ids=[],
+                    error={"type": type(exc).__name__, "message": str(exc)[:600]})
+                self.operations.repository.release_budget(
+                    reservation_id,
+                    estimate.catalog_cost if status == "ambiguous" else 0,
+                    status)
+            raise
         cues = captions.build_cues(result.sentences, "standard")
         srt, vtt = captions.render_srt(cues), captions.render_vtt(cues)
         final_region = result.provider_region or region
         billed_duration = result.billed_duration_ms or result.duration_ms
         cost = transcription_cost(billed_duration, final_region, model)
+        if attempt_id:
+            self.operations.repository.finish_attempt(
+                attempt_id, "succeeded", cost=cost.catalog_cost,
+                usage=result.usage or {},
+                request_ids=[result.request_id] if result.request_id else [],
+                error={})
+            self.operations.repository.release_budget(
+                reservation_id, cost.catalog_cost, "succeeded")
         transcript_id = self.repository.save({
             "name": source.name, "source_url": source.url,
             "audio_url": source.playable, "language": language or None,
             "duration_ms": result.duration_ms, "text": result.text,
             "srt": srt, "vtt": vtt, "sentences": result.sentences,
-            "generation_id": source.generation_id,
+            "part_id": source.part_id, "take_id": source.take_id,
             "translated_from": None, "source_job_id": source_job_id,
             "model": cost.model, "provider_region": cost.provider_region,
             "price_version": cost.price_version,
@@ -98,15 +133,16 @@ class TranscriptionService:
             "catalog_cost": cost.catalog_cost,
             "cost_basis": cost.cost_basis,
         })
-        if source.generation_id:
-            self.repository.finish_generation(
-                source.generation_id, result.duration_ms, transcript_id)
+        if source.part_id:
+            self.repository.finish_part(
+                source.part_id, source.take_id, result.duration_ms, transcript_id)
         if on_progress:
             on_progress(1, 1)
         return {
             **cost.as_dict(),
             "id": transcript_id, "file": source.name,
-            "generation_id": source.generation_id, "url": source.playable,
+            "part_id": source.part_id, "take_id": source.take_id,
+            "url": source.playable,
             "language": language or None, "text": result.text,
             "sentences": result.sentences,
             "srt": srt, "vtt": vtt, "cost": cost.catalog_cost,
@@ -130,7 +166,7 @@ class TranscriptionJobHandler:
         result = self.service.transcribe(
             **{key: value for key, value in job.payload.items()
                if key in {"url", "name", "file", "playable", "duration_ms",
-                          "generation_id", "language", "enable_itn",
+                          "part_id", "language", "enable_itn",
                           "vocabulary_id", "confirmed", "production_id"}},
             source_job_id=job.id,
             on_progress=lambda done, total: repository.progress(

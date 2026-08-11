@@ -46,10 +46,11 @@ class DraftBody(BaseModel):
     text_tagged: str | None = None
     text_state: str = "raw"
     insert_at: int | None = None
-    voice: str = Field(min_length=1)
     voice_identity_id: str | None = None
-    engine: str = "audio"
-    model: str = "plus"
+    binding_id: str | None = None
+    catalogue_voice_id: str | None = None
+    capability_id: str | None = None
+    cast_role_id: str | None = None
     format: str = "mp3"
     language: str = "Auto"
     instruction: str = ""

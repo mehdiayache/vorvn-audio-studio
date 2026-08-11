@@ -15,7 +15,8 @@ class PreparedAudio:
     name: str
     playable: str | None
     duration_ms: int
-    generation_id: int | None
+    part_id: int | None
+    take_id: int | None = None
     local_path: str | None = None
 
 

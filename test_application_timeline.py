@@ -92,13 +92,13 @@ class Transcripts:
     def __init__(self):
         self.stale = []
 
-    def mark_stale(self, generation_id):
-        self.stale.append(generation_id)
+    def mark_stale(self, part_id):
+        self.stale.append(part_id)
         return 2
 
     @staticmethod
-    def list_for_generation(generation_id):
-        return [{"generation_id": generation_id}]
+    def list_for_part(part_id):
+        return [{"part_id": part_id}]
 
 
 class TimelineServiceTests(unittest.TestCase):
@@ -155,7 +155,7 @@ class TimelineServiceTests(unittest.TestCase):
         promoted = self.service.promote(6, 7, 12)
         self.assertEqual(promoted, {"ok": True, "subtitles_stale": 2})
         self.assertEqual(self.transcripts.stale, [7])
-        self.assertEqual(self.service.captions(6, 7), [{"generation_id": 7}])
+        self.assertEqual(self.service.captions(6, 7), [{"part_id": 7}])
 
 
 if __name__ == "__main__":

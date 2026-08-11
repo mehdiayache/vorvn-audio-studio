@@ -72,6 +72,7 @@ class VoiceReferenceSummaryResponse(BaseModel):
     sample_rate: int | None = None
     channels: int | None = None
     metadata: dict = Field(default_factory=dict)
+    diagnostics: dict = Field(default_factory=dict)
     created_at: str
     updated_at: str
 

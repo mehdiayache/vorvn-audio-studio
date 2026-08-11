@@ -36,10 +36,15 @@ class FakeRepository:
         self.replaced = []
 
     def voice_bindings(self):
-        return [{"provider_voice_id": "voice-one", "voice_id": "voice-one",
+        return [{"binding_id": "binding-one", "provider_voice_id": "voice-one", "voice_id": "voice-one",
                  "identity_id": "identity-one", "engine": "audio",
                  "tier": "plus", "model_id": "qwen-audio-3.0-tts-plus",
-                 "source": "custom", "status": "active"}]
+                 "source": "custom", "status": "active", "provider": "alibaba",
+                 "region": "intl", "reference_id": "reference-one",
+                 "capabilities": [{"id": "expressive_tags", "name": "Expressive + tags"}]}]
+
+    def catalogue_voices(self):
+        return []
 
     def pronunciations(self):
         return []
@@ -61,6 +66,12 @@ class FakeRepository:
     def create_part(self, production_id, insert_at, values):
         self.created.append((production_id, insert_at, values))
         return 701
+
+    def prepare_part(self, part_id, production_id, expected_revision, script):
+        self.current_part = {**self.current_part, "text": script,
+                             "revision": expected_revision + 1}
+        return {**self.current_part, "id": part_id,
+                "production_id": production_id}
 
     def replace_part(self, part_id, production_id, expected_created_at,
                      values, *, operation):
@@ -154,6 +165,7 @@ class Progress:
 def payload(**changes):
     return {
         "operation": "create", "text": "Hello world", "voice": "voice-one",
+        "binding_id": "binding-one", "catalogue_voice_id": None,
         "voice_identity_id": "identity-one", "engine": "audio",
         "model": "plus", "format": "mp3", "language": "English",
         "instruction": "", "speech_mode": "exact", "rate": 1,
@@ -164,7 +176,7 @@ def payload(**changes):
 
 def existing(kind="audio"):
     return {
-        "created_at": "revision-one", "kind": kind, "text": "Old words",
+        "created_at": "revision-one", "revision": 1, "kind": kind, "text": "Old words",
         "text_raw": "Old words", "text_shaped": None, "text_tagged": None,
         "text_state": "raw", "voice": "voice-one",
         "voice_identity_id": "identity-one", "engine": "audio",
@@ -202,11 +214,14 @@ class SpeechGenerationTests(unittest.TestCase):
     def test_complete_service_path_never_language_gates_a_cloned_binding(self):
         repository = FakeRepository()
         repository.voice_bindings = lambda: [{
+            "binding_id": "binding-one",
             "provider_voice_id": "custom-audio", "voice_id": "custom-audio",
             "identity_id": "identity-one", "engine": "audio",
             "tier": "flash", "model_id": "qwen-audio-3.0-tts-flash",
             "source": "custom", "status": "active",
-            "languages": ["English"],
+            "languages": ["English"], "provider": "alibaba", "region": "intl",
+            "reference_id": "reference-one",
+            "capabilities": [{"id": "expressive_tags", "name": "Expressive + tags"}],
         }]
         provider = RoutedFakeProvider()
         service, _, _, _ = self.service(
@@ -315,14 +330,6 @@ class SpeechGenerationTests(unittest.TestCase):
             service.run(payload(production_id=99))
         self.assertEqual((provider.calls, workspace.saved), ([], []))
 
-        repository = FakeRepository(spent=1)
-        service, _, provider, workspace = self.service(
-            repository=repository,
-            preferences={"warn_above": 0, "daily_cap": 1.001})
-        with self.assertRaisesRegex(PermissionError, "Daily cap"):
-            service.run(payload())
-        self.assertEqual((provider.calls, workspace.saved), ([], []))
-
         service, _, provider, workspace = self.service(
             preferences={"warn_above": .001, "daily_cap": 0})
         result = service.run(payload())
@@ -366,24 +373,28 @@ class SpeechGenerationTests(unittest.TestCase):
 
     def test_http_contract_is_canonical_strict_and_backwards_readable(self):
         model = SpeechJobCreate(
-            text="Hello", voice="Tina", engine="omni", model="plus",
+            text="Hello",
+            catalogue_voice_id="alibaba:intl:qwen3.5-omni-plus:Tina",
             project_id=7)
         self.assertEqual(model.production_id, 7)
         self.assertEqual(model.model_dump()["production_id"], 7)
         cleared = SpeechJobCreate(
-            text="Hello", voice="Tina", voice_identity_id=None,
-            engine="omni", model="plus")
+            text="Hello", voice_identity_id=None,
+            catalogue_voice_id="alibaba:intl:qwen3.5-omni-plus:Tina")
         self.assertIn("voice_identity_id", cleared.model_dump(exclude_unset=True))
         SpeechJobCreate(
-            text="Hello", voice="Tina", engine="omni", model="plus",
+            text="Hello",
+            catalogue_voice_id="alibaba:intl:qwen3.5-omni-plus:Tina",
             production_id=7, operation="regenerate", part_id=8)
         for changes in (
-            {"engine": "mystery"}, {"rate": 3}, {"volume": 101},
+            {"voice": "Tina"}, {"engine": "omni"}, {"model": "plus"},
+            {"rate": 3}, {"volume": 101},
             {"operation": "regenerate", "part_id": 8},
             {"insert_at": 2},
         ):
-            values = {"text": "Hello", "voice": "Tina", "engine": "omni",
-                      "model": "plus", **changes}
+            values = {"text": "Hello",
+                      "catalogue_voice_id": "alibaba:intl:qwen3.5-omni-plus:Tina",
+                      **changes}
             with self.assertRaises(ValueError):
                 SpeechJobCreate(**values)
 
@@ -419,6 +430,11 @@ class SpeechGenerationTests(unittest.TestCase):
             "text": marker, "text_raw": marker, "text_shaped": None,
             "text_tagged": None, "text_state": "raw",
             "voice": "Tina", "voice_identity_id": None, "engine": "omni",
+            "binding_id": None,
+            "catalogue_voice_id": "alibaba:intl:qwen3.5-omni-plus:Tina",
+            "provider": "alibaba", "provider_region": "intl",
+            "provider_voice_id": "Tina", "model_id": "qwen3.5-omni-plus",
+            "tier": "plus", "capability_id": "natural_performance",
             "model": "plus", "format": "mp3", "language": "English",
             "instruction": None, "speech_mode": "exact", "rate": 1,
             "pitch": 1, "volume": 50, "seed": 0,
@@ -437,20 +453,20 @@ class SpeechGenerationTests(unittest.TestCase):
             changed = {**row, "text": marker + " changed",
                        "text_raw": marker + " changed"}
             result = repository.replace_part(
-                part_id, production_id, current["created_at"], changed,
+                part_id, production_id, current["revision"], changed,
                 operation="regenerate")
-            self.assertEqual(result["takes"], 1)
+            self.assertEqual(result["takes"], 2)
             with psycopg.connect(settings.database_url) as verify:
                 with verify.cursor() as cursor:
                     cursor.execute(
-                        "SELECT text FROM generations WHERE version_of = %s",
+                        "SELECT spoken_text FROM takes WHERE part_id = %s ORDER BY id",
                         (part_id,))
                     self.assertEqual(cursor.fetchone()[0], marker)
         finally:
             if part_id is not None:
                 with psycopg.connect(settings.database_url) as cleanup:
                     with cleanup.cursor() as cursor:
-                        cursor.execute("DELETE FROM generations WHERE id = %s",
+                        cursor.execute("DELETE FROM production_parts WHERE id = %s",
                                        (part_id,))
                     cleanup.commit()
 

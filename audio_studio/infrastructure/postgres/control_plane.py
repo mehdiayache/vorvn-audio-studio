@@ -63,9 +63,13 @@ class ControlPlaneRepository:
         try:
             with psycopg.connect(settings.database_url) as connection:
                 with connection.cursor() as cursor:
-                    cursor.execute("SELECT count(*) FROM generations")
-                    count = cursor.fetchone()[0]
-            return {"connected": True, "count": count}
+                    cursor.execute("""
+                        SELECT (SELECT count(*) FROM production_parts),
+                               (SELECT count(*) FROM takes)
+                    """)
+                    parts, takes = cursor.fetchone()
+            return {"connected": True, "count": parts,
+                    "parts": parts, "takes": takes}
         except psycopg.OperationalError as error:
             return {
                 "connected": False,

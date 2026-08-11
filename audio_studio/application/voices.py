@@ -6,6 +6,7 @@ from typing import Any, Callable, Protocol
 
 from audio_studio.config import alibaba_environment
 from audio_studio.domain import voice_packages
+from audio_studio.application.provider_operations import enforce_daily_cap
 
 
 class VoiceProfilesStore(Protocol):
@@ -100,14 +101,6 @@ class VoiceService:
     def _check_creation_budget(self, estimate: float,
                                confirmed: bool) -> dict | None:
         preferences = self.preferences()
-        cap = float(preferences.get("daily_cap") or 0)
-        spent = self.package_store.today_spend()
-        if cap > 0 and spent + estimate > cap:
-            self.package_store.record_blocked(
-                estimate=estimate, detail=f"daily cap of ${cap:.2f} reached")
-            raise PermissionError(
-                f"Daily cap reached. You've spent ${spent:.4f} today and this "
-                f"would add ${estimate:.4f}, over your ${cap:.2f} cap.")
         warn = float(preferences.get("warn_above") or 0)
         if warn > 0 and estimate > warn and not confirmed:
             return {
@@ -128,8 +121,16 @@ class VoiceService:
             language, str(payload.get("package") or "complete"))
         if not plan["routes"]:
             raise ValueError("No cloned-voice capability is installed.")
+        estimate = float(plan["total_estimated_creation_cost"])
+        try:
+            enforce_daily_cap(
+                estimate, self.preferences(), self.package_store.today_spend())
+        except PermissionError:
+            self.package_store.record_blocked(
+                estimate=estimate, detail="Daily cap reached before enrollment")
+            raise
         confirmation = self._check_creation_budget(
-            float(plan["total_estimated_creation_cost"]),
+            estimate,
             bool(payload.get("confirmed")),
         )
         if confirmation:
@@ -146,7 +147,7 @@ class VoiceService:
             name=name, metadata=metadata, reference_id=reference_id,
             identity_id=str(payload.get("identity_id") or "").strip() or None,
             routes=plan["routes"],
-            estimate=float(plan["total_estimated_creation_cost"]),
+            estimate=estimate,
         )
         return {
             "identity": self.profile(identity_id),

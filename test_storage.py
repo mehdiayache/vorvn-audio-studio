@@ -10,6 +10,7 @@ from audio_studio.infrastructure import upload_workspace
 
 from audio_studio.infrastructure.media_paths import contained
 from audio_studio.infrastructure.upload_workspace import LocalUploadWorkspace
+from audio_studio.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
 
 
 class FakeObjects:
@@ -23,6 +24,21 @@ class FakeObjects:
     def upload(self, path, **values):
         self.uploads.append((path, values))
         return "https://signed.test/source"
+
+    def put(self, path, **values):
+        self.uploads.append((path, values))
+        return {"bucket": "private", "key": (
+            "audio-studio/voice-references/ref_12345678/"
+            f"{values.get('variant', 'source')}{Path(path).suffix}"),
+            "sha256": __import__("hashlib").sha256(
+                Path(path).read_bytes()).hexdigest(),
+            "size_bytes": Path(path).stat().st_size}
+
+    def download(self, *, bucket, key, target):
+        self.downloaded = (bucket, key, Path(target))
+        Path(target).parent.mkdir(parents=True, exist_ok=True)
+        Path(target).write_bytes(b"durable master")
+        return Path(target)
 
 
 class StorageContracts(unittest.TestCase):
@@ -103,6 +119,43 @@ class StorageContracts(unittest.TestCase):
         self.assertEqual(values["kind"], "transcription-sources")
         self.assertEqual(values["retention"], "temporary")
         self.assertNotIn("Human title", objects.uploads[0][0])
+
+    def test_voice_master_uses_a_durable_locator_and_keeps_a_local_cache(self):
+        objects = FakeObjects()
+        with TemporaryDirectory() as directory, patch.object(
+                upload_workspace.shutil, "which", return_value=None):
+            root = Path(directory)
+            workspace = LocalUploadWorkspace(
+                root=root, output=root / "media",
+                references=root / "references", objects=objects)
+            stored = workspace.store_voice_reference(
+                b"durable master", "Human name.wav", "ref_12345678")
+            self.assertTrue((root / "references" / stored.normalized_path).is_file())
+        self.assertEqual(stored.storage_backend, "s3")
+        self.assertEqual(stored.storage_bucket, "private")
+        self.assertNotIn("Human name", stored.storage_key or "")
+        self.assertEqual(len(objects.uploads), 2)
+        self.assertEqual(
+            {item[1]["variant"] for item in objects.uploads},
+            {"original", "normalized"})
+        self.assertTrue(stored.original_storage_key)
+        self.assertTrue(stored.normalized_storage_key)
+        self.assertEqual(stored.sha256, stored.normalized_sha256)
+        self.assertTrue(all(item[1]["retention"] == "durable"
+                            for item in objects.uploads))
+
+    def test_s3_master_is_restored_and_checksum_verified_when_cache_is_missing(self):
+        objects = FakeObjects()
+        digest = __import__("hashlib").sha256(b"durable master").hexdigest()
+        with TemporaryDirectory() as directory:
+            workspace = VoiceReferenceWorkspace(Path(directory), objects=objects)
+            resolved = workspace.resolve_reference({
+                "normalized_path": "ref_12345678/normalized.wav",
+                "storage_backend": "s3", "storage_bucket": "private",
+                "storage_key": "safe/key.wav", "sha256": digest,
+            })
+            self.assertEqual(resolved.read_bytes(), b"durable master")
+            self.assertEqual(objects.downloaded[:2], ("private", "safe/key.wav"))
 
 
 if __name__ == "__main__":

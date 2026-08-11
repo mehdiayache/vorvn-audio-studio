@@ -115,19 +115,19 @@ class AudioTtsTests(unittest.TestCase):
         encode.assert_called_once()
         self.assertEqual(diagnostics[0]["submissions"], 2)
 
-    def test_transient_session_failure_retries_without_partial_output(self):
+    def test_transport_failure_is_not_automatically_retried(self):
         planned = audio_tts.AudioPlan((("hello",),))
         with patch.object(
                 audio_tts, "_render_session",
-                side_effect=[RuntimeError("timeout"), (b"pcm", "request")]
+                side_effect=RuntimeError("timeout")
                 ) as render, \
                 patch.object(audio_tts.time, "sleep"), \
                 patch.object(audio_tts.audio_codec, "encode_pcm",
                              return_value=b"mp3"):
             audio, failures, *_ = audio_tts.synthesize(planned, options())
-        self.assertEqual(audio, b"mp3")
-        self.assertEqual(failures, [])
-        self.assertEqual(render.call_count, 2)
+        self.assertEqual(audio, b"")
+        self.assertEqual(len(failures), 1)
+        self.assertEqual(render.call_count, 1)
 
     def test_failed_later_session_discards_all_earlier_audio(self):
         planned = audio_tts.AudioPlan((("first",), ("second",)))

@@ -40,6 +40,37 @@ database + media backup/restore procedure. Retire compatibility columns and
 dual-write triggers only through their own measured data migration; they are
 not an active dependency on deleted Python legacy modules.
 
+## Voice architecture checkpoint — complete
+
+The canonical production chain is now:
+
+```text
+Venture Persona -> Production Cast Role -> Speech Part revision
+Voice Identity -> durable Voice Reference -> exact Voice Binding
+Composition Draft -> ProviderAttempt + budget reservation -> immutable Take
+```
+
+- Parts contain editorial truth; immutable Takes contain generation truth.
+- Recast revises every affected Part transactionally, making old Takes
+  deterministically outdated without modifying them.
+- Owned voices use an exact `binding_id`; provider voices use an exact
+  `catalogue_voice_id`. Language never selects or replaces a route.
+- Provider capabilities are data records and support single- or multi-mode
+  bindings without a closed enum.
+- Paid/state-changing/durable provider calls retain ProviderAttempt evidence;
+  ambiguous paid calls require an explicit human retry.
+- Spend authorization, confirmation, atomic reservation and reconciliation are
+  centralized for Speech, Batch, enrollment, transcription, translation and
+  paid text preparation.
+- Voice masters use ID-owned local/S3-compatible objects. Missing historical
+  masters are marked unresolved and never fabricated or allowed to block app
+  startup.
+- Provider catalogue discovery stays technical and creates no business
+  attempt; its exact routes are refreshed into one canonical PostgreSQL store.
+- Speak, Production and Batch share the same exact speech pipeline.
+- Migrations `011` through `017` install this model and retire Generation as a
+  canonical Part identity while retaining honest historical provenance.
+
 ## Architecture hardening
 
 The post-legacy cleanup is guarded by shrink-only AST tests in

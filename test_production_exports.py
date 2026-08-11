@@ -69,21 +69,15 @@ class ProductionExportTests(unittest.TestCase):
         self.assertIsNotNone(created)
         item = self.repository.get(created["export_id"])
         self.assertEqual(item["production_id"], production_id)
-        self.assertEqual(item["generation_id"], created["generation_id"])
-        self.assertEqual(item["manifest"], manifest)
+        self.assertEqual(item["manifest"]["version"], manifest["version"])
+        self.assertEqual(item["manifest"]["parts"], manifest["parts"])
+        self.assertEqual(item["manifest"]["source"], "canonical_parts")
         self.assertEqual(item["renderer"], "test-renderer")
         self.assertEqual(self.repository.list(production_id), [item])
 
         editor = work.production_editor(production_id)
         self.assertEqual(editor["exports"], [item])
         self.assertEqual(editor["parts"], [])
-        with psycopg.connect(settings.database_url) as database:
-            row = database.execute(
-                "SELECT kind, production_id FROM generations WHERE id = %s",
-                (created["generation_id"],),
-            ).fetchone()
-        self.assertEqual(row, ("stitch", production_id))
-
         before = len(self.repository.list(production_id))
         self.assertIsNone(self.repository.create(
             production_id + 10_000_000, filename="orphan.mp3",

@@ -1,4 +1,4 @@
-"""Minimal PostgreSQL lookup for public Generation media."""
+"""Minimal PostgreSQL lookup for immutable Take media."""
 
 from __future__ import annotations
 
@@ -8,11 +8,11 @@ from audio_studio.infrastructure.postgres.session import read_only
 class MediaLookupRepository:
     """Resolve database identity to a contained output filename only."""
 
-    def generation(self, generation_id: int) -> dict | None:
+    def take(self, take_id: int) -> dict | None:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT id, filename FROM generations
+                SELECT id, filename FROM takes
                  WHERE id = %s AND filename <> ''
-            """, (generation_id,))
+            """, (take_id,))
             row = cursor.fetchone()
         return ({"id": int(row[0]), "filename": row[1]} if row else None)

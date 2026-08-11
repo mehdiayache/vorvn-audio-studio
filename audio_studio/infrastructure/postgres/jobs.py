@@ -208,7 +208,8 @@ class JobRepository:
                 return False
             kind = job_row[0] if job_row else "job"
             outputs = _output_ids(kind, result)
-            generation_id = result.get("id") if kind == "speech" else None
+            part_id = result.get("part_id") if kind == "speech" else None
+            take_id = result.get("take_id") if kind == "speech" else None
             final_status = "cancelled" if job_row[3] else status
             cursor.execute("""
                 UPDATE jobs SET status = %s, result = %s::jsonb, cost = %s,
@@ -221,7 +222,9 @@ class JobRepository:
                        cost_basis = %s, price_version = %s,
                        provider_region = %s, provider_endpoint = %s,
                        resolved_route = %s::jsonb, output_ids = %s::jsonb,
-                       generation_id = coalesce(%s, generation_id),
+                       part_id = coalesce(%s, part_id),
+                       take_id = coalesce(%s, take_id),
+                       provider_attempt_id = coalesce(%s, provider_attempt_id),
                        finished_at = now(), last_heartbeat_at = now(),
                        elapsed_ms = greatest(0, extract(epoch from
                            (now() - coalesce(started_at, created_at))) * 1000)::int
@@ -236,7 +239,8 @@ class JobRepository:
                   result.get("provider_region"), result.get("provider_endpoint"),
                   json.dumps({"model": result.get("model"),
                               "region": result.get("provider_region")}),
-                  json.dumps(outputs), generation_id, job_id))
+                  json.dumps(outputs), part_id, take_id,
+                  result.get("provider_attempt_id"), job_id))
             if cursor.rowcount != 1:
                 return False
             event_kind = "cancelled" if final_status == "cancelled" else "completed"

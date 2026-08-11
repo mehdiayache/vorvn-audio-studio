@@ -31,6 +31,7 @@ class VoiceCatalogue(Protocol):
     def custom_bindings(self) -> list[dict]: ...
     def binding_references(self) -> dict: ...
     def catalog_usage(self) -> dict: ...
+    def catalogue_bindings(self) -> list[dict]: ...
 
 
 class CatalogueControlPlane(Protocol):
@@ -127,7 +128,7 @@ class CatalogService:
     def registry(self) -> dict:
         return voice_registry.assemble(
             self.voices.custom_bindings(), self.voices.catalog_metadata(),
-            self.voices.binding_references())
+            self.voices.binding_references(), self.voices.catalogue_bindings())
 
     def voice_usage(self) -> dict:
         return self.voices.catalog_usage()
@@ -136,6 +137,26 @@ class CatalogService:
         return self.voices.catalog_metadata()
 
     def resolve_voice(self, payload: dict) -> dict:
-        bindings = [
-            *voice_registry.system_bindings(), *self.voices.custom_bindings()]
-        return voice_routing.resolve(payload, bindings).payload()
+        bindings = self.voices.custom_bindings()
+        catalogue = self.voices.catalogue_bindings()
+        # Capabilities are provider-model data.  The current catalogue snapshot
+        # is single-mode per exact route; future multi-mode routes can publish
+        # more than one capability without changing this contract.
+        for item in bindings:
+            item.setdefault("region", "intl")
+            item.setdefault("provider", "alibaba")
+            item.setdefault("capabilities", [{
+                "id": {"audio": "expressive_tags", "omni": "natural_performance",
+                       "qwen_tts": "exact_longform"}[item["engine"]],
+                "name": {"audio": "Expressive + tags", "omni": "Natural performance",
+                         "qwen_tts": "Exact long reading"}[item["engine"]],
+            }])
+        for item in catalogue:
+            item.setdefault("region", "intl")
+            item.setdefault("capabilities", [{
+                "id": "expressive_tags" if item["engine"] == "audio"
+                      else "natural_performance",
+                "name": "Expressive + tags" if item["engine"] == "audio"
+                        else "Natural performance",
+            }])
+        return voice_routing.resolve(payload, bindings, catalogue).payload()

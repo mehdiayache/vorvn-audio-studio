@@ -15,5 +15,5 @@ class PostgresMediaRecords:
     def export(self, export_id: int) -> dict | None:
         return self.exports.get(export_id)
 
-    def generation(self, generation_id: int) -> dict | None:
-        return self.media.generation(generation_id)
+    def take(self, take_id: int) -> dict | None:
+        return self.media.take(take_id)

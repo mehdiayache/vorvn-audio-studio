@@ -9,6 +9,8 @@ class ReferenceRepository(Protocol):
     def references(self) -> list[dict]: ...
     def update_reference_paths(self, reference_id: str, *, original_path: str,
                                normalized_path: str) -> bool: ...
+    def mark_reference_unavailable(self, reference_id: str,
+                                   detail: str) -> None: ...
 
 
 class ReferenceWorkspace(Protocol):
@@ -23,14 +25,21 @@ def migrate_legacy_references(repository: ReferenceRepository,
     migrated = 0
     for item in repository.references():
         reference_id = str(item["id"])
-        original = workspace.migrate_legacy(
-            reference_id, str(item.get("original_path") or ""), "original")
-        normalized = workspace.migrate_legacy(
-            reference_id, str(item.get("normalized_path") or ""), "normalized")
-        if original:
-            workspace.resolve(original)
-        if normalized:
-            workspace.resolve(normalized)
+        try:
+            original = workspace.migrate_legacy(
+                reference_id, str(item.get("original_path") or ""), "original")
+            normalized = workspace.migrate_legacy(
+                reference_id, str(item.get("normalized_path") or ""), "normalized")
+            if original:
+                workspace.resolve(original)
+            if normalized:
+                workspace.resolve(normalized)
+        except RuntimeError as error:
+            # Historical evidence must remain honest. A missing old master is
+            # unavailable for new enrollments, but it must not take the whole
+            # application offline or be replaced with invented media.
+            repository.mark_reference_unavailable(reference_id, str(error))
+            continue
         if (original, normalized) != (
                 item.get("original_path") or "",
                 item.get("normalized_path") or ""):

@@ -72,32 +72,32 @@ def _get_resource(collection: str, resource_id: int) -> dict:
 @router.get("/ventures/{resource_id}", operation_id="getVenture",
             response_model=WorkResourceEnvelope,
             response_model_exclude_none=True)
-def get_venture(resource_id: int) -> dict:
+def get_venture(resource_id: str) -> dict:
     return _get_resource("ventures", resource_id)
 
 
 @router.get("/projects/{resource_id}", operation_id="getProject",
             response_model=WorkResourceEnvelope,
             response_model_exclude_none=True)
-def get_project(resource_id: int) -> dict:
+def get_project(resource_id: str) -> dict:
     return _get_resource("projects", resource_id)
 
 
 @router.get("/series/{resource_id}", operation_id="getSeries",
             response_model=WorkResourceEnvelope,
             response_model_exclude_none=True)
-def get_series(resource_id: int) -> dict:
+def get_series(resource_id: str) -> dict:
     return _get_resource("series", resource_id)
 
 
 @router.get("/productions/{resource_id}", operation_id="getProduction",
             response_model=WorkResourceEnvelope,
             response_model_exclude_none=True)
-def get_production(resource_id: int) -> dict:
+def get_production(resource_id: str) -> dict:
     return _get_resource("productions", resource_id)
 
 
-def _get_overview(collection: str, resource_id: int) -> dict:
+def _get_overview(collection: str, resource_id: str) -> dict:
     item = work_service.overview(collection, resource_id)
     if not item:
         raise ApiProblem(404, f"{KINDS[collection]}_not_found",
@@ -107,13 +107,13 @@ def _get_overview(collection: str, resource_id: int) -> dict:
 
 @router.get("/ventures/{resource_id}/overview", operation_id="getVentureOverview",
             response_model=VentureOverviewEnvelope)
-def get_venture_overview(resource_id: int) -> dict:
+def get_venture_overview(resource_id: str) -> dict:
     return _get_overview("ventures", resource_id)
 
 
 @router.get("/ventures/{resource_id}/assets", operation_id="listVentureAssets",
             response_model=VentureAssetLibraryEnvelope)
-def list_venture_assets(resource_id: int) -> dict:
+def list_venture_assets(resource_id: str) -> dict:
     result = work_service.venture_assets(resource_id)
     if not result:
         raise ApiProblem(404, "venture_not_found", "That Venture does not exist.")
@@ -122,19 +122,19 @@ def list_venture_assets(resource_id: int) -> dict:
 
 @router.get("/projects/{resource_id}/overview", operation_id="getProjectOverview",
             response_model=ProjectOverviewEnvelope)
-def get_project_overview(resource_id: int) -> dict:
+def get_project_overview(resource_id: str) -> dict:
     return _get_overview("projects", resource_id)
 
 
 @router.get("/series/{resource_id}/overview", operation_id="getSeriesOverview",
             response_model=SeriesOverviewEnvelope)
-def get_series_overview(resource_id: int) -> dict:
+def get_series_overview(resource_id: str) -> dict:
     return _get_overview("series", resource_id)
 
 
 @router.get("/productions/{production_id}/editor", operation_id="getProductionEditor",
             response_model=ProductionEditorEnvelope)
-def get_production_editor(production_id: int) -> dict:
+def get_production_editor(production_id: str) -> dict:
     item = work_service.production_editor(production_id)
     if not item:
         raise ApiProblem(404, "production_not_found", "That Production does not exist.")
@@ -143,7 +143,7 @@ def get_production_editor(production_id: int) -> dict:
 
 @router.get("/productions/{production_id}/assets", operation_id="listProductionAssets",
             response_model=VentureAssetLibraryEnvelope)
-def list_production_assets(production_id: int) -> dict:
+def list_production_assets(production_id: str) -> dict:
     item = work_service.production_assets(production_id)
     if not item:
         raise ApiProblem(404, "production_not_found", "That Production does not exist.")

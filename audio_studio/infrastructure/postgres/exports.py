@@ -9,7 +9,7 @@ from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 
 EXPORT_FIELDS = (
-    "id", "production_id", "generation_id", "filename", "manifest",
+    "id", "production_id", "filename", "manifest",
     "renderer", "duration_ms", "size_bytes", "created_at",
 )
 
@@ -21,7 +21,7 @@ def _export(values) -> dict[str, Any]:
 
 
 class ProductionExportRepository:
-    """Own final-file history and its legacy playback projection."""
+    """Own immutable final-file history without creating a fake speech Part."""
 
     def list(self, production_id: int) -> list[dict[str, Any]]:
         with read_only() as cursor:
@@ -45,7 +45,7 @@ class ProductionExportRepository:
     def create(self, production_id: int, *, filename: str, path: str,
                manifest: dict, renderer: str, duration_ms: int | None,
                size_bytes: int, part_count: int) -> dict[str, int] | None:
-        """Atomically create the immutable Export and playback projection."""
+        """Atomically create one immutable Export."""
         with transaction() as cursor:
             cursor.execute("""
                 SELECT production.legacy_container_id, production.name
@@ -60,28 +60,14 @@ class ProductionExportRepository:
             production = cursor.fetchone()
             if not production:
                 return None
-            legacy_id, production_name = production
-            cursor.execute("""
-                INSERT INTO generations
-                    (text, voice, engine, model, format, filename, path,
-                     size_bytes, duration_ms, chars, requests, cost, project_id,
-                     production_id, position, kind, title, cost_basis, usage,
-                     fidelity, failures)
-                VALUES (%s, '-', 'system', '-', 'mp3', %s, %s, %s, %s, 0,
-                        %s, 0, %s, %s, NULL, 'stitch', %s, 'not billed',
-                        '{}'::jsonb, '{}'::jsonb, '[]'::jsonb)
-                RETURNING id
-            """, (f"Stitched from {part_count} parts of {production_name}",
-                  filename, path, size_bytes, duration_ms, part_count,
-                  legacy_id, production_id, f"Full — {part_count} parts"))
-            generation_id = int(cursor.fetchone()[0])
             cursor.execute("""
                 INSERT INTO exports
-                    (production_id, generation_id, filename, manifest, renderer,
+                    (production_id, legacy_generation_id, filename, manifest, renderer,
                      duration_ms, size_bytes)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, NULL, %s, %s, %s, %s, %s)
                 RETURNING id
-            """, (production_id, generation_id, filename,
-                  json.dumps(manifest), renderer, duration_ms, size_bytes))
-            return {"export_id": int(cursor.fetchone()[0]),
-                    "generation_id": generation_id}
+            """, (production_id, filename, json.dumps({
+                **manifest, "source": "canonical_parts",
+                "part_count": part_count, "storage_path": path,
+            }), renderer, duration_ms, size_bytes))
+            return {"export_id": int(cursor.fetchone()[0])}

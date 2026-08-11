@@ -24,6 +24,10 @@ class FakeVoices:
     def binding_references(self):
         return {}
 
+    def catalogue_bindings(self):
+        from audio_studio.domain.voice_registry import system_bindings
+        return system_bindings()
+
     def catalog_usage(self):
         return {"Tina": {"uses": 3}}
 

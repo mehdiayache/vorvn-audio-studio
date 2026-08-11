@@ -47,6 +47,13 @@ class UploadRecords(Protocol):
         sample_rate: int | None = None, channels: int | None = None,
         source_language: str = "", transcript: str = "",
         metadata: dict | None = None,
+        storage_backend: str = "filesystem", storage_bucket: str | None = None,
+        storage_key: str | None = None,
+        original_storage_key: str | None = None,
+        normalized_storage_key: str | None = None,
+        original_sha256: str = "", normalized_sha256: str = "",
+        original_size_bytes: int | None = None,
+        normalized_size_bytes: int | None = None,
     ) -> str: ...
     def asset_collection(self, collection_id: int) -> dict | None: ...
     def create_uploaded_asset(
@@ -108,6 +115,17 @@ class UploadService:
                 source_language=source_language.strip().lower(),
                 transcript=transcript.strip(),
                 metadata=metadata or {},
+                storage_backend=stored.storage_backend,
+                storage_bucket=stored.storage_bucket,
+                storage_key=stored.storage_key or stored.normalized_path,
+                original_storage_key=(stored.original_storage_key
+                                      or stored.original_path),
+                normalized_storage_key=(stored.normalized_storage_key
+                                        or stored.normalized_path),
+                original_sha256=stored.original_sha256,
+                normalized_sha256=(stored.normalized_sha256 or stored.sha256),
+                original_size_bytes=stored.original_size_bytes,
+                normalized_size_bytes=stored.normalized_size_bytes,
             )
         except Exception:
             self.workspace.discard_voice_reference(reference_id)

@@ -26,6 +26,13 @@ class PreparedSpeech:
     request_count: int
     estimated_cost: float
     voice_route: dict
+    binding_id: str | None = None
+    catalogue_voice_id: str | None = None
+    reference_id: str | None = None
+    capability_id: str | None = None
+    capability_name: str | None = None
+    provider: str | None = None
+    provider_region: str | None = None
     pronunciations: list = field(default_factory=list)
     rewrites: list = field(default_factory=list)
     context: object = field(repr=False, compare=False, default=None)

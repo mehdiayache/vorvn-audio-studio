@@ -5,6 +5,9 @@ export type SpeechModel = "plus" | "flash" | "vc"
 
 export type VoiceChoice = {
   id: string
+  bindingId?: string | null
+  catalogueVoiceId?: string | null
+  providerVoiceId?: string
   identityId: string
   name: string
   description: string
@@ -33,7 +36,10 @@ const readyStatuses = new Set(["active", "ready"])
 
 function toChoice(binding: VoiceRegistry["bindings"][number]): VoiceChoice {
   return {
-    id: binding.provider_voice_id,
+    id: binding.binding_id || binding.catalogue_voice_id || binding.provider_voice_id,
+    bindingId: binding.binding_id,
+    catalogueVoiceId: binding.catalogue_voice_id,
+    providerVoiceId: binding.provider_voice_id,
     identityId: binding.identity_id,
     name: binding.name,
     description: binding.description,
@@ -83,24 +89,6 @@ export function routesForIdentity(
   // Published language coverage is guidance, never a casting gate. A ready
   // binding stays selectable and the provider remains the final authority.
   return (identity?.routes || []).filter((route) => route.compatible)
-}
-
-export function chooseIdentityRoute(
-  routes: VoiceChoice[],
-  preferred?: { engine?: SpeechEngine; model?: SpeechModel },
-) {
-  if (!routes.length) return undefined
-  const exact = routes.find(
-    (route) => route.engine === preferred?.engine
-      && route.model === preferred?.model,
-  )
-  if (exact) return exact
-  const sameEngine = routes.find((route) => route.engine === preferred?.engine)
-  if (sameEngine) return sameEngine
-  return routes.find((route) => route.engine === "audio")
-    || routes.find((route) => route.engine === "qwen_tts")
-    || routes.find((route) => route.engine === "omni" && route.model === "plus")
-    || routes[0]
 }
 
 export function getVoiceOptions(registry: VoiceRegistry | null, engine: SpeechEngine, model: SpeechModel) {

@@ -66,6 +66,14 @@ export type ProductionPart = {
   text_state?: "raw" | "shaped" | "tagged" | string
   voice?: string
   voice_identity_id?: string | null
+  binding_id?: string | null
+  catalogue_voice_id?: string | null
+  capability_id?: string | null
+  cast_role_id?: string | null
+  cast_role_name?: string | null
+  revision?: number
+  selected_take_id?: number | null
+  outdated?: boolean
   engine?: string
   model?: string
   format?: string
@@ -98,13 +106,25 @@ export type ProductionPart = {
 export type ProductionExport = {
   id: number
   production_id: number
-  generation_id: number | null
   filename: string
   manifest: Record<string, unknown>
   renderer: string
   duration_ms: number | null
   size_bytes: number
   created_at: string
+}
+
+export type ProductionCastRole = {
+  id: string
+  name: string
+  color: string
+  position: number | null
+  persona_id: string | null
+  persona_name: string | null
+  voice_source_kind: "identity" | "catalogue"
+  voice_identity_id: string | null
+  catalogue_voice_id: string | null
+  assignment_revision: number
 }
 
 export type Production = {
@@ -243,10 +263,14 @@ export type VoiceBinding = {
   languages: string[]
   source: "system" | "custom"
   provider: string
+  region: string
   engine: "audio" | "omni" | "qwen_tts"
   tier: "plus" | "flash" | "vc"
   model_id: string
   status: string
+  binding_id?: string | null
+  catalogue_voice_id?: string | null
+  capabilities?: Array<Record<string, string>>
   image?: string
   gender?: string
   age?: number | null
@@ -393,6 +417,10 @@ export type GeneratePayload = {
   production_id?: number
   insert_at: number | null
   voice: string
+  binding_id?: string | null
+  catalogue_voice_id?: string | null
+  capability_id?: string | null
+  cast_role_id?: string | null
   voice_identity_id?: string | null
   engine: "audio" | "omni" | "qwen_tts"
   model: "plus" | "flash" | "vc"
@@ -409,13 +437,14 @@ export type GeneratePayload = {
 }
 
 export type VoiceRouteDecision = {
+  binding_id?: string | null
+  catalogue_voice_id?: string | null
   identity_id?: string | null
   provider_voice_id: string
   engine: "audio" | "omni" | "qwen_tts"
   tier: "plus" | "flash" | "vc"
   model_id: string
-  reason: string
-  registry_matched: boolean
+  capability_id?: string | null
 }
 
 export type GenerateResult = {

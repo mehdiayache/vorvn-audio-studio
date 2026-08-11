@@ -16,7 +16,7 @@ class MediaWorkspace(Protocol):
 
 class MediaRecords(Protocol):
     def export(self, export_id: int) -> dict | None: ...
-    def generation(self, generation_id: int) -> dict | None: ...
+    def take(self, take_id: int) -> dict | None: ...
 
 
 class MediaService:
@@ -42,8 +42,8 @@ class MediaService:
         return self.workspace.resolve(
             "audio", filename, download_name=filename)
 
-    def generation_file(self, generation_id: int) -> MediaFile | None:
-        item = self.records.generation(generation_id)
+    def take_file(self, take_id: int) -> MediaFile | None:
+        item = self.records.take(take_id)
         if not item or not item.get("filename"):
             return None
         filename = str(item["filename"])

@@ -60,7 +60,7 @@ class FakeSourceResolver:
         self.calls.append(values)
         return PreparedAudio(
             "https://storage.test/audio.mp3", "audio.mp3", "/inbox/audio.mp3",
-            2000, values.get("generation_id"))
+            2000, values.get("part_id"), 45)
 
     def publish(self, source):
         self.published.append(source)
@@ -77,8 +77,8 @@ class FakeRepository:
         self.saved.append(values)
         return 91
 
-    def finish_generation(self, generation_id, duration_ms, transcript_id):
-        self.finished.append((generation_id, duration_ms, transcript_id))
+    def finish_part(self, part_id, take_id, duration_ms, transcript_id):
+        self.finished.append((part_id, take_id, duration_ms, transcript_id))
 
     def today_spend(self):
         return self.spent
@@ -104,7 +104,7 @@ class TranscriptionTests(unittest.TestCase):
         repository = FakeRepository()
         provider = FakeProvider()
         result = self.service(repository, provider).transcribe(
-            file="audio.mp3", generation_id=44, language="Arabic",
+            file="audio.mp3", part_id=44, language="Arabic",
             enable_itn=True, source_job_id=12)
 
         self.assertEqual(result["id"], 91)
@@ -118,9 +118,10 @@ class TranscriptionTests(unittest.TestCase):
         self.assertTrue(provider.calls[0]["enable_itn"])
         saved = repository.saved[0]
         self.assertEqual(saved["source_job_id"], 12)
-        self.assertEqual(saved["generation_id"], 44)
+        self.assertEqual(saved["part_id"], 44)
+        self.assertEqual(saved["take_id"], 45)
         self.assertEqual(saved["sentences"][0]["words"][1]["text"], "world.")
-        self.assertEqual(repository.finished, [(44, 2100, 91)])
+        self.assertEqual(repository.finished, [(44, 45, 2100, 91)])
 
     def test_warning_and_cap_stop_before_provider(self):
         provider = FakeProvider()
@@ -159,8 +160,8 @@ class TranscriptionTests(unittest.TestCase):
             url="https://storage.test/audio.mp3", name="audio.mp3",
             duration_ms=2000)
         self.assertEqual(uploaded.duration_ms, 2000)
-        local = TranscriptionJobCreate(file="audio.mp3", generation_id=44)
-        self.assertEqual(local.generation_id, 44)
+        local = TranscriptionJobCreate(file="audio.mp3", part_id=44)
+        self.assertEqual(local.part_id, 44)
         unknown_duration = TranscriptionJobCreate(
             url="https://storage.test/audio.mp3", name="audio.mp3")
         self.assertEqual(unknown_duration.duration_ms, 0)
@@ -169,7 +170,7 @@ class TranscriptionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             TranscriptionJobCreate(
                 url="https://storage.test/audio.mp3", duration_ms=2000,
-                generation_id=44)
+                part_id=44)
 
     def test_legacy_execution_and_upload_routes_are_removed(self):
         legacy = ROOT / "audio_studio/infrastructure/legacy_jobs.py"

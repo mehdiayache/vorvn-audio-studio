@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import mimetypes
+import hashlib
 from pathlib import Path
 import shutil
 import subprocess
@@ -82,10 +83,45 @@ class LocalUploadWorkspace:
             if result.returncode or not normalized.is_file():
                 shutil.rmtree(directory, ignore_errors=True)
                 raise ValueError("That recording could not be decoded as audio.")
+        backend = "filesystem"
+        bucket = None
+        storage_key = str(normalized.relative_to(self.references))
+        original_key = str(original.relative_to(self.references))
+        normalized_key = storage_key
+        original_digest = hashlib.sha256(original.read_bytes()).hexdigest()
+        normalized_digest = hashlib.sha256(normalized.read_bytes()).hexdigest()
+        if self.objects.configured():
+            original_locator = self.objects.put(
+                original,
+                content_type=(mimetypes.guess_type(original.name)[0]
+                              or "application/octet-stream"),
+                kind="voice-references", object_id=reference_id,
+                retention="durable", variant="original")
+            normalized_locator = self.objects.put(
+                normalized, content_type="audio/wav",
+                kind="voice-references", object_id=reference_id,
+                retention="durable", variant="normalized")
+            backend = "s3"
+            bucket = normalized_locator["bucket"]
+            original_key = original_locator["key"]
+            normalized_key = normalized_locator["key"]
+            storage_key = normalized_key
+            original_digest = original_locator["sha256"]
+            normalized_digest = normalized_locator["sha256"]
         return StoredVoiceReference(
             name=normalized.name,
             original_path=str(original.relative_to(self.references)),
             normalized_path=str(normalized.relative_to(self.references)),
+            storage_backend=backend,
+            storage_bucket=bucket,
+            storage_key=storage_key,
+            original_storage_key=original_key,
+            normalized_storage_key=normalized_key,
+            original_sha256=original_digest,
+            normalized_sha256=normalized_digest,
+            original_size_bytes=original.stat().st_size,
+            normalized_size_bytes=normalized.stat().st_size,
+            sha256=normalized_digest,
             duration_ms=_audio_duration_ms(normalized),
             sample_rate=24000 if normalized != original else None,
             channels=1 if normalized != original else None,

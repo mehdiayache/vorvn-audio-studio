@@ -74,9 +74,16 @@ def plan(language: str, package: str = "complete", *, region: str) -> dict:
     """Return a deterministic package plan for an explicit deployment."""
     normalized_region = "beijing" if region == "beijing" else "intl"
     code = _language_code(language)
-    available = installed_routes(code)
-    creatable = [route for route in available
-                 if route["source_language_documented"]]
+    available = [{**route, "region": normalized_region,
+                  "provider_model_id":
+                      f"alibaba:{normalized_region}:{route['model_id']}"}
+                 for route in installed_routes(code)]
+    # Enrollment eligibility is technical route availability plus a usable
+    # reference.  An undocumented reference language is Experimental guidance,
+    # never a gate.
+    creatable = [{**route, "classification": (
+        "documented" if route["source_language_documented"] else "experimental")}
+        for route in available]
     if package == "exact":
         selected = [route for route in creatable
                     if route["engine"] != "omni"]

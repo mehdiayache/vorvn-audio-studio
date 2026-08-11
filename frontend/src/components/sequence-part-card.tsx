@@ -47,12 +47,13 @@ export function SequencePartCard({ part, renderTask, index, count, selected, pla
       <button className="sequence-card-open" onClick={() => actions.openPart(part)} aria-label={`Open details for part ${index + 1}`}>
         <div className="sequence-card-heading">
           {asset ? <span className="sequence-asset-identity"><span className="sequence-asset-icon"><FileAudio /></span><span><b>{title}</b><small>Linked Venture asset</small></span></span> : <VoiceIdentity voice={part.voice} identityId={part.voice_identity_id} directory={directory} compact />}
-          <span className="sequence-card-status"><b>{duration ? formatDuration(duration) : "Draft"}</b>{part.kind === "draft" && <Badge variant="secondary">Not recorded</Badge>}{part.missing && <Badge variant="destructive"><CircleAlert /> Missing</Badge>}{part.fidelity && part.fidelity.status !== "pass" && <Badge variant="destructive"><CircleAlert /> Check wording</Badge>}</span>
+          <span className="sequence-card-status"><b>{duration ? formatDuration(duration) : "Draft"}</b>{part.kind === "draft" && <Badge variant="secondary">Not recorded</Badge>}{part.outdated && <Badge variant="destructive"><CircleAlert /> Take outdated</Badge>}{part.missing && <Badge variant="destructive"><CircleAlert /> Missing</Badge>}{part.fidelity && part.fidelity.status !== "pass" && <Badge variant="destructive"><CircleAlert /> Check wording</Badge>}</span>
         </div>
         <p dir={textDirection(part.text || part.title || "")}>{clipText(part.text || part.title || "Untitled part", 190)}</p>
         <div className="sequence-card-meta">
           <span>{kindLabel(part)}</span>
           {!asset && part.engine && <SpeechRouteLabel route={part} config={directory.config} />}
+          {part.cast_role_name && <span>Cast · {part.cast_role_name}</span>}
           <span>{part.spent ? `${formatMoney(part.spent)} generated` : "Free reuse"}</span>
           {part.takes ? <span>{part.takes} {part.takes === 1 ? "take" : "takes"}</span> : null}
           {part.subtitled && <span><Captions /> Captions{part.subtitles_stale ? " stale" : ""}</span>}

@@ -20,7 +20,9 @@ from audio_studio.infrastructure.alibaba import config
 from audio_studio.infrastructure import audio_codec
 
 
-RETRIES = 3
+# Provider synthesis calls have no billing-safe idempotency guarantee.
+# Ambiguous failures are persisted and retried only by an operator.
+RETRIES = 1
 BACKOFF = 1.5
 PROVIDER_TOKEN_LIMIT = int(provider_catalog.SEGMENTATION["qwen_tts"]
                            ["provider_token_limit"])

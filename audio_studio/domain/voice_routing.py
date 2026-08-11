@@ -1,176 +1,103 @@
-"""Resolve a human voice identity to one concrete provider binding.
+"""Exact, provider-neutral speech-route validation.
 
-This module owns selection only. It does not call Alibaba, touch files, write
-the database, or decide UI policy. Unknown and legacy voices deliberately pass
-through so improving the registry never breaks recordings that already work.
+This module never chooses a route.  A caller supplies either one owned
+``binding_id`` or one provider ``catalogue_voice_id`` and this module validates
+that exact record.  Display language and a reference's recorded language are
+deliberately absent from routing decisions.
 """
 
 from dataclasses import asdict, dataclass
-import re
-
-from audio_studio.domain import provider_catalog as config
 
 
 READY_STATUSES = {"active", "ready"}
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class VoiceRoute:
+    binding_id: str | None
+    catalogue_voice_id: str | None
     identity_id: str | None
+    reference_id: str | None
     provider_voice_id: str
+    provider: str
+    region: str
     engine: str
     tier: str
     model_id: str
-    reason: str
-    registry_matched: bool
+    capability_id: str | None
+    capability_name: str | None
 
     def payload(self) -> dict:
         return asdict(self)
 
 
-def _binding(item: dict) -> dict:
-    provider_id = str(item.get("provider_voice_id") or item.get("voice_id") or "")
-    model_id = str(item.get("model_id") or item.get("target_model") or "")
-    inferred_engine = (
-        "omni" if provider_id.startswith("qwen-omni-vc-")
-        else "qwen_tts" if model_id.startswith("qwen3-tts-vc-")
-        else "audio"
-    )
-    engine = str(item.get("engine") or inferred_engine)
-    models = config.CAPABILITIES.get(engine, {}).get("models", {})
-    inferred_tier = next(
-        (name for name, model in models.items() if model == model_id),
-        "flash" if "flash" in model_id else "plus",
-    )
-    tier = str(item.get("tier") or inferred_tier)
-    return {**item, "provider_voice_id": provider_id, "model_id": model_id,
-            "identity_id": str(item.get("identity_id") or "") or None,
-            "engine": engine, "tier": tier,
-            "status": str(item.get("status") or "active").casefold()}
+def _normalise(item: dict) -> dict:
+    return {
+        **item,
+        "binding_id": str(item.get("binding_id") or item.get("id") or "") or None,
+        "catalogue_voice_id": str(item.get("catalogue_voice_id") or "") or None,
+        "identity_id": str(item.get("identity_id") or "") or None,
+        "reference_id": str(item.get("reference_id") or "") or None,
+        "provider_voice_id": str(item.get("provider_voice_id") or ""),
+        "provider": str(item.get("provider") or ""),
+        "region": str(item.get("region") or item.get("provider_region") or ""),
+        "engine": str(item.get("engine") or ""),
+        "tier": str(item.get("tier") or ""),
+        "model_id": str(item.get("model_id") or ""),
+        "status": str(item.get("status") or "").casefold(),
+        "capabilities": list(item.get("capabilities") or []),
+    }
 
 
-def _legacy_custom(provider_id: str) -> bool:
-    return bool(re.search(r"^qwen.*-[0-9a-f]{16,}$", provider_id, re.I))
+def resolve(payload: dict, bindings: list[dict] | None = None,
+            catalogue: list[dict] | None = None) -> VoiceRoute:
+    """Validate the exact route selected by the operator.
 
-
-def _stock_audio(provider_id: str) -> bool:
-    return any(provider_id in voices for voices in config.AUDIO_SYSTEM_VOICES.values())
-
-
-def resolve(payload: dict, bindings: list[dict] | None = None) -> VoiceRoute:
-    """Return the concrete provider route for one speech request.
-
-    An exact compatible binding wins. A request is never silently moved to a
-    different model capability. Unknown legacy clones pass through untouched.
+    No matching by provider voice name, model, language, identity, or previous
+    preference is permitted.  This is intentionally strict: an unavailable
+    route fails instead of silently spending money through another route.
     """
-    language = payload.get("language")
-
-    requested_provider = str(payload.get("voice") or "").strip()
-    requested_engine = config.normalise_engine(payload.get("engine"))
-    engine_models = config.CAPABILITIES[requested_engine]["models"]
-    requested_tier = (payload.get("model")
-                      if payload.get("model") in engine_models
-                      else next(iter(engine_models)))
-    language_requires_omni = (
-        language in config.CAPABILITIES["omni"]["system_languages"]
-        and language not in config.CAPABILITIES["audio"]["system_languages"]
-    )
-    requested_identity = str(payload.get("voice_identity_id") or "").strip() or None
-    available = [_binding(item) for item in (bindings or [])]
-    available = [item for item in available
-                 if item["provider_voice_id"] and item["status"] in READY_STATUSES]
-    provider_matches = [item for item in available
-                        if item["provider_voice_id"] == requested_provider]
-    provider_match = next((item for item in provider_matches
-                           if item["engine"] == requested_engine
-                           and item["tier"] == requested_tier), None)
-    provider_match = provider_match or (provider_matches[0] if provider_matches else None)
-    inferred_identity = ((provider_match or {}).get("identity_id")
-                         if (provider_match or {}).get("source") == "custom" else None)
-    identity_id = requested_identity or inferred_identity
-    candidates = [item for item in available if identity_id and item["identity_id"] == identity_id]
-
-    if candidates:
-        custom_identity = any(item.get("source") == "custom" for item in candidates)
-        # Source language is clone provenance, not an output-language gate.
-        # Custom voices may be cast in any requested language; only the
-        # existence and readiness of the selected provider binding matter.
-        # Provider-owned catalogue voices keep their documented restrictions.
-        if not custom_identity and language not in (None, "", "Auto"):
-            compatible = [
-                item for item in candidates
-                if str(language).casefold() in {
-                    str(value).casefold()
-                    for value in item.get("languages", [])
-                }
-            ]
-            if not compatible:
-                raise ValueError(
-                    f"That voice has no ready capability for {language}.")
-            candidates = compatible
-        exact = [item for item in candidates
-                 if item["engine"] == requested_engine and item["tier"] == requested_tier]
-        chosen = next((item for item in exact
-                       if item["provider_voice_id"] == requested_provider), None)
-        chosen = chosen or (exact[0] if exact else None)
-        if not chosen:
-            label = config.CAPABILITIES[requested_engine]["label"]
-            engine_exists = any(
-                item["engine"] == requested_engine
-                for item in available
-                if identity_id and item["identity_id"] == identity_id)
-            if not custom_identity and language not in (None, "", "Auto") and engine_exists:
-                alternatives = sorted({
-                    config.CAPABILITIES[item["engine"]]["operator_title"]
-                    for item in candidates
-                })
-                suggestion = (f" Choose {', '.join(alternatives)}."
-                              if alternatives else "")
-                raise ValueError(
-                    f"{label} cannot produce {language} with this voice."
-                    f"{suggestion}")
-            raise ValueError(
-                f"That voice has no ready {label} {requested_tier} capability.")
-        reason = ("selected_binding"
-                  if chosen["provider_voice_id"] == requested_provider
-                  else "identity_binding")
-        resolved_identity = identity_id if chosen.get("source") == "custom" else None
-        return VoiceRoute(resolved_identity, chosen["provider_voice_id"], chosen["engine"],
-                          chosen["tier"], chosen["model_id"] or
-                          config.model_id(chosen["engine"], chosen["tier"]),
-                          reason, True)
-
-    if (provider_match and provider_match.get("source") == "system"
-            and provider_match["engine"] == requested_engine
-            and provider_match["tier"] == requested_tier
-            and not (language_requires_omni and provider_match["engine"] == "audio")):
-        return VoiceRoute(None, provider_match["provider_voice_id"],
-                          provider_match["engine"], provider_match["tier"],
-                          provider_match["model_id"] or config.model_id(
-                              provider_match["engine"], provider_match["tier"]),
-                          "system_binding", True)
-    if provider_match and provider_match.get("source") == "system" \
-            and not language_requires_omni:
+    binding_id = str(payload.get("binding_id") or "").strip() or None
+    catalogue_id = str(payload.get("catalogue_voice_id") or "").strip() or None
+    if bool(binding_id) == bool(catalogue_id):
         raise ValueError(
-            "That Alibaba system voice does not belong to the selected model capability.")
+            "Choose exactly one ready cloned-voice binding or catalogue voice.")
 
-    # System voices and unregistered historic clones remain usable. Arabic only
-    # replaces a certainly incompatible stock Audio choice; it never guesses
-    # that an unknown custom voice is unusable.
-    voice_requires_omni = (requested_provider in config.OMNI_SYSTEM_VOICES
-                           or requested_provider.startswith("qwen-omni-vc-"))
-    engine = "omni" if voice_requires_omni else requested_engine
-    provider_id = requested_provider
-    reason = "legacy_passthrough" if _legacy_custom(provider_id) else "provider_passthrough"
-    known_audio_system = (_stock_audio(provider_id) or bool(
-        provider_match and provider_match.get("source") == "system"
-        and provider_match.get("engine") == "audio"))
-    if language_requires_omni and (not provider_id or known_audio_system):
-        # Preserve the established Arabic safe route for stock voices. Custom
-        # identities are resolved above and are never silently changed.
-        engine, provider_id, reason = "omni", "Tina", "language_safe_fallback"
-    if not provider_id:
-        provider_id = "Tina" if engine == "omni" else ""
-        reason = "default_voice"
-    return VoiceRoute(identity_id, provider_id, engine, requested_tier,
-                      config.model_id(engine, requested_tier), reason, False)
+    records = [_normalise(item) for item in (
+        bindings if binding_id else catalogue or [])]
+    key = "binding_id" if binding_id else "catalogue_voice_id"
+    requested = binding_id or catalogue_id
+    chosen = next((item for item in records if item[key] == requested), None)
+    if not chosen:
+        raise ValueError("That exact voice route no longer exists. Reload Voices.")
+    if chosen["status"] not in READY_STATUSES:
+        raise ValueError("That exact voice route is not ready.")
+    if not all(chosen.get(field) for field in (
+            "provider_voice_id", "provider", "region", "model_id", "tier")):
+        raise ValueError("That voice route is incomplete and cannot be billed safely.")
+
+    capabilities = chosen["capabilities"]
+    requested_capability = str(payload.get("capability_id") or "").strip() or None
+    if len(capabilities) > 1 and not requested_capability:
+        raise ValueError("Choose a recording mode for this multi-mode route.")
+    if requested_capability and requested_capability not in {
+            str(item.get("id") or item) for item in capabilities}:
+        raise ValueError("That recording mode does not belong to the selected route.")
+    capability = next((item for item in capabilities
+                       if str(item.get("id") or item) == requested_capability),
+                      capabilities[0] if len(capabilities) == 1 else None)
+    capability_id = (str(capability.get("id") or "") if isinstance(capability, dict)
+                     else str(capability or "")) or None
+    capability_name = (str(capability.get("name") or "")
+                       if isinstance(capability, dict) else "") or None
+
+    return VoiceRoute(
+        binding_id=binding_id, catalogue_voice_id=catalogue_id,
+        identity_id=chosen["identity_id"] if binding_id else None,
+        reference_id=chosen["reference_id"] if binding_id else None,
+        provider_voice_id=chosen["provider_voice_id"],
+        provider=chosen["provider"], region=chosen["region"],
+        engine=chosen["engine"], tier=chosen["tier"],
+        model_id=chosen["model_id"], capability_id=capability_id,
+        capability_name=capability_name,
+    )

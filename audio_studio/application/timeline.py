@@ -42,8 +42,8 @@ class TimelineWorkspace(Protocol):
 
 
 class TranscriptState(Protocol):
-    def mark_stale(self, generation_id: int) -> int: ...
-    def list_for_generation(self, generation_id: int) -> list[dict]: ...
+    def mark_stale(self, part_id: int) -> int: ...
+    def list_for_part(self, part_id: int) -> list[dict]: ...
 
 
 class TimelineError(ValueError):
@@ -125,10 +125,10 @@ class TimelineService:
             "text_shaped": values.get("text_shaped"),
             "text_tagged": values.get("text_tagged"),
             "text_state": values.get("text_state") or "raw",
-            "voice": values.get("voice") or "-",
             "voice_identity_id": values.get("voice_identity_id"),
-            "engine": values.get("engine") or "audio",
-            "model": values.get("model") or "plus",
+            "binding_id": values.get("binding_id"),
+            "catalogue_voice_id": values.get("catalogue_voice_id"),
+            "capability_id": values.get("capability_id"),
             "format": values.get("format") or "mp3",
             "language": values.get("language") or "Auto",
             "instruction": values.get("instruction") or "",
@@ -242,4 +242,4 @@ class TimelineService:
         self, production_id: int, part_id: int,
     ) -> list[dict[str, Any]]:
         self._part(production_id, part_id)
-        return self.transcripts.list_for_generation(part_id)
+        return self.transcripts.list_for_part(part_id)

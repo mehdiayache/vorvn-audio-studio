@@ -11,7 +11,7 @@ const production = {
   id: 6,
   name: "Evening Reset",
   parts: [{ id: 12, created_at: "2026-08-09T08:00:00", position: 0, kind: "audio", text: "Rest", filename: "part.mp3", cost: 0 }],
-  exports: [{ id: 91, production_id: 6, generation_id: 150, filename: "evening-reset.mp3", manifest: {}, renderer: "ffmpeg-normalized-v1", duration_ms: 2000, size_bytes: 1000, created_at: "2026-08-09T08:10:00" }],
+  exports: [{ id: 91, production_id: 6, filename: "evening-reset.mp3", manifest: {}, renderer: "ffmpeg-normalized-v1", duration_ms: 2000, size_bytes: 1000, created_at: "2026-08-09T08:10:00" }],
 } as unknown as Production
 
 describe("ReleaseWorkspace", () => {

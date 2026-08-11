@@ -18,7 +18,7 @@ class TranscriptionSourceResolver:
         self.repository = repository
 
     def prepare(self, *, url: str, name: str, playable: str,
-                duration_ms: int, generation_id: int | None,
+                duration_ms: int, part_id: int | None,
                 production_id: int | None, file: str) -> PreparedAudio:
         if url.strip():
             parsed = urlparse(url.strip())
@@ -26,17 +26,16 @@ class TranscriptionSourceResolver:
                 raise ValueError("The uploaded audio URL is invalid.")
             return PreparedAudio(
                 url.strip(), name.strip() or "audio", playable.strip() or None,
-                max(0, int(duration_ms or 0)), generation_id)
+                max(0, int(duration_ms or 0)), part_id, None)
 
-        if not generation_id:
+        if not part_id:
             raise ValueError("Pick one of your audio files first.")
-        generation = self.repository.generation_source(
-            generation_id, production_id=production_id)
-        if not generation:
+        part = self.repository.part_source(part_id, production_id=production_id)
+        if not part:
             raise LookupError("That Production audio no longer exists.")
         output = media_root()
-        filename = Path(str(generation.get("filename") or file or "")).name
-        raw_path = str(generation.get("path") or "").strip()
+        filename = Path(str(part.get("filename") or file or "")).name
+        raw_path = str(part.get("path") or "").strip()
         target = (Path(raw_path).expanduser().resolve()
                   if raw_path else (output / filename).resolve())
         if not filename or target.parent != output or not target.is_file():
@@ -46,8 +45,8 @@ class TranscriptionSourceResolver:
                 "Transcription needs reference audio storage. Set it up in Settings.")
         return PreparedAudio(
             "", filename, f"/audio/{filename}",
-            max(0, int(generation.get("duration_ms") or duration_ms or 0)),
-            generation_id, str(target))
+            max(0, int(part.get("duration_ms") or duration_ms or 0)),
+            part_id, part.get("take_id"), str(target))
 
     def publish(self, source: PreparedAudio) -> PreparedAudio:
         if source.url:
@@ -58,8 +57,8 @@ class TranscriptionSourceResolver:
         provider_url = storage.upload(
             source.local_path, content_type=content_type,
             kind="transcription-sources",
-            object_id=f"generation_{source.generation_id}",
+            object_id=f"part_{source.part_id}_take_{source.take_id or 'none'}",
             retention="temporary")
         return PreparedAudio(
             provider_url, source.name, source.playable, source.duration_ms,
-            source.generation_id, source.local_path)
+            source.part_id, source.take_id, source.local_path)

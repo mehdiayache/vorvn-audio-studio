@@ -111,13 +111,13 @@ class AudioStudioArchitectureTests(unittest.TestCase):
             self.assertIn("$ref", schema, route)
 
     def test_every_speech_operation_has_the_required_target(self):
-        SpeechJobCreate(text="Hello", voice="Tina", engine="omni", model="plus")
+        SpeechJobCreate(text="Hello", catalogue_voice_id="catalogue:tina")
         with self.assertRaises(ValueError):
-            SpeechJobCreate(text="Hello", voice="Tina", engine="omni",
-                            model="plus", operation="regenerate")
+            SpeechJobCreate(text="Hello", catalogue_voice_id="catalogue:tina",
+                            operation="regenerate")
 
     def test_transcription_accepts_library_or_uploaded_audio_only(self):
-        TranscriptionJobCreate(file="take.mp3", generation_id=7)
+        TranscriptionJobCreate(file="take.mp3", part_id=7)
         TranscriptionJobCreate(url="https://storage.example/audio", name="take.mp3")
         with self.assertRaises(ValueError):
             TranscriptionJobCreate()

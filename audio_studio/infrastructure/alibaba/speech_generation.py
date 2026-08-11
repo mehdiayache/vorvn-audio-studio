@@ -63,16 +63,22 @@ def _request_count(plan, engine: str) -> int:
 class _Options:
     """Provider request values resolved exactly once before a paid call."""
 
-    def __init__(self, values: dict, bindings: list[dict],
+    def __init__(self, values: dict, bindings: list[dict], catalogue: list[dict],
                  pronunciations: list[dict], preferences: dict):
         language = values.get("language")
         text = str(values.get("text") or "")
-        route = voice_routing.resolve(
-            {**values, "language": language, "text": text}, bindings)
+        route = voice_routing.resolve(values, bindings, catalogue)
         if route.engine == "qwen_tts" and not route.provider_voice_id:
             raise ValueError("Choose a ready Qwen3 TTS cloned voice.")
         self.language = None if language in (None, "", "Auto") else str(language)
         self.voice_identity_id = route.identity_id
+        self.binding_id = route.binding_id
+        self.catalogue_voice_id = route.catalogue_voice_id
+        self.reference_id = route.reference_id
+        self.capability_id = route.capability_id
+        self.capability_name = route.capability_name
+        self.provider = route.provider
+        self.provider_region = route.region
         self.voice = route.provider_voice_id or (
             "Tina" if route.engine == "omni"
             else provider_catalog.AUDIO_DEFAULT_VOICES.get(
@@ -125,15 +131,9 @@ class AlibabaSpeechProvider:
         return bool(os.getenv("DASHSCOPE_API_KEY", "").strip())
 
     def prepare(self, *, text: str, values: dict, bindings: list[dict],
+                catalogue: list[dict],
                 pronunciations: list[dict], preferences: dict) -> PreparedSpeech:
-        requested_identity = str(values.get("voice_identity_id") or "").strip()
-        if requested_identity and not any(
-                str(item.get("identity_id") or "") == requested_identity
-                for item in bindings):
-            raise ValueError(
-                "That cloned voice has no active Alibaba model version. "
-                "Reload Voices before generating.")
-        options = _Options(values, bindings, pronunciations, preferences)
+        options = _Options(values, bindings, catalogue, pronunciations, preferences)
         tagged = [tag for tag in delivery_tags.TAG_RE.findall(text)
                   if tag.casefold() in delivery_tags.KNOWN_TAGS]
         if options.engine in {"omni", "qwen_tts"} and tagged:
@@ -160,6 +160,13 @@ class AlibabaSpeechProvider:
             estimated_cost=_guard_estimate(spoken, options.engine, options.model),
             voice_route=options.voice_route, pronunciations=applied,
             rewrites=rewrites, context=options,
+            binding_id=options.binding_id,
+            catalogue_voice_id=options.catalogue_voice_id,
+            reference_id=options.reference_id,
+            capability_id=options.capability_id,
+            capability_name=options.capability_name,
+            provider=options.provider,
+            provider_region=options.provider_region,
         )
 
     def synthesize(self, prepared: PreparedSpeech,

@@ -64,12 +64,11 @@ class JobRepositoryTests(unittest.TestCase):
             self.assertTrue(repository.finish(job_id, {"id": 99}, cost=.25))
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT status, cost, result, generation_id FROM jobs WHERE id = %s", (job_id,))
-                status, cost, result, generation_id = cursor.fetchone()
+                    "SELECT status, cost, result FROM jobs WHERE id = %s", (job_id,))
+                status, cost, result = cursor.fetchone()
             self.assertEqual(status, "cancelled")
             self.assertEqual(float(cost), .25)
             self.assertEqual(result["id"], 99)
-            self.assertIsNone(generation_id)
         finally:
             if job_id is not None:
                 with connection.cursor() as cursor:
@@ -144,35 +143,27 @@ class JobRepositoryTests(unittest.TestCase):
                 cursor.execute("SELECT action FROM audit_records WHERE resource_type = 'job' AND resource_id = %s", (str(job.id),))
                 self.assertEqual(cursor.fetchone()[0], "job.enqueued")
                 cursor.execute("""
-                    INSERT INTO generations
-                        (text, voice, model, format, filename, path)
-                    VALUES ('fixture', 'Tina', 'plus', 'mp3', '', '')
-                    RETURNING id
-                """)
-                saved_generation_id = cursor.fetchone()[0]
-                cursor.execute("""
                     UPDATE jobs SET status = 'running', started_at = now(),
                            last_heartbeat_at = now() WHERE id = %s
                 """, (job.id,))
             jobs_module.JobRepository().finish(job.id, {
-                "id": saved_generation_id, "cost_basis": "catalog_duration",
+                "cost_basis": "catalog_duration",
                 "price_version": "fixture-price", "provider_region": "intl",
                 "model": "qwen3-asr-flash-filetrans",
                 "engine": "native", "voice": "fixture-voice",
                 "estimated_cost": 0.001, "chars": 123,
             }, cost=0.000826)
             with connection.cursor() as cursor:
-                cursor.execute("SELECT cost_basis, price_version, provider_region, output_ids, estimated, chars, model, engine, voice, elapsed_ms, generation_id FROM jobs WHERE id = %s", (job.id,))
+                cursor.execute("SELECT cost_basis, price_version, provider_region, output_ids, estimated, chars, model, engine, voice, elapsed_ms FROM jobs WHERE id = %s", (job.id,))
                 (basis, version, region, outputs, estimated, chars, model,
-                 engine, voice, elapsed_ms, generation_id) = cursor.fetchone()
+                 engine, voice, elapsed_ms) = cursor.fetchone()
                 self.assertEqual((basis, version, region), ("catalog_duration", "fixture-price", "intl"))
-                self.assertEqual(outputs, [{"type": "part", "id": saved_generation_id}])
+                self.assertEqual(outputs, [])
                 self.assertEqual((float(estimated), chars), (0.001, 123))
                 self.assertEqual(
                     (model, engine, voice),
                     ("qwen3-asr-flash-filetrans", "native", "fixture-voice"))
                 self.assertIsNotNone(elapsed_ms)
-                self.assertEqual(generation_id, saved_generation_id)
                 cursor.execute("SELECT action FROM audit_records WHERE resource_id = %s ORDER BY id", (str(job.id),))
                 self.assertEqual([row[0] for row in cursor.fetchall()], ["job.enqueued", "job.completed"])
         finally:

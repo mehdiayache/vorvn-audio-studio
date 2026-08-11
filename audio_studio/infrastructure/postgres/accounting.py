@@ -1,4 +1,4 @@
-"""Production accounting queries over the durable generation ledger."""
+"""Production accounting over immutable Jobs and Takes."""
 
 from __future__ import annotations
 
@@ -29,13 +29,18 @@ class ProductionAccountingRepository:
                          coalesce(sum(cost) FILTER (WHERE kind = 'speech'), 0) AS speech_spend
                     FROM jobs WHERE production_id = ANY(%s) GROUP BY production_id
                 ), retained AS (
-                  SELECT production_id, coalesce(sum(cost), 0) AS retained_cost
-                    FROM generations WHERE production_id = ANY(%s) GROUP BY production_id
+                  SELECT part.production_id, coalesce(sum(take.cost), 0) AS retained_cost
+                    FROM takes take
+                    JOIN production_parts part ON part.id=take.part_id
+                   WHERE part.production_id = ANY(%s)
+                   GROUP BY part.production_id
                 ), current_sequence AS (
-                  SELECT pp.production_id, coalesce(sum(g.cost), 0) AS current_cost
+                  SELECT pp.production_id, coalesce(sum(take.cost), 0) AS current_cost
                     FROM production_parts pp
-                    JOIN generations g ON g.id = pp.generation_id
-                   WHERE pp.production_id = ANY(%s) GROUP BY pp.production_id
+                    JOIN takes take ON take.id = pp.selected_take_id
+                   WHERE pp.production_id = ANY(%s)
+                     AND pp.archived_at IS NULL
+                   GROUP BY pp.production_id
                 )
                 SELECT requested.production_id, coalesce(tracked.all_spend, 0),
                        coalesce(tracked.speech_spend, 0),

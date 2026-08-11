@@ -33,8 +33,8 @@ class RecordingSessionTests(unittest.TestCase):
     def test_speech_contract_accepts_session_only_for_standalone_create(self):
         session_id = uuid4()
         base = {
-            "text": "Hello", "voice": "voice", "engine": "audio",
-            "model": "flash", "insert_at": None, "session_id": session_id,
+            "text": "Hello", "catalogue_voice_id": "catalogue:voice",
+            "insert_at": None, "session_id": session_id,
         }
         contract = SpeechJobCreate(**base)
         self.assertEqual(contract.session_id, session_id)

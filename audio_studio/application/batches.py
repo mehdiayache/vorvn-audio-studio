@@ -7,8 +7,9 @@ from typing import Any, Callable, Protocol
 from urllib.parse import unquote
 
 from audio_studio.domain import batch as spreadsheet
-from audio_studio.domain.jobs import Job
+from audio_studio.domain.jobs import Job, JobFailed
 from audio_studio.domain.speech import PreparedSpeech, SynthesizedSpeech
+from audio_studio.application.provider_operations import ProviderOperationService
 
 
 class BatchWorkspace(Protocol):
@@ -22,6 +23,7 @@ class BatchWorkspace(Protocol):
 
 class BatchRepository(Protocol):
     def voice_bindings(self) -> list[dict]: ...
+    def catalogue_voices(self) -> list[dict]: ...
     def pronunciations(self) -> list[dict]: ...
     def today_spend(self) -> float: ...
 
@@ -35,9 +37,9 @@ class BatchSpeechProvider(Protocol):
 
 
 def _known_voice_ids(bindings: list[dict]) -> set[str]:
-    return {str(item.get("provider_voice_id") or item.get("voice_id") or "")
+    return {str(item.get("binding_id") or item.get("catalogue_voice_id") or "")
             for item in bindings
-            if item.get("provider_voice_id") or item.get("voice_id")}
+            if item.get("binding_id") or item.get("catalogue_voice_id")}
 
 
 def _voice_check(sheet: dict, column: int | None,
@@ -75,7 +77,8 @@ class BatchIntakeService:
         sheet = self.workspace.parse_sheet(safe_name, raw)
         token = self.workspace.save_sheet(sheet)
         guess = spreadsheet.guess_columns(sheet["headers"])
-        known = _known_voice_ids(self.repository.voice_bindings())
+        known = _known_voice_ids([
+            *self.repository.voice_bindings(), *self.repository.catalogue_voices()])
         return {
             "token": token, "name": safe_name, "headers": sheet["headers"],
             "rows": len(sheet["rows"]), "preview": sheet["rows"][:8],
@@ -137,18 +140,24 @@ def _human_error(error: Exception) -> str:
 class BatchGenerationService:
     def __init__(self, workspace: BatchWorkspace,
                  repository: BatchRepository, provider: BatchSpeechProvider,
-                 preferences: Callable[[], dict]):
+                 preferences: Callable[[], dict],
+                 operations: ProviderOperationService | None = None):
         self.workspace = workspace
         self.repository = repository
         self.provider = provider
         self.preferences = preferences
+        self.operations = operations
 
-    def run(self, *, token: str, columns: dict, voice: str,
-            voice_identity_id: str | None = None, engine: str = "audio",
-            model: str = "plus", format: str = "mp3", language: str = "",
+    def run(self, *, token: str, columns: dict,
+            voice_identity_id: str | None = None,
+            format: str = "mp3", language: str = "",
             instruction: str = "", rate: float = 1, pitch: float = 1,
             volume: int = 50, confirmed: bool = False,
-            run_id: str = "batch", on_progress=None) -> dict:
+            binding_id: str | None = None,
+            catalogue_voice_id: str | None = None,
+            capability_id: str | None = None,
+            run_id: str = "batch", job_id: int | None = None,
+            on_progress=None) -> dict:
         sheet = self.workspace.load_sheet(token)
         width = len(sheet.get("headers") or [])
         text_column = _column(columns, "text", width, required=True)
@@ -162,9 +171,12 @@ class BatchGenerationService:
             raise ValueError("That column is empty on every row.")
 
         bindings = self.repository.voice_bindings()
-        known = _known_voice_ids(bindings)
+        catalogue = self.repository.catalogue_voices()
+        routes = [*bindings, *catalogue]
+        known = _known_voice_ids(routes)
         selected_voices = _voice_check(sheet, voice_column, known)
-        if voice not in known:
+        default_route_id = binding_id or catalogue_voice_id or ""
+        if default_route_id not in known:
             raise ValueError("The default voice is no longer available.")
         if selected_voices["unknown"]:
             detail = ", ".join(
@@ -176,17 +188,24 @@ class BatchGenerationService:
         preferences = self.preferences()
         prepared_rows: list[tuple[int, list, PreparedSpeech]] = []
         defaults = {
-            "voice": voice, "voice_identity_id": voice_identity_id,
-            "engine": engine, "model": model, "format": format,
+            "voice_identity_id": voice_identity_id,
+            "binding_id": binding_id, "catalogue_voice_id": catalogue_voice_id,
+            "capability_id": capability_id,
+            "format": format,
             "language": language, "instruction": instruction,
             "rate": rate, "pitch": pitch, "volume": volume,
         }
         for row_number, row, words in rows:
-            row_voice = spreadsheet.cell(row, voice_column) or voice
+            row_route_id = spreadsheet.cell(row, voice_column) or default_route_id
+            row_route = next(item for item in routes if (
+                item.get("binding_id") or item.get("catalogue_voice_id")) == row_route_id)
             values = {
-                **defaults, "text": words, "voice": row_voice,
-                "voice_identity_id": (voice_identity_id
-                                      if row_voice == voice else None),
+                **defaults, "text": words,
+                "voice": row_route.get("provider_voice_id") or "",
+                "binding_id": row_route.get("binding_id"),
+                "catalogue_voice_id": row_route.get("catalogue_voice_id"),
+                "voice_identity_id": row_route.get("identity_id")
+                                     if row_route.get("binding_id") else None,
                 "language": (spreadsheet.cell(row, language_column)
                              or language),
             }
@@ -194,21 +213,21 @@ class BatchGenerationService:
                 row_number, row,
                 self.provider.prepare(
                     text=words, values=values, bindings=bindings,
+                    catalogue=catalogue,
                     pronunciations=pronunciations, preferences=preferences),
             ))
 
         estimate = round(sum(item[2].estimated_cost
                              for item in prepared_rows), 6)
-        cap = float(preferences.get("daily_cap") or 0)
-        spent = self.repository.today_spend() if cap > 0 else 0.0
-        if cap > 0 and spent + estimate > cap:
-            raise PermissionError(
-                f"Daily cap reached. You've spent ${spent:.4f} today and this "
-                f"would add about ${estimate:.4f}, over your ${cap:.2f} cap.")
         warning = float(preferences.get("warn_above") or 0)
         if warning > 0 and estimate > warning and not confirmed:
             return {"needs_confirmation": True, "estimate": estimate,
                     "estimated_cost": estimate, "cost": 0}
+
+        reservation_id = None
+        if self.operations and job_id:
+            reservation_id = self.operations.authorize(
+                job_id, "batch_speech", estimate, preferences, confirmed)
 
         folder = self.workspace.create_output(token, run_id)
         results: list[dict[str, Any]] = []
@@ -233,6 +252,19 @@ class BatchGenerationService:
             label = (spreadsheet.cell(row, name_column)
                      or f"row-{row_number}")
             try:
+                attempt_id = None
+                if self.operations and job_id:
+                    attempt_id = self.operations.repository.begin_attempt(
+                        job_id, "speech", prepared.voice_route or {
+                            "provider": prepared.provider,
+                            "region": prepared.provider_region,
+                            "model": prepared.model_id,
+                            "binding_id": prepared.binding_id,
+                            "catalogue_voice_id": prepared.catalogue_voice_id,
+                        }, {"row": row_number,
+                            "text_length": len(prepared.spoken_text)},
+                        reservation_id)
+                    self.operations.repository.mark_sent(attempt_id)
                 made = self.provider.synthesize(prepared)
                 if not made.audio:
                     raise RuntimeError("Alibaba returned no audio.")
@@ -273,7 +305,33 @@ class BatchGenerationService:
                     "failed_parts": len(made.failures),
                 }
                 results.append(item)
+                if attempt_id:
+                    self.operations.repository.finish_attempt(
+                        attempt_id, "succeeded", cost=float(made.cost),
+                        usage=made.usage, request_ids=made.request_ids, error={})
             except Exception as error:
+                if self.operations and job_id and attempt_id:
+                    status = self.operations.failure_status(error)
+                    self.operations.repository.finish_attempt(
+                        attempt_id, status,
+                        cost=(prepared.estimated_cost
+                              if status == "ambiguous" else 0),
+                        usage={}, request_ids=[],
+                        error={"type": type(error).__name__,
+                               "message": str(error)[:600], "row": row_number})
+                    if status == "ambiguous":
+                        self.operations.repository.release_budget(
+                            reservation_id,
+                            total_cost + prepared.estimated_cost, "ambiguous")
+                        raise JobFailed(
+                            "A Batch row lost its provider response. Review the "
+                            "ambiguous attempt before retrying this paid Batch.",
+                            {"provider_attempt_id": attempt_id,
+                             "ambiguous": True,
+                             "cost": round(
+                                 total_cost + prepared.estimated_cost, 6),
+                             "estimated_cost": estimate,
+                             "usage": usage, "failed_row": row_number}) from error
                 item = {"row": row_number,
                         "text": prepared.original_text[:90],
                         "error": _human_error(error)}
@@ -282,6 +340,9 @@ class BatchGenerationService:
 
         if on_progress:
             on_progress(len(prepared_rows), len(prepared_rows), "Batch complete")
+        if self.operations and reservation_id:
+            self.operations.repository.release_budget(
+                reservation_id, total_cost, "succeeded")
         zipped = self.workspace.write_zip(folder, files) if files else False
         usage.update({"rows_made": len(files),
                       "rows_failed": len(results) - len(files),
@@ -324,11 +385,13 @@ class BatchJobHandler:
         repository.progress(job.id, 0, 1, "Preparing spreadsheet rows")
         return self.service.run(
             **{key: value for key, value in job.payload.items()
-               if key in {"token", "columns", "voice", "voice_identity_id",
-                          "engine", "model", "format", "language",
+               if key in {"token", "columns", "voice_identity_id",
+                          "binding_id", "catalogue_voice_id", "capability_id",
+                          "format", "language",
                           "instruction", "rate", "pitch", "volume",
                           "confirmed"}},
             run_id=str(job.public_id),
+            job_id=job.id,
             on_progress=lambda done, total, detail: repository.progress(
                 job.id, done, total, detail),
         )

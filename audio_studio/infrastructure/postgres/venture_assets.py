@@ -139,8 +139,8 @@ class VentureAssetRepository:
         """Return the library presentation shape used by Work and Production."""
         with read_only() as cursor:
             cursor.execute("""
-                SELECT collection.name, asset.id, generation.text, asset.name,
-                       generation.voice, version.duration_ms, version.filename,
+                SELECT collection.name, asset.id, '', asset.name,
+                       'Uploaded', version.duration_ms, version.filename,
                        asset.kind, version.id
                   FROM assets asset
                   JOIN asset_collections collection
@@ -150,8 +150,6 @@ class VentureAssetRepository:
                         WHERE item.asset_id = asset.id
                         ORDER BY item.version DESC LIMIT 1
                   ) version ON true
-                  LEFT JOIN generations generation
-                    ON generation.id = asset.legacy_generation_id
                  WHERE asset.venture_id = %s
                  ORDER BY collection.name, asset.updated_at, asset.id
             """, (venture_id,))
@@ -215,7 +213,7 @@ class VentureAssetRepository:
             self, collection_id: int, *, name: str, filename: str, path: str,
             size_bytes: int, duration_ms: int, audio_format: str,
             mime_type: str) -> dict | None:
-        """Commit the compatibility row, Asset and first version atomically."""
+        """Commit an Asset and its first immutable version atomically."""
         with transaction() as cursor:
             cursor.execute("""
                 SELECT venture_id, legacy_container_id, kind
@@ -224,44 +222,22 @@ class VentureAssetRepository:
             collection = cursor.fetchone()
             if not collection:
                 return None
-            venture_id, legacy_container_id, kind = collection
-            cursor.execute("""
-                SELECT coalesce(max(position), -1) + 1
-                  FROM generations WHERE project_id = %s
-            """, (legacy_container_id,))
-            position = cursor.fetchone()[0]
-            cursor.execute("""
-                INSERT INTO generations
-                    (text, title, voice, engine, model, format, instruction,
-                     rate, pitch, volume, seed, filename, path, size_bytes,
-                     chars, requests, cost, project_id, position, kind,
-                     duration_ms, speech_mode, usage, cost_basis, failures)
-                VALUES (%s, %s, 'Uploaded', 'upload', '-', %s, '', 1, 1, 50,
-                        0, %s, %s, %s, 0, 0, 0, %s, %s, 'asset', %s,
-                        'uploaded', '{}'::jsonb, 'not billed', '[]'::jsonb)
-                RETURNING id
-            """, (name, name, audio_format, filename, path, size_bytes,
-                  legacy_container_id, position, duration_ms))
-            generation_id = cursor.fetchone()[0]
+            venture_id, _legacy_container_id, kind = collection
             cursor.execute("""
                 INSERT INTO assets
                     (venture_id, collection_id, name, kind,
                      legacy_generation_id)
-                VALUES (%s, %s, %s, %s, %s) RETURNING id
-            """, (venture_id, collection_id, name, kind, generation_id))
+                VALUES (%s, %s, %s, %s, NULL) RETURNING id
+            """, (venture_id, collection_id, name, kind))
             asset_id = cursor.fetchone()[0]
             cursor.execute("""
                 INSERT INTO asset_versions
                     (asset_id, version, source_generation_id, filename, path,
                      size_bytes, duration_ms, mime_type)
-                VALUES (%s, 1, %s, %s, %s, %s, %s, %s) RETURNING id
-            """, (asset_id, generation_id, filename, path, size_bytes,
+                VALUES (%s, 1, NULL, %s, %s, %s, %s, %s) RETURNING id
+            """, (asset_id, filename, path, size_bytes,
                   duration_ms, mime_type))
             version_id = cursor.fetchone()[0]
-            cursor.execute("""
-                UPDATE generations SET asset_id = %s, asset_version_id = %s
-                 WHERE id = %s
-            """, (asset_id, version_id, generation_id))
-        return {"id": asset_id, "generation_id": generation_id,
+        return {"id": asset_id,
                 "version_id": version_id, "name": name,
                 "filename": filename, "duration_ms": duration_ms}

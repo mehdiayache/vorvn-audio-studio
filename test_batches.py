@@ -25,6 +25,7 @@ from audio_studio.domain.provider_pricing import qwen_audio_tts_cost
 
 
 ROOT = Path(__file__).parent
+BINDING_ID = "11111111-1111-4111-8111-111111111111"
 
 
 class FakeWorkspace:
@@ -65,11 +66,18 @@ class FakeRepository:
 
     def voice_bindings(self):
         return [{
+            "binding_id": BINDING_ID,
             "provider_voice_id": "voice-one", "voice_id": "voice-one",
             "identity_id": "identity-one", "engine": "audio",
             "tier": "plus", "model_id": "qwen-audio-3.0-tts-plus",
+            "provider": "alibaba", "region": "intl",
+            "reference_id": "22222222-2222-4222-8222-222222222222",
+            "capabilities": [{"id": "expressive_tags", "name": "Expressive"}],
             "source": "custom", "status": "active",
         }]
+
+    def catalogue_voices(self):
+        return []
 
     def pronunciations(self):
         return []
@@ -87,12 +95,13 @@ class FakeProvider:
         result = PreparedSpeech(
             original_text=text, spoken_text=text, voice=values["voice"],
             voice_identity_id=values.get("voice_identity_id"),
-            engine=values["engine"], tier=values["model"],
-            model_id=f"model-{values['engine']}-{values['model']}",
+            engine="audio", tier="plus",
+            model_id="qwen-audio-3.0-tts-plus",
             output_format=values["format"], extension="mp3",
             language=None, instruction=None, speech_mode="exact",
             rate=1, pitch=1, volume=50, seed=0, request_count=1,
-            voice_route={},
+            voice_route={}, binding_id=values.get("binding_id"),
+            provider="alibaba", provider_region="intl",
             estimated_cost=.001, context=text,
         )
         self.prepared.append(result)
@@ -148,7 +157,7 @@ class BatchTests(unittest.TestCase):
         workspace = FakeWorkspace({})
         result = BatchIntakeService(
             workspace, FakeRepository()).preview(
-                b"name,text,voice\na,Hello,voice-one\nb,World,typo\n",
+                f"name,text,voice\na,Hello,{BINDING_ID}\nb,World,typo\n".encode(),
                 "rows.csv")
         self.assertEqual(result["rows"], 2)
         self.assertEqual(result["guess"]["text"], 1)
@@ -163,7 +172,7 @@ class BatchTests(unittest.TestCase):
             token="20260808-120000-deadbeef",
             columns={"text": 1, "name": 0, "voice": None,
                      "language": None},
-            voice="voice-one", engine="audio", model="plus",
+            binding_id=BINDING_ID,
             run_id="run-12345678",
             on_progress=lambda done, total, detail: progress.append(
                 (done, total, detail)),
@@ -201,7 +210,7 @@ class BatchTests(unittest.TestCase):
             token="20260808-120000-deadbeef",
             columns={"text": 1, "name": 0, "voice": None,
                      "language": None},
-            voice="voice-one", engine="audio", model="plus",
+            binding_id=BINDING_ID,
             run_id="run-incomplete",
         )
         self.assertEqual(result["made"], 0)
@@ -217,7 +226,7 @@ class BatchTests(unittest.TestCase):
                 token="20260808-120000-deadbeef",
                 columns={"text": 1, "name": 0, "voice": 2,
                          "language": None},
-                voice="voice-one")
+                binding_id=BINDING_ID)
         self.assertEqual(provider.calls, [])
         self.assertEqual(workspace.created, [])
 
@@ -226,18 +235,9 @@ class BatchTests(unittest.TestCase):
         warning = service.run(
             token="20260808-120000-deadbeef",
             columns={"text": 1, "name": 0, "voice": None,
-                     "language": None}, voice="voice-one")
+                     "language": None},
+            binding_id=BINDING_ID)
         self.assertTrue(warning["needs_confirmation"])
-        self.assertEqual(provider.calls, [])
-        self.assertEqual(workspace.created, [])
-
-        service, workspace, provider = self.service(
-            spent=1, preferences={"warn_above": 0, "daily_cap": 1.0001})
-        with self.assertRaisesRegex(PermissionError, "Daily cap reached"):
-            service.run(
-                token="20260808-120000-deadbeef",
-                columns={"text": 1, "name": 0, "voice": None,
-                         "language": None}, voice="voice-one")
         self.assertEqual(provider.calls, [])
         self.assertEqual(workspace.created, [])
 
@@ -249,7 +249,7 @@ class BatchTests(unittest.TestCase):
             "token": "20260808-120000-deadbeef",
             "columns": {"text": 1, "name": 0, "voice": None,
                         "language": None},
-            "voice": "voice-one", "engine": "audio", "model": "plus",
+            "binding_id": BINDING_ID,
         })
         result = handler(job, progress)
         self.assertEqual(result["made"], 1)
@@ -259,8 +259,8 @@ class BatchTests(unittest.TestCase):
     def test_http_contract_rejects_traversal_and_invalid_controls(self):
         valid = BatchJobCreate(
             token="20260808-120000-deadbeef",
-            columns={"text": 1, "name": 0}, voice="voice-one",
-            engine="audio", model="plus")
+            columns={"text": 1, "name": 0},
+            binding_id=BINDING_ID)
         self.assertEqual(valid.columns.text, 1)
         for values in (
             {"token": "../secret"},
@@ -270,8 +270,8 @@ class BatchTests(unittest.TestCase):
         ):
             payload = {
                 "token": "20260808-120000-deadbeef",
-                "columns": {"text": 1}, "voice": "voice-one",
-                "engine": "audio", "model": "plus", **values,
+                "columns": {"text": 1},
+                "binding_id": BINDING_ID, **values,
             }
             with self.assertRaises(ValueError):
                 BatchJobCreate(**payload)
@@ -293,21 +293,32 @@ class BatchTests(unittest.TestCase):
 
     def test_auto_language_preserves_route_and_omni_rejects_tags(self):
         provider = AlibabaSpeechProvider()
-        bindings = voice_registry.system_bindings()
+        bindings = []
+        catalogue = voice_registry.system_bindings()
+        audio_route = next(item for item in catalogue
+                           if item["provider_voice_id"] == "longanlingxin"
+                           and item["tier"] == "plus")
         prepared = provider.prepare(
             text="مرحبا", values={"text": "مرحبا", "voice": "longanlingxin",
-                                  "engine": "audio", "model": "plus",
+                                  "catalogue_voice_id": audio_route[
+                                      "catalogue_voice_id"],
                                   "format": "mp3"},
-            bindings=bindings, pronunciations=[], preferences={})
+            bindings=bindings, catalogue=catalogue,
+            pronunciations=[], preferences={})
         self.assertEqual(prepared.engine, "audio")
         self.assertEqual(prepared.voice, "longanlingxin")
         self.assertIsNone(prepared.language)
+        omni_route = next(item for item in catalogue
+                          if item["provider_voice_id"] == "Tina"
+                          and item["tier"] == "plus")
         with self.assertRaisesRegex(ValueError, "does not support inline"):
             provider.prepare(
                 text="[laughing] Hello",
                 values={"text": "[laughing] Hello", "voice": "Tina",
-                        "engine": "omni", "model": "plus", "format": "mp3"},
-                bindings=bindings, pronunciations=[], preferences={})
+                        "catalogue_voice_id": omni_route[
+                            "catalogue_voice_id"], "format": "mp3"},
+                bindings=bindings, catalogue=catalogue,
+                pronunciations=[], preferences={})
 
     def test_official_qwen_audio_prices_are_regional(self):
         self.assertEqual(qwen_audio_tts_cost(
@@ -323,7 +334,9 @@ class BatchTests(unittest.TestCase):
             self.skipTest(str(error))
         repository = SpeechRepository()
         bindings = repository.voice_bindings()
-        self.assertTrue(any(item["source"] == "system" for item in bindings))
+        self.assertTrue(all(item["source"] == "custom" for item in bindings))
+        self.assertTrue(any(item["source"] == "system"
+                            for item in repository.catalogue_voices()))
         self.assertIsInstance(repository.pronunciations(), list)
         self.assertGreaterEqual(repository.today_spend(), 0)
 

@@ -11,7 +11,8 @@ from audio_studio.infrastructure.postgres.session import read_only
 
 _REQUEST_FIELDS = (
     "text", "text_raw", "text_shaped", "text_tagged", "text_state",
-    "voice", "voice_identity_id", "engine", "model", "format", "language",
+    "voice", "voice_identity_id", "binding_id", "catalogue_voice_id",
+    "capability_id", "engine", "model", "format", "language",
     "instruction", "speech_mode", "rate", "pitch", "volume", "seed",
 )
 
@@ -31,11 +32,10 @@ class RecordingSessionRepository:
                 SELECT job.public_id, job.status, job.created_at,
                        job.started_at, job.finished_at, job.payload,
                        job.error, job.cost, job.cost_basis, job.result,
-                       generation.filename, generation.duration_ms,
-                       generation.size_bytes
+                       take.filename, take.duration_ms,
+                       take.size_bytes
                   FROM jobs job
-                  LEFT JOIN generations generation
-                    ON generation.id = job.generation_id
+                  LEFT JOIN takes take ON take.id = job.take_id
                  WHERE job.kind = 'speech'
                    AND job.source_tool = 'speak'
                    AND job.production_id IS NULL

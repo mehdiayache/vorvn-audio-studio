@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cast-roles/{role_id}/assignment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Recast */
+        patch: operations["recast_api_v1_cast_roles__role_id__assignment_patch"];
+        trace?: never;
+    };
     "/api/v1/config": {
         parameters: {
             query?: never;
@@ -72,6 +89,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/enrollment-campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create */
+        post: operations["createEnrollmentCampaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/enrollment-campaigns/preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preflight */
+        post: operations["preflightEnrollmentCampaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/enrollment-campaigns/{campaign_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Campaign */
+        get: operations["getEnrollmentCampaign"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/enrollment-campaigns/{campaign_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Campaign */
+        post: operations["cancelEnrollmentCampaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/enrollment-campaigns/{campaign_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Campaign Items */
+        post: operations["retryEnrollmentCampaignItems"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exports/{export_id}/download": {
         parameters: {
             query?: never;
@@ -81,23 +183,6 @@ export interface paths {
         };
         /** Download Export */
         get: operations["downloadExport"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/generations/{generation_id}/download": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Download Generation */
-        get: operations["downloadGeneration"];
         put?: never;
         post?: never;
         delete?: never;
@@ -287,6 +372,24 @@ export interface paths {
         get: operations["listProductionAssets"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/productions/{production_id}/cast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Production Cast */
+        get: operations["production_cast_api_v1_productions__production_id__cast_get"];
+        put?: never;
+        /** Create Cast Role */
+        post: operations["create_cast_role_api_v1_productions__production_id__cast_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -969,6 +1072,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/takes/{take_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Take */
+        get: operations["downloadTake"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/venture-logos/upload": {
         parameters: {
             query?: never;
@@ -1051,6 +1171,24 @@ export interface paths {
         get: operations["getVentureOverview"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ventures/{venture_id}/personas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Personas */
+        get: operations["list_personas_api_v1_ventures__venture_id__personas_get"];
+        put?: never;
+        /** Create Persona */
+        post: operations["create_persona_api_v1_ventures__venture_id__personas_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1379,6 +1517,10 @@ export interface components {
             production_id: number | null;
             /** Production Name */
             production_name: string | null;
+            /** Provider Attempt Id */
+            provider_attempt_id?: string | null;
+            /** Provider Attempt Status */
+            provider_attempt_status?: string | null;
             /** Provider Diagnostics */
             provider_diagnostics: {
                 [key: string]: unknown;
@@ -1391,6 +1533,11 @@ export interface components {
             provider_request_id: string | null;
             /** Provider Request Ids */
             provider_request_ids: string[];
+            /**
+             * Requires Review
+             * @default false
+             */
+            requires_review: boolean;
             /** Seconds */
             seconds: number;
             /** Source Tool */
@@ -1530,17 +1677,18 @@ export interface components {
         };
         /** BatchJobCreate */
         BatchJobCreate: {
+            /** Binding Id */
+            binding_id?: string | null;
+            /** Capability Id */
+            capability_id?: string | null;
+            /** Catalogue Voice Id */
+            catalogue_voice_id?: string | null;
             columns: components["schemas"]["BatchColumns"];
             /**
              * Confirmed
              * @default false
              */
             confirmed: boolean;
-            /**
-             * Engine
-             * @enum {string}
-             */
-            engine: "audio" | "omni" | "qwen_tts";
             /**
              * Format
              * @default mp3
@@ -1558,11 +1706,6 @@ export interface components {
              */
             language: string;
             /**
-             * Model
-             * @enum {string}
-             */
-            model: "plus" | "flash" | "vc";
-            /**
              * Pitch
              * @default 1
              */
@@ -1574,8 +1717,6 @@ export interface components {
             rate: number;
             /** Token */
             token: string;
-            /** Voice */
-            voice: string;
             /** Voice Identity Id */
             voice_identity_id?: string | null;
             /**
@@ -1620,6 +1761,25 @@ export interface components {
             checked: number;
             /** Unknown */
             unknown: components["schemas"]["BatchUnknownVoiceResponse"][];
+        };
+        /** BulkEnrollmentEnvelope */
+        BulkEnrollmentEnvelope: {
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            };
+        };
+        /** BulkEnrollmentRequest */
+        BulkEnrollmentRequest: {
+            /**
+             * Confirmed
+             * @default false
+             */
+            confirmed: boolean;
+            /** Provider Model Id */
+            provider_model_id: string;
+            /** Selections */
+            selections: components["schemas"]["EnrollmentSelection"][];
         };
         /** CaptionCueResponse */
         CaptionCueResponse: {
@@ -1701,6 +1861,29 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** CastRoleCreate */
+        CastRoleCreate: {
+            /** Catalogue Voice Id */
+            catalogue_voice_id?: string | null;
+            /**
+             * Color
+             * @default
+             */
+            color: string;
+            /** Name */
+            name: string;
+            /** Persona Id */
+            persona_id?: string | null;
+            /** Position */
+            position?: number | null;
+            /** Voice Identity Id */
+            voice_identity_id?: string | null;
+            /**
+             * Voice Source Kind
+             * @enum {string}
+             */
+            voice_source_kind: "identity" | "catalogue";
+        };
         /** CollectionMetaResponse */
         CollectionMetaResponse: {
             /** Count */
@@ -1779,16 +1962,19 @@ export interface components {
         };
         /** DraftBody */
         DraftBody: {
+            /** Binding Id */
+            binding_id?: string | null;
+            /** Capability Id */
+            capability_id?: string | null;
+            /** Cast Role Id */
+            cast_role_id?: string | null;
+            /** Catalogue Voice Id */
+            catalogue_voice_id?: string | null;
             /**
              * Confirmed
              * @default false
              */
             confirmed: boolean;
-            /**
-             * Engine
-             * @default audio
-             */
-            engine: string;
             /**
              * Format
              * @default mp3
@@ -1806,11 +1992,6 @@ export interface components {
              * @default Auto
              */
             language: string;
-            /**
-             * Model
-             * @default plus
-             */
-            model: string;
             /**
              * Pitch
              * @default 1
@@ -1844,8 +2025,6 @@ export interface components {
             text_state: string;
             /** Text Tagged */
             text_tagged?: string | null;
-            /** Voice */
-            voice: string;
             /** Voice Identity Id */
             voice_identity_id?: string | null;
             /**
@@ -1853,6 +2032,18 @@ export interface components {
              * @default 50
              */
             volume: number;
+        };
+        /** EnrollmentSelection */
+        EnrollmentSelection: {
+            /**
+             * Documented
+             * @default false
+             */
+            documented: boolean;
+            /** Identity Id */
+            identity_id: string;
+            /** Reference Id */
+            reference_id: string;
         };
         /** FidelityResponse */
         FidelityResponse: {
@@ -1947,6 +2138,13 @@ export interface components {
             /** Provider Voice Id */
             provider_voice_id: string;
         };
+        /** ItemEnvelope */
+        ItemEnvelope: {
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            };
+        };
         /** JobCreatedEnvelope */
         JobCreatedEnvelope: {
             data: components["schemas"]["JobResponse"];
@@ -2016,6 +2214,13 @@ export interface components {
             status: string;
             /** Type */
             type: string;
+        };
+        /** ListEnvelope */
+        ListEnvelope: {
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            }[];
         };
         /** MoveBody */
         MoveBody: {
@@ -2159,6 +2364,36 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** PersonaCreate */
+        PersonaCreate: {
+            /** Aliases */
+            aliases?: string[];
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Image
+             * @default
+             */
+            image: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** Name */
+            name: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /** Presentation */
+            presentation?: {
+                [key: string]: unknown;
+            };
+        };
         /** ProductionAccountingResponse */
         ProductionAccountingResponse: {
             /** Current Sequence Cost */
@@ -2244,8 +2479,6 @@ export interface components {
             duration_ms: number | null;
             /** Filename */
             filename: string;
-            /** Generation Id */
-            generation_id: number | null;
             /** Id */
             id: number;
             /** Manifest */
@@ -2267,6 +2500,16 @@ export interface components {
             asset_of?: number | null;
             /** Asset Version Id */
             asset_version_id?: number | null;
+            /** Binding Id */
+            binding_id?: string | null;
+            /** Capability Id */
+            capability_id?: string | null;
+            /** Cast Role Id */
+            cast_role_id?: string | null;
+            /** Cast Role Name */
+            cast_role_name?: string | null;
+            /** Catalogue Voice Id */
+            catalogue_voice_id?: string | null;
             /** Chars */
             chars?: number | null;
             /** Cost */
@@ -2298,6 +2541,11 @@ export interface components {
             missing?: boolean | null;
             /** Model */
             model?: string | null;
+            /**
+             * Outdated
+             * @default false
+             */
+            outdated: boolean;
             /** Pitch */
             pitch?: number | null;
             /** Position */
@@ -2306,8 +2554,15 @@ export interface components {
             provider_text?: string | null;
             /** Rate */
             rate?: number | null;
+            /**
+             * Revision
+             * @default 1
+             */
+            revision: number;
             /** Seed */
             seed?: number | null;
+            /** Selected Take Id */
+            selected_take_id?: number | null;
             /** Size Bytes */
             size_bytes?: number | null;
             /** Speech Mode */
@@ -2661,6 +2916,11 @@ export interface components {
             /** Status */
             status?: string | null;
         };
+        /** RetryEnrollmentItemsRequest */
+        RetryEnrollmentItemsRequest: {
+            /** Item Ids */
+            item_ids: string[];
+        };
         /** SavedPronunciationEnvelope */
         SavedPronunciationEnvelope: {
             data: components["schemas"]["SavedPronunciationResponse"];
@@ -2786,16 +3046,19 @@ export interface components {
         };
         /** SpeechJobCreate */
         SpeechJobCreate: {
+            /** Binding Id */
+            binding_id?: string | null;
+            /** Capability Id */
+            capability_id?: string | null;
+            /** Cast Role Id */
+            cast_role_id?: string | null;
+            /** Catalogue Voice Id */
+            catalogue_voice_id?: string | null;
             /**
              * Confirmed
              * @default false
              */
             confirmed: boolean;
-            /**
-             * Engine
-             * @enum {string}
-             */
-            engine: "audio" | "omni" | "qwen_tts";
             /**
              * Format
              * @default mp3
@@ -2814,11 +3077,6 @@ export interface components {
              * @default Auto
              */
             language: string;
-            /**
-             * Model
-             * @enum {string}
-             */
-            model: "plus" | "flash" | "vc";
             /**
              * Operation
              * @default create
@@ -2866,8 +3124,6 @@ export interface components {
             text_state: "raw" | "shaped" | "tagged";
             /** Text Tagged */
             text_tagged?: string | null;
-            /** Voice */
-            voice: string;
             /** Voice Identity Id */
             voice_identity_id?: string | null;
             /**
@@ -3217,6 +3473,10 @@ export interface components {
         };
         /** TakeResponse */
         TakeResponse: {
+            /** Binding Id */
+            binding_id?: string | null;
+            /** Capability Id */
+            capability_id?: string | null;
             /** Cost */
             cost: number;
             /** Duration Ms */
@@ -3234,6 +3494,8 @@ export interface components {
             language?: string | null;
             /** Model */
             model: string;
+            /** Outdated */
+            outdated: boolean;
             /** Pitch */
             pitch: number;
             /** Rate */
@@ -3242,6 +3504,10 @@ export interface components {
             seed: number;
             /** Size Bytes */
             size_bytes: number;
+            /** Source Part Revision */
+            source_part_revision: number;
+            /** Source Script Hash */
+            source_script_hash: string;
             /** Text */
             text: string;
             /** Voice */
@@ -3379,8 +3645,6 @@ export interface components {
              * @default
              */
             file: string;
-            /** Generation Id */
-            generation_id?: number | null;
             /**
              * Language
              * @default
@@ -3391,6 +3655,8 @@ export interface components {
              * @default
              */
             name: string;
+            /** Part Id */
+            part_id?: number | null;
             /**
              * Playable
              * @default
@@ -3444,8 +3710,6 @@ export interface components {
             duration_ms: number;
             /** Filename */
             filename: string;
-            /** Generation Id */
-            generation_id: number;
             /** Id */
             id: number;
             /** Name */
@@ -3557,12 +3821,32 @@ export interface components {
             /** Trail */
             trail: components["schemas"]["TrailItemResponse"][];
         };
+        /** VoiceAssignment */
+        VoiceAssignment: {
+            /** Catalogue Voice Id */
+            catalogue_voice_id?: string | null;
+            /** Voice Identity Id */
+            voice_identity_id?: string | null;
+            /**
+             * Voice Source Kind
+             * @enum {string}
+             */
+            voice_source_kind: "identity" | "catalogue";
+        };
         /** VoiceBindingResponse */
         VoiceBindingResponse: {
             /** Accent */
             accent?: string | null;
             /** Age */
             age?: number | null;
+            /** Binding Id */
+            binding_id?: string | null;
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: string;
+            }[];
+            /** Catalogue Voice Id */
+            catalogue_voice_id?: string | null;
             /** Description */
             description: string;
             /**
@@ -3589,6 +3873,11 @@ export interface components {
             reference?: components["schemas"]["VoiceReferenceResponse"] | null;
             /** Reference Id */
             reference_id?: string | null;
+            /**
+             * Region
+             * @default intl
+             */
+            region: string;
             /** Scene */
             scene?: string | null;
             /**
@@ -3986,6 +4275,10 @@ export interface components {
             channels?: number | null;
             /** Created At */
             created_at: string;
+            /** Diagnostics */
+            diagnostics?: {
+                [key: string]: unknown;
+            };
             /** Duration Ms */
             duration_ms?: number | null;
             /** Id */
@@ -4049,48 +4342,49 @@ export interface components {
         };
         /** VoiceRouteRequest */
         VoiceRouteRequest: {
-            /**
-             * Engine
-             * @default audio
-             */
-            engine: string;
+            /** Binding Id */
+            binding_id?: string | null;
+            /** Capability Id */
+            capability_id?: string | null;
+            /** Catalogue Voice Id */
+            catalogue_voice_id?: string | null;
             /**
              * Language
              * @default Auto
              */
             language: string;
             /**
-             * Model
-             * @default plus
-             */
-            model: string;
-            /**
              * Text
              * @default
              */
             text: string;
-            /**
-             * Voice
-             * @default
-             */
-            voice: string;
             /** Voice Identity Id */
             voice_identity_id?: string | null;
         };
         /** VoiceRouteResponse */
         VoiceRouteResponse: {
+            /** Binding Id */
+            binding_id?: string | null;
+            /** Capability Id */
+            capability_id?: string | null;
+            /** Capability Name */
+            capability_name?: string | null;
+            /** Catalogue Voice Id */
+            catalogue_voice_id?: string | null;
             /** Engine */
             engine: string;
             /** Identity Id */
             identity_id: string | null;
             /** Model Id */
             model_id: string;
+            /** Provider */
+            provider: string;
             /** Provider Voice Id */
             provider_voice_id: string;
-            /** Reason */
-            reason: string;
-            /** Registry Matched */
-            registry_matched: boolean;
+            /** Reference Id */
+            reference_id?: string | null;
+            /** Region */
+            region: string;
             /** Tier */
             tier: string;
         };
@@ -4360,6 +4654,41 @@ export interface operations {
             };
         };
     };
+    recast_api_v1_cast_roles__role_id__assignment_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoiceAssignment"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getStudioConfig: {
         parameters: {
             query?: never;
@@ -4380,23 +4709,27 @@ export interface operations {
             };
         };
     };
-    downloadExport: {
+    createEnrollmentCampaign: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                export_id: number;
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkEnrollmentRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
-            200: {
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BulkEnrollmentEnvelope"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -4409,12 +4742,142 @@ export interface operations {
             };
         };
     };
-    downloadGeneration: {
+    preflightEnrollmentCampaign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkEnrollmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkEnrollmentEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getEnrollmentCampaign: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                generation_id: number;
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkEnrollmentEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancelEnrollmentCampaign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkEnrollmentEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retryEnrollmentCampaignItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetryEnrollmentItemsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkEnrollmentEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    downloadExport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                export_id: number;
             };
             cookie?: never;
         };
@@ -4778,7 +5241,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                production_id: number;
+                production_id: string;
             };
             cookie?: never;
         };
@@ -4804,12 +5267,78 @@ export interface operations {
             };
         };
     };
+    production_cast_api_v1_productions__production_id__cast_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_cast_role_api_v1_productions__production_id__cast_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CastRoleCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getProductionEditor: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                production_id: number;
+                production_id: string;
             };
             cookie?: never;
         };
@@ -5317,7 +5846,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                resource_id: number;
+                resource_id: string;
             };
             cookie?: never;
         };
@@ -5515,7 +6044,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                resource_id: number;
+                resource_id: string;
             };
             cookie?: never;
         };
@@ -5612,7 +6141,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                resource_id: number;
+                resource_id: string;
             };
             cookie?: never;
         };
@@ -5643,7 +6172,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                resource_id: number;
+                resource_id: string;
             };
             cookie?: never;
         };
@@ -5742,7 +6271,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                resource_id: number;
+                resource_id: string;
             };
             cookie?: never;
         };
@@ -6335,6 +6864,35 @@ export interface operations {
             };
         };
     };
+    downloadTake: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                take_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     uploadVentureLogo: {
         parameters: {
             query?: never;
@@ -6436,7 +6994,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                resource_id: number;
+                resource_id: string;
             };
             cookie?: never;
         };
@@ -6533,7 +7091,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                resource_id: number;
+                resource_id: string;
             };
             cookie?: never;
         };
@@ -6564,7 +7122,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                resource_id: number;
+                resource_id: string;
             };
             cookie?: never;
         };
@@ -6577,6 +7135,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VentureOverviewEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_personas_api_v1_ventures__venture_id__personas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                venture_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_persona_api_v1_ventures__venture_id__personas_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                venture_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemEnvelope"];
                 };
             };
             /** @description Validation Error */

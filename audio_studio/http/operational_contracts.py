@@ -46,6 +46,9 @@ class ActivityRunResponse(BaseModel):
     usage: dict[str, Any]
     provider_diagnostics: list[dict[str, Any]]
     provider_request_ids: list[str]
+    provider_attempt_status: str | None = None
+    provider_attempt_id: str | None = None
+    requires_review: bool = False
     production_id: int | None
     production_name: str | None
     where: str

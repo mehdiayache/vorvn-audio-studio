@@ -5,6 +5,9 @@ from __future__ import annotations
 import re
 
 from audio_studio.infrastructure.postgres.session import read_only, transaction
+from audio_studio.infrastructure.postgres.provider_catalogue import (
+    ProviderCatalogueRepository,
+)
 
 
 _VOICE_PREFIX = re.compile(r"^qwen[\w.-]*?-tts-(?:plus|flash)-", re.I)
@@ -21,6 +24,9 @@ def voice_key(voice_id: str) -> str:
 
 class VoiceRepository:
     """One persistence owner for voice profiles, bindings and legacy metadata."""
+
+    def catalogue_bindings(self) -> list[dict]:
+        return ProviderCatalogueRepository().bindings()
 
     def profiles(self) -> list[dict]:
         with read_only() as cursor:
@@ -65,7 +71,8 @@ class VoiceRepository:
             cursor.execute("""
                 SELECT id, identity_id, original_name, normalized_path,
                        source_language, transcript, sha256, duration_ms,
-                       sample_rate, channels, metadata, created_at, updated_at
+                       sample_rate, channels, metadata, created_at, updated_at,
+                       diagnostics
                   FROM voice_references
                  WHERE identity_id IS NOT NULL
                  ORDER BY created_at DESC
@@ -73,7 +80,7 @@ class VoiceRepository:
             for row in cursor.fetchall():
                 (reference_id, identity_id, name, path, source_language,
                  transcript, sha256, duration_ms, sample_rate, channels,
-                 metadata, created_at, updated_at) = row
+                 metadata, created_at, updated_at, diagnostics) = row
                 if identity_id in by_id:
                     by_id[identity_id]["references"].append({
                         "id": reference_id, "original_name": name or "",
@@ -82,6 +89,7 @@ class VoiceRepository:
                         "transcript": transcript or "", "sha256": sha256 or "",
                         "duration_ms": duration_ms, "sample_rate": sample_rate,
                         "channels": channels, "metadata": metadata or {},
+                        "diagnostics": diagnostics or {},
                         "created_at": created_at.isoformat(),
                         "updated_at": updated_at.isoformat(),
                     })
@@ -122,21 +130,21 @@ class VoiceRepository:
     def profile_usage(self) -> dict[str, dict]:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT coalesce(generation.voice_identity_id,
+                SELECT coalesce(take.voice_identity_id,
                                 binding.identity_id) AS identity_id,
                        count(*) AS uses,
-                       count(DISTINCT generation.project_id) AS productions,
-                       coalesce(sum(generation.cost), 0),
-                       max(generation.created_at),
-                       (array_agg(generation.filename
-                                  ORDER BY generation.created_at DESC)
-                           FILTER (WHERE generation.filename <> ''))[1]
-                  FROM generations generation
+                       count(DISTINCT part.production_id) AS productions,
+                       coalesce(sum(take.cost), 0),
+                       max(take.created_at),
+                       (array_agg(take.filename
+                                  ORDER BY take.created_at DESC)
+                           FILTER (WHERE take.filename <> ''))[1]
+                  FROM takes take
+                  LEFT JOIN production_parts part ON part.id=take.part_id
                   LEFT JOIN voice_bindings binding
-                    ON binding.provider_voice_id = generation.voice
-                 WHERE generation.voice NOT IN ('', '-')
-                   AND coalesce(generation.kind, '') <> 'asset'
-                 GROUP BY coalesce(generation.voice_identity_id,
+                    ON binding.id = take.binding_id
+                 WHERE take.provider_voice_id NOT IN ('', '-')
+                 GROUP BY coalesce(take.voice_identity_id,
                                    binding.identity_id)
             """)
             rows = cursor.fetchall()
@@ -182,19 +190,18 @@ class VoiceRepository:
     def unlinked_history(self) -> list[dict]:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT generation.voice, coalesce(max(generation.engine), ''),
-                       coalesce(max(generation.model), ''), count(*),
-                       count(DISTINCT generation.project_id),
-                       max(generation.created_at),
-                       (array_agg(generation.filename
-                                  ORDER BY generation.created_at DESC)
-                           FILTER (WHERE coalesce(generation.filename, '') <> ''))[1]
-                  FROM generations generation
-                 WHERE generation.voice_identity_id IS NULL
-                   AND coalesce(generation.kind, '') NOT IN ('asset', 'silence')
-                   AND generation.voice ~* '^qwen.*-[0-9a-f]{32}$'
-                 GROUP BY generation.voice
-                 ORDER BY max(generation.created_at) DESC
+                SELECT take.provider_voice_id, '', coalesce(max(take.model_id), ''),
+                       count(*), count(DISTINCT part.production_id),
+                       max(take.created_at),
+                       (array_agg(take.filename ORDER BY take.created_at DESC)
+                           FILTER (WHERE coalesce(take.filename, '') <> ''))[1]
+                  FROM takes take
+                  LEFT JOIN production_parts part ON part.id=take.part_id
+                 WHERE take.voice_identity_id IS NULL
+                   AND take.binding_resolution_status = 'unresolved'
+                   AND take.provider_voice_id ~* '^qwen.*-[0-9a-f]{32}$'
+                 GROUP BY take.provider_voice_id
+                 ORDER BY max(take.created_at) DESC
             """)
             rows = cursor.fetchall()
         return [{
@@ -221,9 +228,10 @@ class VoiceRepository:
                 raise ValueError(
                     "Restore the archived voice before linking history to it.")
             cursor.execute("""
-                UPDATE generations SET voice_identity_id = %s
-                 WHERE voice = %s AND voice_identity_id IS NULL
-            """, (identity_id, provider_voice_id))
+                UPDATE takes SET voice_identity_id = %s,
+                       voice_name_snapshot = coalesce(nullif(voice_name_snapshot,''), %s)
+                 WHERE provider_voice_id = %s AND voice_identity_id IS NULL
+            """, (identity_id, identity_id, provider_voice_id))
             linked = cursor.rowcount
             if linked:
                 cursor.execute("""
@@ -243,7 +251,7 @@ class VoiceRepository:
     def custom_bindings(self) -> list[dict]:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT binding.provider_voice_id, binding.model_id,
+                SELECT binding.id, binding.provider_voice_id, binding.model_id,
                        binding.engine, binding.tier, binding.status,
                        binding.languages, binding.reference_id,
                        identity.id, identity.name,
@@ -255,10 +263,12 @@ class VoiceRepository:
                     ON identity.id = binding.identity_id
                  WHERE binding.source = 'custom'
                    AND identity.status = 'active'
+                   AND binding.archived_at IS NULL
                  ORDER BY identity.name, binding.model_id
             """)
             rows = cursor.fetchall()
         return [{
+            "binding_id": str(binding_id),
             "voice_id": provider_id, "target_model": model_id,
             "source": "custom", "engine": engine, "tier": tier,
             "status": status, "languages": languages or [],
@@ -267,7 +277,7 @@ class VoiceRepository:
             "image": image or "", "gender": gender or "", "age": age,
             "accent": accent or "", "trait": trait or "",
             "scene": scene or "", "notes": notes or "",
-        } for provider_id, model_id, engine, tier, status, languages, reference_id,
+        } for binding_id, provider_id, model_id, engine, tier, status, languages, reference_id,
             identity_id, name, image, gender, age, accent, trait, scene, notes
             in rows]
 
@@ -320,18 +330,16 @@ class VoiceRepository:
     def catalog_usage(self) -> dict:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT generation.voice, count(*) AS uses,
-                       count(DISTINCT generation.project_id) AS folders,
-                       coalesce(sum(generation.cost), 0) AS spend,
-                       max(generation.created_at) AS last_used,
-                       (SELECT history.filename FROM generations history
-                         WHERE history.voice = generation.voice
-                           AND history.filename <> ''
-                         ORDER BY history.created_at DESC LIMIT 1) AS latest
-                  FROM generations generation
-                 WHERE generation.voice NOT IN ('-', '')
-                   AND coalesce(generation.kind, '') <> 'asset'
-                 GROUP BY generation.voice
+                SELECT take.provider_voice_id, count(*) AS uses,
+                       count(DISTINCT part.production_id) AS folders,
+                       coalesce(sum(take.cost), 0) AS spend,
+                       max(take.created_at) AS last_used,
+                       (array_agg(take.filename ORDER BY take.created_at DESC)
+                           FILTER (WHERE take.filename <> ''))[1] AS latest
+                  FROM takes take
+                  LEFT JOIN production_parts part ON part.id=take.part_id
+                 WHERE take.provider_voice_id NOT IN ('-', '')
+                 GROUP BY take.provider_voice_id
             """)
             rows = cursor.fetchall()
         rolled: dict[str, dict] = {}

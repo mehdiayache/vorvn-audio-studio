@@ -32,10 +32,17 @@ class MigrationTests(unittest.TestCase):
                 "005_worker_runtime.sql",
                 "006_job_idempotency.sql",
                 "007_voice_provenance.sql",
-                "008_voice_output_languages.sql",
+            "008_voice_output_languages.sql",
             "009_speak_recording_sessions.sql",
             "010_voice_editorial_language.sql",
-            ])
+            "011_voice_architecture.sql",
+            "012_exact_media_relations.sql",
+            "013_retire_generation_identity.sql",
+                    "014_provider_model_pricing.sql",
+                    "015_voice_reference_objects.sql",
+                    "016_enrollment_campaign_controls.sql",
+                    "017_provider_model_execution_contract.sql",
+        ])
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:
                 tables = {row[0] for row in database.execute("""

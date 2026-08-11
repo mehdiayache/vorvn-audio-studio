@@ -17,7 +17,7 @@ export function ActivityRunCard({ run, onOpen }: { run: ActivityRun; onOpen: () 
   return <button className={`activity-run ${run.status}`} onClick={onOpen}>
     <span className="activity-run-icon"><Icon className={active ? "spin" : ""} /></span>
     <div className="activity-run-copy">
-      <header><b>{run.operation}</b><span>{run.status}</span></header>
+      <header><b>{run.operation}</b><span>{run.requires_review ? "Ambiguous · review" : run.status}</span></header>
       <p>{run.production_name || run.kind_label} · {run.actor_label}</p>
       {run.model && <SpeechModelIdentity modelId={run.model} compact />}
       {run.error && <em>{run.error}</em>}

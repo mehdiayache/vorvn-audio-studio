@@ -24,11 +24,11 @@ class _TranscriptState:
     def __init__(self):
         self.stale: list[int] = []
 
-    def mark_stale(self, generation_id: int) -> int:
-        self.stale.append(generation_id)
+    def mark_stale(self, part_id: int) -> int:
+        self.stale.append(part_id)
         return 1
 
-    def list_for_generation(self, _generation_id: int) -> list[dict]:
+    def list_for_part(self, _part_id: int) -> list[dict]:
         return []
 
 
@@ -72,15 +72,11 @@ class ProductionDocumentTests(unittest.TestCase):
             PostgresTimelineRecords(
                 documents=self.repository, assets=self.asset_repository),
             _Workspace(), self.transcripts)
-        self.asset_generation_ids: list[int] = []
 
     def tearDown(self):
         venture_id = int(self.venture["id"])
         with psycopg.connect(settings.database_url) as database:
             with database.cursor() as cursor:
-                if self.asset_generation_ids:
-                    cursor.execute("DELETE FROM generations WHERE id = ANY(%s)",
-                                   (self.asset_generation_ids,))
                 cursor.execute("""
                     DELETE FROM generations WHERE production_id IN (
                       SELECT production.id FROM productions production
@@ -120,9 +116,6 @@ class ProductionDocumentTests(unittest.TestCase):
             filename=f"music-{self.marker}.wav", path=f"/tmp/music-{self.marker}.wav",
             size_bytes=44, duration_ms=30000, audio_format="wav",
             mime_type="audio/wav")
-        self.asset_generation_ids.extend([
-            intro["generation_id"], music_asset["generation_id"]])
-
         silence = self.timeline.add_silence(first_id, 2, None)
         draft = self.timeline.add_draft(first_id, {
             "text": "A quiet opening", "voice": "Tina", "engine": "audio",
@@ -151,28 +144,33 @@ class ProductionDocumentTests(unittest.TestCase):
             "A revised opening",
         )
 
-        legacy_id = int(self.first["legacy_container_id"])
         with psycopg.connect(settings.database_url) as database:
             with database.cursor() as cursor:
                 cursor.execute("""
-                    INSERT INTO generations
-                        (text, voice, engine, model, format, filename, path,
-                         kind, version_of, project_id, fidelity)
-                    VALUES ('Archived opening', 'Tina', 'audio', 'plus', 'mp3',
-                            '', '', 'draft', %s, %s, '{}'::jsonb) RETURNING id
-                """, (draft["id"], legacy_id))
+                    INSERT INTO takes
+                        (part_id, source_part_revision, source_script_hash,
+                         provider, provider_region, provider_voice_id,
+                         model_id, tier, raw_text, spoken_text, filename, path,
+                         snapshot)
+                    SELECT id, revision, encode(digest('Archived opening','sha256'),'hex'),
+                           'alibaba','intl','Tina','qwen3.5-omni-plus','plus',
+                           'Archived opening','Archived opening','','',
+                           '{"engine":"omni","format":"mp3"}'::jsonb
+                      FROM production_parts WHERE id=%s
+                    RETURNING id
+                """, (draft["id"],))
                 take_id = int(cursor.fetchone()[0])
             database.commit()
         archived_take = self.timeline.takes(first_id, draft["id"])[0]
         self.assertEqual(archived_take["id"], take_id)
-        self.assertEqual(archived_take["engine"], "audio")
+        self.assertEqual(archived_take["engine"], "omni")
         self.assertEqual(archived_take["model"], "plus")
         self.assertIsNone(archived_take["fidelity"])
         promoted = self.timeline.promote(first_id, draft["id"], take_id)
         self.assertTrue(promoted["ok"])
         self.assertEqual(self.transcripts.stale, [draft["id"]])
         self.assertEqual(self.repository.generation(draft["id"])["text"],
-                         "Archived opening")
+                         "A quiet opening")
 
         music = self.timeline.set_music(first_id, {
             "music_of": music_asset["id"],
@@ -199,7 +197,7 @@ class ProductionDocumentTests(unittest.TestCase):
         editor = work.production_editor(first_id)
         self.assertEqual(len(editor["parts"]), 3)
         self.assertEqual(next(item for item in editor["parts"]
-                              if item["id"] == draft["id"])["takes"], 1)
+                              if item["id"] == draft["id"])["takes"], 0)
         ProductionEditorEnvelope.model_validate({"data": editor})
 
 

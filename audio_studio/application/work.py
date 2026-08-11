@@ -13,6 +13,7 @@ KINDS = {"ventures": "venture", "projects": "project",
 
 class WorkRecords(Protocol):
     def hierarchy(self) -> list[dict]: ...
+    def resolve_id(self, collection: str, identifier: str) -> int | None: ...
     def production(self, production_id: int) -> dict | None: ...
     def resource(self, kind: str, resource_id: int) -> dict | None: ...
     def overview(self, collection: str, resource_id: int) -> dict | None: ...
@@ -52,43 +53,62 @@ class WorkService:
     def hierarchy(self) -> list[dict[str, Any]]:
         return self.records.hierarchy()
 
+    def _internal_id(self, collection: str, identifier: int | str) -> int | None:
+        if isinstance(identifier, int) or str(identifier).isdigit():
+            return int(identifier)
+        return self.records.resolve_id(collection, str(identifier))
+
     def resource(
-        self, collection: str, resource_id: int,
+        self, collection: str, resource_id: int | str,
     ) -> dict[str, Any] | None:
+        internal_id = self._internal_id(collection, resource_id)
+        if internal_id is None:
+            return None
         kind = KINDS[collection]
-        return (self.records.production(resource_id)
+        return (self.records.production(internal_id)
                 if kind == "production"
-                else self.records.resource(kind, resource_id))
+                else self.records.resource(kind, internal_id))
 
     def overview(
-        self, collection: str, resource_id: int,
+        self, collection: str, resource_id: int | str,
     ) -> dict[str, Any] | None:
-        return self.records.overview(collection, resource_id)
+        internal_id = self._internal_id(collection, resource_id)
+        return (self.records.overview(collection, internal_id)
+                if internal_id is not None else None)
 
-    def venture_assets(self, venture_id: int) -> dict[str, Any] | None:
-        venture = self.records.resource("venture", venture_id)
+    def venture_assets(self, venture_id: int | str) -> dict[str, Any] | None:
+        internal_id = self._internal_id("ventures", venture_id)
+        if internal_id is None:
+            return None
+        venture = self.records.resource("venture", internal_id)
         if not venture:
             return None
         return {
             "venture": venture,
-            "collections": self.records.asset_collections(venture_id),
-            "assets": self.records.assets(venture_id),
+            "collections": self.records.asset_collections(internal_id),
+            "assets": self.records.assets(internal_id),
         }
 
-    def production_assets(self, production_id: int) -> dict[str, Any] | None:
-        production = self.records.production(production_id)
+    def production_assets(self, production_id: int | str) -> dict[str, Any] | None:
+        internal_id = self._internal_id("productions", production_id)
+        if internal_id is None:
+            return None
+        production = self.records.production(internal_id)
         if not production or not production.get("trail"):
             return None
         return self.venture_assets(int(production["trail"][0]["id"]))
 
-    def production_editor(self, production_id: int) -> dict[str, Any] | None:
-        production = self.records.production(production_id)
+    def production_editor(self, production_id: int | str) -> dict[str, Any] | None:
+        internal_id = self._internal_id("productions", production_id)
+        if internal_id is None:
+            return None
+        production = self.records.production(internal_id)
         if not production:
             return None
-        parts = self.records.parts(production_id)
-        exports = self.records.exports(production_id)
+        parts = self.records.parts(internal_id)
+        exports = self.records.exports(internal_id)
         visible = [part for part in parts if part.get("kind") != "stitch"]
-        accounting = self.records.accounting(production_id)
+        accounting = self.records.accounting(internal_id)
         return {
             **production, "parts": parts, "exports": exports,
             "total_cost": accounting["historical_spend"],

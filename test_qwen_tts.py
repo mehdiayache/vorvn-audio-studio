@@ -95,19 +95,18 @@ class QwenTtsTests(unittest.TestCase):
         self.assertEqual(failures[0].index, 1)
         self.assertIn("provider timeout", failures[0].error)
 
-    def test_transient_provider_failure_is_retried(self):
-        rendered = qwen_tts.ChunkResult(
-            b"wav", {}, "request-retry", "stop")
+    def test_transport_failure_is_not_automatically_retried(self):
         with patch.object(
                 qwen_tts, "_render",
-                side_effect=[RuntimeError("temporary timeout"), rendered]) as call, \
+                side_effect=RuntimeError("temporary timeout")) as call, \
                 patch.object(qwen_tts, "_pcm", return_value=b"pcm"), \
                 patch.object(qwen_tts, "_encode", return_value=b"mp3"), \
                 patch.object(qwen_tts.time, "sleep"):
             audio, failures, *_ = qwen_tts.synthesize(
                 qwen_tts.QwenTtsPlan(("retry me",)), self.options())
-        self.assertEqual((audio, failures), (b"mp3", []))
-        self.assertEqual(call.call_count, 2)
+        self.assertEqual(audio, b"")
+        self.assertEqual(len(failures), 1)
+        self.assertEqual(call.call_count, 1)
 
     def test_unsupported_language_is_not_retried(self):
         with patch.object(

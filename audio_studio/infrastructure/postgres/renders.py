@@ -27,8 +27,8 @@ class PostgresRenderRecords:
     def music(self, production_id: int) -> dict:
         return self.documents.music(production_id)
 
-    def transcript(self, generation_id: int) -> dict | None:
-        return self.transcripts.source_for_generation(generation_id)
+    def transcript(self, part_id: int) -> dict | None:
+        return self.transcripts.source_for_part(part_id)
 
     def create_export(
         self, production_id: int, *, artifact: FinishedExport,

@@ -48,6 +48,18 @@ class VoicePackageRepository:
             """, (original_path or None, normalized_path or None, reference_id))
             return cursor.rowcount == 1
 
+    def mark_reference_unavailable(self, reference_id: str, detail: str) -> None:
+        with transaction() as cursor:
+            cursor.execute("""
+                UPDATE voice_references
+                   SET diagnostics = diagnostics || %s::jsonb,
+                       updated_at = now()
+                 WHERE id = %s
+            """, (json.dumps({
+                "availability": "unresolved",
+                "storage_error": str(detail or "Reference master unavailable")[:500],
+            }), reference_id))
+
     def today_spend(self) -> float:
         with read_only() as cursor:
             cursor.execute("""
@@ -63,7 +75,11 @@ class VoicePackageRepository:
                 SELECT id, identity_id, original_name, original_path,
                        normalized_path, source_url, source_language,
                        transcript, sha256, duration_ms, sample_rate, channels,
-                       metadata, created_at, updated_at
+                       metadata, created_at, updated_at, storage_backend,
+                       storage_bucket, storage_key, original_storage_key,
+                       normalized_storage_key, original_sha256,
+                       normalized_sha256, original_size_bytes,
+                       normalized_size_bytes
                   FROM voice_references WHERE id = %s
             """, (reference_id,))
             row = cursor.fetchone()
@@ -78,6 +94,15 @@ class VoicePackageRepository:
             "sample_rate": row[10], "channels": row[11],
             "metadata": row[12] or {}, "created_at": row[13].isoformat(),
             "updated_at": row[14].isoformat(),
+            "storage_backend": row[15] or "filesystem",
+            "storage_bucket": row[16] or "",
+            "storage_key": row[17] or "",
+            "original_storage_key": row[18] or "",
+            "normalized_storage_key": row[19] or row[17] or "",
+            "original_sha256": row[20] or "",
+            "normalized_sha256": row[21] or row[8] or "",
+            "original_size_bytes": row[22],
+            "normalized_size_bytes": row[23],
         }
 
     def create_reference(self, *, original_name: str, original_path: str,
@@ -87,21 +112,40 @@ class VoicePackageRepository:
                          sample_rate: int | None = None,
                          channels: int | None = None,
                          source_language: str = "", transcript: str = "",
-                         metadata: dict | None = None) -> str:
+                         metadata: dict | None = None,
+                         storage_backend: str = "filesystem",
+                         storage_bucket: str | None = None,
+                         storage_key: str | None = None,
+                         original_storage_key: str | None = None,
+                         normalized_storage_key: str | None = None,
+                         original_sha256: str = "",
+                         normalized_sha256: str = "",
+                         original_size_bytes: int | None = None,
+                         normalized_size_bytes: int | None = None) -> str:
         reference_id = reference_id or f"ref_{uuid4().hex}"
         with transaction() as cursor:
             cursor.execute("""
                 INSERT INTO voice_references
                     (id, original_name, original_path, normalized_path,
                      source_url, sha256, duration_ms, sample_rate, channels,
-                     source_language, transcript, metadata)
+                     source_language, transcript, metadata, storage_backend,
+                     storage_bucket, storage_key, original_storage_key,
+                     normalized_storage_key, original_sha256,
+                     normalized_sha256, original_size_bytes,
+                     normalized_size_bytes)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                        %s::jsonb)
+                        %s::jsonb, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (reference_id, original_name or None, original_path or None,
                   normalized_path or None, source_url or None,
                   sha256 or None, duration_ms, sample_rate, channels,
                   source_language or None, transcript or None,
-                  json.dumps(metadata or {})))
+                  json.dumps(metadata or {}), storage_backend,
+                  storage_bucket, storage_key or normalized_path,
+                  original_storage_key or original_path,
+                  normalized_storage_key or storage_key or normalized_path,
+                  original_sha256 or None,
+                  normalized_sha256 or sha256 or None,
+                  original_size_bytes, normalized_size_bytes))
         return reference_id
 
     def create_package(self, *, name: str, metadata: dict, reference_id: str,
@@ -158,44 +202,36 @@ class VoicePackageRepository:
             """, (identity_id, metadata.get("language") or None, reference_id))
             for route in routes:
                 cursor.execute("""
+                    SELECT 1 FROM voice_package_jobs
+                     WHERE identity_id=%s AND model_id=%s AND reference_id=%s
+                """, (identity_id, route["model_id"], reference_id))
+                if cursor.fetchone():
+                    continue
+                cursor.execute("""
                     SELECT 1 FROM voice_bindings
                      WHERE identity_id = %s AND model_id = %s
+                       AND reference_id = %s
                        AND status NOT IN
                            ('deleted', 'undeployed', 'archived', 'failed')
-                """, (identity_id, route["model_id"]))
+                """, (identity_id, route["model_id"], reference_id))
                 if cursor.fetchone():
                     continue
                 proposed = f"vjob_{uuid4().hex}"
                 cursor.execute("""
                     INSERT INTO voice_package_jobs
                         (id, identity_id, reference_id, model_id, engine, tier,
-                         status)
-                    VALUES (%s, %s, %s, %s, %s, %s, 'queued')
-                    ON CONFLICT (identity_id, model_id) DO UPDATE SET
-                        reference_id = CASE
-                            WHEN voice_package_jobs.status IN
-                                ('ready', 'creating')
-                            THEN voice_package_jobs.reference_id
-                            ELSE EXCLUDED.reference_id END,
-                        status = CASE
-                            WHEN voice_package_jobs.status IN
-                                ('ready', 'creating')
-                            THEN voice_package_jobs.status
-                            WHEN voice_package_jobs.reference_id IS DISTINCT FROM
-                                 EXCLUDED.reference_id
-                            THEN 'queued'
-                            ELSE voice_package_jobs.status END,
-                        error = CASE
-                            WHEN voice_package_jobs.status IN ('ready', 'creating')
-                            THEN voice_package_jobs.error
-                            WHEN voice_package_jobs.reference_id IS DISTINCT FROM
-                                 EXCLUDED.reference_id
-                            THEN NULL
-                            ELSE voice_package_jobs.error END,
-                        updated_at = now()
+                         provider, provider_region, provider_model_id,
+                         classification, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, 'alibaba', %s,
+                            %s, %s, 'queued')
                     RETURNING id, status
                 """, (proposed, identity_id, reference_id, route["model_id"],
-                      route["engine"], route["tier"]))
+                      route["engine"], route["tier"],
+                      route.get("region") or "intl",
+                      route.get("provider_model_id"),
+                      route.get("classification") or (
+                          "documented" if route.get("source_language_documented")
+                          else "experimental")))
                 job_id, status = cursor.fetchone()
                 if status == "queued":
                     queued.append(job_id)
@@ -307,31 +343,52 @@ class VoicePackageRepository:
             current = cursor.fetchone()
             if not current or current[0] != "creating":
                 raise RuntimeError("That voice capability is no longer active.")
+            provider_model_id = (
+                f"alibaba:{binding.provider_region}:{job.model_id}")
+            cursor.execute("SELECT id FROM provider_models WHERE id=%s",
+                           (provider_model_id,))
+            if not cursor.fetchone():
+                # Honest compatibility for historical/test enrollments whose
+                # exact model predates the installed provider catalogue.
+                provider_model_id = None
             cursor.execute("""
                 INSERT INTO voice_bindings
                     (provider_voice_id, model_id, identity_id, engine, tier,
-                     status, languages, reference_id)
-                VALUES (%s, %s, %s, %s, %s, 'active', %s::jsonb, %s)
-                ON CONFLICT (provider_voice_id, model_id) DO UPDATE SET
-                    identity_id = EXCLUDED.identity_id,
-                    engine = EXCLUDED.engine, tier = EXCLUDED.tier,
-                    status = EXCLUDED.status, languages = EXCLUDED.languages,
-                    reference_id = EXCLUDED.reference_id,
-                    updated_at = now()
+                     status, languages, reference_id, provider,
+                     provider_region, provider_model_id)
+                VALUES (%s, %s, %s, %s, %s, 'active', %s::jsonb, %s,
+                        'alibaba', %s, %s)
+                ON CONFLICT (provider_voice_id, model_id) DO NOTHING
+                RETURNING id
             """, (
                 binding.provider_voice_id, job.model_id, job.identity_id,
                 job.engine, job.tier,
                 json.dumps(output_languages),
-                job.reference_id,
+                job.reference_id, binding.provider_region,
+                provider_model_id,
             ))
+            created = cursor.fetchone()
+            if created:
+                binding_id = created[0]
+            else:
+                cursor.execute("""
+                    SELECT id, identity_id, reference_id FROM voice_bindings
+                     WHERE provider_voice_id=%s AND model_id=%s
+                """, (binding.provider_voice_id, job.model_id))
+                existing = cursor.fetchone()
+                if not existing or existing[1:] != (
+                        job.identity_id, job.reference_id):
+                    raise RuntimeError(
+                        "Provider voice ID collision; no binding was replaced.")
+                binding_id = existing[0]
             cursor.execute("""
                 UPDATE voice_references SET identity_id = %s WHERE id = %s
             """, (job.identity_id, job.reference_id))
             cursor.execute("""
                 UPDATE voice_package_jobs
                    SET status = 'ready', provider_voice_id = %s, error = NULL,
-                       updated_at = now() WHERE id = %s
-            """, (binding.provider_voice_id, job.id))
+                       binding_id=%s, updated_at = now() WHERE id = %s
+            """, (binding.provider_voice_id, binding_id, job.id))
             cursor.execute("""
                 UPDATE jobs
                    SET status = 'ok', cost = %s, estimated = %s,
@@ -359,6 +416,7 @@ class VoicePackageRepository:
                             "model_id": job.model_id}), activity_id,
             ))
             self._reconcile(cursor, job.identity_id)
+            self._reconcile_campaigns(cursor, job.id)
 
     def fail(self, job: VoicePackageJob, activity_id: int,
              error: str) -> None:
@@ -377,6 +435,38 @@ class VoicePackageRepository:
                  WHERE id = %s
             """, (message[:400], activity_id))
             self._reconcile(cursor, job.identity_id)
+            self._reconcile_campaigns(cursor, job.id)
+
+    @staticmethod
+    def _reconcile_campaigns(cursor, package_job_id: str) -> None:
+        cursor.execute("""
+            UPDATE enrollment_campaign_items item
+               SET status=package.status
+              FROM voice_package_jobs package
+             WHERE item.package_job_id=package.id AND package.id=%s
+            RETURNING item.campaign_id
+        """, (package_job_id,))
+        campaign_ids = {row[0] for row in cursor.fetchall()}
+        for campaign_id in campaign_ids:
+            cursor.execute("""
+                SELECT array_agg(coalesce(package.status,item.status))
+                  FROM enrollment_campaign_items item
+                  LEFT JOIN voice_package_jobs package
+                    ON package.id=item.package_job_id
+                 WHERE item.campaign_id=%s
+            """, (campaign_id,))
+            statuses = set(cursor.fetchone()[0] or [])
+            state = ("running" if statuses & {"queued", "creating"} else
+                     "partial" if statuses & {"failed", "interrupted"} and
+                     statuses & {"ready"} else
+                     "failed" if statuses & {"failed", "interrupted"} else
+                     "cancelled" if statuses and statuses <= {"cancelled"} else
+                     "succeeded" if statuses and statuses <= {"ready"} else
+                     "queued")
+            cursor.execute("""
+                UPDATE enrollment_campaigns SET status=%s,updated_at=now()
+                 WHERE id=%s
+            """, (state, campaign_id))
 
     @staticmethod
     def _reconcile(cursor, identity_id: str) -> None:

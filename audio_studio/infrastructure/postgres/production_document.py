@@ -1,7 +1,13 @@
-"""PostgreSQL persistence for one editable Production document."""
+"""Canonical PostgreSQL persistence for an editable Production document.
+
+Parts own editorial intent. Takes own generated performance. Provider settings
+are exposed from the selected Take only as a temporary response compatibility
+shape; they are never written back onto the Part.
+"""
 
 from __future__ import annotations
 
+from hashlib import sha256
 import json
 from typing import Any
 
@@ -10,38 +16,17 @@ from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 MUSIC_LEVELS = {"discreet": 0.10, "present": 0.20, "loud": 0.34}
 
-GENERATION_FIELDS = (
-    "text", "text_raw", "text_shaped", "text_tagged", "text_state",
-    "voice", "voice_identity_id", "engine", "model", "format", "language",
-    "instruction", "rate", "pitch", "volume", "seed", "filename", "path",
-    "size_bytes", "chars", "requests", "cost", "project_id", "position",
-    "kind", "title", "duration_ms", "asset_of", "asset_id",
-    "asset_version_id", "speech_mode", "usage", "cost_basis",
-    "provider_text", "fidelity", "failures",
-)
 
-PART_FIELDS = (
-    "id", "created_at", "position", "kind", "title", "text", "text_raw",
-    "text_shaped", "text_tagged", "text_state", "voice",
-    "voice_identity_id", "engine", "model", "format", "language",
-    "instruction", "rate", "pitch", "volume", "seed", "filename",
-    "size_bytes", "chars", "cost", "duration_ms", "asset_of", "asset_id",
-    "asset_version_id", "speech_mode", "cost_basis", "provider_text",
-    "fidelity",
-)
+def script_hash(value: str) -> str:
+    return sha256((value or "").encode()).hexdigest()
 
-TAKE_FIELDS = (
-    "text", "text_raw", "text_shaped", "text_tagged", "text_state",
-    "voice", "voice_identity_id", "engine", "model", "format", "language",
-    "instruction", "rate", "pitch", "volume", "seed", "filename", "path",
-    "size_bytes", "chars", "requests", "cost", "kind", "title",
-    "duration_ms", "speech_mode", "usage", "cost_basis", "provider_text",
-    "fidelity", "asset_of", "asset_id", "asset_version_id",
-)
+
+def _float(value, default: float = 0) -> float:
+    return float(value if value is not None else default)
 
 
 class ProductionDocumentRepository:
-    """Own ordered Parts, historical Takes and background-music state."""
+    """Own stable Parts, immutable Takes and background-music state."""
 
     @staticmethod
     def _legacy_id(cursor, production_id: int, *, lock: bool = False) -> int | None:
@@ -54,196 +39,266 @@ class ProductionDocumentRepository:
         return int(row[0]) if row else None
 
     @staticmethod
-    def _identity(cursor, voice: str, engine: str, model: str) -> str | None:
-        if not voice or voice == "-":
-            return None
+    def _part_row(cursor, production_id: int, part_id: int, *, lock=False):
         cursor.execute("""
-            SELECT identity_id FROM voice_bindings
-             WHERE provider_voice_id = %s
-             ORDER BY (engine = %s) DESC, (model_id = %s) DESC, created_at DESC
-             LIMIT 1
-        """, (voice, engine, model))
-        row = cursor.fetchone()
-        return str(row[0]) if row else None
+            SELECT id, public_id, production_id, position, kind, script, title,
+                   cast_role_id, editorial_status, revision, selected_take_id,
+                   asset_id, asset_version_id, duration_ms, created_at, updated_at
+              FROM production_parts
+             WHERE id = %s AND production_id = %s AND archived_at IS NULL
+        """ + (" FOR UPDATE" if lock else ""), (part_id, production_id))
+        return cursor.fetchone()
 
-    def generation(self, generation_id: int) -> dict[str, Any] | None:
-        columns = ("id", "created_at") + GENERATION_FIELDS
+    @staticmethod
+    def _next_position(cursor, production_id: int) -> int:
+        cursor.execute("""
+            SELECT coalesce(max(position), -1) + 1
+              FROM production_parts
+             WHERE production_id = %s AND archived_at IS NULL
+        """, (production_id,))
+        return int(cursor.fetchone()[0])
+
+    def generation(self, identifier: int) -> dict[str, Any] | None:
+        """Compatibility read for callers not yet renamed to Part/Take."""
         with read_only() as cursor:
-            cursor.execute(
-                f"SELECT {', '.join(columns)} FROM generations WHERE id = %s",
-                (generation_id,),
-            )
+            cursor.execute("""
+                SELECT part.id, part.created_at, part.position, part.kind,
+                       part.title, part.script, part.revision, part.editorial_status,
+                       take.snapshot, take.filename, take.path, take.size_bytes,
+                       take.duration_ms, take.cost, take.language, take.usage,
+                       take.cost_basis, take.diagnostics, take.voice_identity_id,
+                       take.provider_voice_id, take.model_id, take.tier,
+                       part.production_id
+                  FROM production_parts part
+                  LEFT JOIN takes take ON take.id = part.selected_take_id
+                 WHERE part.id = %s AND part.archived_at IS NULL
+            """, (identifier,))
             row = cursor.fetchone()
+            if not row:
+                cursor.execute("""
+                    SELECT part.id, take.created_at, part.position, part.kind,
+                           part.title, part.script, part.revision,
+                           part.editorial_status, take.snapshot, take.filename,
+                           take.path, take.size_bytes, take.duration_ms, take.cost,
+                           take.language, take.usage, take.cost_basis,
+                           take.diagnostics, take.voice_identity_id,
+                           take.provider_voice_id, take.model_id, take.tier,
+                           part.production_id
+                      FROM takes take
+                      JOIN production_parts part ON part.id = take.part_id
+                     WHERE take.id = %s
+                """, (identifier,))
+                row = cursor.fetchone()
         if not row:
             return None
-        result = dict(zip(columns, row))
-        result["created_at"] = result["created_at"].isoformat()
-        result["cost"] = float(result["cost"] or 0)
-        return result
+        snapshot = row[8] or {}
+        return {
+            "id": row[0], "created_at": row[1].isoformat(),
+            "position": row[2], "kind": row[3], "title": row[4],
+            "text": row[5], "revision": row[6],
+            "editorial_status": row[7], "filename": row[9] or "",
+            "path": row[10] or "", "size_bytes": int(row[11] or 0),
+            "duration_ms": row[12], "cost": _float(row[13]),
+            "language": row[14], "usage": row[15] or {},
+            "cost_basis": row[16] or "unknown",
+            "fidelity": (row[17] or {}).get("fidelity"),
+            "failures": (row[17] or {}).get("failures", []),
+            "voice_identity_id": row[18],
+            "voice": row[19] or snapshot.get("voice") or "",
+            "model": row[21] or snapshot.get("model") or "",
+            "engine": snapshot.get("engine") or "",
+            "format": snapshot.get("format") or "mp3",
+            "instruction": snapshot.get("instruction") or "",
+            "speech_mode": snapshot.get("speech_mode") or "exact",
+            "rate": _float(snapshot.get("rate"), 1),
+            "pitch": _float(snapshot.get("pitch"), 1),
+            "volume": int(snapshot.get("volume") or 50),
+            "seed": int(snapshot.get("seed") or 0),
+            "production_id": row[22],
+        }
 
     def part(self, production_id: int, part_id: int) -> dict[str, Any] | None:
         with read_only() as cursor:
+            row = self._part_row(cursor, production_id, part_id)
+            if not row:
+                return None
             cursor.execute("""
-                SELECT generation.id, generation.kind, generation.filename,
-                       generation.project_id, generation.position,
-                       generation.title, generation.duration_ms
-                  FROM production_parts part
-                  JOIN generations generation ON generation.id = part.generation_id
-                 WHERE part.production_id = %s AND part.generation_id = %s
-            """, (production_id, part_id))
-            row = cursor.fetchone()
-        return (dict(zip(("id", "kind", "filename", "project_id", "position",
-                          "title", "duration_ms"), row)) if row else None)
+                SELECT filename, provider_voice_id, voice_identity_id, snapshot
+                  FROM takes WHERE id = %s
+            """, (row[10],))
+            take = cursor.fetchone() if row[10] else None
+        return {
+            "id": row[0], "public_id": str(row[1]),
+            "production_id": row[2], "position": row[3], "kind": row[4],
+            "text": row[5], "title": row[6], "cast_role_id": row[7],
+            "editorial_status": row[8], "revision": row[9],
+            "selected_take_id": row[10], "asset_id": row[11],
+            "asset_version_id": row[12], "duration_ms": row[13],
+            "created_at": row[14], "updated_at": row[15],
+            "filename": take[0] if take else "",
+            "voice": (take[1] or (take[3] or {}).get("voice")) if take else "",
+            "voice_identity_id": take[2] if take else None,
+        }
 
     def parts(self, production_id: int) -> list[dict[str, Any]]:
-        """Return editor-ready Parts with caption and Take state in one query."""
+        """Return Parts plus a read-only projection of the selected Take."""
         with read_only() as cursor:
-            cursor.execute(f"""
-                SELECT {', '.join('generation.' + field for field in PART_FIELDS)},
-                       coalesce(takes.count, 0), coalesce(takes.cost, 0),
-                       coalesce(version.filename, source.filename),
-                       coalesce(version.duration_ms, source.duration_ms),
-                       source.text, source.voice,
+            cursor.execute("""
+                SELECT part.id, part.public_id, part.created_at, part.position,
+                       part.kind, part.title, part.script, role.public_id,
+                       role.name, part.editorial_status, part.revision,
+                       part.selected_take_id, part.asset_id,
+                       part.asset_version_id, part.duration_ms,
+                       draft.state,
+                       take.created_at, take.source_part_revision,
+                       take.voice_identity_id, take.provider_voice_id,
+                       take.model_id, take.tier, take.language, take.delivery,
+                       take.filename, take.size_bytes, take.cost,
+                       take.duration_ms, take.cost_basis, take.diagnostics,
+                       take.snapshot, take.capability_id,
+                       coalesce(history.take_count, 0),
+                       coalesce(history.spend, 0),
+                       version.filename, version.duration_ms,
                        coalesce(captions.subtitled, false),
                        coalesce(captions.stale, false),
-                       coalesce(captions.languages, ARRAY[]::text[])
+                       coalesce(captions.languages, ARRAY[]::text[]),
+                       take.binding_id, take.catalogue_voice_id
                   FROM production_parts part
-                  JOIN generations generation ON generation.id = part.generation_id
-                  LEFT JOIN generations source ON source.id = generation.asset_of
-                  LEFT JOIN asset_versions version ON version.id = generation.asset_version_id
+                  LEFT JOIN production_cast_roles role ON role.id = part.cast_role_id
+                  LEFT JOIN composition_drafts draft ON draft.part_id = part.id
+                  LEFT JOIN takes take ON take.id = part.selected_take_id
+                  LEFT JOIN asset_versions version ON version.id = part.asset_version_id
                   LEFT JOIN LATERAL (
-                    SELECT count(*) AS count, coalesce(sum(cost), 0) AS cost
-                      FROM generations archived WHERE archived.version_of = generation.id
-                  ) takes ON true
+                    SELECT count(*) AS take_count, coalesce(sum(cost), 0) AS spend
+                      FROM takes item WHERE item.part_id = part.id
+                  ) history ON true
                   LEFT JOIN LATERAL (
                     SELECT bool_or(transcript.translated_from IS NULL) AS subtitled,
                            bool_or(transcript.stale AND transcript.translated_from IS NULL) AS stale,
                            array_agg(DISTINCT transcript.language)
                              FILTER (WHERE transcript.translated_from IS NOT NULL) AS languages
                       FROM transcripts transcript
-                     WHERE transcript.generation_id = generation.id
+                     WHERE transcript.part_id = part.id
+                       AND (transcript.take_id IS NULL OR transcript.take_id = take.id)
                   ) captions ON true
-                 WHERE part.production_id = %s
-                 ORDER BY part.position NULLS LAST, generation.created_at, generation.id
+                 WHERE part.production_id = %s AND part.archived_at IS NULL
+                 ORDER BY part.position NULLS LAST, part.created_at, part.id
             """, (production_id,))
             rows = cursor.fetchall()
-        extra = ("takes", "takes_cost", "asset_filename", "asset_duration",
-                 "asset_text", "asset_voice", "subtitled", "subtitles_stale",
-                 "languages")
         result = []
         for row in rows:
-            item = dict(zip(PART_FIELDS + extra, row))
-            item["spent"] = float(item["cost"] or 0) + float(item.pop("takes_cost") or 0)
+            draft = row[15] or {}
+            snapshot = row[30] or {}
+            diagnostics = row[29] or {}
+            delivery = row[23] or {}
+            selected_revision = row[17]
+            item = {
+                "id": row[0], "public_id": str(row[1]),
+                "created_at": row[2].isoformat(), "position": row[3],
+                "kind": row[4], "title": row[5] or None,
+                "text": row[6], "cast_role_id": row[7],
+                "cast_role_name": row[8], "editorial_status": row[9],
+                "revision": row[10], "selected_take_id": row[11],
+                "outdated": bool(row[11] and selected_revision != row[10]),
+                "asset_id": row[12], "asset_version_id": row[13],
+                "duration_ms": row[27] if row[11] else row[14],
+                "text_raw": snapshot.get("text_raw", draft.get("text_raw")),
+                "text_shaped": snapshot.get("text_shaped", draft.get("text_shaped")),
+                "text_tagged": snapshot.get("text_tagged", draft.get("text_tagged")),
+                "text_state": snapshot.get("text_state", draft.get("text_state", "raw")),
+                "voice_identity_id": row[18] or draft.get("voice_identity_id"),
+                "voice": row[19] or snapshot.get("voice") or draft.get("legacy_voice", ""),
+                "engine": snapshot.get("engine") or draft.get("legacy_engine"),
+                "model": row[21] or snapshot.get("model") or draft.get("legacy_model"),
+                "format": snapshot.get("format") or draft.get("format", "mp3"),
+                "language": row[22] or draft.get("language"),
+                "instruction": delivery.get("instruction", draft.get("instruction", "")),
+                "speech_mode": delivery.get("speech_mode", snapshot.get("speech_mode", "exact")),
+                "rate": _float(delivery.get("rate", snapshot.get("rate")), 1),
+                "pitch": _float(delivery.get("pitch", snapshot.get("pitch")), 1),
+                "volume": int(delivery.get("volume", snapshot.get("volume", 50)) or 50),
+                "seed": int(delivery.get("seed", snapshot.get("seed", 0)) or 0),
+                "filename": row[24] or row[34] or "",
+                "size_bytes": int(row[25] or 0), "cost": _float(row[26]),
+                "spent": _float(row[33]), "cost_basis": row[28],
+                "provider_text": diagnostics.get("provider_text"),
+                "fidelity": diagnostics.get("fidelity") or None,
+                "capability_id": row[31],
+                "binding_id": str(row[39]) if row[39] else None,
+                "catalogue_voice_id": row[40],
+                "takes": max(0, int(row[32] or 0) - (1 if row[11] else 0)),
+                "subtitled": bool(row[36]), "subtitles_stale": bool(row[37]),
+                "languages": sorted(set(row[38] or [])),
+            }
             if item["kind"] == "asset":
-                item["missing"] = not item["asset_filename"]
-                item["filename"] = item["asset_filename"] or ""
-                item["duration_ms"] = item["asset_duration"] or item["duration_ms"]
-                item["text"] = item["asset_text"] or item["text"]
-                item["voice"] = item["asset_voice"] or item["voice"]
-            for key in ("asset_filename", "asset_duration", "asset_text", "asset_voice"):
-                item.pop(key, None)
-            item["created_at"] = item["created_at"].isoformat()
-            item["cost"] = float(item["cost"] or 0)
-            item["takes"] = int(item["takes"] or 0)
-            item["languages"] = sorted(set(item["languages"] or []))
-            # Empty JSON is the persisted representation for generations that
-            # never ran a script-fidelity check. Expose absence as None so an
-            # empty object is not mistaken for a real fidelity result.
-            item["fidelity"] = item["fidelity"] or None
+                item["missing"] = not bool(row[34])
+                item["duration_ms"] = row[35] or item["duration_ms"]
             result.append(item)
         return result
 
     def next_position(self, production_id: int) -> int:
         with read_only() as cursor:
-            cursor.execute("""
-                SELECT coalesce(max(position), -1) + 1
-                  FROM production_parts WHERE production_id = %s
-            """, (production_id,))
-            return int(cursor.fetchone()[0])
+            return self._next_position(cursor, production_id)
 
     def create_part(self, production_id: int, values: dict[str, Any],
                     insert_at: int | None = None) -> int | None:
-        defaults = {
-            "text": "", "voice": "-", "engine": "none", "model": "-",
-            "format": "mp3", "rate": 1, "pitch": 1, "volume": 50,
-            "seed": 0, "filename": "", "path": "", "size_bytes": 0,
-            "chars": 0, "requests": 0, "cost": 0, "kind": "audio",
-            "usage": {}, "fidelity": {}, "failures": [],
-        }
-        payload = {**defaults, **values}
         with transaction() as cursor:
-            legacy_id = self._legacy_id(cursor, production_id, lock=True)
-            if legacy_id is None:
+            if self._legacy_id(cursor, production_id, lock=True) is None:
                 return None
-            position = (int(insert_at) if insert_at is not None else
-                        self._next_position(cursor, production_id))
-            if insert_at is not None:
+            next_position = self._next_position(cursor, production_id)
+            position = next_position if insert_at is None else max(
+                0, min(int(insert_at), next_position))
+            if position < next_position:
                 cursor.execute("""
-                    UPDATE generations SET position = position + 1
-                     WHERE production_id = %s AND version_of IS NULL
+                    UPDATE production_parts SET position = position + 1,
+                           updated_at = now()
+                     WHERE production_id = %s AND archived_at IS NULL
                        AND position >= %s
                 """, (production_id, position))
-            payload["project_id"] = legacy_id
-            payload["position"] = position
-            if not payload.get("voice_identity_id"):
-                payload["voice_identity_id"] = self._identity(
-                    cursor, str(payload.get("voice") or ""),
-                    str(payload.get("engine") or ""),
-                    str(payload.get("model") or ""))
-            serialized = [json.dumps(payload.get(field, {}))
-                          if field in {"usage", "fidelity", "failures"}
-                          else payload.get(field) for field in GENERATION_FIELDS]
-            cursor.execute(
-                f"INSERT INTO generations ({', '.join(GENERATION_FIELDS)}) "
-                f"VALUES ({', '.join(['%s'] * len(GENERATION_FIELDS))}) RETURNING id",
-                serialized,
-            )
-            return int(cursor.fetchone()[0])
-
-    @staticmethod
-    def _next_position(cursor, production_id: int) -> int:
-        cursor.execute("""
-            SELECT coalesce(max(position), -1) + 1
-              FROM production_parts WHERE production_id = %s
-        """, (production_id,))
-        return int(cursor.fetchone()[0])
+            raw_kind = str(values.get("kind") or "speech")
+            kind = "speech" if raw_kind in {"audio", "speech"} else raw_kind
+            script = str(values.get("text") or "")
+            cursor.execute("""
+                INSERT INTO production_parts
+                    (production_id, position, kind, script, title,
+                     editorial_status, asset_id, asset_version_id, duration_ms)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (production_id, position, kind, script,
+                  str(values.get("title") or ""),
+                  "draft" if kind == "draft" else "ready",
+                  values.get("asset_id"), values.get("asset_version_id"),
+                  values.get("duration_ms")))
+            part_id = int(cursor.fetchone()[0])
+            if kind == "draft":
+                cursor.execute("""
+                    INSERT INTO composition_drafts (part_id, production_id, state)
+                    VALUES (%s, %s, %s::jsonb)
+                """, (part_id, production_id, json.dumps(values)))
+            return part_id
 
     def insert_asset(self, production_id: int, asset_id: int,
                      insert_at: int | None = None) -> int | None:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT source.text, source.voice, source.engine, source.model,
-                       source.format, source.language, source.instruction,
-                       source.rate, source.pitch, source.volume, source.seed,
-                       version.size_bytes, version.duration_ms, source.title,
-                       asset.legacy_generation_id, asset.id, version.id
+                SELECT asset.id, version.id, asset.name, version.duration_ms
                   FROM assets asset
                   JOIN productions production ON production.id = %s
                   JOIN work_projects project ON project.id = production.project_id
-                  JOIN generations source ON source.id = asset.legacy_generation_id
                   JOIN LATERAL (
                     SELECT item.* FROM asset_versions item
-                     WHERE item.asset_id = asset.id
-                     ORDER BY item.version DESC LIMIT 1
+                     WHERE item.asset_id = asset.id ORDER BY item.version DESC LIMIT 1
                   ) version ON true
                  WHERE asset.id = %s AND asset.venture_id = project.venture_id
-                   AND asset.kind IN ('intros', 'outros', 'stingers')
+                   AND asset.kind IN ('intros','outros','stingers')
             """, (production_id, asset_id))
             row = cursor.fetchone()
         if not row:
             return None
-        (text, voice, engine, model, audio_format, language, instruction, rate,
-         pitch, volume, seed, size_bytes, duration_ms, title, source_id,
-         stable_asset_id, version_id) = row
         return self.create_part(production_id, {
-            "text": text, "voice": voice, "engine": engine, "model": model,
-            "format": audio_format, "language": language,
-            "instruction": instruction, "rate": rate, "pitch": pitch,
-            "volume": volume, "seed": seed, "filename": "", "path": "",
-            "size_bytes": size_bytes, "duration_ms": duration_ms, "chars": 0,
-            "requests": 0, "cost": 0, "kind": "asset", "title": title or "",
-            "asset_of": source_id, "asset_id": stable_asset_id,
-            "asset_version_id": version_id, "cost_basis": "not billed",
+            "kind": "asset", "text": row[2] or "", "title": row[2] or "",
+            "asset_id": row[0], "asset_version_id": row[1],
+            "duration_ms": row[3],
         }, insert_at)
 
     def music(self, production_id: int) -> dict[str, Any]:
@@ -257,40 +312,29 @@ class ProductionDocumentRepository:
                   LEFT JOIN assets asset ON asset.id = mix.music_asset_id
                   LEFT JOIN LATERAL (
                     SELECT item.* FROM asset_versions item
-                     WHERE item.asset_id = asset.id
-                     ORDER BY item.version DESC LIMIT 1
+                     WHERE item.asset_id = asset.id ORDER BY item.version DESC LIMIT 1
                   ) version ON true
                  WHERE mix.production_id = %s
             """, (production_id,))
             row = cursor.fetchone()
         if not row:
             return {}
-        return {
-            "music_of": row[0], "level": row[1] or "discreet",
-            "fade_in": float(row[2] or 0), "fade_out": float(row[3] or 0),
-            "duck": bool(row[4]), "volume": float(row[5] or 0),
-            "start": float(row[6] or 0), "filename": row[7] or "",
-            "name": (row[8] or "")[:80], "duration_ms": row[9],
-        }
+        return {"music_of": row[0], "level": row[1] or "discreet",
+                "fade_in": _float(row[2]), "fade_out": _float(row[3]),
+                "duck": bool(row[4]), "volume": _float(row[5]),
+                "start": _float(row[6]), "filename": row[7] or "",
+                "name": (row[8] or "")[:80], "duration_ms": row[9]}
 
     def set_music(self, production_id: int, values: dict[str, Any]) -> bool:
-        aliases = {
-            "music_of": "music_asset_id", "music_level": "level",
-            "music_fade_in": "fade_in_seconds",
-            "music_fade_out": "fade_out_seconds", "music_duck": "duck",
-            "music_volume": "volume", "music_start": "start_seconds",
-        }
-        provided = {aliases[key]: value for key, value in values.items()
-                    if key in aliases}
+        aliases = {"music_of": "music_asset_id", "music_level": "level",
+                   "music_fade_in": "fade_in_seconds",
+                   "music_fade_out": "fade_out_seconds", "music_duck": "duck",
+                   "music_volume": "volume", "music_start": "start_seconds"}
+        provided = {aliases[key]: value for key, value in values.items() if key in aliases}
         if not provided:
             return False
-        if "volume" in provided:
-            provided["volume"] = max(0.0, min(1.0, float(provided["volume"])))
-        if "start_seconds" in provided:
-            provided["start_seconds"] = max(0.0, float(provided["start_seconds"]))
         with transaction() as cursor:
-            legacy_id = self._legacy_id(cursor, production_id, lock=True)
-            if legacy_id is None:
+            if self._legacy_id(cursor, production_id, lock=True) is None:
                 return False
             cursor.execute("""
                 SELECT music_asset_id, level, volume, start_seconds,
@@ -301,48 +345,35 @@ class ProductionDocumentRepository:
             state = dict(zip(("music_asset_id", "level", "volume", "start_seconds",
                               "fade_in_seconds", "fade_out_seconds", "duck"), current))
             state.update(provided)
-            asset_id = state["music_asset_id"]
-            legacy_music_id = None
-            if asset_id not in (None, "", 0, "0"):
+            state["volume"] = max(0, min(1, _float(state["volume"], .1)))
+            state["start_seconds"] = max(0, _float(state["start_seconds"]))
+            if state["music_asset_id"] not in (None, "", 0, "0"):
                 cursor.execute("""
-                    SELECT asset.legacy_generation_id
-                      FROM assets asset
-                      JOIN productions production ON production.id = %s
-                      JOIN work_projects project ON project.id = production.project_id
-                     WHERE asset.id = %s AND asset.kind = 'music'
-                       AND asset.venture_id = project.venture_id
-                """, (production_id, int(asset_id)))
-                asset = cursor.fetchone()
-                if not asset:
+                    SELECT 1 FROM assets asset
+                    JOIN productions production ON production.id = %s
+                    JOIN work_projects project ON project.id = production.project_id
+                    WHERE asset.id = %s AND asset.kind = 'music'
+                      AND asset.venture_id = project.venture_id
+                """, (production_id, int(state["music_asset_id"])))
+                if not cursor.fetchone():
                     return False
-                state["music_asset_id"] = int(asset_id)
-                legacy_music_id = asset[0]
+                state["music_asset_id"] = int(state["music_asset_id"])
             else:
                 state["music_asset_id"] = None
             cursor.execute("""
                 INSERT INTO production_mixes
                     (production_id, music_asset_id, level, volume, start_seconds,
                      fade_in_seconds, fade_out_seconds, duck, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, now())
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,now())
                 ON CONFLICT (production_id) DO UPDATE SET
-                    music_asset_id = EXCLUDED.music_asset_id,
-                    level = EXCLUDED.level, volume = EXCLUDED.volume,
-                    start_seconds = EXCLUDED.start_seconds,
-                    fade_in_seconds = EXCLUDED.fade_in_seconds,
-                    fade_out_seconds = EXCLUDED.fade_out_seconds,
-                    duck = EXCLUDED.duck, updated_at = now()
+                    music_asset_id=EXCLUDED.music_asset_id, level=EXCLUDED.level,
+                    volume=EXCLUDED.volume, start_seconds=EXCLUDED.start_seconds,
+                    fade_in_seconds=EXCLUDED.fade_in_seconds,
+                    fade_out_seconds=EXCLUDED.fade_out_seconds,
+                    duck=EXCLUDED.duck, updated_at=now()
             """, (production_id, state["music_asset_id"], state["level"],
                   state["volume"], state["start_seconds"], state["fade_in_seconds"],
                   state["fade_out_seconds"], state["duck"]))
-            cursor.execute("""
-                UPDATE projects SET music_of = %s, music_level = %s,
-                       music_volume = %s, music_start = %s,
-                       music_fade_in = %s, music_fade_out = %s,
-                       music_duck = %s, updated_at = now()
-                 WHERE id = %s
-            """, (legacy_music_id, state["level"], state["volume"],
-                  state["start_seconds"], state["fade_in_seconds"],
-                  state["fade_out_seconds"], state["duck"], legacy_id))
             return True
 
     def reorder(self, production_id: int, ordered_ids: list[int]) -> bool:
@@ -350,237 +381,203 @@ class ProductionDocumentRepository:
         if len(ordered_ids) != len(set(ordered_ids)):
             return False
         with transaction() as cursor:
-            legacy_id = self._legacy_id(cursor, production_id, lock=True)
-            if legacy_id is None:
-                return False
             cursor.execute("""
-                SELECT generation_id FROM production_parts
-                 WHERE production_id = %s FOR UPDATE
-                 ORDER BY position NULLS LAST, created_at, generation_id
+                SELECT id FROM production_parts
+                 WHERE production_id = %s AND archived_at IS NULL FOR UPDATE
+                 ORDER BY position NULLS LAST, created_at, id
             """, (production_id,))
             current = [int(row[0]) for row in cursor.fetchall()]
-            owned = set(current)
-            if any(item not in owned for item in ordered_ids):
+            if any(item not in set(current) for item in ordered_ids):
                 return False
-            final_order = ordered_ids + [item for item in current
-                                         if item not in set(ordered_ids)]
-            for position, generation_id in enumerate(final_order):
-                cursor.execute("""
-                    UPDATE generations SET position = %s WHERE id = %s
-                """, (position, generation_id))
-            cursor.execute("UPDATE projects SET updated_at = now() WHERE id = %s",
-                           (legacy_id,))
+            final = ordered_ids + [item for item in current if item not in set(ordered_ids)]
+            for position, part_id in enumerate(final):
+                cursor.execute("UPDATE production_parts SET position=%s, updated_at=now() WHERE id=%s",
+                               (position, part_id))
             return True
 
     def update_part(self, production_id: int, part_id: int,
                     values: dict[str, Any]) -> bool:
-        allowed = {key: values[key] for key in (
-            "title", "text", "text_raw", "text_shaped", "text_tagged",
-            "text_state", "duration_ms") if key in values}
-        if not allowed:
-            return False
         with transaction() as cursor:
+            row = self._part_row(cursor, production_id, part_id, lock=True)
+            if not row:
+                return False
+            next_script = row[5] if values.get("text") is None else str(values["text"])
+            next_title = row[6] if "title" not in values else str(values.get("title") or "")
+            next_duration = row[13] if "duration_ms" not in values else values["duration_ms"]
+            changed = next_script != row[5]
             cursor.execute("""
-                UPDATE generations generation
-                   SET """ + ", ".join(f"{key} = %s" for key in allowed) + """,
-                       created_at = now()
-                  FROM production_parts part
-                 WHERE generation.id = %s AND part.generation_id = generation.id
-                   AND part.production_id = %s
-                RETURNING generation.id
-            """, (*allowed.values(), part_id, production_id))
-            return cursor.fetchone() is not None
+                UPDATE production_parts
+                   SET script=%s, title=%s, duration_ms=%s,
+                       revision=revision + %s, updated_at=now()
+                 WHERE id=%s
+            """, (next_script, next_title, next_duration, 1 if changed else 0, part_id))
+            draft_state = {key: value for key, value in values.items()
+                           if key not in {"title", "duration_ms"}}
+            if draft_state:
+                cursor.execute("""
+                    INSERT INTO composition_drafts (part_id, production_id, state)
+                    VALUES (%s,%s,%s::jsonb)
+                    ON CONFLICT (part_id) DO UPDATE SET
+                        state=composition_drafts.state || EXCLUDED.state,
+                        updated_at=now()
+                """, (part_id, production_id, json.dumps(draft_state)))
+            return True
 
     def duplicate(self, production_id: int, part_id: int,
                   filename: str = "") -> int | None:
         with transaction() as cursor:
-            cursor.execute("""
-                SELECT generation.project_id, generation.position
-                  FROM generations generation
-                  JOIN production_parts part ON part.generation_id = generation.id
-                 WHERE part.production_id = %s AND generation.id = %s FOR UPDATE
-            """, (production_id, part_id))
-            row = cursor.fetchone()
+            row = self._part_row(cursor, production_id, part_id, lock=True)
             if not row:
                 return None
-            project_id, position = row[0], int(row[1] or 0)
+            position = int(row[3] or 0) + 1
             cursor.execute("""
-                UPDATE generations SET position = position + 1
-                 WHERE production_id = %s AND version_of IS NULL AND position > %s
+                UPDATE production_parts SET position=position+1, updated_at=now()
+                 WHERE production_id=%s AND archived_at IS NULL AND position >= %s
             """, (production_id, position))
-            columns = tuple(field for field in TAKE_FIELDS
-                            if field not in {"filename", "cost"}) + ("failures",)
-            cursor.execute(
-                f"INSERT INTO generations ({', '.join(columns)}, project_id, filename, position, cost) "
-                f"SELECT {', '.join(columns)}, %s, %s, %s, 0 "
-                f"FROM generations WHERE id = %s RETURNING id",
-                (project_id, filename or "", position + 1, part_id),
-            )
-            return int(cursor.fetchone()[0])
-
-    @staticmethod
-    def _recover_spend(cursor, ids: list[int]) -> None:
-        for part_id in ids:
             cursor.execute("""
-                SELECT root.project_id, root.voice, root.voice_identity_id,
-                       root.engine, root.model, min(all_takes.created_at),
-                       coalesce(sum(all_takes.cost), 0),
-                       coalesce((SELECT sum(job.cost) FROM jobs job
-                                  WHERE job.kind = 'speech' AND
-                                    (job.generation_id = root.id OR job.generation_id IN (
-                                      SELECT id FROM generations WHERE version_of = root.id))), 0)
-                  FROM generations root
-                  JOIN generations all_takes
-                    ON all_takes.id = root.id OR all_takes.version_of = root.id
-                 WHERE root.id = %s GROUP BY root.id
-            """, (part_id,))
-            row = cursor.fetchone()
-            if not row:
-                continue
-            (project_id, voice, identity_id, engine, model, created_at,
-             content_cost, tracked_cost) = row
-            gap = round(max(0.0, float(content_cost) - float(tracked_cost)), 6)
-            if gap <= 0:
-                continue
-            tier = "flash" if "flash" in str(model or "") else "plus"
-            cursor.execute("""
-                INSERT INTO jobs
-                    (created_at, kind, model, status, estimated, cost, project_id,
-                     generation_id, voice, voice_identity_id, provider_voice_id,
-                     engine, tier, detail, cost_basis)
-                VALUES (%s, 'speech', %s, 'ok', %s, %s, %s, %s, %s, %s, %s,
-                        %s, %s, 'Recovered pre-ledger Part spend before deletion',
-                        'historical_generation')
-            """, (created_at, model, gap, gap, project_id, part_id, voice,
-                  identity_id, voice, engine, tier))
+                INSERT INTO production_parts
+                    (production_id, position, kind, script, title, cast_role_id,
+                     editorial_status, asset_id, asset_version_id, duration_ms)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
+            """, (production_id, position, row[4], row[5], row[6], row[7],
+                  row[8], row[11], row[12], row[13]))
+            new_id = int(cursor.fetchone()[0])
+            if row[10]:
+                cursor.execute("""
+                    INSERT INTO takes
+                        (part_id, source_part_revision, source_script_hash,
+                         cast_assignment_revision, persona_id,
+                         persona_name_snapshot, cast_role_id,
+                         cast_role_name_snapshot, voice_identity_id,
+                         voice_name_snapshot, reference_id, binding_id,
+                         catalogue_voice_id, binding_resolution_status,
+                         capability_id, capability_name_snapshot, provider,
+                         provider_region, provider_voice_id, model_id, tier,
+                         language, raw_text, spoken_text, tagged_text, delivery,
+                         segmentation, usage, cost, cost_basis, diagnostics,
+                         filename, path, size_bytes, duration_ms, snapshot)
+                    SELECT %s, 1, %s, cast_assignment_revision, persona_id,
+                           persona_name_snapshot, cast_role_id,
+                           cast_role_name_snapshot, voice_identity_id,
+                           voice_name_snapshot, reference_id, binding_id,
+                           catalogue_voice_id, binding_resolution_status,
+                           capability_id, capability_name_snapshot, provider,
+                           provider_region, provider_voice_id, model_id, tier,
+                           language, raw_text, spoken_text, tagged_text, delivery,
+                           segmentation, usage, 0, 'reused', diagnostics,
+                           %s, path, size_bytes, duration_ms, snapshot
+                      FROM takes WHERE id=%s RETURNING id
+                """, (new_id, script_hash(row[5]), filename or "", row[10]))
+                new_take = int(cursor.fetchone()[0])
+                cursor.execute("UPDATE production_parts SET selected_take_id=%s WHERE id=%s",
+                               (new_take, new_id))
+            return new_id
 
     def delete(self, production_id: int, ids: list[int]) -> list[str] | None:
         ids = [int(item) for item in ids]
-        if not ids:
-            return []
         with transaction() as cursor:
             cursor.execute("""
-                SELECT generation_id FROM production_parts
-                 WHERE production_id = %s AND generation_id = ANY(%s) FOR UPDATE
+                SELECT id FROM production_parts
+                 WHERE production_id=%s AND id=ANY(%s) AND archived_at IS NULL FOR UPDATE
             """, (production_id, ids))
-            owned = {int(row[0]) for row in cursor.fetchall()}
-            if owned != set(ids):
+            if {int(row[0]) for row in cursor.fetchall()} != set(ids):
                 return None
-            self._recover_spend(cursor, ids)
             cursor.execute("""
-                SELECT filename FROM generations
-                 WHERE id = ANY(%s) OR version_of = ANY(%s)
-            """, (ids, ids))
-            files = [row[0] for row in cursor.fetchall() if row[0]]
+                SELECT filename FROM takes WHERE part_id=ANY(%s) AND filename<>''
+            """, (ids,))
+            files = [row[0] for row in cursor.fetchall()]
             cursor.execute("""
-                DELETE FROM generations WHERE id = ANY(%s) OR version_of = ANY(%s)
-            """, (ids, ids))
+                UPDATE production_parts SET archived_at=now(), selected_take_id=NULL,
+                       updated_at=now() WHERE id=ANY(%s)
+            """, (ids,))
             cursor.execute("""
                 WITH ranked AS (
-                    SELECT generation_id,
-                           row_number() OVER (ORDER BY position, created_at,
-                                                       generation_id) - 1 AS next_position
-                      FROM production_parts WHERE production_id = %s
-                )
-                UPDATE generations generation SET position = ranked.next_position
-                  FROM ranked WHERE generation.id = ranked.generation_id
-                    AND generation.position <> ranked.next_position
+                    SELECT id, row_number() OVER (ORDER BY position, created_at, id)-1 AS next
+                      FROM production_parts
+                     WHERE production_id=%s AND archived_at IS NULL)
+                UPDATE production_parts part SET position=ranked.next, updated_at=now()
+                  FROM ranked WHERE part.id=ranked.id
             """, (production_id,))
             return list(dict.fromkeys(files))
 
     def move(self, source_production_id: int, ids: list[int],
              destination_production_id: int) -> bool:
         ids = [int(item) for item in ids]
-        if not ids:
-            return False
         with transaction() as cursor:
-            destination_legacy = self._legacy_id(
-                cursor, destination_production_id, lock=True)
-            if destination_legacy is None:
+            if self._legacy_id(cursor, destination_production_id, lock=True) is None:
                 return False
             cursor.execute("""
-                SELECT generation_id FROM production_parts
-                 WHERE production_id = %s AND generation_id = ANY(%s) FOR UPDATE
+                SELECT id FROM production_parts
+                 WHERE production_id=%s AND id=ANY(%s) AND archived_at IS NULL FOR UPDATE
             """, (source_production_id, ids))
             if {int(row[0]) for row in cursor.fetchall()} != set(ids):
                 return False
             start = self._next_position(cursor, destination_production_id)
             for offset, part_id in enumerate(ids):
                 cursor.execute("""
-                    UPDATE generations SET project_id = %s, position = %s WHERE id = %s
-                """, (destination_legacy, start + offset, part_id))
-                cursor.execute("""
-                    UPDATE generations SET project_id = %s WHERE version_of = %s
-                """, (destination_legacy, part_id))
+                    UPDATE production_parts SET production_id=%s, position=%s,
+                           updated_at=now() WHERE id=%s
+                """, (destination_production_id, start + offset, part_id))
+                cursor.execute("UPDATE composition_drafts SET production_id=%s WHERE part_id=%s",
+                               (destination_production_id, part_id))
             cursor.execute("""
                 WITH ranked AS (
-                    SELECT generation_id,
-                           row_number() OVER (ORDER BY position, created_at,
-                                                       generation_id) - 1 AS next_position
-                      FROM production_parts WHERE production_id = %s
-                )
-                UPDATE generations generation SET position = ranked.next_position
-                  FROM ranked WHERE generation.id = ranked.generation_id
-                    AND generation.position <> ranked.next_position
+                    SELECT id, row_number() OVER (ORDER BY position, created_at, id)-1 AS next
+                      FROM production_parts
+                     WHERE production_id=%s AND archived_at IS NULL)
+                UPDATE production_parts part SET position=ranked.next, updated_at=now()
+                  FROM ranked WHERE part.id=ranked.id
             """, (source_production_id,))
             return True
 
     def takes(self, production_id: int, part_id: int) -> list[dict[str, Any]] | None:
-        if not self.part(production_id, part_id):
-            return None
         with read_only() as cursor:
+            part = self._part_row(cursor, production_id, part_id)
+            if not part:
+                return None
             cursor.execute("""
-                SELECT id, created_at, voice, voice_identity_id, engine, model, rate,
-                       pitch, seed, filename, size_bytes, cost, text, duration_ms,
-                       instruction, language, fidelity
-                  FROM generations WHERE version_of = %s ORDER BY created_at DESC
-            """, (part_id,))
+                SELECT take.id, take.created_at, take.provider_voice_id,
+                       take.voice_identity_id, take.model_id, take.tier,
+                       take.filename, take.size_bytes, take.cost,
+                       take.spoken_text, take.duration_ms, take.delivery,
+                       take.language, take.diagnostics,
+                       take.source_part_revision, take.source_script_hash,
+                       take.binding_id, take.capability_id, take.snapshot
+                  FROM takes take
+                 WHERE take.part_id=%s AND take.id IS DISTINCT FROM %s
+                 ORDER BY take.created_at DESC
+            """, (part_id, part[10]))
             rows = cursor.fetchall()
         return [{
-            "id": row[0], "when": row[1].isoformat(), "voice": row[2],
-            "voice_identity_id": row[3], "engine": row[4], "model": row[5],
-            "rate": float(row[6]), "pitch": float(row[7]), "seed": row[8],
-            "filename": row[9], "size_bytes": row[10], "cost": float(row[11]),
-            "text": row[12], "duration_ms": row[13], "instruction": row[14],
-            "language": row[15], "fidelity": row[16] or None,
+            "id": row[0], "when": row[1].isoformat(), "voice": row[2] or "",
+            "voice_identity_id": row[3], "engine": (row[18] or {}).get("engine", ""),
+            "model": row[5] or row[4] or "", "rate": _float((row[11] or {}).get("rate"), 1),
+            "pitch": _float((row[11] or {}).get("pitch"), 1),
+            "seed": int((row[11] or {}).get("seed", 0) or 0),
+            "filename": row[6], "size_bytes": int(row[7] or 0),
+            "cost": _float(row[8]), "text": row[9] or "",
+            "duration_ms": row[10], "instruction": (row[11] or {}).get("instruction"),
+            "language": row[12], "fidelity": (row[13] or {}).get("fidelity") or None,
+            "source_part_revision": row[14], "outdated": row[14] != part[9],
+            "source_script_hash": row[15],
+            "binding_id": str(row[16]) if row[16] else None,
+            "capability_id": row[17],
         } for row in rows]
 
     def promote(self, production_id: int, part_id: int, take_id: int) -> bool:
-        columns = ", ".join(TAKE_FIELDS)
-        assignments = ", ".join(f"{field} = %s" for field in TAKE_FIELDS)
         with transaction() as cursor:
-            cursor.execute("""
-                SELECT archived.version_of
-                  FROM generations archived
-                  JOIN production_parts part ON part.generation_id = archived.version_of
-                 WHERE archived.id = %s AND archived.version_of = %s
-                   AND part.production_id = %s FOR UPDATE
-            """, (take_id, part_id, production_id))
-            if not cursor.fetchone():
+            row = self._part_row(cursor, production_id, part_id, lock=True)
+            if not row:
                 return False
-            cursor.execute(f"SELECT {columns} FROM generations WHERE id = %s",
-                           (part_id,))
-            current = cursor.fetchone()
-            cursor.execute(f"SELECT {columns} FROM generations WHERE id = %s",
-                           (take_id,))
-            chosen = cursor.fetchone()
-            if not current or not chosen:
+            cursor.execute("SELECT source_part_revision FROM takes WHERE id=%s AND part_id=%s",
+                           (take_id, part_id))
+            take = cursor.fetchone()
+            if not take:
                 return False
-            current_values = [json.dumps(value or {})
-                              if field in {"usage", "fidelity"} else value
-                              for field, value in zip(TAKE_FIELDS, current)]
-            chosen_values = [json.dumps(value or {})
-                             if field in {"usage", "fidelity"} else value
-                             for field, value in zip(TAKE_FIELDS, chosen)]
-            cursor.execute(f"UPDATE generations SET {assignments} WHERE id = %s",
-                           (*chosen_values, part_id))
-            cursor.execute(f"UPDATE generations SET {assignments} WHERE id = %s",
-                           (*current_values, take_id))
+            cursor.execute("UPDATE production_parts SET selected_take_id=%s, updated_at=now() WHERE id=%s",
+                           (take_id, part_id))
             return True
 
     def save_text(self, production_id: int, part_id: int,
                   values: dict[str, Any]) -> bool:
-        if values.get("text") is None:
-            values = {key: value for key, value in values.items()
-                      if key != "text"}
         return self.update_part(production_id, part_id, values)

@@ -39,6 +39,7 @@ export function ActivityDetailSheet({ run, onClose }: { run: ActivityRun | null;
           <section className="activity-cost"><span>{costBasisLabel(run.cost_basis)}</span><b>{formatMoney(run.cost)}</b><small>{run.cost_basis_raw}</small></section>
           <dl>
             <Field label="Status">{run.status}</Field><Field label="Started by">{run.actor_label}</Field>
+            {run.requires_review && <Field label="Provider result">Ambiguous — review before retry</Field>}
             <Field label="Workspace">{run.organization_id}</Field><Field label="Tool">{run.source_tool}</Field>
             <Field label="Production">{run.production_name}</Field><Field label="Model">{run.model ? <SpeechModelIdentity modelId={run.model} /> : null}</Field>
             <Field label="Region">{run.provider_region}</Field><Field label="Price version">{run.price_version}</Field>

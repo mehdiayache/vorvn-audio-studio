@@ -20,7 +20,7 @@ describe("VoiceMethodPicker", () => {
     render(<VoiceMethodPicker
       routes={[qwen3]}
       availableRoutes={[qwen3]}
-      selectedEngine="qwen_tts"
+      selectedRouteId="qwen3-voice"
       language="Arabic"
       customVoice
       config={null}
@@ -33,6 +33,6 @@ describe("VoiceMethodPicker", () => {
     expect(screen.getByText("Not documented for Arabic")).toBeTruthy()
     expect(screen.getByText("Details")).toBeTruthy()
     fireEvent.click(method)
-    expect(onSelect).toHaveBeenCalledWith("qwen_tts")
+    expect(onSelect).toHaveBeenCalledWith(qwen3)
   })
 })

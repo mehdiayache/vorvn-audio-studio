@@ -78,10 +78,11 @@ class SpeechJobCreate(BaseModel):
         validation_alias=AliasChoices("production_id", "project_id"),
     )
     insert_at: int | None = Field(default=None, ge=0)
-    voice: str = Field(min_length=1, max_length=300)
     voice_identity_id: str | None = Field(default=None, max_length=120)
-    engine: Literal["audio", "omni", "qwen_tts"]
-    model: Literal["plus", "flash", "vc"]
+    binding_id: UUID | None = None
+    catalogue_voice_id: str | None = Field(default=None, max_length=700)
+    capability_id: str | None = Field(default=None, max_length=120)
+    cast_role_id: UUID | None = None
     format: Literal["mp3", "mp3-24k", "wav", "opus"] = "mp3"
     language: str = Field(default="Auto", max_length=80)
     instruction: str = Field(default="", max_length=100)
@@ -97,14 +98,8 @@ class SpeechJobCreate(BaseModel):
 
     @model_validator(mode="after")
     def part_is_present_for_replacement(self):
-        valid_models = {
-            "audio": {"plus", "flash"},
-            "omni": {"plus", "flash"},
-            "qwen_tts": {"vc"},
-        }
-        if self.model not in valid_models[self.engine]:
-            raise ValueError(
-                f"{self.model} is not a valid quality for {self.engine}.")
+        if bool(self.binding_id) == bool(self.catalogue_voice_id):
+            raise ValueError("Choose exactly one cloned binding or catalogue voice.")
         if self.operation != "create" and (not self.part_id or not self.production_id):
             raise ValueError(
                 "A Production and Part are required for that speech operation.")
@@ -133,10 +128,16 @@ class BatchJobCreate(BaseModel):
 
     token: str = Field(pattern=r"^[A-Za-z0-9-]{1,120}$")
     columns: BatchColumns
-    voice: str = Field(min_length=1, max_length=300)
     voice_identity_id: str | None = Field(default=None, max_length=120)
-    engine: Literal["audio", "omni", "qwen_tts"]
-    model: Literal["plus", "flash", "vc"]
+    binding_id: UUID | None = None
+    catalogue_voice_id: str | None = Field(default=None, max_length=700)
+    capability_id: str | None = Field(default=None, max_length=120)
+
+    @model_validator(mode="after")
+    def exact_route_is_present(self):
+        if bool(self.binding_id) == bool(self.catalogue_voice_id):
+            raise ValueError("Choose exactly one cloned binding or catalogue voice.")
+        return self
     format: Literal["mp3", "mp3-24k", "wav", "opus"] = "mp3"
     language: str = Field(default="", max_length=80)
     instruction: str = Field(default="", max_length=100)
@@ -152,7 +153,7 @@ class TranscriptionJobCreate(BaseModel):
     url: str = Field(default="", max_length=4096)
     name: str = Field(default="", max_length=500)
     file: str = Field(default="", max_length=500)
-    generation_id: int | None = Field(default=None, gt=0)
+    part_id: int | None = Field(default=None, gt=0)
     production_id: int | None = Field(default=None, gt=0)
     playable: str = Field(default="", max_length=1000)
     size_bytes: int = Field(default=0, ge=0, le=500_000_000)
@@ -167,10 +168,10 @@ class TranscriptionJobCreate(BaseModel):
         has_url, has_file = bool(self.url.strip()), bool(self.file.strip())
         if not has_url and not has_file:
             raise ValueError("Provide either an uploaded URL or an Audio Studio file.")
-        if has_url and (has_file or self.generation_id or self.production_id):
+        if has_url and (has_file or self.part_id or self.production_id):
             raise ValueError(
                 "Uploaded audio and Production Parts are separate sources.")
-        if has_file and not self.generation_id:
+        if has_file and not self.part_id:
             raise ValueError("Audio Studio files require their Part ID.")
         if self.production_id and not has_file:
             raise ValueError("A Production ID requires one of its Parts.")
@@ -230,14 +231,18 @@ def create_speech_job(payload: SpeechJobCreate,
     # JSON mode keeps UUID session identities safe for the durable JSONB payload.
     values = payload.model_dump(exclude_unset=True, mode="json")
     try:
-        catalog_service.resolve_voice(values)
+        resolved = catalog_service.resolve_voice(values)
     except ValueError as exc:
         raise ApiProblem(409, "voice_route_unavailable", str(exc), {
-            "voice_identity_id": payload.voice_identity_id,
-            "engine": payload.engine,
-            "model": payload.model,
-            "language": payload.language,
+            "binding_id": str(payload.binding_id) if payload.binding_id else None,
+            "catalogue_voice_id": payload.catalogue_voice_id,
         }) from exc
+    values.update({
+        "voice": resolved["provider_voice_id"],
+        "voice_identity_id": resolved.get("identity_id"),
+        "engine": resolved["engine"], "model": resolved["tier"],
+        "capability_id": resolved.get("capability_id"),
+    })
     job, created = job_service.enqueue(
         "speech", values,
         idempotency_key=(idempotency_key or f"speech-{uuid4()}")[:200],

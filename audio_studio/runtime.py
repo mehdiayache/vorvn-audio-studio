@@ -17,6 +17,7 @@ from audio_studio.infrastructure.runtime_environment import reload_owned_environ
 from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
 from audio_studio.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
 from audio_studio.application.reference_storage import migrate_legacy_references
+from audio_studio.composition.provider_catalogue import provider_catalogue_sync
 
 
 class WorkerSupervisor:
@@ -101,6 +102,7 @@ def main() -> int:
         applied = run_migrations()
         if applied:
             print(f"Applied {len(applied)} Audio Studio migration(s): {', '.join(applied)}")
+        provider_catalogue_sync.refresh()
         # A provider request has ambiguous billing semantics after a crash, so
         # it becomes explicitly retryable instead of being silently replayed.
         voice_repository = VoicePackageRepository()

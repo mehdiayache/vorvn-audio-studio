@@ -12,8 +12,10 @@ assert all(route["model_id"] != "qwen-audio-3.0-tts-plus" for route in english["
 
 arabic = voice_packages.plan("Arabic", region="intl")
 assert [route["model_id"] for route in arabic["routes"]] == [
-    "qwen3.5-omni-plus", "qwen3.5-omni-flash"]
-assert all(route["source_language_documented"] for route in arabic["routes"])
+    "qwen-audio-3.0-tts-flash", "qwen3.5-omni-plus",
+    "qwen3.5-omni-flash", "qwen3-tts-vc-2026-01-22"]
+assert [route["classification"] for route in arabic["routes"]] == [
+    "experimental", "documented", "documented", "experimental"]
 assert next(route for route in arabic["available_routes"]
             if route["engine"] == "qwen_tts")["documented_output_languages"] == [
     "Chinese", "English", "German", "Italian", "Portuguese", "Spanish",
@@ -21,8 +23,11 @@ assert next(route for route in arabic["available_routes"]
 
 exact_arabic = voice_packages.plan("ar", "exact", region="intl")
 assert [route["engine"] for route in exact_arabic["routes"]] == [
-]
-assert next(item for item in exact_arabic["packages"] if item["id"] == "exact")["available"] is False
+    "audio", "qwen_tts"]
+assert all(route["classification"] == "experimental"
+           for route in exact_arabic["routes"])
+assert next(item for item in exact_arabic["packages"]
+            if item["id"] == "exact")["available"] is True
 
 assert voice_packages.plan("en", "omni", region="intl")["routes"] == english["routes"][1:3]
 assert [route["engine"] for route in

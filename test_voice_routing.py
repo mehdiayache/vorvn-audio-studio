@@ -1,71 +1,98 @@
 #!/usr/bin/env python3
-"""Pure routing contracts: no database writes and no Alibaba calls."""
+"""Exact route contracts: no inference, fallback, provider call or DB write."""
+
+from uuid import uuid4
 
 from audio_studio.domain import voice_routing
 
 
-BINDINGS = [
-    {"identity_id": "voice_eve", "voice_id": "eve-audio", "engine": "audio",
-     "tier": "flash", "target_model": "qwen-audio-3.0-tts-flash", "status": "active",
-     "languages": ["English"], "source": "custom"},
-    {"identity_id": "voice_eve", "voice_id": "eve-omni", "engine": "omni",
-     "tier": "plus", "target_model": "qwen3.5-omni-plus", "status": "active",
-     "languages": ["English", "Arabic"], "source": "custom"},
-]
+BINDING_ID = str(uuid4())
+MULTIMODE_ID = str(uuid4())
+BINDINGS = [{
+    "binding_id": BINDING_ID,
+    "identity_id": "voice_eve",
+    "reference_id": str(uuid4()),
+    "provider_voice_id": "eve-audio",
+    "provider": "alibaba",
+    "region": "intl",
+    "engine": "audio",
+    "tier": "flash",
+    "model_id": "qwen-audio-3.0-tts-flash",
+    "status": "ready",
+    "capabilities": [{"id": "expressive_tags", "name": "Expressive"}],
+}, {
+    "binding_id": MULTIMODE_ID,
+    "identity_id": "voice_eve",
+    "reference_id": str(uuid4()),
+    "provider_voice_id": "eve-future",
+    "provider": "future",
+    "region": "intl",
+    "engine": "future_tts",
+    "tier": "plus",
+    "model_id": "future-voice-1",
+    "status": "active",
+    "capabilities": [
+        {"id": "story", "name": "Story"},
+        {"id": "dialogue", "name": "Dialogue"},
+    ],
+}]
+CATALOGUE_ID = "alibaba:intl:qwen-audio-3.0-tts-flash:eva"
+CATALOGUE = [{
+    "catalogue_voice_id": CATALOGUE_ID,
+    "provider_voice_id": "eva",
+    "provider": "alibaba",
+    "region": "intl",
+    "engine": "audio",
+    "tier": "flash",
+    "model_id": "qwen-audio-3.0-tts-flash",
+    "status": "active",
+    "capabilities": [{"id": "expressive_tags", "name": "Expressive"}],
+}]
 
-SYSTEM_BINDINGS = [{"identity_id": "alibaba:audio:eva", "provider_voice_id": "eva",
-                    "source": "system", "engine": "audio", "tier": "flash",
-                    "model_id": "qwen-audio-3.0-tts-flash", "status": "active"}]
 
-exact = voice_routing.resolve({"voice_identity_id": "voice_eve", "voice": "eve-audio",
-                               "engine": "audio", "model": "flash"}, BINDINGS)
-assert exact.provider_voice_id == "eve-audio" and exact.reason == "selected_binding"
+exact = voice_routing.resolve({"binding_id": BINDING_ID}, BINDINGS, CATALOGUE)
+assert exact.provider_voice_id == "eve-audio"
+assert exact.capability_id == "expressive_tags"
+assert exact.binding_id == BINDING_ID and exact.catalogue_voice_id is None
 
-switched = voice_routing.resolve({"voice_identity_id": "voice_eve", "voice": "eve-audio",
-                                  "engine": "omni", "model": "plus"}, BINDINGS)
-assert switched.provider_voice_id == "eve-omni" and switched.engine == "omni"
+stock = voice_routing.resolve(
+    {"catalogue_voice_id": CATALOGUE_ID}, BINDINGS, CATALOGUE)
+assert stock.provider_voice_id == "eva"
+assert stock.catalogue_voice_id == CATALOGUE_ID and stock.binding_id is None
 
-custom_arabic = voice_routing.resolve({
-    "voice_identity_id": "voice_eve", "voice": "eve-audio",
-    "engine": "audio", "model": "flash", "language": "Auto",
-    "text": "مرحبا بالعالم"}, BINDINGS)
-assert custom_arabic.provider_voice_id == "eve-audio"
-assert custom_arabic.engine == "audio"
+for payload in ({}, {"binding_id": BINDING_ID,
+                     "catalogue_voice_id": CATALOGUE_ID}):
+    try:
+        voice_routing.resolve(payload, BINDINGS, CATALOGUE)
+        raise AssertionError("an ambiguous or missing route was accepted")
+    except ValueError as error:
+        assert "exactly one" in str(error)
 
-not_ready = [{**BINDINGS[0], "status": "creating"}, BINDINGS[1]]
 try:
-    voice_routing.resolve({"voice_identity_id": "voice_eve", "voice": "eve-audio",
-                           "engine": "audio", "model": "flash"}, not_ready)
-    raise AssertionError("a creating binding was treated as ready")
+    voice_routing.resolve({
+        "binding_id": "old-provider-voice-name",
+        "voice": "eve-audio", "engine": "audio", "language": "Arabic",
+    }, BINDINGS, CATALOGUE)
+    raise AssertionError("legacy fields reconstructed a route")
 except ValueError as error:
-    assert "no ready" in str(error)
+    assert "no longer exists" in str(error)
 
+not_ready = [{**BINDINGS[0], "status": "creating"}]
 try:
-    voice_routing.resolve({"voice_identity_id": "voice_eve", "voice": "eve-audio",
-                           "engine": "audio", "model": "plus"}, BINDINGS)
-    raise AssertionError("an unavailable capability was silently substituted")
+    voice_routing.resolve({"binding_id": BINDING_ID}, not_ready, CATALOGUE)
+    raise AssertionError("a creating binding was accepted")
 except ValueError as error:
-    assert "no ready" in str(error)
-
-legacy_id = "qwen-audio-3.0-tts-flash-oldvoice-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-legacy = voice_routing.resolve({"voice": legacy_id, "engine": "audio", "model": "flash",
-                                "language": "Arabic"}, BINDINGS)
-assert legacy.provider_voice_id == legacy_id and legacy.engine == "audio"
-
-stock_arabic = voice_routing.resolve({"voice": "loongeva_v3.6", "engine": "audio",
-                                      "model": "flash", "language": "Arabic"}, BINDINGS)
-assert stock_arabic.provider_voice_id == "Tina" and stock_arabic.engine == "omni"
+    assert "not ready" in str(error)
 
 try:
-    voice_routing.resolve({"voice": "eva", "engine": "audio", "model": "plus"},
-                          BINDINGS + SYSTEM_BINDINGS)
-    raise AssertionError("a Flash voice was silently used with Plus")
-except ValueError:
-    pass
+    voice_routing.resolve({"binding_id": MULTIMODE_ID}, BINDINGS, CATALOGUE)
+    raise AssertionError("a multimode binding silently chose a capability")
+except ValueError as error:
+    assert "Choose a recording mode" in str(error)
 
-system_arabic = voice_routing.resolve({"voice": "eva", "engine": "audio",
-                                       "model": "flash", "language": "Arabic"},
-                                      BINDINGS + SYSTEM_BINDINGS)
-assert system_arabic.provider_voice_id == "Tina" and system_arabic.engine == "omni"
+mode = voice_routing.resolve({
+    "binding_id": MULTIMODE_ID, "capability_id": "dialogue",
+}, BINDINGS, CATALOGUE)
+assert mode.capability_id == "dialogue" and mode.capability_name == "Dialogue"
 
-print("voice routing contracts passed")
+print("exact voice routing contracts passed")

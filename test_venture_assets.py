@@ -34,7 +34,6 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         self.marker = uuid4().hex
         self.fixture_base = 8_000_000_000 + int(self.marker[:8], 16) * 10
         self.venture_id = self.fixture_base
-        self.generation_id = None
         with psycopg.connect(settings.database_url) as database:
             with database.cursor() as cursor:
                 cursor.execute("""
@@ -47,9 +46,6 @@ class VentureAssetRepositoryTests(unittest.TestCase):
     def tearDown(self):
         with psycopg.connect(settings.database_url) as database:
             with database.cursor() as cursor:
-                if self.generation_id is not None:
-                    cursor.execute("DELETE FROM generations WHERE id = %s",
-                                   (self.generation_id,))
                 if self.venture_id is not None:
                     cursor.execute("DELETE FROM ventures WHERE id = %s",
                                    (self.venture_id,))
@@ -108,7 +104,6 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                     music["id"], source, source.stat().st_size,
                     "Quiet bed.wav")
             self.assertTrue((Path(output) / created["filename"]).is_file())
-        self.generation_id = created["generation_id"]
         asset = self.repository.get(created["id"])
         self.assertEqual(
             (asset["venture_id"], asset["collection_id"], asset["kind"],

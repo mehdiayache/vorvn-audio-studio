@@ -9,7 +9,7 @@ from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 TRANSCRIPT_FIELDS = (
     "name", "source_url", "audio_url", "language", "duration_ms", "text",
-    "srt", "vtt", "generation_id", "translated_from", "source_job_id",
+    "srt", "vtt", "part_id", "take_id", "translated_from", "source_job_id",
     "model", "provider_region", "price_version", "catalog_rate",
     "catalog_cost", "cost_basis", "sentences",
 )
@@ -82,66 +82,62 @@ class TranscriptRepository:
                            (transcript_id,))
             return cursor.fetchone() is not None
 
-    def list_for_generation(self, generation_id: int) -> list[dict]:
+    def list_for_part(self, part_id: int) -> list[dict]:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT id, name, language, duration_ms, translated_from, stale
-                  FROM transcripts WHERE generation_id = %s ORDER BY created_at
-            """, (generation_id,))
+                  FROM transcripts WHERE part_id = %s ORDER BY created_at
+            """, (part_id,))
             rows = cursor.fetchall()
         return [{"id": ident, "name": name, "language": language,
                  "duration_ms": duration_ms,
                  "is_translation": parent is not None, "stale": stale}
                 for ident, name, language, duration_ms, parent, stale in rows]
 
-    def source_for_generation(self, generation_id: int) -> dict | None:
+    def source_for_part(self, part_id: int) -> dict | None:
         """Newest source-language transcript used by Production rendering."""
         with read_only() as cursor:
             cursor.execute("""
                 SELECT id, duration_ms, sentences, stale
                   FROM transcripts
-                 WHERE generation_id = %s AND translated_from IS NULL
+                 WHERE part_id = %s AND translated_from IS NULL
                  ORDER BY created_at DESC LIMIT 1
-            """, (generation_id,))
+            """, (part_id,))
             row = cursor.fetchone()
         return (dict(zip(("id", "duration_ms", "sentences", "stale"), row))
                 if row else None)
 
-    def mark_stale(self, generation_id: int) -> int:
+    def mark_stale(self, part_id: int) -> int:
         with transaction() as cursor:
             cursor.execute("""
                 UPDATE transcripts SET stale = true
-                 WHERE generation_id = %s AND stale = false
-            """, (generation_id,))
+                 WHERE part_id = %s AND stale = false
+            """, (part_id,))
             return cursor.rowcount
 
-    def generation_source(self, generation_id: int,
-                          production_id: int | None = None) -> dict | None:
+    def part_source(self, part_id: int,
+                    production_id: int | None = None) -> dict | None:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT generation.id, generation.filename, generation.path,
-                       generation.duration_ms
-                  FROM generations generation
-                  JOIN production_parts part
-                    ON part.generation_id = generation.id
-                 WHERE generation.id = %s
+                SELECT part.id, take.id, take.filename, take.path,
+                       coalesce(take.duration_ms, part.duration_ms)
+                  FROM production_parts part
+                  JOIN takes take ON take.id = part.selected_take_id
+                 WHERE part.id = %s AND part.archived_at IS NULL
                    AND (%s::bigint IS NULL OR part.production_id = %s)
-            """, (generation_id, production_id, production_id))
+            """, (part_id, production_id, production_id))
             row = cursor.fetchone()
-        return (dict(zip(("id", "filename", "path", "duration_ms"), row))
+        return (dict(zip(("id", "take_id", "filename", "path", "duration_ms"), row))
                 if row else None)
 
-    def finish_generation(self, generation_id: int, duration_ms: int,
-                          transcript_id: int) -> None:
-        """Trust ASR duration and replace only captions known to be stale."""
+    def finish_part(self, part_id: int, take_id: int | None,
+                    duration_ms: int, transcript_id: int) -> None:
+        """Replace stale captions without rewriting the immutable source Take."""
         with transaction() as cursor:
-            if duration_ms > 0:
-                cursor.execute("UPDATE generations SET duration_ms = %s WHERE id = %s",
-                               (duration_ms, generation_id))
             cursor.execute("""
                 DELETE FROM transcripts
-                 WHERE generation_id = %s AND stale = true AND id <> %s
-            """, (generation_id, transcript_id))
+                 WHERE part_id = %s AND stale = true AND id <> %s
+            """, (part_id, transcript_id))
             cursor.execute("UPDATE transcripts SET stale = false WHERE id = %s",
                            (transcript_id,))
 

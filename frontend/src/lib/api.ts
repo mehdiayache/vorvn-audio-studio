@@ -201,6 +201,7 @@ export const studioApi = {
   projectOverview: (id: number) => request<ProjectOverviewEnvelope>(`/api/v1/projects/${id}/overview`).then((response) => response.data),
   seriesOverview: (id: number) => request<SeriesOverviewEnvelope>(`/api/v1/series/${id}/overview`).then((response) => response.data),
   production: (id: number) => v1<Production>(`/api/v1/productions/${id}/editor`),
+  productionCast: (publicId: string) => request<{ data: import("@/types/domain").ProductionCastRole[] }>(`/api/v1/productions/${encodeURIComponent(publicId)}/cast`).then((response) => response.data),
   createVenture: (name: string, description = "") => postV1<HierarchyNode>("/api/v1/ventures", { name, description }),
   createProject: (ventureId: number, name: string, description = "") => postV1<HierarchyNode>(`/api/v1/ventures/${ventureId}/projects`, { name, description }),
   createSeries: (projectId: number, name: string, description = "") => postV1<HierarchyNode>(`/api/v1/projects/${projectId}/series`, { name, description }),
@@ -245,25 +246,28 @@ export const studioApi = {
     }),
   saveDraft: (payload: Omit<GeneratePayload, "confirmed">) => {
     if (!payload.production_id) return Promise.reject(new ApiError("Choose a Production before saving a Draft.", 400))
-    const { production_id, ...draft } = payload
+    const { production_id, voice: _voice, engine: _engine, model: _model, ...draft } = payload
     return postV1<{ id: number }>(`/api/v1/productions/${production_id}/parts/drafts`, draft)
   },
   generate: async (payload: GeneratePayload) => {
+    const { voice: _voice, engine: _engine, model: _model, ...requestPayload } = payload
     const response = await request<{ data: DurableJob<GenerateResult> }>("/api/v1/jobs/speech", {
       method: "POST",
       headers: { "Idempotency-Key": `speech-${crypto.randomUUID()}` },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(requestPayload),
     })
     const result = await waitForJob<GenerateResult>(response.data.id)
     return { ...result, job_id: response.data.id }
   },
   recordingSession: (id: string) => v1<RecordingSession>(`/api/v1/speak/sessions/${encodeURIComponent(id)}`),
   renderDraft: async (id: number, payload: GeneratePayload) => {
-    const response = await request<{ data: DurableJob<GenerateResult> }>("/api/v1/jobs/speech", { method: "POST", headers: { "Idempotency-Key": `render-draft-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ ...payload, operation: "render_draft", part_id: id }) })
+    const { voice: _voice, engine: _engine, model: _model, ...requestPayload } = payload
+    const response = await request<{ data: DurableJob<GenerateResult> }>("/api/v1/jobs/speech", { method: "POST", headers: { "Idempotency-Key": `render-draft-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ ...requestPayload, operation: "render_draft", part_id: id }) })
     return waitForJob<GenerateResult>(response.data.id)
   },
   regenerate: async (id: number, payload: GeneratePayload) => {
-    const response = await request<{ data: DurableJob<GenerateResult> }>("/api/v1/jobs/speech", { method: "POST", headers: { "Idempotency-Key": `regenerate-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ ...payload, operation: "regenerate", part_id: id }) })
+    const { voice: _voice, engine: _engine, model: _model, ...requestPayload } = payload
+    const response = await request<{ data: DurableJob<GenerateResult> }>("/api/v1/jobs/speech", { method: "POST", headers: { "Idempotency-Key": `regenerate-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ ...requestPayload, operation: "regenerate", part_id: id }) })
     return waitForJob<GenerateResult>(response.data.id)
   },
   textPass: async (kind: "shape" | "tag", payload: { text: string; production_id?: number; part_id?: number; density?: "none" | "light" | "normal" | "heavy"; engine: "audio" | "omni" | "qwen_tts"; confirmed?: boolean }) => {
@@ -280,7 +284,7 @@ export const studioApi = {
     const response = await request<{ data: DurableJob<CaptionMutationResult> }>("/api/v1/jobs/transcription", {
       method: "POST",
       headers: { "Idempotency-Key": `transcribe-part-${part.id}-${crypto.randomUUID()}` },
-      body: JSON.stringify({ file: part.filename, generation_id: part.id, production_id: productionId, confirmed }),
+      body: JSON.stringify({ file: part.filename, part_id: part.id, production_id: productionId, confirmed }),
     })
     return waitForJob<CaptionMutationResult>(response.data.id)
   },

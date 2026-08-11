@@ -24,9 +24,9 @@ router = APIRouter(prefix="/api/v1", tags=["catalog"])
 class VoiceRouteRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     voice_identity_id: str | None = None
-    voice: str = ""
-    engine: str = "audio"
-    model: str = "plus"
+    binding_id: str | None = None
+    catalogue_voice_id: str | None = None
+    capability_id: str | None = None
     language: str = "Auto"
     text: str = ""
 
@@ -74,6 +74,7 @@ def resolve_voice_route(payload: VoiceRouteRequest) -> dict[str, Any]:
         raise ApiProblem(
             409, "voice_route_unavailable", str(exc),
             {"voice_identity_id": payload.voice_identity_id,
-             "engine": payload.engine, "model": payload.model,
+             "binding_id": payload.binding_id,
+             "catalogue_voice_id": payload.catalogue_voice_id,
              "language": payload.language},
         ) from exc

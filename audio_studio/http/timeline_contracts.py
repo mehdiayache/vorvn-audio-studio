@@ -79,6 +79,11 @@ class TakeResponse(BaseModel):
     instruction: str | None = None
     language: str | None = None
     fidelity: FidelityResponse | None = None
+    source_part_revision: int
+    source_script_hash: str
+    outdated: bool
+    binding_id: str | None = None
+    capability_id: str | None = None
 
 
 class TakeListEnvelope(BaseModel):

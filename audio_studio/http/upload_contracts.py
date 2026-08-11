@@ -22,7 +22,6 @@ class UploadedVoiceReferenceEnvelope(BaseModel):
 
 class UploadedAssetResponse(BaseModel):
     id: int
-    generation_id: int
     version_id: int
     name: str
     filename: str

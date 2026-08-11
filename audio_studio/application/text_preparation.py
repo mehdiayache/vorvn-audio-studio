@@ -16,6 +16,9 @@ from audio_studio.domain.delivery_tags import (
 )
 from audio_studio.domain.jobs import Job
 from audio_studio.domain.text import ProviderText
+from audio_studio.application.provider_operations import (
+    ProviderOperationService, enforce_daily_cap,
+)
 
 
 MODEL = "qwen3.7-plus"
@@ -184,15 +187,18 @@ def difference(before: str, after: str) -> list[dict[str, str]]:
 class TextPreparationService:
     def __init__(self, repository: TextPreparationRepository,
                  provider: TextProvider,
-                 preferences: Callable[[], dict]):
+                 preferences: Callable[[], dict],
+                 operations: ProviderOperationService | None = None):
         self.repository = repository
         self.provider = provider
         self.preferences = preferences
+        self.operations = operations
 
     def prepare(self, *, operation: str, text: str,
                 production_id: int | None = None,
                 part_id: int | None = None, density: str = "normal",
-                engine: str = "audio", confirmed: bool = False) -> dict:
+                engine: str = "audio", confirmed: bool = False,
+                source_job_id: int | None = None) -> dict:
         before = (text or "").strip()
         if not before:
             raise ValueError("There's nothing to work on.")
@@ -207,13 +213,9 @@ class TextPreparationService:
 
         estimated = estimate(before)
         preferences = self.preferences()
-        cap = float(preferences.get("daily_cap") or 0)
-        spent = self.repository.today_spend() if cap > 0 else 0.0
-        if cap > 0 and spent + estimated > cap:
-            raise PermissionError(
-                f"Daily cap reached. You've spent ${spent:.4f} today and this "
-                f"would add ${estimated:.4f}, over your ${cap:.2f} cap. Raise "
-                "it in Settings if you want to continue.")
+        if not (self.operations and source_job_id):
+            enforce_daily_cap(
+                estimated, preferences, self.repository.today_spend())
         warning = float(preferences.get("warn_above") or 0)
         if warning > 0 and estimated > warning and not confirmed:
             return {"needs_confirmation": True, "estimate": round(estimated, 4),
@@ -224,23 +226,56 @@ class TextPreparationService:
         saved = self.repository.prompt_settings()
         prompt = (shape_prompt(style, saved) if operation == "shape"
                   else tag_prompt(density, style, saved))
-        completion = self.provider.complete(
-            model=MODEL,
-            messages=[{"role": "system", "content": prompt},
-                      {"role": "user", "content": before}],
-            reasoning=False,
-        )
+        reservation_id = None
+        attempt_id = None
+        if self.operations and source_job_id:
+            reservation_id = self.operations.authorize(
+                source_job_id, "text_preparation", estimated,
+                preferences, confirmed)
+            attempt_id = self.operations.repository.begin_attempt(
+                source_job_id, "text_preparation", {
+                    "provider": "alibaba", "region": "intl", "model": MODEL,
+                }, {"operation": operation, "part_id": part_id,
+                    "input_length": len(before)}, reservation_id)
+        try:
+            if attempt_id:
+                self.operations.repository.mark_sent(attempt_id)
+            completion = self.provider.complete(
+                model=MODEL,
+                messages=[{"role": "system", "content": prompt},
+                          {"role": "user", "content": before}],
+                reasoning=False,
+            )
+        except Exception as exc:
+            if attempt_id:
+                status = self.operations.failure_status(exc)
+                self.operations.repository.finish_attempt(
+                    attempt_id, status, cost=0, usage={}, request_ids=[],
+                    error={"type": type(exc).__name__, "message": str(exc)[:600]})
+                self.operations.repository.release_budget(
+                    reservation_id, estimated if status == "ambiguous" else 0,
+                    status)
+            raise
         if operation == "shape":
             after = completion.text
         else:
             after = strip_unknown(completion.text)
             assert_tag_fidelity(before, after)
         actual_cost = usage_cost(completion.usage)
+        final_cost = actual_cost if actual_cost is not None else estimated
+        if attempt_id:
+            self.operations.repository.finish_attempt(
+                attempt_id, "succeeded", cost=final_cost,
+                usage=completion.usage or {},
+                request_ids=[completion.request_id]
+                if completion.request_id else [], error={})
+            self.operations.repository.release_budget(
+                reservation_id, final_cost, "succeeded")
         return {
             "before": before,
             "after": after,
             "difference": difference(before, after),
-            "cost": actual_cost if actual_cost is not None else estimated,
+            "cost": final_cost,
             "estimated_cost": estimated,
             "cost_basis": "actual_tokens" if actual_cost is not None else "estimate",
             "price_version": PRICE_VERSION,
@@ -274,6 +309,7 @@ class TextPreparationJobHandler:
             density=str(job.payload.get("density") or "normal"),
             engine=str(job.payload.get("engine") or "audio"),
             confirmed=bool(job.payload.get("confirmed")),
+            source_job_id=job.id,
         )
         repository.progress(job.id, 1, 1, "Complete")
         return result

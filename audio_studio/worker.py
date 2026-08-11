@@ -50,6 +50,9 @@ from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepo
 from audio_studio.infrastructure.transcription_source import TranscriptionSourceResolver
 from audio_studio.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
 from audio_studio.infrastructure.postgres.worker_runtime import WorkerRuntimeRepository
+from audio_studio.application.provider_operations import ProviderOperationService
+from audio_studio.infrastructure.postgres.provider_operations import ProviderOperationRepository
+from audio_studio.composition.provider_catalogue import provider_catalogue_sync
 from audio_studio.infrastructure.runtime_environment import (
     reload_owned_environment,
     revision as environment_revision,
@@ -58,17 +61,20 @@ from audio_studio.infrastructure.runtime_environment import (
 
 def main() -> int:
     reload_owned_environment()
+    provider_catalogue_sync.refresh()
     runtime_id = (os.getenv("AUDIO_STUDIO_RUNTIME_ID") or "").strip()
     expected_parent_pid = int(os.getenv("AUDIO_STUDIO_PARENT_PID") or 0)
     service = job_service
     speech = SpeechRepository()
     speech_provider = AlibabaSpeechProvider()
+    provider_operations = ProviderOperationService(ProviderOperationRepository())
     service.register("speech", SpeechJobHandler(SpeechGenerationService(
         speech, speech_provider, AudioWorkspace(), load_preferences,
+        provider_operations,
     )))
     service.register("batch", BatchJobHandler(BatchGenerationService(
         FilesystemBatchWorkspace(), speech, speech_provider,
-        load_preferences,
+        load_preferences, provider_operations,
     )))
     transcripts = TranscriptRepository()
     service.register("transcribe", TranscriptionJobHandler(
@@ -76,23 +82,24 @@ def main() -> int:
             transcripts,
             AlibabaTranscriptionProvider(),
             TranscriptionSourceResolver(transcripts),
-            load_preferences,
+            load_preferences, provider_operations,
         )
     ))
     service.register("translate", SubtitleTranslationJobHandler(
         SubtitleTranslationService(
             transcripts,
             Translator(AlibabaTranslationProvider()),
-            load_preferences,
+            load_preferences, provider_operations,
         )
     ))
     service.register("rewrite", TextPreparationJobHandler(TextPreparationService(
         PostgresTextPreparationRepository(), AlibabaTextProvider(), load_preferences,
+        provider_operations,
     )))
     service.register("render", render_service.handle_job)
     voice_cloning = VoiceCloningService(
         VoicePackageRepository(), AlibabaVoiceCloningProvider(),
-        VoiceReferenceWorkspace(),
+        VoiceReferenceWorkspace(), provider_operations, load_preferences,
     )
     stopping = False
     runtime = WorkerRuntimeRepository()

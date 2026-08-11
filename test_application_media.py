@@ -24,9 +24,9 @@ class FakeRecords:
         return ({"id": export_id, "filename": "final.mp3"}
                 if export_id == 91 else None)
 
-    def generation(self, generation_id):
-        return ({"id": generation_id, "filename": "take.mp3"}
-                if generation_id == 150 else None)
+    def take(self, take_id):
+        return ({"id": take_id, "filename": "take.mp3"}
+                if take_id == 150 else None)
 
 
 class MediaServiceTests(unittest.TestCase):
@@ -45,13 +45,13 @@ class MediaServiceTests(unittest.TestCase):
              ("batch-audio", "result.zip", "batch-1", "batch-1.zip")],
         )
 
-    def test_export_and_generation_ids_resolve_persisted_names(self):
+    def test_export_and_take_ids_resolve_persisted_names(self):
         exported = self.service.export_file(91)
-        generated = self.service.generation_file(150)
+        generated = self.service.take_file(150)
         self.assertEqual(exported.download_name, "final.mp3")
         self.assertEqual(generated.download_name, "take.mp3")
         self.assertIsNone(self.service.export_file(404))
-        self.assertIsNone(self.service.generation_file(404))
+        self.assertIsNone(self.service.take_file(404))
 
 
 if __name__ == "__main__":

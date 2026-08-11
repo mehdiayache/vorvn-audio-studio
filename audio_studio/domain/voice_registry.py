@@ -13,6 +13,12 @@ from audio_studio.domain import provider_catalog as config
 
 ROOT = Path(__file__).parent
 
+CAPABILITY_IDS = {
+    "audio": "expressive_tags",
+    "qwen_tts": "exact_longform",
+    "omni": "natural_performance",
+}
+
 
 def _read(name: str):
     return json.loads((ROOT / name).read_text(encoding="utf-8"))
@@ -33,33 +39,46 @@ def system_bindings() -> list[dict]:
         model_id = config.CAPABILITIES["audio"]["models"][tier]
         for voice in voices:
             bindings.append({
+                "catalogue_voice_id": f"alibaba:intl:{model_id}:{voice['id']}",
                 "identity_id": f"alibaba:audio:{voice['id']}",
                 "provider_voice_id": voice["id"],
                 "name": voice.get("name") or voice["id"],
                 "description": voice.get("description") or "",
                 "languages": voice.get("languages") or [],
                 "source": "system", "provider": "alibaba",
+                "region": "intl",
                 "engine": "audio", "tier": tier, "model_id": model_id,
+                "capabilities": [{
+                    "id": CAPABILITY_IDS["audio"],
+                    "name": config.CAPABILITIES["audio"]["operator_title"],
+                }],
                 "status": "active",
             })
     omni_languages = config.CAPABILITIES["omni"]["system_languages"]
     for voice in data["omni"]:
         for tier, model_id in config.CAPABILITIES["omni"]["models"].items():
             bindings.append({
+                "catalogue_voice_id": f"alibaba:intl:{model_id}:{voice['id']}",
                 "identity_id": f"alibaba:omni:{voice['id']}",
                 "provider_voice_id": voice["id"],
                 "name": voice["id"],
                 "description": voice.get("description") or "",
                 "languages": omni_languages,
                 "source": "system", "provider": "alibaba",
+                "region": "intl",
                 "engine": "omni", "tier": tier, "model_id": model_id,
+                "capabilities": [{
+                    "id": CAPABILITY_IDS["omni"],
+                    "name": config.CAPABILITIES["omni"]["operator_title"],
+                }],
                 "status": "active",
             })
     return bindings
 
 
-def assemble(custom_voices: list[dict], metadata: dict, references: dict) -> dict:
-    bindings = system_bindings()
+def assemble(custom_voices: list[dict], metadata: dict, references: dict,
+             catalogue_voices: list[dict] | None = None) -> dict:
+    bindings = list(catalogue_voices) if catalogue_voices is not None else system_bindings()
     for item in custom_voices:
         provider_voice_id = str(item.get("voice_id") or item.get("voice") or "")
         if not provider_voice_id:
@@ -81,6 +100,7 @@ def assemble(custom_voices: list[dict], metadata: dict, references: dict) -> dic
                          if part.strip()]
         identity_id = item.get("identity_id") or references.get(provider_voice_id, {}).get("identity_id") or f"custom:{provider_voice_id}"
         bindings.append({
+            "binding_id": item.get("binding_id"),
             "identity_id": identity_id,
             "provider_voice_id": provider_voice_id,
             "name": item.get("name") or saved.get("name") or provider_voice_id,
@@ -92,7 +112,12 @@ def assemble(custom_voices: list[dict], metadata: dict, references: dict) -> dic
             "scene": item.get("scene") or saved.get("scene") or "",
             "languages": languages,
             "source": "custom", "provider": "alibaba",
+            "region": item.get("region") or item.get("provider_region") or "intl",
             "engine": engine, "tier": tier, "model_id": model_id,
+            "capabilities": item.get("capabilities") or [{
+                "id": CAPABILITY_IDS.get(engine, engine),
+                "name": capability.get("operator_title") or engine,
+            }],
             "status": item.get("status") or saved.get("provider_status") or "active",
             "reference_id": item.get("reference_id"),
             "reference": references.get(provider_voice_id),

@@ -55,10 +55,14 @@ class NativeHttpTests(unittest.TestCase):
 
     def test_voice_catalogue_contracts_are_live(self):
         registry = self.client.get("/api/v1/voice-registry")
+        catalogue = next(item for item in registry.json()["data"]["bindings"]
+                         if item["catalogue_voice_id"]
+                         and item["engine"] == "omni"
+                         and item["tier"] == "plus")
         metadata = self.client.get("/api/v1/voice-meta")
         usage = self.client.get("/api/v1/voice-usage")
         route = self.client.post("/api/v1/voice-routes/resolve", json={
-            "voice": "Tina", "engine": "omni", "model": "plus",
+            "catalogue_voice_id": catalogue["catalogue_voice_id"],
             "language": "Arabic", "text": "مرحبا",
         })
 
@@ -69,6 +73,8 @@ class NativeHttpTests(unittest.TestCase):
         self.assertIsInstance(usage.json()["data"], dict)
         resolved = route.json()["data"]
         self.assertEqual(resolved["engine"], "omni")
+        self.assertEqual(resolved["catalogue_voice_id"],
+                         catalogue["catalogue_voice_id"])
         self.assertTrue(resolved["provider_voice_id"])
 
     def test_speech_route_conflicts_fail_before_a_job_is_created(self):
@@ -79,9 +85,9 @@ class NativeHttpTests(unittest.TestCase):
                     "Choose Arabic & multilingual.")), patch.object(
                         jobs_router.job_service, "enqueue") as enqueue:
             response = self.client.post("/api/v1/jobs/speech", json={
-                "text": "مرحبا", "voice": "custom-audio",
-                "voice_identity_id": "voice_test", "engine": "audio",
-                "model": "flash", "language": "Arabic",
+                "text": "مرحبا",
+                "binding_id": "11111111-1111-4111-8111-111111111111",
+                "language": "Arabic",
             })
         self.assertEqual(response.status_code, 409, response.text)
         self.assertEqual(
@@ -132,7 +138,7 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(response.headers["x-frame-options"], "DENY")
         self.assertTrue(response.headers["x-request-id"].startswith("req_"))
 
-    def test_export_and_generation_download_use_canonical_identity(self):
+    def test_export_and_take_download_use_canonical_identity(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "final.mp3").write_bytes(b"export audio")
@@ -140,7 +146,7 @@ class NativeHttpTests(unittest.TestCase):
             records = Mock()
             records.export.return_value = {
                 "id": 91, "filename": "final.mp3"}
-            records.generation.return_value = {
+            records.take.return_value = {
                 "id": 150, "filename": "take.mp3"}
             service = MediaService(
                 LocalMediaWorkspace(
@@ -149,7 +155,7 @@ class NativeHttpTests(unittest.TestCase):
             )
             with patch.object(media_router, "media_service", service):
                 exported = self.client.get("/api/v1/exports/91/download")
-                generated = self.client.get("/api/v1/generations/150/download")
+                generated = self.client.get("/api/v1/takes/150/download")
         self.assertEqual(exported.content, b"export audio")
         self.assertEqual(generated.content, b"generation audio")
         self.assertIn("final.mp3", exported.headers["content-disposition"])

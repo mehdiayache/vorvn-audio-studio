@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PerformancePresetResponse(BaseModel):
@@ -74,12 +74,15 @@ class VoiceBindingResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     identity_id: str
+    binding_id: str | None = None
+    catalogue_voice_id: str | None = None
     provider_voice_id: str
     name: str
     description: str
     languages: list[str]
     source: Literal["system", "custom"]
     provider: str
+    region: str = "intl"
     engine: Literal["audio", "omni", "qwen_tts"]
     tier: Literal["plus", "flash", "vc"]
     model_id: str
@@ -91,6 +94,7 @@ class VoiceBindingResponse(BaseModel):
     accent: str | None = None
     scene: str | None = None
     reference: VoiceReferenceResponse | None = None
+    capabilities: list[dict[str, str]] = Field(default_factory=list)
 
 
 class VoiceModelSummaryResponse(BaseModel):
@@ -155,13 +159,18 @@ class VoiceUsageEnvelope(BaseModel):
 
 
 class VoiceRouteResponse(BaseModel):
+    binding_id: str | None = None
+    catalogue_voice_id: str | None = None
     identity_id: str | None
+    reference_id: str | None = None
     provider_voice_id: str
+    provider: str
+    region: str
     engine: str
     tier: str
     model_id: str
-    reason: str
-    registry_matched: bool
+    capability_id: str | None = None
+    capability_name: str | None = None
 
 
 class VoiceRouteEnvelope(BaseModel):
