@@ -222,11 +222,12 @@ class SpeechRepository:
             return part_id
 
     def replace_part(self, part_id: int, production_id: int,
-                     expected_created_at, values: dict[str, Any], *,
+                     expected_revision: int, values: dict[str, Any], *,
                      operation: str) -> dict[str, int]:
         with transaction() as cursor:
             cursor.execute("""
-                SELECT revision, kind, script FROM production_parts
+                SELECT revision, kind, script, selected_take_id
+                  FROM production_parts
                  WHERE id = %s AND production_id = %s
                    AND archived_at IS NULL FOR UPDATE
             """, (part_id, production_id))
@@ -237,12 +238,16 @@ class SpeechRepository:
             kind = str(current[1] or "")
             if operation == "render_draft" and kind != "draft":
                 raise ValueError("That Draft has already been recorded.")
+            if operation == "record_part" and (
+                    kind != "speech" or current[3] is not None):
+                raise ValueError("That pending speech Part has already been recorded.")
             if operation == "regenerate" and kind not in {"audio", "speech"}:
                 raise ValueError("Only recorded speech can receive another Take.")
             take_id = self._insert_take(
-                cursor, part_id, int(expected_created_at), values,
-                canonical_script=str(current[2] or ""))
-            selected = current_revision == int(expected_created_at)
+                cursor, part_id, int(expected_revision), values,
+                canonical_script=str(current[2] or ""),
+                source_script_hash=values.get("_source_script_hash"))
+            selected = current_revision == int(expected_revision)
             if selected:
                 cursor.execute("""
                     UPDATE production_parts
@@ -268,7 +273,8 @@ class SpeechRepository:
     @staticmethod
     def _insert_take(cursor, part_id: int, source_revision: int,
                      values: dict[str, Any], *,
-                     canonical_script: str | None = None) -> int:
+                     canonical_script: str | None = None,
+                     source_script_hash: str | None = None) -> int:
         spoken_script = str(values.get("text") or "")
         canonical_script = (spoken_script if canonical_script is None
                             else canonical_script)
@@ -308,7 +314,8 @@ class SpeechRepository:
             RETURNING id
         """, (
             part_id, source_revision,
-            hashlib.sha256(canonical_script.encode("utf-8")).hexdigest(),
+            source_script_hash or hashlib.sha256(
+                canonical_script.encode("utf-8")).hexdigest(),
             int(expected_cast.get("assignment_revision", cast[2] or 0)),
             expected_cast.get("persona_id", cast[3]),
             expected_cast.get("persona_name", cast[4]), cast[0],

@@ -7,11 +7,12 @@ import type { ClonedVoice, DurableJob, GeneratePayload, GenerateResult, Hierarch
 
 export type ConfirmAction = { title: string; description: string; action: () => void }
 
-export default function ProductionOverlays({ tool, projectId, nextPartNumber, insertAt, composerPart, config, clonedVoices, directory, cast, assets, assetCollectionIds, playingKey, playerPlaying, activeDetail, moveOpen, selectedCount, moveTargets, confirmAction, onCloseTool, onSaveDraft, onGenerate, onAddSilence, onInsertAsset, onSetMusic, onUploadAsset, onPlay, onCloseDetail, onDetailChanged, onDuplicate, onDeleteDetail, onNewTake, onMoveOpen, onMoveSelected, onConfirmAction }: {
+export default function ProductionOverlays({ tool, projectId, nextPartNumber, insertAt, insertBeforePartId, composerPart, config, clonedVoices, directory, cast, assets, assetCollectionIds, playingKey, playerPlaying, activeDetail, moveOpen, selectedCount, moveTargets, confirmAction, onCloseTool, onSaveDraft, onGenerate, onAddSilence, onInsertAsset, onSetMusic, onUploadAsset, onPlay, onCloseDetail, onDetailChanged, onDuplicate, onDeleteDetail, onNewTake, onMoveOpen, onMoveSelected, onConfirmAction }: {
   tool: ToolKind
   projectId: number
   nextPartNumber: number
   insertAt: number | null
+  insertBeforePartId: string | null
   composerPart: ProductionPart | null
   config: StudioConfig | null
   clonedVoices: ClonedVoice[]
@@ -44,7 +45,7 @@ export default function ProductionOverlays({ tool, projectId, nextPartNumber, in
   onConfirmAction: (action: ConfirmAction | null) => void
 }) {
   return <>
-    <ProductionToolSheet open={tool} projectId={projectId} nextPartNumber={nextPartNumber} insertAt={insertAt} part={composerPart} config={config} clonedVoices={clonedVoices} directory={directory} cast={cast} assets={assets} assetCollectionIds={assetCollectionIds} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseTool} onSaveDraft={onSaveDraft} onGenerate={onGenerate} onAddSilence={onAddSilence} onInsertAsset={onInsertAsset} onSetMusic={onSetMusic} onUploadAsset={onUploadAsset} onPlay={onPlay} />
+    <ProductionToolSheet open={tool} projectId={projectId} nextPartNumber={nextPartNumber} insertAt={insertAt} insertBeforePartId={insertBeforePartId} part={composerPart} config={config} clonedVoices={clonedVoices} directory={directory} cast={cast} assets={assets} assetCollectionIds={assetCollectionIds} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseTool} onSaveDraft={onSaveDraft} onGenerate={onGenerate} onAddSilence={onAddSilence} onInsertAsset={onInsertAsset} onSetMusic={onSetMusic} onUploadAsset={onUploadAsset} onPlay={onPlay} />
     <PartDetailSheet productionId={projectId} part={activeDetail} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseDetail} onPlay={onPlay} onChanged={onDetailChanged} onDuplicate={onDuplicate} onDelete={onDeleteDetail} onNewTake={onNewTake} />
     <Sheet open={moveOpen} onOpenChange={onMoveOpen}><SheetContent className="move-sheet"><SheetHeader><SheetTitle>Move {selectedCount} selected part{selectedCount === 1 ? "" : "s"}</SheetTitle><SheetDescription>Choose another Production. The order inside this Production closes up automatically.</SheetDescription></SheetHeader><div className="move-targets">{moveTargets.map((node) => <Button key={node.id} variant="outline" onClick={() => onMoveSelected(node.id, node.name)}><span>{node.name.slice(0, 1).toUpperCase()}</span><b>{node.name}</b></Button>)}</div></SheetContent></Sheet>
     <Dialog open={Boolean(confirmAction)} onOpenChange={(open) => { if (!open) onConfirmAction(null) }}><DialogContent><DialogHeader><DialogTitle>{confirmAction?.title}</DialogTitle><DialogDescription>{confirmAction?.description}</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => onConfirmAction(null)}>Cancel</Button><Button variant="destructive" onClick={() => { const action = confirmAction?.action; onConfirmAction(null); action?.() }}>Delete</Button></DialogFooter></DialogContent></Dialog>

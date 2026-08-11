@@ -124,6 +124,15 @@ export function useProductionActions({ production, music, directory, player, ref
     }
   }, [production.id])
 
+  const recordPendingPart = useCallback(async (part: ProductionPart, payload: GeneratePayload): Promise<DurableJob<GenerateResult>> => {
+    try {
+      return await studioApi.enqueueRecordPart(part.id, payload)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "The pending Part could not be recorded.")
+      throw error
+    }
+  }, [])
+
   const renderDraft = useCallback(async (part: ProductionPart, payload: GeneratePayload): Promise<DurableJob<GenerateResult>> => {
     try {
       const canonical = (payload.text_raw || payload.text || "").trim()
@@ -138,7 +147,7 @@ export function useProductionActions({ production, music, directory, player, ref
   }, [production.id])
 
   const settleRender = useCallback(async (task: RenderTask, result: GenerateResult) => {
-    if (task.mode === "new") {
+    if (task.mode === "new" || task.mode === "pending") {
       return settleSuccessfulRender(result, {
         key: result.id ? `part:${result.id}` : `job:${task.jobId}`,
         title: `New part in ${production.name}`,
@@ -178,5 +187,5 @@ export function useProductionActions({ production, music, directory, player, ref
     toast.success(`${file.name} uploaded to ${folder}`)
   }, [refreshAssets])
 
-  return { previewing, exporting, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, regeneratePart, renderDraft, settleRender, movePart, setMusic, duplicatePart, deletePart, editSilence, deleteParts, saveDraft, addSilence, insertAsset, setMusicAsset, moveParts, uploadAsset }
+  return { previewing, exporting, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, regeneratePart, renderDraft, settleRender, movePart, setMusic, duplicatePart, deletePart, editSilence, deleteParts, saveDraft, addSilence, insertAsset, setMusicAsset, moveParts, uploadAsset }
 }

@@ -12,11 +12,12 @@ const SpeechTool = lazy(() => import("@/components/production-tools/speech-tool"
 const SilenceTool = lazy(() => import("@/components/production-tools/silence-tool").then((module) => ({ default: module.SilenceTool })))
 const AssetTool = lazy(() => import("@/components/production-tools/asset-tool").then((module) => ({ default: module.AssetTool })))
 
-export function ProductionToolSheet({ open, projectId, nextPartNumber, insertAt, part, config, clonedVoices, directory, cast, assets, assetCollectionIds, playingKey, playerPlaying, onClose, onSaveDraft, onGenerate, onAddSilence, onInsertAsset, onSetMusic, onUploadAsset, onPlay }: {
+export function ProductionToolSheet({ open, projectId, nextPartNumber, insertAt, insertBeforePartId, part, config, clonedVoices, directory, cast, assets, assetCollectionIds, playingKey, playerPlaying, onClose, onSaveDraft, onGenerate, onAddSilence, onInsertAsset, onSetMusic, onUploadAsset, onPlay }: {
   open: ToolKind
   projectId: number
   nextPartNumber: number
   insertAt: number | null
+  insertBeforePartId: string | null
   part?: ProductionPart | null
   config: StudioConfig | null
   clonedVoices: ClonedVoice[]
@@ -44,7 +45,7 @@ export function ProductionToolSheet({ open, projectId, nextPartNumber, insertAt,
     <DialogContent className={`tool-dialog ${open === "speech" ? "composer-dialog" : open === "silence" ? "silence-dialog" : "asset-dialog"}`}>
       <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
       <Suspense fallback={<div className="tool-panel-body"><span className="eyebrow">Loading tool…</span></div>}>
-        {open === "speech" && <SpeechTool projectId={projectId} nextPartNumber={nextPartNumber} insertAt={insertAt} part={part} config={config} clonedVoices={clonedVoices} directory={directory} cast={cast} playingKey={playingKey} playerPlaying={playerPlaying} onSave={onSaveDraft} onGenerate={onGenerate} onPlay={onPlay} />}
+        {open === "speech" && <SpeechTool projectId={projectId} nextPartNumber={nextPartNumber} insertAt={insertAt} insertBeforePartId={insertBeforePartId} part={part} config={config} clonedVoices={clonedVoices} directory={directory} cast={cast} playingKey={playingKey} playerPlaying={playerPlaying} onSave={onSaveDraft} onGenerate={onGenerate} onPlay={onPlay} />}
         {open === "silence" && <SilenceTool onAdd={onAddSilence} />}
         {(open === "asset" || open === "music") && <AssetTool assets={assets} mode={assetMode} playingKey={playingKey} playerPlaying={playerPlaying} onMode={setAssetMode} onChoose={assetMode === "music" ? onSetMusic : onInsertAsset} onUpload={async (folder, file) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); await onUploadAsset(folder, file) }} onPlay={onPlay} />}
       </Suspense>

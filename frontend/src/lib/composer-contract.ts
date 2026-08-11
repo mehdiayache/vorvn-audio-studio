@@ -10,7 +10,7 @@ export type CompositionContext =
       productionId: number
       operation: "new_part" | "render_draft" | "new_take"
       partId?: number
-      insertion: { kind: "legacy_index"; index: number | null } | null
+      insertion: { kind: "before_part"; partId: string | null } | null
     }
 
 export type RouteSelection =
@@ -80,6 +80,7 @@ export function compositionContext(input: {
   productionId?: number
   part?: ProductionPart | null
   insertAt?: number | null
+  insertBeforePartId?: string | null
   sessionId?: string
 }): CompositionContext {
   if (!input.productionId) return { kind: "standalone", sessionId: input.sessionId }
@@ -92,7 +93,7 @@ export function compositionContext(input: {
     operation,
     partId: input.part?.id,
     insertion: operation === "new_part"
-      ? { kind: "legacy_index", index: input.insertAt ?? null }
+      ? { kind: "before_part", partId: input.insertBeforePartId ?? null }
       : null,
   }
 }
@@ -175,7 +176,8 @@ export function toGeneratePayload(command: SpeechGenerationCommand, route: Voice
     text_tagged: command.text.tagged || null,
     text_state: command.text.active,
     ...(production ? { production_id: production.productionId } : {}),
-    insert_at: production?.insertion?.index ?? null,
+    insert_at: null,
+    insert_before_part_id: production?.insertion?.partId ?? null,
     binding_id: command.route.kind === "owned" ? command.route.bindingId : null,
     catalogue_voice_id: command.route.kind === "catalogue" ? command.route.catalogueVoiceId : null,
     capability_id: command.route.capabilityId || null,

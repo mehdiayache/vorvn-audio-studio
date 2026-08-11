@@ -1,6 +1,7 @@
 """Durable Job metadata regression; the database transaction is rolled back."""
 
 from contextlib import contextmanager
+import hashlib
 from uuid import uuid4
 import unittest
 
@@ -8,10 +9,120 @@ import psycopg
 
 from audio_studio.config import settings
 from audio_studio.infrastructure.postgres import jobs as jobs_module
+from audio_studio.infrastructure.postgres import production_speech as production_speech_module
+from audio_studio.infrastructure.postgres.production_speech import (
+    ProductionSpeechCommandRepository,
+)
 from audio_studio.domain.jobs import IdempotencyConflict
 
 
 class JobRepositoryTests(unittest.TestCase):
+    def test_production_speech_creates_one_part_before_provider_and_reuses_it_on_retry(self):
+        try:
+            connection = psycopg.connect(settings.database_url)
+        except psycopg.OperationalError as exc:
+            self.skipTest(str(exc))
+        original = production_speech_module.transaction
+
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT id FROM productions
+                 WHERE archived_at IS NULL ORDER BY id LIMIT 1
+            """)
+            owner = cursor.fetchone()
+            if not owner:
+                connection.close()
+                self.skipTest("No Production fixture is available")
+            production_id = int(owner[0])
+            cursor.execute("""
+                SELECT coalesce(max(position), -1) + 1
+                  FROM production_parts
+                 WHERE production_id=%s AND archived_at IS NULL
+            """, (production_id,))
+            anchor_position = int(cursor.fetchone()[0])
+            cursor.execute("""
+                INSERT INTO production_parts
+                    (production_id, position, kind, script,
+                     editorial_status, revision)
+                VALUES (%s, %s, 'silence', '', 'ready', 1)
+                RETURNING id, public_id
+            """, (production_id, anchor_position))
+            anchor_id, anchor_public_id = cursor.fetchone()
+
+            @contextmanager
+            def rolled_back_transaction():
+                yield cursor
+
+            production_speech_module.transaction = rolled_back_transaction
+            try:
+                request = {
+                    "operation": "create",
+                    "text": "Prepared provider text",
+                    "text_raw": "Canonical Part script",
+                    "voice": "Tina",
+                    "catalogue_voice_id":
+                        "alibaba:intl:qwen3.5-omni-plus:Tina",
+                    "engine": "omni",
+                    "model": "plus",
+                    "format": "mp3",
+                    "language": "English",
+                }
+                key = f"production-speech-{uuid4()}"
+                repository = ProductionSpeechCommandRepository(
+                    jobs_module.JobRepository())
+                job, created = repository.enqueue(
+                    request, idempotency_key=key,
+                    production_id=production_id,
+                    before_part_public_id=anchor_public_id)
+                self.assertTrue(created)
+                self.assertIsNotNone(job.part_id)
+                cursor.execute("""
+                    SELECT position, kind, script, editorial_status, revision,
+                           selected_take_id
+                      FROM production_parts WHERE id=%s
+                """, (job.part_id,))
+                self.assertEqual(cursor.fetchone(), (
+                    anchor_position, "speech", "Canonical Part script",
+                    "draft", 1, None))
+                cursor.execute(
+                    "SELECT position FROM production_parts WHERE id=%s",
+                    (anchor_id,))
+                self.assertEqual(cursor.fetchone()[0], anchor_position + 1)
+                self.assertEqual(job.payload["operation"], "record_part")
+                self.assertEqual(job.payload["part_id"], job.part_id)
+                self.assertEqual(job.payload["_source_part_revision"], 1)
+                self.assertEqual(
+                    job.payload["_source_script_hash"],
+                    hashlib.sha256(b"Canonical Part script").hexdigest())
+
+                repeated, repeated_created = (
+                    repository.enqueue(
+                        request, idempotency_key=key,
+                        production_id=production_id,
+                        before_part_public_id=anchor_public_id))
+                self.assertFalse(repeated_created)
+                self.assertEqual(repeated.id, job.id)
+                self.assertEqual(repeated.part_id, job.part_id)
+
+                retry, retry_created = (
+                    repository.enqueue(
+                        {**request, "operation": "record_part",
+                         "part_id": job.part_id},
+                        idempotency_key=f"production-speech-retry-{uuid4()}",
+                        production_id=production_id))
+                self.assertTrue(retry_created)
+                self.assertNotEqual(retry.id, job.id)
+                self.assertEqual(retry.part_id, job.part_id)
+                cursor.execute("""
+                    SELECT count(*) FROM production_parts
+                     WHERE production_id=%s AND script='Canonical Part script'
+                """, (production_id,))
+                self.assertEqual(cursor.fetchone()[0], 1)
+            finally:
+                production_speech_module.transaction = original
+                connection.rollback()
+                connection.close()
+
     def test_idempotency_is_scoped_and_rejects_payload_reuse(self):
         try:
             connection = psycopg.connect(settings.database_url)

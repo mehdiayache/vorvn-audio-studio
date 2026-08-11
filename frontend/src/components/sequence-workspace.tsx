@@ -25,7 +25,9 @@ export function SequenceWorkspace({ parts, renderTasks = [], selected, playingKe
   actions: SequenceActions
 }) {
   const sourceParts = parts.filter((part) => part.kind !== "stitch")
-  const newTasks = renderTasks.filter((task) => task.mode === "new")
+  const newTasks = renderTasks.filter((task) =>
+    (task.mode === "new" || task.mode === "pending") &&
+    !sourceParts.some((part) => part.id === task.targetPartId))
   const [anchor, setAnchor] = useState<number | null>(null)
 
   function select(index: number, checked: boolean, shift: boolean) {

@@ -2199,6 +2199,17 @@
             "title": "Id",
             "type": "string"
           },
+          "part_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Part Id"
+          },
           "progress": {
             "title": "Progress",
             "type": "number"
@@ -2749,6 +2760,104 @@
         "title": "PartCreatedResponse",
         "type": "object"
       },
+      "PartSpeechJobResponse": {
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "part_id": {
+            "title": "Part Id",
+            "type": "integer"
+          },
+          "progress": {
+            "title": "Progress",
+            "type": "number"
+          },
+          "request": {
+            "additionalProperties": true,
+            "title": "Request",
+            "type": "object"
+          },
+          "result": {
+            "additionalProperties": true,
+            "title": "Result",
+            "type": "object"
+          },
+          "retries": {
+            "default": 0,
+            "title": "Retries",
+            "type": "integer"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "type": {
+            "const": "speech",
+            "default": "speech",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "progress",
+          "detail",
+          "part_id"
+        ],
+        "title": "PartSpeechJobResponse",
+        "type": "object"
+      },
       "PerformancePresetResponse": {
         "properties": {
           "engines": {
@@ -3282,6 +3391,17 @@
             ],
             "title": "Duration Ms"
           },
+          "editorial_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Editorial Status"
+          },
           "engine": {
             "anyOf": [
               {
@@ -3422,6 +3542,10 @@
             ],
             "title": "Provider Text"
           },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
           "rate": {
             "anyOf": [
               {
@@ -3470,6 +3594,16 @@
               }
             ],
             "title": "Size Bytes"
+          },
+          "speech_job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartSpeechJobResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "speech_mode": {
             "anyOf": [
@@ -3603,6 +3737,7 @@
         },
         "required": [
           "id",
+          "public_id",
           "created_at",
           "position",
           "kind",
@@ -4938,6 +5073,18 @@
             ],
             "title": "Insert At"
           },
+          "insert_before_part_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Insert Before Part Id"
+          },
           "instruction": {
             "default": "",
             "maxLength": 100,
@@ -4954,6 +5101,7 @@
             "default": "create",
             "enum": [
               "create",
+              "record_part",
               "regenerate",
               "render_draft"
             ],

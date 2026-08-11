@@ -38,7 +38,7 @@ class SpeechRepository(Protocol):
     def create_part(self, production_id: int | None, insert_at: int | None,
                     values: dict[str, Any]) -> int | None: ...
     def replace_part(self, part_id: int, production_id: int,
-                     expected_created_at, values: dict[str, Any], *,
+                     expected_revision: int, values: dict[str, Any], *,
                      operation: str) -> dict[str, int]: ...
 
 
@@ -169,6 +169,10 @@ class SpeechGenerationService:
                 raise LookupError("That Part no longer belongs to this Production.")
             if operation == "render_draft" and part.get("kind") != "draft":
                 raise ValueError("That Draft has already been recorded.")
+            if operation == "record_part" and (
+                    part.get("kind") != "speech" or
+                    part.get("selected_take_id") is not None):
+                raise ValueError("That pending speech Part has already been recorded.")
             if operation == "regenerate" and part.get("kind") not in {"audio", "speech"}:
                 raise ValueError("Only recorded speech can receive another Take.")
             inherited = {key: part.get(key) for key in _SETTING_FIELDS}
@@ -345,6 +349,7 @@ class SpeechGenerationService:
             })
         row = _record(prepared, made, saved, effective)
         row["provider_attempt_id"] = int(attempt_id) if attempt_id else None
+        row["_source_script_hash"] = values.get("_source_script_hash")
         mutation: dict[str, int] = {}
         try:
             if operation == "create":
@@ -362,7 +367,9 @@ class SpeechGenerationService:
                         and production_id is not None)
                 created_part_id = part_id
                 mutation = self.repository.replace_part(
-                    part_id, production_id, int(part["revision"]), row,
+                    part_id, production_id,
+                    int(values.get("_source_part_revision") or part["revision"]),
+                    row,
                     operation=operation)
         except Exception as exc:
             raise JobFailed(
@@ -387,7 +394,10 @@ class SpeechGenerationService:
             on_progress(max(1, prepared.request_count),
                         max(1, prepared.request_count), "Speech ready")
 
-        warning = ("The Cast changed while this Take was generating. The "
+        warning = ("The Part changed while this Take was generating. The "
+                   "historical Take was kept but not selected."
+                   if mutation.get("selected") == 0 else
+                   "The Cast changed while this Take was generating. The "
                    "historical Take was kept but not selected."
                    if mutation.get("cast_changed") else
                    _fidelity_warning(made) or _truncation_warning(

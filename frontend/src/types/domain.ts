@@ -55,6 +55,7 @@ export type SeriesOverview = components["schemas"]["SeriesOverviewResponse"]
 
 export type ProductionPart = {
   id: number
+  public_id?: string
   created_at: string
   position: number | null
   kind: "audio" | "speech" | "draft" | "silence" | "asset" | "stitch" | string
@@ -73,6 +74,8 @@ export type ProductionPart = {
   cast_role_name?: string | null
   revision?: number
   selected_take_id?: number | null
+  editorial_status?: string | null
+  speech_job?: (DurableJob<GenerateResult> & { request: GeneratePayload }) | null
   outdated?: boolean
   engine?: string
   model?: string
@@ -325,7 +328,7 @@ export type RenderTask = {
   /** Temporary Production presentation shell. This is the durable backend Job ID. */
   id: string
   jobId: string
-  mode: "new" | "draft" | "take"
+  mode: "new" | "pending" | "draft" | "take"
   status: DurableJob["status"]
   payload: GeneratePayload
   text: string
@@ -410,6 +413,7 @@ export type DurableJob<T = Record<string, unknown>> = {
   started_at?: string | null
   finished_at?: string | null
   result: T
+  part_id?: number | null
 }
 
 export type GeneratePayload = {
@@ -420,6 +424,7 @@ export type GeneratePayload = {
   text_state?: "raw" | "shaped" | "tagged"
   production_id?: number
   insert_at: number | null
+  insert_before_part_id?: string | null
   voice: string
   binding_id?: string | null
   catalogue_voice_id?: string | null

@@ -56,6 +56,7 @@ class Job:
     created_at: datetime | None = None
     started_at: datetime | None = None
     finished_at: datetime | None = None
+    part_id: int | None = None
 
     @property
     def terminal(self) -> bool:

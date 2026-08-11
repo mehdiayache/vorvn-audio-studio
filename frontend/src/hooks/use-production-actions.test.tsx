@@ -10,7 +10,7 @@ import { useProductionActions } from "./use-production-actions"
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }))
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>()
-  return { ...actual, studioApi: { ...actual.studioApi, enqueueRegenerate: vi.fn(), savePartScript: vi.fn() } }
+  return { ...actual, studioApi: { ...actual.studioApi, enqueueRecordPart: vi.fn(), enqueueRegenerate: vi.fn(), savePartScript: vi.fn() } }
 })
 
 const payload: GeneratePayload = {
@@ -55,5 +55,33 @@ describe("useProductionActions render completion", () => {
     expect(toggleSource).toHaveBeenCalledWith(expect.objectContaining({ url: "/audio/legacy%20take.mp3" }))
     expect(toast.warning).toHaveBeenCalledWith(expect.stringMatching(/audio created.*timeline/i))
     expect(toast.error).not.toHaveBeenCalled()
+  })
+
+  it("retries a failed pending Part with a new Job on the same Part", async () => {
+    const pendingPart = { ...part, kind: "speech", selected_take_id: null } as ProductionPart
+    const retryJob: DurableJob<GenerateResult> = {
+      id: "job-retry-128", type: "speech", status: "queued", progress: 0,
+      detail: "Queued", retries: 0, result: {}, part_id: pendingPart.id,
+    }
+    vi.mocked(studioApi.enqueueRecordPart).mockResolvedValue(retryJob)
+    const player = {
+      source: null, state: "idle", currentTime: 0, duration: 0, volume: 1, speed: 1,
+      toggleSource: vi.fn(), toggle: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      setVolume: vi.fn(), setSpeed: vi.fn(), close: vi.fn(),
+    }
+    const { result } = renderHook(() => useProductionActions({
+      production, music, directory, player: player as never,
+      refresh: vi.fn(), refreshAssets: vi.fn(),
+    }))
+
+    let returned
+    await act(async () => {
+      returned = await result.current.recordPendingPart(pendingPart, payload)
+    })
+
+    expect(returned).toBe(retryJob)
+    expect(studioApi.enqueueRecordPart).toHaveBeenCalledWith(
+      pendingPart.id, payload)
+    expect(studioApi.savePartScript).not.toHaveBeenCalled()
   })
 })

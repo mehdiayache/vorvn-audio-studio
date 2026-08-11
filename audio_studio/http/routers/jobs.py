@@ -15,6 +15,7 @@ from audio_studio.application.text_preparation import MODEL as TEXT_PREPARATION_
 from audio_studio.application.translation import MODELS as TRANSLATION_MODELS
 from audio_studio.domain.transcription import FUN_MODEL, QWEN_MODEL
 from audio_studio.composition.jobs import job_service
+from audio_studio.composition.production_speech import production_speech_service
 from audio_studio.composition.catalog import catalog_service
 from audio_studio.http.errors import ApiProblem
 
@@ -34,6 +35,7 @@ class JobResponse(BaseModel):
     started_at: datetime | None = None
     finished_at: datetime | None = None
     result: dict[str, Any]
+    part_id: int | None = None
 
 
 class JobMeta(BaseModel):
@@ -78,6 +80,7 @@ class SpeechJobCreate(BaseModel):
         validation_alias=AliasChoices("production_id", "project_id"),
     )
     insert_at: int | None = Field(default=None, ge=0)
+    insert_before_part_id: UUID | None = None
     voice_identity_id: str | None = Field(default=None, max_length=120)
     binding_id: UUID | None = None
     catalogue_voice_id: str | None = Field(default=None, max_length=700)
@@ -92,7 +95,9 @@ class SpeechJobCreate(BaseModel):
     volume: int = Field(default=50, ge=0, le=100)
     seed: int = Field(default=0, ge=0, le=2_147_483_647)
     confirmed: bool = False
-    operation: Literal["create", "regenerate", "render_draft"] = "create"
+    operation: Literal[
+        "create", "record_part", "regenerate", "render_draft"
+    ] = "create"
     part_id: int | None = Field(default=None, gt=0)
     session_id: UUID | None = None
 
@@ -105,6 +110,8 @@ class SpeechJobCreate(BaseModel):
                 "A Production and Part are required for that speech operation.")
         if self.operation == "create" and self.part_id:
             raise ValueError("A new speech Part cannot replace an existing Part.")
+        if self.insert_at is not None and self.insert_before_part_id is not None:
+            raise ValueError("Choose one insertion anchor, not two.")
         if self.production_id is None and self.insert_at is not None:
             raise ValueError("A sequence position requires a Production.")
         if self.session_id and self.production_id is not None:
@@ -219,7 +226,7 @@ def _payload(job: Job) -> dict:
             "created_at": job.created_at.isoformat() if job.created_at else None,
             "started_at": job.started_at.isoformat() if job.started_at else None,
             "finished_at": job.finished_at.isoformat() if job.finished_at else None,
-            "result": job.result}
+            "result": job.result, "part_id": job.part_id}
 
 
 @router.post("/speech", operation_id="createSpeechJob", status_code=202,
@@ -243,13 +250,22 @@ def create_speech_job(payload: SpeechJobCreate,
         "engine": resolved["engine"], "model": resolved["tier"],
         "capability_id": resolved.get("capability_id"),
     })
-    job, created = job_service.enqueue(
-        "speech", values,
-        idempotency_key=(idempotency_key or f"speech-{uuid4()}")[:200],
-        production_id=payload.production_id,
-        source_tool="production" if payload.production_id else "speak",
-        operation_label={"create": "Generate speech", "regenerate": "Create another take", "render_draft": "Render draft"}[payload.operation],
-    )
+    key = (idempotency_key or f"speech-{uuid4()}")[:200]
+    labels = {
+        "create": "Generate speech", "record_part": "Record pending Part",
+        "regenerate": "Create another take", "render_draft": "Render draft",
+    }
+    if payload.production_id is not None:
+        before_part = payload.insert_before_part_id
+        job, created = production_speech_service.enqueue(
+            values, idempotency_key=key,
+            production_id=payload.production_id,
+            before_part_public_id=before_part,
+            operation_label=labels[payload.operation])
+    else:
+        job, created = job_service.enqueue(
+            "speech", values, idempotency_key=key,
+            source_tool="speak", operation_label=labels[payload.operation])
     return {"data": _payload(job), "meta": {"created": created}}
 
 

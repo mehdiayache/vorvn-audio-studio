@@ -16,11 +16,12 @@ afterEach(() => { jobObserver.reset(); vi.restoreAllMocks(); vi.useRealTimers() 
 describe("speech Job API", () => {
   it("returns and registers the queued backend Job without waiting for completion", async () => {
     vi.useFakeTimers()
-    const queued: DurableJob<GenerateResult> = { id: "job-from-api", type: "speech", status: "queued", progress: 0, detail: "Queued", retries: 0, result: {} }
+    const queued: DurableJob<GenerateResult> = { id: "job-from-api", type: "speech", status: "queued", progress: 0, detail: "Queued", retries: 0, result: {}, part_id: 127 }
     const fetch = vi.fn().mockResolvedValue({ ok: true, status: 202, json: async () => ({ data: queued }) })
     vi.stubGlobal("fetch", fetch)
     const returned = await studioApi.enqueueGenerate(payload)
     expect(returned).toEqual(queued)
+    expect(returned.part_id).toBe(127)
     expect(jobObserver.getSnapshot("job-from-api")).toEqual(queued)
     expect(fetch).toHaveBeenCalledTimes(1)
   })

@@ -41,11 +41,12 @@ function engineLabel(engine: SpeechEngine) {
   return engine === "qwen_tts" ? "Qwen3 TTS Voice Clone" : engine === "omni" ? "Qwen 3.5 Omni" : "Qwen Audio TTS"
 }
 
-export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt = null, part = null, config, directory, cast = [], playingKey, playerPlaying, onSave, onGenerate, onPlay }: {
+export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, cast = [], playingKey, playerPlaying, onSave, onGenerate, onPlay }: {
   projectId?: number
   sessionId?: string
   nextPartNumber?: number
   insertAt?: number | null
+  insertBeforePartId?: string | null
   part?: ProductionPart | null
   config: StudioConfig | null
   clonedVoices: ClonedVoice[]
@@ -170,7 +171,7 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
   const estimate = textSession.text.length * estimateRate / 1_000_000
   const textPassEstimate = textSession.text.length * Number(config?.text_preparation?.estimated_price_per_million_characters || 0) / 1_000_000
   const destination = !projectId ? "Standalone recording" : part ? part.kind === "draft" ? `Record Part ${(part.position ?? 0) + 1}` : `New take for Part ${(part.position ?? 0) + 1}` : insertAt === null ? `New Part ${nextPartNumber}` : `Insert as Part ${insertAt + 1}`
-  const context = useMemo(() => compositionContext({ productionId: projectId, part, insertAt, sessionId }), [insertAt, part, projectId, sessionId])
+  const context = useMemo(() => compositionContext({ productionId: projectId, part, insertAt, insertBeforePartId, sessionId }), [insertAt, insertBeforePartId, part, projectId, sessionId])
   const baseline = useMemo(() => editorialBaseline(part), [part])
   const draft: CompositionDraft = {
     voiceIdentityId: selectedIdentity?.source === "mine" ? selectedIdentity.identityId : null,

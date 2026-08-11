@@ -162,7 +162,15 @@ class ProductionDocumentRepository:
                        coalesce(captions.subtitled, false),
                        coalesce(captions.stale, false),
                        coalesce(captions.languages, ARRAY[]::text[]),
-                       take.binding_id, take.catalogue_voice_id
+                       take.binding_id, take.catalogue_voice_id,
+                       speech_job.public_id, speech_job.status,
+                       CASE WHEN speech_job.total > 0
+                            THEN speech_job.done::float / speech_job.total
+                            ELSE 0 END,
+                       coalesce(speech_job.detail, ''),
+                       coalesce(speech_job.error, ''), speech_job.retries,
+                       speech_job.created_at, speech_job.started_at,
+                       speech_job.finished_at, speech_job.payload
                   FROM production_parts part
                   LEFT JOIN production_cast_roles role ON role.id = part.cast_role_id
                   LEFT JOIN composition_drafts draft ON draft.part_id = part.id
@@ -181,6 +189,14 @@ class ProductionDocumentRepository:
                      WHERE transcript.part_id = part.id
                        AND (transcript.take_id IS NULL OR transcript.take_id = take.id)
                   ) captions ON true
+                  LEFT JOIN LATERAL (
+                    SELECT job.public_id, job.status, job.done, job.total,
+                           job.detail, job.error, job.retries, job.created_at,
+                           job.started_at, job.finished_at, job.payload
+                      FROM jobs job
+                     WHERE job.part_id=part.id AND job.kind='speech'
+                     ORDER BY job.created_at DESC, job.id DESC LIMIT 1
+                  ) speech_job ON true
                  WHERE part.production_id = %s AND part.archived_at IS NULL
                  ORDER BY part.position NULLS LAST, part.created_at, part.id
             """, (production_id,))
@@ -191,6 +207,7 @@ class ProductionDocumentRepository:
             snapshot = row[30] or {}
             diagnostics = row[29] or {}
             delivery = row[23] or {}
+            job_payload = row[50] or {}
             selected_revision = row[17]
             item = {
                 "id": row[0], "public_id": str(row[1]),
@@ -206,30 +223,46 @@ class ProductionDocumentRepository:
                 "text_shaped": snapshot.get("text_shaped", draft.get("text_shaped")),
                 "text_tagged": snapshot.get("text_tagged", draft.get("text_tagged")),
                 "text_state": snapshot.get("text_state", draft.get("text_state", "raw")),
-                "voice_identity_id": row[18] or draft.get("voice_identity_id"),
-                "voice": row[19] or snapshot.get("voice") or draft.get("legacy_voice", ""),
-                "engine": snapshot.get("engine") or draft.get("legacy_engine"),
-                "model": row[21] or snapshot.get("model") or draft.get("legacy_model"),
-                "format": snapshot.get("format") or draft.get("format", "mp3"),
-                "language": row[22] or draft.get("language"),
-                "instruction": delivery.get("instruction", draft.get("instruction", "")),
-                "speech_mode": delivery.get("speech_mode", snapshot.get("speech_mode", "exact")),
-                "rate": _float(delivery.get("rate", snapshot.get("rate")), 1),
-                "pitch": _float(delivery.get("pitch", snapshot.get("pitch")), 1),
-                "volume": int(delivery.get("volume", snapshot.get("volume", 50)) or 50),
-                "seed": int(delivery.get("seed", snapshot.get("seed", 0)) or 0),
+                "voice_identity_id": row[18] or draft.get("voice_identity_id") or job_payload.get("voice_identity_id"),
+                "voice": row[19] or snapshot.get("voice") or draft.get("legacy_voice") or job_payload.get("voice", ""),
+                "engine": snapshot.get("engine") or draft.get("legacy_engine") or job_payload.get("engine"),
+                "model": row[21] or snapshot.get("model") or draft.get("legacy_model") or job_payload.get("model"),
+                "format": snapshot.get("format") or draft.get("format") or job_payload.get("format", "mp3"),
+                "language": row[22] or draft.get("language") or job_payload.get("language"),
+                "instruction": delivery.get("instruction", draft.get("instruction", job_payload.get("instruction", ""))),
+                "speech_mode": delivery.get("speech_mode", snapshot.get("speech_mode", job_payload.get("speech_mode", "exact"))),
+                "rate": _float(delivery.get("rate", snapshot.get("rate", job_payload.get("rate"))), 1),
+                "pitch": _float(delivery.get("pitch", snapshot.get("pitch", job_payload.get("pitch"))), 1),
+                "volume": int(delivery.get("volume", snapshot.get("volume", job_payload.get("volume", 50))) or 50),
+                "seed": int(delivery.get("seed", snapshot.get("seed", job_payload.get("seed", 0))) or 0),
                 "filename": row[24] or row[34] or "",
                 "size_bytes": int(row[25] or 0), "cost": _float(row[26]),
                 "spent": _float(row[33]), "cost_basis": row[28],
                 "provider_text": diagnostics.get("provider_text"),
                 "fidelity": diagnostics.get("fidelity") or None,
-                "capability_id": row[31],
-                "binding_id": str(row[39]) if row[39] else None,
-                "catalogue_voice_id": row[40],
+                "capability_id": row[31] or job_payload.get("capability_id"),
+                "binding_id": str(row[39]) if row[39] else job_payload.get("binding_id"),
+                "catalogue_voice_id": row[40] or job_payload.get("catalogue_voice_id"),
                 "takes": max(0, int(row[32] or 0) - (1 if row[11] else 0)),
                 "subtitled": bool(row[36]), "subtitles_stale": bool(row[37]),
                 "languages": sorted(set(row[38] or [])),
             }
+            if row[41]:
+                request = {
+                    key: value for key, value in (row[50] or {}).items()
+                    if not str(key).startswith("_")
+                    and key not in {"operation", "part_id"}
+                }
+                item["speech_job"] = {
+                    "id": str(row[41]), "type": "speech",
+                    "status": row[42], "progress": float(row[43] or 0),
+                    "detail": row[44] or "", "error": row[45] or None,
+                    "retries": int(row[46] or 0),
+                    "created_at": row[47].isoformat() if row[47] else None,
+                    "started_at": row[48].isoformat() if row[48] else None,
+                    "finished_at": row[49].isoformat() if row[49] else None,
+                    "part_id": row[0], "result": {}, "request": request,
+                }
             if item["kind"] == "asset":
                 item["missing"] = not bool(row[34])
                 item["duration_ms"] = row[35] or item["duration_ms"]

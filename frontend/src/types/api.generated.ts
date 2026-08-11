@@ -2212,6 +2212,8 @@ export interface components {
             finished_at?: string | null;
             /** Id */
             id: string;
+            /** Part Id */
+            part_id?: number | null;
             /** Progress */
             progress: number;
             /** Result */
@@ -2364,6 +2366,46 @@ export interface components {
             id: number;
             /** Seconds */
             seconds?: number | null;
+        };
+        /** PartSpeechJobResponse */
+        PartSpeechJobResponse: {
+            /** Created At */
+            created_at?: string | null;
+            /** Detail */
+            detail: string;
+            /** Error */
+            error?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: string;
+            /** Part Id */
+            part_id: number;
+            /** Progress */
+            progress: number;
+            /** Request */
+            request?: {
+                [key: string]: unknown;
+            };
+            /** Result */
+            result?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Retries
+             * @default 0
+             */
+            retries: number;
+            /** Started At */
+            started_at?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Type
+             * @default speech
+             * @constant
+             */
+            type: "speech";
         };
         /** PerformancePresetResponse */
         PerformancePresetResponse: {
@@ -2532,6 +2574,8 @@ export interface components {
             created_at: string;
             /** Duration Ms */
             duration_ms?: number | null;
+            /** Editorial Status */
+            editorial_status?: string | null;
             /** Engine */
             engine?: string | null;
             fidelity?: components["schemas"]["FidelityResponse"] | null;
@@ -2564,6 +2608,8 @@ export interface components {
             position: number | null;
             /** Provider Text */
             provider_text?: string | null;
+            /** Public Id */
+            public_id: string;
             /** Rate */
             rate?: number | null;
             /**
@@ -2577,6 +2623,7 @@ export interface components {
             selected_take_id?: number | null;
             /** Size Bytes */
             size_bytes?: number | null;
+            speech_job?: components["schemas"]["PartSpeechJobResponse"] | null;
             /** Speech Mode */
             speech_mode?: string | null;
             /** Spent */
@@ -3084,6 +3131,8 @@ export interface components {
             format: "mp3" | "mp3-24k" | "wav" | "opus";
             /** Insert At */
             insert_at?: number | null;
+            /** Insert Before Part Id */
+            insert_before_part_id?: string | null;
             /**
              * Instruction
              * @default
@@ -3099,7 +3148,7 @@ export interface components {
              * @default create
              * @enum {string}
              */
-            operation: "create" | "regenerate" | "render_draft";
+            operation: "create" | "record_part" | "regenerate" | "render_draft";
             /** Part Id */
             part_id?: number | null;
             /**

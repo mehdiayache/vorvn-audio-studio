@@ -262,10 +262,27 @@ class FidelityResponse(BaseModel):
     returned_words: int | None = None
 
 
+class PartSpeechJobResponse(BaseModel):
+    id: str
+    type: Literal["speech"] = "speech"
+    status: str
+    progress: float
+    detail: str
+    error: str | None = None
+    retries: int = 0
+    created_at: str | None = None
+    started_at: str | None = None
+    finished_at: str | None = None
+    part_id: int
+    result: dict[str, Any] = Field(default_factory=dict)
+    request: dict[str, Any] = Field(default_factory=dict)
+
+
 class ProductionPartResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     id: int
+    public_id: str
     created_at: str
     position: int | None
     kind: str
@@ -284,6 +301,8 @@ class ProductionPartResponse(BaseModel):
     cast_role_name: str | None = None
     revision: int = 1
     selected_take_id: int | None = None
+    editorial_status: str | None = None
+    speech_job: PartSpeechJobResponse | None = None
     outdated: bool = False
     engine: str | None = None
     model: str | None = None

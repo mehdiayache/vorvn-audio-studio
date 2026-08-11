@@ -17,6 +17,7 @@ import type { ProductionPart, RenderTask, VoiceDirectory } from "@/types/domain"
 function kindLabel(part: ProductionPart) {
   if (part.kind === "draft") return "Draft speech"
   if (part.kind === "asset") return "Venture asset"
+  if (part.kind === "speech" && !part.selected_take_id) return "Pending speech"
   return "Recorded speech"
 }
 
@@ -34,6 +35,7 @@ export function SequencePartCard({ part, renderTask, index, count, selected, pla
   actions: SequenceActions
 }) {
   const playable = Boolean(part.filename) && part.kind !== "draft"
+  const pendingSpeech = part.kind === "speech" && !part.selected_take_id
   const duration = partDurationMs(part) / 1000
   const voice = resolveVoice(part.voice, directory, part.voice_identity_id)
   const asset = part.kind === "asset"
@@ -47,14 +49,14 @@ export function SequencePartCard({ part, renderTask, index, count, selected, pla
       <button className="sequence-card-open" onClick={() => actions.openPart(part)} aria-label={`Open details for part ${index + 1}`}>
         <div className="sequence-card-heading">
           {asset ? <span className="sequence-asset-identity"><span className="sequence-asset-icon"><FileAudio /></span><span><b>{title}</b><small>Linked Venture asset</small></span></span> : <VoiceIdentity voice={part.voice} identityId={part.voice_identity_id} directory={directory} compact />}
-          <span className="sequence-card-status"><b>{duration ? formatDuration(duration) : "Draft"}</b>{part.kind === "draft" && <Badge variant="secondary">Not recorded</Badge>}{part.outdated && <Badge variant="destructive"><CircleAlert /> Take outdated</Badge>}{part.missing && <Badge variant="destructive"><CircleAlert /> Missing</Badge>}{part.fidelity && part.fidelity.status !== "pass" && <Badge variant="destructive"><CircleAlert /> Check wording</Badge>}</span>
+          <span className="sequence-card-status"><b>{duration ? formatDuration(duration) : "Draft"}</b>{(part.kind === "draft" || pendingSpeech) && <Badge variant="secondary">Not recorded</Badge>}{part.outdated && <Badge variant="destructive"><CircleAlert /> Take outdated</Badge>}{part.missing && <Badge variant="destructive"><CircleAlert /> Missing</Badge>}{part.fidelity && part.fidelity.status !== "pass" && <Badge variant="destructive"><CircleAlert /> Check wording</Badge>}</span>
         </div>
         <p dir={textDirection(part.text || part.title || "")}>{clipText(part.text || part.title || "Untitled part", 190)}</p>
         <div className="sequence-card-meta">
           <span>{kindLabel(part)}</span>
           {!asset && part.engine && <SpeechRouteLabel route={part} config={directory.config} />}
           {part.cast_role_name && <span>Cast · {part.cast_role_name}</span>}
-          <span>{part.spent ? `${formatMoney(part.spent)} generated` : "Free reuse"}</span>
+          <span>{part.spent ? `${formatMoney(part.spent)} generated` : pendingSpeech ? "No take yet" : "Free reuse"}</span>
           {part.takes ? <span>{part.takes} {part.takes === 1 ? "take" : "takes"}</span> : null}
           {part.subtitled && <span><Captions /> Captions{part.subtitles_stale ? " stale" : ""}</span>}
           {part.languages?.map((language) => <span key={language}>{language}</span>)}
@@ -77,7 +79,7 @@ export function SequencePartCard({ part, renderTask, index, count, selected, pla
         </DropdownMenu>
       </div>
       {renderTask && <div className={`take-render-status ${renderTask.status}`} role="status" aria-live="polite">
-        {["queued", "running", "retrying"].includes(renderTask.status) ? <><LoaderCircle className="spin" /><span><b>{renderTask.mode === "draft" ? "Recording this draft…" : "Generating a new take…"}</b><small>{renderTask.detail || "The current card stays usable while Alibaba works."}</small></span></> : <><CircleAlert /><span><b>{renderTask.status === "blocked" ? "New take needs review" : "New take failed"}</b><small>{renderTask.error || renderTask.detail}</small></span>{renderTask.status !== "blocked" && <Button variant="outline" size="sm" onClick={() => onRetryRender(renderTask)}><RefreshCw /> Retry</Button>}<Button variant="ghost" size="icon" aria-label="Dismiss failed take" onClick={() => onDismissRender(renderTask.jobId)}><X /></Button></>}
+        {["queued", "running", "retrying"].includes(renderTask.status) ? <><LoaderCircle className="spin" /><span><b>{renderTask.mode === "draft" ? "Recording this draft…" : renderTask.mode === "pending" ? "Recording this Part…" : "Generating a new take…"}</b><small>{renderTask.detail || "The current card stays usable while Alibaba works."}</small></span></> : <><CircleAlert /><span><b>{renderTask.status === "blocked" ? "Recording needs review" : renderTask.mode === "pending" ? "Recording failed" : "New take failed"}</b><small>{renderTask.error || renderTask.detail}</small></span>{renderTask.status !== "blocked" && <Button variant="outline" size="sm" onClick={() => onRetryRender(renderTask)}><RefreshCw /> Retry</Button>}<Button variant="ghost" size="icon" aria-label="Dismiss failed take" onClick={() => onDismissRender(renderTask.jobId)}><X /></Button></>}
       </div>}
     </article>
   )

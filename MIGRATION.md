@@ -444,6 +444,42 @@ survived independently of the Composer, and settled into a persistent Part
 using the exact backend Job route. Browser diagnostics remained clean.
 
 Deferred to later approved checkpoints: persisted Draft recovery,
-pre-provider Pending Part creation, stable insertion anchors, explicit Part
-editorial mutations, outdated-Take confirmation and the visual Composer/Player
-redesign.
+explicit Part editorial mutations, outdated-Take confirmation and the visual
+Composer/Player redesign.
+
+Checkpoint 3 makes the Production command lifecycle durable before any paid
+provider work while preserving the existing Composer presentation.
+
+- A new Production speech command creates its real editorial Part and durable
+  Job in one PostgreSQL transaction. Provider execution starts only after both
+  records exist; an enqueue failure creates neither record.
+- Insertion uses the public UUID of the Part that should follow the new one.
+  The repository locks the Production, resolves that anchor and assigns the
+  position atomically. The old numeric position remains only as an HTTP
+  compatibility input; React no longer uses it as command truth.
+- The Job stores its Part association, exact source Part revision and canonical
+  script hash before the worker can claim it. The worker turns a successful
+  provider result into an immutable Take on that same Part; it never creates a
+  second Part after the provider returns.
+- If the Part revision changes while the Job is running, the returned Take is
+  retained as honest history but is not selected automatically. Its source
+  revision and script hash remain the enqueue-time snapshot.
+- A definitive or ambiguous failure leaves the Part and Job visible with no
+  fabricated Take. Retry is an explicit new Job targeting the same Part.
+  Existing ambiguous-paid-call rules still forbid automatic retry.
+- Production reads expose the latest durable speech Job with each Part. React
+  can reconstruct queued/running/blocked/failed state after Composer close,
+  navigation or reload, using backend Job state rather than a client task ID.
+- Pending Parts use the same normal sequence card and explicitly say that no
+  Take exists yet. The temporary RenderTask only presents Job progress and is
+  not a second Part identity.
+
+Verification is provider-free: the PostgreSQL integration test proves atomic
+Part/Job creation, UUID insertion, idempotent enqueue and explicit same-Part
+retry; repository tests prove stale completions cannot replace the selected
+Take. The complete checkpoint passes 302 Python tests and 101 React tests,
+including generated OpenAPI, TypeScript build and production bundle. A freshly
+restarted FastAPI/worker pair reported matching runtime IDs and healthy database
+readiness; a live read-only Production smoke loaded all six current Parts,
+exact route labels, player and timeline without an HTTP or UI error state. No Alibaba
+generation was triggered for this checkpoint.

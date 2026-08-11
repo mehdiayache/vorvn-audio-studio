@@ -22,7 +22,7 @@ _SELECT = """
     SELECT id, public_id, kind, status, payload, result,
            CASE WHEN total > 0 THEN done::float / total ELSE 0 END,
            coalesce(detail, ''), coalesce(error, ''), retries,
-           created_at, started_at, finished_at
+           created_at, started_at, finished_at, part_id
       FROM jobs
 """
 _EXECUTOR = "audio-studio-worker-v1"
@@ -51,10 +51,17 @@ def _requested_model(kind: str, payload: dict[str, Any]) -> str | None:
 def _job(row) -> Job:
     return Job(row[0], row[1], row[2], JobStatus(row[3]), row[4] or {},
                row[5] or {}, float(row[6] or 0), row[7], row[8], int(row[9]),
-               row[10], row[11], row[12])
+               row[10], row[11], row[12], row[13])
 
 
 class JobRepository:
+    def get_by_id_in_transaction(self, cursor, job_id: int) -> Job:
+        cursor.execute(_SELECT + " WHERE id=%s", (job_id,))
+        row = cursor.fetchone()
+        if not row:
+            raise LookupError("That Job no longer exists.")
+        return _job(row)
+
     def heartbeat(self, job_id: int) -> bool:
         with transaction() as cursor:
             cursor.execute("""
@@ -72,6 +79,22 @@ class JobRepository:
                 operation_label: str | None = None) -> tuple[Job, bool]:
         actor_id = actor_id or _DEFAULT_ACTOR
         organization_id = organization_id or _DEFAULT_ORGANIZATION
+        with transaction() as cursor:
+            return self.enqueue_in_transaction(
+                cursor, kind, payload, idempotency_key=idempotency_key,
+                actor_id=actor_id, organization_id=organization_id,
+                project_id=project_id, production_id=production_id,
+                source_tool=source_tool, operation_label=operation_label)
+
+    def enqueue_in_transaction(self, cursor, kind: str,
+                 payload: dict[str, Any], *,
+                 idempotency_key: str, actor_id: str | None,
+                 organization_id: str | None, project_id: int | None = None,
+                 production_id: int | None = None,
+                 source_tool: str | None = None,
+                 operation_label: str | None = None) -> tuple[Job, bool]:
+        actor_id = actor_id or _DEFAULT_ACTOR
+        organization_id = organization_id or _DEFAULT_ORGANIZATION
         requested_model = _requested_model(kind, payload)
         requested_route = {
             "executor": _EXECUTOR,
@@ -83,8 +106,7 @@ class JobRepository:
             {"kind": kind, "payload": payload}, sort_keys=True,
             separators=(",", ":"), ensure_ascii=False,
         ).encode()).hexdigest()
-        with transaction() as cursor:
-            cursor.execute("""
+        cursor.execute("""
                 INSERT INTO jobs
                     (kind, status, payload, idempotency_key, actor_id,
                      organization_id, project_id, production_id, estimated, cost,
@@ -97,39 +119,39 @@ class JobRepository:
                       AND organization_id IS NOT NULL
                 DO NOTHING
                 RETURNING id
-            """, (kind, json.dumps(payload), idempotency_key, actor_id,
+        """, (kind, json.dumps(payload), idempotency_key, actor_id,
                   organization_id, project_id, production_id,
                   json.dumps(requested_route), source_tool, operation_label,
                   requested_model, payload.get("voice"), payload.get("engine"),
                   payload.get("model"), fingerprint))
-            inserted = cursor.fetchone()
-            if not inserted:
-                cursor.execute("""
+        inserted = cursor.fetchone()
+        if not inserted:
+            cursor.execute("""
                     SELECT kind, payload, idempotency_fingerprint
                       FROM jobs
                      WHERE organization_id = %s AND idempotency_key = %s
-                """, (organization_id, idempotency_key))
-                existing_identity = cursor.fetchone()
-                if not existing_identity:
-                    raise RuntimeError("The idempotent Job could not be resolved.")
-                existing_fingerprint = existing_identity[2] or hashlib.sha256(
-                    json.dumps({"kind": existing_identity[0],
-                                "payload": existing_identity[1] or {}},
-                               sort_keys=True, separators=(",", ":"),
-                               ensure_ascii=False).encode()).hexdigest()
-                if existing_fingerprint != fingerprint:
-                    raise IdempotencyConflict(
-                        "That Idempotency-Key was already used for a different request.")
-                cursor.execute(
-                    _SELECT + " WHERE organization_id = %s AND idempotency_key = %s",
-                    (organization_id, idempotency_key))
-                return _job(cursor.fetchone()), False
-            job_id = inserted[0]
-            self._audit(cursor, actor_id, organization_id, "job.enqueued",
-                        job_id, {"kind": kind, "source_tool": source_tool,
-                                 "operation": operation_label})
-            cursor.execute(_SELECT + " WHERE id = %s", (job_id,))
-            return _job(cursor.fetchone()), True
+            """, (organization_id, idempotency_key))
+            existing_identity = cursor.fetchone()
+            if not existing_identity:
+                raise RuntimeError("The idempotent Job could not be resolved.")
+            existing_fingerprint = existing_identity[2] or hashlib.sha256(
+                json.dumps({"kind": existing_identity[0],
+                            "payload": existing_identity[1] or {}},
+                           sort_keys=True, separators=(",", ":"),
+                           ensure_ascii=False).encode()).hexdigest()
+            if existing_fingerprint != fingerprint:
+                raise IdempotencyConflict(
+                    "That Idempotency-Key was already used for a different request.")
+            cursor.execute(
+                _SELECT + " WHERE organization_id = %s AND idempotency_key = %s",
+                (organization_id, idempotency_key))
+            return _job(cursor.fetchone()), False
+        job_id = inserted[0]
+        self._audit(cursor, actor_id, organization_id, "job.enqueued",
+                    job_id, {"kind": kind, "source_tool": source_tool,
+                             "operation": operation_label})
+        cursor.execute(_SELECT + " WHERE id = %s", (job_id,))
+        return _job(cursor.fetchone()), True
 
     def get(self, public_id: UUID) -> Job | None:
         with read_only() as cursor:

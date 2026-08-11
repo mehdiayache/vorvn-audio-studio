@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import hashlib
 import unittest
 from unittest.mock import patch
 from uuid import uuid4
@@ -69,9 +70,9 @@ class FakeRepository:
         self.created.append((production_id, insert_at, values))
         return 701 if production_id is not None else None
 
-    def replace_part(self, part_id, production_id, expected_created_at,
+    def replace_part(self, part_id, production_id, expected_revision,
                      values, *, operation):
-        self.replaced.append((part_id, production_id, expected_created_at,
+        self.replaced.append((part_id, production_id, expected_revision,
                               values, operation))
         return {"takes": 3 if operation == "regenerate" else 0,
                 "subtitles_stale": 2 if operation == "regenerate" else 0}
@@ -346,6 +347,29 @@ class SpeechGenerationTests(unittest.TestCase):
         self.assertEqual(result["id"], 45)
         self.assertEqual(repository.replaced[0][4], "render_draft")
 
+    def test_record_part_uses_the_enqueue_revision_and_script_snapshot(self):
+        repository = FakeRepository(part={
+            **existing("speech"),
+            "revision": 4,
+            "selected_take_id": None,
+        })
+        service, _, _, _ = self.service(repository=repository)
+        source_hash = hashlib.sha256(b"Canonical queued script").hexdigest()
+
+        result = service.run(payload(
+            operation="record_part", production_id=12, part_id=44,
+            text="Prepared words sent to the provider",
+            _source_part_revision=3,
+            _source_script_hash=source_hash,
+        ))
+
+        self.assertEqual(result["id"], 44)
+        self.assertEqual(repository.created, [])
+        self.assertEqual(repository.replaced[0][2], 3)
+        self.assertEqual(repository.replaced[0][4], "record_part")
+        self.assertEqual(
+            repository.replaced[0][3]["_source_script_hash"], source_hash)
+
     def test_explicit_system_voice_clears_an_inherited_custom_identity(self):
         repository = FakeRepository(part=existing("audio"))
         service, _, provider, _ = self.service(repository=repository)
@@ -437,6 +461,18 @@ class SpeechGenerationTests(unittest.TestCase):
             text="Hello",
             catalogue_voice_id="alibaba:intl:qwen3.5-omni-plus:Tina",
             production_id=7, operation="regenerate", part_id=8)
+        anchor = uuid4()
+        anchored = SpeechJobCreate(
+            text="Hello",
+            catalogue_voice_id="alibaba:intl:qwen3.5-omni-plus:Tina",
+            production_id=7, insert_before_part_id=anchor)
+        self.assertEqual(anchored.insert_before_part_id, anchor)
+        with self.assertRaises(ValueError):
+            SpeechJobCreate(
+                text="Hello",
+                catalogue_voice_id="alibaba:intl:qwen3.5-omni-plus:Tina",
+                production_id=7, insert_at=1,
+                insert_before_part_id=anchor)
         for changes in (
             {"voice": "Tina"}, {"engine": "omni"}, {"model": "plus"},
             {"rate": 3}, {"volume": 101},
@@ -521,6 +557,42 @@ class SpeechGenerationTests(unittest.TestCase):
                         "SELECT script,revision FROM production_parts WHERE id=%s",
                         (part_id,))
                     self.assertEqual(cursor.fetchone(), (marker, 1))
+
+            with psycopg.connect(settings.database_url) as mutate:
+                with mutate.cursor() as cursor:
+                    cursor.execute("""
+                        UPDATE production_parts
+                           SET script=%s, revision=2
+                         WHERE id=%s
+                    """, (marker + " edited while queued", part_id))
+                mutate.commit()
+            stale = {**row, "text": marker + " stale provider result",
+                     "text_raw": marker,
+                     "_source_script_hash": hashlib.sha256(
+                         marker.encode("utf-8")).hexdigest()}
+            stale_result = repository.replace_part(
+                part_id, production_id, 1, stale,
+                operation="regenerate")
+            self.assertEqual(stale_result["selected"], 0)
+            with psycopg.connect(settings.database_url) as verify:
+                with verify.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT selected.source_part_revision,
+                               stale_take.source_part_revision,
+                               stale_take.source_script_hash,
+                               part.revision
+                          FROM production_parts part
+                          JOIN takes selected ON selected.id=part.selected_take_id
+                          JOIN takes stale_take ON stale_take.id=%s
+                         WHERE part.id=%s
+                    """, (stale_result["take_id"], part_id))
+                    selected_revision, stale_revision, stale_hash, part_revision = cursor.fetchone()
+                    self.assertEqual(selected_revision, 1)
+                    self.assertEqual(stale_revision, 1)
+                    self.assertEqual(
+                        stale_hash,
+                        hashlib.sha256(marker.encode("utf-8")).hexdigest())
+                    self.assertEqual(part_revision, 2)
         finally:
             if part_id is not None:
                 with psycopg.connect(settings.database_url) as cleanup:

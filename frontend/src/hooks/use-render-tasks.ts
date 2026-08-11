@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { jobObserver } from "@/lib/job-observer"
+import { studioApi } from "@/lib/api"
 import type { DurableJob, GenerateResult, RenderTask } from "@/types/domain"
 
 export type RenderTaskDraft = Omit<RenderTask, "id" | "jobId" | "status" | "startedAt" | "error" | "detail">
 
 export function useRenderTasks(
   executor: (task: RenderTaskDraft) => Promise<DurableJob<GenerateResult>>,
-  onSuccess: (task: RenderTask, result: GenerateResult) => Promise<void>,
+  onSuccess: (task: RenderTask, result: GenerateResult) => Promise<unknown>,
 ) {
   const [tasks, setTasks] = useState<RenderTask[]>([])
   const mounted = useRef(true)
@@ -59,17 +60,27 @@ export function useRenderTasks(
     const job = await executor(draft)
     const task: RenderTask = {
       ...draft,
+      mode: draft.mode === "new" && job.part_id ? "pending" : draft.mode,
       id: job.id,
       jobId: job.id,
       status: job.status,
       detail: job.detail,
       error: job.error || undefined,
-      startedAt: Date.now(),
+      targetPartId: job.part_id || draft.targetPartId,
+      startedAt: job.created_at ? new Date(job.created_at).getTime() : Date.now(),
     }
     if (mounted.current) setTasks((current) => [...current, task])
     track(task)
     return job
   }, [executor, track])
+
+  const recover = useCallback((task: RenderTask, job: DurableJob<GenerateResult>) => {
+    if (subscriptions.current.has(task.jobId)) return
+    jobObserver.register(job, studioApi.job<GenerateResult>)
+    setTasks((current) => current.some((item) => item.jobId === task.jobId)
+      ? current : [...current, task])
+    track(task)
+  }, [track])
 
   const retry = useCallback((task: RenderTask) => {
     const { id: _id, jobId: _jobId, status: _status, startedAt: _startedAt, error: _error, detail: _detail, ...draft } = task
@@ -79,5 +90,5 @@ export function useRenderTasks(
   }, [enqueue])
   const dismiss = useCallback((id: string) => setTasks((current) => current.filter((task) => task.jobId !== id)), [])
 
-  return { tasks, enqueue, retry, dismiss }
+  return { tasks, enqueue, recover, retry, dismiss }
 }
