@@ -196,6 +196,13 @@ class VoicePackageRepository:
                        updated_at = now()
                  WHERE id = %s
             """, (identity_id, source_language or None, reference_id))
+            cursor.execute("""
+                UPDATE voice_identities
+                   SET preferred_reference_id=coalesce(
+                           preferred_reference_id,%s),
+                       updated_at=now()
+                 WHERE id=%s
+            """, (reference_id, identity_id))
             for route in routes:
                 cursor.execute("""
                     SELECT 1 FROM voice_package_jobs

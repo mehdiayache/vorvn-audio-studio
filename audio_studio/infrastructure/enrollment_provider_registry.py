@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Protocol
+from typing import Callable, Protocol
 
 from audio_studio.domain.voice_packages import CreatedVoiceBinding, VoicePackageJob
 
@@ -11,7 +11,8 @@ from audio_studio.domain.voice_packages import CreatedVoiceBinding, VoicePackage
 class EnrollmentAdapter(Protocol):
     def estimated_cost(self, job: VoicePackageJob) -> float: ...
     def create(self, job: VoicePackageJob,
-               local: Path) -> CreatedVoiceBinding: ...
+               local: Path, on_sent: Callable[[], None]
+               ) -> CreatedVoiceBinding: ...
 
 
 class ExactEnrollmentProviderRegistry:
@@ -24,8 +25,9 @@ class ExactEnrollmentProviderRegistry:
         return self._adapter(job).estimated_cost(job)
 
     def create(self, job: VoicePackageJob,
-               local: Path) -> CreatedVoiceBinding:
-        result = self._adapter(job).create(job, local)
+               local: Path, on_sent: Callable[[], None]
+               ) -> CreatedVoiceBinding:
+        result = self._adapter(job).create(job, local, on_sent)
         if result.provider_region != job.region:
             raise RuntimeError(
                 "The enrollment adapter changed the exact requested region.")

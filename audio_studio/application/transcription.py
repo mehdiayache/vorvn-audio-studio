@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from typing import Callable, Protocol
 
 from audio_studio.domain import captions
@@ -75,6 +76,10 @@ class TranscriptionService:
                     "estimated_cost": estimate.catalog_cost,
                     "model": model, "cost_basis": "estimate"}
 
+        # Publishing is local/object-storage preparation, not the paid ASR
+        # request. Finish it before reserving budget or creating business
+        # provider evidence so a storage failure cannot look billable.
+        source = self.source_resolver.publish(source)
         reservation_id = None
         attempt_id = None
         if self.operations and source_job_id:
@@ -87,7 +92,6 @@ class TranscriptionService:
                 }, {"part_id": source.part_id, "take_id": source.take_id,
                     "duration_ms": source.duration_ms, "language": language},
                 reservation_id)
-        source = self.source_resolver.publish(source)
         if on_progress:
             on_progress(0, 1)
         try:
@@ -103,8 +107,6 @@ class TranscriptionService:
                     attempt_id, status, cost=0, usage={}, request_ids=[],
                     error={"type": type(exc).__name__, "message": str(exc)[:600]})
             raise
-        cues = captions.build_cues(result.sentences, "standard")
-        srt, vtt = captions.render_srt(cues), captions.render_vtt(cues)
         final_region = result.provider_region or region
         billed_duration = result.billed_duration_ms or result.duration_ms
         cost = transcription_cost(billed_duration, final_region, model)
@@ -113,7 +115,17 @@ class TranscriptionService:
                 attempt_id, "succeeded", cost=cost.catalog_cost,
                 usage=result.usage or {},
                 request_ids=[result.request_id] if result.request_id else [],
-                error={})
+                error={}, receipt={
+                    "text_sha256": hashlib.sha256(
+                        result.text.encode("utf-8")).hexdigest(),
+                    "sentence_count": len(result.sentences),
+                    "duration_ms": result.duration_ms,
+                    "billed_duration_ms": billed_duration,
+                    "provider_region": final_region,
+                    "provider_endpoint": result.provider_endpoint,
+                })
+        cues = captions.build_cues(result.sentences, "standard")
+        srt, vtt = captions.render_srt(cues), captions.render_vtt(cues)
         transcript_id = self.repository.save({
             "name": source.name, "source_url": source.url,
             "audio_url": source.playable, "language": language or None,

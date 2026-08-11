@@ -8295,6 +8295,17 @@
             "title": "Name",
             "type": "string"
           },
+          "preferred_reference_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Reference Id"
+          },
           "references": {
             "items": {
               "$ref": "#/components/schemas/VoiceReferenceSummaryResponse"

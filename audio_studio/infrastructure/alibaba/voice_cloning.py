@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import threading
 import time
+from typing import Callable
 
 from audio_studio.infrastructure import object_storage as storage
 from audio_studio.infrastructure.alibaba import config, omni, sdk_runtime
@@ -37,8 +38,26 @@ class AlibabaVoiceCloningProvider:
             and storage.configured()
 
     @staticmethod
+    def _validate(job: VoicePackageJob) -> dict:
+        capability = config.CAPABILITIES.get(job.engine) or {}
+        expected_model = (capability.get("models") or {}).get(job.tier)
+        if job.provider != "alibaba" or job.region != config.region():
+            raise ValueError(
+                "That exact Alibaba enrollment region is not active in this "
+                "Audio Studio deployment.")
+        if not expected_model or expected_model != job.model_id:
+            raise ValueError(
+                "That exact Alibaba model and tier are not installed for "
+                "voice enrollment.")
+        if not AlibabaVoiceCloningProvider.is_configured():
+            raise RuntimeError(
+                "Alibaba and Reference audio storage must be configured before cloning.")
+        return capability
+
+    @staticmethod
     def estimated_cost(job: VoicePackageJob) -> float:
-        return float(config.CAPABILITIES[job.engine].get("clone_cost") or 0)
+        capability = AlibabaVoiceCloningProvider._validate(job)
+        return float(capability.get("clone_cost") or 0)
 
     @staticmethod
     def _reference_url(job: VoicePackageJob, local: Path) -> str:
@@ -52,28 +71,20 @@ class AlibabaVoiceCloningProvider:
             _REFERENCE_URLS[job.reference_id] = (time.monotonic(), url)
             return url
 
-    def create(self, job: VoicePackageJob, local: Path) -> CreatedVoiceBinding:
-        capability = config.CAPABILITIES.get(job.engine) or {}
-        expected_model = (capability.get("models") or {}).get(job.tier)
-        if job.provider != "alibaba" or job.region != config.region():
-            raise ValueError(
-                "That exact Alibaba enrollment region is not active in this "
-                "Audio Studio deployment.")
-        if not expected_model or expected_model != job.model_id:
-            raise ValueError(
-                "That exact Alibaba model and tier are not installed for "
-                "voice enrollment.")
-        if not self.is_configured():
-            raise RuntimeError(
-                "Alibaba and Reference audio storage must be configured before cloning.")
+    def create(self, job: VoicePackageJob, local: Path,
+               on_sent: Callable[[], None] = lambda: None
+               ) -> CreatedVoiceBinding:
+        capability = self._validate(job)
         url = self._reference_url(job, local)
         language = str(job.metadata.get("language") or "").strip() or None
         prefix = _prefix(job.name, job.engine)
         if job.engine == "omni":
+            on_sent()
             provider_voice_id = omni.create_voice(
                 job.model_id, prefix, url, language=language)
             endpoint = config.compatible_base_url()
         elif job.engine == "qwen_tts":
+            on_sent()
             provider_voice_id = omni.create_voice(
                 job.model_id, prefix, url,
                 language=language,
@@ -86,6 +97,7 @@ class AlibabaVoiceCloningProvider:
             documented_sources = capability.get(
                 "clone_languages", {})
             language_hint = language if language in documented_sources else None
+            on_sent()
             provider_voice_id = VoiceEnrollmentService().create_voice(
                 target_model=job.model_id, prefix=prefix, url=url,
                 language_hints=[language_hint] if language_hint else None,

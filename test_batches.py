@@ -69,6 +69,11 @@ class FailingAudioWorkspace(FakeWorkspace):
         raise OSError("output storage unavailable")
 
 
+class FailingOutputWorkspace(FakeWorkspace):
+    def create_output(self, token, run_id):
+        raise OSError("cannot create output folder")
+
+
 class FakeOperationsRepository:
     def __init__(self):
         self.events = []
@@ -271,6 +276,23 @@ class BatchTests(unittest.TestCase):
         finishes = [event for event in operations.events if event[0] == "finish"]
         self.assertEqual([event[2] for event in finishes], ["succeeded"])
         self.assertEqual(finishes[0][3]["receipt"]["row"], 2)
+
+    def test_output_folder_failure_precedes_budget_and_provider_calls(self):
+        workspace = FailingOutputWorkspace(sheet([["one", "hello", "", ""]]))
+        provider = FakeProvider()
+        operations = FakeOperationsRepository()
+        service = BatchGenerationService(
+            workspace, FakeRepository(), provider,
+            lambda: {"warn_above": 0, "daily_cap": 0},
+            ProviderOperationService(operations))
+        with self.assertRaisesRegex(OSError, "cannot create output folder"):
+            service.run(
+                token="20260808-120000-deadbeef",
+                columns={"text": 1, "name": 0, "voice": None,
+                         "language": None},
+                binding_id=BINDING_ID, run_id="folder-failure", job_id=85)
+        self.assertEqual(provider.calls, [])
+        self.assertEqual(operations.events, [])
 
     def test_voice_and_budget_guards_run_before_paid_calls_or_output(self):
         service, workspace, provider = self.service(

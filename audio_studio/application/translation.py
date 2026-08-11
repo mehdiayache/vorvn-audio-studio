@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 import re
 from typing import Callable, Protocol
 
@@ -254,6 +255,21 @@ class SubtitleTranslationService:
                     attempt_id, status, cost=0, usage={}, request_ids=[],
                     error={"type": type(exc).__name__, "message": str(exc)[:600]})
             raise
+        region = translated.provider_region or "intl"
+        actual = usage_cost(translated.usage, model, region)
+        cost = actual if actual is not None else estimate
+        cost_basis = "actual_tokens" if actual is not None else "estimate"
+        if attempt_id:
+            joined = "\n".join(translated.lines)
+            self.operations.repository.finish_attempt(
+                attempt_id, "succeeded", cost=cost, usage=translated.usage,
+                request_ids=translated.request_ids, error={}, receipt={
+                    "text_sha256": hashlib.sha256(
+                        joined.encode("utf-8")).hexdigest(),
+                    "line_count": len(translated.lines),
+                    "provider_region": region,
+                    "provider_endpoint": translated.provider_endpoint,
+                })
         translated_sentences = [
             {**sentence, "text": line, "words": []}
             for sentence, line in zip(sentences, translated.lines)
@@ -262,14 +278,6 @@ class SubtitleTranslationService:
         cues = captions.build_cues(translated_sentences, "standard")
         srt = captions.render_srt(cues)
         vtt = captions.render_vtt(cues)
-        region = translated.provider_region or "intl"
-        actual = usage_cost(translated.usage, model, region)
-        cost = actual if actual is not None else estimate
-        cost_basis = "actual_tokens" if actual is not None else "estimate"
-        if attempt_id:
-            self.operations.repository.finish_attempt(
-                attempt_id, "succeeded", cost=cost, usage=translated.usage,
-                request_ids=translated.request_ids, error={})
         name = f"{transcript['name']} [{target}]"
         new_id = self.repository.save({
             "name": name,

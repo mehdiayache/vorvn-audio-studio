@@ -225,12 +225,15 @@ class BatchGenerationService:
             return {"needs_confirmation": True, "estimate": estimate,
                     "estimated_cost": estimate, "cost": 0}
 
+        # Establish the local destination before reserving paid capacity. A
+        # filesystem failure is not a provider operation and must not leave an
+        # active reservation behind.
+        folder = self.workspace.create_output(token, run_id)
         reservation_id = None
         if self.operations and job_id:
             reservation_id = self.operations.authorize(
                 job_id, "batch_speech", estimate, preferences, confirmed)
 
-        folder = self.workspace.create_output(token, run_id)
         results: list[dict[str, Any]] = []
         files: list[str] = []
         problems: list[dict[str, Any]] = []

@@ -49,6 +49,10 @@ class VoiceRepositoryTests(unittest.TestCase):
                         VALUES (%s, %s, 'source.mp3', 'source.mp3', 'source.wav')
                     """, (reference_id, identity_id))
                     cursor.execute("""
+                        UPDATE voice_identities SET preferred_reference_id=%s
+                         WHERE id=%s
+                    """, (reference_id, identity_id))
+                    cursor.execute("""
                         INSERT INTO voice_bindings
                             (provider_voice_id, model_id, identity_id, engine,
                              tier, languages, reference_id)
@@ -86,6 +90,7 @@ class VoiceRepositoryTests(unittest.TestCase):
             profile = next(item for item in repository.profiles()
                            if item["id"] == identity_id)
             self.assertEqual(profile["references"][0]["id"], reference_id)
+            self.assertEqual(profile["preferred_reference_id"], reference_id)
             self.assertEqual(profile["bindings"][0]["provider_voice_id"],
                              provider_id)
             self.assertEqual(repository.profile_usage()[identity_id]["uses"], 1)

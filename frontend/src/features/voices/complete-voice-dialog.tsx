@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { FileDropZone } from "@/components/file-drop-zone"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RecordingLanguageField } from "@/features/voices/recording-language-field"
 import { studioApi } from "@/lib/api"
 import type { StudioConfig, VoiceProfile } from "@/types/domain"
@@ -17,13 +18,14 @@ export function CompleteVoiceDialog({ profile, config, onOpenChange, onQueued }:
 }) {
   const [busy, setBusy] = useState(false)
   const [file, setFile] = useState<File | null>(null)
+  const [referenceId, setReferenceId] = useState("")
   const [recordingLanguage, setRecordingLanguage] = useState("")
   const [error, setError] = useState("")
   const readyModels = useMemo(() => new Set(profile?.bindings.map((binding) => binding.model_id)), [profile])
   const activeModels = useMemo(() => new Set(profile?.jobs.filter((job) => ["queued", "creating"].includes(job.status)).map((job) => job.model_id)), [profile])
   const missing = profile?.available_routes.filter((route) => !readyModels.has(route.model_id) && !activeModels.has(route.model_id)) || []
-  const savedReference = profile?.references[0]?.id || ""
-  const requiresUpload = !savedReference
+  const selectedReference = profile?.references.find((reference) => reference.id === referenceId)
+  const requiresUpload = !profile?.references.length
   const languages = useMemo(() => {
     const map = new Map<string, string>()
     Object.values(config?.capabilities || {}).forEach((capability) => {
@@ -34,21 +36,23 @@ export function CompleteVoiceDialog({ profile, config, onOpenChange, onQueued }:
 
   useEffect(() => {
     setFile(null)
-    setRecordingLanguage(String(profile?.metadata.recording_language || profile?.metadata.language || ""))
+    const preferred = profile?.references.find((reference) => reference.id === profile.preferred_reference_id) || profile?.references[0]
+    setReferenceId(preferred?.id || "")
+    setRecordingLanguage(String(preferred?.source_language || profile?.metadata.recording_language || profile?.metadata.language || ""))
     setError("")
-  }, [profile?.id, profile?.metadata.language, profile?.metadata.recording_language])
+  }, [profile?.id, profile?.metadata.language, profile?.metadata.recording_language, profile?.preferred_reference_id, profile?.references])
 
   async function complete() {
     if (!profile || (requiresUpload && !file)) return
     setBusy(true)
     try {
-      const referenceId = file ? (await studioApi.uploadVoiceReference(file)).reference_id : savedReference
+      const explicitReferenceId = file ? (await studioApi.uploadVoiceReference(file)).reference_id : referenceId
       const result = await studioApi.createVoicePackage({
         identity_id: profile.id,
         name: profile.name,
         language: recordingLanguage,
         editorial_language: String(profile.metadata.editorial_language || ""),
-        reference_id: referenceId,
+        reference_id: explicitReferenceId,
         package: "complete",
         confirmed: true,
       })
@@ -74,9 +78,14 @@ export function CompleteVoiceDialog({ profile, config, onOpenChange, onQueued }:
         <RecordingLanguageField value={recordingLanguage} onChange={setRecordingLanguage} suggestions={languages} label="Language spoken in the new recording" />
         <FileDropZone file={file} accept="audio/wav,audio/mpeg,audio/mp4,.wav,.mp3,.m4a" disabled={busy} onFile={(next) => { setFile(next); setError("") }} hint="WAV, MP3 or M4A · up to 10 MB" />
       </section>}
+      {!requiresUpload && <section className="voice-complete-source">
+        <h3>Reference recording</h3>
+        <p>Every model version queued below will use this exact source recording. Existing bindings remain untouched.</p>
+        {profile && profile.references.length > 1 ? <label><span>Source for these model versions</span><Select value={referenceId} onValueChange={(next) => { setReferenceId(next); const reference = profile.references.find((item) => item.id === next); setRecordingLanguage(reference?.source_language || "") }}><SelectTrigger aria-label="Source for these model versions"><SelectValue /></SelectTrigger><SelectContent>{profile.references.map((reference) => <SelectItem value={reference.id} key={reference.id}>{reference.original_name || reference.id} · {reference.source_language || "language not recorded"}</SelectItem>)}</SelectContent></Select></label> : <div><b>{selectedReference?.original_name || selectedReference?.id}</b><small>{selectedReference?.source_language || "Recording language not recorded"}</small></div>}
+      </section>}
       <div className="voice-complete-routes">{missing.map((route) => <div key={route.model_id}><span><b>{route.label}</b><small>{route.role} · {route.documented_output_languages.length} documented output languages</small></span><em>{route.estimated_creation_cost ? `up to $${route.estimated_creation_cost.toFixed(2)}` : "Free creation"}</em></div>)}</div>
       {error && <p className="voice-create-error">{error}</p>}
-      <DialogFooter><Button variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>Cancel</Button><Button disabled={busy || !missing.length || (requiresUpload && (!file || !recordingLanguage))} onClick={() => void complete()}>{busy ? <><LoaderCircle className="spin" /> Preparing…</> : <><Sparkles /> Create {missing.length} model version{missing.length === 1 ? "" : "s"}</>}</Button></DialogFooter>
+      <DialogFooter><Button variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>Cancel</Button><Button disabled={busy || !missing.length || (requiresUpload ? (!file || !recordingLanguage) : !referenceId)} onClick={() => void complete()}>{busy ? <><LoaderCircle className="spin" /> Preparing…</> : <><Sparkles /> Create {missing.length} model version{missing.length === 1 ? "" : "s"}</>}</Button></DialogFooter>
     </DialogContent>
   </Dialog>
 }

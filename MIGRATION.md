@@ -140,6 +140,35 @@ provider-catalogue bootstrap before reading catalogue routes. It therefore
 tests the same lifecycle contract as the real runtime and cannot pass merely
 because a developer database already contains catalogue rows.
 
+### Cross-capability provider-evidence closure
+
+The final audit applied the paid-provider boundary to every current durable
+provider result, not only speech, Batch and cloning:
+
+- transcription, subtitle translation and paid text preparation now record a
+  definite provider success, cost, request IDs and a result fingerprint before
+  local formatting, fidelity review or database persistence can fail;
+- a rejected Tagged/Spoken preparation therefore preserves its real provider
+  spend instead of leaving an attempt incorrectly stuck at `sent`;
+- enrollment with existing masters exposes the exact selected Voice Reference.
+  `preferred_reference_id` is returned only as a visible preselection; every
+  queued enrollment still snapshots the explicitly submitted `reference_id`;
+- the first attached reference becomes the UI preference only when no
+  preference exists. Later references never replace it silently;
+- domain verification now rejects active enrollment Jobs without a complete
+  provider/region/model/adapter route and rejects preferred references owned by
+  another Voice Identity;
+- ASR publication and Batch destination creation now finish before budget
+  reservation, so a local storage failure cannot leave paid work reserved;
+- voice enrollment resolves its exact route and durable reference before paid
+  authorization. Its adapter marks the attempt `sent` only immediately before
+  the Alibaba creation request, after reference upload succeeds. A pre-request
+  failure is therefore definitive and never presented as ambiguously billed.
+
+The checkpoint is covered by 296 Python tests, 82 React tests and 11 live
+PostgreSQL domain checks. Provider adapters remain faked in these tests; no
+paid Alibaba operation is performed.
+
 ## Architecture hardening
 
 The post-legacy cleanup is guarded by shrink-only AST tests in

@@ -4249,6 +4249,8 @@ export interface components {
             metadata: components["schemas"]["VoiceProfileMetadataResponse"];
             /** Name */
             name: string;
+            /** Preferred Reference Id */
+            preferred_reference_id?: string | null;
             /** References */
             references: components["schemas"]["VoiceReferenceSummaryResponse"][];
             /** Updated At */

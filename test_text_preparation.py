@@ -9,9 +9,11 @@ from audio_studio.application.text_preparation import (
     TextPreparationJobHandler,
     TextPreparationService,
 )
+from audio_studio.application.provider_operations import ProviderOperationService
 from audio_studio.domain.jobs import Job, JobStatus
 from audio_studio.domain.text import ProviderText
 from audio_studio.http.routers.jobs import TextJobCreate
+from test_support import FakeProviderOperationsRepository
 
 
 ROOT = Path(__file__).parent
@@ -57,10 +59,12 @@ class Progress:
 
 
 class TextPreparationTests(unittest.TestCase):
-    def service(self, repository=None, provider=None, preferences=None):
+    def service(self, repository=None, provider=None, preferences=None,
+                operations=None):
         return TextPreparationService(
             repository or FakeRepository(), provider or FakeProvider(),
             lambda: preferences or {"warn_above": 0, "daily_cap": 0},
+            operations,
         )
 
     def test_shape_uses_canonical_production_style_and_edited_prompt(self):
@@ -107,6 +111,22 @@ class TextPreparationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "rejected that version"):
             self.service(provider=provider).prepare(
                 operation="tag", text="Hello there")
+
+    def test_rejected_text_still_preserves_definite_provider_success(self):
+        operations = FakeProviderOperationsRepository()
+        provider = FakeProvider("[sad] Hello changed")
+        with self.assertRaisesRegex(ValueError, "rejected that version"):
+            self.service(
+                provider=provider,
+                operations=ProviderOperationService(operations),
+            ).prepare(
+                operation="tag", text="Hello there", source_job_id=8,
+                confirmed=True)
+        finish = next(event for event in operations.events
+                      if event[0] == "finish")
+        self.assertEqual(finish[2], "succeeded")
+        self.assertGreater(finish[3]["cost"], 0)
+        self.assertEqual(finish[3]["receipt"]["character_count"], 19)
 
     def test_warning_blocks_before_provider_until_confirmed(self):
         provider = FakeProvider()

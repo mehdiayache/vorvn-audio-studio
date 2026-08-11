@@ -107,6 +107,24 @@ class VoiceServiceTests(unittest.TestCase):
         self.assertEqual(len(profile["available_routes"]), 4)
         self.assertEqual(profile["usage"]["uses"], 4)
 
+    def test_preferred_reference_is_profile_guidance_not_a_route_gate(self):
+        service, profiles, _ = self.service()
+        profiles.items[0]["references"].append({
+            "id": "ref_preferred", "source_language": "Wolof",
+            "original_name": "preferred.wav",
+            "normalized_path": "preferred.wav",
+            "created_at": "2026-08-10T00:00:00+00:00",
+            "updated_at": "2026-08-10T00:00:00+00:00",
+        })
+        profiles.items[0]["preferred_reference_id"] = "ref_preferred"
+        with self.runtime():
+            profile = service.profile("voice_fixture")
+        self.assertEqual(profile["metadata"]["recording_language"], "Wolof")
+        self.assertEqual(len(profile["available_routes"]), 4)
+        self.assertTrue(all(
+            not route["source_language_documented"]
+            for route in profile["available_routes"]))
+
     def test_profile_updates_archive_and_history_use_one_store(self):
         service, profiles, _ = self.service()
         with self.runtime():

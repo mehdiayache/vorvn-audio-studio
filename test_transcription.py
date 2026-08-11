@@ -11,6 +11,7 @@ from audio_studio.application.transcription import (
     TranscriptionJobHandler,
     TranscriptionService,
 )
+from audio_studio.application.provider_operations import ProviderOperationService
 from audio_studio.config import settings
 from audio_studio.domain.jobs import Job, JobStatus
 from audio_studio.domain.transcription import (
@@ -20,6 +21,7 @@ from audio_studio.domain.transcription import (
 )
 from audio_studio.http.routers.jobs import TranscriptionJobCreate
 from audio_studio.infrastructure.postgres import transcripts as postgres_transcripts
+from test_support import FakeProviderOperationsRepository
 
 
 ROOT = Path(__file__).parent
@@ -67,6 +69,11 @@ class FakeSourceResolver:
         return source
 
 
+class FailingPublishResolver(FakeSourceResolver):
+    def publish(self, source):
+        raise OSError("source publication failed")
+
+
 class FakeRepository:
     def __init__(self, spent=0.0):
         self.spent = spent
@@ -84,6 +91,11 @@ class FakeRepository:
         return self.spent
 
 
+class FailingRepository(FakeRepository):
+    def save(self, _values):
+        raise OSError("transcript database unavailable")
+
+
 class Progress:
     def __init__(self):
         self.events = []
@@ -93,11 +105,13 @@ class Progress:
 
 
 class TranscriptionTests(unittest.TestCase):
-    def service(self, repository=None, provider=None, preferences=None):
+    def service(self, repository=None, provider=None, preferences=None,
+                operations=None, source_resolver=None):
         return TranscriptionService(
             repository or FakeRepository(), provider or FakeProvider(),
-            FakeSourceResolver(),
+            source_resolver or FakeSourceResolver(),
             lambda: preferences or {"warn_above": 0, "daily_cap": 0},
+            operations,
         )
 
     def test_service_saves_word_timings_cost_route_and_generation_state(self):
@@ -141,6 +155,35 @@ class TranscriptionTests(unittest.TestCase):
             ).transcribe(url="https://storage.test/audio.mp3", name="audio.mp3",
                          duration_ms=2000)
         self.assertEqual(provider.calls, [])
+
+    def test_provider_success_is_recorded_before_transcript_persistence(self):
+        operations = FakeProviderOperationsRepository()
+        with self.assertRaisesRegex(OSError, "database unavailable"):
+            self.service(
+                repository=FailingRepository(),
+                operations=ProviderOperationService(operations),
+            ).transcribe(
+                url="https://storage.test/audio.mp3", name="audio.mp3",
+                duration_ms=2000, source_job_id=12, confirmed=True)
+        finish = next(event for event in operations.events
+                      if event[0] == "finish")
+        self.assertEqual(finish[2], "succeeded")
+        self.assertEqual(finish[3]["receipt"]["sentence_count"], 1)
+        self.assertEqual(finish[3]["request_ids"], ["asr-request-1"])
+
+    def test_source_publish_failure_precedes_budget_and_provider_attempt(self):
+        operations = FakeProviderOperationsRepository()
+        provider = FakeProvider()
+        with self.assertRaisesRegex(OSError, "source publication failed"):
+            self.service(
+                provider=provider,
+                operations=ProviderOperationService(operations),
+                source_resolver=FailingPublishResolver(),
+            ).transcribe(
+                url="https://storage.test/audio.mp3", name="audio.mp3",
+                duration_ms=2000, source_job_id=12, confirmed=True)
+        self.assertEqual(provider.calls, [])
+        self.assertEqual(operations.events, [])
 
     def test_job_handler_uses_public_job_id_and_reports_progress(self):
         handler = TranscriptionJobHandler(self.service())

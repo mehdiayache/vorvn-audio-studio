@@ -28,7 +28,8 @@ class VoicePackageRepository(Protocol):
 class VoiceCloningProvider(Protocol):
     def estimated_cost(self, job: VoicePackageJob) -> float: ...
     def create(self, job: VoicePackageJob,
-               local: Path) -> CreatedVoiceBinding: ...
+               local: Path, on_sent: Callable[[], None]
+               ) -> CreatedVoiceBinding: ...
 
 
 class VoiceReferenceResolver(Protocol):
@@ -65,10 +66,13 @@ class VoiceCloningService:
             return True
         try:
             estimate = self.provider.estimated_cost(job)
+            reference = self.repository.reference(job.reference_id)
+            if not reference or not reference.get("normalized_path"):
+                raise RuntimeError("The saved reference recording is unavailable.")
+            local = self.references.resolve_reference(reference)
         except Exception as exc:
-            # Adapter/configuration resolution is local and free. Persist the
-            # failed enrollment Job without inventing a ProviderAttempt or
-            # crashing the long-running worker.
+            # Route/configuration/reference resolution is local and free.
+            # Persist the failed Job without inventing provider evidence.
             activity_id = self.repository.start_attempt(job, 0)
             message = str(exc).strip()[:600] or type(exc).__name__
             self.repository.fail(job, activity_id, message)
@@ -76,6 +80,7 @@ class VoiceCloningService:
         activity_id = self.repository.start_attempt(job, estimate)
         reservation_id = None
         attempt_id = None
+        request_sent = False
         try:
             if self.operations:
                 reservation_id = self.operations.authorize(
@@ -92,13 +97,15 @@ class VoiceCloningService:
                     }, {"identity_id": job.identity_id,
                         "reference_id": job.reference_id,
                         "model_id": job.model_id}, reservation_id)
-            reference = self.repository.reference(job.reference_id)
-            if not reference or not reference.get("normalized_path"):
-                raise RuntimeError("The saved reference recording is unavailable.")
-            local = self.references.resolve_reference(reference)
-            if attempt_id:
-                self.operations.repository.mark_sent(attempt_id)
-            binding = self.provider.create(job, local)
+            def mark_sent() -> None:
+                nonlocal request_sent
+                if request_sent:
+                    return
+                request_sent = True
+                if attempt_id:
+                    self.operations.repository.mark_sent(attempt_id)
+
+            binding = self.provider.create(job, local, mark_sent)
             if not binding.provider_voice_id:
                 raise RuntimeError("The provider returned no cloned voice ID.")
             if attempt_id:
@@ -117,7 +124,8 @@ class VoiceCloningService:
         except Exception as exc:
             message = str(exc).strip()[:600] or type(exc).__name__
             if attempt_id:
-                status = self.operations.failure_status(exc)
+                status = (self.operations.failure_status(exc)
+                          if request_sent else "definitive_failed")
                 self.operations.repository.finish_attempt(
                     attempt_id, status, cost=0, usage={}, request_ids=[],
                     error={"type": type(exc).__name__, "message": message})

@@ -82,8 +82,9 @@ class FakeProvider:
     def estimated_cost(self, _job):
         return .01
 
-    def create(self, job, local):
+    def create(self, job, local, on_sent=lambda: None):
         self.calls.append((job, local))
+        on_sent()
         if self.error:
             raise self.error
         return CreatedVoiceBinding(
@@ -220,7 +221,8 @@ class VoicePackageWorkerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "No enrollment adapter"):
             registry.estimated_cost(package_job(adapter_key="missing"))
         with self.assertRaisesRegex(RuntimeError, "changed the exact requested region"):
-            registry.create(package_job(region="beijing"), Path("source.wav"))
+            registry.create(
+                package_job(region="beijing"), Path("source.wav"), lambda: None)
 
     def test_missing_exact_adapter_fails_the_job_without_crashing_worker(self):
         repository = FakeRepository(package_job(adapter_key="not-installed"))
@@ -232,6 +234,38 @@ class VoicePackageWorkerTests(unittest.TestCase):
             self.assertTrue(service.work_once())
         self.assertEqual(repository.started[0][1], 0)
         self.assertIn("No enrollment adapter", repository.failed[0][2])
+
+    def test_missing_reference_fails_before_budget_or_provider_attempt(self):
+        repository = FakeRepository(
+            package_job(), reference={"id": "ref_test", "normalized_path": ""})
+        operations = FakeOperationsRepository()
+        service = VoiceCloningService(
+            repository, FakeProvider(), VoiceReferenceWorkspace(Path(".")),
+            ProviderOperationService(operations),
+            lambda: {"warn_above": 0, "daily_cap": 0})
+        self.assertTrue(service.work_once())
+        self.assertTrue(repository.failed)
+        self.assertEqual(operations.events, [])
+
+    def test_failure_before_provider_request_is_not_ambiguous(self):
+        class BeforeSendFailure(FakeProvider):
+            def create(self, job, local, on_sent=lambda: None):
+                self.calls.append((job, local))
+                raise OSError("reference upload failed")
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "source.wav").write_bytes(b"RIFF-test")
+            repository = FakeRepository(package_job())
+            operations = FakeOperationsRepository()
+            service = VoiceCloningService(
+                repository, BeforeSendFailure(), VoiceReferenceWorkspace(root),
+                ProviderOperationService(operations),
+                lambda: {"warn_above": 0, "daily_cap": 0})
+            self.assertTrue(service.work_once())
+        self.assertNotIn(("sent", "voice-attempt"), operations.events)
+        finishes = [event for event in operations.events if event[0] == "finish"]
+        self.assertEqual(finishes[0][2], "definitive_failed")
 
     def test_provider_success_precedes_binding_persistence_and_is_recoverable(self):
         with TemporaryDirectory() as directory:
@@ -300,13 +334,20 @@ class VoicePackageWorkerTests(unittest.TestCase):
                          "tier": "flash"}], estimate=.01,
             )
             self.assertEqual(len(queued), 1)
+            with psycopg.connect(settings.database_url) as database:
+                preferred = database.execute("""
+                    SELECT preferred_reference_id FROM voice_identities
+                     WHERE id=%s
+                """, (identity_id,)).fetchone()[0]
+            self.assertEqual(preferred, reference_id)
             job_id = queued[0]
             with psycopg.connect(settings.database_url) as database:
                 with database.cursor() as cursor:
                     cursor.execute("""
                         UPDATE voice_package_jobs SET status = 'interrupted'
-                         WHERE id = %s
+                         WHERE id = %s RETURNING attempts
                     """, (job_id,))
+                    attempts_before_retry = int(cursor.fetchone()[0])
                 database.commit()
             self.assertIsNone(repository.claim_next(job_id))
             _, duplicate_queue = repository.create_package(
@@ -321,7 +362,7 @@ class VoicePackageWorkerTests(unittest.TestCase):
             self.assertEqual(repository.retry(job_id), job_id)
             claimed = repository.claim_next(job_id)
             self.assertEqual(claimed.id, job_id)
-            self.assertEqual(claimed.attempts, 1)
+            self.assertEqual(claimed.attempts, attempts_before_retry + 1)
             activity_id = repository.start_attempt(claimed, .01)
             repository.complete(claimed, activity_id, CreatedVoiceBinding(
                 provider_voice_id=f"fixture-provider-{marker}",

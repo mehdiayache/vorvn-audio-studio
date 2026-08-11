@@ -35,7 +35,9 @@ class VoiceRepository:
                        identity.image, identity.gender, identity.age,
                        identity.accent, identity.trait, identity.scene,
                        identity.notes, identity.recording_language,
-                       identity.editorial_language, identity.favourite, identity.status,
+                       identity.editorial_language,
+                       identity.preferred_reference_id,
+                       identity.favourite, identity.status,
                        identity.created_at, identity.updated_at
                   FROM voice_identities identity
                  WHERE EXISTS (
@@ -59,11 +61,12 @@ class VoiceRepository:
                     "recording_language": row[10] or (row[2] or {}).get("language", ""),
                     "language": row[10] or (row[2] or {}).get("language", ""),
                     "editorial_language": row[11] or "",
-                    "favourite": bool(row[12]),
-                    "status": row[13] or "active",
+                    "favourite": bool(row[13]),
+                    "status": row[14] or "active",
                 },
-                "created_at": row[14].isoformat(),
-                "updated_at": row[15].isoformat(),
+                "preferred_reference_id": row[12],
+                "created_at": row[15].isoformat(),
+                "updated_at": row[16].isoformat(),
                 "references": [], "bindings": [], "jobs": [],
             } for row in cursor.fetchall()]
             by_id = {item["id"]: item for item in identities}

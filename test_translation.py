@@ -15,12 +15,14 @@ from audio_studio.application.translation import (
     Translator,
     usage_cost,
 )
+from audio_studio.application.provider_operations import ProviderOperationService
 from audio_studio.domain.jobs import Job, JobStatus
 from audio_studio.domain.text import ProviderText
 from audio_studio.http.routers.jobs import TranslationJobCreate
 from audio_studio.infrastructure.alibaba.translation import AlibabaTranslationProvider
 from audio_studio.infrastructure.postgres import transcripts as postgres_transcripts
 from audio_studio.infrastructure.alibaba import text as alibaba_text
+from test_support import FakeProviderOperationsRepository
 
 
 ROOT = Path(__file__).parent
@@ -78,6 +80,11 @@ class FakeRepository:
         return self.spent
 
 
+class FailingRepository(FakeRepository):
+    def save(self, _values):
+        raise OSError("translation database unavailable")
+
+
 class Progress:
     def __init__(self):
         self.events = []
@@ -87,10 +94,12 @@ class Progress:
 
 
 class TranslationTests(unittest.TestCase):
-    def service(self, repository=None, provider=None, preferences=None):
+    def service(self, repository=None, provider=None, preferences=None,
+                operations=None):
         return SubtitleTranslationService(
             repository or FakeRepository(), Translator(provider or FakeProvider()),
             lambda: preferences or {"warn_above": 0, "daily_cap": 0},
+            operations,
         )
 
     def test_translator_preserves_tags_alignment_and_aggregates_fallback_usage(self):
@@ -147,6 +156,21 @@ class TranslationTests(unittest.TestCase):
         self.assertTrue(result["needs_confirmation"])
         self.assertEqual(provider.calls, [])
         self.assertEqual(repository.saved, [])
+
+    def test_provider_success_is_recorded_before_translation_persistence(self):
+        operations = FakeProviderOperationsRepository()
+        with self.assertRaisesRegex(OSError, "database unavailable"):
+            self.service(
+                repository=FailingRepository(),
+                operations=ProviderOperationService(operations),
+            ).translate(
+                transcript_id=4, target="Arabic", source_job_id=21,
+                confirmed=True)
+        finish = next(event for event in operations.events
+                      if event[0] == "finish")
+        self.assertEqual(finish[2], "succeeded")
+        self.assertEqual(finish[3]["receipt"]["line_count"], 1)
+        self.assertEqual(finish[3]["request_ids"], ["request-1"])
 
     def test_daily_cap_rejects_before_provider(self):
         repository = FakeRepository(spent=1.0)

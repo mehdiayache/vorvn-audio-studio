@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import difflib
+import hashlib
 import re
 import unicodedata
 from typing import Callable, Protocol
@@ -253,11 +254,6 @@ class TextPreparationService:
                     attempt_id, status, cost=0, usage={}, request_ids=[],
                     error={"type": type(exc).__name__, "message": str(exc)[:600]})
             raise
-        if operation == "shape":
-            after = completion.text
-        else:
-            after = strip_unknown(completion.text)
-            assert_tag_fidelity(before, after)
         actual_cost = usage_cost(completion.usage)
         final_cost = actual_cost if actual_cost is not None else estimated
         if attempt_id:
@@ -265,7 +261,18 @@ class TextPreparationService:
                 attempt_id, "succeeded", cost=final_cost,
                 usage=completion.usage or {},
                 request_ids=[completion.request_id]
-                if completion.request_id else [], error={})
+                if completion.request_id else [], error={}, receipt={
+                    "text_sha256": hashlib.sha256(
+                        completion.text.encode("utf-8")).hexdigest(),
+                    "character_count": len(completion.text),
+                    "provider_region": completion.provider_region,
+                    "provider_endpoint": completion.provider_endpoint,
+                })
+        if operation == "shape":
+            after = completion.text
+        else:
+            after = strip_unknown(completion.text)
+            assert_tag_fidelity(before, after)
         return {
             "before": before,
             "after": after,

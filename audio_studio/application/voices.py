@@ -44,7 +44,14 @@ class VoiceService:
             # Recording provenance belongs to the preserved master, while a
             # binding's languages describe what it can synthesize. Never infer
             # one from the other.
-            recording_language = next((
+            preferred_reference = next((
+                reference for reference in identity["references"]
+                if reference.get("id") == identity.get(
+                    "preferred_reference_id")
+            ), None)
+            recording_language = str(
+                (preferred_reference or {}).get("source_language") or ""
+            ) or next((
                 reference.get("source_language", "")
                 for reference in identity["references"]
                 if reference.get("source_language")

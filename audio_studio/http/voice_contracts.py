@@ -114,6 +114,7 @@ class VoiceProfileResponse(BaseModel):
     id: str
     name: str
     metadata: VoiceProfileMetadataResponse
+    preferred_reference_id: str | None = None
     references: list[VoiceReferenceSummaryResponse]
     bindings: list[VoiceProfileBindingResponse]
     jobs: list[VoicePackageJobResponse]

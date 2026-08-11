@@ -50,6 +50,20 @@ CHECKS = {
         SELECT count(*) FROM voice_package_jobs
          WHERE adapter_key IS NULL OR btrim(adapter_key)=''
     """,
+    "active enrollment Jobs persist one complete exact route": """
+        SELECT count(*) FROM voice_package_jobs
+         WHERE status IN ('queued','creating')
+           AND (provider IS NULL OR btrim(provider)=''
+             OR provider_region IS NULL OR btrim(provider_region)=''
+             OR provider_model_id IS NULL
+             OR adapter_key IS NULL OR btrim(adapter_key)='')
+    """,
+    "preferred Voice References belong to their Voice Identity": """
+        SELECT count(*) FROM voice_identities identity
+        JOIN voice_references reference
+          ON reference.id=identity.preferred_reference_id
+        WHERE reference.identity_id<>identity.id
+    """,
     "assets have canonical Venture ownership": """
         SELECT count(*) FROM assets asset
         LEFT JOIN ventures venture ON venture.id = asset.venture_id
