@@ -57,7 +57,8 @@ class ProviderOperationRepository:
             return str(cursor.fetchone()[0])
 
     def begin_attempt(self, job_id: int, operation: str, route: dict,
-                      payload: dict, reservation_id: str | None) -> str:
+                      payload: dict, reservation_id: str | None,
+                      estimated_cost: float | None = None) -> str:
         fingerprint = hashlib.sha256(json.dumps(
             payload, sort_keys=True, default=str,
             separators=(",", ":")).encode("utf-8")).hexdigest()
@@ -81,12 +82,14 @@ class ProviderOperationRepository:
                      payload_fingerprint, idempotency_key, status,
                      estimated_cost, diagnostics)
                 VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s,%s,'not_sent',
-                        coalesce((SELECT estimated_cost FROM budget_reservations
-                                  WHERE id=%s),0),%s::jsonb)
+                        coalesce(%s,(SELECT estimated_cost
+                                     FROM budget_reservations WHERE id=%s),0),
+                        %s::jsonb)
                 RETURNING id
             """, (job_id, previous_id, operation, route.get("provider"), route.get("region"),
                   json.dumps(route), fingerprint,
                   f"job:{job_id}:{operation}:{fingerprint[:16]}",
+                  estimated_cost,
                   int(reservation_id) if reservation_id else None,
                   json.dumps({"budget_reservation_id": reservation_id})))
             attempt_id = str(cursor.fetchone()[0])

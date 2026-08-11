@@ -102,9 +102,10 @@ class FakeOperationsRepository:
         self.events.append(("reserve", job_id, operation, amount, daily_cap))
         return "voice-reservation"
 
-    def begin_attempt(self, job_id, operation, route, payload, reservation_id):
+    def begin_attempt(self, job_id, operation, route, payload, reservation_id,
+                      estimated_cost=None):
         self.events.append(("begin", job_id, operation, route, payload,
-                            reservation_id))
+                            reservation_id, estimated_cost))
         return "voice-attempt"
 
     def mark_sent(self, attempt_id):
@@ -325,13 +326,18 @@ class VoicePackageWorkerTests(unittest.TestCase):
             original_name=f"{marker}.wav", original_path=f"{marker}.wav",
             normalized_path=f"{marker}-24k.wav")
         identity_id = None
+        route = {
+            "provider_model_id": "alibaba:intl:qwen3.5-omni-flash",
+            "provider": "alibaba", "region": "intl",
+            "model_id": "qwen3.5-omni-flash", "adapter_key": "omni",
+            "engine": "omni", "tier": "flash", "language": "en",
+        }
         try:
             identity_id, queued = repository.create_package(
                 name=f"Voice {marker[:8]}",
                 metadata={"language": "en", "trait": "Fixture"},
                 reference_id=reference_id, identity_id=None,
-                routes=[{"model_id": "fixture-omni-flash", "engine": "omni",
-                         "tier": "flash"}], estimate=.01,
+                routes=[route], estimate=.01,
             )
             self.assertEqual(len(queued), 1)
             with psycopg.connect(settings.database_url) as database:
@@ -354,8 +360,7 @@ class VoicePackageWorkerTests(unittest.TestCase):
                 name=f"Voice {marker[:8]}",
                 metadata={"language": "en", "trait": "Fixture"},
                 reference_id=reference_id, identity_id=identity_id,
-                routes=[{"model_id": "fixture-omni-flash", "engine": "omni",
-                         "tier": "flash"}], estimate=.01,
+                routes=[route], estimate=.01,
             )
             self.assertEqual(duplicate_queue, [])
             self.assertIsNone(repository.claim_next(job_id))

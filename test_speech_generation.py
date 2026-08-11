@@ -163,7 +163,8 @@ class FakeOperationsRepository:
         self.events.append(("reserve", job_id, operation, amount, daily_cap))
         return "reservation-one"
 
-    def begin_attempt(self, job_id, operation, route, payload, reservation_id):
+    def begin_attempt(self, job_id, operation, route, payload, reservation_id,
+                      estimated_cost=None):
         self.events.append(("begin", job_id, operation, route, payload,
                             reservation_id))
         return "attempt-one"

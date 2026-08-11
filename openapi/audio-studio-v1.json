@@ -7662,16 +7662,30 @@
       },
       "VoicePackageJobResponse": {
         "properties": {
+          "adapter_key": {
+            "title": "Adapter Key",
+            "type": "string"
+          },
           "attempts": {
             "title": "Attempts",
             "type": "integer"
           },
-          "engine": {
-            "enum": [
-              "audio",
-              "omni",
-              "qwen_tts"
+          "binding_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
+            "title": "Binding Id"
+          },
+          "classification": {
+            "title": "Classification",
+            "type": "string"
+          },
+          "engine": {
             "title": "Engine",
             "type": "string"
           },
@@ -7698,6 +7712,21 @@
             "title": "Model Id",
             "type": "string"
           },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "provider_model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Model Id"
+          },
           "provider_voice_id": {
             "anyOf": [
               {
@@ -7713,16 +7742,15 @@
             "title": "Reference Id",
             "type": "string"
           },
+          "region": {
+            "title": "Region",
+            "type": "string"
+          },
           "status": {
             "title": "Status",
             "type": "string"
           },
           "tier": {
-            "enum": [
-              "plus",
-              "flash",
-              "vc"
-            ],
             "title": "Tier",
             "type": "string"
           },
@@ -7736,6 +7764,10 @@
           "identity_id",
           "reference_id",
           "model_id",
+          "provider",
+          "region",
+          "adapter_key",
+          "classification",
           "engine",
           "tier",
           "status",
@@ -7828,10 +7860,6 @@
             "type": "array"
           },
           "region": {
-            "enum": [
-              "intl",
-              "beijing"
-            ],
             "title": "Region",
             "type": "string"
           },
@@ -7935,6 +7963,17 @@
       },
       "VoicePackageRouteResponse": {
         "properties": {
+          "adapter_key": {
+            "title": "Adapter Key",
+            "type": "string"
+          },
+          "capability_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Capability Ids",
+            "type": "array"
+          },
           "documented_output_languages": {
             "items": {
               "type": "string"
@@ -7943,11 +7982,6 @@
             "type": "array"
           },
           "engine": {
-            "enum": [
-              "audio",
-              "omni",
-              "qwen_tts"
-            ],
             "title": "Engine",
             "type": "string"
           },
@@ -7971,6 +8005,14 @@
             "title": "Provider",
             "type": "string"
           },
+          "provider_model_id": {
+            "title": "Provider Model Id",
+            "type": "string"
+          },
+          "region": {
+            "title": "Region",
+            "type": "string"
+          },
           "role": {
             "title": "Role",
             "type": "string"
@@ -7980,17 +8022,15 @@
             "type": "boolean"
           },
           "tier": {
-            "enum": [
-              "plus",
-              "flash",
-              "vc"
-            ],
             "title": "Tier",
             "type": "string"
           }
         },
         "required": [
+          "provider_model_id",
           "provider",
+          "region",
+          "adapter_key",
           "engine",
           "tier",
           "model_id",
@@ -8006,16 +8046,15 @@
       },
       "VoiceProfileBindingResponse": {
         "properties": {
+          "binding_id": {
+            "title": "Binding Id",
+            "type": "string"
+          },
           "created_at": {
             "title": "Created At",
             "type": "string"
           },
           "engine": {
-            "enum": [
-              "audio",
-              "omni",
-              "qwen_tts"
-            ],
             "title": "Engine",
             "type": "string"
           },
@@ -8029,6 +8068,21 @@
           "model_id": {
             "title": "Model Id",
             "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "provider_model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Model Id"
           },
           "provider_voice_id": {
             "title": "Provider Voice Id",
@@ -8045,22 +8099,24 @@
             ],
             "title": "Reference Id"
           },
+          "region": {
+            "title": "Region",
+            "type": "string"
+          },
           "status": {
             "title": "Status",
             "type": "string"
           },
           "tier": {
-            "enum": [
-              "plus",
-              "flash",
-              "vc"
-            ],
             "title": "Tier",
             "type": "string"
           }
         },
         "required": [
+          "binding_id",
           "provider_voice_id",
+          "provider",
+          "region",
           "model_id",
           "engine",
           "tier",

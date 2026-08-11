@@ -98,16 +98,21 @@ class VoiceRepository:
                     })
 
             cursor.execute("""
-                SELECT provider_voice_id, model_id, identity_id, engine, tier,
-                       status, languages, reference_id, created_at
+                SELECT id,provider_voice_id,model_id,identity_id,engine,tier,
+                       status,languages,reference_id,provider,provider_region,
+                       provider_model_id,created_at
                   FROM voice_bindings ORDER BY created_at
             """)
             for row in cursor.fetchall():
-                (provider_id, model_id, identity_id, engine, tier, status,
-                 languages, reference_id, created_at) = row
+                (binding_id,provider_id,model_id,identity_id,engine,tier,status,
+                 languages,reference_id,provider,region,provider_model_id,
+                 created_at) = row
                 if identity_id in by_id:
                     by_id[identity_id]["bindings"].append({
+                        "binding_id": str(binding_id),
                         "provider_voice_id": provider_id, "model_id": model_id,
+                        "provider": provider, "region": region,
+                        "provider_model_id": provider_model_id,
                         "engine": engine, "tier": tier, "status": status,
                         "languages": languages or [],
                         "reference_id": reference_id,
@@ -116,18 +121,24 @@ class VoiceRepository:
 
             cursor.execute("""
                 SELECT id, identity_id, reference_id, model_id, engine, tier,
-                       status, provider_voice_id, error, attempts, updated_at
+                       status, provider_voice_id, error, attempts, updated_at,
+                       provider,provider_region,provider_model_id,adapter_key,
+                       classification,binding_id
                   FROM voice_package_jobs ORDER BY created_at
             """)
             job_keys = (
                 "id", "identity_id", "reference_id", "model_id", "engine",
                 "tier", "status", "provider_voice_id", "error", "attempts",
-                "updated_at",
+                "updated_at", "provider", "region", "provider_model_id",
+                "adapter_key", "classification", "binding_id",
             )
             for row in cursor.fetchall():
                 if row[1] in by_id:
-                    by_id[row[1]]["jobs"].append(dict(zip(
-                        job_keys, (*row[:-1], row[-1].isoformat()))))
+                    values = list(row)
+                    values[10] = values[10].isoformat()
+                    if values[16] is not None:
+                        values[16] = str(values[16])
+                    by_id[row[1]]["jobs"].append(dict(zip(job_keys, values)))
         return identities
 
     def profile_usage(self) -> dict[str, dict]:

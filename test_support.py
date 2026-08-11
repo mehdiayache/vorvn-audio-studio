@@ -9,9 +9,10 @@ class FakeProviderOperationsRepository:
         self.events.append(("reserve", job_id, operation, amount, daily_cap))
         return "reservation-fixture"
 
-    def begin_attempt(self, job_id, operation, route, payload, reservation_id):
+    def begin_attempt(self, job_id, operation, route, payload, reservation_id,
+                      estimated_cost=None):
         self.events.append(("begin", job_id, operation, route, payload,
-                            reservation_id))
+                            reservation_id, estimated_cost))
         return "attempt-fixture"
 
     def mark_sent(self, attempt_id):

@@ -169,6 +169,37 @@ The checkpoint is covered by 296 Python tests, 82 React tests and 11 live
 PostgreSQL domain checks. Provider adapters remain faked in these tests; no
 paid Alibaba operation is performed.
 
+### Final foundation convergence
+
+Migration `020_provider_model_catalogue_truth.sql` closes the three remaining
+information-loss boundaries identified by the external audit:
+
+- a Batch keeps one full active budget reservation, while every individual
+  `ProviderAttempt` snapshots the estimate for its own prepared row. An
+  ambiguous row therefore records its own possible spend without releasing the
+  outstanding Batch budget or multiplying the Batch estimate across attempts;
+- persisted active `provider_models` with enrollment support are the only
+  canonical discovery source used by Create Voice, Complete Voice and Voice
+  Profile coverage. Provider-specific catalogues may populate those records,
+  but Application and Domain no longer reconstruct an Alibaba-only installed
+  world;
+- each enrollment Job snapshots its exact provider-model route and selected
+  Voice Reference. Multiple ready bindings for the same model remain distinct
+  by `binding_id`, and enrollment work remains distinct by exact Job ID. The
+  Voice Library may group coverage for readability but displays every binding
+  and reference variant independently.
+
+A future provider becomes discoverable by persisting its active enrollment
+model facts and registering its exact adapter; the canonical Voice planner does
+not require provider-specific changes. Undocumented source languages remain
+Experimental and are still queued.
+
+This checkpoint is covered by 299 Python tests, 82 React tests and 11 live
+PostgreSQL domain checks. The provider-neutral discovery test includes a future
+provider fixture, and the repository/UI tests preserve two bindings for one
+provider model using different references. No paid provider operation is
+executed by these tests.
+
 ## Architecture hardening
 
 The post-legacy cleanup is guarded by shrink-only AST tests in

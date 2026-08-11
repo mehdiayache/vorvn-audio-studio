@@ -4036,13 +4036,16 @@ export interface components {
         };
         /** VoicePackageJobResponse */
         VoicePackageJobResponse: {
+            /** Adapter Key */
+            adapter_key: string;
             /** Attempts */
             attempts: number;
-            /**
-             * Engine
-             * @enum {string}
-             */
-            engine: "audio" | "omni" | "qwen_tts";
+            /** Binding Id */
+            binding_id?: string | null;
+            /** Classification */
+            classification: string;
+            /** Engine */
+            engine: string;
             /** Error */
             error?: string | null;
             /** Id */
@@ -4051,17 +4054,20 @@ export interface components {
             identity_id: string;
             /** Model Id */
             model_id: string;
+            /** Provider */
+            provider: string;
+            /** Provider Model Id */
+            provider_model_id?: string | null;
             /** Provider Voice Id */
             provider_voice_id?: string | null;
             /** Reference Id */
             reference_id: string;
+            /** Region */
+            region: string;
             /** Status */
             status: string;
-            /**
-             * Tier
-             * @enum {string}
-             */
-            tier: "plus" | "flash" | "vc";
+            /** Tier */
+            tier: string;
             /** Updated At */
             updated_at: string;
         };
@@ -4098,11 +4104,8 @@ export interface components {
             package: "complete" | "exact" | "omni";
             /** Packages */
             packages: components["schemas"]["VoicePackageOptionResponse"][];
-            /**
-             * Region
-             * @enum {string}
-             */
-            region: "intl" | "beijing";
+            /** Region */
+            region: string;
             /** Region Label */
             region_label: string;
             /** Routes */
@@ -4141,13 +4144,14 @@ export interface components {
         };
         /** VoicePackageRouteResponse */
         VoicePackageRouteResponse: {
+            /** Adapter Key */
+            adapter_key: string;
+            /** Capability Ids */
+            capability_ids?: string[];
             /** Documented Output Languages */
             documented_output_languages: string[];
-            /**
-             * Engine
-             * @enum {string}
-             */
-            engine: "audio" | "omni" | "qwen_tts";
+            /** Engine */
+            engine: string;
             /** Estimated Creation Cost */
             estimated_creation_cost: number;
             /** Label */
@@ -4158,40 +4162,43 @@ export interface components {
             model_id: string;
             /** Provider */
             provider: string;
+            /** Provider Model Id */
+            provider_model_id: string;
+            /** Region */
+            region: string;
             /** Role */
             role: string;
             /** Source Language Documented */
             source_language_documented: boolean;
-            /**
-             * Tier
-             * @enum {string}
-             */
-            tier: "plus" | "flash" | "vc";
+            /** Tier */
+            tier: string;
         };
         /** VoiceProfileBindingResponse */
         VoiceProfileBindingResponse: {
+            /** Binding Id */
+            binding_id: string;
             /** Created At */
             created_at: string;
-            /**
-             * Engine
-             * @enum {string}
-             */
-            engine: "audio" | "omni" | "qwen_tts";
+            /** Engine */
+            engine: string;
             /** Languages */
             languages: string[];
             /** Model Id */
             model_id: string;
+            /** Provider */
+            provider: string;
+            /** Provider Model Id */
+            provider_model_id?: string | null;
             /** Provider Voice Id */
             provider_voice_id: string;
             /** Reference Id */
             reference_id?: string | null;
+            /** Region */
+            region: string;
             /** Status */
             status: string;
-            /**
-             * Tier
-             * @enum {string}
-             */
-            tier: "plus" | "flash" | "vc";
+            /** Tier */
+            tier: string;
         };
         /** VoiceProfileCollectionEnvelope */
         VoiceProfileCollectionEnvelope: {

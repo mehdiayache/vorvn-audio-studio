@@ -204,19 +204,25 @@ class VoicePackageRepository:
                  WHERE id=%s
             """, (reference_id, identity_id))
             for route in routes:
+                provider_model_id = str(
+                    route.get("provider_model_id") or "").strip()
+                if not provider_model_id:
+                    raise ValueError(
+                        "Every installed enrollment method needs an exact provider model ID.")
                 cursor.execute("""
                     SELECT 1 FROM voice_package_jobs
-                     WHERE identity_id=%s AND model_id=%s AND reference_id=%s
-                """, (identity_id, route["model_id"], reference_id))
+                     WHERE identity_id=%s AND provider_model_id=%s
+                       AND reference_id=%s
+                """, (identity_id, provider_model_id, reference_id))
                 if cursor.fetchone():
                     continue
                 cursor.execute("""
                     SELECT 1 FROM voice_bindings
-                     WHERE identity_id = %s AND model_id = %s
+                     WHERE identity_id = %s AND provider_model_id = %s
                        AND reference_id = %s
                        AND status NOT IN
                            ('deleted', 'undeployed', 'archived', 'failed')
-                """, (identity_id, route["model_id"], reference_id))
+                """, (identity_id, provider_model_id, reference_id))
                 if cursor.fetchone():
                     continue
                 proposed = f"vjob_{uuid4().hex}"
@@ -232,7 +238,7 @@ class VoicePackageRepository:
                       route["engine"], route["tier"],
                       route.get("provider") or "alibaba",
                       route.get("region") or "intl",
-                      route.get("provider_model_id"),
+                      provider_model_id,
                       route.get("adapter_key") or route["engine"],
                       route.get("classification") or (
                           "documented" if route.get("source_language_documented")

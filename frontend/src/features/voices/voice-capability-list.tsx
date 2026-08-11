@@ -1,55 +1,44 @@
 import { Check, CircleAlert, LoaderCircle, RotateCw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { languageDisplay } from "@/lib/voice"
-import type { VoicePackageJob, VoicePackageRoute, VoiceProfileBinding } from "@/types/domain"
+import type { VoicePackageJob, VoicePackageRoute, VoiceProfileBinding, VoiceProfile } from "@/types/domain"
+import { bindingMatchesRoute, jobMatchesRoute, referenceName } from "./voice-route"
 
-type CapabilityState = {
-  status: string
-  detail: string
-  binding?: VoiceProfileBinding
-  job?: VoicePackageJob
+function jobLabel(job: VoicePackageJob) {
+  if (job.status === "creating") return "Creating at provider"
+  if (job.status === "queued") return "Waiting to start"
+  if (job.status === "failed") return "Provider setup failed"
+  if (job.status === "interrupted") return "Interrupted · explicit retry available"
+  return job.status
 }
 
-function stateFor(route: VoicePackageRoute, bindings: VoiceProfileBinding[], jobs: VoicePackageJob[], sourceAvailable: boolean): CapabilityState {
-  const binding = bindings.find((item) => item.model_id === route.model_id)
-  if (binding) return { status: "ready", detail: "Ready", binding }
-  const job = jobs.find((item) => item.model_id === route.model_id)
-  if (job) {
-    const unsupported = job.status === "failed" && /unsupported language:\s*([a-z-]+)/i.exec(job.error || "")
-    if (unsupported) {
-      const detected = languageDisplay(unsupported[1] || "")
-      return {
-        status: "needs-reference",
-        detail: `Alibaba identified ${detected} in this saved reference; ${route.label} cannot register that source language.`,
-      }
-    }
-    return { status: job.status, detail: job.status === "creating" ? "Creating at Alibaba" : job.status === "queued" ? "Waiting to start" : job.status === "failed" ? "Provider setup failed" : job.status === "interrupted" ? "Interrupted · ready to retry" : job.status, job }
-  }
-  return { status: "missing", detail: sourceAvailable ? "Not created" : "Source recording needed" }
-}
-
-function capabilityName(route: VoicePackageRoute) {
-  if (route.engine === "audio") return "Expressive speech + tags"
-  if (route.engine === "qwen_tts") return "Exact long reading"
-  return "Natural performance"
-}
-
-export function VoiceCapabilityList({ routes, bindings, jobs, sourceAvailable = true, onRetry }: {
+export function VoiceCapabilityList({ routes, bindings, jobs, references, sourceAvailable = true, onRetry }: {
   routes: VoicePackageRoute[]
   bindings: VoiceProfileBinding[]
   jobs: VoicePackageJob[]
+  references: VoiceProfile["references"]
   sourceAvailable?: boolean
   onRetry?: (enrollmentJobId: string) => void
 }) {
   return <div className="voice-capability-list">{routes.map((route) => {
-    const state = stateFor(route, bindings, jobs, sourceAvailable)
-    const languages = state.binding?.languages || route.documented_output_languages || []
-    const retryJobId = state.job?.id
-    return <article key={route.model_id} className={`voice-capability voice-capability-${state.status}`}>
-      <span className="voice-capability-state">{state.status === "ready" ? <Check /> : ["queued", "creating"].includes(state.status) ? <LoaderCircle className="spin" /> : ["failed", "interrupted", "needs-reference"].includes(state.status) ? <CircleAlert /> : <span />}</span>
-      <div><b>{capabilityName(route)}</b><small>{route.role} · {route.label}</small>{languages.length > 0 && <details className="voice-capability-languages"><summary>{languages.length} documented output language{languages.length === 1 ? "" : "s"}</summary><p>{languages.join(" · ")}</p></details>}<span>{state.detail}</span></div>
-      {(state.status === "failed" || state.status === "interrupted") && retryJobId && onRetry && <Button variant="outline" size="sm" onClick={() => onRetry(retryJobId)}><RotateCw /> Retry</Button>}
+    const exactBindings = bindings.filter((binding) => bindingMatchesRoute(binding, route))
+    const exactJobs = jobs.filter((job) =>
+      jobMatchesRoute(job, route) && job.status !== "ready")
+    const working = exactJobs.some((job) => ["queued", "creating"].includes(job.status))
+    const failed = exactJobs.some((job) => ["failed", "interrupted"].includes(job.status))
+    const status = exactBindings.length ? "ready" : working ? "creating" : failed ? "failed" : "missing"
+    return <article key={route.provider_model_id} className={`voice-capability voice-capability-${status}`}>
+      <span className="voice-capability-state">{exactBindings.length ? <Check /> : working ? <LoaderCircle className="spin" /> : failed ? <CircleAlert /> : <span />}</span>
+      <div className="voice-capability-content">
+        <b>{route.role}</b>
+        <small>{route.provider} · {route.label} · {route.region}</small>
+        {route.documented_output_languages.length > 0 && <details className="voice-capability-languages"><summary>{route.documented_output_languages.length} documented output language{route.documented_output_languages.length === 1 ? "" : "s"}</summary><p>{route.documented_output_languages.join(" · ")}</p></details>}
+        <div className="voice-binding-variants">
+          {exactBindings.map((binding) => <span className="voice-binding-variant" key={binding.binding_id}><Check /><span><b>Ready binding</b><small>Reference: {referenceName(binding.reference_id, references)}</small></span></span>)}
+          {exactJobs.map((job) => <span className={`voice-binding-variant voice-binding-job voice-binding-job-${job.status}`} key={job.id}>{["queued", "creating"].includes(job.status) ? <LoaderCircle className="spin" /> : ["failed", "interrupted"].includes(job.status) ? <CircleAlert /> : <Check />}<span><b>{jobLabel(job)}</b><small>Reference: {referenceName(job.reference_id, references)}</small></span>{["failed", "interrupted"].includes(job.status) && onRetry && <Button variant="outline" size="sm" onClick={() => onRetry(job.id)}><RotateCw /> Retry</Button>}</span>)}
+          {!exactBindings.length && !exactJobs.length && <span className="voice-binding-empty">{sourceAvailable ? "No binding created for this provider model" : "Source recording needed"}</span>}
+        </div>
+      </div>
     </article>
   })}</div>
 }

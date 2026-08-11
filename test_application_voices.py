@@ -1,9 +1,7 @@
 """Voice identity use cases with no database or provider calls."""
 
 from copy import deepcopy
-from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
 
 from audio_studio.application.voices import VoiceService
 
@@ -83,28 +81,62 @@ class FakePackageStore:
         return "job-retry" if enrollment_job_id == "job-retry" else None
 
 
+class FakeMethodStore:
+    def enrollment_methods(self):
+        return [
+            {
+                "provider_model_id": "alibaba:intl:audio-flash",
+                "provider": "alibaba", "region": "intl",
+                "model_id": "audio-flash", "tier": "flash",
+                "adapter_key": "audio", "label": "Qwen Audio · Flash",
+                "role": "Expressive speech + tags",
+                "capability_ids": ["expressive_tags"],
+                "enrollment_languages": ["en"],
+                "output_languages": ["English"],
+                "estimated_creation_cost": 0,
+            },
+            {
+                "provider_model_id": "alibaba:intl:omni-plus",
+                "provider": "alibaba", "region": "intl",
+                "model_id": "omni-plus", "tier": "plus",
+                "adapter_key": "omni", "label": "Qwen Omni · Plus",
+                "role": "Natural performance",
+                "capability_ids": ["natural_performance"],
+                "enrollment_languages": ["en", "ar"],
+                "output_languages": ["English", "Arabic"],
+                "estimated_creation_cost": .01,
+            },
+            {
+                "provider_model_id": "cosy:global:cosy-v3",
+                "provider": "cosy", "region": "global",
+                "model_id": "cosy-v3", "tier": "plus",
+                "adapter_key": "cosy", "label": "CosyVoice V3",
+                "role": "Character performance",
+                "capability_ids": ["character_performance"],
+                "enrollment_languages": ["en"],
+                "output_languages": ["English", "Arabic"],
+                "estimated_creation_cost": .02,
+            },
+        ]
+
+
 class VoiceServiceTests(unittest.TestCase):
     def service(self, preferences=None, spent=0):
         profiles = FakeProfilesStore()
         packages = FakePackageStore(spent)
         service = VoiceService(
-            profiles, packages,
+            profiles, packages, FakeMethodStore(),
             preferences or (lambda: {"warn_above": 0, "daily_cap": 0}),
         )
         return service, profiles, packages
 
-    def runtime(self):
-        return patch(
-            "audio_studio.application.voices.alibaba_environment",
-            return_value=SimpleNamespace(region="intl"),
-        )
-
     def test_profiles_derive_language_routes_and_usage(self):
         service, _, _ = self.service()
-        with self.runtime():
-            profile = service.profile("voice_fixture")
+        profile = service.profile("voice_fixture")
         self.assertEqual(profile["metadata"]["language"], "en")
-        self.assertEqual(len(profile["available_routes"]), 4)
+        self.assertEqual(len(profile["available_routes"]), 3)
+        self.assertIn("cosy", {
+            route["provider"] for route in profile["available_routes"]})
         self.assertEqual(profile["usage"]["uses"], 4)
 
     def test_preferred_reference_is_profile_guidance_not_a_route_gate(self):
@@ -117,20 +149,18 @@ class VoiceServiceTests(unittest.TestCase):
             "updated_at": "2026-08-10T00:00:00+00:00",
         })
         profiles.items[0]["preferred_reference_id"] = "ref_preferred"
-        with self.runtime():
-            profile = service.profile("voice_fixture")
+        profile = service.profile("voice_fixture")
         self.assertEqual(profile["metadata"]["recording_language"], "Wolof")
-        self.assertEqual(len(profile["available_routes"]), 4)
+        self.assertEqual(len(profile["available_routes"]), 3)
         self.assertTrue(all(
             not route["source_language_documented"]
             for route in profile["available_routes"]))
 
     def test_profile_updates_archive_and_history_use_one_store(self):
         service, profiles, _ = self.service()
-        with self.runtime():
-            updated = service.update("voice_fixture", {"name": "Updated"})
-            archived = service.archive("voice_fixture")
-            linked = service.link_history("voice_fixture", "old-provider")
+        updated = service.update("voice_fixture", {"name": "Updated"})
+        archived = service.archive("voice_fixture")
+        linked = service.link_history("voice_fixture", "old-provider")
         self.assertEqual(updated["name"], "Updated")
         self.assertEqual(archived["metadata"]["status"], "archived")
         self.assertEqual(linked["linked"], 2)
@@ -140,11 +170,10 @@ class VoiceServiceTests(unittest.TestCase):
     def test_package_warning_does_not_queue_work(self):
         service, _, packages = self.service(
             lambda: {"warn_above": .005, "daily_cap": 0})
-        with self.runtime():
-            result = service.create_package({
-                "name": "Fixture", "language": "English",
-                "reference_id": "ref_fixture", "package": "complete",
-            })
+        result = service.create_package({
+            "name": "Fixture", "language": "English",
+            "reference_id": "ref_fixture", "package": "complete",
+        })
         self.assertTrue(result["needs_confirmation"])
         self.assertEqual(result["estimate"], .03)
         self.assertFalse(packages.created)
@@ -152,7 +181,7 @@ class VoiceServiceTests(unittest.TestCase):
     def test_daily_cap_records_block_without_queueing(self):
         service, _, packages = self.service(
             lambda: {"warn_above": 0, "daily_cap": .01}, spent=.01)
-        with self.runtime(), self.assertRaises(PermissionError):
+        with self.assertRaises(PermissionError):
             service.create_package({
                 "name": "Fixture", "language": "English",
                 "reference_id": "ref_fixture", "package": "complete",
@@ -162,15 +191,17 @@ class VoiceServiceTests(unittest.TestCase):
 
     def test_confirmed_package_and_retry_return_application_results(self):
         service, _, packages = self.service()
-        with self.runtime():
-            result = service.create_package({
-                "name": "Fixture", "language": "English",
-                "reference_id": "ref_fixture", "package": "complete",
-                "confirmed": True,
-            })
+        result = service.create_package({
+            "name": "Fixture", "language": "English",
+            "reference_id": "ref_fixture", "package": "complete",
+            "confirmed": True,
+        })
         self.assertEqual(result["identity"]["id"], "voice_fixture")
         self.assertEqual(result["queued"], 3)
-        self.assertEqual(len(packages.created[0]["routes"]), 4)
+        self.assertEqual(len(packages.created[0]["routes"]), 3)
+        cosy = next(route for route in packages.created[0]["routes"]
+                    if route["provider"] == "cosy")
+        self.assertEqual(cosy["provider_model_id"], "cosy:global:cosy-v3")
         self.assertEqual(
             service.retry_binding(" job-retry "),
             {"ok": True, "job_id": "job-retry"},

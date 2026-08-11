@@ -82,9 +82,10 @@ class FakeOperationsRepository:
         self.events.append(("reserve", job_id, operation, amount, daily_cap))
         return "batch-reservation"
 
-    def begin_attempt(self, job_id, operation, route, payload, reservation_id):
+    def begin_attempt(self, job_id, operation, route, payload, reservation_id,
+                      estimated_cost=None):
         self.events.append(("begin", job_id, operation, route, payload,
-                            reservation_id))
+                            reservation_id, estimated_cost))
         return f"attempt-{payload['row']}"
 
     def mark_sent(self, attempt_id):
@@ -276,6 +277,8 @@ class BatchTests(unittest.TestCase):
         finishes = [event for event in operations.events if event[0] == "finish"]
         self.assertEqual([event[2] for event in finishes], ["succeeded"])
         self.assertEqual(finishes[0][3]["receipt"]["row"], 2)
+        begins = [event for event in operations.events if event[0] == "begin"]
+        self.assertEqual(begins[0][6], provider.calls[0].estimated_cost)
 
     def test_output_folder_failure_precedes_budget_and_provider_calls(self):
         workspace = FailingOutputWorkspace(sheet([["one", "hello", "", ""]]))

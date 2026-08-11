@@ -3,36 +3,50 @@
 
 from audio_studio.domain import voice_packages
 
+methods = [
+    {"provider_model_id": "alibaba:intl:audio", "provider": "alibaba",
+     "region": "intl", "model_id": "audio", "tier": "flash",
+     "adapter_key": "audio", "label": "Audio", "role": "Expressive",
+     "capability_ids": ["expressive_tags"],
+     "enrollment_languages": ["en"], "output_languages": ["English"],
+     "estimated_creation_cost": 0},
+    {"provider_model_id": "alibaba:intl:omni", "provider": "alibaba",
+     "region": "intl", "model_id": "omni", "tier": "plus",
+     "adapter_key": "omni", "label": "Omni", "role": "Natural",
+     "capability_ids": ["natural_performance"],
+     "enrollment_languages": ["en", "ar"],
+     "output_languages": ["English", "Arabic"],
+     "estimated_creation_cost": .01},
+    {"provider_model_id": "cosy:global:v3", "provider": "cosy",
+     "region": "global", "model_id": "cosy-v3", "tier": "plus",
+     "adapter_key": "cosy", "label": "Cosy V3", "role": "Character",
+     "capability_ids": ["character_performance"],
+     "enrollment_languages": ["en"],
+     "output_languages": ["English", "Arabic"],
+     "estimated_creation_cost": .02},
+]
 
-english = voice_packages.plan("English", region="intl")
+english = voice_packages.plan("English", methods)
 assert [route["model_id"] for route in english["routes"]] == [
-    "qwen-audio-3.0-tts-flash", "qwen3.5-omni-plus",
-    "qwen3.5-omni-flash", "qwen3-tts-vc-2026-01-22"]
-assert all(route["model_id"] != "qwen-audio-3.0-tts-plus" for route in english["routes"])
+    "audio", "omni", "cosy-v3"]
+assert english["region"] == "multiple"
 
-arabic = voice_packages.plan("Arabic", region="intl")
+arabic = voice_packages.plan("Arabic", methods)
 assert [route["model_id"] for route in arabic["routes"]] == [
-    "qwen-audio-3.0-tts-flash", "qwen3.5-omni-plus",
-    "qwen3.5-omni-flash", "qwen3-tts-vc-2026-01-22"]
+    "audio", "omni", "cosy-v3"]
 assert [route["classification"] for route in arabic["routes"]] == [
-    "experimental", "documented", "documented", "experimental"]
-assert next(route for route in arabic["available_routes"]
-            if route["engine"] == "qwen_tts")["documented_output_languages"] == [
-    "Chinese", "English", "German", "Italian", "Portuguese", "Spanish",
-    "Japanese", "Korean", "French", "Russian"]
+    "experimental", "documented", "experimental"]
 
-exact_arabic = voice_packages.plan("ar", "exact", region="intl")
+exact_arabic = voice_packages.plan("ar", methods, "exact")
 assert [route["engine"] for route in exact_arabic["routes"]] == [
-    "audio", "qwen_tts"]
+    "audio"]
 assert all(route["classification"] == "experimental"
            for route in exact_arabic["routes"])
 assert next(item for item in exact_arabic["packages"]
             if item["id"] == "exact")["available"] is True
 
-assert voice_packages.plan("en", "omni", region="intl")["routes"] == english["routes"][1:3]
+assert voice_packages.plan("en", methods, "omni")["routes"] == english["routes"][1:2]
 assert [route["engine"] for route in
-        voice_packages.plan("en", "exact", region="intl")["routes"]] == [
-            "audio", "qwen_tts"]
-assert voice_packages.plan("en", region="beijing")["region_label"] == "Beijing"
-assert voice_packages.plan("en", region="intl")["region_label"] == "Singapore"
+        voice_packages.plan("en", methods, "exact")["routes"]] == ["audio"]
+assert any(route["provider"] == "cosy" for route in english["routes"])
 print("voice package contracts passed")

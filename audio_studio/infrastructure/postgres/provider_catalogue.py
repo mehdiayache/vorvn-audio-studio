@@ -20,6 +20,11 @@ class ProviderCatalogueRepository:
             for item in records:
                 provider_model_id = (
                     f"{item['provider']}:{item['region']}:{item['model_id']}")
+                capability_facts = provider_catalog.CAPABILITIES.get(
+                    item["engine"], {})
+                model_label = (
+                    f"{capability_facts.get('label') or item['model_id']} · "
+                    f"{str(item['tier']).title()}")
                 cursor.execute("""
                     INSERT INTO provider_models
                         (id,provider,region,model_id,tier,operation,
@@ -40,11 +45,13 @@ class ProviderCatalogueRepository:
                 """, (
                     provider_model_id, item["provider"], item["region"],
                     item["model_id"], item["tier"],
-                    json.dumps(list(provider_catalog.CAPABILITIES.get(
-                        item["engine"], {}).get("clone_languages", {}).keys())),
-                    json.dumps(item.get("languages") or []),
+                    json.dumps(list(capability_facts.get(
+                        "clone_languages", {}).keys())),
+                    json.dumps(list(capability_facts.get(
+                        "output_languages") or item.get("languages") or [])),
                     item.get("status") or "active", item["engine"],
-                    json.dumps({"catalogue_source": "documented_snapshot"}),
+                    json.dumps({"catalogue_source": "documented_snapshot",
+                                "model_label": model_label}),
                 ))
                 for capability in item.get("capabilities") or []:
                     cursor.execute("""
@@ -80,6 +87,51 @@ class ProviderCatalogueRepository:
                     json.dumps(item.get("languages") or []), json.dumps(metadata),
                 ))
         return len(records)
+
+    def enrollment_methods(self) -> list[dict]:
+        """Return active exact enrollment routes from persisted provider data."""
+        with read_only() as cursor:
+            cursor.execute("""
+                SELECT model.id,model.provider,model.region,model.model_id,
+                       model.tier,model.adapter_key,model.enrollment_languages,
+                       model.output_languages,model.pricing,model.metadata,
+                       coalesce(jsonb_agg(jsonb_build_object(
+                           'id',capability.id,'name',capability.name,
+                           'description',capability.description)
+                       ORDER BY capability.id)
+                       FILTER (WHERE capability.id IS NOT NULL),'[]'::jsonb)
+                  FROM provider_models model
+             LEFT JOIN provider_model_capabilities model_capability
+                    ON model_capability.provider_model_id=model.id
+             LEFT JOIN capabilities capability
+                    ON capability.id=model_capability.capability_id
+                 WHERE model.status='active'
+                   AND model.enrollment_supported
+                   AND model.adapter_key IS NOT NULL
+              GROUP BY model.id
+                 ORDER BY model.provider,model.region,model.model_id,model.tier
+            """)
+            rows = cursor.fetchall()
+        methods = []
+        for row in rows:
+            metadata = row[9] or {}
+            capabilities = row[10] or []
+            capability_names = [str(item.get("name") or "")
+                                for item in capabilities if item.get("name")]
+            methods.append({
+                "provider_model_id": row[0], "provider": row[1],
+                "region": row[2], "model_id": row[3], "tier": row[4],
+                "adapter_key": row[5],
+                "enrollment_languages": list(row[6] or []),
+                "output_languages": list(row[7] or []),
+                "label": str(metadata.get("model_label") or row[3]),
+                "role": " · ".join(capability_names) or "Voice enrollment",
+                "capability_ids": [str(item.get("id")) for item in capabilities
+                                   if item.get("id")],
+                "estimated_creation_cost": float(
+                    (row[8] or {}).get("enrollment_cost_usd") or 0),
+            })
+        return methods
 
     def bindings(self) -> list[dict]:
         with read_only() as cursor:

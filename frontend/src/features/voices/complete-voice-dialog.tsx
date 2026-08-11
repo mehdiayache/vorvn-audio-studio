@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RecordingLanguageField } from "@/features/voices/recording-language-field"
 import { studioApi } from "@/lib/api"
 import type { StudioConfig, VoiceProfile } from "@/types/domain"
+import { bindingMatchesRoute, jobMatchesRoute } from "./voice-route"
 
 export function CompleteVoiceDialog({ profile, config, onOpenChange, onQueued }: {
   profile: VoiceProfile | null
@@ -21,9 +22,10 @@ export function CompleteVoiceDialog({ profile, config, onOpenChange, onQueued }:
   const [referenceId, setReferenceId] = useState("")
   const [recordingLanguage, setRecordingLanguage] = useState("")
   const [error, setError] = useState("")
-  const readyModels = useMemo(() => new Set(profile?.bindings.map((binding) => binding.model_id)), [profile])
-  const activeModels = useMemo(() => new Set(profile?.jobs.filter((job) => ["queued", "creating"].includes(job.status)).map((job) => job.model_id)), [profile])
-  const missing = profile?.available_routes.filter((route) => !readyModels.has(route.model_id) && !activeModels.has(route.model_id)) || []
+  const missing = useMemo(() => profile?.available_routes.filter((route) =>
+    !profile.bindings.some((binding) => binding.reference_id === referenceId && bindingMatchesRoute(binding, route)) &&
+    !profile.jobs.some((job) => job.reference_id === referenceId && jobMatchesRoute(job, route)),
+  ) || [], [profile, referenceId])
   const selectedReference = profile?.references.find((reference) => reference.id === referenceId)
   const requiresUpload = !profile?.references.length
   const languages = useMemo(() => {
@@ -83,7 +85,7 @@ export function CompleteVoiceDialog({ profile, config, onOpenChange, onQueued }:
         <p>Every model version queued below will use this exact source recording. Existing bindings remain untouched.</p>
         {profile && profile.references.length > 1 ? <label><span>Source for these model versions</span><Select value={referenceId} onValueChange={(next) => { setReferenceId(next); const reference = profile.references.find((item) => item.id === next); setRecordingLanguage(reference?.source_language || "") }}><SelectTrigger aria-label="Source for these model versions"><SelectValue /></SelectTrigger><SelectContent>{profile.references.map((reference) => <SelectItem value={reference.id} key={reference.id}>{reference.original_name || reference.id} · {reference.source_language || "language not recorded"}</SelectItem>)}</SelectContent></Select></label> : <div><b>{selectedReference?.original_name || selectedReference?.id}</b><small>{selectedReference?.source_language || "Recording language not recorded"}</small></div>}
       </section>}
-      <div className="voice-complete-routes">{missing.map((route) => <div key={route.model_id}><span><b>{route.label}</b><small>{route.role} · {route.documented_output_languages.length} documented output languages</small></span><em>{route.estimated_creation_cost ? `up to $${route.estimated_creation_cost.toFixed(2)}` : "Free creation"}</em></div>)}</div>
+      <div className="voice-complete-routes">{missing.map((route) => <div key={route.provider_model_id}><span><b>{route.role}</b><small>{route.provider} · {route.label} · {route.region} · {route.documented_output_languages.length} documented output languages</small></span><em>{route.estimated_creation_cost ? `up to $${route.estimated_creation_cost.toFixed(2)}` : "Free creation"}</em></div>)}</div>
       {error && <p className="voice-create-error">{error}</p>}
       <DialogFooter><Button variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>Cancel</Button><Button disabled={busy || !missing.length || (requiresUpload ? (!file || !recordingLanguage) : !referenceId)} onClick={() => void complete()}>{busy ? <><LoaderCircle className="spin" /> Preparing…</> : <><Sparkles /> Create {missing.length} model version{missing.length === 1 ? "" : "s"}</>}</Button></DialogFooter>
     </DialogContent>

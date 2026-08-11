@@ -268,7 +268,8 @@ class BatchGenerationService:
                             "catalogue_voice_id": prepared.catalogue_voice_id,
                         }, {"row": row_number,
                             "text_length": len(prepared.spoken_text)},
-                        reservation_id)
+                        reservation_id,
+                        estimated_cost=prepared.estimated_cost)
                     self.operations.repository.mark_sent(attempt_id)
                 made = self.provider.synthesize(prepared)
                 if not made.audio:

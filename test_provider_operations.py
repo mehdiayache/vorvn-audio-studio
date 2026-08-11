@@ -162,6 +162,39 @@ class ProviderOperationTests(unittest.TestCase):
                 second_job, "speech", 8,
                 {"daily_cap": cap, "warn_above": 0}, True)
 
+    def test_batch_attempt_keeps_row_estimate_while_full_budget_stays_protected(self):
+        baseline = today_provider_spend()
+        job_id = self.job()
+        reservation = self.service.authorize(
+            job_id, "batch_speech", 8,
+            {"daily_cap": baseline + 10, "warn_above": 0}, True)
+        attempt = self.records.begin_attempt(
+            job_id, "speech",
+            {"provider": "alibaba", "region": "intl", "model": "fixture"},
+            {"row": 2}, reservation, estimated_cost=.8)
+        self.records.mark_sent(attempt)
+        self.records.finish_attempt(
+            attempt, "ambiguous", cost=.8, usage={}, request_ids=[], error={})
+
+        with psycopg.connect(settings.database_url) as database:
+            attempt_estimate = database.execute(
+                "SELECT estimated_cost FROM provider_attempts WHERE id=%s",
+                (int(attempt),)).fetchone()[0]
+            reservation_row = database.execute("""
+                SELECT estimated_cost,actual_cost,status
+                  FROM budget_reservations WHERE id=%s
+            """, (int(reservation),)).fetchone()
+        self.assertAlmostEqual(float(attempt_estimate), .8)
+        self.assertAlmostEqual(float(reservation_row[0]), 8)
+        self.assertAlmostEqual(float(reservation_row[1]), .8)
+        self.assertEqual(reservation_row[2], "ambiguous")
+
+        other_job = self.job()
+        with self.assertRaisesRegex(PermissionError, "Daily cap"):
+            self.service.authorize(
+                other_job, "speech", 3,
+                {"daily_cap": baseline + 10, "warn_above": 0}, True)
+
     def test_provider_receipt_and_local_artifact_are_separate_evidence(self):
         job_id = self.job()
         reservation = self.service.authorize(

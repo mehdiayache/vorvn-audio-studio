@@ -7,7 +7,7 @@ import psycopg
 
 from audio_studio.composition.work import work_service
 from audio_studio.config import settings
-from audio_studio.domain import voice_registry
+from audio_studio.domain import provider_catalog, voice_registry
 from audio_studio.infrastructure.postgres.casting import CastRepository
 from audio_studio.infrastructure.postgres.provider_catalogue import (
     ProviderCatalogueRepository,
@@ -40,10 +40,54 @@ class ProviderCatalogueTests(unittest.TestCase):
             {item["catalogue_voice_id"] for item in SpeechRepository().catalogue_voices()},
             {item["catalogue_voice_id"] for item in persisted},
         )
+        audio_method = next(
+            item for item in repository.enrollment_methods()
+            if item["provider_model_id"]
+            == "alibaba:intl:qwen-audio-3.0-tts-flash")
+        self.assertEqual(
+            audio_method["output_languages"],
+            list(provider_catalog.AUDIO_CLONE_LANGUAGES.values()),
+        )
         with psycopg.connect(settings.database_url) as database:
             after = database.execute(
                 "SELECT count(*) FROM provider_attempts").fetchone()[0]
         self.assertEqual(after, before)
+
+    def test_installed_enrollment_methods_come_from_provider_models(self):
+        repository = ProviderCatalogueRepository()
+        marker = uuid4().hex[:10]
+        provider_model_id = f"fixture:global:model-{marker}"
+        try:
+            with psycopg.connect(settings.database_url) as database:
+                database.execute("""
+                    INSERT INTO provider_models
+                        (id,provider,region,model_id,tier,operation,
+                         enrollment_languages,output_languages,pricing,status,
+                         metadata,adapter_key,enrollment_supported)
+                    VALUES (%s,'fixture','global',%s,'plus','voice_clone',
+                            '["en"]','["English","Arabic"]',
+                            '{"enrollment_cost_usd":0.25}','active',
+                            '{"model_label":"Fixture Voice Model"}',
+                            'fixture-adapter',true)
+                """, (provider_model_id, f"model-{marker}"))
+                database.execute("""
+                    INSERT INTO provider_model_capabilities
+                        (provider_model_id,capability_id)
+                    VALUES (%s,'expressive_tags')
+                """, (provider_model_id,))
+                database.commit()
+            method = next(item for item in repository.enrollment_methods()
+                          if item["provider_model_id"] == provider_model_id)
+            self.assertEqual(method["provider"], "fixture")
+            self.assertEqual(method["adapter_key"], "fixture-adapter")
+            self.assertEqual(method["label"], "Fixture Voice Model")
+            self.assertEqual(method["capability_ids"], ["expressive_tags"])
+            self.assertEqual(method["estimated_creation_cost"], .25)
+        finally:
+            with psycopg.connect(settings.database_url) as database:
+                database.execute("DELETE FROM provider_models WHERE id=%s",
+                                 (provider_model_id,))
+                database.commit()
 
     def test_catalogue_cast_accepts_only_a_persisted_exact_route(self):
         repository = ProviderCatalogueRepository()

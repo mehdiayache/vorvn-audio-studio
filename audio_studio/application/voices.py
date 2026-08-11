@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any, Callable, Protocol
 
-from audio_studio.config import alibaba_environment
 from audio_studio.domain import voice_packages
 from audio_studio.application.provider_operations import enforce_daily_cap
 
@@ -25,20 +24,27 @@ class VoicePackageStore(Protocol):
     def retry(self, enrollment_job_id: str) -> str | None: ...
 
 
+class EnrollmentMethodStore(Protocol):
+    def enrollment_methods(self) -> list[dict]: ...
+
+
 class VoiceService:
     def __init__(
         self,
         profiles_store: VoiceProfilesStore,
         package_store: VoicePackageStore,
+        method_store: EnrollmentMethodStore,
         preferences: Callable[[], dict],
     ):
         self.profiles_store = profiles_store
         self.package_store = package_store
+        self.method_store = method_store
         self.preferences = preferences
 
     def profiles(self) -> list[dict[str, Any]]:
         identities = self.profiles_store.profiles()
         usage = self.profiles_store.profile_usage()
+        installed_methods = self.method_store.enrollment_methods()
         for identity in identities:
             metadata = identity.get("metadata") or {}
             # Recording provenance belongs to the preserved master, while a
@@ -63,10 +69,9 @@ class VoiceService:
                 # the explicit recording/editorial fields.
                 "language": recording_language,
             }
-            identity["available_routes"] = (voice_packages.plan(
-                recording_language,
-                region=alibaba_environment().region,
-            )["available_routes"] if recording_language else [])
+            identity["available_routes"] = voice_packages.plan(
+                recording_language, installed_methods,
+            )["available_routes"]
             identity["usage"] = usage.get(identity["id"], {
                 "uses": 0, "productions": 0, "spend": 0.0,
                 "last_used": None, "preview_filename": "",
@@ -103,7 +108,7 @@ class VoiceService:
         if not language.strip():
             raise ValueError("Choose the recording language first.")
         return voice_packages.plan(
-            language, package, region=alibaba_environment().region)
+            language, self.method_store.enrollment_methods(), package)
 
     def _check_creation_budget(self, estimate: float,
                                confirmed: bool) -> dict | None:

@@ -32,6 +32,8 @@ class VoiceRepositoryTests(unittest.TestCase):
         provider_id = f"qwen-omni-vc-repo-{marker}"
         model_id = f"fixture-model-{marker}"
         reference_id = f"ref_repo_{marker}"
+        second_reference_id = f"ref_repo_second_{marker}"
+        second_provider_id = f"qwen-omni-vc-repo-second-{marker}"
         metadata_id = f"qwen-audio-3.0-tts-plus-repo-{marker}"
         part_id = None
         try:
@@ -49,6 +51,12 @@ class VoiceRepositoryTests(unittest.TestCase):
                         VALUES (%s, %s, 'source.mp3', 'source.mp3', 'source.wav')
                     """, (reference_id, identity_id))
                     cursor.execute("""
+                        INSERT INTO voice_references
+                            (id, identity_id, original_name, original_path,
+                             normalized_path)
+                        VALUES (%s, %s, 'studio.mp3', 'studio.mp3', 'studio.wav')
+                    """, (second_reference_id, identity_id))
+                    cursor.execute("""
                         UPDATE voice_identities SET preferred_reference_id=%s
                          WHERE id=%s
                     """, (reference_id, identity_id))
@@ -61,6 +69,14 @@ class VoiceRepositoryTests(unittest.TestCase):
                         RETURNING id
                     """, (provider_id, model_id, identity_id, reference_id))
                     binding_id = cursor.fetchone()[0]
+                    cursor.execute("""
+                        INSERT INTO voice_bindings
+                            (provider_voice_id, model_id, identity_id, engine,
+                             tier, languages, reference_id)
+                        VALUES (%s, %s, %s, 'omni', 'plus', '["English"]'::jsonb,
+                                %s)
+                    """, (second_provider_id, model_id, identity_id,
+                          second_reference_id))
                     cursor.execute("""
                         INSERT INTO voices (id, image, favourite, name)
                         VALUES (%s, 'fixture.png', true, 'Fixture system voice')
@@ -91,8 +107,14 @@ class VoiceRepositoryTests(unittest.TestCase):
                            if item["id"] == identity_id)
             self.assertEqual(profile["references"][0]["id"], reference_id)
             self.assertEqual(profile["preferred_reference_id"], reference_id)
-            self.assertEqual(profile["bindings"][0]["provider_voice_id"],
-                             provider_id)
+            exact_bindings = [item for item in profile["bindings"]
+                              if item["model_id"] == model_id]
+            self.assertEqual(len(exact_bindings), 2)
+            self.assertEqual(
+                {item["reference_id"] for item in exact_bindings},
+                {reference_id, second_reference_id})
+            self.assertEqual(len({item["binding_id"]
+                                  for item in exact_bindings}), 2)
             self.assertEqual(repository.profile_usage()[identity_id]["uses"], 1)
             binding = next(
                 item for item in repository.custom_bindings()
@@ -143,8 +165,8 @@ class VoiceRepositoryTests(unittest.TestCase):
                                        (part_id,))
                     cursor.execute("DELETE FROM voice_bindings WHERE identity_id = %s",
                                    (identity_id,))
-                    cursor.execute("DELETE FROM voice_references WHERE id = %s",
-                                   (reference_id,))
+                    cursor.execute("DELETE FROM voice_references WHERE id=ANY(%s)",
+                                   ([reference_id, second_reference_id],))
                     cursor.execute("DELETE FROM voice_identities WHERE id = %s",
                                    (identity_id,))
                     cursor.execute("DELETE FROM voices WHERE id = %s",

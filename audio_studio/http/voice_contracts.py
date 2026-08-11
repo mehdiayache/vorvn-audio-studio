@@ -7,12 +7,15 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
-Engine = Literal["audio", "omni", "qwen_tts"]
-Tier = Literal["plus", "flash", "vc"]
+Engine = str
+Tier = str
 
 
 class VoicePackageRouteResponse(BaseModel):
+    provider_model_id: str
     provider: str
+    region: str
+    adapter_key: str
     engine: Engine
     tier: Tier
     model_id: str
@@ -22,6 +25,7 @@ class VoicePackageRouteResponse(BaseModel):
     source_language_documented: bool
     documented_output_languages: list[str]
     estimated_creation_cost: float
+    capability_ids: list[str] = Field(default_factory=list)
 
 
 class VoicePackageOptionResponse(BaseModel):
@@ -33,7 +37,7 @@ class VoicePackageOptionResponse(BaseModel):
 
 
 class VoicePackagePlanResponse(BaseModel):
-    region: Literal["intl", "beijing"]
+    region: str
     region_label: str
     language: str
     package: Literal["complete", "exact", "omni"]
@@ -78,7 +82,11 @@ class VoiceReferenceSummaryResponse(BaseModel):
 
 
 class VoiceProfileBindingResponse(BaseModel):
+    binding_id: str
     provider_voice_id: str
+    provider: str
+    region: str
+    provider_model_id: str | None = None
     model_id: str
     engine: Engine
     tier: Tier
@@ -93,6 +101,12 @@ class VoicePackageJobResponse(BaseModel):
     identity_id: str
     reference_id: str
     model_id: str
+    provider: str
+    region: str
+    provider_model_id: str | None = None
+    adapter_key: str
+    classification: str
+    binding_id: str | None = None
     engine: Engine
     tier: Tier
     status: str

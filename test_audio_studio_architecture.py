@@ -175,6 +175,16 @@ class AudioStudioArchitectureTests(unittest.TestCase):
         repository = ROOT / "audio_studio/infrastructure/postgres/voices.py"
         self.assertTrue(repository.exists())
 
+    def test_clone_discovery_has_one_provider_neutral_catalogue_owner(self):
+        planner = (ROOT / "audio_studio/domain/voice_packages.py").read_text()
+        service = (ROOT / "audio_studio/application/voices.py").read_text()
+        composition = (ROOT / "audio_studio/composition/voices.py").read_text()
+        self.assertNotIn("provider_catalog", planner)
+        self.assertNotIn('"provider": "alibaba"', planner)
+        self.assertNotIn("alibaba_environment", service)
+        self.assertIn("self.method_store.enrollment_methods()", service)
+        self.assertIn("ProviderCatalogueRepository", composition)
+
     def test_control_plane_has_no_legacy_persistence_calls(self):
         for relative in (
                 "audio_studio/application/activity.py",
