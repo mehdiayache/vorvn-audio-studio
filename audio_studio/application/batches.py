@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from typing import Any, Callable, Protocol
 from urllib.parse import unquote
@@ -251,8 +252,9 @@ class BatchGenerationService:
                             f"Speaking spreadsheet row {row_number}")
             label = (spreadsheet.cell(row, name_column)
                      or f"row-{row_number}")
+            attempt_id = None
+            provider_succeeded = False
             try:
-                attempt_id = None
                 if self.operations and job_id:
                     attempt_id = self.operations.repository.begin_attempt(
                         job_id, "speech", prepared.voice_route or {
@@ -272,10 +274,6 @@ class BatchGenerationService:
                     raise RuntimeError(
                         "The provider could not complete every speech "
                         "section. No incomplete row was saved.")
-                filename = _unique_filename(
-                    label, f"row-{row_number}", prepared.extension, used_names)
-                self.workspace.write_audio(folder, filename, made.audio)
-                files.append(filename)
                 total_cost += float(made.cost)
                 _sum_usage(usage, made.usage)
                 models.add(prepared.model_id)
@@ -289,6 +287,28 @@ class BatchGenerationService:
                 if made.price_version:
                     price_versions.add(made.price_version)
                 request_ids.extend(made.request_ids)
+                if attempt_id:
+                    self.operations.repository.finish_attempt(
+                        attempt_id, "succeeded", cost=float(made.cost),
+                        usage=made.usage, request_ids=made.request_ids, error={},
+                        receipt={
+                            "row": row_number,
+                            "audio_sha256": hashlib.sha256(made.audio).hexdigest(),
+                            "size_bytes": len(made.audio),
+                            "format": prepared.output_format,
+                            "provider_region": made.provider_region,
+                            "provider_endpoint": made.provider_endpoint,
+                        }, reconcile_budget=False)
+                    provider_succeeded = True
+                filename = _unique_filename(
+                    label, f"row-{row_number}", prepared.extension, used_names)
+                self.workspace.write_audio(folder, filename, made.audio)
+                files.append(filename)
+                if attempt_id:
+                    self.operations.repository.record_artifact(attempt_id, {
+                        "type": "batch_audio", "folder": folder,
+                        "filename": filename, "size_bytes": len(made.audio),
+                    })
                 item = {
                     "row": row_number, "name": filename,
                     "text": prepared.original_text[:90],
@@ -305,13 +325,9 @@ class BatchGenerationService:
                     "failed_parts": len(made.failures),
                 }
                 results.append(item)
-                if attempt_id:
-                    self.operations.repository.finish_attempt(
-                        attempt_id, "succeeded", cost=float(made.cost),
-                        usage=made.usage, request_ids=made.request_ids, error={},
-                        reconcile_budget=False)
             except Exception as error:
-                if self.operations and job_id and attempt_id:
+                if (self.operations and job_id and attempt_id
+                        and not provider_succeeded):
                     status = self.operations.failure_status(error)
                     self.operations.repository.finish_attempt(
                         attempt_id, status,
@@ -336,7 +352,12 @@ class BatchGenerationService:
                              "usage": usage, "failed_row": row_number}) from error
                 item = {"row": row_number,
                         "text": prepared.original_text[:90],
-                        "error": _human_error(error)}
+                        "error": (
+                            "The provider completed this paid row, but Audio "
+                            "Studio could not retain its file. Provider evidence "
+                            "was preserved; only an operator may create a new "
+                            "paid attempt."
+                            if provider_succeeded else _human_error(error))}
                 results.append(item)
                 problems.append(item)
 

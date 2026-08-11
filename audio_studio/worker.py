@@ -40,6 +40,9 @@ from audio_studio.infrastructure.alibaba.translation import AlibabaTranslationPr
 from audio_studio.infrastructure.alibaba.transcription import AlibabaTranscriptionProvider
 from audio_studio.infrastructure.alibaba.voice_cloning import AlibabaVoiceCloningProvider
 from audio_studio.infrastructure.audio_workspace import AudioWorkspace
+from audio_studio.infrastructure.enrollment_provider_registry import (
+    ExactEnrollmentProviderRegistry,
+)
 from audio_studio.infrastructure.speech_provider_registry import (
     ExactSpeechProviderRegistry,
 )
@@ -104,8 +107,13 @@ def main() -> int:
         provider_operations,
     )))
     service.register("render", render_service.handle_job)
+    alibaba_enrollment = AlibabaVoiceCloningProvider()
+    enrollment_provider = ExactEnrollmentProviderRegistry({
+        ("alibaba", adapter_key): alibaba_enrollment
+        for adapter_key in ("audio", "omni", "qwen_tts")
+    })
     voice_cloning = VoiceCloningService(
-        VoicePackageRepository(), AlibabaVoiceCloningProvider(),
+        VoicePackageRepository(), enrollment_provider,
         VoiceReferenceWorkspace(), provider_operations, load_preferences,
     )
     stopping = False

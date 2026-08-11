@@ -1,5 +1,6 @@
 """Bulk enrollment orchestration tests; never enqueue a provider call."""
 
+from pathlib import Path
 import unittest
 
 from audio_studio.application.bulk_enrollment import BulkEnrollmentService
@@ -67,6 +68,14 @@ class BulkEnrollmentTests(unittest.TestCase):
             service.get("missing")
         with self.assertRaises(ValueError):
             service.retry("campaign-1", [])
+
+    def test_postgres_bulk_jobs_persist_the_exact_enrollment_adapter(self):
+        source = Path(
+            "audio_studio/infrastructure/postgres/bulk_enrollment.py"
+        ).read_text()
+        insert = source[source.index("INSERT INTO voice_package_jobs"):]
+        self.assertIn("adapter_key,classification,status", insert)
+        self.assertIn('route["engine"], item["classification"]', insert)
 
 
 if __name__ == "__main__":

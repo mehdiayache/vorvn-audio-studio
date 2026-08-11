@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { FileDropZone } from "@/components/file-drop-zone"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { RecordingLanguageField } from "@/features/voices/recording-language-field"
 import { studioApi } from "@/lib/api"
 import type { StudioConfig, VoiceProfile } from "@/types/domain"
 
@@ -23,8 +23,7 @@ export function CompleteVoiceDialog({ profile, config, onOpenChange, onQueued }:
   const activeModels = useMemo(() => new Set(profile?.jobs.filter((job) => ["queued", "creating"].includes(job.status)).map((job) => job.model_id)), [profile])
   const missing = profile?.available_routes.filter((route) => !readyModels.has(route.model_id) && !activeModels.has(route.model_id)) || []
   const savedReference = profile?.references[0]?.id || ""
-  const needsCompatibleReference = missing.some((route) => !route.source_language_documented)
-  const requiresUpload = !savedReference || needsCompatibleReference
+  const requiresUpload = !savedReference
   const languages = useMemo(() => {
     const map = new Map<string, string>()
     Object.values(config?.capabilities || {}).forEach((capability) => {
@@ -35,9 +34,9 @@ export function CompleteVoiceDialog({ profile, config, onOpenChange, onQueued }:
 
   useEffect(() => {
     setFile(null)
-    setRecordingLanguage(needsCompatibleReference ? "" : String(profile?.metadata.recording_language || profile?.metadata.language || ""))
+    setRecordingLanguage(String(profile?.metadata.recording_language || profile?.metadata.language || ""))
     setError("")
-  }, [needsCompatibleReference, profile?.id, profile?.metadata.language, profile?.metadata.recording_language])
+  }, [profile?.id, profile?.metadata.language, profile?.metadata.recording_language])
 
   async function complete() {
     if (!profile || (requiresUpload && !file)) return
@@ -70,11 +69,9 @@ export function CompleteVoiceDialog({ profile, config, onOpenChange, onQueued }:
         <DialogDescription>Create only the missing provider model versions. Existing working versions remain untouched.</DialogDescription>
       </DialogHeader>
       {requiresUpload && <section className="voice-complete-source">
-        <h3>{savedReference ? "This model needs another source language" : "Reference recording needed"}</h3>
-        <p>{savedReference
-          ? "Your original master is saved and still belongs to every working version. The missing model does not accept the language spoken in that file, so add another recording of the same person for this model only."
-          : "This historical voice has no preserved reference. Add one clean recording to create its missing model versions."}</p>
-        <label><span>Language actually spoken in the new recording</span><Select value={recordingLanguage || undefined} onValueChange={setRecordingLanguage}><SelectTrigger><SelectValue placeholder="Choose the spoken language" /></SelectTrigger><SelectContent>{languages.map(([code, label]) => <SelectItem value={code} key={code}>{label}</SelectItem>)}</SelectContent></Select><small>Required provider enrollment fact. It never restricts the voice identity.</small></label>
+        <h3>Reference recording needed</h3>
+        <p>This historical voice has no preserved reference. Add one clean recording to attempt its missing installed methods. An undocumented source language is Experimental, never blocked.</p>
+        <RecordingLanguageField value={recordingLanguage} onChange={setRecordingLanguage} suggestions={languages} label="Language spoken in the new recording" />
         <FileDropZone file={file} accept="audio/wav,audio/mpeg,audio/mp4,.wav,.mp3,.m4a" disabled={busy} onFile={(next) => { setFile(next); setError("") }} hint="WAV, MP3 or M4A · up to 10 MB" />
       </section>}
       <div className="voice-complete-routes">{missing.map((route) => <div key={route.model_id}><span><b>{route.label}</b><small>{route.role} · {route.documented_output_languages.length} documented output languages</small></span><em>{route.estimated_creation_cost ? `up to $${route.estimated_creation_cost.toFixed(2)}` : "Free creation"}</em></div>)}</div>

@@ -55,7 +55,8 @@ def installed_routes(language: str) -> list[dict]:
                 else "Economical performance"
             )
             routes.append({
-                "provider": "alibaba", "engine": engine, "tier": tier,
+                "provider": "alibaba", "adapter_key": engine,
+                "engine": engine, "tier": tier,
                 "model_id": model,
                 "label": (f"{capability['label']} · Voice Clone"
                           if tier == "vc" else
@@ -123,8 +124,13 @@ class VoicePackageJob:
     identity_id: str
     reference_id: str
     model_id: str
+    provider: str
+    region: str
+    provider_model_id: str | None
+    adapter_key: str
     engine: str
     tier: str
+    output_languages: list[str]
     attempts: int
     name: str
     metadata: dict

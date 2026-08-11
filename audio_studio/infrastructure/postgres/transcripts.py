@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from audio_studio.infrastructure.postgres.session import read_only, transaction
+from audio_studio.infrastructure.postgres.spend import today_provider_spend
 
 
 TRANSCRIPT_FIELDS = (
@@ -142,11 +143,4 @@ class TranscriptRepository:
                            (transcript_id,))
 
     def today_spend(self) -> float:
-        with read_only() as cursor:
-            cursor.execute("""
-                SELECT coalesce(sum(cost) FILTER
-                       (WHERE created_at::date = current_date), 0)
-                  FROM jobs
-            """)
-            row = cursor.fetchone()
-            return float(row[0] or 0) if row else 0.0
+        return today_provider_spend()

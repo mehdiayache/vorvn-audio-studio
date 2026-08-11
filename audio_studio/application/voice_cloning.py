@@ -16,8 +16,11 @@ class VoicePackageRepository(Protocol):
     def claim_next(self) -> VoicePackageJob | None: ...
     def reference(self, reference_id: str) -> dict | None: ...
     def start_attempt(self, job: VoicePackageJob, estimate: float) -> int: ...
+    def recoverable_binding(self, job: VoicePackageJob
+                            ) -> CreatedVoiceBinding | None: ...
     def complete(self, job: VoicePackageJob, activity_id: int,
-                 binding: CreatedVoiceBinding) -> None: ...
+                 binding: CreatedVoiceBinding, *, recovered: bool = False
+                 ) -> None: ...
     def fail(self, job: VoicePackageJob, activity_id: int,
              error: str) -> None: ...
 
@@ -49,7 +52,27 @@ class VoiceCloningService:
         job = self.repository.claim_next()
         if not job:
             return False
-        estimate = self.provider.estimated_cost(job)
+        recovered = self.repository.recoverable_binding(job)
+        if recovered:
+            activity_id = self.repository.start_attempt(
+                job, recovered.estimated_cost)
+            try:
+                self.repository.complete(
+                    job, activity_id, recovered, recovered=True)
+            except Exception as exc:
+                message = str(exc).strip()[:600] or type(exc).__name__
+                self.repository.fail(job, activity_id, message)
+            return True
+        try:
+            estimate = self.provider.estimated_cost(job)
+        except Exception as exc:
+            # Adapter/configuration resolution is local and free. Persist the
+            # failed enrollment Job without inventing a ProviderAttempt or
+            # crashing the long-running worker.
+            activity_id = self.repository.start_attempt(job, 0)
+            message = str(exc).strip()[:600] or type(exc).__name__
+            self.repository.fail(job, activity_id, message)
+            return True
         activity_id = self.repository.start_attempt(job, estimate)
         reservation_id = None
         attempt_id = None
@@ -60,8 +83,10 @@ class VoiceCloningService:
                     self.preferences(), True)
                 attempt_id = self.operations.repository.begin_attempt(
                     activity_id, "voice_enrollment", {
-                        "provider": "alibaba",
-                        "region": job.metadata.get("provider_region") or "intl",
+                        "provider": job.provider,
+                        "region": job.region,
+                        "provider_model_id": job.provider_model_id,
+                        "adapter_key": job.adapter_key,
                         "model": job.model_id,
                         "binding_reference_id": job.reference_id,
                     }, {"identity_id": job.identity_id,
@@ -75,12 +100,20 @@ class VoiceCloningService:
                 self.operations.repository.mark_sent(attempt_id)
             binding = self.provider.create(job, local)
             if not binding.provider_voice_id:
-                raise RuntimeError("Alibaba returned no cloned voice ID.")
-            self.repository.complete(job, activity_id, binding)
+                raise RuntimeError("The provider returned no cloned voice ID.")
             if attempt_id:
                 self.operations.repository.finish_attempt(
                     attempt_id, "succeeded", cost=binding.cost, usage={},
-                    request_ids=[], error={})
+                    request_ids=[], error={}, receipt={
+                        "provider_voice_id": binding.provider_voice_id,
+                        "provider_region": binding.provider_region,
+                        "provider_endpoint": binding.provider_endpoint,
+                        "price_version": binding.price_version,
+                        "estimated_cost": binding.estimated_cost,
+                        "cost": binding.cost,
+                        "cost_basis": binding.cost_basis,
+                    })
+            self.repository.complete(job, activity_id, binding)
         except Exception as exc:
             message = str(exc).strip()[:600] or type(exc).__name__
             if attempt_id:

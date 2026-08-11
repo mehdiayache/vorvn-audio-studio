@@ -23,11 +23,16 @@ from audio_studio.infrastructure.media_workspace import LocalMediaWorkspace
 class NativeHttpTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.client = TestClient(app)
+        # Entering the client is what runs FastAPI's lifespan.  A plain
+        # TestClient instance silently skips the real migration/catalogue
+        # startup path and made this suite depend on a developer's populated
+        # database instead of the clean PostgreSQL used by CI.
+        cls.client_context = TestClient(app)
+        cls.client = cls.client_context.__enter__()
 
     @classmethod
     def tearDownClass(cls):
-        cls.client.close()
+        cls.client_context.__exit__(None, None, None)
 
     def test_react_and_legacy_urls_have_one_canonical_home(self):
         root = self.client.get("/", follow_redirects=False)

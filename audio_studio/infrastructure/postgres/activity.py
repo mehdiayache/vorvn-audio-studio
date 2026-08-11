@@ -100,7 +100,10 @@ class ActivityRepository:
         query = f"""
             SELECT job.id, job.public_id, job.created_at, job.kind, job.status,
                    job.operation_label, job.source_tool, job.model, job.voice,
-                   job.detail, job.error, job.estimated, job.cost, job.chars,
+                   job.detail, job.error, job.estimated,
+                   CASE WHEN attempt.attempt_count > 0
+                        THEN attempt.provider_cost ELSE job.cost END,
+                   job.chars,
                    job.seconds, job.elapsed_ms, job.actor_id,
                    job.organization_id, job.provider_request_id,
                    job.provider_region, job.provider_endpoint,
@@ -113,8 +116,16 @@ class ActivityRepository:
               LEFT JOIN productions production
                 ON production.id = job.production_id
               LEFT JOIN LATERAL (
-                SELECT status, public_id FROM provider_attempts
-                 WHERE job_id=job.id ORDER BY created_at DESC, id DESC LIMIT 1
+                SELECT (array_agg(status ORDER BY created_at DESC, id DESC))[1]
+                           AS status,
+                       (array_agg(public_id ORDER BY created_at DESC, id DESC))[1]
+                           AS public_id,
+                       count(*) AS attempt_count,
+                       coalesce(sum(CASE WHEN status='ambiguous'
+                           THEN greatest(estimated_cost,coalesce(cost,0))
+                           ELSE coalesce(cost,0) END),0) AS provider_cost
+                  FROM provider_attempts
+                 WHERE job_id=job.id
               ) attempt ON true
              WHERE {' AND '.join(where)}
              ORDER BY job.created_at DESC LIMIT %s
@@ -123,22 +134,43 @@ class ActivityRepository:
             cursor.execute(query, (*parameters, limit))
             runs = [_run(row) for row in cursor.fetchall()]
             cursor.execute("""
-                SELECT coalesce(sum(cost) FILTER
+                WITH attempt_costs AS (
+                  SELECT job_id, sum(CASE WHEN status='ambiguous'
+                           THEN greatest(estimated_cost,coalesce(cost,0))
+                           ELSE coalesce(cost,0) END) AS provider_cost
+                    FROM provider_attempts
+                   GROUP BY job_id
+                ), effective AS (
+                  SELECT job.*, coalesce(attempt.provider_cost,job.cost) AS spend
+                    FROM jobs job
+                    LEFT JOIN attempt_costs attempt ON attempt.job_id=job.id
+                )
+                SELECT coalesce(sum(spend) FILTER
                            (WHERE created_at::date = current_date), 0),
-                       coalesce(sum(cost) FILTER
+                       coalesce(sum(spend) FILTER
                            (WHERE date_trunc('month', created_at) =
                                   date_trunc('month', now())), 0),
-                       coalesce(sum(cost), 0), count(*),
+                       coalesce(sum(spend), 0), count(*),
                        count(*) FILTER
                            (WHERE status IN
                               ('failed','warning','blocked','lost'))
-                  FROM jobs
+                  FROM effective
             """)
             totals = cursor.fetchone()
             cursor.execute("""
+                WITH attempt_costs AS (
+                  SELECT job_id, sum(CASE WHEN status='ambiguous'
+                           THEN greatest(estimated_cost,coalesce(cost,0))
+                           ELSE coalesce(cost,0) END) AS provider_cost
+                    FROM provider_attempts GROUP BY job_id
+                ), effective AS (
+                  SELECT job.*, coalesce(attempt.provider_cost,job.cost) AS spend
+                    FROM jobs job
+                    LEFT JOIN attempt_costs attempt ON attempt.job_id=job.id
+                )
                 SELECT coalesce(cost_basis, 'unknown'), count(*),
-                       coalesce(sum(cost), 0)
-                  FROM jobs
+                       coalesce(sum(spend), 0)
+                  FROM effective
                  GROUP BY coalesce(cost_basis, 'unknown') ORDER BY 1
             """)
             breakdown = [{
@@ -146,11 +178,21 @@ class ActivityRepository:
                 "runs": row[1], "cost": float(row[2] or 0),
             } for row in cursor.fetchall()]
             cursor.execute("""
-                SELECT kind, count(*), coalesce(sum(cost), 0),
+                WITH attempt_costs AS (
+                  SELECT job_id, sum(CASE WHEN status='ambiguous'
+                           THEN greatest(estimated_cost,coalesce(cost,0))
+                           ELSE coalesce(cost,0) END) AS provider_cost
+                    FROM provider_attempts GROUP BY job_id
+                ), effective AS (
+                  SELECT job.*, coalesce(attempt.provider_cost,job.cost) AS spend
+                    FROM jobs job
+                    LEFT JOIN attempt_costs attempt ON attempt.job_id=job.id
+                )
+                SELECT kind, count(*), coalesce(sum(spend), 0),
                        count(*) FILTER
                            (WHERE status IN
                               ('failed','warning','blocked','lost'))
-                  FROM jobs GROUP BY kind ORDER BY kind
+                  FROM effective GROUP BY kind ORDER BY kind
             """)
             by_kind = [{
                 "kind": row[0], "runs": row[1],

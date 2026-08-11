@@ -10,6 +10,7 @@ from audio_studio.infrastructure.postgres.session import read_only, transaction
 from audio_studio.infrastructure.postgres.provider_catalogue import (
     ProviderCatalogueRepository,
 )
+from audio_studio.infrastructure.postgres.spend import today_provider_spend
 
 
 class SpeechRepository:
@@ -76,14 +77,7 @@ class SpeechRepository:
             return [dict(zip(keys, row)) for row in cursor.fetchall()]
 
     def today_spend(self) -> float:
-        with read_only() as cursor:
-            cursor.execute("""
-                SELECT coalesce(sum(cost) FILTER
-                       (WHERE created_at::date = current_date), 0)
-                  FROM jobs
-            """)
-            row = cursor.fetchone()
-            return float(row[0] or 0) if row else 0.0
+        return today_provider_spend()
 
     def production(self, production_id: int) -> dict[str, Any] | None:
         with read_only() as cursor:

@@ -12,6 +12,8 @@ from audio_studio.infrastructure.postgres.jobs import JobRepository
 from audio_studio.infrastructure.postgres.provider_operations import (
     ProviderOperationRepository,
 )
+from audio_studio.infrastructure.postgres.activity import ActivityRepository
+from audio_studio.infrastructure.postgres.spend import today_provider_spend
 from audio_studio.http.app import app
 
 
@@ -137,6 +139,55 @@ class ProviderOperationTests(unittest.TestCase):
             after = database.execute(
                 "SELECT count(*) FROM provider_attempts").fetchone()[0]
         self.assertEqual(after, before)
+
+    def test_active_batch_reservation_keeps_its_full_budget_after_one_row(self):
+        """A cheap completed row must not release the rest of a live Batch."""
+        cap = today_provider_spend() + 10
+        first_job = self.job()
+        reservation = self.service.authorize(
+            first_job, "batch_speech", 8,
+            {"daily_cap": cap, "warn_above": 0}, True)
+        attempt = self.records.begin_attempt(
+            first_job, "speech",
+            {"provider": "alibaba", "region": "intl", "model": "fixture"},
+            {"row": 2}, reservation)
+        self.records.mark_sent(attempt)
+        self.records.finish_attempt(
+            attempt, "succeeded", cost=1, usage={}, request_ids=[], error={},
+            reconcile_budget=False)
+
+        second_job = self.job()
+        with self.assertRaisesRegex(PermissionError, "Daily cap"):
+            self.service.authorize(
+                second_job, "speech", 8,
+                {"daily_cap": cap, "warn_above": 0}, True)
+
+    def test_provider_receipt_and_local_artifact_are_separate_evidence(self):
+        job_id = self.job()
+        reservation = self.service.authorize(
+            job_id, "speech", .02,
+            {"daily_cap": 0, "warn_above": 0}, True)
+        attempt = self.records.begin_attempt(
+            job_id, "speech",
+            {"provider": "alibaba", "region": "intl", "model": "fixture"},
+            {"text_hash": "fixture"}, reservation)
+        self.records.mark_sent(attempt)
+        self.records.finish_attempt(
+            attempt, "succeeded", cost=.012, usage={"audio": 4},
+            request_ids=["provider-request"], error={},
+            receipt={"audio_sha256": "abc", "size_bytes": 3})
+        self.records.record_artifact(
+            attempt, {"type": "audio", "filename": "opaque.mp3"})
+        with psycopg.connect(settings.database_url) as database:
+            status, diagnostics = database.execute(
+                "SELECT status,diagnostics FROM provider_attempts WHERE id=%s",
+                (int(attempt),)).fetchone()
+        self.assertEqual(status, "succeeded")
+        self.assertEqual(diagnostics["provider_result"]["audio_sha256"], "abc")
+        self.assertEqual(diagnostics["local_artifact"]["filename"], "opaque.mp3")
+        run = next(item for item in ActivityRepository().snapshot()["runs_list"]
+                   if item["internal_id"] == job_id)
+        self.assertAlmostEqual(run["cost"], .012)
 
 
 if __name__ == "__main__":

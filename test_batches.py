@@ -12,6 +12,7 @@ from audio_studio.application.batches import (
     BatchIntakeService,
     BatchJobHandler,
 )
+from audio_studio.application.provider_operations import ProviderOperationService
 from audio_studio.domain.speech import PreparedSpeech, SynthesizedSpeech
 from audio_studio.domain.jobs import Job, JobStatus
 from audio_studio.config import settings
@@ -58,6 +59,37 @@ class FakeWorkspace:
     def write_zip(self, folder, filenames):
         self.zipped.append((folder, filenames))
         return bool(filenames)
+
+
+class FailingAudioWorkspace(FakeWorkspace):
+    def write_audio(self, folder, filename, audio):
+        raise OSError("output storage unavailable")
+
+
+class FakeOperationsRepository:
+    def __init__(self):
+        self.events = []
+
+    def reserve_budget(self, job_id, operation, amount, daily_cap):
+        self.events.append(("reserve", job_id, operation, amount, daily_cap))
+        return "batch-reservation"
+
+    def begin_attempt(self, job_id, operation, route, payload, reservation_id):
+        self.events.append(("begin", job_id, operation, route, payload,
+                            reservation_id))
+        return f"attempt-{payload['row']}"
+
+    def mark_sent(self, attempt_id):
+        self.events.append(("sent", attempt_id))
+
+    def finish_attempt(self, attempt_id, status, **values):
+        self.events.append(("finish", attempt_id, status, values))
+
+    def record_artifact(self, attempt_id, artifact):
+        self.events.append(("artifact", attempt_id, artifact))
+
+    def reconcile_budget(self, job_id, actual_cost, status):
+        self.events.append(("reconcile", job_id, actual_cost, status))
 
 
 class FakeRepository:
@@ -217,6 +249,25 @@ class BatchTests(unittest.TestCase):
         self.assertEqual(result["failed"], 1)
         self.assertEqual(workspace.written, {})
         self.assertIn("No incomplete row", result["failures"][0]["error"])
+
+    def test_batch_provider_success_is_recorded_before_file_write(self):
+        workspace = FailingAudioWorkspace(sheet([["one", "hello", "", ""]]))
+        provider = FakeProvider()
+        operations = FakeOperationsRepository()
+        service = BatchGenerationService(
+            workspace, FakeRepository(), provider,
+            lambda: {"warn_above": 0, "daily_cap": 0},
+            ProviderOperationService(operations))
+        result = service.run(
+            token="20260808-120000-deadbeef",
+            columns={"text": 1, "name": 0, "voice": None,
+                     "language": None},
+            binding_id=BINDING_ID, run_id="storage-failure", job_id=84)
+        self.assertEqual((result["made"], result["failed"]), (0, 1))
+        self.assertIn("provider completed", result["failures"][0]["error"])
+        finishes = [event for event in operations.events if event[0] == "finish"]
+        self.assertEqual([event[2] for event in finishes], ["succeeded"])
+        self.assertEqual(finishes[0][3]["receipt"]["row"], 2)
 
     def test_voice_and_budget_guards_run_before_paid_calls_or_output(self):
         service, workspace, provider = self.service(

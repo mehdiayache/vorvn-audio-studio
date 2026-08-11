@@ -17,26 +17,32 @@ class ProviderOperationRepository:
                 raise LookupError("That paid Job no longer exists.")
             cursor.execute("SELECT pg_advisory_xact_lock(hashtext('audio-studio-daily-spend'))")
             cursor.execute("""
-                SELECT
-                  coalesce((SELECT sum(CASE
+                WITH terminal AS (
+                  SELECT attempt.job_id, sum(CASE
                       WHEN attempt.status='ambiguous' THEN greatest(
                           attempt.estimated_cost, coalesce(attempt.cost,0))
-                      ELSE coalesce(attempt.cost,0) END)
+                      ELSE coalesce(attempt.cost,0) END) AS spend
                     FROM provider_attempts attempt
                    WHERE attempt.status IN
                          ('succeeded','definitive_failed','ambiguous')
-                     AND attempt.created_at::date=current_date),0)
-                  + coalesce((SELECT sum(greatest(
+                     AND attempt.created_at::date=current_date
+                   GROUP BY attempt.job_id
+                ), active AS (
+                  SELECT reservation.job_id, max(greatest(
                         reservation.estimated_cost,
-                        coalesce(reservation.actual_cost,0)))
+                        coalesce(reservation.actual_cost,0),
+                        coalesce(terminal.spend,0))) AS spend
                     FROM budget_reservations reservation
+                    LEFT JOIN terminal ON terminal.job_id=reservation.job_id
                    WHERE reservation.status IN ('reserved','ambiguous')
                      AND reservation.created_at::date=current_date
-                     AND NOT EXISTS (
-                         SELECT 1 FROM provider_attempts attempt
-                          WHERE attempt.job_id=reservation.job_id
-                            AND attempt.status IN
-                                ('succeeded','definitive_failed','ambiguous'))),0)
+                   GROUP BY reservation.job_id
+                )
+                SELECT coalesce((SELECT sum(spend) FROM active),0)
+                     + coalesce((SELECT sum(terminal.spend) FROM terminal
+                                  WHERE NOT EXISTS (
+                                      SELECT 1 FROM active
+                                       WHERE active.job_id=terminal.job_id)),0)
             """)
             committed = float(cursor.fetchone()[0] or 0)
             if daily_cap > 0 and committed + amount > daily_cap:
@@ -97,6 +103,7 @@ class ProviderOperationRepository:
 
     def finish_attempt(self, attempt_id: str, status: str, *, cost: float,
                        usage: dict, request_ids: list[str], error: dict,
+                       receipt: dict | None = None,
                        reconcile_budget: bool = True) -> None:
         if status not in {"succeeded", "definitive_failed", "ambiguous"}:
             raise ValueError("Invalid terminal ProviderAttempt state.")
@@ -109,13 +116,25 @@ class ProviderOperationRepository:
                  WHERE id=%s AND status IN ('not_sent','sent')
             """, (status, cost, json.dumps(usage or {}),
                   request_ids[0] if len(request_ids) == 1 else None,
-                  json.dumps(error or {}), json.dumps({"request_ids": request_ids}),
+                  json.dumps(error or {}), json.dumps({
+                      "request_ids": request_ids,
+                      **({"provider_result": receipt} if receipt else {}),
+                  }),
                   int(attempt_id)))
             if cursor.rowcount != 1:
                 return
             if reconcile_budget:
                 self._reconcile_budget(
                     cursor, cost, status, attempt_id=int(attempt_id))
+
+    def record_artifact(self, attempt_id: str, artifact: dict) -> None:
+        """Attach local recovery evidence without changing provider truth."""
+        with transaction() as cursor:
+            cursor.execute("""
+                UPDATE provider_attempts
+                   SET diagnostics=diagnostics || %s::jsonb
+                 WHERE id=%s AND status='succeeded'
+            """, (json.dumps({"local_artifact": artifact}), int(attempt_id)))
 
     def reconcile_budget(self, job_id: int, actual_cost: float,
                          status: str) -> None:

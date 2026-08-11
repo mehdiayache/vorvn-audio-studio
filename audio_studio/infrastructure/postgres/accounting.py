@@ -24,10 +24,27 @@ class ProductionAccountingRepository:
         with read_only() as cur:
             cur.execute("""
                 WITH requested AS (SELECT unnest(%s::bigint[]) AS production_id),
+                attempt_costs AS (
+                  SELECT job_id, count(*) AS attempt_count,
+                         sum(CASE WHEN status='ambiguous'
+                             THEN greatest(estimated_cost,coalesce(cost,0))
+                             ELSE coalesce(cost,0) END) AS provider_cost
+                    FROM provider_attempts GROUP BY job_id
+                ), effective_jobs AS (
+                  SELECT job.*,
+                         CASE WHEN attempt.attempt_count > 0
+                              THEN attempt.provider_cost ELSE job.cost END
+                              AS effective_cost
+                    FROM jobs job
+                    LEFT JOIN attempt_costs attempt ON attempt.job_id=job.id
+                ),
                 tracked AS (
-                  SELECT production_id, coalesce(sum(cost), 0) AS all_spend,
-                         coalesce(sum(cost) FILTER (WHERE kind = 'speech'), 0) AS speech_spend
-                    FROM jobs WHERE production_id = ANY(%s) GROUP BY production_id
+                  SELECT production_id,
+                         coalesce(sum(effective_cost), 0) AS all_spend,
+                         coalesce(sum(effective_cost)
+                             FILTER (WHERE kind = 'speech'), 0) AS speech_spend
+                    FROM effective_jobs WHERE production_id = ANY(%s)
+                   GROUP BY production_id
                 ), retained AS (
                   SELECT part.production_id, coalesce(sum(take.cost), 0) AS retained_cost
                     FROM takes take

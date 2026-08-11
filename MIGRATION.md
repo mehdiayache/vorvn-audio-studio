@@ -98,6 +98,43 @@ Composition Draft -> ProviderAttempt + budget reservation -> immutable Take
   attempts to honest ambiguous state and backfills current enrollment-language
   facts.
 
+### Provider truth and exact enrollment checkpoint
+
+Migration `019_exact_enrollment_routes.sql` completes the remaining runtime
+hardening found by the external architecture audit:
+
+- every enrollment Job now snapshots its exact `provider`, `region`,
+  `provider_model_id` and `adapter_key`; the worker dispatches through a small
+  exact registry and has no fallback route;
+- individual and bulk enrollment persist the same execution contract;
+- an adapter/region/model mismatch fails locally before uploading a reference
+  or calling the provider;
+- a definite provider success is recorded before Take, binding or Batch-file
+  persistence. Local persistence failure cannot relabel the provider call as
+  ambiguous or trigger an automatic paid retry;
+- clone creation receipts preserve the provider voice ID. A failed local
+  binding write is recoverable on an explicit retry without calling the
+  provider a second time; the local recovery Job is free so the original
+  ProviderAttempt cost is counted exactly once;
+- Speech and Batch preserve provider-result fingerprints when local media
+  persistence fails and require an explicit operator decision before a new
+  paid attempt;
+- active Batch reservations retain the full reserved amount while individual
+  row attempts finish, closing the concurrent daily-cap release hole;
+- Activity, Production accounting and pre-call spend reads prefer
+  `ProviderAttempt` truth, while retaining Job-only historical records;
+- normal Create Voice always attempts every installed clone method from the
+  single confirmed reference. Recording language is free-form provenance:
+  undocumented values are Experimental, never ineligible;
+- the canonical domain gate no longer equates new Parts with legacy
+  Generations. It checks honest legacy provenance, Part/Take ownership,
+  revision ordering and exact enrollment adapters instead;
+- GitHub Actions now runs the domain integrity gate after the full application
+  suite, against a clean PostgreSQL service.
+
+No provider operation is executed by these tests. Catalogue/configuration and
+health reads still create no business `ProviderAttempt`.
+
 ## Architecture hardening
 
 The post-legacy cleanup is guarded by shrink-only AST tests in

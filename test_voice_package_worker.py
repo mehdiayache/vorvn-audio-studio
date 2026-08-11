@@ -9,6 +9,7 @@ from uuid import uuid4
 import psycopg
 
 from audio_studio.application.voice_cloning import VoiceCloningService
+from audio_studio.application.provider_operations import ProviderOperationService
 from audio_studio.config import settings
 from audio_studio.domain.voice_packages import (
     CreatedVoiceBinding,
@@ -16,6 +17,9 @@ from audio_studio.domain.voice_packages import (
 )
 from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
 from audio_studio.infrastructure.alibaba.voice_cloning import AlibabaVoiceCloningProvider
+from audio_studio.infrastructure.enrollment_provider_registry import (
+    ExactEnrollmentProviderRegistry,
+)
 from audio_studio.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
 
 
@@ -26,7 +30,11 @@ def package_job(**changes):
     values = {
         "id": "vjob_test", "identity_id": "voice_test",
         "reference_id": "ref_test", "model_id": "qwen3.5-omni-flash",
+        "provider": "alibaba", "region": "intl",
+        "provider_model_id": "alibaba:intl:qwen3.5-omni-flash",
+        "adapter_key": "omni",
         "engine": "omni", "tier": "flash", "attempts": 1,
+        "output_languages": ["English", "Arabic"],
         "name": "Test Voice", "metadata": {"language": "en"},
     }
     return VoicePackageJob(**{**values, **changes})
@@ -40,6 +48,8 @@ class FakeRepository:
         self.started = []
         self.completed = []
         self.failed = []
+        self.recovery = None
+        self.complete_error = None
 
     def claim_next(self):
         job, self.next = self.next, None
@@ -52,8 +62,13 @@ class FakeRepository:
         self.started.append((job, estimate))
         return 72
 
-    def complete(self, job, activity_id, binding):
-        self.completed.append((job, activity_id, binding))
+    def recoverable_binding(self, _job):
+        return self.recovery
+
+    def complete(self, job, activity_id, binding, *, recovered=False):
+        if self.complete_error:
+            raise self.complete_error
+        self.completed.append((job, activity_id, binding, recovered))
 
     def fail(self, job, activity_id, error):
         self.failed.append((job, activity_id, error))
@@ -76,6 +91,32 @@ class FakeProvider:
             provider_endpoint="https://provider.test", price_version="fixture",
             estimated_cost=.01, cost=.01, cost_basis="catalog_creation",
         )
+
+
+class FakeOperationsRepository:
+    def __init__(self):
+        self.events = []
+
+    def reserve_budget(self, job_id, operation, amount, daily_cap):
+        self.events.append(("reserve", job_id, operation, amount, daily_cap))
+        return "voice-reservation"
+
+    def begin_attempt(self, job_id, operation, route, payload, reservation_id):
+        self.events.append(("begin", job_id, operation, route, payload,
+                            reservation_id))
+        return "voice-attempt"
+
+    def mark_sent(self, attempt_id):
+        self.events.append(("sent", attempt_id))
+
+    def finish_attempt(self, attempt_id, status, **values):
+        self.events.append(("finish", attempt_id, status, values))
+
+    def record_artifact(self, attempt_id, artifact):
+        self.events.append(("artifact", attempt_id, artifact))
+
+    def reconcile_budget(self, job_id, actual_cost, status):
+        self.events.append(("reconcile", job_id, actual_cost, status))
 
 
 class VoicePackageWorkerTests(unittest.TestCase):
@@ -104,6 +145,16 @@ class VoicePackageWorkerTests(unittest.TestCase):
             url="https://storage.test/reference.wav", language_hints=None,
             max_prompt_audio_length=30.0,
         )
+
+    def test_alibaba_adapter_rejects_a_different_region_before_upload(self):
+        job = package_job(region="beijing")
+        with patch(
+                "audio_studio.infrastructure.alibaba.voice_cloning.storage.upload"
+                ) as upload, patch.dict(
+                    "os.environ", {"DASHSCOPE_API_KEY": "fixture"}):
+            with self.assertRaisesRegex(ValueError, "region"):
+                AlibabaVoiceCloningProvider().create(job, Path("source.wav"))
+        upload.assert_not_called()
 
     def test_qwen_tts_clone_uses_qwen_enrollment_with_transcript(self):
         job = package_job(
@@ -161,6 +212,64 @@ class VoicePackageWorkerTests(unittest.TestCase):
             self.assertTrue(service.work_once())
         self.assertEqual(repository.completed, [])
         self.assertIn("ambiguous provider failure", repository.failed[0][2])
+
+    def test_exact_enrollment_registry_never_falls_back(self):
+        provider = FakeProvider()
+        registry = ExactEnrollmentProviderRegistry({("alibaba", "omni"): provider})
+        self.assertEqual(registry.estimated_cost(package_job()), .01)
+        with self.assertRaisesRegex(ValueError, "No enrollment adapter"):
+            registry.estimated_cost(package_job(adapter_key="missing"))
+        with self.assertRaisesRegex(RuntimeError, "changed the exact requested region"):
+            registry.create(package_job(region="beijing"), Path("source.wav"))
+
+    def test_missing_exact_adapter_fails_the_job_without_crashing_worker(self):
+        repository = FakeRepository(package_job(adapter_key="not-installed"))
+        registry = ExactEnrollmentProviderRegistry({})
+        with TemporaryDirectory() as directory:
+            service = VoiceCloningService(
+                repository, registry,
+                VoiceReferenceWorkspace(Path(directory)))
+            self.assertTrue(service.work_once())
+        self.assertEqual(repository.started[0][1], 0)
+        self.assertIn("No enrollment adapter", repository.failed[0][2])
+
+    def test_provider_success_precedes_binding_persistence_and_is_recoverable(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "source.wav").write_bytes(b"RIFF-test")
+            repository = FakeRepository(package_job())
+            repository.complete_error = RuntimeError("database unavailable")
+            provider = FakeProvider()
+            operations = FakeOperationsRepository()
+            service = VoiceCloningService(
+                repository, provider, VoiceReferenceWorkspace(root),
+                ProviderOperationService(operations),
+                lambda: {"warn_above": 0, "daily_cap": 0})
+            self.assertTrue(service.work_once())
+        self.assertEqual(len(provider.calls), 1)
+        finishes = [event for event in operations.events if event[0] == "finish"]
+        self.assertEqual(finishes[0][2], "succeeded")
+        self.assertEqual(
+            finishes[0][3]["receipt"]["provider_voice_id"],
+            "provider_voice_test")
+        self.assertTrue(repository.failed)
+
+        recovered_repository = FakeRepository(package_job())
+        recovered_repository.recovery = CreatedVoiceBinding(
+            provider_voice_id="provider_voice_test", provider_region="intl",
+            provider_endpoint="https://provider.test", price_version="fixture",
+            estimated_cost=.01, cost=.01, cost_basis="catalog_creation")
+        new_provider = FakeProvider()
+        with TemporaryDirectory() as directory:
+            service = VoiceCloningService(
+                recovered_repository, new_provider,
+                VoiceReferenceWorkspace(Path(directory)))
+            self.assertTrue(service.work_once())
+        self.assertEqual(new_provider.calls, [])
+        self.assertEqual(
+            recovered_repository.completed[0][2].provider_voice_id,
+            "provider_voice_test")
+        self.assertTrue(recovered_repository.completed[0][3])
 
     def test_reference_workspace_rejects_escape_and_missing_files(self):
         with TemporaryDirectory() as directory:

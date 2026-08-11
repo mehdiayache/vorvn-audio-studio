@@ -129,13 +129,13 @@ class BulkEnrollmentRepository:
                     INSERT INTO voice_package_jobs
                         (id,identity_id,reference_id,model_id,engine,tier,
                          provider,provider_region,provider_model_id,
-                         classification,status)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'queued')
+                         adapter_key,classification,status)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'queued')
                     RETURNING id
                 """, (job_id, item["identity_id"], item["reference_id"],
                       route["model_id"], route["engine"], route["tier"],
                       route["provider"], route["region"], route["id"],
-                      item["classification"]))
+                      route["engine"], item["classification"]))
                 queued_id = cursor.fetchone()[0]
                 cursor.execute("""
                     INSERT INTO enrollment_campaign_items

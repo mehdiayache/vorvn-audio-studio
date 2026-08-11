@@ -53,6 +53,16 @@ class AlibabaVoiceCloningProvider:
             return url
 
     def create(self, job: VoicePackageJob, local: Path) -> CreatedVoiceBinding:
+        capability = config.CAPABILITIES.get(job.engine) or {}
+        expected_model = (capability.get("models") or {}).get(job.tier)
+        if job.provider != "alibaba" or job.region != config.region():
+            raise ValueError(
+                "That exact Alibaba enrollment region is not active in this "
+                "Audio Studio deployment.")
+        if not expected_model or expected_model != job.model_id:
+            raise ValueError(
+                "That exact Alibaba model and tier are not installed for "
+                "voice enrollment.")
         if not self.is_configured():
             raise RuntimeError(
                 "Alibaba and Reference audio storage must be configured before cloning.")
@@ -73,7 +83,7 @@ class AlibabaVoiceCloningProvider:
         else:
             from dashscope.audio.tts_v2 import VoiceEnrollmentService
             sdk_runtime.apply_credentials()
-            documented_sources = config.CAPABILITIES[job.engine].get(
+            documented_sources = capability.get(
                 "clone_languages", {})
             language_hint = language if language in documented_sources else None
             provider_voice_id = VoiceEnrollmentService().create_voice(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any, Callable, Protocol
 from urllib.parse import quote
 
@@ -219,7 +220,7 @@ class SpeechGenerationService:
                 bool(values.get("confirmed")))
             attempt_id = self.operations.repository.begin_attempt(
                 job_id, "speech", prepared.voice_route,
-                {"text_hash": __import__("hashlib").sha256(
+                {"text_hash": hashlib.sha256(
                     prepared.spoken_text.encode("utf-8")).hexdigest(),
                  "language": prepared.language, "format": prepared.output_format,
                  "delivery": {"instruction": prepared.instruction,
@@ -305,29 +306,83 @@ class SpeechGenerationService:
                     "provider_attempt_id": attempt_id,
                 },
             )
-        saved = self.workspace.save(made.audio, prepared.extension)
         if attempt_id:
             self.operations.repository.finish_attempt(
                 attempt_id, "succeeded", cost=float(made.cost or 0),
-                usage=made.usage, request_ids=made.request_ids, error={})
+                usage=made.usage, request_ids=made.request_ids, error={},
+                receipt={
+                    "audio_sha256": hashlib.sha256(made.audio).hexdigest(),
+                    "size_bytes": len(made.audio),
+                    "format": prepared.output_format,
+                    "returned_text": made.returned_text,
+                    "fidelity": made.fidelity,
+                    "provider_region": made.provider_region,
+                    "provider_endpoint": made.provider_endpoint,
+                })
+        try:
+            saved = self.workspace.save(made.audio, prepared.extension)
+        except Exception as exc:
+            raise JobFailed(
+                "The provider completed and may have billed this recording, "
+                "but Audio Studio could not retain the audio locally. Provider "
+                "evidence was preserved; an operator must decide whether to "
+                "make a new paid attempt.",
+                {"provider_attempt_id": attempt_id,
+                 "provider_succeeded": True,
+                 "cost": float(made.cost or 0), "usage": made.usage,
+                 "cost_basis": made.cost_basis,
+                 "price_version": made.price_version,
+                 "provider_region": made.provider_region,
+                 "provider_endpoint": made.provider_endpoint,
+                 "request_ids": made.request_ids,
+                 "model": prepared.model_id, "engine": prepared.engine,
+                 "voice": prepared.voice}) from exc
+        if attempt_id:
+            self.operations.repository.record_artifact(attempt_id, {
+                "type": "audio", "filename": saved.filename,
+                "path": saved.path, "size_bytes": saved.size_bytes,
+                "duration_ms": saved.duration_ms,
+            })
         row = _record(prepared, made, saved, effective)
         row["provider_attempt_id"] = int(attempt_id) if attempt_id else None
         mutation: dict[str, int] = {}
-        if operation == "create":
-            created_part_id = self.repository.create_part(
-                production_id, values.get("insert_at"), row)
-            if production_id is not None and created_part_id:
-                created_part = self.repository.part(created_part_id, production_id)
-                if created_part and created_part.get("selected_take_id"):
-                    mutation["take_id"] = int(created_part["selected_take_id"])
-                elif created_part and cast_role_id:
-                    mutation["cast_changed"] = 1
-        else:
-            assert part is not None and part_id is not None and production_id is not None
-            created_part_id = part_id
-            mutation = self.repository.replace_part(
-                part_id, production_id, int(part["revision"]), row,
-                operation=operation)
+        try:
+            if operation == "create":
+                created_part_id = self.repository.create_part(
+                    production_id, values.get("insert_at"), row)
+                if production_id is not None and created_part_id:
+                    created_part = self.repository.part(
+                        created_part_id, production_id)
+                    if created_part and created_part.get("selected_take_id"):
+                        mutation["take_id"] = int(created_part["selected_take_id"])
+                    elif created_part and cast_role_id:
+                        mutation["cast_changed"] = 1
+            else:
+                assert (part is not None and part_id is not None
+                        and production_id is not None)
+                created_part_id = part_id
+                mutation = self.repository.replace_part(
+                    part_id, production_id, int(part["revision"]), row,
+                    operation=operation)
+        except Exception as exc:
+            raise JobFailed(
+                "The provider completed and the audio was saved, but Audio "
+                "Studio could not create its Take. The saved provider result "
+                "must be recovered instead of synthesized again.",
+                {"provider_attempt_id": attempt_id,
+                 "provider_succeeded": True,
+                 "cost": float(made.cost or 0), "usage": made.usage,
+                 "cost_basis": made.cost_basis,
+                 "price_version": made.price_version,
+                 "provider_region": made.provider_region,
+                 "provider_endpoint": made.provider_endpoint,
+                 "request_ids": made.request_ids,
+                 "saved_audio": {"filename": saved.filename,
+                                 "path": saved.path,
+                                 "size_bytes": saved.size_bytes,
+                                 "duration_ms": saved.duration_ms},
+                 "model": prepared.model_id, "engine": prepared.engine,
+                 "voice": prepared.voice}) from exc
         if on_progress:
             on_progress(max(1, prepared.request_count),
                         max(1, prepared.request_count), "Speech ready")

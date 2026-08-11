@@ -12,6 +12,7 @@ from audio_studio.application.speech import (
     SpeechGenerationService,
     SpeechJobHandler,
 )
+from audio_studio.application.provider_operations import ProviderOperationService
 from audio_studio.config import settings
 from audio_studio.domain.jobs import Job, JobFailed, JobStatus
 from audio_studio.domain.speech import PreparedSpeech, SpeechSynthesisError, StoredAudio, SynthesizedSpeech
@@ -147,6 +148,37 @@ class FakeWorkspace:
         self.saved.append((audio, extension))
         return StoredAudio("generated.mp3", "/safe/generated.mp3",
                            len(audio), 4_000)
+
+
+class FailingWorkspace:
+    def save(self, _audio, _extension):
+        raise OSError("disk unavailable")
+
+
+class FakeOperationsRepository:
+    def __init__(self):
+        self.events = []
+
+    def reserve_budget(self, job_id, operation, amount, daily_cap):
+        self.events.append(("reserve", job_id, operation, amount, daily_cap))
+        return "reservation-one"
+
+    def begin_attempt(self, job_id, operation, route, payload, reservation_id):
+        self.events.append(("begin", job_id, operation, route, payload,
+                            reservation_id))
+        return "attempt-one"
+
+    def mark_sent(self, attempt_id):
+        self.events.append(("sent", attempt_id))
+
+    def finish_attempt(self, attempt_id, status, **values):
+        self.events.append(("finish", attempt_id, status, values))
+
+    def record_artifact(self, attempt_id, artifact):
+        self.events.append(("artifact", attempt_id, artifact))
+
+    def reconcile_budget(self, job_id, actual_cost, status):
+        self.events.append(("reconcile", job_id, actual_cost, status))
 
 
 class Progress:
@@ -357,6 +389,25 @@ class SpeechGenerationTests(unittest.TestCase):
             service.run(payload())
         self.assertEqual(caught.exception.result["failures"][0]["index"], 1)
         self.assertEqual(workspace.saved, [])
+        self.assertEqual(repository.created, [])
+
+    def test_provider_success_is_durable_before_local_audio_persistence(self):
+        operations = FakeOperationsRepository()
+        repository = FakeRepository()
+        service = SpeechGenerationService(
+            repository, FakeProvider(), FailingWorkspace(),
+            lambda: {"warn_above": 0, "daily_cap": 0},
+            ProviderOperationService(operations))
+        with self.assertRaises(JobFailed) as caught:
+            service.run(payload(_job_id=77))
+        self.assertTrue(caught.exception.result["provider_succeeded"])
+        self.assertAlmostEqual(caught.exception.result["cost"], .0015)
+        statuses = [event[2] for event in operations.events
+                    if event[0] == "finish"]
+        self.assertEqual(statuses, ["succeeded"])
+        receipt = next(event[3]["receipt"] for event in operations.events
+                       if event[0] == "finish")
+        self.assertEqual(receipt["size_bytes"], len(b"generated-audio"))
         self.assertEqual(repository.created, [])
 
     def test_job_handler_reports_durable_chunk_progress(self):

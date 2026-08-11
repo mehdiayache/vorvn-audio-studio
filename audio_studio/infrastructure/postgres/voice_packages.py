@@ -11,6 +11,7 @@ from audio_studio.domain.voice_packages import (
     VoicePackageJob,
 )
 from audio_studio.infrastructure.postgres.session import read_only, transaction
+from audio_studio.infrastructure.postgres.spend import today_provider_spend
 
 
 _ACTIVE = ("queued", "creating")
@@ -22,8 +23,10 @@ def _job(row) -> VoicePackageJob | None:
         return None
     return VoicePackageJob(
         id=row[0], identity_id=row[1], reference_id=row[2],
-        model_id=row[3], engine=row[4], tier=row[5], attempts=int(row[6]),
-        name=row[7], metadata=row[8] or {},
+        model_id=row[3], provider=row[4], region=row[5],
+        provider_model_id=row[6], adapter_key=row[7], engine=row[8],
+        tier=row[9], output_languages=list(row[10] or []),
+        attempts=int(row[11]), name=row[12], metadata=row[13] or {},
     )
 
 
@@ -61,13 +64,7 @@ class VoicePackageRepository:
             }), reference_id))
 
     def today_spend(self) -> float:
-        with read_only() as cursor:
-            cursor.execute("""
-                SELECT coalesce(sum(cost), 0) FROM jobs
-                 WHERE created_at::date = current_date
-            """)
-            row = cursor.fetchone()
-            return float(row[0] or 0) if row else 0.0
+        return today_provider_spend()
 
     def reference(self, reference_id: str) -> dict | None:
         with read_only() as cursor:
@@ -220,14 +217,16 @@ class VoicePackageRepository:
                     INSERT INTO voice_package_jobs
                         (id, identity_id, reference_id, model_id, engine, tier,
                          provider, provider_region, provider_model_id,
-                         classification, status)
-                    VALUES (%s, %s, %s, %s, %s, %s, 'alibaba', %s,
-                            %s, %s, 'queued')
+                         adapter_key, classification, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, 'queued')
                     RETURNING id, status
                 """, (proposed, identity_id, reference_id, route["model_id"],
                       route["engine"], route["tier"],
+                      route.get("provider") or "alibaba",
                       route.get("region") or "intl",
                       route.get("provider_model_id"),
+                      route.get("adapter_key") or route["engine"],
                       route.get("classification") or (
                           "documented" if route.get("source_language_documented")
                           else "experimental")))
@@ -290,10 +289,15 @@ class VoicePackageRepository:
                            error = NULL, updated_at = now()
                       FROM candidate WHERE job.id = candidate.id
                     RETURNING job.id, job.identity_id, job.reference_id,
-                              job.model_id, job.engine, job.tier, job.attempts
+                              job.model_id, job.provider, job.provider_region,
+                              job.provider_model_id, job.adapter_key,
+                              job.engine, job.tier, job.attempts
                 )
                 SELECT claimed.id, claimed.identity_id, claimed.reference_id,
-                       claimed.model_id, claimed.engine, claimed.tier,
+                       claimed.model_id, claimed.provider,
+                       claimed.provider_region, claimed.provider_model_id,
+                       claimed.adapter_key, claimed.engine, claimed.tier,
+                       coalesce(model.output_languages, '[]'::jsonb),
                        claimed.attempts, identity.name,
                        identity.metadata || jsonb_strip_nulls(
                            jsonb_build_object(
@@ -303,6 +307,8 @@ class VoicePackageRepository:
                     ON identity.id = claimed.identity_id
                   JOIN voice_references reference
                     ON reference.id = claimed.reference_id
+                  LEFT JOIN provider_models model
+                    ON model.id=claimed.provider_model_id
             """, (job_id, job_id))
             return _job(cursor.fetchone())
 
@@ -326,13 +332,44 @@ class VoicePackageRepository:
                             "reference_id": job.reference_id}),
                 f"voice-package:{job.id}:attempt:{job.attempts}",
                 json.dumps({"executor": "voice-package-worker-v1",
+                            "provider": job.provider,
+                            "region": job.region,
+                            "provider_model_id": job.provider_model_id,
+                            "adapter_key": job.adapter_key,
                             "engine": job.engine, "model": job.model_id}),
             ))
             return int(cursor.fetchone()[0])
 
+    def recoverable_binding(self, job: VoicePackageJob) -> CreatedVoiceBinding | None:
+        """Return a definite provider result from a prior local-save failure."""
+        with read_only() as cursor:
+            cursor.execute("""
+                SELECT attempt.diagnostics->'provider_result'
+                  FROM provider_attempts attempt
+                  JOIN jobs ledger ON ledger.id=attempt.job_id
+                 WHERE ledger.payload->>'voice_package_job_id'=%s
+                   AND attempt.status='succeeded'
+                   AND attempt.diagnostics ? 'provider_result'
+                 ORDER BY attempt.finished_at DESC, attempt.id DESC LIMIT 1
+            """, (job.id,))
+            row = cursor.fetchone()
+        receipt = row[0] if row else None
+        if not receipt or not receipt.get("provider_voice_id"):
+            return None
+        return CreatedVoiceBinding(
+            provider_voice_id=str(receipt["provider_voice_id"]),
+            provider_region=str(receipt.get("provider_region") or job.region),
+            provider_endpoint=str(receipt.get("provider_endpoint") or ""),
+            price_version=str(receipt.get("price_version") or "unknown"),
+            estimated_cost=float(receipt.get("estimated_cost") or 0),
+            cost=float(receipt.get("cost") or 0),
+            cost_basis=str(receipt.get("cost_basis") or "historical_unknown"),
+        )
+
     def complete(self, job: VoicePackageJob, activity_id: int,
-                 binding: CreatedVoiceBinding) -> None:
-        output_languages = provider_catalog.CAPABILITIES.get(
+                 binding: CreatedVoiceBinding, *, recovered: bool = False
+                 ) -> None:
+        output_languages = job.output_languages or provider_catalog.CAPABILITIES.get(
             job.engine, {}).get("output_languages", [])
         with transaction() as cursor:
             cursor.execute("""
@@ -342,11 +379,11 @@ class VoicePackageRepository:
             current = cursor.fetchone()
             if not current or current[0] != "creating":
                 raise RuntimeError("That voice capability is no longer active.")
-            provider_model_id = (
-                f"alibaba:{binding.provider_region}:{job.model_id}")
-            cursor.execute("SELECT id FROM provider_models WHERE id=%s",
-                           (provider_model_id,))
-            if not cursor.fetchone():
+            provider_model_id = job.provider_model_id
+            if provider_model_id:
+                cursor.execute("SELECT id FROM provider_models WHERE id=%s",
+                               (provider_model_id,))
+            if not provider_model_id or not cursor.fetchone():
                 # Honest compatibility for historical/test enrollments whose
                 # exact model predates the installed provider catalogue.
                 provider_model_id = None
@@ -356,14 +393,14 @@ class VoicePackageRepository:
                      status, languages, reference_id, provider,
                      provider_region, provider_model_id)
                 VALUES (%s, %s, %s, %s, %s, 'active', %s::jsonb, %s,
-                        'alibaba', %s, %s)
+                        %s, %s, %s)
                 ON CONFLICT (provider_voice_id, model_id) DO NOTHING
                 RETURNING id
             """, (
                 binding.provider_voice_id, job.model_id, job.identity_id,
                 job.engine, job.tier,
                 json.dumps(output_languages),
-                job.reference_id, binding.provider_region,
+                job.reference_id, job.provider, job.region,
                 provider_model_id,
             ))
             created = cursor.fetchone()
@@ -401,12 +438,17 @@ class VoicePackageRepository:
                            (now() - coalesce(started_at, created_at))) * 1000)::int
                  WHERE id = %s
             """, (
-                binding.cost, binding.estimated_cost,
+                0 if recovered else binding.cost,
+                0 if recovered else binding.estimated_cost,
                 binding.provider_voice_id, binding.provider_voice_id,
-                binding.cost_basis, binding.price_version,
-                binding.provider_region, binding.provider_endpoint,
+                "local_recovery" if recovered else binding.cost_basis,
+                binding.price_version,
+                job.region, binding.provider_endpoint,
                 json.dumps({"engine": job.engine, "model": job.model_id,
-                            "region": binding.provider_region}),
+                            "provider": job.provider,
+                            "region": job.region,
+                            "provider_model_id": job.provider_model_id,
+                            "adapter_key": job.adapter_key}),
                 json.dumps([{"type": "voice_binding",
                              "id": binding.provider_voice_id,
                              "model_id": job.model_id}]),
@@ -428,6 +470,15 @@ class VoicePackageRepository:
             """, (message, job.id))
             cursor.execute("""
                 UPDATE jobs SET status = 'failed', error = %s,
+                       cost=coalesce((SELECT sum(coalesce(attempt.cost,0))
+                         FROM provider_attempts attempt
+                        WHERE attempt.job_id=jobs.id),cost),
+                       cost_basis=coalesce((SELECT
+                         attempt.diagnostics->'provider_result'->>'cost_basis'
+                         FROM provider_attempts attempt
+                        WHERE attempt.job_id=jobs.id
+                          AND attempt.status='succeeded'
+                        ORDER BY attempt.id DESC LIMIT 1),cost_basis),
                        finished_at = now(), last_heartbeat_at = now(),
                        elapsed_ms = greatest(0, extract(epoch FROM
                            (now() - coalesce(started_at, created_at))) * 1000)::int

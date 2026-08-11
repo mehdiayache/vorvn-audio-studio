@@ -30,15 +30,25 @@ CHECKS = {
         LEFT JOIN productions production ON production.id = part.production_id
         WHERE production.id IS NULL
     """,
-    "legacy Production parts are fully mapped": """
-        SELECT abs(
-          (SELECT count(*) FROM production_parts) -
-          (SELECT count(*) FROM generations generation
-           JOIN productions production
-             ON production.legacy_container_id = generation.project_id
-           WHERE generation.version_of IS NULL
-             AND coalesce(generation.kind, '') <> 'stitch')
-        )
+    "historical Part provenance is honest when present": """
+        SELECT count(*) FROM production_parts part
+         WHERE part.legacy_generation_id IS NOT NULL
+           AND NOT EXISTS (SELECT 1 FROM generations generation
+                            WHERE generation.id=part.legacy_generation_id)
+    """,
+    "selected Takes belong to their canonical Part": """
+        SELECT count(*) FROM production_parts part
+        JOIN takes take ON take.id=part.selected_take_id
+        WHERE take.part_id<>part.id
+    """,
+    "Take revisions never come from the future": """
+        SELECT count(*) FROM takes take
+        JOIN production_parts part ON part.id=take.part_id
+        WHERE take.source_part_revision>part.revision
+    """,
+    "enrollment Jobs persist an exact execution adapter": """
+        SELECT count(*) FROM voice_package_jobs
+         WHERE adapter_key IS NULL OR btrim(adapter_key)=''
     """,
     "assets have canonical Venture ownership": """
         SELECT count(*) FROM assets asset
