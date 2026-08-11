@@ -552,3 +552,33 @@ tests plus generated OpenAPI, TypeScript and the production build. Live browser
 smoke proved Speak reload recovery and Production close/reopen recovery at a
 real insertion point with no console warnings or errors. The temporary smoke
 Draft rows were deleted afterward. No Alibaba generation was triggered.
+
+Checkpoint 5b closes the paid Spoken/Tagged review seam without making the
+Composer Draft a second Job store.
+
+- Text preparation now enqueues and exposes the real durable Job before React
+  waits for its result. The shared Job observer remains the sole owner of
+  queued/running/terminal execution truth.
+- The recoverable Composer Draft stores only the Job UUID and whether it is a
+  Spoken or Tagged pass. Provider result, status, usage, cost and error remain
+  canonical on the Job and ProviderAttempt; they are never copied into Draft
+  state.
+- The Job pointer is saved immediately after enqueue, rather than through the
+  ordinary debounce. Closing the Composer, navigating away or reloading can
+  therefore re-observe the same paid operation and restore its review result.
+- Accept and Reject clear that pointer through the same immediate,
+  version-guarded persistence path. Accept persists the chosen text state in
+  the same save; a failed clear leaves the recoverable pointer intact rather
+  than losing the paid result.
+- Tag density is Draft preparation state and now survives close/reload. Busy,
+  errors, open dialogs, selected panels and Player state remain UI/runtime
+  state and are not persisted.
+- A blocked spend-confirmation Job can also be rediscovered from its pointer.
+  The larger confirmation-state contract remains a later checkpoint; this
+  change does not redesign that workflow or trigger provider work.
+
+Verification is provider-free. Contract tests prove that only a Job pointer is
+persisted, immediate-save tests cover the pre-result window, and React tests
+cover remount recovery plus durable Accept. The full checkpoint passes 311
+Python tests and 112 React tests, generated OpenAPI, TypeScript and production
+build. No Alibaba operation was called.

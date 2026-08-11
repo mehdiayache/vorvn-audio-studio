@@ -14,6 +14,7 @@ export type ComposerDraftWireRecord = {
     cast_role_id: string | null
     route: { kind: "owned" | "catalogue"; binding_id: string | null; catalogue_voice_id: string | null; capability_id: string | null } | null
     text: RecoverableCompositionDraft["text"]
+    text_preparation: { tag_density: RecoverableCompositionDraft["textPreparation"]["tagDensity"]; pending_review: { job_id: string; kind: "shape" | "tag" } | null }
     delivery: { mode_id: string | null; instruction: string; rate: number; pitch: number; volume: number; seed: number }
     output: RecoverableCompositionDraft["output"]
   }
@@ -58,6 +59,12 @@ export function draftWire(draft: RecoverableCompositionDraft): ComposerDraftWire
     cast_role_id: draft.castRoleId,
     route: routeWire(draft.route),
     text: draft.text,
+    text_preparation: {
+      tag_density: draft.textPreparation.tagDensity,
+      pending_review: draft.textPreparation.pendingReview
+        ? { job_id: draft.textPreparation.pendingReview.jobId, kind: draft.textPreparation.pendingReview.kind }
+        : null,
+    },
     delivery: {
       mode_id: draft.delivery.modeId,
       instruction: draft.delivery.instruction,
@@ -80,6 +87,12 @@ export function draftFromWire(record: ComposerDraftWireRecord): ComposerDraftRec
       castRoleId: record.state.cast_role_id,
       route: routeFromWire(record.state.route),
       text: record.state.text,
+      textPreparation: {
+        tagDensity: record.state.text_preparation.tag_density,
+        pendingReview: record.state.text_preparation.pending_review
+          ? { jobId: record.state.text_preparation.pending_review.job_id, kind: record.state.text_preparation.pending_review.kind }
+          : null,
+      },
       delivery: {
         modeId: record.state.delivery.mode_id,
         instruction: record.state.delivery.instruction,
@@ -97,6 +110,7 @@ export function meaningfulDraft(draft: RecoverableCompositionDraft) {
   return Boolean(
     draft.voiceIdentityId || draft.castRoleId || draft.route
     || draft.text.raw || draft.text.shaped || draft.text.tagged
+    || draft.textPreparation.pendingReview || draft.textPreparation.tagDensity !== "normal"
     || draft.delivery.instruction || draft.delivery.modeId
     || draft.delivery.rate !== 1 || draft.delivery.pitch !== 1
     || draft.delivery.volume !== 50 || draft.delivery.seed

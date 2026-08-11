@@ -1394,6 +1394,9 @@
           "text": {
             "$ref": "#/components/schemas/TextState"
           },
+          "text_preparation": {
+            "$ref": "#/components/schemas/TextPreparationState"
+          },
           "voice_identity_id": {
             "anyOf": [
               {
@@ -6978,6 +6981,58 @@
           "text"
         ],
         "title": "TextJobCreate",
+        "type": "object"
+      },
+      "TextPreparationState": {
+        "additionalProperties": false,
+        "properties": {
+          "pending_review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TextReviewReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tag_density": {
+            "default": "normal",
+            "enum": [
+              "none",
+              "light",
+              "normal",
+              "heavy"
+            ],
+            "title": "Tag Density",
+            "type": "string"
+          }
+        },
+        "title": "TextPreparationState",
+        "type": "object"
+      },
+      "TextReviewReference": {
+        "additionalProperties": false,
+        "properties": {
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "shape",
+              "tag"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "kind"
+        ],
+        "title": "TextReviewReference",
         "type": "object"
       },
       "TextState": {

@@ -8,6 +8,7 @@ function draft(): RecoverableCompositionDraft {
     voiceIdentityId: "voice-1", castRoleId: null,
     route: { kind: "owned", bindingId: "binding-1", capabilityId: null },
     text: { raw: "Hello", shaped: "", tagged: "", active: "raw" },
+    textPreparation: { tagDensity: "normal", pendingReview: null },
     delivery: { modeId: "exact", instruction: "", rate: 1, pitch: 1, volume: 50, seed: 0 },
     output: { format: "mp3", language: "English" },
   }
@@ -16,6 +17,7 @@ function draft(): RecoverableCompositionDraft {
 describe("Composer Draft persistence", () => {
   it("round-trips the exact route and preparation fields", () => {
     const original = draft()
+    original.textPreparation = { tagDensity: "heavy", pendingReview: { jobId: "11111111-1111-4111-8111-111111111111", kind: "tag" } }
     const restored = draftFromWire({ id: "draft-1", state: draftWire(original), version: 3, updated_at: "now" })
     expect(restored.state).toEqual(original)
     expect(restored.version).toBe(3)

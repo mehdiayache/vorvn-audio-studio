@@ -291,10 +291,11 @@ export const studioApi = {
     const job = await enqueueSpeech(payload, "regenerate", id)
     return jobObserver.completion<GenerateResult>(job.id)
   },
-  textPass: async (kind: "shape" | "tag", payload: { text: string; production_id?: number; part_id?: number; density?: "none" | "light" | "normal" | "heavy"; engine: "audio" | "omni" | "qwen_tts"; confirmed?: boolean }) => {
+  enqueueTextPass: async (kind: "shape" | "tag", payload: { text: string; production_id?: number; part_id?: number; density?: "none" | "light" | "normal" | "heavy"; engine: "audio" | "omni" | "qwen_tts"; confirmed?: boolean }) => {
     const response = await request<{ data: DurableJob<TextPassResult> }>("/api/v1/jobs/text", { method: "POST", headers: { "Idempotency-Key": `rewrite-${kind}-${crypto.randomUUID()}` }, body: JSON.stringify({ ...payload, operation: kind }) })
-    return waitForJob<TextPassResult>(response.data.id)
+    return registerJob(response.data)
   },
+  textPassResult: (jobId: string) => waitForJob<TextPassResult>(jobId),
   saveTextStates: (productionId: number, id: number, states: { text: string; text_raw: string | null; text_shaped: string | null; text_tagged: string | null; text_state: string }) =>
     request<TimelineOkEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/draft`, { method: "PATCH", body: JSON.stringify(states) }).then((response) => response.data),
   savePartEditorial: (productionId: number, id: number, values: { expected_revision: number; script?: string; cast_role_id?: string | null }) =>

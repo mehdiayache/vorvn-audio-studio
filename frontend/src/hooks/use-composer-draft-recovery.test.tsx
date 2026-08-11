@@ -18,6 +18,7 @@ function emptyDraft(): RecoverableCompositionDraft {
   return {
     voiceIdentityId: null, castRoleId: null, route: null,
     text: { raw: "", shaped: "", tagged: "", active: "raw" },
+    textPreparation: { tagDensity: "normal", pendingReview: null },
     delivery: { modeId: null, instruction: "", rate: 1, pitch: 1, volume: 50, seed: 0 },
     output: { format: "mp3", language: "Auto" },
   }
@@ -57,5 +58,17 @@ describe("useComposerDraftRecovery", () => {
     expect(api.saveComposerDraft).toHaveBeenCalledWith(context, draft, null)
     await act(async () => { await result.current.clear() })
     expect(api.deleteComposerDraft).toHaveBeenCalledWith(context, 1)
+  })
+
+  it("saves a paid-review pointer immediately instead of waiting for debounce", async () => {
+    api.composerDraft.mockResolvedValue(null)
+    api.saveComposerDraft.mockResolvedValue({ id: "draft-1", state: emptyDraft(), version: 1, updatedAt: "now" })
+    const context = { kind: "standalone" as const, sessionId: "11111111-1111-4111-8111-111111111111" }
+    const { result } = renderHook(() => useComposerDraftRecovery({ context, draft: emptyDraft(), onRestore: vi.fn() }))
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    const next = { ...emptyDraft(), textPreparation: { tagDensity: "normal" as const, pendingReview: { jobId: "22222222-2222-4222-8222-222222222222", kind: "shape" as const } } }
+    await act(async () => { await result.current.saveNow(next) })
+    expect(api.saveComposerDraft).toHaveBeenCalledWith(context, next, null)
+    expect(result.current.status).toBe("saved")
   })
 })

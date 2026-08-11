@@ -53,6 +53,8 @@ def state():
                   "catalogue_voice_id": None, "capability_id": None},
         "text": {"raw": "Hello", "shaped": "", "tagged": "",
                  "active": "raw"},
+        "text_preparation": {
+            "tag_density": "normal", "pending_review": None},
         "delivery": {"mode_id": "exact", "instruction": "", "rate": 1,
                      "pitch": 1, "volume": 50, "seed": 0},
         "output": {"format": "mp3", "language": "English"},
@@ -103,6 +105,23 @@ class ComposerDraftTests(unittest.TestCase):
         self.assertNotIn("editorial_patch", dumped["state"])
         self.assertNotIn("job", dumped["state"])
         self.assertNotIn("ui", dumped["state"])
+
+    def test_paid_text_review_persists_only_a_durable_job_pointer(self):
+        review_job_id = uuid4()
+        pending = state()
+        pending["text_preparation"] = {
+            "tag_density": "heavy",
+            "pending_review": {
+                "job_id": review_job_id, "kind": "tag"},
+        }
+        payload = DraftWrite(
+            context={"kind": "standalone", "session_id": uuid4()},
+            state=pending)
+        prepared = payload.model_dump(mode="json")["state"][
+            "text_preparation"]
+        self.assertEqual(prepared["pending_review"]["job_id"],
+                         str(review_job_id))
+        self.assertNotIn("result", prepared["pending_review"])
 
 
 class ComposerDraftRepositoryTests(unittest.TestCase):

@@ -1953,6 +1953,7 @@ export interface components {
             output: components["schemas"]["OutputState"];
             route?: components["schemas"]["RouteState"] | null;
             text: components["schemas"]["TextState"];
+            text_preparation?: components["schemas"]["TextPreparationState"];
             /** Voice Identity Id */
             voice_identity_id?: string | null;
         };
@@ -3840,6 +3841,29 @@ export interface components {
             production_id?: number | null;
             /** Text */
             text: string;
+        };
+        /** TextPreparationState */
+        TextPreparationState: {
+            pending_review?: components["schemas"]["TextReviewReference"] | null;
+            /**
+             * Tag Density
+             * @default normal
+             * @enum {string}
+             */
+            tag_density: "none" | "light" | "normal" | "heavy";
+        };
+        /** TextReviewReference */
+        TextReviewReference: {
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "shape" | "tag";
         };
         /** TextState */
         TextState: {

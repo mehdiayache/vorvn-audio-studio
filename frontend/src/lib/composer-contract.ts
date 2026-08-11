@@ -48,11 +48,22 @@ export type ComposerDelivery = {
 
 export type ComposerOutput = { format: string; language: string }
 
+export type TextReviewReference = {
+  jobId: string
+  kind: "shape" | "tag"
+}
+
+export type ComposerTextPreparation = {
+  tagDensity: "none" | "light" | "normal" | "heavy"
+  pendingReview: TextReviewReference | null
+}
+
 export type CompositionDraft = {
   voiceIdentityId: string | null
   castRoleId: string | null
   route: RouteSelection | null
   text: ComposerText
+  textPreparation: ComposerTextPreparation
   delivery: ComposerDelivery
   output: ComposerOutput
   editorialPatch: EditorialPatch

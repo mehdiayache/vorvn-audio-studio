@@ -72,6 +72,18 @@ class TextState(BaseModel):
     active: Literal["raw", "shaped", "tagged"] = "raw"
 
 
+class TextReviewReference(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    job_id: UUID
+    kind: Literal["shape", "tag"]
+
+
+class TextPreparationState(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    tag_density: Literal["none", "light", "normal", "heavy"] = "normal"
+    pending_review: TextReviewReference | None = None
+
+
 class DeliveryState(BaseModel):
     model_config = ConfigDict(extra="forbid")
     mode_id: str | None = None
@@ -94,6 +106,8 @@ class ComposerState(BaseModel):
     cast_role_id: str | None = None
     route: RouteState | None = None
     text: TextState
+    text_preparation: TextPreparationState = Field(
+        default_factory=TextPreparationState)
     delivery: DeliveryState
     output: OutputState
 

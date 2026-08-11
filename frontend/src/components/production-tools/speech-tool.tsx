@@ -1,5 +1,5 @@
 import { AudioLines, CircleDollarSign, Gauge, Mic2, Plus, WandSparkles } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -25,7 +25,9 @@ import {
   toGeneratePayload,
   type ComposerUI,
   type CompositionDraft,
+  type ComposerText,
   type SpeechGenerationCommand,
+  type TextReviewReference,
 } from "@/lib/composer-contract"
 import { capabilityTitle, outputLanguageOptions } from "@/lib/voice-capabilities"
 import { formatMicroMoney } from "@/lib/format"
@@ -74,6 +76,8 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
   const [ui, setUI] = useState<ComposerUI>({ section: "voice", busy: null, confirmationEstimate: null })
   const [pendingCommand, setPendingCommand] = useState<{ command: SpeechGenerationCommand; selectResult: boolean; updateEditorial: boolean } | null>(null)
   const [editorialCommand, setEditorialCommand] = useState<SpeechGenerationCommand | null>(null)
+  const [textReviewReference, setTextReviewReference] = useState<TextReviewReference | null>(null)
+  const persistTextPreparationRef = useRef<(reference: TextReviewReference | null, text?: ComposerText) => Promise<void>>(async () => undefined)
   const { section, busy, confirmationEstimate: confirmEstimate } = ui
   const setSection = (section: ComposerSection) => setUI((current) => ({ ...current, section }))
   const setBusy = (busy: ComposerUI["busy"]) => setUI((current) => ({ ...current, busy }))
@@ -82,6 +86,7 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
   useEffect(() => {
     setUI({ section: "voice", busy: null, confirmationEstimate: null })
     setPendingCommand(null); setEditorialCommand(null)
+    setTextReviewReference(null)
     setRoute(routeSelectionFromPersistedDraft(part)); setIdentityId(part?.voice_identity_id || ""); setCastRoleId(part?.cast_role_id || "")
     setLanguage(part?.language || "Auto"); setFormat(part?.format || "mp3"); setSpeechMode((part?.speech_mode as "exact" | "directed") || "exact")
     setInstruction(part?.instruction || ""); setRate(part?.rate ?? 1); setPitch(part?.pitch ?? 1); setVolume(part?.volume ?? 50)
@@ -98,7 +103,13 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
   const currentRoute = resolveSelectedRoute(route, compatibleRoutes)
   const engine = currentRoute?.engine || null
   const model = currentRoute?.model || null
-  const textSession = useComposerText(part, projectId, engine)
+  const textSession = useComposerText(part, projectId, engine, {
+    reviewReference: textReviewReference,
+    onReviewReferenceChange: async (reference, nextText) => {
+      setTextReviewReference(reference)
+      await persistTextPreparationRef.current(reference, nextText)
+    },
+  })
   const languageOptions = outputLanguageOptions(config, selectedIdentity)
 
   function applyRoute(nextRoute: VoiceChoice | undefined, capabilityId?: string | null) {
@@ -183,6 +194,7 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
     castRoleId: castRoleId || null,
     route,
     text: { raw: textSession.states.raw, shaped: textSession.states.shaped, tagged: textSession.states.tagged, active: textSession.view },
+    textPreparation: { tagDensity: textSession.density, pendingReview: textReviewReference },
     delivery: { modeId: engine === "omni" ? speechMode : "exact", instruction, rate, pitch, volume, seed: part?.seed ?? 0 },
     output: { format, language: outputLanguage || "Auto" },
     editorialPatch: {
@@ -190,6 +202,8 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
       ...(baseline && (castRoleId || null) !== baseline.castRoleId ? { castRoleId: castRoleId || null } : {}),
     },
   }
+  const latestRecoverableDraftRef = useRef(recoverableDraft(draft))
+  latestRecoverableDraftRef.current = recoverableDraft(draft)
   const recovery = useComposerDraftRecovery({
     context,
     draft: recoverableDraft(draft),
@@ -197,7 +211,8 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
       setIdentityId(saved.voiceIdentityId || "")
       setCastRoleId(saved.castRoleId || "")
       setRoute(saved.route)
-      textSession.restore(saved.text)
+      setTextReviewReference(saved.textPreparation.pendingReview)
+      textSession.restore(saved.text, saved.textPreparation.tagDensity)
       setSpeechMode(saved.delivery.modeId === "directed" ? "directed" : "exact")
       setInstruction(saved.delivery.instruction)
       setRate(saved.delivery.rate)
@@ -208,6 +223,19 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
     },
     enabled: context.kind === "production" || Boolean(context.sessionId),
   })
+  persistTextPreparationRef.current = async (reference, nextText) => {
+    const current = latestRecoverableDraftRef.current
+    const next = {
+      ...current,
+      text: nextText || current.text,
+      textPreparation: {
+        tagDensity: textSession.density,
+        pendingReview: reference,
+      },
+    }
+    latestRecoverableDraftRef.current = next
+    await recovery.saveNow(next)
+  }
   function command(confirmed = false) {
     return buildSpeechCommand({ context, draft, confirmed })
   }
@@ -259,7 +287,7 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
     <aside className="composer-nav" aria-label="Composer sections"><span className="destination-note">{destination}</span>{nav.map(({ key, label, detail, icon: Icon }) => <button key={key} aria-label={`${label}: ${detail}`} className={cn(section === key && "active")} onClick={() => setSection(key)}><Icon /><span><b>{label}</b><small>{detail}</small></span></button>)}</aside>
     <div className="composer-stage">
       {section === "script" && <section className="composer-section script-section"><header><div><span className="eyebrow">Words and text states</span><h3>What should be said?</h3></div><div className="speech-states">{(["raw", "shaped", ...(capability?.inline_tags ? ["tagged" as const] : [])] as TextView[]).map((state) => <Button key={state} variant="ghost" size="sm" className={textSession.view === state ? "active" : ""} disabled={state !== "raw" && !textSession.states[state]} onClick={() => textSession.select(state)}>{state === "raw" ? "Raw" : state === "shaped" ? "Spoken" : "Tagged"}</Button>)}</div></header><div className="script-language-setting"><label><span>Language to speak</span><Select value={language} onValueChange={setLanguage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{languageOptions.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select><small>Auto leaves language detection to the selected model. Changing this never changes the voice or capability.</small></label>{currentRoute && <VoiceLanguageSupport compact route={currentRoute} language={outputLanguage} customVoice={selectedIdentity?.source === "mine"} />}</div>{engine && taggedIncompatible && <div className="composer-warning"><b>Inline tags are not available with {engineLabel(engine)}.</b><span>Your words stay untouched until you choose what to do.</span><div>{textSession.states.shaped && <Button size="sm" variant="outline" onClick={() => textSession.select("shaped")}>Use Spoken version</Button>}{hasInlineDeliveryTag && <Button size="sm" variant="outline" onClick={removeInlineTags}>Remove inline tags</Button>}</div></div>}<Textarea dir="auto" value={textSession.text} onChange={(event) => textSession.updateText(event.target.value)} placeholder="Type or paste what should be said…" autoFocus />
-        <div className="text-pass-actions"><Button variant="outline" disabled={!engine || !textSession.text.trim() || Boolean(textSession.busy)} onClick={() => void textSession.run("shape")}><AudioLines />{textSession.busy === "shape" ? "Rewriting…" : "Make it spoken"}</Button>{capability?.inline_tags ? <><Select value={textSession.density} onValueChange={textSession.setDensity}><SelectTrigger aria-label="Tag density"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="light">Light tags</SelectItem><SelectItem value="normal">Normal tags</SelectItem><SelectItem value="heavy">Heavy tags</SelectItem></SelectContent></Select><Button variant="outline" disabled={!textSession.text.trim() || Boolean(textSession.busy)} onClick={() => void textSession.run("tag")}><WandSparkles />{textSession.busy === "tag" ? "Tagging…" : "Add delivery tags"}</Button></> : <p className="composer-engine-note">{engine ? `${engineLabel(engine)} does not use inline tags.` : "Choose an exact route to see its text tools."}</p>}<small className="text-pass-cost">Alibaba text pass · {config?.text_preparation?.model || "Qwen text"} · about {formatMicroMoney(textPassEstimate)} each</small></div>
+        <div className="text-pass-actions"><Button variant="outline" disabled={!engine || !textSession.text.trim() || Boolean(textSession.busy) || recovery.status === "loading"} onClick={() => void textSession.run("shape")}><AudioLines />{textSession.busy === "shape" ? "Rewriting…" : "Make it spoken"}</Button>{capability?.inline_tags ? <><Select value={textSession.density} onValueChange={textSession.setDensity}><SelectTrigger aria-label="Tag density"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="light">Light tags</SelectItem><SelectItem value="normal">Normal tags</SelectItem><SelectItem value="heavy">Heavy tags</SelectItem></SelectContent></Select><Button variant="outline" disabled={!textSession.text.trim() || Boolean(textSession.busy) || recovery.status === "loading"} onClick={() => void textSession.run("tag")}><WandSparkles />{textSession.busy === "tag" ? "Tagging…" : "Add delivery tags"}</Button></> : <p className="composer-engine-note">{engine ? `${engineLabel(engine)} does not use inline tags.` : "Choose an exact route to see its text tools."}</p>}<small className="text-pass-cost">Alibaba text pass · {config?.text_preparation?.model || "Qwen text"} · about {formatMicroMoney(textPassEstimate)} each</small></div>
         {textSession.error && <p className="composer-warning">{textSession.error}</p>}
         {textSession.review && <div className="text-review"><header><div><b>{textSession.review.kind === "shape" ? "Spoken version ready" : "Tagged version ready"}</b><span>{formatMicroMoney(Number(textSession.review.result.cost || 0))} · {textSession.review.result.cost_basis === "actual_tokens" ? "actual Alibaba tokens" : "estimated"} · review before accepting</span></div><div><Button variant="ghost" onClick={textSession.reject}>Reject</Button><Button onClick={() => void textSession.accept()}>Accept version</Button></div></header><p>{textSession.review.result.difference?.map((change, index) => change.kind === "added" ? <ins key={index}>{change.text}</ins> : change.kind === "removed" ? <del key={index}>{change.text}</del> : <span key={index}>{change.text}</span>)}</p></div>}
       </section>}

@@ -39,6 +39,7 @@ function draft(route: CompositionDraft["route"]): CompositionDraft {
     castRoleId: null,
     route,
     text: { raw: "Hello", shaped: "", tagged: "", active: "raw" },
+    textPreparation: { tagDensity: "normal", pendingReview: null },
     delivery: { modeId: "exact", instruction: "", rate: 1, pitch: 1, volume: 50, seed: 0 },
     output: { format: "mp3", language: "English" },
     editorialPatch: {},

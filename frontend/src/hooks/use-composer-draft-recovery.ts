@@ -24,6 +24,32 @@ export function useComposerDraftRecovery(input: {
   const [status, setStatus] = useState<RecoveryStatus>("loading")
   restoreRef.current = input.onRestore
 
+  const persist = useCallback((next: RecoverableCompositionDraft, rethrow = false) => {
+    if (!enabled) return Promise.resolve()
+    setStatus("saving")
+    const operation = chainRef.current.then(async () => {
+      try {
+        if (!meaningfulDraft(next)) {
+          if (versionRef.current !== null) {
+            await studioApi.deleteComposerDraft(context, versionRef.current)
+            versionRef.current = null
+          }
+          setStatus("ready")
+          return
+        }
+        const saved = await studioApi.saveComposerDraft(context, next, versionRef.current)
+        versionRef.current = saved.version
+        setStatus("saved")
+      } catch (reason) {
+        const isConflict = reason instanceof Error && "status" in reason && (reason as Error & { status?: number }).status === 409
+        setStatus(isConflict ? "conflict" : "error")
+        if (rethrow) throw reason
+      }
+    })
+    chainRef.current = operation.catch(() => undefined)
+    return operation
+  }, [context, enabled])
+
   useEffect(() => {
     if (!enabled) {
       readyRef.current = false
@@ -59,25 +85,7 @@ export function useComposerDraftRecovery(input: {
     const next = JSON.parse(serialized) as RecoverableCompositionDraft
     timerRef.current = window.setTimeout(() => {
       timerRef.current = null
-      setStatus("saving")
-      chainRef.current = chainRef.current.then(async () => {
-        try {
-          if (!meaningfulDraft(next)) {
-            if (versionRef.current !== null) {
-              await studioApi.deleteComposerDraft(context, versionRef.current)
-              versionRef.current = null
-            }
-            setStatus("ready")
-            return
-          }
-          const saved = await studioApi.saveComposerDraft(context, next, versionRef.current)
-          versionRef.current = saved.version
-          setStatus("saved")
-        } catch (reason) {
-          const isConflict = reason instanceof Error && "status" in reason && (reason as Error & { status?: number }).status === 409
-          setStatus(isConflict ? "conflict" : "error")
-        }
-      })
+      void persist(next)
     }, 700)
     return () => {
       if (timerRef.current !== null) window.clearTimeout(timerRef.current)
@@ -85,7 +93,14 @@ export function useComposerDraftRecovery(input: {
     }
   // serialized is the complete persistable state; contextId owns its location.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contextId, enabled, serialized])
+  }, [contextId, enabled, persist, serialized])
+
+  const saveNow = useCallback(async (next: RecoverableCompositionDraft = draft) => {
+    if (!enabled) return
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current)
+    timerRef.current = null
+    await persist(next, true)
+  }, [draft, enabled, persist])
 
   const clear = useCallback(async () => {
     if (!enabled) return
@@ -99,5 +114,5 @@ export function useComposerDraftRecovery(input: {
     setStatus("ready")
   }, [context, enabled])
 
-  return { status, clear }
+  return { status, clear, saveNow }
 }
