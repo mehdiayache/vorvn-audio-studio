@@ -135,6 +135,11 @@ hardening found by the external architecture audit:
 No provider operation is executed by these tests. Catalogue/configuration and
 health reads still create no business `ProviderAttempt`.
 
+The clean-database CI integration test explicitly runs the documented
+provider-catalogue bootstrap before reading catalogue routes. It therefore
+tests the same lifecycle contract as the real runtime and cannot pass merely
+because a developer database already contains catalogue rows.
+
 ## Architecture hardening
 
 The post-legacy cleanup is guarded by shrink-only AST tests in

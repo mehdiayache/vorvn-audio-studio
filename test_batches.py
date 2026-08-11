@@ -21,6 +21,9 @@ from audio_studio.infrastructure.alibaba.speech_generation import AlibabaSpeechP
 from audio_studio.infrastructure.batch_workspace import FilesystemBatchWorkspace
 from audio_studio.infrastructure.spreadsheets import read as read_spreadsheet
 from audio_studio.infrastructure.postgres.speech import SpeechRepository
+from audio_studio.infrastructure.postgres.provider_catalogue import (
+    ProviderCatalogueRepository,
+)
 from audio_studio.domain import voice_registry
 from audio_studio.domain.provider_pricing import qwen_audio_tts_cost
 
@@ -383,6 +386,10 @@ class BatchTests(unittest.TestCase):
                 pass
         except psycopg.OperationalError as error:
             self.skipTest(str(error))
+        # Runtime bootstrap owns this versioned snapshot. Arrange that same
+        # explicit boundary so a clean CI database and a populated developer
+        # database exercise the identical repository state.
+        ProviderCatalogueRepository().refresh_documented_snapshot()
         repository = SpeechRepository()
         bindings = repository.voice_bindings()
         self.assertTrue(all(item["source"] == "custom" for item in bindings))
