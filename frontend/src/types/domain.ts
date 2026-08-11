@@ -358,6 +358,9 @@ export type Take = {
   instruction?: string
   language?: string
   fidelity?: FidelityResult
+  source_part_revision: number
+  source_script_hash: string
+  outdated: boolean
 }
 
 export type HistoricalVoiceReference = components["schemas"]["HistoricalVoiceResponse"]
@@ -442,6 +445,7 @@ export type GeneratePayload = {
   volume: number
   seed: number
   confirmed?: boolean
+  select_result?: boolean
   session_id?: string
 }
 

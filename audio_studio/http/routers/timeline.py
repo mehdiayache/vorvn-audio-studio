@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field
 
-from audio_studio.application.timeline import TimelineError
+from audio_studio.application.timeline import TimelineConflict, TimelineError
 from audio_studio.composition.timeline import timeline_service
 from audio_studio.http.errors import ApiProblem
 from audio_studio.http.timeline_contracts import (
@@ -91,14 +91,26 @@ class TextBody(BaseModel):
     text_state: str | None = None
 
 
-class ScriptBody(BaseModel):
+class EditorialBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    script: str
+    expected_revision: int = Field(ge=1)
+    script: str | None = None
+    cast_role_id: str | None = None
+
+
+class PromoteBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_revision: int = Field(ge=1)
+    confirm_outdated: bool = False
 
 
 def _run(operation):
     try:
         return {"data": operation()}
+    except TimelineConflict as exc:
+        raise ApiProblem(409, "part_revision_conflict", str(exc), {
+            "current_revision": exc.current_revision,
+        }) from exc
     except TimelineError as exc:
         raise ApiProblem(400, "timeline_error", str(exc)) from exc
 
@@ -185,9 +197,11 @@ def list_takes(production_id: int, part_id: int) -> dict:
 
 @router.post("/parts/{part_id}/takes/{take_id}/promote", operation_id="promoteProductionTake",
              response_model=OkEnvelope)
-def promote_take(production_id: int, part_id: int, take_id: int) -> dict:
+def promote_take(production_id: int, part_id: int, take_id: int,
+                 payload: PromoteBody) -> dict:
     return _run(lambda: timeline_service.promote(
-        production_id, part_id, take_id))
+        production_id, part_id, take_id, payload.expected_revision,
+        payload.confirm_outdated))
 
 
 @router.patch("/parts/{part_id}/draft", operation_id="updateProductionPartDraft",
@@ -197,12 +211,14 @@ def update_part_text(production_id: int, part_id: int, payload: TextBody) -> dic
         production_id, part_id, payload.model_dump(exclude_none=False)))
 
 
-@router.patch("/parts/{part_id}/script", operation_id="updateProductionPartScript",
+@router.patch("/parts/{part_id}/editorial", operation_id="updateProductionPartEditorial",
               response_model=OkEnvelope)
-def update_part_script(production_id: int, part_id: int,
-                       payload: ScriptBody) -> dict:
-    return _run(lambda: timeline_service.save_script(
-        production_id, part_id, payload.script))
+def update_part_editorial(production_id: int, part_id: int,
+                          payload: EditorialBody) -> dict:
+    values = payload.model_dump(exclude_unset=True)
+    expected_revision = int(values.pop("expected_revision"))
+    return _run(lambda: timeline_service.save_editorial(
+        production_id, part_id, expected_revision, values))
 
 
 @router.get("/parts/{part_id}/captions", operation_id="listProductionPartCaptions",

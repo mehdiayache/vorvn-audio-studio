@@ -12,7 +12,7 @@ const SpeechTool = lazy(() => import("@/components/production-tools/speech-tool"
 const SilenceTool = lazy(() => import("@/components/production-tools/silence-tool").then((module) => ({ default: module.SilenceTool })))
 const AssetTool = lazy(() => import("@/components/production-tools/asset-tool").then((module) => ({ default: module.AssetTool })))
 
-export function ProductionToolSheet({ open, projectId, nextPartNumber, insertAt, insertBeforePartId, part, config, clonedVoices, directory, cast, assets, assetCollectionIds, playingKey, playerPlaying, onClose, onSaveDraft, onGenerate, onAddSilence, onInsertAsset, onSetMusic, onUploadAsset, onPlay }: {
+export function ProductionToolSheet({ open, projectId, nextPartNumber, insertAt, insertBeforePartId, part, config, clonedVoices, directory, cast, assets, assetCollectionIds, playingKey, playerPlaying, onClose, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertAsset, onSetMusic, onUploadAsset, onPlay }: {
   open: ToolKind
   projectId: number
   nextPartNumber: number
@@ -29,6 +29,7 @@ export function ProductionToolSheet({ open, projectId, nextPartNumber, insertAt,
   playerPlaying: boolean
   onClose: () => void
   onSaveDraft: (payload: Omit<GeneratePayload, "confirmed">) => Promise<void>
+  onUpdateEditorial: (values: { expected_revision: number; script?: string; cast_role_id?: string | null }) => Promise<void>
   onGenerate: (payload: GeneratePayload) => Promise<DurableJob<GenerateResult>>
   onAddSilence: (seconds: number) => Promise<void>
   onInsertAsset: (asset: VentureAsset) => Promise<void>
@@ -45,7 +46,7 @@ export function ProductionToolSheet({ open, projectId, nextPartNumber, insertAt,
     <DialogContent className={`tool-dialog ${open === "speech" ? "composer-dialog" : open === "silence" ? "silence-dialog" : "asset-dialog"}`}>
       <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
       <Suspense fallback={<div className="tool-panel-body"><span className="eyebrow">Loading tool…</span></div>}>
-        {open === "speech" && <SpeechTool projectId={projectId} nextPartNumber={nextPartNumber} insertAt={insertAt} insertBeforePartId={insertBeforePartId} part={part} config={config} clonedVoices={clonedVoices} directory={directory} cast={cast} playingKey={playingKey} playerPlaying={playerPlaying} onSave={onSaveDraft} onGenerate={onGenerate} onPlay={onPlay} />}
+        {open === "speech" && <SpeechTool projectId={projectId} nextPartNumber={nextPartNumber} insertAt={insertAt} insertBeforePartId={insertBeforePartId} part={part} config={config} clonedVoices={clonedVoices} directory={directory} cast={cast} playingKey={playingKey} playerPlaying={playerPlaying} onSave={onSaveDraft} onUpdateEditorial={onUpdateEditorial} onGenerate={onGenerate} onPlay={onPlay} />}
         {open === "silence" && <SilenceTool onAdd={onAddSilence} />}
         {(open === "asset" || open === "music") && <AssetTool assets={assets} mode={assetMode} playingKey={playingKey} playerPlaying={playerPlaying} onMode={setAssetMode} onChoose={assetMode === "music" ? onSetMusic : onInsertAsset} onUpload={async (folder, file) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); await onUploadAsset(folder, file) }} onPlay={onPlay} />}
       </Suspense>

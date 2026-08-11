@@ -13,6 +13,7 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
   const [captionBusy, setCaptionBusy] = useState<"transcribe" | "translate" | null>(null)
   const [captionConfirmation, setCaptionConfirmation] = useState<CaptionConfirmation | null>(null)
   const [message, setMessage] = useState("")
+  const [takeConfirmation, setTakeConfirmation] = useState<Take | null>(null)
 
   const reload = useCallback(async (activePart: ProductionPart, preferId?: number) => {
     const [takeResult, captionResult] = await Promise.all([studioApi.takes(productionId, activePart.id), studioApi.captions(productionId, activePart.id)])
@@ -26,7 +27,7 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
   useEffect(() => {
     if (!part || !["audio", "speech"].includes(part.kind)) { setTakes([]); setCaptions([]); setTranscript(null); return }
     let active = true
-    setLoading(true); setTranscript(null); setMessage(""); setCaptionConfirmation(null)
+    setLoading(true); setTranscript(null); setMessage(""); setCaptionConfirmation(null); setTakeConfirmation(null)
     reload(part).catch((error) => { if (active) setMessage(error instanceof Error ? error.message : "Details could not be loaded.") }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [part?.id, reload])
@@ -37,10 +38,16 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
     catch (error) { setMessage(error instanceof Error ? error.message : "Captions could not be opened.") }
   }, [])
 
-  const promote = useCallback(async (take: Take) => {
+  const promote = useCallback(async (take: Take, confirmed = false) => {
     if (!part) return
     setMessage("Switching takes…")
-    try { await studioApi.promoteTake(productionId, part.id, take.id); setMessage("Take promoted. Existing captions are marked for review."); await onChanged(); await reload(part) }
+    try {
+      const result = await studioApi.promoteTake(productionId, part.id, take.id, { expected_revision: part.revision || 1, confirm_outdated: confirmed })
+      if (result.needs_confirmation) { setTakeConfirmation(take); setMessage(""); return }
+      setTakeConfirmation(null)
+      setMessage(result.outdated ? "Older Take selected. It remains marked outdated because the Part has changed." : "Take selected. Existing captions are marked for review.")
+      await onChanged(); await reload(part)
+    }
     catch (error) { setMessage(error instanceof Error ? error.message : "The take could not be promoted.") }
   }, [onChanged, part, productionId, reload])
 
@@ -75,5 +82,5 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
     if (next?.kind === "translate" && next.target) await translate(next.target, true)
   }, [captionConfirmation, makeCaptions, translate])
 
-  return { takes, captions, transcript, loading, captionBusy, captionConfirmation, message, selectTranscript, promote, makeCaptions, translate, confirmCaptionAction, cancelCaptionAction: () => setCaptionConfirmation(null) }
+  return { takes, captions, transcript, loading, captionBusy, captionConfirmation, takeConfirmation, message, selectTranscript, promote, confirmTake: () => takeConfirmation ? promote(takeConfirmation, true) : Promise.resolve(), cancelTakeConfirmation: () => setTakeConfirmation(null), makeCaptions, translate, confirmCaptionAction, cancelCaptionAction: () => setCaptionConfirmation(null) }
 }

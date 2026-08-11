@@ -27,6 +27,10 @@ class MusicBedEnvelope(BaseModel):
 class OkResponse(BaseModel):
     ok: bool
     subtitles_stale: int | None = None
+    changed: bool | None = None
+    revision: int | None = None
+    outdated: bool | None = None
+    needs_confirmation: bool | None = None
 
 
 class OkEnvelope(BaseModel):

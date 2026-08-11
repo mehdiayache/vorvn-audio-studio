@@ -136,8 +136,10 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual((edited["title"], edited["duration_ms"]), ("3.5", 3500))
 
         duplicate = self.timeline.duplicate(first_id, draft["id"])
-        self.timeline.save_script(
-            first_id, duplicate["id"], "A revised opening")
+        duplicate_part = self.repository.part(first_id, duplicate["id"])
+        self.timeline.save_editorial(
+            first_id, duplicate["id"], duplicate_part["revision"],
+            {"script": "A revised opening"})
         self.assertEqual(
             self.repository.generation(duplicate["id"])["text"],
             "A revised opening",
@@ -174,7 +176,12 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual(archived_take["engine"], "omni")
         self.assertEqual(archived_take["model"], "plus")
         self.assertIsNone(archived_take["fidelity"])
-        promoted = self.timeline.promote(first_id, draft["id"], take_id)
+        current_draft = self.repository.part(first_id, draft["id"])
+        review = self.timeline.promote(
+            first_id, draft["id"], take_id, current_draft["revision"])
+        self.assertTrue(review["needs_confirmation"])
+        promoted = self.timeline.promote(
+            first_id, draft["id"], take_id, current_draft["revision"], True)
         self.assertTrue(promoted["ok"])
         self.assertEqual(self.transcripts.stale, [draft["id"]])
         self.assertEqual(self.repository.generation(draft["id"])["text"],
@@ -208,6 +215,48 @@ class ProductionDocumentTests(unittest.TestCase):
                               if item["id"] == draft["id"])["takes"], 0)
         ProductionEditorEnvelope.model_validate({"data": editor})
 
+    def test_editorial_revision_and_outdated_take_require_human_confirmation(self):
+        production_id = int(self.first["id"])
+        draft = self.timeline.add_draft(production_id, {
+            "text": "Original words", "insert_at": 0,
+        })
+        part = self.repository.part(production_id, draft["id"])
+        with psycopg.connect(settings.database_url) as database:
+            with database.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO takes
+                        (part_id, source_part_revision, source_script_hash,
+                         provider, provider_region, provider_voice_id,
+                         model_id, tier, raw_text, spoken_text, filename, path,
+                         snapshot)
+                    VALUES (%s,%s,encode(digest('Original words','sha256'),'hex'),
+                            'alibaba','intl','Tina','qwen3.5-omni-plus','plus',
+                            'Original words','Original words','','',
+                            '{"engine":"omni","format":"mp3"}'::jsonb)
+                    RETURNING id
+                """, (draft["id"], part["revision"]))
+                take_id = int(cursor.fetchone()[0])
+            database.commit()
+
+        changed = self.timeline.save_editorial(
+            production_id, draft["id"], part["revision"],
+            {"script": "Revised words"})
+        self.assertEqual((changed["revision"], changed["outdated"]), (2, False))
+        review = self.timeline.promote(
+            production_id, draft["id"], take_id, changed["revision"])
+        self.assertTrue(review["needs_confirmation"])
+        self.assertEqual(self.transcripts.stale, [])
+        selected = self.timeline.promote(
+            production_id, draft["id"], take_id, changed["revision"], True)
+        self.assertTrue(selected["outdated"])
+        current = self.repository.part(production_id, draft["id"])
+        self.assertEqual((current["revision"], current["selected_take_id"]),
+                         (2, take_id))
+        unchanged = self.timeline.save_editorial(
+            production_id, draft["id"], current["revision"],
+            {"script": "Revised words"})
+        self.assertEqual((unchanged["changed"], unchanged["outdated"]),
+                         (False, True))
 
 if __name__ == "__main__":
     unittest.main()

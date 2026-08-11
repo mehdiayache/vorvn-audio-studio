@@ -1714,6 +1714,43 @@
         "title": "DraftBody",
         "type": "object"
       },
+      "EditorialBody": {
+        "additionalProperties": false,
+        "properties": {
+          "cast_role_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cast Role Id"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "script": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Script"
+          }
+        },
+        "required": [
+          "expected_revision"
+        ],
+        "title": "EditorialBody",
+        "type": "object"
+      },
       "EnrollmentSelection": {
         "additionalProperties": false,
         "properties": {
@@ -2549,9 +2586,53 @@
       },
       "OkResponse": {
         "properties": {
+          "changed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changed"
+          },
+          "needs_confirmation": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Needs Confirmation"
+          },
           "ok": {
             "title": "Ok",
             "type": "boolean"
+          },
+          "outdated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outdated"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision"
           },
           "subtitles_stale": {
             "anyOf": [
@@ -3989,6 +4070,26 @@
         "title": "ProjectSummaryResponse",
         "type": "object"
       },
+      "PromoteBody": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm_outdated": {
+            "default": false,
+            "title": "Confirm Outdated",
+            "type": "boolean"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_revision"
+        ],
+        "title": "PromoteBody",
+        "type": "object"
+      },
       "PronunciationListEnvelope": {
         "properties": {
           "data": {
@@ -4637,20 +4738,6 @@
         "title": "SavedPronunciationResponse",
         "type": "object"
       },
-      "ScriptBody": {
-        "additionalProperties": false,
-        "properties": {
-          "script": {
-            "title": "Script",
-            "type": "string"
-          }
-        },
-        "required": [
-          "script"
-        ],
-        "title": "ScriptBody",
-        "type": "object"
-      },
       "SeriesOverviewEnvelope": {
         "properties": {
           "data": {
@@ -5152,6 +5239,11 @@
             "minimum": 0.0,
             "title": "Seed",
             "type": "integer"
+          },
+          "select_result": {
+            "default": true,
+            "title": "Select Result",
+            "type": "boolean"
           },
           "session_id": {
             "anyOf": [
@@ -11384,9 +11476,9 @@
         ]
       }
     },
-    "/api/v1/productions/{production_id}/parts/{part_id}/script": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/editorial": {
       "patch": {
-        "operationId": "updateProductionPartScript",
+        "operationId": "updateProductionPartEditorial",
         "parameters": [
           {
             "in": "path",
@@ -11411,7 +11503,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ScriptBody"
+                "$ref": "#/components/schemas/EditorialBody"
               }
             }
           },
@@ -11439,7 +11531,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Update Part Script",
+        "summary": "Update Part Editorial",
         "tags": [
           "timeline"
         ]
@@ -11589,6 +11681,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromoteBody"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {

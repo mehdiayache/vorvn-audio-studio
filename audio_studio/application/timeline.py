@@ -32,9 +32,13 @@ class TimelineRecords(Protocol):
         destination_production_id: int,
     ) -> bool: ...
     def takes(self, production_id: int, part_id: int) -> list[dict] | None: ...
-    def promote(self, production_id: int, part_id: int, take_id: int) -> bool: ...
+    def promote(self, production_id: int, part_id: int, take_id: int,
+                expected_revision: int,
+                confirm_outdated: bool = False) -> dict | None: ...
     def save_script(self, production_id: int, part_id: int,
                     script: str, values: dict | None = None) -> bool: ...
+    def save_editorial(self, production_id: int, part_id: int,
+                       expected_revision: int, values: dict) -> dict | None: ...
     def save_draft(self, production_id: int, part_id: int,
                    values: dict) -> bool: ...
 
@@ -51,6 +55,12 @@ class TranscriptState(Protocol):
 
 class TimelineError(ValueError):
     pass
+
+
+class TimelineConflict(TimelineError):
+    def __init__(self, message: str, *, current_revision: int):
+        super().__init__(message)
+        self.current_revision = current_revision
 
 
 class TimelineService:
@@ -226,11 +236,24 @@ class TimelineService:
 
     def promote(
         self, production_id: int, part_id: int, take_id: int,
+        expected_revision: int, confirm_outdated: bool = False,
     ) -> dict[str, Any]:
         self._part(production_id, part_id)
-        if not self.records.promote(production_id, part_id, take_id):
+        result = self.records.promote(
+            production_id, part_id, take_id, expected_revision,
+            confirm_outdated)
+        if not result:
             raise TimelineError("That Take no longer belongs to this Part.")
-        return {"ok": True,
+        if result["status"] == "conflict":
+            raise TimelineConflict(
+                "This Part changed in another view. Reload it before choosing a Take.",
+                current_revision=int(result["revision"]))
+        if result["status"] == "confirmation_required":
+            return {"ok": False, "needs_confirmation": True,
+                    "outdated": True, "revision": result["revision"]}
+        return {"ok": True, "needs_confirmation": False,
+                "outdated": bool(result["outdated"]),
+                "revision": result["revision"],
                 "subtitles_stale": self.transcripts.mark_stale(part_id)}
 
     def save_draft(
@@ -251,6 +274,36 @@ class TimelineService:
         if not self.records.save_script(production_id, part_id, canonical):
             raise TimelineError("The Part script could not be saved.")
         return {"ok": True}
+
+    def save_editorial(
+        self, production_id: int, part_id: int, expected_revision: int,
+        values: dict[str, Any],
+    ) -> dict[str, Any]:
+        part = self._part(production_id, part_id)
+        changes: dict[str, Any] = {}
+        if "script" in values:
+            canonical = str(values["script"] or "").strip()
+            if part.get("kind") in {"speech", "audio", "draft"} and not canonical:
+                raise TimelineError("A speech Part needs a script.")
+            changes["script"] = canonical
+        if "cast_role_id" in values:
+            changes["cast_role_id"] = values["cast_role_id"]
+        if not changes:
+            raise TimelineError("Choose a Part change before saving.")
+        try:
+            result = self.records.save_editorial(
+                production_id, part_id, expected_revision, changes)
+        except ValueError as exc:
+            raise TimelineError(str(exc)) from exc
+        if not result:
+            raise TimelineError("The Part could not be updated.")
+        if result["status"] == "conflict":
+            raise TimelineConflict(
+                "This Part changed in another view. Reload it before saving.",
+                current_revision=int(result["revision"]))
+        return {"ok": True, "changed": bool(result["changed"]),
+                "revision": int(result["revision"]),
+                "outdated": bool(result["outdated"])}
 
     def captions(
         self, production_id: int, part_id: int,

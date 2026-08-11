@@ -113,10 +113,6 @@ export function useProductionActions({ production, music, directory, player, ref
 
   const regeneratePart = useCallback(async (part: ProductionPart, payload: GeneratePayload): Promise<DurableJob<GenerateResult>> => {
     try {
-      const canonical = (payload.text_raw || payload.text || "").trim()
-      if (canonical && canonical !== (part.text || "").trim()) {
-        await studioApi.savePartScript(production.id, part.id, canonical)
-      }
       return await studioApi.enqueueRegenerate(part.id, payload)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "The new take failed.")
@@ -135,13 +131,18 @@ export function useProductionActions({ production, music, directory, player, ref
 
   const renderDraft = useCallback(async (part: ProductionPart, payload: GeneratePayload): Promise<DurableJob<GenerateResult>> => {
     try {
-      const canonical = (payload.text_raw || payload.text || "").trim()
-      if (canonical && canonical !== (part.text || "").trim()) {
-        await studioApi.savePartScript(production.id, part.id, canonical)
-      }
       return await studioApi.enqueueRenderDraft(part.id, payload)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "The draft could not be recorded.")
+      throw error
+    }
+  }, [production.id])
+
+  const updatePartEditorial = useCallback(async (part: ProductionPart, values: { expected_revision: number; script?: string; cast_role_id?: string | null }) => {
+    try {
+      await studioApi.savePartEditorial(production.id, part.id, values)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "The Part could not be updated.")
       throw error
     }
   }, [production.id])
@@ -187,5 +188,5 @@ export function useProductionActions({ production, music, directory, player, ref
     toast.success(`${file.name} uploaded to ${folder}`)
   }, [refreshAssets])
 
-  return { previewing, exporting, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, regeneratePart, renderDraft, settleRender, movePart, setMusic, duplicatePart, deletePart, editSilence, deleteParts, saveDraft, addSilence, insertAsset, setMusicAsset, moveParts, uploadAsset }
+  return { previewing, exporting, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, regeneratePart, renderDraft, updatePartEditorial, settleRender, movePart, setMusic, duplicatePart, deletePart, editSilence, deleteParts, saveDraft, addSilence, insertAsset, setMusicAsset, moveParts, uploadAsset }
 }

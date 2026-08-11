@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import type { ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
@@ -52,5 +52,20 @@ describe("SpeechTool contract adapters", () => {
     await waitFor(() => expect(screen.getAllByText("Sarah").length).toBeGreaterThan(0))
     expect(screen.getByText("Choose one exact provider binding. Audio Studio never picks one for you.")).toBeTruthy()
     expect(screen.getByRole("button", { name: /Generate new take/ }).hasAttribute("disabled")).toBe(true)
+  })
+
+  it("requires an explicit editorial decision before generating changed Part words", async () => {
+    const onGenerate = vi.fn().mockResolvedValue({ id: "job-1" })
+    const onUpdateEditorial = vi.fn().mockResolvedValue(undefined)
+    const part = { id: 8, kind: "draft", text: "Original words", text_raw: "Original words", revision: 3, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
+    render(<SpeechTool {...common} projectId={3} part={part} onGenerate={onGenerate} onUpdateEditorial={onUpdateEditorial} />)
+    await waitFor(() => expect(screen.getByRole("button", { name: /Record Part/ }).hasAttribute("disabled")).toBe(false))
+    fireEvent.click(screen.getByRole("button", { name: /Script:/ }))
+    fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "Revised words" } })
+    fireEvent.click(screen.getByRole("button", { name: /Record Part/ }))
+    expect(screen.getByText("The Part has unsaved editorial changes")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Generate alternative only" }))
+    await waitFor(() => expect(onGenerate).toHaveBeenCalledWith(expect.objectContaining({ select_result: false })))
+    expect(onUpdateEditorial).not.toHaveBeenCalled()
   })
 })

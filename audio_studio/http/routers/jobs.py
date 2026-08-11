@@ -95,6 +95,7 @@ class SpeechJobCreate(BaseModel):
     volume: int = Field(default=50, ge=0, le=100)
     seed: int = Field(default=0, ge=0, le=2_147_483_647)
     confirmed: bool = False
+    select_result: bool = True
     operation: Literal[
         "create", "record_part", "regenerate", "render_draft"
     ] = "create"

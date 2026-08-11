@@ -41,7 +41,7 @@ function engineLabel(engine: SpeechEngine) {
   return engine === "qwen_tts" ? "Qwen3 TTS Voice Clone" : engine === "omni" ? "Qwen 3.5 Omni" : "Qwen Audio TTS"
 }
 
-export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, cast = [], playingKey, playerPlaying, onSave, onGenerate, onPlay }: {
+export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, cast = [], playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay }: {
   projectId?: number
   sessionId?: string
   nextPartNumber?: number
@@ -55,6 +55,7 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
   playingKey?: string
   playerPlaying: boolean
   onSave?: (payload: Omit<GeneratePayload, "confirmed">) => Promise<void>
+  onUpdateEditorial?: (values: { expected_revision: number; script?: string; cast_role_id?: string | null }) => Promise<void>
   onGenerate: (payload: GeneratePayload) => Promise<DurableJob<GenerateResult>>
   onPlay: (source: PlayerSource) => void
 }) {
@@ -69,7 +70,8 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
   const [pitch, setPitch] = useState(part?.pitch ?? 1)
   const [volume, setVolume] = useState(part?.volume ?? 50)
   const [ui, setUI] = useState<ComposerUI>({ section: "voice", busy: null, confirmationEstimate: null })
-  const [pendingCommand, setPendingCommand] = useState<SpeechGenerationCommand | null>(null)
+  const [pendingCommand, setPendingCommand] = useState<{ command: SpeechGenerationCommand; selectResult: boolean; updateEditorial: boolean } | null>(null)
+  const [editorialCommand, setEditorialCommand] = useState<SpeechGenerationCommand | null>(null)
   const { section, busy, confirmationEstimate: confirmEstimate } = ui
   const setSection = (section: ComposerSection) => setUI((current) => ({ ...current, section }))
   const setBusy = (busy: ComposerUI["busy"]) => setUI((current) => ({ ...current, busy }))
@@ -77,6 +79,7 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
 
   useEffect(() => {
     setUI({ section: "voice", busy: null, confirmationEstimate: null })
+    setPendingCommand(null); setEditorialCommand(null)
     setRoute(routeSelectionFromPersistedDraft(part)); setIdentityId(part?.voice_identity_id || ""); setCastRoleId(part?.cast_role_id || "")
     setLanguage(part?.language || "Auto"); setFormat(part?.format || "mp3"); setSpeechMode((part?.speech_mode as "exact" | "directed") || "exact")
     setInstruction(part?.instruction || ""); setRate(part?.rate ?? 1); setPitch(part?.pitch ?? 1); setVolume(part?.volume ?? 50)
@@ -192,13 +195,32 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
     if (!currentRoute) throw new Error("Choose an exact recording route before generating.")
     return toGeneratePayload(nextCommand, currentRoute)
   }
-  async function generate(next = command()) {
-    const warnAbove = Number(config?.prefs?.warn_above || 0)
-    if (!next.confirmed && warnAbove > 0 && estimate > warnAbove) { setPendingCommand(next); setConfirmEstimate(estimate); return }
+  async function executeGeneration(next: SpeechGenerationCommand, selectResult: boolean, updateEditorial: boolean) {
     setBusy("generate")
-    try { await onGenerate(payload(next)) }
+    try {
+      if (updateEditorial && baseline && onUpdateEditorial) {
+        await onUpdateEditorial({ expected_revision: baseline.revision, ...next.editorialPatch })
+      }
+      await onGenerate({ ...payload(next), select_result: selectResult })
+    }
     catch { /* The Production-owned render task keeps the actionable failure. */ }
     finally { setBusy(null) }
+  }
+  function continueGeneration(next: SpeechGenerationCommand, selectResult: boolean, updateEditorial: boolean) {
+    const warnAbove = Number(config?.prefs?.warn_above || 0)
+    if (!next.confirmed && warnAbove > 0 && estimate > warnAbove) {
+      setPendingCommand({ command: next, selectResult, updateEditorial })
+      setConfirmEstimate(estimate)
+      return
+    }
+    void executeGeneration(next, selectResult, updateEditorial)
+  }
+  function generate(next = command()) {
+    if (baseline && Object.keys(next.editorialPatch).length) {
+      setEditorialCommand(next)
+      return
+    }
+    continueGeneration(next, true, false)
   }
   const performancePresets = engine ? (directory.registry?.presets || []).filter((preset) => preset.engines.includes(engine)) : []
   const selectedCapability = currentRoute?.capabilities.find((item) => item.id === route?.capabilityId)
@@ -226,7 +248,8 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
     </div>
     <footer className="composer-footer"><div className="composer-cost"><CircleDollarSign /><span>{engine && taggedIncompatible ? `${capabilityTitle(engine, config)} does not use inline tags` : `${textSession.text.length.toLocaleString()} characters`}</span><b>{taggedIncompatible ? "Open Script to remove tags" : currentRoute ? `about $${estimate.toFixed(4)}` : "Choose an exact route"}</b></div><div className="composer-actions">{!part && projectId && onSave && <Button variant="outline" disabled={!textSession.text.trim() || !currentRoute || Boolean(busy)} onClick={async () => { setBusy("draft"); try { await onSave(payload()); } finally { setBusy(null) } }}><Plus />{busy === "draft" ? "Saving…" : "Save as draft"}</Button>}<Button disabled={!config?.has_key || !textSession.text.trim() || !currentRoute || Boolean(busy) || taggedIncompatible} onClick={() => void generate()}><WandSparkles />{busy === "generate" ? "Generating…" : !projectId ? "Generate audio" : part?.kind === "draft" ? `Record Part ${(part.position ?? 0) + 1}` : part ? `Generate new take · Part ${(part.position ?? 0) + 1}` : `Generate and add Part ${insertAt === null ? nextPartNumber : insertAt + 1}`}</Button></div></footer>
     {!config?.has_key && <p className="composer-warning footer-warning">Add the Alibaba API key in Settings before generating. Drafts still work.</p>}
-    <Dialog open={confirmEstimate !== null} onOpenChange={(open) => { if (!open) { setConfirmEstimate(null); setPendingCommand(null) } }}><DialogContent><DialogHeader><DialogTitle>Generate this take?</DialogTitle><DialogDescription>This request is estimated at ${confirmEstimate?.toFixed(4)}. Actual provider usage is stored after completion.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => { setConfirmEstimate(null); setPendingCommand(null) }}>Cancel</Button><Button onClick={() => { const next = pendingCommand; setConfirmEstimate(null); setPendingCommand(null); if (next) void generate({ ...next, confirmed: true }) }}>Generate</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog open={Boolean(editorialCommand)} onOpenChange={(open) => { if (!open) setEditorialCommand(null) }}><DialogContent><DialogHeader><DialogTitle>The Part has unsaved editorial changes</DialogTitle><DialogDescription>Choose whether these words and Cast Role become the Part’s new editorial truth. Audio Studio will never decide this for you.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => { const next = editorialCommand; setEditorialCommand(null); if (next) continueGeneration(next, false, false) }}>Generate alternative only</Button><Button onClick={() => { const next = editorialCommand; setEditorialCommand(null); if (next) continueGeneration(next, true, true) }}>Update Part and generate</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog open={confirmEstimate !== null} onOpenChange={(open) => { if (!open) { setConfirmEstimate(null); setPendingCommand(null) } }}><DialogContent><DialogHeader><DialogTitle>Generate this take?</DialogTitle><DialogDescription>This request is estimated at ${confirmEstimate?.toFixed(4)}. Actual provider usage is stored after completion.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => { setConfirmEstimate(null); setPendingCommand(null) }}>Cancel</Button><Button onClick={() => { const next = pendingCommand; setConfirmEstimate(null); setPendingCommand(null); if (next) void executeGeneration({ ...next.command, confirmed: true }, next.selectResult, next.updateEditorial) }}>Generate</Button></DialogFooter></DialogContent></Dialog>
     <Dialog open={Boolean(textSession.pending)} onOpenChange={(open) => { if (!open) textSession.cancelPending() }}><DialogContent><DialogHeader><DialogTitle>Run this text pass?</DialogTitle><DialogDescription>This Alibaba rewrite is estimated at ${Number(textSession.pending?.estimate || 0).toFixed(4)}. You will review the result before accepting it.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={textSession.cancelPending}>Cancel</Button><Button onClick={() => void textSession.confirmPending()}>Continue</Button></DialogFooter></DialogContent></Dialog>
   </div>
 }

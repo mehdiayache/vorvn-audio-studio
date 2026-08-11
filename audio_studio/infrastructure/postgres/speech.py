@@ -247,7 +247,8 @@ class SpeechRepository:
                 cursor, part_id, int(expected_revision), values,
                 canonical_script=str(current[2] or ""),
                 source_script_hash=values.get("_source_script_hash"))
-            selected = current_revision == int(expected_revision)
+            selected = (current_revision == int(expected_revision)
+                        and bool(values.get("select_result", True)))
             if selected:
                 cursor.execute("""
                     UPDATE production_parts

@@ -73,13 +73,22 @@ class PostgresTimelineRecords:
     def takes(self, production_id: int, part_id: int) -> list[dict] | None:
         return self.documents.takes(production_id, part_id)
 
-    def promote(self, production_id: int, part_id: int, take_id: int) -> bool:
-        return self.documents.promote(production_id, part_id, take_id)
+    def promote(self, production_id: int, part_id: int, take_id: int,
+                expected_revision: int,
+                confirm_outdated: bool = False) -> dict | None:
+        return self.documents.promote(
+            production_id, part_id, take_id, expected_revision,
+            confirm_outdated)
 
     def save_script(self, production_id: int, part_id: int, script: str,
                     values: dict | None = None) -> bool:
         return self.documents.save_script(
             production_id, part_id, script, values)
+
+    def save_editorial(self, production_id: int, part_id: int,
+                       expected_revision: int, values: dict) -> dict | None:
+        return self.documents.save_editorial(
+            production_id, part_id, expected_revision, values)
 
     def save_draft(self, production_id: int, part_id: int,
                    values: dict) -> bool:

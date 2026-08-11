@@ -584,7 +584,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/productions/{production_id}/parts/{part_id}/script": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/editorial": {
         parameters: {
             query?: never;
             header?: never;
@@ -597,8 +597,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Update Part Script */
-        patch: operations["updateProductionPartScript"];
+        /** Update Part Editorial */
+        patch: operations["updateProductionPartEditorial"];
         trace?: never;
     };
     "/api/v1/productions/{production_id}/parts/{part_id}/silence": {
@@ -2050,6 +2050,15 @@ export interface components {
              */
             volume: number;
         };
+        /** EditorialBody */
+        EditorialBody: {
+            /** Cast Role Id */
+            cast_role_id?: string | null;
+            /** Expected Revision */
+            expected_revision: number;
+            /** Script */
+            script?: string | null;
+        };
         /** EnrollmentSelection */
         EnrollmentSelection: {
             /** Identity Id */
@@ -2302,8 +2311,16 @@ export interface components {
         };
         /** OkResponse */
         OkResponse: {
+            /** Changed */
+            changed?: boolean | null;
+            /** Needs Confirmation */
+            needs_confirmation?: boolean | null;
             /** Ok */
             ok: boolean;
+            /** Outdated */
+            outdated?: boolean | null;
+            /** Revision */
+            revision?: number | null;
             /** Subtitles Stale */
             subtitles_stale?: number | null;
         };
@@ -2755,6 +2772,16 @@ export interface components {
             /** Updated At */
             updated_at?: string | null;
         };
+        /** PromoteBody */
+        PromoteBody: {
+            /**
+             * Confirm Outdated
+             * @default false
+             */
+            confirm_outdated: boolean;
+            /** Expected Revision */
+            expected_revision: number;
+        };
         /** PronunciationListEnvelope */
         PronunciationListEnvelope: {
             /** Data */
@@ -2991,11 +3018,6 @@ export interface components {
             /** Rules */
             rules: components["schemas"]["PronunciationRuleResponse"][];
         };
-        /** ScriptBody */
-        ScriptBody: {
-            /** Script */
-            script: string;
-        };
         /** SeriesOverviewEnvelope */
         SeriesOverviewEnvelope: {
             data: components["schemas"]["SeriesOverviewResponse"];
@@ -3168,6 +3190,11 @@ export interface components {
              * @default 0
              */
             seed: number;
+            /**
+             * Select Result
+             * @default true
+             */
+            select_result: boolean;
             /** Session Id */
             session_id?: string | null;
             /**
@@ -5813,7 +5840,7 @@ export interface operations {
             };
         };
     };
-    updateProductionPartScript: {
+    updateProductionPartEditorial: {
         parameters: {
             query?: never;
             header?: never;
@@ -5825,7 +5852,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ScriptBody"];
+                "application/json": components["schemas"]["EditorialBody"];
             };
         };
         responses: {
@@ -5928,7 +5955,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromoteBody"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

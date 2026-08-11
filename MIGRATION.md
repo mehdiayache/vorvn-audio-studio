@@ -483,3 +483,34 @@ restarted FastAPI/worker pair reported matching runtime IDs and healthy database
 readiness; a live read-only Production smoke loaded all six current Parts,
 exact route labels, player and timeline without an HTTP or UI error state. No Alibaba
 generation was triggered for this checkpoint.
+
+Checkpoint 4 makes Part editorial changes and Take selection explicit human
+commands. It closes the last silent mutation paths without changing the visual
+Composer architecture.
+
+- Generating another Take no longer rewrites the canonical Part script inside
+  a React action. When the prepared words or Cast Role differ, Composer asks
+  the operator to either update the Part or create an unselected alternative.
+- The explicit editorial command carries `expected_revision`. PostgreSQL locks
+  the Part, rejects stale views with HTTP 409, applies script and Cast changes
+  together, increments the revision once, and records an audit event.
+- `Generate alternative only` snapshots the actual submitted script hash and
+  creates an immutable Take with `select_result=false`. The worker cannot
+  select it automatically. Backend validation rejects attempts to auto-select
+  audio whose raw words differ from the Part.
+- Take freshness compares both source Part revision and source script hash.
+  An alternative or historical Take therefore remains visibly outdated after
+  selection whenever its words no longer match the current Part.
+- Selecting an outdated Take is a two-step human command. The first request
+  returns `needs_confirmation` without mutation; the confirmed request uses
+  the same expected Part revision, selects that exact Take, keeps its outdated
+  status honest, marks captions stale and records an audit event.
+- A stale Composer or Take sheet cannot overwrite a newer Part decision. No
+  route, model, Take or editorial update is silently replaced or retried.
+
+Verification is provider-free. PostgreSQL tests cover optimistic revision
+conflicts, script-hash divergence, alternative Take non-selection and confirmed
+outdated promotion. React tests cover the required editorial decision and the
+explicit revision-guarded mutation. The complete checkpoint passes 304 Python
+tests and 103 React tests plus generated OpenAPI, TypeScript and production
+build. No Alibaba generation was triggered.

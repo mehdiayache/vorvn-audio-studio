@@ -11,7 +11,7 @@ import "./recording-take-card.css"
 
 export type RecordingTakeView = {
   id: string
-  status: "pending" | "ready" | "warning" | "failed" | "current"
+  status: "pending" | "ready" | "warning" | "outdated" | "failed" | "current"
   voice?: string
   voiceIdentityId?: string | null
   createdAt?: string | null
@@ -38,11 +38,12 @@ export function RecordingTakeCard({ take, directory, active = false, onPlay, onS
 }) {
   const working = take.status === "pending"
   const failed = take.status === "failed"
-  const StatusIcon = working ? LoaderCircle : failed ? AlertCircle : CheckCircle2
-  const statusLabel = working ? "Generating" : failed ? "Generation failed" : take.status === "warning" ? "Ready · review wording" : take.status === "current" ? "Current take" : "Ready"
+  const outdated = take.status === "outdated"
+  const StatusIcon = working ? LoaderCircle : failed || outdated ? AlertCircle : CheckCircle2
+  const statusLabel = working ? "Generating" : failed ? "Generation failed" : outdated ? "Outdated" : take.status === "warning" ? "Ready · review wording" : take.status === "current" ? "Current take" : "Ready"
   const created = take.createdAt ? new Date(take.createdAt).toLocaleString() : ""
 
-  return <article className={cn("recording-take-card", `is-${take.status}`)}>
+  return <article className={cn("recording-take-card", `is-${outdated ? "warning" : take.status}`)}>
     <div className="recording-take-status"><StatusIcon className={working ? "spin" : ""} /><span>{statusLabel}</span></div>
     <VoiceIdentity voice={take.voice} identityId={take.voiceIdentityId} directory={directory} compact showDetail={false} />
     <div className="recording-take-summary">

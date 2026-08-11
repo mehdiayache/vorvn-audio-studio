@@ -543,6 +543,15 @@ class SpeechGenerationTests(unittest.TestCase):
                 part_id, production_id, current["revision"], changed,
                 operation="regenerate")
             self.assertEqual(result["takes"], 2)
+            alternative = {**row, "text": marker + " alternative",
+                           "text_raw": marker + " alternative",
+                           "select_result": False,
+                           "_source_script_hash": hashlib.sha256(
+                               (marker + " alternative").encode("utf-8")).hexdigest()}
+            alternative_result = repository.replace_part(
+                part_id, production_id, current["revision"], alternative,
+                operation="regenerate")
+            self.assertEqual(alternative_result["selected"], 0)
             with psycopg.connect(settings.database_url) as verify:
                 with verify.cursor() as cursor:
                     cursor.execute(
@@ -550,8 +559,10 @@ class SpeechGenerationTests(unittest.TestCase):
                         (part_id,))
                     first_take = cursor.fetchone()
                     second_take = cursor.fetchone()
+                    third_take = cursor.fetchone()
                     self.assertEqual(first_take[0], marker)
                     self.assertEqual(second_take[0], marker + " changed")
+                    self.assertEqual(third_take[0], marker + " alternative")
                     self.assertEqual(first_take[1], second_take[1])
                     cursor.execute(
                         "SELECT script,revision FROM production_parts WHERE id=%s",

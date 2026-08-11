@@ -394,7 +394,10 @@ class SpeechGenerationService:
             on_progress(max(1, prepared.request_count),
                         max(1, prepared.request_count), "Speech ready")
 
-        warning = ("The Part changed while this Take was generating. The "
+        warning = ("Alternative Take created without changing or selecting the Part."
+                   if mutation.get("selected") == 0
+                   and not bool(values.get("select_result", True)) else
+                   "The Part changed while this Take was generating. The "
                    "historical Take was kept but not selected."
                    if mutation.get("selected") == 0 else
                    "The Cast changed while this Take was generating. The "

@@ -10,7 +10,7 @@ import { useProductionActions } from "./use-production-actions"
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }))
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>()
-  return { ...actual, studioApi: { ...actual.studioApi, enqueueRecordPart: vi.fn(), enqueueRegenerate: vi.fn(), savePartScript: vi.fn() } }
+  return { ...actual, studioApi: { ...actual.studioApi, enqueueRecordPart: vi.fn(), enqueueRegenerate: vi.fn(), savePartEditorial: vi.fn() } }
 })
 
 const payload: GeneratePayload = {
@@ -51,7 +51,7 @@ describe("useProductionActions render completion", () => {
     await act(async () => { rendered = await result.current.settleRender(task, { id: 127, name: "legacy take.mp3", cost: 0.0169 }) })
 
     expect(rendered).toMatchObject({ id: 127, url: "/audio/legacy%20take.mp3" })
-    expect(studioApi.savePartScript).toHaveBeenCalledWith(28, 127, "In the beginning")
+    expect(studioApi.savePartEditorial).not.toHaveBeenCalled()
     expect(toggleSource).toHaveBeenCalledWith(expect.objectContaining({ url: "/audio/legacy%20take.mp3" }))
     expect(toast.warning).toHaveBeenCalledWith(expect.stringMatching(/audio created.*timeline/i))
     expect(toast.error).not.toHaveBeenCalled()
@@ -82,6 +82,26 @@ describe("useProductionActions render completion", () => {
     expect(returned).toBe(retryJob)
     expect(studioApi.enqueueRecordPart).toHaveBeenCalledWith(
       pendingPart.id, payload)
-    expect(studioApi.savePartScript).not.toHaveBeenCalled()
+    expect(studioApi.savePartEditorial).not.toHaveBeenCalled()
+  })
+
+  it("updates Part editorial truth only through the explicit revision-guarded action", async () => {
+    vi.mocked(studioApi.savePartEditorial).mockResolvedValue({ ok: true, revision: 4, changed: true, outdated: true })
+    const player = {
+      source: null, state: "idle", currentTime: 0, duration: 0, volume: 1, speed: 1,
+      toggleSource: vi.fn(), toggle: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      setVolume: vi.fn(), setSpeed: vi.fn(), close: vi.fn(),
+    }
+    const { result } = renderHook(() => useProductionActions({
+      production, music, directory, player: player as never,
+      refresh: vi.fn(), refreshAssets: vi.fn(),
+    }))
+    await act(async () => {
+      await result.current.updatePartEditorial(part, {
+        expected_revision: 3, script: "Explicit revision",
+      })
+    })
+    expect(studioApi.savePartEditorial).toHaveBeenCalledWith(
+      28, 127, { expected_revision: 3, script: "Explicit revision" })
   })
 })

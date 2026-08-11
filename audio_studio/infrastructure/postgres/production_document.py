@@ -170,7 +170,8 @@ class ProductionDocumentRepository:
                        coalesce(speech_job.detail, ''),
                        coalesce(speech_job.error, ''), speech_job.retries,
                        speech_job.created_at, speech_job.started_at,
-                       speech_job.finished_at, speech_job.payload
+                       speech_job.finished_at, speech_job.payload,
+                       take.source_script_hash
                   FROM production_parts part
                   LEFT JOIN production_cast_roles role ON role.id = part.cast_role_id
                   LEFT JOIN composition_drafts draft ON draft.part_id = part.id
@@ -216,7 +217,9 @@ class ProductionDocumentRepository:
                 "text": row[6], "cast_role_id": row[7],
                 "cast_role_name": row[8], "editorial_status": row[9],
                 "revision": row[10], "selected_take_id": row[11],
-                "outdated": bool(row[11] and selected_revision != row[10]),
+                "outdated": bool(row[11] and (
+                    selected_revision != row[10]
+                    or row[51] != script_hash(row[6]))),
                 "asset_id": row[12], "asset_version_id": row[13],
                 "duration_ms": row[27] if row[11] else row[14],
                 "text_raw": snapshot.get("text_raw", draft.get("text_raw")),
@@ -447,6 +450,73 @@ class ProductionDocumentRepository:
             """, (next_script, next_title, next_duration, 1 if changed else 0, part_id))
             return True
 
+    def save_editorial(self, production_id: int, part_id: int,
+                       expected_revision: int,
+                       values: dict[str, Any]) -> dict[str, Any] | None:
+        """Apply an explicit editorial mutation with optimistic concurrency."""
+        with transaction() as cursor:
+            row = self._part_row(cursor, production_id, part_id, lock=True)
+            if not row:
+                return None
+            current_revision = int(row[9])
+            if current_revision != int(expected_revision):
+                return {"status": "conflict", "revision": current_revision}
+            next_script = (str(values["script"]) if "script" in values
+                           else str(row[5] or ""))
+            next_role_id = row[7]
+            if "cast_role_id" in values:
+                role_public_id = values.get("cast_role_id")
+                if role_public_id:
+                    cursor.execute("""
+                        SELECT id FROM production_cast_roles
+                         WHERE public_id=%s AND production_id=%s
+                    """, (role_public_id, production_id))
+                    role = cursor.fetchone()
+                    if not role:
+                        raise ValueError(
+                            "That Cast Role does not belong to this Production.")
+                    next_role_id = int(role[0])
+                else:
+                    next_role_id = None
+            changed_fields = []
+            if next_script != str(row[5] or ""):
+                changed_fields.append("script")
+            if next_role_id != row[7]:
+                changed_fields.append("cast_role_id")
+            if not changed_fields:
+                selected_outdated = False
+                if row[10]:
+                    cursor.execute(
+                        "SELECT source_part_revision, source_script_hash "
+                        "FROM takes WHERE id=%s",
+                        (row[10],))
+                    selected = cursor.fetchone()
+                    selected_outdated = bool(
+                        selected and (
+                            int(selected[0]) != current_revision
+                            or str(selected[1]) != script_hash(next_script)))
+                return {"status": "ok", "changed": False,
+                        "revision": current_revision,
+                        "outdated": selected_outdated}
+            next_revision = current_revision + 1
+            cursor.execute("""
+                UPDATE production_parts
+                   SET script=%s, cast_role_id=%s, revision=%s, updated_at=now()
+                 WHERE id=%s
+            """, (next_script, next_role_id, next_revision, part_id))
+            cursor.execute("""
+                INSERT INTO audit_records
+                    (action, resource_type, resource_id, detail)
+                VALUES ('part.editorial_updated','production_part',%s,%s::jsonb)
+            """, (str(row[1]), json.dumps({
+                "from_revision": current_revision,
+                "to_revision": next_revision,
+                "changed_fields": changed_fields,
+            })))
+            return {"status": "ok", "changed": True,
+                    "revision": next_revision,
+                    "outdated": bool(row[10])}
+
     def save_draft(self, production_id: int, part_id: int,
                    values: dict[str, Any]) -> bool:
         with transaction() as cursor:
@@ -596,22 +666,43 @@ class ProductionDocumentRepository:
             "cost": _float(row[8]), "text": row[9] or "",
             "duration_ms": row[10], "instruction": (row[11] or {}).get("instruction"),
             "language": row[12], "fidelity": (row[13] or {}).get("fidelity") or None,
-            "source_part_revision": row[14], "outdated": row[14] != part[9],
+            "source_part_revision": row[14],
+            "outdated": (row[14] != part[9]
+                         or row[15] != script_hash(str(part[5] or ""))),
             "source_script_hash": row[15],
             "binding_id": str(row[16]) if row[16] else None,
             "capability_id": row[17],
         } for row in rows]
 
-    def promote(self, production_id: int, part_id: int, take_id: int) -> bool:
+    def promote(self, production_id: int, part_id: int, take_id: int,
+                expected_revision: int,
+                confirm_outdated: bool = False) -> dict[str, Any] | None:
         with transaction() as cursor:
             row = self._part_row(cursor, production_id, part_id, lock=True)
             if not row:
-                return False
-            cursor.execute("SELECT source_part_revision FROM takes WHERE id=%s AND part_id=%s",
+                return None
+            current_revision = int(row[9])
+            if current_revision != int(expected_revision):
+                return {"status": "conflict", "revision": current_revision}
+            cursor.execute("SELECT source_part_revision, source_script_hash FROM takes WHERE id=%s AND part_id=%s",
                            (take_id, part_id))
             take = cursor.fetchone()
             if not take:
-                return False
+                return None
+            outdated = (int(take[0]) != current_revision
+                        or str(take[1]) != script_hash(str(row[5] or "")))
+            if outdated and not confirm_outdated:
+                return {"status": "confirmation_required",
+                        "revision": current_revision, "outdated": True}
             cursor.execute("UPDATE production_parts SET selected_take_id=%s, updated_at=now() WHERE id=%s",
                            (take_id, part_id))
-            return True
+            cursor.execute("""
+                INSERT INTO audit_records
+                    (action, resource_type, resource_id, detail)
+                VALUES ('take.selected','production_part',%s,%s::jsonb)
+            """, (str(row[1]), json.dumps({
+                "take_id": take_id, "part_revision": current_revision,
+                "take_revision": int(take[0]), "outdated": outdated,
+            })))
+            return {"status": "ok", "revision": current_revision,
+                    "outdated": outdated}
