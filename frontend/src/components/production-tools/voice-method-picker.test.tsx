@@ -11,7 +11,9 @@ const qwen3: VoiceChoice = {
   id: "qwen3-voice", identityId: "voice-x", name: "Voice X",
   description: "", source: "mine", engine: "qwen_tts", model: "vc",
   modelId: "qwen3-tts-vc-2026-01-22", compatible: true,
-  provider: "alibaba", region: "intl", adapterKey: "qwen_tts", capabilities: [],
+  provider: "alibaba", region: "intl", adapterKey: "qwen_tts", capabilities: [
+    { id: "exact_longform", name: "Exact long reading", description: "Faithful long-form speech", controls: {}, uiMetadata: {} },
+  ],
   languages: ["English", "French", "German"], status: "active",
 }
 
@@ -40,8 +42,8 @@ describe("VoiceMethodPicker", () => {
   it("makes each capability explicit when one binding has multiple modes", () => {
     const onSelect = vi.fn()
     const multi = { ...qwen3, capabilities: [
-      { id: "narration", name: "Narration", description: "Straight reading" },
-      { id: "character", name: "Character", description: "Character performance" },
+      { id: "narration", name: "Narration", description: "Straight reading", controls: {}, uiMetadata: {} },
+      { id: "character", name: "Character", description: "Character performance", controls: {}, uiMetadata: {} },
     ] }
     render(<VoiceMethodPicker
       routes={[multi]}

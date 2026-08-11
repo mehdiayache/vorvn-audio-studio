@@ -22,9 +22,12 @@ class SpeechRepository:
                        binding.languages, identity.id, identity.name,
                        binding.reference_id, binding.provider,
                        binding.provider_region,
-                       provider_model.adapter_key,
+                       provider_model.adapter_key,provider_model.pricing,
                        coalesce(jsonb_agg(jsonb_build_object(
-                           'id', capability.id, 'name', capability.name
+                           'id', capability.id, 'name', capability.name,
+                           'description', capability.description,
+                           'controls', capability.controls,
+                           'ui_metadata', capability.ui_metadata
                        )) FILTER (WHERE capability.id IS NOT NULL), '[]'::jsonb)
                   FROM voice_bindings binding
                   JOIN voice_identities identity
@@ -44,7 +47,8 @@ class SpeechRepository:
                        binding.engine, binding.tier, binding.status,
                        binding.languages, identity.id, identity.name,
                        binding.reference_id, binding.provider,
-                       binding.provider_region, provider_model.adapter_key
+                       binding.provider_region, provider_model.adapter_key,
+                       provider_model.pricing
                  ORDER BY identity.name, binding.model_id, binding.created_at
             """)
             custom = [{
@@ -55,7 +59,9 @@ class SpeechRepository:
                 "name": row[8], "reference_id": row[9],
                 "source": "custom", "provider": row[10], "region": row[11],
                 "adapter_key": row[12] or row[3],
-                "capabilities": row[13] or [],
+                "estimate_rate_per_million_chars": float(
+                    (row[13] or {}).get("speech_per_million_chars") or 0),
+                "capabilities": row[14] or [],
             } for row in cursor.fetchall()]
         return custom
 

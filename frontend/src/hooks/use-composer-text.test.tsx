@@ -24,18 +24,18 @@ describe("useComposerText text preparation contract", () => {
   })
 
   it.each(["shape", "tag"] as const)("omits Production identifiers for standalone Speak %s", async (operation) => {
-    const { result } = renderHook(() => useComposerText(undefined, undefined, "audio"))
+    const { result } = renderHook(() => useComposerText(undefined, undefined, "expressive_tags"))
     act(() => result.current.updateText("مرحبا"))
     await act(async () => { await result.current.run(operation) })
 
     expect(studioApi.enqueueTextPass).toHaveBeenCalledWith(operation, {
-      text: "مرحبا", density: "normal", engine: "audio", confirmed: false,
+      text: "مرحبا", density: "normal", capability_id: "expressive_tags", confirmed: false,
     })
     await waitFor(() => expect(result.current.review?.kind).toBe(operation))
   })
 
   it("lets standalone Speak accept the returned Tagged version locally", async () => {
-    const { result } = renderHook(() => useComposerText(undefined, undefined, "audio"))
+    const { result } = renderHook(() => useComposerText(undefined, undefined, "expressive_tags"))
     act(() => result.current.updateText("مرحبا"))
     await act(async () => { await result.current.run("tag") })
     await waitFor(() => expect(result.current.review).not.toBeNull())
@@ -47,7 +47,7 @@ describe("useComposerText text preparation contract", () => {
 
   it("includes Production and Part identifiers inside a Production", async () => {
     const part = { id: 121, text: "مرحبا", text_state: "raw" } as never
-    const { result } = renderHook(() => useComposerText(part, 28, "audio"))
+    const { result } = renderHook(() => useComposerText(part, 28, "expressive_tags"))
     await act(async () => { await result.current.run("tag") })
 
     expect(studioApi.enqueueTextPass).toHaveBeenCalledWith("tag", expect.objectContaining({
@@ -57,14 +57,14 @@ describe("useComposerText text preparation contract", () => {
 
   it("re-observes a persisted paid text Job after the Composer remounts", async () => {
     const reference = { jobId: "22222222-2222-4222-8222-222222222222", kind: "shape" as const }
-    const { result } = renderHook(() => useComposerText(undefined, undefined, "audio", { reviewReference: reference }))
+    const { result } = renderHook(() => useComposerText(undefined, undefined, "expressive_tags", { reviewReference: reference }))
     await waitFor(() => expect(result.current.review?.result.after).toBe("[whispers] مرحبا"))
     expect(studioApi.textPassResult).toHaveBeenCalledWith(reference.jobId)
   })
 
   it("persists accepted text while clearing the review pointer", async () => {
     const onReviewReferenceChange = vi.fn()
-    const { result } = renderHook(() => useComposerText(undefined, undefined, "audio", { onReviewReferenceChange }))
+    const { result } = renderHook(() => useComposerText(undefined, undefined, "expressive_tags", { onReviewReferenceChange }))
     act(() => result.current.updateText("مرحبا"))
     await act(async () => { await result.current.run("tag") })
     await waitFor(() => expect(result.current.review).not.toBeNull())
@@ -75,7 +75,7 @@ describe("useComposerText text preparation contract", () => {
   it("publishes the durable Job pointer before a paid result finishes", async () => {
     vi.mocked(studioApi.textPassResult).mockReturnValue(new Promise(() => undefined))
     const onReviewReferenceChange = vi.fn().mockResolvedValue(undefined)
-    const { result } = renderHook(() => useComposerText(undefined, undefined, "audio", { onReviewReferenceChange }))
+    const { result } = renderHook(() => useComposerText(undefined, undefined, "expressive_tags", { onReviewReferenceChange }))
     act(() => result.current.updateText("Wait for me"))
     await act(async () => { await result.current.run("shape") })
     expect(onReviewReferenceChange).toHaveBeenCalledWith({

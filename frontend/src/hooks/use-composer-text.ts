@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react"
 
 import { studioApi } from "@/lib/api"
 import type { ProductionPart, TextPassResult } from "@/types/domain"
-import type { SpeechEngine } from "@/lib/voice-options"
 import type { ComposerText, TextReviewReference } from "@/lib/composer-contract"
 
 export type TextView = "raw" | "shaped" | "tagged"
@@ -24,7 +23,7 @@ function initial(part?: ProductionPart | null) {
 export function useComposerText(
   part: ProductionPart | null | undefined,
   productionId: number | undefined,
-  engine: SpeechEngine | null,
+  capabilityId: string | null,
   options: PreparationOptions = {},
 ) {
   const [states, setStates] = useState(initial(part))
@@ -104,7 +103,7 @@ export function useComposerText(
   async function run(kind: "shape" | "tag", confirmed = false) {
     const before = text.trim()
     if (!before) { setError("Write something first."); return }
-    if (!engine) { setError("Choose an exact recording route first."); return }
+    if (!capabilityId) { setError("Choose an exact recording route first."); return }
     setBusy(kind); setError("")
     try {
       const job = await studioApi.enqueueTextPass(kind, {
@@ -112,7 +111,7 @@ export function useComposerText(
         ...(productionId ? { production_id: productionId } : {}),
         ...(part?.id ? { part_id: part.id } : {}),
         density,
-        engine,
+        capability_id: capabilityId,
         confirmed,
       })
       const reference = { jobId: job.id, kind } satisfies TextReviewReference

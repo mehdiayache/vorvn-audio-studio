@@ -1,8 +1,8 @@
 [
-  {"id":"calm-bedtime","name":"Calm bedtime","instruction":"Speak slowly, softly, and warmly, with restrained emotion and gentle natural pauses.","engines":["audio","omni"]},
-  {"id":"warm-storyteller","name":"Warm storyteller","instruction":"Use a warm, intimate storytelling tone with clear phrasing and unhurried transitions.","engines":["audio","omni"]},
-  {"id":"gentle-prayer","name":"Gentle prayer","instruction":"Speak reverently and gently, at a calm pace, with sincere warmth and quiet pauses.","engines":["audio","omni"]},
-  {"id":"clear-explainer","name":"Clear explainer","instruction":"Speak clearly and patiently, with an approachable tone and steady pace.","engines":["audio","omni"]},
-  {"id":"serious-documentary","name":"Serious documentary","instruction":"Use a measured, authoritative documentary tone with crisp diction and controlled emotion.","engines":["audio","omni"]},
-  {"id":"energetic-promo","name":"Energetic promo","instruction":"Use an energetic promotional delivery with punchy emphasis and rising momentum.","engines":["audio","omni"]}
+  {"id":"calm-bedtime","name":"Calm bedtime","instruction":"Speak slowly, softly, and warmly, with restrained emotion and gentle natural pauses.","capability_ids":["expressive_tags","natural_performance"]},
+  {"id":"warm-storyteller","name":"Warm storyteller","instruction":"Use a warm, intimate storytelling tone with clear phrasing and unhurried transitions.","capability_ids":["expressive_tags","natural_performance"]},
+  {"id":"gentle-prayer","name":"Gentle prayer","instruction":"Speak reverently and gently, at a calm pace, with sincere warmth and quiet pauses.","capability_ids":["expressive_tags","natural_performance"]},
+  {"id":"clear-explainer","name":"Clear explainer","instruction":"Speak clearly and patiently, with an approachable tone and steady pace.","capability_ids":["expressive_tags","natural_performance"]},
+  {"id":"serious-documentary","name":"Serious documentary","instruction":"Use a measured, authoritative documentary tone with crisp diction and controlled emotion.","capability_ids":["expressive_tags","natural_performance"]},
+  {"id":"energetic-promo","name":"Energetic promo","instruction":"Use an energetic promotional delivery with punchy emphasis and rising momentum.","capability_ids":["expressive_tags","natural_performance"]}
 ]

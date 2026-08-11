@@ -36,6 +36,9 @@ class FakeRepository:
     def today_spend(self):
         return self.spent
 
+    def capability_controls(self, capability_id):
+        return {"delivery_tags": capability_id == "expressive_tags"}
+
 
 class FakeProvider:
     def __init__(self, text="Ready."):
@@ -75,6 +78,7 @@ class TextPreparationTests(unittest.TestCase):
         provider = FakeProvider("Hello there.")
         result = self.service(repository, provider).prepare(
             operation="shape", text="Hello there", production_id=41, part_id=9,
+            capability_id="exact_longform",
         )
 
         self.assertEqual(repository.style_requests, [41])
@@ -92,17 +96,18 @@ class TextPreparationTests(unittest.TestCase):
         self.assertEqual(result["cost"], .000008)
         self.assertIn("estimated_cost", result)
 
-    def test_tag_rejects_omni_before_any_provider_call(self):
+    def test_tag_rejects_a_capability_without_delivery_tags_before_provider(self):
         provider = FakeProvider()
-        with self.assertRaisesRegex(ValueError, "Qwen 3.5 Omni"):
+        with self.assertRaisesRegex(ValueError, "does not support inline"):
             self.service(provider=provider).prepare(
-                operation="tag", text="Hello", engine="omni")
+                operation="tag", text="Hello", capability_id="natural_performance")
         self.assertEqual(provider.calls, [])
 
     def test_tag_strips_only_invented_tags(self):
         provider = FakeProvider("[sad] Hello [invented] there [laughing]")
         result = self.service(provider=provider).prepare(
-            operation="tag", text="Hello there", density="heavy")
+            operation="tag", text="Hello there", density="heavy",
+            capability_id="expressive_tags")
         self.assertEqual(result["after"], "[sad] Hello there [laughing]")
         self.assertIn("add tags generously", provider.calls[0]["messages"][0]["content"].lower())
 
@@ -110,7 +115,8 @@ class TextPreparationTests(unittest.TestCase):
         provider = FakeProvider("[sad] Hello changed")
         with self.assertRaisesRegex(ValueError, "rejected that version"):
             self.service(provider=provider).prepare(
-                operation="tag", text="Hello there")
+                operation="tag", text="Hello there",
+                capability_id="expressive_tags")
 
     def test_rejected_text_still_preserves_definite_provider_success(self):
         operations = FakeProviderOperationsRepository()
@@ -121,7 +127,7 @@ class TextPreparationTests(unittest.TestCase):
                 operations=ProviderOperationService(operations),
             ).prepare(
                 operation="tag", text="Hello there", source_job_id=8,
-                confirmed=True)
+                confirmed=True, capability_id="expressive_tags")
         finish = next(event for event in operations.events
                       if event[0] == "finish")
         self.assertEqual(finish[2], "succeeded")
@@ -133,7 +139,8 @@ class TextPreparationTests(unittest.TestCase):
         result = self.service(
             provider=provider,
             preferences={"warn_above": 0.000001, "daily_cap": 0},
-        ).prepare(operation="shape", text="A sufficiently long sentence.")
+        ).prepare(operation="shape", text="A sufficiently long sentence.",
+                  capability_id="exact_longform")
         self.assertTrue(result["needs_confirmation"])
         self.assertEqual(provider.calls, [])
 
@@ -144,7 +151,8 @@ class TextPreparationTests(unittest.TestCase):
             preferences={"warn_above": 0, "daily_cap": 0.990001},
         )
         with self.assertRaisesRegex(PermissionError, "Daily cap reached"):
-            service.prepare(operation="shape", text="This exceeds the cap.")
+            service.prepare(operation="shape", text="This exceeds the cap.",
+                            capability_id="exact_longform")
         self.assertEqual(provider.calls, [])
 
     def test_job_handler_reports_progress_and_uses_canonical_payload(self):
@@ -153,7 +161,8 @@ class TextPreparationTests(unittest.TestCase):
         progress = Progress()
         job = Job(8, uuid4(), "rewrite", JobStatus.RUNNING, {
             "operation": "shape", "text": "Do this", "production_id": 3,
-            "part_id": 5, "density": "normal", "engine": "audio",
+            "part_id": 5, "density": "normal",
+            "capability_id": "exact_longform",
         })
         result = handler(job, progress)
         self.assertEqual(result["after"], "Done")
@@ -161,16 +170,19 @@ class TextPreparationTests(unittest.TestCase):
         self.assertEqual(progress.events[-1][1:], (1, 1, "Complete"))
 
     def test_http_contract_accepts_old_aliases_but_serializes_canonical_names(self):
-        payload = TextJobCreate(operation="shape", text="Hello", project_id=7, id=8)
+        payload = TextJobCreate(operation="shape", text="Hello",
+                                capability_id="exact_longform", project_id=7, id=8)
         self.assertEqual(payload.production_id, 7)
         self.assertEqual(payload.part_id, 8)
         self.assertEqual(payload.model_dump()["production_id"], 7)
         with self.assertRaises(ValueError):
-            TextJobCreate(operation="tag", text="Hello", density="extreme")
+            TextJobCreate(operation="tag", text="Hello", density="extreme",
+                          capability_id="expressive_tags")
 
     def test_http_contract_accepts_standalone_text_preparation_without_work_ids(self):
         payload = TextJobCreate(
-            operation="tag", text="مرحبا", density="normal", engine="audio")
+            operation="tag", text="مرحبا", density="normal",
+            capability_id="expressive_tags")
         values = payload.model_dump(exclude_none=True)
         self.assertNotIn("production_id", values)
         self.assertNotIn("part_id", values)

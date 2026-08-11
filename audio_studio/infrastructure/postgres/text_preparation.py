@@ -27,3 +27,14 @@ class PostgresTextPreparationRepository:
 
     def today_spend(self) -> float:
         return today_provider_spend()
+
+    def capability_controls(self, capability_id: str) -> dict:
+        with read_only() as cursor:
+            cursor.execute("""
+                SELECT controls FROM capabilities
+                 WHERE id=%s AND archived_at IS NULL
+            """, (capability_id,))
+            row = cursor.fetchone()
+        if not row:
+            raise ValueError("That recording capability is no longer available.")
+        return row[0] or {}

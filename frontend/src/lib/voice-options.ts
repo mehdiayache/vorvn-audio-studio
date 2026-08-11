@@ -7,6 +7,8 @@ export type VoiceCapabilityChoice = {
   id: string
   name: string
   description: string
+  controls: Record<string, unknown>
+  uiMetadata: Record<string, unknown>
 }
 
 export type VoiceChoice = {
@@ -28,6 +30,7 @@ export type VoiceChoice = {
   compatible: boolean
   languages: string[]
   status: string
+  estimateRatePerMillionCharacters?: number
 }
 
 export type VoiceIdentityChoice = {
@@ -52,6 +55,8 @@ function toChoice(binding: VoiceRegistry["bindings"][number]): VoiceChoice {
       id,
       name: String(item.name || id),
       description: String(item.description || ""),
+      controls: item.controls || {},
+      uiMetadata: item.ui_metadata || {},
     }]
   })
   return {
@@ -73,6 +78,7 @@ function toChoice(binding: VoiceRegistry["bindings"][number]): VoiceChoice {
     compatible: readyStatuses.has(binding.status.toLocaleLowerCase()),
     languages: binding.languages,
     status: binding.status,
+    estimateRatePerMillionCharacters: Number(binding.estimate_rate_per_million_chars || 0),
   }
 }
 

@@ -2566,8 +2566,8 @@ export interface components {
         };
         /** PerformancePresetResponse */
         PerformancePresetResponse: {
-            /** Engines */
-            engines: ("audio" | "omni" | "qwen_tts")[];
+            /** Capability Ids */
+            capability_ids: string[];
             /** Id */
             id: string;
             /** Instruction */
@@ -3813,6 +3813,8 @@ export interface components {
         };
         /** TextJobCreate */
         TextJobCreate: {
+            /** Capability Id */
+            capability_id: string;
             /**
              * Confirmed
              * @default false
@@ -3824,12 +3826,6 @@ export interface components {
              * @enum {string}
              */
             density: "none" | "light" | "normal" | "heavy";
-            /**
-             * Engine
-             * @default audio
-             * @enum {string}
-             */
-            engine: "audio" | "omni" | "qwen_tts";
             /**
              * Operation
              * @enum {string}
@@ -4170,9 +4166,7 @@ export interface components {
             /** Binding Id */
             binding_id?: string | null;
             /** Capabilities */
-            capabilities?: {
-                [key: string]: string;
-            }[];
+            capabilities?: components["schemas"]["VoiceCapabilityResponse"][];
             /** Catalogue Voice Id */
             catalogue_voice_id?: string | null;
             /** Description */
@@ -4182,6 +4176,11 @@ export interface components {
              * @enum {string}
              */
             engine: "audio" | "omni" | "qwen_tts";
+            /**
+             * Estimate Rate Per Million Chars
+             * @default 0
+             */
+            estimate_rate_per_million_chars: number;
             /** Gender */
             gender?: string | null;
             /** Identity Id */
@@ -4220,6 +4219,26 @@ export interface components {
              * @enum {string}
              */
             tier: "plus" | "flash" | "vc";
+        };
+        /** VoiceCapabilityResponse */
+        VoiceCapabilityResponse: {
+            /** Controls */
+            controls?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Ui Metadata */
+            ui_metadata?: {
+                [key: string]: unknown;
+            };
         };
         /** VoiceHistoryLinkEnvelope */
         VoiceHistoryLinkEnvelope: {

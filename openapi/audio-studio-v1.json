@@ -3254,16 +3254,11 @@
       },
       "PerformancePresetResponse": {
         "properties": {
-          "engines": {
+          "capability_ids": {
             "items": {
-              "enum": [
-                "audio",
-                "omni",
-                "qwen_tts"
-              ],
               "type": "string"
             },
-            "title": "Engines",
+            "title": "Capability Ids",
             "type": "array"
           },
           "id": {
@@ -3283,7 +3278,7 @@
           "id",
           "name",
           "instruction",
-          "engines"
+          "capability_ids"
         ],
         "title": "PerformancePresetResponse",
         "type": "object"
@@ -6912,6 +6907,12 @@
       "TextJobCreate": {
         "additionalProperties": false,
         "properties": {
+          "capability_id": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Capability Id",
+            "type": "string"
+          },
           "confirmed": {
             "default": false,
             "title": "Confirmed",
@@ -6926,16 +6927,6 @@
               "heavy"
             ],
             "title": "Density",
-            "type": "string"
-          },
-          "engine": {
-            "default": "audio",
-            "enum": [
-              "audio",
-              "omni",
-              "qwen_tts"
-            ],
-            "title": "Engine",
             "type": "string"
           },
           "operation": {
@@ -6978,7 +6969,8 @@
         },
         "required": [
           "operation",
-          "text"
+          "text",
+          "capability_id"
         ],
         "title": "TextJobCreate",
         "type": "object"
@@ -7861,10 +7853,7 @@
           },
           "capabilities": {
             "items": {
-              "additionalProperties": {
-                "type": "string"
-              },
-              "type": "object"
+              "$ref": "#/components/schemas/VoiceCapabilityResponse"
             },
             "title": "Capabilities",
             "type": "array"
@@ -7892,6 +7881,11 @@
             ],
             "title": "Engine",
             "type": "string"
+          },
+          "estimate_rate_per_million_chars": {
+            "default": 0,
+            "title": "Estimate Rate Per Million Chars",
+            "type": "number"
           },
           "gender": {
             "anyOf": [
@@ -8016,6 +8010,40 @@
           "status"
         ],
         "title": "VoiceBindingResponse",
+        "type": "object"
+      },
+      "VoiceCapabilityResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "controls": {
+            "additionalProperties": true,
+            "title": "Controls",
+            "type": "object"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "ui_metadata": {
+            "additionalProperties": true,
+            "title": "Ui Metadata",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "VoiceCapabilityResponse",
         "type": "object"
       },
       "VoiceHistoryLinkEnvelope": {

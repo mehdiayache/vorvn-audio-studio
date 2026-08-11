@@ -210,7 +210,7 @@ class TextJobCreate(BaseModel):
         validation_alias=AliasChoices("part_id", "id"),
     )
     density: Literal["none", "light", "normal", "heavy"] = "normal"
-    engine: Literal["audio", "omni", "qwen_tts"] = "audio"
+    capability_id: str = Field(min_length=1, max_length=120)
     confirmed: bool = False
 
 

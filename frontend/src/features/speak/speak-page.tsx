@@ -12,15 +12,25 @@ import { useJobExecution } from "@/hooks/use-job-execution"
 import { useVoiceDirectory } from "@/hooks/use-voice-directory"
 import { studioApi } from "@/lib/api"
 import { playableGenerateResult } from "@/lib/generated-audio"
-import { capabilityTitle } from "@/lib/voice-capabilities"
 import { resolveVoice } from "@/lib/voice"
-import type { DurableJob, GeneratePayload, GenerateResult, RecordingAttempt, RecordingSession } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, RecordingAttempt, RecordingSession, VoiceDirectory } from "@/types/domain"
 import { belongsToRecordingSession } from "./speak-execution"
 
 import "@/components/production-tools/production-tools.css"
 import "./speak-page.css"
 
 type SpeakExecution = { jobId: string; sessionId: string; payload: GeneratePayload }
+
+function requestCapabilityName(payload: GeneratePayload, directory: VoiceDirectory) {
+  const route = directory.registry?.bindings.find((item) =>
+    Boolean(payload.binding_id && item.binding_id === payload.binding_id)
+    || Boolean(payload.catalogue_voice_id && item.catalogue_voice_id === payload.catalogue_voice_id))
+  const capabilities = route?.capabilities || []
+  const capability = payload.capability_id
+    ? capabilities.find((item) => item.id === payload.capability_id)
+    : capabilities.length === 1 ? capabilities[0] : null
+  return capability?.name || payload.capability_id || "Recording capability"
+}
 
 function PendingSpeakExecution({ execution, directory, onTerminal }: {
   execution: SpeakExecution
@@ -42,7 +52,7 @@ function PendingSpeakExecution({ execution, directory, onTerminal }: {
     voice: execution.payload.voice,
     voiceIdentityId: execution.payload.voice_identity_id,
     language: execution.payload.language,
-    method: capabilityTitle(execution.payload.engine, directory.config),
+    method: requestCapabilityName(execution.payload, directory),
     engine: execution.payload.engine,
     model: execution.payload.model,
     script: execution.payload.text,
@@ -126,7 +136,7 @@ export function SpeakPage() {
       createdAt: attempt.created_at, durationMs: attempt.duration_ms,
       cost: attempt.cost, costBasis: attempt.cost_basis,
       language: attempt.request.language,
-      method: capabilityTitle(attempt.request.engine, voices.config),
+      method: requestCapabilityName(attempt.request, voices.directory),
       engine: attempt.request.engine,
       model: attempt.request.model,
       audioUrl: attempt.audio_url,

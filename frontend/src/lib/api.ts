@@ -291,7 +291,7 @@ export const studioApi = {
     const job = await enqueueSpeech(payload, "regenerate", id)
     return jobObserver.completion<GenerateResult>(job.id)
   },
-  enqueueTextPass: async (kind: "shape" | "tag", payload: { text: string; production_id?: number; part_id?: number; density?: "none" | "light" | "normal" | "heavy"; engine: "audio" | "omni" | "qwen_tts"; confirmed?: boolean }) => {
+  enqueueTextPass: async (kind: "shape" | "tag", payload: { text: string; production_id?: number; part_id?: number; density?: "none" | "light" | "normal" | "heavy"; capability_id: string; confirmed?: boolean }) => {
     const response = await request<{ data: DurableJob<TextPassResult> }>("/api/v1/jobs/text", { method: "POST", headers: { "Idempotency-Key": `rewrite-${kind}-${crypto.randomUUID()}` }, body: JSON.stringify({ ...payload, operation: kind }) })
     return registerJob(response.data)
   },

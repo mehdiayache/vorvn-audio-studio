@@ -584,3 +584,36 @@ Python tests and 112 React tests, generated OpenAPI, TypeScript and production
 build. The exact-commit runtime smoke additionally caught and fixed UUID JSON
 serialization at the HTTP boundary before release. No Alibaba operation was
 called.
+
+Checkpoint 6 makes the selected capability the sole owner of Composer
+behavior, without redesigning the Composer or changing exact route selection.
+
+- `capabilities.controls` now publishes the real creative controls available
+  to a selected exact binding: inline tags, natural direction, supported
+  direction modes, verified passages and numeric speed/pitch/volume controls.
+  UI help belongs to the same dynamic capability record.
+- Both owned bindings and Alibaba catalogue routes expose the same typed
+  capability contract through PostgreSQL, FastAPI and generated OpenAPI.
+  Future capabilities can add control data without adding an engine branch or
+  changing the schema.
+- The speech estimate rate now travels with the exact provider-model route
+  from `provider_models.pricing`; Composer no longer looks up cost through an
+  engine-keyed UI configuration table.
+- Script, Delivery and Output no longer branch on `audio`, `omni` or
+  `qwen_tts`. The exact provider model remains visible, while the selected
+  capability alone determines which creative controls appear.
+- Performance presets target capability IDs rather than provider adapter
+  names. A future provider implementing an existing creative capability can
+  reuse the same presets without pretending to be an Alibaba engine.
+- Paid Spoken/Tagged preparation now carries the selected `capability_id`.
+  PostgreSQL validates tag support from capability data; the public text-pass
+  contract no longer accepts an engine as UI policy.
+- Provider adapter branching remains only where it belongs: preparing and
+  executing the exact provider request. No routing, fallback or language gate
+  was added, and the operator still selects the exact binding/model.
+
+Verification is provider-free. Tests cover existing and future capability
+shapes, a genuinely multimode binding, dynamic tag authorization, catalogue
+control persistence and fresh-database migration. Speak and Production still
+share the same `SpeechTool`, Draft contract and generation command. No Alibaba
+operation was called.

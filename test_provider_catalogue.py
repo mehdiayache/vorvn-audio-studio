@@ -40,6 +40,19 @@ class ProviderCatalogueTests(unittest.TestCase):
             {item["catalogue_voice_id"] for item in SpeechRepository().catalogue_voices()},
             {item["catalogue_voice_id"] for item in persisted},
         )
+        expressive = next(
+            capability
+            for item in persisted if item["engine"] == "audio"
+            for capability in item["capabilities"]
+            if capability["id"] == "expressive_tags")
+        self.assertTrue(expressive["controls"]["delivery_tags"])
+        self.assertTrue(expressive["controls"]["rate"])
+        self.assertEqual(
+            expressive["ui_metadata"]["direction_label"], "Voice direction")
+        audio_route = next(item for item in persisted
+                           if item["engine"] == "audio"
+                           and item["tier"] == "flash")
+        self.assertEqual(audio_route["estimate_rate_per_million_chars"], 15.0)
         audio_method = next(
             item for item in repository.enrollment_methods()
             if item["provider_model_id"]

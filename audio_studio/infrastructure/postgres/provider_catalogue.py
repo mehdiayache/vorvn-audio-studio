@@ -28,9 +28,9 @@ class ProviderCatalogueRepository:
                 cursor.execute("""
                     INSERT INTO provider_models
                         (id,provider,region,model_id,tier,operation,
-                         enrollment_languages,output_languages,status,adapter_key,
+                        enrollment_languages,output_languages,status,adapter_key,pricing,
                          enrollment_supported,metadata,updated_at)
-                    VALUES (%s,%s,%s,%s,%s,'speech',%s::jsonb,%s::jsonb,%s,%s,false,
+                    VALUES (%s,%s,%s,%s,%s,'speech',%s::jsonb,%s::jsonb,%s,%s,%s::jsonb,false,
                             %s::jsonb,now())
                     ON CONFLICT (id) DO UPDATE SET
                         enrollment_languages=CASE
@@ -40,6 +40,7 @@ class ProviderCatalogueRepository:
                         output_languages=EXCLUDED.output_languages,
                         status=EXCLUDED.status,
                         adapter_key=EXCLUDED.adapter_key,
+                        pricing=provider_models.pricing || EXCLUDED.pricing,
                         metadata=provider_models.metadata || EXCLUDED.metadata,
                         updated_at=now()
                 """, (
@@ -50,6 +51,10 @@ class ProviderCatalogueRepository:
                     json.dumps(list(capability_facts.get(
                         "output_languages") or item.get("languages") or [])),
                     item.get("status") or "active", item["engine"],
+                    json.dumps({"speech_per_million_chars": float(
+                        (capability_facts.get(
+                            "estimate_rates_per_million_chars") or {}).get(
+                                item["tier"]) or 0)}),
                     json.dumps({"catalogue_source": "documented_snapshot",
                                 "model_label": model_label}),
                 ))
@@ -97,7 +102,9 @@ class ProviderCatalogueRepository:
                        model.output_languages,model.pricing,model.metadata,
                        coalesce(jsonb_agg(jsonb_build_object(
                            'id',capability.id,'name',capability.name,
-                           'description',capability.description)
+                           'description',capability.description,
+                           'controls',capability.controls,
+                           'ui_metadata',capability.ui_metadata)
                        ORDER BY capability.id)
                        FILTER (WHERE capability.id IS NOT NULL),'[]'::jsonb)
                   FROM provider_models model
@@ -140,9 +147,12 @@ class ProviderCatalogueRepository:
                        catalogue.model_id,catalogue.tier,
                        catalogue.provider_voice_id,catalogue.engine,
                        catalogue.status,catalogue.languages,catalogue.metadata,
-                       coalesce(model.adapter_key,catalogue.engine),
+                       coalesce(model.adapter_key,catalogue.engine),model.pricing,
                        coalesce(jsonb_agg(jsonb_build_object(
-                           'id',capability.id,'name',capability.name
+                           'id',capability.id,'name',capability.name,
+                           'description',capability.description,
+                           'controls',capability.controls,
+                           'ui_metadata',capability.ui_metadata
                        ) ORDER BY capability.id)
                        FILTER (WHERE capability.id IS NOT NULL),'[]'::jsonb)
                   FROM provider_catalogue_voices catalogue
@@ -160,7 +170,7 @@ class ProviderCatalogueRepository:
                        catalogue.model_id,catalogue.tier,
                        catalogue.provider_voice_id,catalogue.engine,
                        catalogue.status,catalogue.languages,catalogue.metadata
-                       ,model.adapter_key
+                       ,model.adapter_key,model.pricing
                  ORDER BY catalogue.engine,catalogue.model_id,
                           catalogue.provider_voice_id
             """)
@@ -178,6 +188,8 @@ class ProviderCatalogueRepository:
                 "name": metadata.get("name") or row[5],
                 "description": metadata.get("description") or "",
                 "adapter_key": row[10] or row[6],
-                "source": "system", "capabilities": row[11] or [],
+                "estimate_rate_per_million_chars": float(
+                    (row[11] or {}).get("speech_per_million_chars") or 0),
+                "source": "system", "capabilities": row[12] or [],
             })
         return result

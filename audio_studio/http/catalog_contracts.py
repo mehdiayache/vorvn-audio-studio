@@ -11,7 +11,17 @@ class PerformancePresetResponse(BaseModel):
     id: str
     name: str
     instruction: str
-    engines: list[Literal["audio", "omni", "qwen_tts"]]
+    capability_ids: list[str]
+
+
+class VoiceCapabilityResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    name: str
+    description: str = ""
+    controls: dict[str, Any] = Field(default_factory=dict)
+    ui_metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class WorkspaceResponse(BaseModel):
@@ -88,6 +98,7 @@ class VoiceBindingResponse(BaseModel):
     tier: Literal["plus", "flash", "vc"]
     model_id: str
     status: str
+    estimate_rate_per_million_chars: float = 0
     reference_id: str | None = None
     image: str | None = None
     gender: str | None = None
@@ -95,7 +106,7 @@ class VoiceBindingResponse(BaseModel):
     accent: str | None = None
     scene: str | None = None
     reference: VoiceReferenceResponse | None = None
-    capabilities: list[dict[str, str]] = Field(default_factory=list)
+    capabilities: list[VoiceCapabilityResponse] = Field(default_factory=list)
 
 
 class VoiceModelSummaryResponse(BaseModel):

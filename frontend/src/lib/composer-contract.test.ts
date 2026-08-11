@@ -27,7 +27,7 @@ const ownedRoute: VoiceChoice = {
   provider: "alibaba",
   region: "intl",
   adapterKey: "qwen_audio",
-  capabilities: [{ id: "expressive_tags", name: "Expressive + tags", description: "" }],
+  capabilities: [{ id: "expressive_tags", name: "Expressive + tags", description: "", controls: {}, uiMetadata: {} }],
   compatible: true,
   languages: ["English"],
   status: "ready",
@@ -94,8 +94,8 @@ describe("provider-neutral Composer contract", () => {
 
   it("represents multiple modes on one exact binding and requires an explicit one", () => {
     const multi = { ...ownedRoute, capabilities: [
-      { id: "narration", name: "Narration", description: "" },
-      { id: "character", name: "Character", description: "" },
+      { id: "narration", name: "Narration", description: "", controls: {}, uiMetadata: {} },
+      { id: "character", name: "Character", description: "", controls: {}, uiMetadata: {} },
     ] }
     expect(resolveSelectedRoute(routeSelection(multi), [multi])).toBeNull()
     const selected = routeSelection(multi, "character")

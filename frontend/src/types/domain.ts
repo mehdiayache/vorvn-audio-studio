@@ -272,9 +272,10 @@ export type VoiceBinding = {
   tier: "plus" | "flash" | "vc"
   model_id: string
   status: string
+  estimate_rate_per_million_chars: number
   binding_id?: string | null
   catalogue_voice_id?: string | null
-  capabilities?: Array<Record<string, string>>
+  capabilities?: components["schemas"]["VoiceCapabilityResponse"][]
   image?: string
   gender?: string
   age?: number | null
@@ -299,7 +300,7 @@ export type PerformancePreset = {
   id: string
   name: string
   instruction: string
-  engines: Array<"audio" | "omni" | "qwen_tts">
+  capability_ids: string[]
 }
 
 export type VoiceRegistry = components["schemas"]["VoiceRegistryResponse"]

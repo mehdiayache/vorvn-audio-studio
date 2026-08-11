@@ -214,7 +214,8 @@ check("The registry exposes the complete documented system catalog",
 check("Voice counts are derived from bindings",
       all(item["total_count"] == item["system_count"] + item["custom_count"]
           for item in registry["models"]))
-check("Performance presets declare their compatible engines",
-      registry["presets"] and all(item.get("engines") for item in registry["presets"]))
+check("Performance presets declare provider-neutral capabilities",
+      registry["presets"] and all(item.get("capability_ids")
+                                  for item in registry["presets"]))
 
 print("31/31 passed")

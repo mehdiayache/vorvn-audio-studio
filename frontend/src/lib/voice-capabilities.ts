@@ -1,4 +1,4 @@
-import type { SpeechEngine, VoiceChoice, VoiceIdentityChoice } from "@/lib/voice-options"
+import type { VoiceChoice, VoiceIdentityChoice } from "@/lib/voice-options"
 import type { StudioConfig } from "@/types/domain"
 
 export type VoiceLanguageStatus = "documented" | "unavailable" | "undetermined"
@@ -17,9 +17,11 @@ export function voiceLanguageStatus(
   return "unavailable"
 }
 
-export function capabilityTitle(engine: SpeechEngine, config?: StudioConfig | null) {
-  return config?.capabilities[engine]?.operator_title
-    || (engine === "audio" ? "Expressive speech + tags" : engine === "omni" ? "Natural performance" : "Exact long reading")
+export function capabilityName(route: VoiceChoice | undefined, capabilityId?: string | null) {
+  const selected = capabilityId
+    ? route?.capabilities.find((item) => item.id === capabilityId)
+    : route?.capabilities.length === 1 ? route.capabilities[0] : null
+  return selected?.name || "Recording capability"
 }
 
 export function officialCoverageLabel(route: VoiceChoice) {

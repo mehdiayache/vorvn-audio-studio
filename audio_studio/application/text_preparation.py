@@ -72,6 +72,7 @@ class TextPreparationRepository(Protocol):
     def prompt_settings(self) -> dict: ...
     def style_for(self, production_id: int) -> str: ...
     def today_spend(self) -> float: ...
+    def capability_controls(self, capability_id: str) -> dict: ...
 
 
 class JobProgressRepository(Protocol):
@@ -198,17 +199,18 @@ class TextPreparationService:
     def prepare(self, *, operation: str, text: str,
                 production_id: int | None = None,
                 part_id: int | None = None, density: str = "normal",
-                engine: str = "audio", confirmed: bool = False,
+                capability_id: str, confirmed: bool = False,
                 source_job_id: int | None = None) -> dict:
         before = (text or "").strip()
         if not before:
             raise ValueError("There's nothing to work on.")
         if operation not in {"shape", "tag"}:
             raise ValueError("Unknown text operation.")
-        if operation == "tag" and engine != "audio":
+        capability_controls = self.repository.capability_controls(capability_id)
+        if operation == "tag" and capability_controls.get("delivery_tags") is not True:
             raise ValueError(
-                "Inline delivery tags belong to Qwen Audio TTS. Qwen 3.5 "
-                "Omni uses one natural-language performance direction instead.")
+                "The selected recording capability does not support inline "
+                "delivery tags. Choose Raw or Spoken text instead.")
         if density not in DENSITIES:
             raise ValueError("Unknown tag density.")
 
@@ -309,7 +311,7 @@ class TextPreparationJobHandler:
             production_id=job.payload.get("production_id"),
             part_id=job.payload.get("part_id"),
             density=str(job.payload.get("density") or "normal"),
-            engine=str(job.payload.get("engine") or "audio"),
+            capability_id=str(job.payload.get("capability_id") or ""),
             confirmed=bool(job.payload.get("confirmed")),
             source_job_id=job.id,
         )
