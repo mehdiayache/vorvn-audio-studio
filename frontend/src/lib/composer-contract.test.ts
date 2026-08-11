@@ -39,7 +39,7 @@ function draft(route: CompositionDraft["route"]): CompositionDraft {
     castRoleId: null,
     route,
     text: { raw: "Hello", shaped: "", tagged: "", active: "raw" },
-    delivery: { mode: "exact", instruction: "", rate: 1, pitch: 1, volume: 50, seed: 0 },
+    delivery: { modeId: "exact", instruction: "", rate: 1, pitch: 1, volume: 50, seed: 0 },
     output: { format: "mp3", language: "English" },
     editorialPatch: {},
   }
@@ -67,6 +67,13 @@ describe("provider-neutral Composer contract", () => {
     expect(command).not.toHaveProperty("model")
     expect(command).not.toHaveProperty("voice")
     expect(command.route).toEqual({ kind: "owned", bindingId: "binding-1", capabilityId: null })
+  })
+
+  it("represents an arbitrary future delivery mode without changing the canonical contract", () => {
+    const future = draft(routeSelection(ownedRoute))
+    future.delivery.modeId = "character_whisper_v2"
+    const command = buildSpeechCommand({ context: compositionContext({}), draft: future })
+    expect(command.delivery.modeId).toBe("character_whisper_v2")
   })
 
   it("derives compatibility labels only in the temporary HTTP adapter", () => {

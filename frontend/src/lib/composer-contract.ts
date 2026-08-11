@@ -38,7 +38,7 @@ export type ComposerText = {
 }
 
 export type ComposerDelivery = {
-  mode: "exact" | "directed"
+  modeId: string | null
   instruction: string
   rate: number
   pitch: number
@@ -184,7 +184,7 @@ export function toGeneratePayload(command: SpeechGenerationCommand, route: Voice
     format: command.output.format,
     language: command.output.language || "Auto",
     instruction: command.delivery.instruction,
-    speech_mode: command.delivery.mode,
+    speech_mode: compatibilitySpeechMode(command.delivery.modeId),
     rate: command.delivery.rate,
     pitch: command.delivery.pitch,
     volume: command.delivery.volume,
@@ -195,4 +195,10 @@ export function toGeneratePayload(command: SpeechGenerationCommand, route: Voice
     engine: route.engine,
     model: route.model,
   }
+}
+
+function compatibilitySpeechMode(modeId: string | null): "exact" | "directed" {
+  if (modeId === null || modeId === "exact") return "exact"
+  if (modeId === "directed") return "directed"
+  throw new Error(`The current speech endpoint does not support delivery mode '${modeId}'.`)
 }

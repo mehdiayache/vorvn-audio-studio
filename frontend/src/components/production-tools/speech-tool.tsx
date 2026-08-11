@@ -177,7 +177,7 @@ export function SpeechTool({ projectId, sessionId, nextPartNumber = 1, insertAt 
     castRoleId: castRoleId || null,
     route,
     text: { raw: textSession.states.raw, shaped: textSession.states.shaped, tagged: textSession.states.tagged, active: textSession.view },
-    delivery: { mode: engine === "omni" ? speechMode : "exact", instruction, rate, pitch, volume, seed: part?.seed ?? 0 },
+    delivery: { modeId: engine === "omni" ? speechMode : "exact", instruction, rate, pitch, volume, seed: part?.seed ?? 0 },
     output: { format, language: outputLanguage || "Auto" },
     editorialPatch: {
       ...(baseline && textSession.states.raw !== baseline.script ? { script: textSession.states.raw } : {}),

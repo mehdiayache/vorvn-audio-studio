@@ -403,6 +403,8 @@ future dock and does not change Player or durable Job ownership.
 - Complete capability records remain attached to each route, so multiple modes
   on one binding are representable without reconstructing capability from an
   engine name.
+- Delivery stores an open `modeId: string | null`; the temporary HTTP adapter
+  alone translates today's Exact/Directed values for the current endpoint.
 - Composer UI state is separate from the persistable Draft contract. Job and
   playback lifecycles remain outside Composer in this checkpoint.
 
