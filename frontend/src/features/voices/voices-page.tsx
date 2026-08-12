@@ -5,7 +5,6 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ErrorState, PageLoading } from "@/components/state-panel"
-import { AudioPlayerDock } from "@/components/audio-player-dock"
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { audioUrl, studioApi } from "@/lib/api"
 import { announceVoiceDirectoryChange } from "@/lib/voice-directory-events"
@@ -78,6 +77,5 @@ export function VoicesPage() {
     <CreateVoiceDialog open={creating} onOpenChange={setCreating} config={resources.config} onQueued={() => { announceVoiceDirectoryChange(); void resources.refresh() }} />
     <CompleteVoiceDialog profile={completing} config={resources.config} onOpenChange={() => setCompleting(null)} onQueued={() => { announceVoiceDirectoryChange(); void resources.refresh() }} />
     <EditVoiceDialog profile={editing} onOpenChange={(open) => { if (!open) setEditing(null) }} onSaved={() => { announceVoiceDirectoryChange(); void resources.refresh() }} onArchived={() => { player.close(); announceVoiceDirectoryChange(); void resources.refresh() }} />
-    <AudioPlayerDock label="Voice preview" source={player.source} state={player.state} currentTime={player.currentTime} duration={player.duration} onToggle={() => void player.toggle()} onSeek={player.seek} onClose={player.close} />
   </main>
 }

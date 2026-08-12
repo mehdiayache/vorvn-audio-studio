@@ -43,7 +43,7 @@ export function useProductionActions({ production, music, directory, player, ref
       toast.warning("Audio created, but the timeline could not refresh. Reload the page to see it.")
     }
 
-    await player.toggleSource({ ...source, url: result.url, kind: "part" })
+    await player.toggleSource({ ...source, url: result.url, kind: "take" })
     if (result.fidelity && result.fidelity.status !== "pass") {
       toast.warning(`${result.fidelity.message} Review this take before using it.`)
     } else if (result.failures?.length) {
@@ -57,7 +57,7 @@ export function useProductionActions({ production, music, directory, player, ref
   const mutate = useCallback(async (action: () => Promise<unknown>, success?: string) => {
     try {
       await action()
-      if (player.source?.kind === "preview") player.pause()
+      if (player.source?.kind === "production") player.pause()
       invalidatePreview()
       if (success) toast.success(success)
       await refresh()
@@ -72,7 +72,7 @@ export function useProductionActions({ production, music, directory, player, ref
     try {
       const result = await studioApi.preview(production.id)
       if (!result.url) throw new Error("The preview did not return an audio file.")
-      await player.toggleSource({ key: previewKey, url: result.url, title: production.name, subtitle: music.filename ? "Exact sequence preview with music" : "Exact sequence preview", kind: "preview" })
+      await player.toggleSource({ key: previewKey, url: result.url, title: production.name, subtitle: music.filename ? "Exact sequence preview with music" : "Exact sequence preview", kind: "production" })
       toast.success(result.cached ? "Current preview loaded" : "Current preview prepared")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Preview failed.")

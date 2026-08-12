@@ -1,6 +1,5 @@
 .studio-app-shell {
   min-block-size: 100dvh;
-  padding-block-end: calc(var(--transport-height) + var(--safe-bottom));
   color: var(--vrn-content);
   background: var(--vrn-canvas);
 }
@@ -126,4 +125,3 @@
   .vorvn-studio-chrome-link.is-active::after,
   .vorvn-readiness i { forced-color-adjust: none; background: Highlight; }
 }
-

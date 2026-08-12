@@ -37,6 +37,12 @@ export function usePlayer() {
     return () => {
       element.pause()
       element.removeAttribute("src")
+      element.removeEventListener("timeupdate", updateTime)
+      element.removeEventListener("durationchange", updateDuration)
+      element.removeEventListener("playing", onPlaying)
+      element.removeEventListener("pause", onPause)
+      element.removeEventListener("waiting", onWaiting)
+      element.removeEventListener("error", onError)
       element.removeEventListener("ended", onEnded)
       audio.current = null
     }

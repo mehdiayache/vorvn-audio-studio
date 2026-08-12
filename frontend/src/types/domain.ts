@@ -554,5 +554,5 @@ export type PlayerSource = {
   title: string
   subtitle?: string
   artwork?: string
-  kind: "part" | "asset" | "music" | "preview" | "voice"
+  kind: "take" | "production" | "voice" | "asset" | "music" | "subtitle" | "batch" | "standalone"
 }

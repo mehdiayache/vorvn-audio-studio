@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { AppShell } from "@/components/app-shell"
+import { GlobalPlayerProvider } from "@/components/global-player-provider"
 import { ProductReadinessProvider } from "@/design-system/vorvn"
 import { studioApi } from "@/lib/api"
 
@@ -11,19 +12,32 @@ vi.mock("@/lib/api", () => ({ studioApi: { config: vi.fn() } }))
 
 const configured = { has_key: true } as Awaited<ReturnType<typeof studioApi.config>>
 
-beforeEach(() => vi.clearAllMocks())
-afterEach(cleanup)
+beforeEach(() => {
+  vi.clearAllMocks()
+  class AudioMock extends EventTarget {
+    preload = ""
+    volume = 1
+    playbackRate = 1
+    paused = true
+    pause() {}
+    removeAttribute() {}
+  }
+  vi.stubGlobal("Audio", AudioMock)
+})
+afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
 function renderShell(mode: "standalone" | "embedded") {
   vi.mocked(studioApi.config).mockResolvedValue(configured)
   return render(
     <MemoryRouter initialEntries={["/audio-studio/"]}>
       <ProductReadinessProvider>
-        <Routes>
-          <Route path="/audio-studio" element={<AppShell mode={mode} />}>
-            <Route index element={<h1>Work content</h1>} />
-          </Route>
-        </Routes>
+        <GlobalPlayerProvider>
+          <Routes>
+            <Route path="/audio-studio" element={<AppShell mode={mode} />}>
+              <Route index element={<h1>Work content</h1>} />
+            </Route>
+          </Routes>
+        </GlobalPlayerProvider>
       </ProductReadinessProvider>
     </MemoryRouter>,
   )

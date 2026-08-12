@@ -2,7 +2,6 @@ import { Captions, CircleAlert, Copy, Download, FileAudio, Languages, LoaderCirc
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
-import { AudioPlayerDock } from "@/components/audio-player-dock"
 import { FileDropZone } from "@/components/file-drop-zone"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -134,7 +133,7 @@ export function SubtitlesPage() {
   const playAt = async (seconds = 0) => {
     if (!transcript?.url) return
     const key = `subtitle:${transcript.id}`
-    if (player.source?.key !== key) await player.toggleSource({ key, url: transcript.url, title: transcript.file, subtitle: "Subtitle source", kind: "part" })
+    if (player.source?.key !== key) await player.toggleSource({ key, url: transcript.url, title: transcript.file, subtitle: "Subtitle source", kind: "subtitle" })
     else if (player.state !== "playing") await player.toggle()
     player.seek(seconds)
   }
@@ -148,7 +147,6 @@ export function SubtitlesPage() {
       </div>
       <aside className="subtitles-history"><h2>Previous subtitles</h2>{history.length ? history.map((item) => <article key={item.id}><button onClick={() => void openTranscript(item.id)}><FileAudio /><span><b>{item.name}</b><small>{item.when} · {item.lines} lines · {formatMoney(item.cost || 0)}</small><small>{item.model || "Historical model"}</small></span></button><Button variant="ghost" size="icon" aria-label={`Delete ${item.name}`} onClick={async () => { await studioApi.deleteExternalTranscript(item.id); if (transcript?.id === item.id) setTranscript(null); await refresh() }}><Trash2 /></Button></article>) : <p>No external subtitles yet.</p>}</aside>
     </div>
-    <AudioPlayerDock label="Subtitle source" source={player.source} state={player.state} currentTime={player.currentTime} duration={player.duration} onToggle={() => void player.toggle()} onSeek={player.seek} onClose={player.close} />
     <Dialog open={Boolean(pending)} onOpenChange={(open) => { if (!open) setPending(null) }}><DialogContent><DialogHeader><DialogTitle>Create these subtitles?</DialogTitle><DialogDescription>Alibaba transcription is estimated at ${Number(pending?.estimate || 0).toFixed(4)}.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setPending(null)}>Cancel</Button><Button onClick={() => { const next = pending?.uploaded; setPending(null); if (next) void transcribe(next, true) }}>Continue</Button></DialogFooter></DialogContent></Dialog>
     <Dialog open={Boolean(translationPending)} onOpenChange={(open) => { if (!open) setTranslationPending(null) }}><DialogContent><DialogHeader><DialogTitle>Translate these subtitles?</DialogTitle><DialogDescription>This Qwen-MT request is estimated at ${Number(translationPending?.estimate || 0).toFixed(4)}. Actual input and output token usage will be stored after completion.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setTranslationPending(null)}>Cancel</Button><Button onClick={() => { const next = translationPending; setTranslationPending(null); if (next) void translate(true, next.target) }}>Continue</Button></DialogFooter></DialogContent></Dialog>
   </main>

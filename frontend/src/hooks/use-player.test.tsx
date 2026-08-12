@@ -53,7 +53,7 @@ describe("usePlayer", () => {
 
   it("plays, pauses, and resumes the same source without replacing it", async () => {
     const { result } = renderHook(() => usePlayer())
-    const source = { key: "part:12", url: "/audio/part.mp3", title: "Part 12", kind: "part" as const }
+    const source = { key: "part:12", url: "/audio/part.mp3", title: "Part 12", kind: "take" as const }
 
     await act(async () => result.current.toggleSource(source))
     expect(result.current.state).toBe("playing")
@@ -72,7 +72,7 @@ describe("usePlayer", () => {
 
   it("stops the old source before playing a different one", async () => {
     const { result } = renderHook(() => usePlayer())
-    await act(async () => result.current.toggleSource({ key: "part:1", url: "/audio/one.mp3", title: "One", kind: "part" }))
+    await act(async () => result.current.toggleSource({ key: "part:1", url: "/audio/one.mp3", title: "One", kind: "take" }))
     await act(async () => result.current.toggleSource({ key: "asset-source:2", url: "/audio/two.mp3", title: "Two", kind: "music" }))
 
     expect(element.pause).toHaveBeenCalledTimes(1)
@@ -84,8 +84,8 @@ describe("usePlayer", () => {
 
   it("loads a replacement file when a take changes behind the same part id", async () => {
     const { result } = renderHook(() => usePlayer())
-    await act(async () => result.current.toggleSource({ key: "part:7", url: "/audio/old-take.mp3", title: "Part 7", kind: "part" }))
-    await act(async () => result.current.toggleSource({ key: "part:7", url: "/audio/promoted-take.mp3", title: "Part 7", kind: "part" }))
+    await act(async () => result.current.toggleSource({ key: "part:7", url: "/audio/old-take.mp3", title: "Part 7", kind: "take" }))
+    await act(async () => result.current.toggleSource({ key: "part:7", url: "/audio/promoted-take.mp3", title: "Part 7", kind: "take" }))
 
     expect(element.pause).toHaveBeenCalledTimes(1)
     expect(element.play).toHaveBeenCalledTimes(2)
@@ -95,7 +95,7 @@ describe("usePlayer", () => {
 
   it("restarts an ended source from the beginning", async () => {
     const { result } = renderHook(() => usePlayer())
-    const source = { key: "take:3", url: "/audio/take.mp3", title: "Take", kind: "part" as const }
+    const source = { key: "take:3", url: "/audio/take.mp3", title: "Take", kind: "take" as const }
     await act(async () => result.current.toggleSource(source))
     element.paused = true
     element.ended = true
@@ -104,5 +104,28 @@ describe("usePlayer", () => {
     await act(async () => result.current.toggleSource(source))
     expect(element.currentTime).toBe(0)
     expect(result.current.state).toBe("playing")
+  })
+
+  it("seeks, changes volume and speed on the single audio element", async () => {
+    const { result } = renderHook(() => usePlayer())
+    await act(async () => result.current.toggleSource({ key: "voice:4", url: "/audio/voice.mp3", title: "Voice", kind: "voice" }))
+    act(() => result.current.seek(12.5))
+    expect(element.currentTime).toBe(12.5)
+    act(() => result.current.setVolume(.35))
+    expect(element.volume).toBe(.35)
+    act(() => result.current.setSpeed(1.5))
+    expect(element.playbackRate).toBe(1.5)
+  })
+
+  it("keeps playback errors observable until the operator closes the source", async () => {
+    const { result } = renderHook(() => usePlayer())
+    await act(async () => result.current.toggleSource({ key: "subtitle:4", url: "/audio/missing.mp3", title: "Missing source", kind: "subtitle" }))
+    act(() => element.dispatchEvent(new Event("error")))
+    expect(result.current.state).toBe("error")
+    expect(result.current.source?.key).toBe("subtitle:4")
+    act(() => result.current.close())
+    expect(result.current.state).toBe("idle")
+    expect(result.current.source).toBeNull()
+    expect(element.src).toBe("")
   })
 })

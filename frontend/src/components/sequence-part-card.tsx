@@ -65,7 +65,7 @@ export function SequencePartCard({ part, renderTask, index, count, selected, pla
         </div>
       </button>
       <div className="sequence-card-actions">
-        {playable && <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" onClick={() => actions.play({ key: `part:${part.id}`, url: audioUrl(part.filename), title: `Part ${index + 1}`, subtitle: asset ? "Linked Venture asset" : voice.name, kind: asset ? "asset" : "part" })} aria-label={playing ? "Pause part" : "Play part"}>{playing ? <Pause /> : <Play />}</Button></TooltipTrigger><TooltipContent>{playing ? "Pause this part" : "Play this part"}</TooltipContent></Tooltip>}
+        {playable && <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" onClick={() => actions.play({ key: `part:${part.id}`, url: audioUrl(part.filename), title: `Part ${index + 1}`, subtitle: asset ? "Linked Venture asset" : voice.name, kind: asset ? "asset" : "take" })} aria-label={playing ? "Pause part" : "Play part"}>{playing ? <Pause /> : <Play />}</Button></TooltipTrigger><TooltipContent>{playing ? "Pause this part" : "Play this part"}</TooltipContent></Tooltip>}
         {part.kind === "draft" && <Button onClick={() => actions.openPart(part)}><Mic2 /> Record</Button>}
         <DropdownMenu>
           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Part actions"><MoreHorizontal /></Button></DropdownMenuTrigger>

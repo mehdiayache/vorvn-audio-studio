@@ -819,3 +819,38 @@ fresh Production insertion, recoverable preparation after reload, desktop
 StudioDock geometry, full-height mobile Sheets at 390 × 844, visible action
 areas and zero document overflow. Activity reported no queued or running work;
 no provider operation was called.
+
+### UI checkpoint 4 — one global TransportStrip and one audio owner
+
+- `GlobalPlayerProvider` remains the sole owner of the browser audio element,
+  source, loading/playing/paused/error state, current time, duration, volume
+  and speed. Its lifecycle now removes every registered media listener.
+- `TransportStrip` is mounted exactly once by the persistent Studio shell. It
+  has one product-neutral source descriptor for Take, Production preview,
+  Voice, Venture Asset, Music, Subtitle, Batch and standalone recordings.
+  Navigation between Studio routes preserves the active source and playback.
+- Speak, Production, Batch, Voices, Subtitles and Venture Media no longer mount
+  page-local players. `AudioPlayerDock` and `ProductionPlayer`, their styles,
+  and their presentation-specific tests are deleted.
+- Production preview remains a Production command. The global player appears
+  only after a real source exists; it no longer renders a large idle player or
+  substitutes page-specific music and preview controls.
+- Production Takes, standalone recordings, Batch results and Subtitle sources
+  now declare their semantic playback kind rather than pretending every audio
+  file is a generic Part. Temporary Production previews are never offered as
+  downloadable source files.
+- The responsive strip reserves page space, exposes keyboard-operable seek,
+  and uses the shared layer and geometry tokens. In a mobile Composer Sheet it
+  attaches immediately above the sticky action area instead of disappearing
+  behind the Sheet or covering Generate/Save actions.
+- The existing waveform decoder remains lazy and cached inside timeline
+  sources. It is not promoted into a second playback engine or navigation
+  owner.
+
+Verification is provider-free. Generated OpenAPI, TypeScript, the production
+build and 131 React tests pass, together with 316 Python tests and all 11 live
+database invariants. Live FastAPI browser smokes prove Take playback, Music
+source switching, pause/resume, a single player surface, persistence from a
+Production to Voices, desktop geometry, and mobile 390 × 844 Composer/player
+coexistence without action overlap. The database contained no queued, running,
+retrying or blocked Jobs before the smoke; no provider operation was called.

@@ -2,6 +2,7 @@ import { useState } from "react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
 
 import { AppErrorBoundary } from "@/components/app-error-boundary"
+import { TransportStrip } from "@/components/transport-strip"
 import { Button } from "@/components/ui/button"
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger,
@@ -91,6 +92,7 @@ export function AppShell({ mode = "standalone" }: { mode?: AudioStudioMountMode 
           <Outlet />
         </AppErrorBoundary>
       </main>
+      <TransportStrip />
     </div>
   )
 }
