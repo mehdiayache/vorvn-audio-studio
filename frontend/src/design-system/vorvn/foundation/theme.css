@@ -1,0 +1,96 @@
+:root {
+  --background: var(--vrn-canvas);
+  --foreground: var(--vrn-content);
+  --card: var(--vrn-surface);
+  --card-foreground: var(--vrn-content);
+  --popover: var(--vrn-surface-raised);
+  --popover-foreground: var(--vrn-content);
+  --primary: var(--vrn-accent-solid);
+  --primary-foreground: var(--vrn-accent-foreground);
+  --secondary: var(--vrn-surface-muted);
+  --secondary-foreground: var(--vrn-content);
+  --muted: var(--vrn-surface-muted);
+  --muted-foreground: var(--vrn-content-secondary);
+  --accent: var(--vrn-accent-soft);
+  --accent-foreground: var(--vrn-accent-soft-foreground);
+  --destructive: var(--vrn-danger-solid);
+  --border: var(--vrn-border);
+  --border-strong: var(--vrn-border-strong);
+  --input: var(--vrn-input-background);
+  --ring: var(--vrn-focus-ring);
+  --surface-subtle: var(--vrn-surface-subtle);
+  --surface-raised: var(--vrn-surface-raised);
+  --surface-inverse: var(--vrn-content);
+  --surface-inverse-soft: var(--vrn-neutral-800);
+  --primary-soft: var(--vrn-accent-soft);
+  --success: var(--vrn-success-solid);
+  --success-soft: var(--vrn-success-soft);
+  --success-border: color-mix(in oklch, var(--vrn-success-solid) 36%, var(--vrn-border));
+  --warning: var(--vrn-warning-solid);
+  --warning-soft: var(--vrn-warning-soft);
+  --danger-soft: var(--vrn-danger-soft);
+  --danger-border: color-mix(in oklch, var(--vrn-danger-solid) 36%, var(--vrn-border));
+  --asset: var(--vrn-data-series-4);
+  --asset-soft: color-mix(in oklch, var(--vrn-data-series-4) 10%, var(--vrn-surface));
+  --venture: var(--vrn-content);
+  --venture-soft: var(--vrn-surface-muted);
+  --project: var(--vrn-content-secondary);
+  --project-soft: var(--vrn-surface-subtle);
+  --series: var(--vrn-data-series-2);
+  --series-soft: color-mix(in oklch, var(--vrn-data-series-2) 8%, var(--vrn-surface));
+  --production: var(--vrn-data-series-4);
+  --production-soft: color-mix(in oklch, var(--vrn-data-series-4) 8%, var(--vrn-surface));
+  --radius: var(--vrn-radius-base);
+  --type-caption: var(--vrn-type-metadata-size);
+  --type-small: var(--vrn-type-supporting-size);
+  --type-body: var(--vrn-type-body-size);
+  --type-heading-sm: var(--vrn-type-panel-size);
+  --type-heading-md: var(--vrn-type-section-size);
+  --type-heading-lg: var(--vrn-type-context-size);
+  --type-heading-xl: var(--vrn-type-page-size);
+  --type-display-sm: var(--vrn-type-page-size);
+  --type-display-lg: var(--vrn-type-display-size);
+  --type-display-base: var(--vrn-type-page-size);
+  --type-display-page: var(--vrn-type-page-size);
+  --type-display-hero: var(--vrn-type-display-size);
+  --layer-page: 0;
+  --layer-sticky: 20;
+  --layer-dock: 40;
+  --layer-popover: 60;
+  --layer-sheet: 70;
+  --layer-dialog: 80;
+  --layer-toast: 120;
+  --studio-standalone-header-height: var(--vrn-header-height);
+  --studio-local-chrome-height: var(--vrn-studio-chrome-height);
+  --transport-height: 4.25rem;
+  --studio-dock-collapsed-height: 3.25rem;
+  --studio-dock-expanded-height: min(35rem, 68dvh);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html {
+  font-size: 16px;
+  background: var(--vrn-canvas);
+}
+
+body {
+  color: var(--vrn-content);
+  background: var(--vrn-canvas);
+  font-family: var(--vrn-font-sans);
+  font-size: var(--vrn-type-body-size);
+  line-height: var(--vrn-type-body-line);
+}
+
+:is(button, input, select, textarea) {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: var(--vrn-focus-width) solid var(--vrn-focus-ring);
+  outline-offset: var(--vrn-focus-offset);
+}
+
+::selection {
+  color: var(--vrn-accent-foreground);
+  background: var(--vrn-accent-solid);
+}

@@ -703,3 +703,44 @@ React tests prove Speak classification, Production pending-card continuation,
 safe-vs-ambiguous actions and exact Job continuation for Spoken/Tagged. The
 full checkpoint passes 316 Python tests and 122 React tests plus generated
 OpenAPI, TypeScript and the production build. No Alibaba operation was called.
+
+## UI/UX convergence mission
+
+The Founder A–N convergence plan remains the canonical product contract. UI
+VORVN is the visual and interaction contract layered on top of it; it never
+replaces Voice, Part, Draft, Job, ProviderAttempt or Take domain truth.
+
+### UI checkpoint 1 — foundation, router and host boundary
+
+- A versioned local snapshot of UI VORVN `1.0.0-alpha.34` now owns semantic
+  tokens. Its source path and SHA-256 are recorded, while product code has no
+  runtime dependency on the design laboratory or the older shared package.
+- The monochrome VORVN theme now bridges the existing shadcn/Radix primitives:
+  white canvas, black primary actions, Inter roles, semantic status colors,
+  compact geometry, stable layers and responsive touch targets.
+- React Router is the sole frontend router. The document-level click
+  interception and repeated route-local `AppShell`/configuration fetches are
+  gone. Deep links, public and numeric Work identifiers, legacy `/studio/*`,
+  legacy `?project=`, and standalone Speak session queries remain supported.
+- `AudioStudioSurface` owns Audio Studio routes and local navigation. The
+  standalone wrapper adds the Audio Studio identity; embedded mode omits that
+  identity so Origins can later provide its global header and workspace tabs
+  without changing Studio workflows.
+- Readiness is one honest four-state resource: checking, ready, setup required,
+  or unavailable. An API outage is no longer described as a missing Alibaba
+  key, and unavailable state exposes an explicit retry.
+- Desktop uses one Studio-owned horizontal chrome. Mobile uses an explicit
+  labelled Sheet with all destinations and readiness; the undiscoverable
+  horizontally clipped navigation is no longer used.
+- The shell includes a skip link, stable landmarks, real Router links,
+  `aria-current`, semantic icon roles and standalone/embedded tests.
+
+The controlled runtime smoke started only after confirming zero queued,
+running, retrying, blocked or cancellation-requested Jobs. Desktop and mobile
+Work rendered from the real FastAPI application with `Audio Studio ready`, the
+mobile menu exposed every destination, and the browser console was clean. No
+provider operation was called.
+
+Checkpoint verification passes generated OpenAPI, TypeScript, the production
+build, 124 React tests, 316 Python tests and all 11 live database domain
+invariants. The runtime smoke used the same working tree as the verified build.

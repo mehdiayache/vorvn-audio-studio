@@ -1,9 +1,15 @@
-import { AppShell } from "@/components/app-shell"
+import { lazy, Suspense } from "react"
+import {
+  BrowserRouter, Navigate, Route, Routes, useLocation, useParams,
+} from "react-router-dom"
+
+import { AppShell, type AudioStudioMountMode } from "@/components/app-shell"
 import { ErrorState, PageLoading } from "@/components/state-panel"
-import { Toaster } from "@/components/ui/sonner"
-import { lazy, Suspense, useEffect, useState } from "react"
-import { studioApi } from "@/lib/api"
+import { AppErrorBoundary } from "@/components/app-error-boundary"
+import { GlobalPlayerProvider } from "@/components/global-player-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { Toaster } from "@/components/ui/sonner"
+import { ProductReadinessProvider } from "@/design-system/vorvn"
 import { ProductionPage } from "@/features/production/production-page"
 import { ProjectPage } from "@/features/work/project-page"
 import { SeriesPage } from "@/features/work/series-page"
@@ -13,9 +19,7 @@ import { useHierarchy } from "@/hooks/use-hierarchy"
 import { useProduction } from "@/hooks/use-production"
 import { useStudioResources } from "@/hooks/use-studio-resources"
 import { useProjectOverview, useSeriesOverview, useVentureOverview } from "@/hooks/use-work-overview"
-import { normalizeStudioLocation, studioRouteFromLocation } from "@/lib/routes"
-import { GlobalPlayerProvider } from "@/components/global-player-provider"
-import { AppErrorBoundary } from "@/components/app-error-boundary"
+import { normalizeStudioLocation } from "@/lib/routes"
 import type { ResourceType } from "@/types/domain"
 
 const VoicesPage = lazy(() => import("@/features/voices/voices-page").then((module) => ({ default: module.VoicesPage })))
@@ -25,92 +29,52 @@ const SpeakPage = lazy(() => import("@/features/speak/speak-page").then((module)
 const SubtitlesPage = lazy(() => import("@/features/subtitles/subtitles-page").then((module) => ({ default: module.SubtitlesPage })))
 const BatchPage = lazy(() => import("@/features/batch/batch-page").then((module) => ({ default: module.BatchPage })))
 
-function currentRoute() {
-  const normalized = normalizeStudioLocation(window.location.pathname, window.location.search)
-  if (normalized) window.history.replaceState({}, "", normalized)
-  return studioRouteFromLocation(window.location.pathname, window.location.search)
-}
-
 function ProductionRoute({ productionId }: { productionId: number }) {
   const { production, tree, music, refresh } = useProduction(productionId)
   const resources = useStudioResources(productionId)
   const data = production.data
-
-  return <AppShell providerConfigured={resources.config?.has_key}>
+  return <>
     {production.status === "loading" && !data && <PageLoading />}
     {!data && production.status === "error" && <ErrorState message={production.error || "Unable to load Production."} retry={() => void refresh()} />}
     {data && resources.assetError && <div className="scoped-resource-error" role="alert"><span>Asset library unavailable: {resources.assetError}</span><button type="button" onClick={() => void resources.refreshAssets().catch(() => undefined)}>Retry</button></div>}
     {data && <ProductionPage production={data} tree={tree.status === "ready" ? tree.data : null} music={music.data || {}} assets={resources.assets} assetCollections={resources.assetCollections} config={resources.config} clonedVoices={resources.cloned} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} />}
-  </AppShell>
+  </>
 }
 
 function HomeRoute() {
   const hierarchy = useHierarchy()
-  const [configured, setConfigured] = useState<boolean | "unavailable" | undefined>()
-  useEffect(() => { void studioApi.config().then((config) => setConfigured(config.has_key)).catch(() => setConfigured("unavailable")) }, [])
-  return <AppShell providerConfigured={configured}>
-    {hierarchy.status === "loading" && !hierarchy.data && <PageLoading />}
+  return <>
+    {hierarchy.status === "loading" && !hierarchy.data && <PageLoading label="Loading Work" />}
     {hierarchy.status === "error" && !hierarchy.data && <ErrorState title="Ventures unavailable" message={hierarchy.error || "Unable to load Ventures."} retry={() => void hierarchy.refresh()} />}
     {hierarchy.data && <VentureDirectoryPage ventures={hierarchy.data.filter((node) => node.type === "venture")} />}
-  </AppShell>
-}
-
-function useConfigured() {
-  const [configured, setConfigured] = useState<boolean | "unavailable" | undefined>()
-  useEffect(() => { void studioApi.config().then((config) => setConfigured(config.has_key)).catch(() => setConfigured("unavailable")) }, [])
-  return configured
+  </>
 }
 
 function VentureRoute({ id }: { id: number }) {
-  const overview = useVentureOverview(id); const configured = useConfigured()
-  return <AppShell providerConfigured={configured}>{overview.status === "loading" && !overview.data && <PageLoading label="Loading Venture" />}{overview.status === "error" && !overview.data && <ErrorState title="Venture unavailable" message={overview.error || "Unable to load this Venture."} retry={overview.refresh} />}{overview.data && <VenturePage data={overview.data} refresh={overview.refresh} />}</AppShell>
+  const overview = useVentureOverview(id)
+  return <>{overview.status === "loading" && !overview.data && <PageLoading label="Loading Venture" />}{overview.status === "error" && !overview.data && <ErrorState title="Venture unavailable" message={overview.error || "Unable to load this Venture."} retry={overview.refresh} />}{overview.data && <VenturePage data={overview.data} refresh={overview.refresh} />}</>
 }
+
 function ProjectRoute({ id }: { id: number }) {
-  const overview = useProjectOverview(id); const configured = useConfigured()
-  return <AppShell providerConfigured={configured}>{overview.status === "loading" && !overview.data && <PageLoading label="Loading Project" />}{overview.status === "error" && !overview.data && <ErrorState title="Project unavailable" message={overview.error || "Unable to load this Project."} retry={overview.refresh} />}{overview.data && <ProjectPage data={overview.data} refresh={overview.refresh} />}</AppShell>
+  const overview = useProjectOverview(id)
+  return <>{overview.status === "loading" && !overview.data && <PageLoading label="Loading Project" />}{overview.status === "error" && !overview.data && <ErrorState title="Project unavailable" message={overview.error || "Unable to load this Project."} retry={overview.refresh} />}{overview.data && <ProjectPage data={overview.data} refresh={overview.refresh} />}</>
 }
+
 function SeriesRoute({ id }: { id: number }) {
-  const overview = useSeriesOverview(id); const configured = useConfigured()
-  return <AppShell providerConfigured={configured}>{overview.status === "loading" && !overview.data && <PageLoading label="Loading Series" />}{overview.status === "error" && !overview.data && <ErrorState title="Series unavailable" message={overview.error || "Unable to load this Series."} retry={overview.refresh} />}{overview.data && <SeriesPage data={overview.data} refresh={overview.refresh} />}</AppShell>
-}
-function VoicesRoute() {
-  const configured = useConfigured()
-  return <AppShell providerConfigured={configured}><Suspense fallback={<PageLoading label="Loading voices" />}><VoicesPage /></Suspense></AppShell>
+  const overview = useSeriesOverview(id)
+  return <>{overview.status === "loading" && !overview.data && <PageLoading label="Loading Series" />}{overview.status === "error" && !overview.data && <ErrorState title="Series unavailable" message={overview.error || "Unable to load this Series."} retry={overview.refresh} />}{overview.data && <SeriesPage data={overview.data} refresh={overview.refresh} />}</>
 }
 
-function ActivityRoute() {
-  const configured = useConfigured()
-  return <AppShell providerConfigured={configured}><Suspense fallback={<PageLoading label="Loading activity" />}><ActivityPage /></Suspense></AppShell>
-}
-
-function SettingsRoute() {
-  const configured = useConfigured()
-  return <AppShell providerConfigured={configured}><Suspense fallback={<PageLoading label="Loading settings" />}><SettingsPage /></Suspense></AppShell>
-}
-
-function SpeakRoute() {
-  const configured = useConfigured()
-  return <AppShell providerConfigured={configured}><Suspense fallback={<PageLoading label="Loading Speak" />}><SpeakPage /></Suspense></AppShell>
-}
-
-function SubtitlesRoute() {
-  const configured = useConfigured()
-  return <AppShell providerConfigured={configured}><Suspense fallback={<PageLoading label="Loading Subtitles" />}><SubtitlesPage /></Suspense></AppShell>
-}
-
-function BatchRoute() {
-  const configured = useConfigured()
-  return <AppShell providerConfigured={configured}><Suspense fallback={<PageLoading label="Loading Batch" />}><BatchPage /></Suspense></AppShell>
-}
-
-function WorkRoute({ type, identifier }: { type: ResourceType; identifier: string | number }) {
+function ResourceRoute({ type }: { type: ResourceType }) {
+  const { identifier = "" } = useParams()
   const hierarchy = useHierarchy()
-  const node = typeof identifier === "number"
-    ? hierarchy.data?.find((item) => item.type === type && item.id === identifier)
-    : hierarchy.data?.find((item) => item.type === type && item.public_id === identifier)
+  const numericIdentifier = /^\d+$/.test(identifier) ? Number(identifier) : null
+  const node = hierarchy.data?.find((item) => item.type === type && (
+    numericIdentifier !== null ? item.id === numericIdentifier : item.public_id === identifier
+  ))
   if (!node) {
-    if (hierarchy.status === "loading") return <AppShell><PageLoading label={`Loading ${type}`} /></AppShell>
-    return <AppShell><ErrorState title={`${type[0]?.toUpperCase()}${type.slice(1)} unavailable`} message={hierarchy.error || `That ${type} does not exist.`} retry={hierarchy.refresh} /></AppShell>
+    if (hierarchy.status === "loading") return <PageLoading label={`Loading ${type}`} />
+    return <ErrorState title={`${type[0]?.toUpperCase()}${type.slice(1)} unavailable`} message={hierarchy.error || `That ${type} does not exist.`} retry={hierarchy.refresh} />
   }
   if (type === "production") return <ProductionRoute productionId={node.id} />
   if (type === "venture") return <VentureRoute id={node.id} />
@@ -118,39 +82,62 @@ function WorkRoute({ type, identifier }: { type: ResourceType; identifier: strin
   return <SeriesRoute id={node.id} />
 }
 
-export function App() {
-  const [route, setRoute] = useState(currentRoute)
+function LazyRoute({ children, label }: { children: React.ReactNode; label: string }) {
+  return <Suspense fallback={<PageLoading label={label} />}>{children}</Suspense>
+}
 
-  useEffect(() => {
-    const update = () => setRoute(currentRoute())
-    const navigate = (event: MouseEvent) => {
-      if (event.defaultPrevented || event.button !== 0 || event.metaKey ||
-          event.ctrlKey || event.shiftKey || event.altKey) return
-      const anchor = (event.target as Element | null)?.closest("a")
-      if (!anchor || anchor.target || anchor.hasAttribute("download")) return
-      const url = new URL(anchor.href, window.location.href)
-      if (url.origin !== window.location.origin ||
-          !url.pathname.startsWith("/audio-studio")) return
-      event.preventDefault()
-      window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`)
-      update()
-    }
-    window.addEventListener("popstate", update)
-    document.addEventListener("click", navigate)
-    return () => {
-      window.removeEventListener("popstate", update)
-      document.removeEventListener("click", navigate)
-    }
-  }, [])
+function LegacyRedirect() {
+  const location = useLocation()
+  const replacement = normalizeStudioLocation(location.pathname, location.search) || "/audio-studio/"
+  return <Navigate replace to={replacement} />
+}
 
+function WorkIndexRedirect() {
+  const location = useLocation()
+  const replacement = normalizeStudioLocation(location.pathname, location.search)
+  return replacement ? <Navigate replace to={replacement} /> : <HomeRoute />
+}
+
+function AudioStudioRoutes({ mode }: { mode: AudioStudioMountMode }) {
   return (
-    <TooltipProvider delayDuration={300}>
-      <GlobalPlayerProvider>
-        <AppErrorBoundary key={`${route.type}:${"id" in route ? route.id : "home"}`}>
-          {route.type === "speak" ? <SpeakRoute /> : route.type === "batch" ? <BatchRoute /> : route.type === "subtitles" ? <SubtitlesRoute /> : route.type === "voices" ? <VoicesRoute /> : route.type === "activity" ? <ActivityRoute /> : route.type === "settings" ? <SettingsRoute /> : route.type === "home" ? <HomeRoute /> : <WorkRoute type={route.type} identifier={route.id as string | number} />}
-        </AppErrorBoundary>
-        <Toaster richColors position="top-right" />
-      </GlobalPlayerProvider>
-    </TooltipProvider>
+    <Routes>
+      <Route path="/studio/*" element={<LegacyRedirect />} />
+      <Route path="/audio-studio" element={<AppShell mode={mode} />}>
+        <Route index element={<WorkIndexRedirect />} />
+        <Route path="speak" element={<LazyRoute label="Loading Speak"><SpeakPage /></LazyRoute>} />
+        <Route path="voices" element={<LazyRoute label="Loading voices"><VoicesPage /></LazyRoute>} />
+        <Route path="batch" element={<LazyRoute label="Loading Batch"><BatchPage /></LazyRoute>} />
+        <Route path="subtitles" element={<LazyRoute label="Loading Subtitles"><SubtitlesPage /></LazyRoute>} />
+        <Route path="activity" element={<LazyRoute label="Loading activity"><ActivityPage /></LazyRoute>} />
+        <Route path="settings" element={<LazyRoute label="Loading settings"><SettingsPage /></LazyRoute>} />
+        <Route path="ventures/:identifier" element={<ResourceRoute type="venture" />} />
+        <Route path="projects/:identifier" element={<ResourceRoute type="project" />} />
+        <Route path="series/:identifier" element={<ResourceRoute type="series" />} />
+        <Route path="productions/:identifier" element={<ResourceRoute type="production" />} />
+        <Route path="workspaces/:identifier" element={<ResourceRoute type="production" />} />
+        <Route path="*" element={<ErrorState title="Page unavailable" message="That Audio Studio destination does not exist." retry={() => window.history.back()} />} />
+      </Route>
+      <Route path="*" element={<Navigate replace to="/audio-studio/" />} />
+    </Routes>
+  )
+}
+export function AudioStudioSurface({ mode = "standalone" }: { mode?: AudioStudioMountMode }) {
+  return <AudioStudioRoutes mode={mode} />
+}
+
+export function App() {
+  return (
+    <BrowserRouter>
+      <TooltipProvider delayDuration={300}>
+        <ProductReadinessProvider>
+          <GlobalPlayerProvider>
+            <AppErrorBoundary>
+              <AudioStudioSurface />
+            </AppErrorBoundary>
+            <Toaster richColors position="top-right" />
+          </GlobalPlayerProvider>
+        </ProductReadinessProvider>
+      </TooltipProvider>
+    </BrowserRouter>
   )
 }
