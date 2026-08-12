@@ -63,6 +63,10 @@ class ContentContractTests(unittest.TestCase):
         self.assertIn("metrics", components["HierarchyNodeResponse"]["required"])
         self.assertIn("parts", components["ProductionEditorResponse"]["required"])
         self.assertIn("music_of", components["MusicBedResponse"]["properties"])
+        music_input = components["MusicBody"]["properties"]
+        self.assertTrue({"volume", "start", "fade_in", "fade_out", "duck"}
+                        .issubset(music_input))
+        self.assertNotIn("music_volume", music_input)
         self.assertIn("storage_settings",
                       components["SettingsSnapshotResponse"]["required"])
 

@@ -12,6 +12,8 @@
 .mix-controls label > span svg { width: 14px; }
 .mix-controls label > span b { margin-left: auto; color: var(--foreground); font-variant-numeric: tabular-nums; }
 .music-switches { grid-column: 1 / -1; display: flex; align-items: center; gap: 7px; }
+.music-save-state { grid-column: 1 / -1; margin: -4px 0 0; color: var(--muted-foreground); font-size: var(--type-caption); }
+.music-save-state.is-error { color: var(--destructive); }
 .switch-like { display: flex; align-items: center; gap: 7px; margin-right: auto; font-size: var(--type-small); }
 @media (max-width: 1120px) { .music-bed { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .music-empty { align-items: flex-start; flex-wrap: wrap; } .music-empty > div { min-width: calc(100% - 60px); } .music-bed { gap: 16px; } .mix-controls { grid-template-columns: 1fr; } .music-switches { grid-column: auto; flex-wrap: wrap; } }

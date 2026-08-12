@@ -80,12 +80,12 @@ class DeleteBody(BaseModel):
 class MusicBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     music_of: int | None = None
-    music_level: str | None = None
-    music_fade_in: float | None = None
-    music_fade_out: float | None = None
-    music_duck: bool | None = None
-    music_volume: float | None = Field(default=None, ge=0, le=1)
-    music_start: float | None = Field(default=None, ge=0)
+    level: str | None = None
+    fade_in: float | None = Field(default=None, ge=0, le=120)
+    fade_out: float | None = Field(default=None, ge=0, le=120)
+    duck: bool | None = None
+    volume: float | None = Field(default=None, ge=0, le=1)
+    start: float | None = Field(default=None, ge=0, le=86_400)
 
 
 class TextBody(BaseModel):

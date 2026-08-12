@@ -2493,20 +2493,20 @@ export interface components {
         };
         /** MusicBody */
         MusicBody: {
-            /** Music Duck */
-            music_duck?: boolean | null;
-            /** Music Fade In */
-            music_fade_in?: number | null;
-            /** Music Fade Out */
-            music_fade_out?: number | null;
-            /** Music Level */
-            music_level?: string | null;
+            /** Duck */
+            duck?: boolean | null;
+            /** Fade In */
+            fade_in?: number | null;
+            /** Fade Out */
+            fade_out?: number | null;
+            /** Level */
+            level?: string | null;
             /** Music Of */
             music_of?: number | null;
-            /** Music Start */
-            music_start?: number | null;
-            /** Music Volume */
-            music_volume?: number | null;
+            /** Start */
+            start?: number | null;
+            /** Volume */
+            volume?: number | null;
         };
         /** OkEnvelope */
         OkEnvelope: {

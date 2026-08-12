@@ -1158,3 +1158,23 @@ Verification is provider-free: 321 Python tests and all 11 live database domain
 checks pass. Migration 026 was applied to the running database; the affected
 Production now has no archived Part occupying an active position, and the
 restarted API and worker report the same ready runtime ID.
+
+### Contract correction — Production music controls
+
+- The Production music editor and the FastAPI boundary now share one canonical
+  public contract: `volume`, `start`, `fade_in`, `fade_out`, `duck`, `level`
+  and `music_of`. Legacy `music_*` aliases remain confined to the persistence
+  compatibility boundary and are rejected by the public API.
+- Slider commits send the exact committed value rather than a potentially stale
+  React render. While a save is pending the related controls are disabled, and
+  a rejected save restores the last server value instead of displaying an
+  unsaved local value.
+- Music save failures are durable inline UI feedback with an accessible status;
+  they are no longer represented only by a transient toast or an unobserved
+  rejected promise.
+- Contract, OpenAPI, repository mapping and component tests cover mix level,
+  source position, both fades, invalid legacy fields and rejected saves.
+
+Verification is provider-free: the production web build, 150 React tests, 321
+Python tests and all 11 live database domain invariants pass. No render or paid
+provider operation was invoked.

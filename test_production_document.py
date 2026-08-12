@@ -198,8 +198,8 @@ class ProductionDocumentTests(unittest.TestCase):
 
         music = self.timeline.set_music(first_id, {
             "music_of": music_asset["id"],
-            "music_volume": .25, "music_start": 1.5,
-            "music_fade_in": 3, "music_duck": False,
+            "volume": .25, "start": 1.5,
+            "fade_in": 3, "duck": False,
         })
         self.assertEqual((music["music_of"], music["filename"], music["volume"],
                           music["start"], music["fade_in"], music["duck"]),

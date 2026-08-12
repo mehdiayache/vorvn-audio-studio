@@ -279,6 +279,23 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         remove.assert_called_once_with(6, {"music_of": None})
 
+        settings = {
+            "volume": .22, "start": 4.5, "fade_in": 1.2,
+            "fade_out": 3.4, "duck": False,
+        }
+        with patch.object(
+                timeline_router.timeline_service, "set_music",
+                return_value={"music_of": 55, **settings}) as update:
+            response = self.client.patch(
+                "/api/v1/productions/6/music", json=settings)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["data"]["volume"], .22)
+        update.assert_called_once_with(6, settings)
+
+        legacy = self.client.patch(
+            "/api/v1/productions/6/music", json={"music_volume": .4})
+        self.assertEqual(legacy.status_code, 422)
+
 
 if __name__ == "__main__":
     unittest.main()

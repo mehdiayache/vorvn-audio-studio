@@ -2840,7 +2840,7 @@
       "MusicBody": {
         "additionalProperties": false,
         "properties": {
-          "music_duck": {
+          "duck": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -2849,31 +2849,35 @@
                 "type": "null"
               }
             ],
-            "title": "Music Duck"
+            "title": "Duck"
           },
-          "music_fade_in": {
+          "fade_in": {
             "anyOf": [
               {
+                "maximum": 120.0,
+                "minimum": 0.0,
                 "type": "number"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Music Fade In"
+            "title": "Fade In"
           },
-          "music_fade_out": {
+          "fade_out": {
             "anyOf": [
               {
+                "maximum": 120.0,
+                "minimum": 0.0,
                 "type": "number"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Music Fade Out"
+            "title": "Fade Out"
           },
-          "music_level": {
+          "level": {
             "anyOf": [
               {
                 "type": "string"
@@ -2882,7 +2886,7 @@
                 "type": "null"
               }
             ],
-            "title": "Music Level"
+            "title": "Level"
           },
           "music_of": {
             "anyOf": [
@@ -2895,9 +2899,10 @@
             ],
             "title": "Music Of"
           },
-          "music_start": {
+          "start": {
             "anyOf": [
               {
+                "maximum": 86400.0,
                 "minimum": 0.0,
                 "type": "number"
               },
@@ -2905,9 +2910,9 @@
                 "type": "null"
               }
             ],
-            "title": "Music Start"
+            "title": "Start"
           },
-          "music_volume": {
+          "volume": {
             "anyOf": [
               {
                 "maximum": 1.0,
@@ -2918,7 +2923,7 @@
                 "type": "null"
               }
             ],
-            "title": "Music Volume"
+            "title": "Volume"
           }
         },
         "title": "MusicBody",

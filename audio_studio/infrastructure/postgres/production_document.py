@@ -442,10 +442,17 @@ class ProductionDocumentRepository:
                 "name": (row[8] or "")[:80], "duration_ms": row[9]}
 
     def set_music(self, production_id: int, values: dict[str, Any]) -> bool:
-        aliases = {"music_of": "music_asset_id", "music_level": "level",
-                   "music_fade_in": "fade_in_seconds",
-                   "music_fade_out": "fade_out_seconds", "music_duck": "duck",
-                   "music_volume": "volume", "music_start": "start_seconds"}
+        aliases = {
+            "music_of": "music_asset_id",
+            "level": "level", "fade_in": "fade_in_seconds",
+            "fade_out": "fade_out_seconds", "duck": "duck",
+            "volume": "volume", "start": "start_seconds",
+            # Persistence-only compatibility for historical callers. These
+            # names are no longer part of the public HTTP contract.
+            "music_level": "level", "music_fade_in": "fade_in_seconds",
+            "music_fade_out": "fade_out_seconds", "music_duck": "duck",
+            "music_volume": "volume", "music_start": "start_seconds",
+        }
         provided = {aliases[key]: value for key, value in values.items() if key in aliases}
         if not provided:
             return False
@@ -463,6 +470,10 @@ class ProductionDocumentRepository:
             state.update(provided)
             state["volume"] = max(0, min(1, _float(state["volume"], .1)))
             state["start_seconds"] = max(0, _float(state["start_seconds"]))
+            state["fade_in_seconds"] = max(
+                0, min(120, _float(state["fade_in_seconds"], 2)))
+            state["fade_out_seconds"] = max(
+                0, min(120, _float(state["fade_out_seconds"], 4)))
             if state["music_asset_id"] not in (None, "", 0, "0"):
                 cursor.execute("""
                     SELECT 1 FROM assets asset
