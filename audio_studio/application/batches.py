@@ -88,6 +88,16 @@ class BatchIntakeService:
             "truncated": sheet["truncated"], "max_rows": spreadsheet.MAX_ROWS,
         }
 
+    def validate_voice_column(self, token: str, column: int | None) -> dict:
+        sheet = self.workspace.load_sheet(token)
+        width = len(sheet.get("headers") or [])
+        checked_column = _column({"voice": column}, "voice", width)
+        known = _known_voice_ids([
+            *self.repository.voice_bindings(),
+            *self.repository.catalogue_voices(),
+        ])
+        return _voice_check(sheet, checked_column, known)
+
 
 def _column(columns: dict, key: str, width: int,
             *, required: bool = False) -> int | None:
@@ -323,6 +333,10 @@ class BatchGenerationService:
                     "model": prepared.model_id, "engine": prepared.engine,
                     "voice": prepared.voice,
                     "voice_identity_id": prepared.voice_identity_id,
+                    "binding_id": prepared.binding_id,
+                    "catalogue_voice_id": prepared.catalogue_voice_id,
+                    "capability_id": prepared.capability_id,
+                    "language": prepared.language,
                     "usage": made.usage, "request_ids": made.request_ids,
                     "price_version": made.price_version,
                     "catalog_rate": made.catalog_rate,

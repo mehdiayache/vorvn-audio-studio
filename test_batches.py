@@ -206,6 +206,25 @@ class BatchTests(unittest.TestCase):
             {"voice": "typo", "first_row": 3}])
         self.assertEqual(workspace.sheet["headers"], ["name", "text", "voice"])
 
+    def test_selected_voice_column_is_validated_across_every_row(self):
+        workspace = FakeWorkspace(sheet([
+            ["one", "Hello", BINDING_ID, ""],
+            ["two", "World", "missing-route", ""],
+            ["three", "Again", "missing-route", ""],
+        ]))
+        result = BatchIntakeService(
+            workspace, FakeRepository()).validate_voice_column(
+                "20260808-120000-deadbeef", 2)
+        self.assertEqual(result["checked"], 2)
+        self.assertEqual(result["unknown"], [
+            {"voice": "missing-route", "first_row": 3},
+        ])
+
+        same_setup = BatchIntakeService(
+            workspace, FakeRepository()).validate_voice_column(
+                "20260808-120000-deadbeef", None)
+        self.assertEqual(same_setup, {"unknown": [], "checked": 0})
+
     def test_run_keeps_partial_success_unique_files_usage_and_progress(self):
         service, workspace, provider = self.service()
         progress = []
@@ -232,6 +251,9 @@ class BatchTests(unittest.TestCase):
         self.assertEqual(progress[0][:2], (0, 3))
         self.assertEqual(progress[-1][:2], (3, 3))
         self.assertEqual(len(provider.calls), 3)
+        made = [item for item in result["results"] if item.get("name")]
+        self.assertEqual(made[0]["binding_id"], BINDING_ID)
+        self.assertEqual(made[0]["model"], "qwen-audio-3.0-tts-plus")
 
     def test_incomplete_provider_row_is_not_written_to_the_batch(self):
         service, workspace, provider = self.service(rows=[

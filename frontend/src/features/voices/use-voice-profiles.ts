@@ -9,12 +9,12 @@ export function useVoiceProfiles() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading")
   const [error, setError] = useState("")
   const refresh = useCallback(async () => {
-    try {
-      const [result, nextConfig] = await Promise.all([studioApi.voiceProfiles(), studioApi.config()])
-      setProfiles(result); setConfig(nextConfig); setStatus("ready"); setError("")
-    } catch (reason) {
-      setStatus("error"); setError(reason instanceof Error ? reason.message : "Unable to load voices.")
-    }
+    const [voiceResult, configResult] = await Promise.allSettled([studioApi.voiceProfiles(), studioApi.config()])
+    if (voiceResult.status === "fulfilled") setProfiles(voiceResult.value)
+    if (configResult.status === "fulfilled") setConfig(configResult.value)
+    const failure = voiceResult.status === "rejected" ? voiceResult.reason : configResult.status === "rejected" ? configResult.reason : null
+    setStatus(failure ? "error" : "ready")
+    setError(failure instanceof Error ? failure.message : failure ? "Unable to refresh every voice resource." : "")
   }, [])
   useEffect(() => { void refresh() }, [refresh])
   const busy = profiles.some((profile) => profile.jobs.some((job) => ["queued", "creating"].includes(job.status)))

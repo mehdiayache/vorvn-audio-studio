@@ -27,7 +27,22 @@ class DurableJobObserver {
   register<T>(job: DurableJob<T>, reader: (id: string) => Promise<DurableJob<T>>) {
     const existing = this.entries.get(job.id)
     if (existing) {
+      const wasTerminal = this.isTerminal(existing.snapshot.status)
       this.update(existing, job)
+      if (wasTerminal && !this.isTerminal(job.status)) {
+        let resolve: (result: unknown) => void = () => undefined
+        let reject: (error: unknown) => void = () => undefined
+        const completion = new Promise<unknown>((next, fail) => { resolve = next; reject = fail })
+        void completion.catch(() => undefined)
+        existing.reader = reader as JobReader
+        existing.completion = completion
+        existing.resolve = resolve
+        existing.reject = reject
+        existing.deadline = Date.now() + 30 * 60 * 1000
+        existing.active = true
+        this.schedule(job.id, existing, 0)
+        return job
+      }
       this.settleIfTerminal(existing)
       return job
     }

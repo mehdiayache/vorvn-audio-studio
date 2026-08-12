@@ -34,3 +34,12 @@ class BatchPreviewResponse(BaseModel):
 
 class BatchPreviewEnvelope(BaseModel):
     data: BatchPreviewResponse
+
+
+class BatchVoiceValidationRequest(BaseModel):
+    token: str
+    voice_column: int | None = None
+
+
+class BatchVoiceValidationEnvelope(BaseModel):
+    data: BatchVoiceCheckResponse

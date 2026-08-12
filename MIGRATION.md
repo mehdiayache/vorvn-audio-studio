@@ -940,3 +940,45 @@ database domain invariants. Live FastAPI browser smokes prove all four Inspector
 panels against real Take/ProviderAttempt data, exact route evidence, Mix & Export
 at desktop and 390 x 844, and zero mobile document overflow. The smoke ran the
 API without the worker so no queued or paid provider operation could resume.
+
+### UI checkpoint 7 — independent tools and shared operation state
+
+- Speak, Batch, Voices, Subtitles, Activity and Settings now use the shared UI
+  VORVN page header and resource-state grammar. A partial refresh failure keeps
+  previously loaded Voice Directory data visible and exposes a scoped Retry
+  instead of replacing valid content with an empty library.
+- Batch reuses the exact-route `RecordingSetup` established by Composer. It
+  never preselects an identity or route, validates every populated route ID in
+  a mapped spreadsheet column before a paid Job is queued, and persists exact
+  binding/catalogue, capability, language and model evidence per result row.
+- Batch generation is a durable observable Job. Its queued, running, retrying,
+  blocked, failed and completed states survive route changes and reloads through
+  the Job public ID in the URL. Cost confirmation continues the same durable Job
+  and never creates an implicit provider retry.
+- External transcription and subtitle translation now use the same durable Job
+  observer and shared `OperationState`. Uploads remain available after a
+  definitive failure, previous subtitle data survives refresh errors, and
+  cost/model/region/Job evidence is grouped under one secondary Details section.
+- The shared Job observer now explicitly rearms when an operator confirms a
+  previously blocked Job. The resumed Job receives a fresh completion lifecycle
+  and polling loop; a blocked-to-queued transition can no longer leave Batch or
+  Subtitles visually stranded.
+- Activity translates infrastructure and common provider failures into concise
+  operator language while retaining raw diagnostics only inside the Details
+  Sheet. Its generic ledger no longer describes every business operation as an
+  Alibaba operation or invoice.
+- Settings is grouped by Product readiness, Provider, Storage, finished media,
+  spending, speech interpretation, pronunciation, maintenance and Advanced.
+  Spending and speech interpretation each own their dirty state and Save action;
+  no page-level button implies that it saves unrelated cards.
+- Playback in Batch, Voices and Subtitles continues through the one global
+  `TransportStrip`. None of these tools creates a page-local audio element or
+  playback state owner.
+
+Verification is provider-free. Generated OpenAPI, TypeScript, the production
+build and 138 React tests pass, together with 320 Python tests and all 11 live
+database domain invariants. A live FastAPI-only runtime, with no worker, proves
+all six routes at 1440 and 390 pixels with zero document overflow and a clean
+console. A real local CSV exercised the free Batch upload, preview, mapping and
+route-validation path through FastAPI; Generate remained blocked without an
+explicit route. No provider operation was called.

@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/batches/validate-voice-column": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate Batch Voice Column */
+        post: operations["validateBatchVoiceColumn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cast-roles/{role_id}/assignment": {
         parameters: {
             query?: never;
@@ -1849,6 +1866,17 @@ export interface components {
             checked: number;
             /** Unknown */
             unknown: components["schemas"]["BatchUnknownVoiceResponse"][];
+        };
+        /** BatchVoiceValidationEnvelope */
+        BatchVoiceValidationEnvelope: {
+            data: components["schemas"]["BatchVoiceCheckResponse"];
+        };
+        /** BatchVoiceValidationRequest */
+        BatchVoiceValidationRequest: {
+            /** Token */
+            token: string;
+            /** Voice Column */
+            voice_column?: number | null;
         };
         /** BulkEnrollmentEnvelope */
         BulkEnrollmentEnvelope: {
@@ -5158,6 +5186,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BatchPreviewEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validateBatchVoiceColumn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchVoiceValidationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchVoiceValidationEnvelope"];
                 };
             };
             /** @description Validation Error */

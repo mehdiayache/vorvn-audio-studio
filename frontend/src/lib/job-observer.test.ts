@@ -63,4 +63,18 @@ describe("job observer", () => {
     expect(jobObserver.getSnapshot("job-1")).toMatchObject({ status: "running" })
     unsubscribe()
   })
+
+  it("resumes observation when a blocked Job is explicitly confirmed", async () => {
+    vi.useFakeTimers()
+    const read = vi.fn().mockResolvedValue(job("ok", { value: 11 }))
+    jobObserver.register(job("blocked", { needs_confirmation: true }), read)
+    await expect(jobObserver.completion("job-1")).resolves.toEqual({ needs_confirmation: true })
+
+    jobObserver.register(job("queued"), read)
+    expect(observedJobCount()).toBe(1)
+    await vi.advanceTimersByTimeAsync(0)
+    await expect(jobObserver.completion("job-1")).resolves.toEqual({ value: 11 })
+    expect(read).toHaveBeenCalledTimes(1)
+    expect(jobObserver.getSnapshot("job-1")).toMatchObject({ status: "ok" })
+  })
 })

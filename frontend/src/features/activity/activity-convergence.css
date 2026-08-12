@@ -1,0 +1,6 @@
+.activity-page > .vorvn-tool-page-header { margin-bottom: 34px; }
+.activity-run.running .activity-run-icon { color: var(--primary); }
+
+@media (max-width: 720px) {
+  .activity-page > .vorvn-tool-page-header { align-items: flex-start; }
+}

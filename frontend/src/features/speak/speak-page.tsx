@@ -1,11 +1,12 @@
-import { Mic2, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { RecordingTakeCard, type RecordingTakeView } from "@/components/recording-take-card"
 import { StandaloneComposerHost } from "@/features/composer/standalone-composer-host"
-import { ErrorState, PageLoading } from "@/components/state-panel"
+import { ErrorState, InlineResourceError, PageLoading } from "@/components/state-panel"
 import { Button } from "@/components/ui/button"
+import { ToolPageHeader } from "@/design-system/vorvn"
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { useJobExecution } from "@/hooks/use-job-execution"
 import { useVoiceDirectory } from "@/hooks/use-voice-directory"
@@ -169,7 +170,8 @@ export function SpeakPage() {
   ]).size
 
   return <main className="speak-page">
-    <header className="speak-hero"><span><Mic2 /></span><div><small>Standalone tool</small><h1>Speak</h1><p>Create and compare recordings without choosing a Project. Every attempt stays in this session and in Activity.</p></div><Button variant="outline" onClick={newSession}><Plus /> New session</Button></header>
+    <ToolPageHeader eyebrow="Standalone tool" title="Speak" description="Create and compare recordings without choosing a Project. Every attempt stays in this session and in Activity." actions={<Button variant="outline" onClick={newSession}><Plus /> New session</Button>} />
+    {voices.error && voices.config && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void voices.refresh()} />}
     <section className="speak-workspace"><StandaloneComposerHost key={sessionId} sessionId={sessionId} config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} /></section>
     <section className="speak-takes" aria-live="polite">
       <header><div><small>Recording session</small><h2>Takes</h2></div><span>{attemptCount} attempts · ${Number(session?.total_cost || 0).toFixed(4)}</span></header>

@@ -168,14 +168,27 @@ export const studioApi = {
   subtitleLayout: (id: number, profile: CaptionProfile) => request<CaptionLayoutEnvelope>(`/api/v1/subtitles/${id}/layouts/${profile}`).then((response) => response.data),
   deleteExternalTranscript: (id: number) => request<SubtitleDeletedEnvelope>(`/api/v1/subtitles/${id}`, { method: "DELETE" }),
   uploadExternalAudio: (file: File) => uploadFile<{ data: ExternalAudioUpload }>("/api/v1/subtitles/uploads", file).then((response) => response.data),
-  transcribeExternal: async (payload: { url: string; name: string; playable: string; size_bytes: number; duration_ms: number; language?: string; enable_itn?: boolean; confirmed?: boolean }) => {
+  enqueueExternalTranscription: async (payload: { url: string; name: string; playable: string; size_bytes: number; duration_ms: number; language?: string; enable_itn?: boolean; confirmed?: boolean }) => {
     const response = await request<{ data: DurableJob<CaptionMutationResult> }>("/api/v1/jobs/transcription", { method: "POST", headers: { "Idempotency-Key": `transcribe-${crypto.randomUUID()}` }, body: JSON.stringify(payload) })
-    return waitForJob<CaptionMutationResult>(response.data.id)
+    return registerJob(response.data)
+  },
+  transcribeExternal: async (payload: { url: string; name: string; playable: string; size_bytes: number; duration_ms: number; language?: string; enable_itn?: boolean; confirmed?: boolean }) => {
+    const job = await studioApi.enqueueExternalTranscription(payload)
+    return jobObserver.completion<CaptionMutationResult>(job.id)
   },
   previewBatch: (file: File) => uploadFile<BatchPreviewEnvelope>("/api/v1/batches/preview", file).then((response) => response.data),
-  runBatch: async (payload: Record<string, unknown>) => {
+  validateBatchVoiceColumn: (token: string, voiceColumn: number | null) =>
+    postV1<{ unknown: Array<{ voice: string; first_row: number }>; checked: number }>("/api/v1/batches/validate-voice-column", {
+      token,
+      voice_column: voiceColumn,
+    }),
+  enqueueBatch: async (payload: Record<string, unknown>) => {
     const response = await request<{ data: DurableJob<BatchResult> }>("/api/v1/jobs/batch", { method: "POST", headers: { "Idempotency-Key": `batch-${crypto.randomUUID()}` }, body: JSON.stringify(payload) })
-    return waitForJob<BatchResult>(response.data.id)
+    return registerJob(response.data)
+  },
+  runBatch: async (payload: Record<string, unknown>) => {
+    const job = await studioApi.enqueueBatch(payload)
+    return jobObserver.completion<BatchResult>(job.id)
   },
   voiceRegistry: () => request<VoiceRegistryEnvelope>("/api/v1/voice-registry").then((response) => response.data),
   voiceMeta: () => request<VoiceMetadataEnvelope>("/api/v1/voice-meta").then((response) => ({ voices: response.data })),
@@ -329,13 +342,17 @@ export const studioApi = {
     })
     return waitForJob<CaptionMutationResult>(response.data.id)
   },
-  translateTranscript: async (id: number, target: string, confirmed = false) => {
+  enqueueTranscriptTranslation: async (id: number, target: string, confirmed = false) => {
     const response = await request<{ data: DurableJob<CaptionMutationResult> }>("/api/v1/jobs/translation", {
       method: "POST",
       headers: { "Idempotency-Key": `translate-${id}-${target}-${crypto.randomUUID()}` },
       body: JSON.stringify({ transcript_id: id, target, confirmed }),
     })
-    return waitForJob<CaptionMutationResult>(response.data.id)
+    return registerJob(response.data)
+  },
+  translateTranscript: async (id: number, target: string, confirmed = false) => {
+    const job = await studioApi.enqueueTranscriptTranslation(id, target, confirmed)
+    return jobObserver.completion<CaptionMutationResult>(job.id)
   },
   uploadAsset: async (collectionId: number, file: File) => {
     const response = await uploadFile<{ data: UploadedAsset }>(`/api/v1/asset-collections/${collectionId}/assets/upload`, file)

@@ -24,6 +24,10 @@ export function ErrorState({ title = "Production unavailable", message, retry }:
   )
 }
 
+export function InlineResourceError({ message, retry }: { message: string; retry: () => void }) {
+  return <div className="inline-resource-error" role="status"><AlertCircle /><span>{message}</span><Button size="sm" variant="ghost" onClick={retry}><RefreshCw /> Retry</Button></div>
+}
+
 export function EmptySequence({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="empty-sequence">

@@ -421,7 +421,24 @@ export type ExternalAudioUpload = components["schemas"]["UploadedTranscriptionSo
 export type BatchPreview = components["schemas"]["BatchPreviewResponse"]
 
 export type BatchResult = {
-  results: Array<{ row: number; name?: string; text: string; url?: string; cost?: number; error?: string; warning?: string }>
+  results: Array<{
+    row: number
+    name?: string
+    text: string
+    url?: string
+    cost?: number
+    cost_basis?: string
+    error?: string
+    warning?: string
+    model?: string
+    engine?: string
+    voice?: string
+    voice_identity_id?: string | null
+    binding_id?: string | null
+    catalogue_voice_id?: string | null
+    capability_id?: string | null
+    language?: string
+  }>
   cost: number
   estimated_cost?: number
   cost_basis?: string

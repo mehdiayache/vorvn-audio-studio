@@ -655,6 +655,7 @@
 
 .scoped-resource-error { align-items: center; background: var(--warning-soft); border-bottom: 1px solid color-mix(in oklab, var(--warning) 34%, var(--border)); color: var(--foreground); display: flex; font-size: var(--type-small); gap: 1rem; justify-content: center; padding: .55rem 1rem; }
 .scoped-resource-error button { color: inherit; font-weight: 750; text-decoration: underline; }
+.inline-resource-error { display: flex; align-items: center; justify-content: center; gap: .65rem; margin: -10px 0 18px; padding: .55rem .75rem; border: 1px solid color-mix(in oklab, var(--warning) 30%, var(--border)); border-radius: var(--radius); background: var(--warning-soft); color: var(--foreground); font-size: var(--type-small); }.inline-resource-error > svg { width: 1rem; flex: none; color: var(--warning); }
 
 @media (max-width: 860px) {
   .production-context-bar { grid-template-columns: minmax(0,1fr) auto; }

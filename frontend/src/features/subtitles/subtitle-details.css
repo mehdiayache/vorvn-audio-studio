@@ -1,0 +1,6 @@
+.subtitles-page > .vorvn-tool-page-header { margin-bottom: 24px; }
+.subtitle-details { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-subtle); }
+.subtitle-details > summary { padding: 11px 13px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: 650; cursor: pointer; }
+.subtitle-details .subtitle-accounting { margin: 0; padding: 0 12px 12px; }
+.subtitle-details .subtitle-accounting > span { background: var(--card); }
+.subtitles-history-error { padding: 9px 10px; border-radius: 9px; background: var(--warning-soft); color: var(--foreground) !important; font-size: var(--type-small); }

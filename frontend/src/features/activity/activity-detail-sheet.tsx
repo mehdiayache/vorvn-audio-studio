@@ -16,7 +16,7 @@ function ProviderDiagnostics({ diagnostics }: { diagnostics: ActivityRun["provid
   if (!diagnostics.length) return null
   return <section className="provider-diagnostics">
     <h3>Provider sections</h3>
-    <p>{diagnostics.length} Alibaba request{diagnostics.length === 1 ? "" : "s"}. Replaced sections were billed but excluded from the final audio.</p>
+    <p>{diagnostics.length} provider request{diagnostics.length === 1 ? "" : "s"}. Replaced sections were billed but excluded from the final audio.</p>
     <div>{diagnostics.map((item, index) => {
       const fidelity = item.fidelity && typeof item.fidelity === "object" ? item.fidelity as Record<string, unknown> : null
       const status = String(item.status || "unknown")
@@ -49,7 +49,7 @@ export function ActivityDetailSheet({ run, onClose }: { run: ActivityRun | null;
           {!!run.output_ids.length && <section className="activity-outputs"><h3>Outputs</h3>{run.output_ids.map((output) => <p key={`${output.type}:${output.id}`}><b>{output.type}</b> #{output.id}</p>)}</section>}
           <ProviderDiagnostics diagnostics={run.provider_diagnostics} />
           {Object.keys(run.usage || {}).length > 0 && <section><h3>Provider usage</h3><pre>{JSON.stringify(run.usage, null, 2)}</pre></section>}
-          {run.error && <section className="activity-detail-error"><h3>Error</h3><p>{run.error}</p></section>}
+          {run.error && <section className="activity-detail-error"><h3>Operation problem</h3><p>{run.requires_review ? "The provider result needs an operator decision." : "Audio Studio retained the failure record. Technical diagnostics are shown below for support and debugging."}</p><details><summary>Technical error</summary><pre>{run.error}</pre></details></section>}
         </div></>}
     </SheetContent>
   </Sheet>

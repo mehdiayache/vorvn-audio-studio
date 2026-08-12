@@ -16,25 +16,27 @@ export function useVoiceDirectory() {
 
   const refresh = useCallback(async () => {
     setError("")
-    try {
-      const [nextConfig, voiceRegistry, metadata, voiceUsage, voiceProfiles] = await Promise.all([
-        studioApi.config(), studioApi.voiceRegistry(), studioApi.voiceMeta(), studioApi.voiceUsage(), studioApi.voiceProfiles(),
-      ])
-      setConfig(nextConfig)
-      setRegistry(voiceRegistry)
-      setCloned((voiceRegistry.bindings || []).filter((binding) => binding.source === "custom").map((binding): ClonedVoice => ({
+    const results = await Promise.allSettled([
+      studioApi.config(), studioApi.voiceRegistry(), studioApi.voiceMeta(), studioApi.voiceUsage(), studioApi.voiceProfiles(),
+    ] as const)
+    const [nextConfig, voiceRegistry, metadata, voiceUsage, voiceProfiles] = results
+    if (nextConfig.status === "fulfilled") setConfig(nextConfig.value)
+    if (voiceRegistry.status === "fulfilled") {
+      setRegistry(voiceRegistry.value)
+      const registryValue = voiceRegistry.value
+      // Keep the mapped bindings from the same registry snapshot.
+      setCloned((registryValue.bindings || []).filter((binding) => binding.source === "custom").map((binding): ClonedVoice => ({
         voice_id: binding.provider_voice_id, voice: binding.provider_voice_id,
         engine: binding.engine, target_model: binding.model_id, name: binding.name,
         languages: binding.languages.join(","), status: binding.status,
       })))
-      setMeta(metadata.voices || {})
-      setUsage(voiceUsage.usage || {})
-      setIdentities(voiceProfiles)
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Voice resources could not be loaded.")
-    } finally {
-      setLoading(false)
     }
+    if (metadata.status === "fulfilled") setMeta(metadata.value.voices || {})
+    if (voiceUsage.status === "fulfilled") setUsage(voiceUsage.value.usage || {})
+    if (voiceProfiles.status === "fulfilled") setIdentities(voiceProfiles.value)
+    const failures = results.filter((result): result is PromiseRejectedResult => result.status === "rejected")
+    if (failures.length) setError(failures[0]?.reason instanceof Error ? failures[0].reason.message : "Some voice resources could not be refreshed.")
+    setLoading(false)
   }, [])
 
   useEffect(() => {

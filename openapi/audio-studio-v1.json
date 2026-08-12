@@ -1015,6 +1015,42 @@
         "title": "BatchVoiceCheckResponse",
         "type": "object"
       },
+      "BatchVoiceValidationEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BatchVoiceCheckResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "BatchVoiceValidationEnvelope",
+        "type": "object"
+      },
+      "BatchVoiceValidationRequest": {
+        "properties": {
+          "token": {
+            "title": "Token",
+            "type": "string"
+          },
+          "voice_column": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Column"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "BatchVoiceValidationRequest",
+        "type": "object"
+      },
       "BulkEnrollmentEnvelope": {
         "properties": {
           "data": {
@@ -10892,6 +10928,47 @@
           }
         },
         "summary": "Preview Batch",
+        "tags": [
+          "batches"
+        ]
+      }
+    },
+    "/api/v1/batches/validate-voice-column": {
+      "post": {
+        "operationId": "validateBatchVoiceColumn",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchVoiceValidationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchVoiceValidationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Validate Batch Voice Column",
         "tags": [
           "batches"
         ]
