@@ -38,15 +38,21 @@ from audio_studio.http.routers.bulk_enrollment import router as bulk_enrollment_
 from audio_studio.http.routers.composer_drafts import router as composer_drafts_router
 from audio_studio.migrations import run as run_migrations
 from audio_studio.composition.provider_catalogue import provider_catalogue_sync
+from audio_studio.composition.runtime_configuration import configured_api_environment
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    mimetypes.add_type("application/javascript", ".js")
-    mimetypes.add_type("text/css", ".css")
-    run_migrations()
-    provider_catalogue_sync.refresh()
-    yield
+    # Keep direct FastAPI launches honest too. The supervised runtime already
+    # loads this file before spawning the worker, but smoke/dev launches must
+    # expose the same persisted provider configuration instead of pretending
+    # that the key disappeared.
+    with configured_api_environment():
+        mimetypes.add_type("application/javascript", ".js")
+        mimetypes.add_type("text/css", ".css")
+        run_migrations()
+        provider_catalogue_sync.refresh()
+        yield
 
 
 app = FastAPI(title="VORVN Audio Studio API", version=__version__,

@@ -1076,3 +1076,20 @@ the VORVN 14-pixel body scale and 22-pixel/600 page heading, with no horizontal
 overflow or browser console warning. This checkpoint aligns the design-system
 runtime; it does not claim that Audio Studio has already adopted the future
 Origins shell composition.
+
+### Runtime checkpoint — persisted provider configuration on every launch path
+
+- Direct FastAPI development/smoke launches now load Audio Studio's persisted
+  provider environment through a composition-owned lifecycle boundary, so they
+  cannot falsely present a stored API key as missing.
+- In-process TestClient lifecycles restore their caller's environment on exit;
+  local developer secrets cannot leak into later tests.
+- `python -m audio_studio.runtime` is now the real executable entry point for
+  the supervised API + worker runtime instead of silently returning without
+  starting either process.
+
+Verification covers 321 Python tests, all architecture boundaries, 31 provider
+contracts, 15 render contracts and 11 live database invariants. The restarted
+runtime reports the provider key and workspace configured, private storage
+configured, a ready worker and matching API/worker runtime IDs. No paid provider
+operation was invoked.

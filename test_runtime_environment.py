@@ -12,6 +12,7 @@ from audio_studio.infrastructure import runtime_environment
 from audio_studio.infrastructure.alibaba import config as alibaba_config
 from audio_studio.infrastructure.alibaba import sdk_runtime
 from audio_studio.infrastructure.settings_administration import EnvironmentSettings
+from audio_studio.composition.runtime_configuration import configured_api_environment
 from audio_studio import config
 from dataclasses import replace
 
@@ -125,6 +126,23 @@ class RuntimeEnvironmentTests(unittest.TestCase):
                     sdk_runtime.dashscope.base_http_api_url,
                     "https://dashscope-intl.aliyuncs.com/api/v1",
                 )
+
+    def test_api_environment_restores_the_calling_process(self):
+        with TemporaryDirectory() as directory:
+            env_file = Path(directory) / ".env"
+            env_file.write_text(
+                "DASHSCOPE_REGION=beijing\nDASHSCOPE_API_KEY=api-key\n"
+            )
+            with patch.object(runtime_environment, "ENV_FILE", env_file), \
+                    patch.dict(os.environ, {
+                        "DASHSCOPE_REGION": "intl",
+                        "DASHSCOPE_API_KEY": "test-key",
+                    }, clear=False):
+                with configured_api_environment():
+                    self.assertEqual(os.environ["DASHSCOPE_REGION"], "beijing")
+                    self.assertEqual(os.environ["DASHSCOPE_API_KEY"], "api-key")
+                self.assertEqual(os.environ["DASHSCOPE_REGION"], "intl")
+                self.assertEqual(os.environ["DASHSCOPE_API_KEY"], "test-key")
 
     def test_composition_root_loads_persisted_settings_before_startup(self):
         order = []
