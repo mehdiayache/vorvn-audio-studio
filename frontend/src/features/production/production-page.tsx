@@ -3,6 +3,7 @@ import type { ToolKind } from "@/components/production-tools"
 import type { SequenceActions } from "@/components/sequence-actions"
 import { ProductionEditorCanvas } from "@/features/production/production-editor-canvas"
 import { ProductionSelectionBar } from "@/features/production/production-selection-bar"
+import { MovePartPositionDialog } from "@/features/production/move-part-position-dialog"
 import type { ConfirmAction } from "@/features/production/production-overlays"
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { usePlayerShortcuts } from "@/hooks/use-player-shortcuts"
@@ -37,6 +38,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [detail, setDetail] = useState<ProductionPart | null>(null)
   const [moveOpen, setMoveOpen] = useState(false)
+  const [movePositionPart, setMovePositionPart] = useState<ProductionPart | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
   const [cast, setCast] = useState<ProductionCastRole[]>([])
   const player = useGlobalPlayer()
@@ -114,6 +116,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     duplicate: (part) => void actions.duplicatePart(part),
     remove: (part) => setConfirmAction({ title: "Delete this part?", description: "It will be removed from this Production. The reusable Venture source, if any, is not deleted.", action: () => void actions.deletePart(part) }),
     move: actions.movePart,
+    moveToPosition: setMovePositionPart,
     editSilence: (part, seconds) => void actions.editSilence(part, seconds),
     openPart: setDetail,
   }), [actions, player])
@@ -173,6 +176,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       })}
       onClear={() => setSelected(new Set())}
     />
+    <MovePartPositionDialog part={movePositionPart} count={sourceParts.length} onClose={() => setMovePositionPart(null)} onMove={actions.movePartToPosition} />
     {overlaysOpen && <Suspense fallback={null}>
       <ProductionOverlays
         tool={tool}

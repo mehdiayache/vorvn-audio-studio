@@ -18,12 +18,12 @@ const items = [
 ] satisfies HierarchyNode[]
 
 describe("VentureDirectoryPage", () => {
-  it("counts Project and nested Production descendants without treating Ventures as folders", () => {
+  it("shows Project count and the latest nested Production without treating Ventures as folders", () => {
     render(<MemoryRouter><VentureDirectoryPage items={items} /></MemoryRouter>)
     const venture = screen.getByRole("link", { name: /Venture Heartsnotes/ })
     expect(venture.getAttribute("href")).toBe("/audio-studio/ventures/v1")
     expect(screen.getByText("1 Project")).toBeTruthy()
-    expect(screen.getByText("2 Productions")).toBeTruthy()
+    expect(screen.getByText("Latest · Episode")).toBeTruthy()
     expect(screen.getByRole("heading", { name: "Work" })).toBeTruthy()
   })
 })

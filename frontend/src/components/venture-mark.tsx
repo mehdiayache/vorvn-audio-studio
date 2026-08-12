@@ -1,6 +1,7 @@
 import { Sparkles } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import "./venture-mark.css"
 
 export function isImageIdentity(value?: string | null) {
   return Boolean(value && /^(\/|data:image\/|https?:\/\/)/.test(value))

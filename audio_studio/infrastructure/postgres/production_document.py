@@ -180,7 +180,8 @@ class ProductionDocumentRepository:
                        attempt.public_id, attempt.status,
                        take.raw_text, take.spoken_text, take.tagged_text,
                        take.delivery, take.usage, take.segmentation,
-                       take.binding_resolution_status
+                       take.binding_resolution_status,
+                       collection.kind, collection.name
                   FROM production_parts part
                   LEFT JOIN production_cast_roles role ON role.id = part.cast_role_id
                   LEFT JOIN composition_drafts draft ON draft.part_id = part.id
@@ -188,6 +189,8 @@ class ProductionDocumentRepository:
                   LEFT JOIN provider_attempts attempt
                     ON attempt.id = take.provider_attempt_id
                   LEFT JOIN asset_versions version ON version.id = part.asset_version_id
+                  LEFT JOIN assets asset ON asset.id = part.asset_id
+                  LEFT JOIN asset_collections collection ON collection.id = asset.collection_id
                   LEFT JOIN LATERAL (
                     SELECT count(*) AS take_count, coalesce(sum(cost), 0) AS spend
                       FROM takes item WHERE item.part_id = part.id
@@ -256,6 +259,8 @@ class ProductionDocumentRepository:
                 "take_usage": row[65] or {},
                 "take_segmentation": row[66] or {},
                 "binding_resolution_status": row[67],
+                "asset_kind": row[68],
+                "asset_collection": row[69],
                 "engine": snapshot.get("engine") or draft.get("legacy_engine") or job_payload.get("engine"),
                 "model": row[20] or snapshot.get("model") or draft.get("legacy_model") or job_payload.get("model"),
                 "format": snapshot.get("format") or draft.get("format") or job_payload.get("format", "mp3"),

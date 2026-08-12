@@ -23,6 +23,15 @@ export const audioStudioNavigation: StudioNavigationItem[] = [
   { id: "settings", label: "Settings", iconRole: "settings", href: "/audio-studio/settings" },
 ]
 
+export function activeAudioStudioDestination(pathname: string) {
+  const match = audioStudioNavigation.find((item) => (
+    item.id === "work"
+      ? pathname === "/audio-studio" || pathname === "/audio-studio/" || /^\/audio-studio\/(ventures|projects|series|productions|workspaces)\//.test(pathname)
+      : pathname === item.href || pathname.startsWith(`${item.href}/`)
+  ))
+  return match?.label || "Audio Studio"
+}
+
 function ReadinessStatus({ compact = false }: { compact?: boolean }) {
   const readiness = useProductReadiness()
   return (
@@ -71,6 +80,7 @@ function MobileNavigation() {
 
 export function AppShell({ mode = "standalone" }: { mode?: AudioStudioMountMode }) {
   const location = useLocation()
+  const activeDestination = activeAudioStudioDestination(location.pathname)
   return (
     <div className="studio-app-shell" data-mount-mode={mode}>
       <a className="studio-skip-link" href="#audio-studio-content">Skip to Audio Studio content</a>
@@ -80,6 +90,7 @@ export function AppShell({ mode = "standalone" }: { mode?: AudioStudioMountMode 
             <span className="vorvn-studio-mark"><StudioIcon role="studio" /></span>
             <span><b>Audio Studio</b><small>Voice production</small></span>
           </NavLink>
+          <span className="vorvn-mobile-destination" aria-current="page">{activeDestination}</span>
           <div className="vorvn-standalone-actions">
             <ReadinessStatus compact />
             <MobileNavigation />

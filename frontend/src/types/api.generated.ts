@@ -2789,8 +2789,12 @@ export interface components {
         };
         /** ProductionPartResponse */
         ProductionPartResponse: {
+            /** Asset Collection */
+            asset_collection?: string | null;
             /** Asset Id */
             asset_id?: number | null;
+            /** Asset Kind */
+            asset_kind?: string | null;
             /** Asset Of */
             asset_of?: number | null;
             /** Asset Version Id */

@@ -49,8 +49,9 @@ export function SequenceWorkspace({ parts, liveJobs, selected, playingKey, playe
       <header className="sequence-workspace-title"><div><span>Source sequence</span><h2>Production parts</h2></div><p>One ordered narration. Open a part for its full script, takes, and captions.</p></header>
       <div className="sequence-spine" aria-hidden="true" />
       <SequenceInsertControl at={0} beforePartId={sourceParts[0]?.public_id || null} onInsert={onInsert} />
+      <div className="sequence-part-list" role="list" aria-label={`${sourceParts.length} ordered Production Parts`}>
       {sourceParts.map((part, index) => <Fragment key={part.id}>
-        <div className={cn("sequence-row", part.kind === "silence" && "silence")}>
+        <div className={cn("sequence-row", part.kind === "silence" && "silence")} role="listitem" aria-posinset={index + 1} aria-setsize={sourceParts.length}>
           <div className="sequence-node-column"><span className={cn("sequence-row-node", part.kind === "asset" && "asset", part.kind === "draft" && "draft", part.missing && "issue")}>{part.kind === "silence" ? "" : String(index + 1).padStart(2, "0")}</span></div>
           {part.kind === "silence"
             ? <SequenceSilenceCard part={part} index={index} count={sourceParts.length} selected={selected.has(part.id)} onSelect={(checked, shift) => select(index, checked, shift)} actions={actions} />
@@ -60,6 +61,7 @@ export function SequenceWorkspace({ parts, liveJobs, selected, playingKey, playe
         </div>
         <SequenceInsertControl at={index + 1} beforePartId={index === sourceParts.length - 1 ? null : sourceParts[index + 1]?.public_id || null} last={index === sourceParts.length - 1} onInsert={onInsert} />
       </Fragment>)}
+      </div>
     </section>
   )
 }

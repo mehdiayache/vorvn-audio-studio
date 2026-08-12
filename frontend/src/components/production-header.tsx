@@ -33,6 +33,7 @@ export function ProductionHeader({ production, duration, releaseOpen, production
         </div>
         <div className="production-context-actions">
           {releaseOpen ? <Button variant="outline" onClick={onBack}><ArrowLeft /> Back to production</Button> : <>
+            {issueCount > 0 && <Button className="production-health-summary" variant="outline" onClick={onHealth}><CircleAlert /> {issueCount} issue{issueCount === 1 ? "" : "s"}</Button>}
             <Button variant="outline" onClick={onPreview}>{productionPlaying ? <Pause /> : <Play />} {productionPlaying ? "Pause" : "Preview"}</Button>
             <Button className="mix-export-action" variant="outline" onClick={onRelease}><SlidersHorizontal /> Mix & Export</Button>
             <DropdownMenu>

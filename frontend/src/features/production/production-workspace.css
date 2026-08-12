@@ -5,6 +5,7 @@
 .production-context-copy > b { font-size: var(--type-caption); }
 .production-context-copy .shell-breadcrumbs { font-size: var(--type-caption); }
 .production-context-actions { grid-column: 2; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
+.production-health-summary { color: var(--warning); border-color: color-mix(in oklch, var(--warning) 35%, var(--border)); background: var(--warning-soft); }
 
 .production-header-compact {
   top: calc(var(--studio-standalone-header-height) + var(--studio-local-chrome-height));
@@ -116,6 +117,9 @@
 .production-health-clear { display: grid; place-items: center; gap: 5px; padding: 40px 18px; text-align: center; }
 .production-health-clear svg { width: 28px; color: var(--success); }
 .production-health-clear p { color: var(--muted-foreground); }
+
+.move-position-field { display: grid; gap: 8px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: 600; }
+.move-position-field input { max-width: 160px; color: var(--foreground); font-size: var(--type-body); font-weight: 500; }
 
 @media (max-width: 900px) {
   .production-header-compact { align-items: flex-start; }

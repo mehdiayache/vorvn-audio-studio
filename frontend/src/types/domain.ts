@@ -110,6 +110,8 @@ export type ProductionPart = {
   asset_of?: number | null
   asset_id?: number | null
   asset_version_id?: number | null
+  asset_kind?: string | null
+  asset_collection?: string | null
   speech_mode?: "exact" | "directed" | string
   cost_basis?: string
   provider_text?: string | null

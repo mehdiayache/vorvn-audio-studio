@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { AppShell } from "@/components/app-shell"
+import { AppShell, activeAudioStudioDestination } from "@/components/app-shell"
 import { GlobalPlayerProvider } from "@/components/global-player-provider"
 import { ProductReadinessProvider } from "@/design-system/vorvn"
 import { studioApi } from "@/lib/api"
@@ -44,6 +44,11 @@ function renderShell(mode: "standalone" | "embedded") {
 }
 
 describe("Audio Studio shell", () => {
+  it("derives one honest destination from tool and Work resource routes", () => {
+    expect(activeAudioStudioDestination("/audio-studio/speak")).toBe("Speak")
+    expect(activeAudioStudioDestination("/audio-studio/productions/production-id")).toBe("Work")
+    expect(activeAudioStudioDestination("/audio-studio/projects/project-id")).toBe("Work")
+  })
   it("renders one standalone identity and the Studio-owned navigation", async () => {
     renderShell("standalone")
     expect(screen.getByRole("link", { name: "Audio Studio Work" })).toBeTruthy()

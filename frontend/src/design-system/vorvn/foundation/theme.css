@@ -61,6 +61,7 @@
   --layer-dialog: 80;
   --layer-toast: 120;
   --studio-standalone-header-height: var(--vrn-header-height);
+  --shell-header-height: var(--studio-standalone-header-height);
   --studio-local-chrome-height: var(--vrn-studio-chrome-height);
   --transport-height: 4.25rem;
   --transport-mobile-height: 5.5rem;

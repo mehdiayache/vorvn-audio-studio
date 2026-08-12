@@ -1,8 +1,8 @@
 .recording-take-card { display: grid; grid-template-columns: auto minmax(150px, .7fr) minmax(240px, 1fr) auto; gap: 14px; align-items: center; padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--card); }
 .recording-take-card + .recording-take-card { margin-top: 9px; }
 .recording-take-card.is-pending { border-color: color-mix(in oklch, var(--primary) 42%, var(--border)); background: var(--primary-soft); }
-.recording-take-card.is-failed { border-color: var(--destructive-border, #ef9a91); background: var(--destructive-soft, #fff1ef); }
-.recording-take-card.is-warning { border-color: var(--warning-border, #e7c278); background: var(--warning-soft, #fff9e9); }
+.recording-take-card.is-failed { border-color: var(--danger-border); background: var(--danger-soft); }
+.recording-take-card.is-warning { border-color: color-mix(in oklch, var(--warning) 34%, var(--border)); background: var(--warning-soft); }
 .recording-take-status { display: flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: 680; }
 .recording-take-status svg { width: 17px; height: 17px; }
 .recording-take-summary { min-width: 0; display: flex; flex-direction: column; gap: 3px; }

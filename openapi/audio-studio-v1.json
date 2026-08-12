@@ -3763,6 +3763,17 @@
       "ProductionPartResponse": {
         "additionalProperties": true,
         "properties": {
+          "asset_collection": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Collection"
+          },
           "asset_id": {
             "anyOf": [
               {
@@ -3773,6 +3784,17 @@
               }
             ],
             "title": "Asset Id"
+          },
+          "asset_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Kind"
           },
           "asset_of": {
             "anyOf": [

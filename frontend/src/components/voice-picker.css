@@ -1,0 +1,44 @@
+.voice-picker-trigger { width: 100%; height: 44px; justify-content: flex-start; padding: 5px 9px; background: var(--surface-raised); color: var(--foreground); text-align: left; }
+.voice-picker-trigger:hover, .voice-picker-trigger[data-state="open"] { color: var(--foreground); }
+.voice-picker-trigger > .voice-identity { min-width: 0; flex: 1; }
+.voice-picker-trigger .voice-copy { text-align: left; }
+.voice-picker-trigger .voice-portrait { width: 28px; height: 28px; flex-basis: 28px; border-radius: 8px; }
+.voice-picker-trigger .voice-picker-chevron { width: 15px; color: var(--muted-foreground); transition: transform 160ms ease; }
+.voice-picker-trigger[aria-expanded="true"] .voice-picker-chevron { transform: rotate(180deg); }
+.voice-picker-placeholder { flex: 1; color: var(--muted-foreground); text-align: left; }
+.voice-picker-popover { width: min(var(--radix-popover-trigger-width), calc(100vw - 28px)); min-width: min(360px, calc(100vw - 28px)); padding: 0; overflow: hidden; }
+.voice-picker-header { display: grid; gap: 5px; padding: 13px 14px 11px; }
+.voice-picker-header > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.voice-picker-header b { font-size: var(--type-small); }
+.voice-picker-header span, .voice-picker-header small { color: var(--muted-foreground); font-size: var(--type-caption); font-weight: 500; }
+.voice-picker-header small { line-height: 1.35; }
+.voice-picker-scope { display: flex; gap: 4px; padding: 0 12px 10px; }
+.voice-picker-scope button { height: 28px; }
+.voice-picker-search { display: flex; align-items: center; gap: 8px; padding: 0 14px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--surface-subtle); }
+.voice-picker-search:focus-within { background: var(--surface-raised); box-shadow: inset 3px 0 0 var(--primary); }
+.voice-picker-search > svg { width: 15px; flex: 0 0 15px; color: var(--muted-foreground); }
+.voice-picker-search input { width: 100%; height: 40px; border: 0; outline: 0; background: transparent; color: var(--foreground); font: inherit; font-size: var(--type-small); }
+.voice-picker-search input::placeholder { color: var(--muted-foreground); }
+.voice-picker-list { max-height: 340px; overflow-y: auto; padding: 6px; }
+.voice-picker-group + .voice-picker-group { margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--border); }
+.voice-picker-group h4 { display: flex; align-items: center; gap: 7px; margin: 0; padding: 6px 8px 4px; color: var(--muted-foreground); font-size: var(--type-caption); font-weight: 700; letter-spacing: .02em; text-transform: uppercase; }
+.voice-picker-group h4 span { display: inline-grid; min-width: 19px; height: 19px; place-items: center; border-radius: 999px; background: var(--muted); font-size: 10px; }
+.voice-picker-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 4px; border: 1px solid transparent; border-radius: 9px; }
+.voice-picker-row:hover { background: var(--surface-subtle); }
+.voice-picker-row.selected { border-color: color-mix(in oklch, var(--primary) 24%, var(--border)); background: var(--primary-soft); }
+.voice-picker-select { min-width: 0; display: flex; align-items: center; gap: 8px; padding: 7px; border: 0; border-radius: 8px; outline: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.voice-picker-select:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in oklch, var(--primary) 60%, transparent); }
+.voice-picker-select > .voice-identity { min-width: 0; flex: 1; }
+.voice-source-qualification { flex: 0 1 auto; color: var(--muted-foreground); font-size: var(--type-caption); line-height: 1.35; text-align: right; }
+.voice-picker-select > svg { width: 15px; flex: 0 0 15px; color: var(--primary); }
+.voice-preview-action { margin-right: 3px; }
+.voice-preview-action svg { width: 15px; }
+.voice-preview-unavailable { padding: 0 9px; color: var(--muted-foreground); font-size: var(--type-caption); white-space: nowrap; }
+.voice-picker-empty { display: grid; gap: 4px; padding: 30px 16px; text-align: center; }
+.voice-picker-empty b { font-size: var(--type-small); }
+.voice-picker-empty span { color: var(--muted-foreground); font-size: var(--type-caption); }
+@media (max-width: 520px) {
+  .voice-picker-header > div { align-items: flex-start; }
+  .voice-picker-select { flex-wrap: wrap; }
+  .voice-source-qualification { width: 100%; margin-left: 42px; text-align: left; }
+}

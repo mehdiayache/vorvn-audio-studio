@@ -4,6 +4,7 @@
   margin: 0 auto;
   padding-bottom: 8px;
 }
+.sequence-part-list { display: contents; }
 
 .sequence-workspace-title {
   display: flex;

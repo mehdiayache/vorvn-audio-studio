@@ -9,6 +9,8 @@ import { languageDisplay, languageFlag, resolveVoice } from "@/lib/voice"
 import type { VoiceIdentityChoice } from "@/lib/voice-options"
 import type { PlayerSource, VoiceDirectory } from "@/types/domain"
 
+import "./voice-picker.css"
+
 export function VoicePicker({ identities, value, directory, playingKey, playerPlaying, onChange, onPlay }: {
   identities: VoiceIdentityChoice[]
   value: string

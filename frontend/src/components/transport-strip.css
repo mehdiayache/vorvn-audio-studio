@@ -1,7 +1,7 @@
 .transport-strip {
   box-sizing: border-box;
   position: fixed;
-  z-index: var(--layer-dock);
+  z-index: calc(var(--layer-sheet) + 1);
   right: max(var(--vrn-space-4), env(safe-area-inset-right));
   bottom: max(var(--vrn-space-4), var(--safe-bottom));
   left: max(var(--vrn-space-4), env(safe-area-inset-left));

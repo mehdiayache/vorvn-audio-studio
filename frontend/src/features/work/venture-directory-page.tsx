@@ -43,6 +43,7 @@ export function VentureDirectoryPage({ items }: { items: HierarchyNode[] }) {
       <section className="venture-directory-grid" aria-label="Ventures">
         {ventures.map((venture) => {
           const { projects, productions } = descendantsFor(venture, items)
+          const latestProduction = [...productions].sort((a, b) => String(b.updated_at || "").localeCompare(String(a.updated_at || "")))[0]
           return (
             <Link
               className="venture-card"
@@ -60,7 +61,7 @@ export function VentureDirectoryPage({ items }: { items: HierarchyNode[] }) {
                 <p>{venture.description || "Brand workspace"}</p>
                 <footer>
                   <span>{projects.length} Project{projects.length === 1 ? "" : "s"}</span>
-                  <span>{productions.length} Production{productions.length === 1 ? "" : "s"}</span>
+                  <span title={latestProduction?.name}>{latestProduction ? `Latest · ${latestProduction.name}` : "No Productions yet"}</span>
                 </footer>
               </div>
               <ArrowRight aria-hidden="true" />

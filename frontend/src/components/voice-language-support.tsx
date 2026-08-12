@@ -3,6 +3,8 @@ import { CheckCircle2, CircleAlert, Languages } from "lucide-react"
 import { officialCoverageLabel, voiceLanguageStatus } from "@/lib/voice-capabilities"
 import type { VoiceChoice } from "@/lib/voice-options"
 
+import "./voice-language-support.css"
+
 export function VoiceLanguageSupport({ route, language, customVoice, compact = false }: {
   route?: VoiceChoice
   language: string

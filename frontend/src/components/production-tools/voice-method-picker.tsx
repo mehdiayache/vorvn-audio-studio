@@ -6,6 +6,8 @@ import type { VoiceChoice } from "@/lib/voice-options"
 import { cn } from "@/lib/utils"
 import type { StudioConfig } from "@/types/domain"
 
+import "./voice-method-picker.css"
+
 export function VoiceMethodPicker({ routes, availableRoutes, selectedRouteId, selectedCapabilityId = null, language, customVoice, compact = false, config, onSelect }: {
   routes: VoiceChoice[]
   availableRoutes: VoiceChoice[]

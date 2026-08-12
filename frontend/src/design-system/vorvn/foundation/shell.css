@@ -63,6 +63,7 @@
 .vorvn-studio-brand b { font: var(--vrn-weight-brand) var(--vrn-type-brand-size)/var(--vrn-type-brand-line) var(--vrn-font-sans); }
 .vorvn-studio-brand small { margin-block-start: var(--vrn-space-1); color: var(--vrn-content-secondary); font: var(--vrn-weight-body) var(--vrn-type-metadata-size)/var(--vrn-type-metadata-line) var(--vrn-font-sans); }
 .vorvn-standalone-actions { display: flex; align-items: center; gap: var(--vrn-space-2); }
+.vorvn-mobile-destination { display: none; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--vrn-weight-label) var(--vrn-type-context-size)/var(--vrn-type-context-line) var(--vrn-font-sans); }
 
 .vorvn-readiness {
   display: inline-flex;
@@ -119,6 +120,8 @@
 .vorvn-mobile-navigation-readiness { margin-block-start: auto; padding: var(--vrn-space-4); border-block-start: 1px solid var(--vrn-border-subtle); }
 
 @media (max-width: 48rem) {
+  .vorvn-studio-brand > span:last-child { display: none; }
+  .vorvn-mobile-destination { display: block; margin-inline-end: auto; }
   .vorvn-readiness.is-compact { display: none; }
   .vorvn-mobile-menu { display: inline-flex; }
   .vorvn-studio-chrome { display: none; }

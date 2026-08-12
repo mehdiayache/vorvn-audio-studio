@@ -1020,3 +1020,40 @@ the Settings correction, the exact Production hierarchy and nine durable Parts,
 desktop StudioDock geometry, and mobile 390 × 844 Composer geometry for both
 Speak and Production. The runtime used FastAPI without the worker; no provider
 operation was called.
+
+### UI checkpoint 9 — Founder A–N convergence proof pass
+
+- The Founder plan remains the acceptance contract rather than a descriptive
+  document. A final code/DOM/browser comparison repaired component-ownership
+  regressions that were invisible to type checks: Project covers and Venture
+  marks now carry their own bounded geometry wherever they render, breadcrumbs
+  use React Router links, and Project Production rows keep one coherent grid.
+- Venture Projects preserve a true four-column grid at desktop width even when
+  only one or two Projects exist. Project cards keep the label and menu at the
+  top, a readability scrim over the image, and title/metrics at the bottom.
+- Composer presentation is fully owned by the Composer feature. Performance
+  controls no longer appear under Output, the empty exact-route state has a
+  deliberate visual boundary, and reusable Voice, recording-method and language
+  surfaces import their own styles instead of relying on a parent route.
+- Production Sequence now exposes `Move to position…` for Speech, Asset and
+  Silence Parts in addition to accessible earlier/later moves. The action uses
+  the canonical server reorder endpoint; the dialog never treats a visual drag
+  index as durable identity.
+- Production health has a visible named entry point whenever durable Part/Job
+  issues exist. Sequence list/item position semantics and reduced-motion rules
+  are present, while the shared Transport remains above non-modal Sheets and
+  below dialogs.
+- Venture Asset Parts now expose their canonical collection/type from the
+  PostgreSQL read model through OpenAPI, allowing Intro, Outro and Stinger cards
+  to remain semantically distinct instead of appearing as generic grey audio.
+- Mobile shell text identifies the active destination and the full navigation
+  remains inside one named Sheet. The 320-pixel Settings check confirms document
+  width equals viewport width; 390-pixel Production and Composer preserve their
+  touchable action areas without a second audio surface.
+
+Verification is provider-free. OpenAPI generation, the production TypeScript
+build, 140 React tests, 320 Python tests, exact provider-route suites and all 11
+live database domain checks pass. Browser checks cover Work, Venture, Project,
+Production, StudioDock, Speak, Batch and Settings at 1440, 1024, 768, 390 and
+320 pixels. The console is clean, measured pages have no document overflow, and
+no Generate, enrollment or other provider operation was invoked.

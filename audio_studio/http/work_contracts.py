@@ -341,6 +341,8 @@ class ProductionPartResponse(BaseModel):
     asset_of: int | None = None
     asset_id: int | None = None
     asset_version_id: int | None = None
+    asset_kind: str | None = None
+    asset_collection: str | None = None
     speech_mode: str | None = None
     cost_basis: str | None = None
     provider_text: str | None = None

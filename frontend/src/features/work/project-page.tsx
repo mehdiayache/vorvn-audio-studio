@@ -240,7 +240,6 @@ export function ProjectPage({ data, refresh }: { data: ProjectOverview; refresh:
                 <header>
                   <span className="series-group-label">Project</span>
                   <h2>Standalone</h2>
-                  <p>Productions that do not belong to a Series.</p>
                 </header>
                 <div className="series-group-productions">
                   {data.standalone_productions.map((production) => (

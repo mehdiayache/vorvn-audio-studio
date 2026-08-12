@@ -5,6 +5,7 @@ export type SequenceActions = {
   duplicate: (part: ProductionPart) => void
   remove: (part: ProductionPart) => void
   move: (part: ProductionPart, direction: -1 | 1) => void
+  moveToPosition: (part: ProductionPart) => void
   editSilence: (part: ProductionPart, seconds: number) => void
   openPart: (part: ProductionPart) => void
 }

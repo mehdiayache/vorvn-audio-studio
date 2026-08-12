@@ -127,8 +127,11 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertIsNone(parts[0]["fidelity"])
 
         linked = self.timeline.insert_asset(first_id, intro["id"], None)
-        self.assertEqual(
-            self.repository.part(first_id, linked["id"])["kind"], "asset")
+        linked_part = next(item for item in self.repository.parts(first_id)
+                           if item["id"] == linked["id"])
+        self.assertEqual(linked_part["kind"], "asset")
+        self.assertEqual(linked_part["asset_kind"], "intros")
+        self.assertEqual(linked_part["asset_collection"], "Intros")
 
         self.timeline.edit_silence(first_id, silence["id"], 3.5)
         edited = next(item for item in self.repository.parts(first_id)

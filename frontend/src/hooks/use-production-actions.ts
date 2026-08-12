@@ -141,6 +141,15 @@ export function useProductionActions({ production, music, player, refresh, refre
     void mutate(() => studioApi.reorder(production.id, order), `Part moved ${direction < 0 ? "up" : "down"}`)
   }, [mutate, production.id, production.parts])
 
+  const movePartToPosition = useCallback(async (part: ProductionPart, requestedPosition: number) => {
+    const order = production.parts.filter((item) => item.kind !== "stitch").map((item) => item.id)
+    const from = order.indexOf(part.id)
+    const to = Math.max(0, Math.min(order.length - 1, Math.round(requestedPosition) - 1))
+    if (from < 0 || from === to) return
+    order.splice(to, 0, ...order.splice(from, 1))
+    await mutate(() => studioApi.reorder(production.id, order), `Part moved to position ${to + 1}`)
+  }, [mutate, production.id, production.parts])
+
   const setMusic = useCallback((changes: Partial<MusicBed>) => mutate(() => studioApi.setMusic(production.id, changes), "Music settings saved"), [mutate, production.id])
   const duplicatePart = useCallback((part: ProductionPart) => mutate(() => studioApi.duplicatePart(production.id, part.id), "Part duplicated"), [mutate, production.id])
   const deletePart = useCallback((part: ProductionPart) => mutate(() => studioApi.deletePart(production.id, part.id), "Part deleted"), [mutate, production.id])
@@ -158,5 +167,5 @@ export function useProductionActions({ production, music, player, refresh, refre
     toast.success(`${file.name} uploaded to ${folder}`)
   }, [refreshAssets])
 
-  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, regeneratePart, renderDraft, updatePartEditorial, movePart, setMusic, duplicatePart, deletePart, editSilence, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, moveParts, uploadAsset }
+  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, regeneratePart, renderDraft, updatePartEditorial, movePart, movePartToPosition, setMusic, duplicatePart, deletePart, editSilence, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, moveParts, uploadAsset }
 }

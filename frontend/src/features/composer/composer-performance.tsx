@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Slider } from "@/components/ui/slider"
 import { useComposer } from "./composer-controller"
 
 export function ComposerPerformance() {
@@ -12,5 +13,10 @@ export function ComposerPerformance() {
       ? <label><span>{controls.directionLabel}</span><Input value={composer.instruction} disabled={composer.deliveryMode === "exact"} maxLength={composer.config?.instruction_max || 100} onChange={(event) => composer.setInstruction(event.target.value)} placeholder="Describe the performance in natural language" />{composer.deliveryMode === "exact" && <small>Choose Add direction to control the overall performance.</small>}</label>
       : <p className="composer-engine-note">{composer.selectedCapability?.description || "This method uses the prepared script without a separate performance direction."}</p>}
     {composer.performancePresets.length > 0 && <div className="performance-presets"><span>Presets</span><div>{composer.performancePresets.map((preset) => <Button key={preset.id} type="button" variant={composer.instruction === preset.instruction ? "secondary" : "outline"} onClick={() => { composer.setInstruction(preset.instruction); if (controls.directionModes.includes("directed")) composer.setDeliveryModeRequest("directed") }}><b>{preset.name}</b><small>{preset.instruction}</small></Button>)}</div></div>}
+    {(controls.rate || controls.pitch || controls.volume) && <div className="composer-fine-grid composer-performance-controls">
+      {controls.rate && <label><span>Speed <b>{composer.rate.toFixed(2)}×</b></span><Slider aria-label="Recording speed" value={[composer.rate]} min={0.5} max={2} step={0.05} onValueChange={([value = 1]) => composer.setRate(value)} /></label>}
+      {controls.pitch && <label><span>Pitch <b>{composer.pitch.toFixed(2)}×</b></span><Slider aria-label="Recording pitch" value={[composer.pitch]} min={0.5} max={2} step={0.05} onValueChange={([value = 1]) => composer.setPitch(value)} /></label>}
+      {controls.volume && <label><span>Volume <b>{composer.volume}</b></span><Slider aria-label="Recording volume" value={[composer.volume]} min={0} max={100} step={1} onValueChange={([value = 50]) => composer.setVolume(value)} /></label>}
+    </div>}
   </section>
 }

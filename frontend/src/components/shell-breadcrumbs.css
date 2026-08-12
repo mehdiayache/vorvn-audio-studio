@@ -1,0 +1,31 @@
+.shell-breadcrumbs {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: var(--type-small);
+}
+
+.shell-breadcrumb-root,
+.shell-breadcrumb-item,
+.shell-breadcrumb-item > a,
+.shell-breadcrumb-item > b {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shell-breadcrumb-root,
+.shell-breadcrumb-item > a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.shell-breadcrumb-root:hover,
+.shell-breadcrumb-item > a:hover { color: var(--foreground); }
+.shell-breadcrumb-item > svg { width: 13px; height: 13px; flex: none; }
+.shell-breadcrumb-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shell-breadcrumb-item > b { color: var(--foreground); font-weight: 650; }
