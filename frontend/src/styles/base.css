@@ -1,0 +1,33 @@
+@import "tailwindcss";
+@import "./tokens.css";
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  html { background: var(--background); scroll-behavior: smooth; }
+  body { @apply bg-background text-foreground; margin: 0; min-width: 320px; min-height: 100dvh; font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: var(--type-body); line-height: 1.45; }
+  button, a, input, textarea { font: inherit; }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]) { cursor: pointer; }
+  h1, h2, h3, p { margin: 0; }
+  h1 { font-size: var(--type-display-base); letter-spacing: -0.035em; line-height: 1.12; }
+  h2 { font-size: var(--type-heading-lg); letter-spacing: -0.02em; }
+  h3 { font-size: var(--type-heading-sm); }
+  svg { stroke-width: 1.8; }
+}
+
+.spin { animation: studio-spin 1s linear infinite; }
+@keyframes studio-spin { to { transform: rotate(360deg); } }
+.danger { color: var(--destructive) !important; }
+.mobile-only { display: none; }
+
+@media (max-width: 860px) {
+  .mobile-only { display: inline-flex; }
+}
+
+@media (max-width: 600px) {
+  [data-slot="button"],
+  [data-slot="select-trigger"],
+  button[role="tab"],
+  button[role="menuitem"] { min-height: 44px; }
+}

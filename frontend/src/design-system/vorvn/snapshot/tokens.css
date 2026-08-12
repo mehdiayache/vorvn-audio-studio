@@ -355,10 +355,10 @@
   --vrn-core-pattern-grid: 1.5rem;
   --vrn-core-sheet-width: 31rem;
   --vrn-core-stage-width: 74rem;
-  --vrn-core-stage-height: calc(100vh - 2rem);
+  --vrn-core-stage-height: calc(100dvh - 2rem);
   --vrn-core-launcher-width: 17rem;
   --vrn-admin-window-width: 76rem;
-  --vrn-admin-window-height: calc(100vh - 2rem);
+  --vrn-admin-window-height: calc(100dvh - 2rem);
   --vrn-admin-primary-nav-width: 13.5rem;
   --vrn-admin-secondary-nav-width: 12.5rem;
   --vrn-admin-header-height: 3.5rem;

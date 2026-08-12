@@ -10,11 +10,6 @@ import { GlobalPlayerProvider } from "@/components/global-player-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 import { ProductReadinessProvider } from "@/design-system/vorvn"
-import { ProductionPage } from "@/features/production/production-page"
-import { ProjectPage } from "@/features/work/project-page"
-import { SeriesPage } from "@/features/work/series-page"
-import { VentureDirectoryPage } from "@/features/work/venture-directory-page"
-import { VenturePage } from "@/features/work/venture-page"
 import { useHierarchy } from "@/hooks/use-hierarchy"
 import { useProduction } from "@/hooks/use-production"
 import { useStudioResources } from "@/hooks/use-studio-resources"
@@ -28,6 +23,11 @@ const SettingsPage = lazy(() => import("@/features/settings/settings-page").then
 const SpeakPage = lazy(() => import("@/features/speak/speak-page").then((module) => ({ default: module.SpeakPage })))
 const SubtitlesPage = lazy(() => import("@/features/subtitles/subtitles-page").then((module) => ({ default: module.SubtitlesPage })))
 const BatchPage = lazy(() => import("@/features/batch/batch-page").then((module) => ({ default: module.BatchPage })))
+const ProductionPage = lazy(() => import("@/features/production/production-page").then((module) => ({ default: module.ProductionPage })))
+const ProjectPage = lazy(() => import("@/features/work/project-page").then((module) => ({ default: module.ProjectPage })))
+const SeriesPage = lazy(() => import("@/features/work/series-page").then((module) => ({ default: module.SeriesPage })))
+const VentureDirectoryPage = lazy(() => import("@/features/work/venture-directory-page").then((module) => ({ default: module.VentureDirectoryPage })))
+const VenturePage = lazy(() => import("@/features/work/venture-page").then((module) => ({ default: module.VenturePage })))
 
 function ProductionRoute({ productionId }: { productionId: number }) {
   const { production, tree, music, refresh } = useProduction(productionId)
@@ -37,7 +37,7 @@ function ProductionRoute({ productionId }: { productionId: number }) {
     {production.status === "loading" && !data && <PageLoading />}
     {!data && production.status === "error" && <ErrorState message={production.error || "Unable to load Production."} retry={() => void refresh()} />}
     {data && resources.assetError && <div className="scoped-resource-error" role="alert"><span>Asset library unavailable: {resources.assetError}</span><button type="button" onClick={() => void resources.refreshAssets().catch(() => undefined)}>Retry</button></div>}
-    {data && <ProductionPage production={data} tree={tree.status === "ready" ? tree.data : null} music={music.data || {}} assets={resources.assets} assetCollections={resources.assetCollections} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} />}
+    {data && <LazyRoute label="Loading Production workspace"><ProductionPage production={data} tree={tree.status === "ready" ? tree.data : null} music={music.data || {}} assets={resources.assets} assetCollections={resources.assetCollections} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} /></LazyRoute>}
   </>
 }
 
@@ -46,23 +46,23 @@ function HomeRoute() {
   return <>
     {hierarchy.status === "loading" && !hierarchy.data && <PageLoading label="Loading Work" />}
     {hierarchy.status === "error" && !hierarchy.data && <ErrorState title="Ventures unavailable" message={hierarchy.error || "Unable to load Ventures."} retry={() => void hierarchy.refresh()} />}
-    {hierarchy.data && <VentureDirectoryPage items={hierarchy.data} />}
+    {hierarchy.data && <LazyRoute label="Loading Work"><VentureDirectoryPage items={hierarchy.data} /></LazyRoute>}
   </>
 }
 
 function VentureRoute({ id }: { id: number }) {
   const overview = useVentureOverview(id)
-  return <>{overview.status === "loading" && !overview.data && <PageLoading label="Loading Venture" />}{overview.status === "error" && !overview.data && <ErrorState title="Venture unavailable" message={overview.error || "Unable to load this Venture."} retry={overview.refresh} />}{overview.data && <VenturePage data={overview.data} refresh={overview.refresh} />}</>
+  return <>{overview.status === "loading" && !overview.data && <PageLoading label="Loading Venture" />}{overview.status === "error" && !overview.data && <ErrorState title="Venture unavailable" message={overview.error || "Unable to load this Venture."} retry={overview.refresh} />}{overview.data && <LazyRoute label="Loading Venture"><VenturePage data={overview.data} refresh={overview.refresh} /></LazyRoute>}</>
 }
 
 function ProjectRoute({ id }: { id: number }) {
   const overview = useProjectOverview(id)
-  return <>{overview.status === "loading" && !overview.data && <PageLoading label="Loading Project" />}{overview.status === "error" && !overview.data && <ErrorState title="Project unavailable" message={overview.error || "Unable to load this Project."} retry={overview.refresh} />}{overview.data && <ProjectPage data={overview.data} refresh={overview.refresh} />}</>
+  return <>{overview.status === "loading" && !overview.data && <PageLoading label="Loading Project" />}{overview.status === "error" && !overview.data && <ErrorState title="Project unavailable" message={overview.error || "Unable to load this Project."} retry={overview.refresh} />}{overview.data && <LazyRoute label="Loading Project"><ProjectPage data={overview.data} refresh={overview.refresh} /></LazyRoute>}</>
 }
 
 function SeriesRoute({ id }: { id: number }) {
   const overview = useSeriesOverview(id)
-  return <>{overview.status === "loading" && !overview.data && <PageLoading label="Loading Series" />}{overview.status === "error" && !overview.data && <ErrorState title="Series unavailable" message={overview.error || "Unable to load this Series."} retry={overview.refresh} />}{overview.data && <SeriesPage data={overview.data} refresh={overview.refresh} />}</>
+  return <>{overview.status === "loading" && !overview.data && <PageLoading label="Loading Series" />}{overview.status === "error" && !overview.data && <ErrorState title="Series unavailable" message={overview.error || "Unable to load this Series."} retry={overview.refresh} />}{overview.data && <LazyRoute label="Loading Series"><SeriesPage data={overview.data} refresh={overview.refresh} /></LazyRoute>}</>
 }
 
 function ResourceRoute({ type }: { type: ResourceType }) {

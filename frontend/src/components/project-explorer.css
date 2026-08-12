@@ -1,0 +1,23 @@
+.project-explorer { align-self: stretch; min-height: 0; display: flex; flex-direction: column; background: var(--surface-subtle); }
+.explorer-head { min-height: 58px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+.explorer-head span { color: var(--muted-foreground); font-size: var(--type-caption); }
+.explorer-search { position: relative; display: block; margin: 12px; }
+.explorer-search > svg { position: absolute; z-index: 1; left: 11px; top: 50%; width: 15px; transform: translateY(-50%); color: var(--muted-foreground); }
+.explorer-search input { padding-left: 34px; background: var(--surface-raised); }
+.explorer-scroll { flex: 1; min-height: 0; }
+.tree { padding: 2px 8px 18px; }
+.tree-row { display: grid; grid-template-columns: 22px minmax(0, 1fr); align-items: center; margin: 2px 0; padding-left: calc(var(--tree-depth) * 14px); }
+.tree-toggle { width: 22px; height: 34px; display: grid; place-items: center; background: transparent; border: 0; color: var(--muted-foreground); }
+.tree-toggle:disabled { cursor: default; }
+.tree-toggle svg { width: 13px; transition: transform .15s; }
+.tree-toggle svg.open { transform: rotate(90deg); }
+.tree-row > a { min-width: 0; display: flex; align-items: center; gap: 9px; padding: 7px 8px; color: inherit; text-decoration: none; border-radius: 8px; }
+.tree-row > a:hover { background: var(--muted); }
+.tree-row.active > a { background: var(--accent); color: var(--accent-foreground); }
+.tree-icon { width: 16px; flex: 0 0 auto; }
+.tree-row a span { min-width: 0; display: flex; flex-direction: column; }
+.tree-row a b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--type-small); }
+.tree-row a small { margin-top: 2px; color: var(--muted-foreground); font-size: var(--type-caption); text-transform: uppercase; letter-spacing: .07em; }
+.tree-group > span { display: block; margin: 7px 8px 2px; padding-left: calc(30px + var(--tree-depth) * 14px); color: var(--muted-foreground); font-size: var(--type-caption); font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
+.mobile-explorer { padding: 0 !important; }
+.mobile-explorer .project-explorer { display: flex; width: 100%; height: 100%; position: static; }

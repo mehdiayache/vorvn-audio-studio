@@ -3,7 +3,8 @@ import { createRoot } from "react-dom/client"
 
 import { App } from "@/app"
 import "@/design-system/vorvn/snapshot/tokens.css"
-import "@/styles.css"
+import "@/styles/base.css"
+import "@/styles/shell.css"
 import "@/design-system/vorvn/foundation/theme.css"
 import "@/design-system/vorvn/foundation/shell.css"
 

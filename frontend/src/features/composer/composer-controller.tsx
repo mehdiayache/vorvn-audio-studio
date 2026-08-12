@@ -168,7 +168,7 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
   const context = useMemo(() => compositionContext({ productionId, part, insertAt, insertBeforePartId, sessionId }), [insertAt, insertBeforePartId, part, productionId, sessionId])
   const baseline = useMemo(() => editorialBaseline(part), [part])
   const draft: CompositionDraft = {
-    voiceIdentityId: selectedIdentity?.source === "mine" ? selectedIdentity.identityId : null,
+    voiceIdentityId: selectedIdentity?.source === "owned" ? selectedIdentity.identityId : null,
     castRoleId: castRoleId || null,
     route,
     text: { raw: textSession.states.raw, shaped: textSession.states.shaped, tagged: textSession.states.tagged, active: textSession.view },

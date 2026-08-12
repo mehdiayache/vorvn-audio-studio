@@ -4973,8 +4973,8 @@ export interface components {
             folders: number;
             /** Last Used */
             last_used?: string | null;
-            /** Mine */
-            mine?: string | null;
+            /** Latest Preview */
+            latest_preview?: string | null;
             /** Spend */
             spend: number;
             /** Uses */

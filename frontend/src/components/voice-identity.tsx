@@ -1,6 +1,8 @@
 import { Mic2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+
+import "./voice-identity.css"
 import { languageDisplay, languageFlag, resolveVoice } from "@/lib/voice"
 import type { VoiceDirectory } from "@/types/domain"
 

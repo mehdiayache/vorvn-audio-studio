@@ -8,6 +8,8 @@ import { audioUrl } from "@/lib/api"
 import { formatDuration } from "@/lib/format"
 import type { MusicBed as MusicBedType, PlayerSource } from "@/types/domain"
 
+import "./music-bed.css"
+
 export function MusicBed({
   music,
   playingKey,

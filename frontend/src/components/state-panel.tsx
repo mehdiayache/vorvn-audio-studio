@@ -3,6 +3,8 @@ import { AlertCircle, Inbox, LoaderCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 
+import "./state-panel.css"
+
 export function PageLoading({ label = "Loading Production" }: { label?: string }) {
   return (
     <main className="page-state" aria-label={label}>

@@ -520,3 +520,92 @@
     display: none;
   }
 }
+/* Work-owned supporting surfaces: media collections, identity editors, and cards. */
+.resource-create-fields { display: grid; gap: 14px; padding: 4px 0; }
+.resource-create-fields label { display: grid; gap: 6px; font-size: var(--type-small); font-weight: 600; }
+.resource-create-fields label small { color: var(--muted-foreground); font-weight: 400; }
+.shell-breadcrumb-item { min-width: 0; display: flex; align-items: center; gap: 6px; }
+.shell-breadcrumb-item > svg { width: 13px; flex: none; }
+.venture-mark { display: grid; place-items: center; overflow: hidden; line-height: 1; }
+.venture-mark img { width: 100%; height: 100%; object-fit: cover; }
+.venture-mark > span:not(.sr-only) { display: grid; place-items: center; }
+.venture-mark.compact { width: 24px; height: 24px; flex: 0 0 24px; border-radius: 7px; background: var(--venture-soft); font-size: var(--type-heading-sm); }
+.venture-mark.compact svg { width: 13px; }
+.media-collection-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+.media-collection { min-width: 0; display: grid; grid-template-columns: 38px minmax(0,1fr); align-items: center; gap: 10px; padding: 13px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); transition: border-color .15s, background .15s; }
+.media-collection.dragging { border-color: var(--asset); background: var(--asset-soft); }
+.media-collection-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; background: var(--asset-soft); color: var(--asset); }
+.media-collection-icon svg { width: 18px; }
+.media-collection h3 { font-size: var(--type-body); }
+.media-collection p { margin-top: 3px; color: var(--muted-foreground); font-size: var(--type-caption); }
+.media-collection-actions { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.media-collection-actions > button { min-height: 32px; }
+.media-upload-button { min-height: 32px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-subtle); font-size: var(--type-caption); font-weight: 650; cursor: pointer; }
+.media-upload-button:hover { border-color: var(--asset); color: var(--asset); }
+.media-upload-button input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.media-upload-button svg { width: 14px; }
+.media-collection > small { grid-column: 1 / -1; color: var(--muted-foreground); font-size: var(--type-caption); text-align: center; }
+.venture-asset-list { display: grid; gap: 7px; max-height: min(520px, 65dvh); overflow: auto; }
+.venture-asset-list article { display: grid; grid-template-columns: 36px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--border); border-radius: 11px; }
+.venture-asset-list article > svg { width: 18px; color: var(--asset); }
+.venture-asset-list article > div { min-width: 0; display: grid; gap: 2px; }
+.venture-asset-list article b, .venture-asset-list article small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.venture-asset-list article small { color: var(--muted-foreground); font-size: var(--type-caption); }
+.project-card-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .25s ease; }
+.project-card:hover .project-card-image { transform: scale(1.015); }
+.project-card-fallback { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 8px; color: color-mix(in oklch, var(--muted-foreground) 78%, transparent); }
+.project-card-fallback svg { width: 34px; height: 34px; }
+.project-card-fallback small { font-size: var(--type-caption); }
+.project-card-link { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+.project-card-link:focus-visible { outline: 3px solid color-mix(in oklch, var(--ring) 55%, transparent); outline-offset: -4px; }
+.project-card-top { position: absolute; z-index: 2; top: 13px; right: 13px; left: 15px; display: flex; align-items: center; justify-content: space-between; color: white; text-shadow: 0 1px 4px rgba(0,0,0,.8); pointer-events: none; }
+.project-card-top > small { font-size: var(--type-caption); font-weight: 760; letter-spacing: .11em; text-transform: uppercase; }
+.project-card.no-cover .project-card-top { color: var(--foreground); text-shadow: none; }
+.project-card-menu { position: relative; z-index: 3; width: 30px; height: 30px; color: white; text-shadow: none; pointer-events: auto; }
+.project-card-menu:hover, .project-card-menu[data-state="open"] { background: rgba(255,255,255,.16); color: white; }
+.project-card.no-cover .project-card-menu { color: var(--foreground); }
+.project-card.no-cover .project-card-menu:hover, .project-card.no-cover .project-card-menu[data-state="open"] { background: var(--muted); color: var(--foreground); }
+.project-settings-dialog { width: min(680px, calc(100vw - 32px)); max-width: 680px; max-height: min(760px, calc(100dvh - 32px)); overflow-y: auto; }
+.project-create-form, .venture-create-form { display: grid; gap: 18px; }
+.project-settings-layout { display: grid; grid-template-columns: 210px minmax(0,1fr); align-items: start; gap: 20px; }
+.project-parent-context { display: grid; grid-template-columns: 42px minmax(0,1fr) 32px; align-items: center; gap: 11px; padding: 11px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-subtle); }
+.project-parent-context > .venture-mark { width: 42px; height: 42px; border-radius: 11px; background: var(--venture-soft); font-size: var(--type-heading-lg); }
+.project-parent-context > span { min-width: 0; display: flex; flex-direction: column; }
+.project-parent-context small { color: var(--venture); font-size: var(--type-caption); font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+.project-parent-context b { margin-top: 1px; font-size: var(--type-small); }
+.project-parent-context em { margin-top: 2px; overflow: hidden; color: var(--muted-foreground); font-size: var(--type-caption); font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
+.project-parent-context > a { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; color: var(--muted-foreground); }
+.project-cover-field { display: grid; gap: 9px; }
+.project-cover-preview { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; border: 1px dashed var(--border); border-radius: 14px; background: var(--surface-subtle); }
+.project-cover-preview.dragging { border-color: var(--primary); background: color-mix(in oklch, var(--primary) 5%, transparent); }
+.project-cover-preview img { width: 100%; height: 100%; object-fit: cover; }
+.project-cover-preview > div { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 7px; color: var(--muted-foreground); text-align: center; }
+.project-cover-drop { position: absolute; inset: 0; border: 0; background: transparent; cursor: pointer; }
+.project-cover-drop:focus-visible { outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent); outline-offset: -4px; }
+.project-cover-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.venture-settings-dialog { max-height: min(780px, calc(100dvh - 32px)); overflow-y: auto; }
+.venture-identity-field { display: grid; gap: 13px; }
+.venture-identity-tabs { display: flex; gap: 5px; padding: 4px; border-radius: 10px; background: var(--muted); }
+.venture-identity-tabs > button { flex: 1; }
+.venture-identity-tabs > button[aria-pressed="true"] { background: var(--card); color: var(--foreground); box-shadow: 0 1px 3px hsl(var(--shadow-color) / .1); }
+.venture-identity-body { display: grid; grid-template-columns: 104px minmax(0,1fr); align-items: start; gap: 16px; }
+.venture-identity-preview { width: 104px; height: 104px; border: 1px solid var(--border); border-radius: 24px; background: var(--venture-soft); color: var(--venture); font-size: 48px; }
+.venture-logo-upload { min-height: 104px; display: grid; align-content: center; justify-items: start; gap: 8px; padding: 12px; border: 1px dashed var(--border); border-radius: 12px; transition: border-color .15s, background .15s; }
+.venture-logo-upload.dragging { border-color: var(--venture); background: var(--venture-soft); }
+.venture-emoji-grid { display: grid; grid-template-columns: repeat(8, minmax(0,1fr)); gap: 5px; }
+.venture-emoji-grid button { aspect-ratio: 1; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 9px; background: var(--card); font-size: var(--type-heading-lg); }
+.series-card { min-height: 132px; display: grid; grid-template-columns: 42px minmax(0,1fr) auto; align-items: start; gap: 13px; padding: 17px; border: 1px solid color-mix(in oklch, var(--series) 22%, var(--border)); border-left: 3px solid var(--series); border-radius: 13px; background: var(--card); color: inherit; text-decoration: none; }
+.series-card-mark { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 10px; background: var(--series-soft); color: var(--series); }
+.series-defaults-edit { width: 100%; margin-top: 12px; }
+.series-production-item { display: grid; grid-template-columns: 28px minmax(0,1fr); align-items: center; gap: 7px; }
+.series-order { color: var(--muted-foreground); font-size: var(--type-caption); font-variant-numeric: tabular-nums; text-align: center; }
+.move-series-list { display: grid; gap: 7px; }
+.work-empty { grid-column: 1 / -1; min-height: 240px; display: grid; place-items: center; align-content: center; gap: 8px; padding: 24px; border: 1px dashed var(--border-strong); border-radius: 15px; color: var(--muted-foreground); text-align: center; }
+.production-summary-list { display: grid; gap: 7px; }
+.production-summary-copy { min-width: 0; display: flex; flex-direction: column; }
+.production-summary-copy > span { display: flex; align-items: center; gap: 7px; }
+.production-summary-copy > span small, .production-summary-copy > p { color: var(--muted-foreground); font-size: var(--type-caption); }
+.production-summary-copy > b, .production-summary-copy > p { margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.production-summary-open { width: 15px; color: var(--muted-foreground); }
+@media (max-width: 760px) { .media-collection-grid { grid-template-columns: 1fr 1fr; } .series-production-item { grid-template-columns: 1fr; } .series-order { display: none; } .project-settings-layout { grid-template-columns: 160px minmax(0,1fr); } }
+@media (max-width: 460px) { .media-collection-grid { grid-template-columns: 1fr; } .venture-identity-body, .project-settings-layout { grid-template-columns: 1fr; } .venture-emoji-grid { grid-template-columns: repeat(6, minmax(0,1fr)); } .project-cover-field { width: min(220px,100%); } }

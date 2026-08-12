@@ -19,7 +19,7 @@ export function ComposerWords() {
     </header>
     <div className="script-language-setting">
       <label><span>Language to speak</span><Select value={composer.language} onValueChange={composer.setLanguage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{composer.languageOptions.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select><small>Language never changes the voice or exact route.</small></label>
-      {composer.currentRoute && <VoiceLanguageSupport compact route={composer.currentRoute} language={composer.language} customVoice={composer.selectedIdentity?.source === "mine"} />}
+      {composer.currentRoute && <VoiceLanguageSupport compact route={composer.currentRoute} language={composer.language} customVoice={composer.selectedIdentity?.source === "owned"} />}
     </div>
     {composer.currentRoute && composer.taggedIncompatible && <div className="composer-warning"><b>Inline tags are not available with {composer.methodLabel}.</b><span>Your words remain unchanged until you choose what to do.</span><div>{text.states.shaped && <Button size="sm" variant="outline" onClick={() => text.select("shaped")}>Use Spoken version</Button>}{composer.hasInlineDeliveryTag && <Button size="sm" variant="outline" onClick={composer.removeInlineTags}>Remove inline tags</Button>}</div></div>}
     <Textarea dir="auto" value={text.text} onChange={(event) => text.updateText(event.target.value)} placeholder="Type or paste what should be said…" autoFocus />

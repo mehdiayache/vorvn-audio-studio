@@ -30,8 +30,8 @@ export function VoicePicker({ identities, value, directory, playingKey, playerPl
     })
   }, [directory, identities, normalizedQuery])
   const groups = [
-    { key: "mine", label: "Your voices", identities: filtered.filter((item) => item.source === "mine") },
-    { key: "alibaba", label: "Alibaba voices", identities: filtered.filter((item) => item.source === "alibaba") },
+    { key: "owned", label: "Your voices", identities: filtered.filter((item) => item.source === "owned") },
+    { key: "catalogue", label: "Provider catalogue", identities: filtered.filter((item) => item.source === "catalogue") },
   ].filter((group) => group.identities.length)
   const selected = identities.find((identity) => identity.identityId === value)
   const selectedRoute = selected?.routes[0]

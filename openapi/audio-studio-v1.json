@@ -10330,7 +10330,7 @@
             ],
             "title": "Last Used"
           },
-          "mine": {
+          "latest_preview": {
             "anyOf": [
               {
                 "type": "string"
@@ -10339,7 +10339,7 @@
                 "type": "null"
               }
             ],
-            "title": "Mine"
+            "title": "Latest Preview"
           },
           "spend": {
             "title": "Spend",

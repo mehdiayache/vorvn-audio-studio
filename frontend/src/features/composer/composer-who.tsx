@@ -30,13 +30,13 @@ export function ComposerWho() {
     </div>
     <div className="method-heading"><b>Exact recording method</b><span>Choose one exact route. Audio Studio never picks, replaces or falls back for you.</span></div>
     {composer.selectedIdentity?.routes.length
-      ? <VoiceMethodPicker routes={composer.selectedIdentity.routes} availableRoutes={composer.compatibleRoutes} selectedRouteId={routeSelectionId(composer.route)} selectedCapabilityId={composer.route?.capabilityId || null} language={composer.language} customVoice={composer.selectedIdentity.source === "mine"} config={composer.config} onSelect={composer.applyRoute} />
+      ? <VoiceMethodPicker routes={composer.selectedIdentity.routes} availableRoutes={composer.compatibleRoutes} selectedRouteId={routeSelectionId(composer.route)} selectedCapabilityId={composer.route?.capabilityId || null} language={composer.language} customVoice={composer.selectedIdentity.source === "owned"} config={composer.config} onSelect={composer.applyRoute} />
       : <div className="capability-empty"><b>{composer.selectedIdentity ? "This voice has no ready recording method." : "Choose a voice to see its exact routes."}</b><span>{composer.selectedIdentity ? "Open Voices to create a provider binding." : "Nothing is preselected. You stay in control of the exact route."}</span></div>}
     {composer.currentRoute && <div className="composer-registry-note">
       <b>Selected route</b>
       <span>{composer.selectedIdentity?.name} · {composer.language}</span>
       <SpeechModelIdentity engine={composer.currentRoute.engine} tier={composer.currentRoute.model} modelId={composer.currentRoute.modelId} config={composer.config} />
-      <VoiceLanguageSupport compact route={composer.currentRoute} language={composer.language} customVoice={composer.selectedIdentity?.source === "mine"} />
+      <VoiceLanguageSupport compact route={composer.currentRoute} language={composer.language} customVoice={composer.selectedIdentity?.source === "owned"} />
     </div>}
   </section>
 }

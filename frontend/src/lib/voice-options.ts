@@ -19,7 +19,7 @@ export type VoiceChoice = {
   identityId: string
   name: string
   description: string
-  source: "mine" | "alibaba"
+  source: "owned" | "catalogue"
   engine: SpeechEngine
   model: SpeechModel
   modelId: string
@@ -37,7 +37,7 @@ export type VoiceIdentityChoice = {
   identityId: string
   name: string
   description: string
-  source: "mine" | "alibaba"
+  source: "owned" | "catalogue"
   editorialLanguage: string
   routes: VoiceChoice[]
 }
@@ -67,7 +67,7 @@ function toChoice(binding: VoiceRegistry["bindings"][number]): VoiceChoice {
     identityId: binding.identity_id,
     name: binding.name,
     description: binding.description,
-    source: binding.source === "custom" ? "mine" : "alibaba",
+    source: binding.source === "custom" ? "owned" : "catalogue",
     engine: binding.engine,
     model: binding.tier,
     modelId: binding.model_id,
@@ -100,13 +100,13 @@ export function getVoiceIdentities(registry: VoiceRegistry | null, profiles: Voi
       name: profile?.name || first.name,
       description: String(profile?.metadata.trait || first.description),
       source: first.source,
-      editorialLanguage: first.source === "mine"
+      editorialLanguage: first.source === "owned"
         ? String(profile?.metadata.editorial_language || "")
         : "",
       routes,
     }
   }).sort((left, right) => {
-    if (left.source !== right.source) return left.source === "mine" ? -1 : 1
+    if (left.source !== right.source) return left.source === "owned" ? -1 : 1
     return left.name.localeCompare(right.name)
   })
 }

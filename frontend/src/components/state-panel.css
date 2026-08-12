@@ -1,0 +1,13 @@
+.empty-sequence, .page-state { display: grid; gap: 15px; padding: 34px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 16px; }
+.empty-sequence { grid-template-columns: auto 1fr auto; align-items: center; }
+.empty-sequence p, .page-state p { margin-top: 5px; color: var(--muted-foreground); }
+.state-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; background: var(--muted); }
+.state-icon.error { color: var(--destructive); background: var(--danger-soft); }
+.page-state { width: min(900px, calc(100% - 48px)); margin: 34px auto; }
+.state-centered { min-height: 260px; place-items: center; text-align: center; align-content: center; }
+.state-copy { display: flex; align-items: center; gap: 8px; }
+.scoped-resource-error { align-items: center; background: var(--warning-soft); border-bottom: 1px solid color-mix(in oklab, var(--warning) 34%, var(--border)); color: var(--foreground); display: flex; font-size: var(--type-small); gap: 1rem; justify-content: center; padding: .55rem 1rem; }
+.scoped-resource-error button { color: inherit; font-weight: 750; text-decoration: underline; }
+.inline-resource-error { display: flex; align-items: center; justify-content: center; gap: .65rem; margin: -10px 0 18px; padding: .55rem .75rem; border: 1px solid color-mix(in oklab, var(--warning) 30%, var(--border)); border-radius: var(--radius); background: var(--warning-soft); color: var(--foreground); font-size: var(--type-small); }
+.inline-resource-error > svg { width: 1rem; flex: none; color: var(--warning); }
+@media (max-width: 600px) { .empty-sequence { grid-template-columns: 1fr; text-align: center; place-items: center; } }

@@ -1,0 +1,10 @@
+/* Audio Studio shell-level geometry only. Visual primitives live in ui-vorvn. */
+.studio-skip-link {
+  position: fixed;
+  z-index: var(--layer-toast);
+  top: 0.5rem;
+  left: 0.5rem;
+  transform: translateY(-150%);
+}
+
+.studio-skip-link:focus { transform: translateY(0); }

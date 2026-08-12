@@ -982,3 +982,41 @@ all six routes at 1440 and 390 pixels with zero document overflow and a clean
 console. A real local CSV exercised the free Batch upload, preview, mapping and
 route-validation path through FastAPI; Generate remained blocked without an
 explicit route. No provider operation was called.
+
+### UI checkpoint 8 — CSS ownership, accessibility, performance and final deletion
+
+- The 674-line global stylesheet is deleted. Audio Studio now owns explicit
+  `styles/tokens.css`, `styles/base.css` and `styles/shell.css` foundations;
+  Work, Production, Composer and independent tools own their feature styles,
+  while reusable State, Voice Identity, Music Bed, Explorer and Transport
+  surfaces own component-local styles.
+- UI VORVN remains the visual source of truth. Shared layer and geometry tokens
+  define sticky, dock, popover, sheet, dialog, toast, header, transport and safe
+  area behavior. Interactive viewport geometry uses `dvh`, and mobile controls
+  receive deliberate 44-pixel touch targets.
+- Work and Production route surfaces are now lazy chunks. The main production
+  JavaScript chunk fell from roughly 525 kB to 347 kB and the build no longer
+  emits an oversized-chunk warning. Work and Production CSS also load with
+  their owning route rather than inflating the global bundle.
+- The unowned `mine/alibaba` presentation vocabulary is removed from the
+  frontend route model. It now uses `owned/catalogue`; exact provider names
+  remain only as route snapshots and Settings/infrastructure facts. The old
+  `mine` preview field is renamed `latest_preview` through the HTTP contract.
+- The unused `next-themes` dependency, obsolete activity/subtitle CSS shards,
+  dead Composer-dialog selectors, historical global stylesheet and stray
+  `.DS_Store` are removed. The shared Sonner surface follows Audio Studio's
+  actual light UI instead of depending on a ThemeProvider that never existed.
+- The responsive browser matrix covers Work, Speak, Batch, Production and
+  Settings at 1440, 1024, 768, 390 and 320 pixels. It exposed and fixed a
+  320-pixel Settings overflow caused by a non-wrapping maintenance action.
+  Speak and Production Composer both render as full-height mobile Sheets; the
+  Production desktop host remains a non-modal StudioDock and does not create a
+  second audio owner.
+
+Verification is provider-free. Generated OpenAPI, the production build and 138
+React tests pass, together with 320 Python tests and all 11 live database domain
+invariants. Browser checks prove zero document overflow across the matrix after
+the Settings correction, the exact Production hierarchy and nine durable Parts,
+desktop StudioDock geometry, and mobile 390 × 844 Composer geometry for both
+Speak and Production. The runtime used FastAPI without the worker; no provider
+operation was called.

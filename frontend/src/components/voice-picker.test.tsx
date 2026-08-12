@@ -21,9 +21,9 @@ function identity(overrides: Partial<VoiceIdentityChoice> = {}): VoiceIdentityCh
     identityId: "system:olivia",
     name: "Olivia Lin",
     description: "Gentle narration",
-    source: "alibaba",
+    source: "catalogue",
     editorialLanguage: "",
-    routes: [{ id: "olivia", identityId: "system:olivia", name: "Olivia Lin", description: "Gentle narration", source: "alibaba", engine: "audio", model: "plus", modelId: "audio-plus", provider: "alibaba", region: "intl", adapterKey: "audio", capabilities: [], compatible: true, languages: ["English"], status: "active" }],
+    routes: [{ id: "olivia", identityId: "system:olivia", name: "Olivia Lin", description: "Gentle narration", source: "catalogue", engine: "audio", model: "plus", modelId: "audio-plus", provider: "alibaba", region: "intl", adapterKey: "audio", capabilities: [], compatible: true, languages: ["English"], status: "active" }],
     ...overrides,
   }
 }
@@ -34,7 +34,7 @@ describe("VoicePicker", () => {
     render(<VoicePicker identities={[identity()]} value="system:olivia" directory={directory} playerPlaying={false} onChange={onChange} onPlay={onPlay} />)
     fireEvent.click(screen.getByRole("button", { name: "Choose a voice" }))
     expect(await screen.findByText("Choose the identity first. Output language and capability come next.")).toBeTruthy()
-    expect(screen.getByRole("region", { name: "Alibaba voices" })).toBeTruthy()
+    expect(screen.getByRole("region", { name: "Provider catalogue" })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Preview Olivia Lin" }))
     expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ url: "/samples/olivia.mp3", kind: "voice" }))
     expect(onChange).not.toHaveBeenCalled()
@@ -43,10 +43,10 @@ describe("VoicePicker", () => {
   it("shows each cloned identity once with its editorial casting tag", async () => {
     const onChange = vi.fn()
     const serenity = identity({
-      identityId: "voice-serinity", name: "Serinity", source: "mine", editorialLanguage: "en",
+      identityId: "voice-serinity", name: "Serinity", source: "owned", editorialLanguage: "en",
       routes: [
-        { ...identity().routes[0]!, id: "serinity-audio", identityId: "voice-serinity", name: "Serinity", source: "mine", model: "flash" },
-        { ...identity().routes[0]!, id: "serinity-omni", identityId: "voice-serinity", name: "Serinity", source: "mine", engine: "omni" },
+        { ...identity().routes[0]!, id: "serinity-audio", identityId: "voice-serinity", name: "Serinity", source: "owned", model: "flash" },
+        { ...identity().routes[0]!, id: "serinity-omni", identityId: "voice-serinity", name: "Serinity", source: "owned", engine: "omni" },
       ],
     })
     render(<VoicePicker identities={[serenity]} value="" directory={directory} playerPlaying={false} onChange={onChange} onPlay={vi.fn()} />)

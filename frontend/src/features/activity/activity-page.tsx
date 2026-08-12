@@ -9,7 +9,6 @@ import type { ActivityRun, ActivitySnapshot } from "@/types/domain"
 import { ActivityDetailSheet } from "./activity-detail-sheet"
 import { ActivityRunCard } from "./activity-run-card"
 import "./activity-page.css"
-import "./activity-convergence.css"
 import "./activity-detail.css"
 
 export function ActivityPage() {

@@ -350,7 +350,7 @@ export type VoiceDirectory = {
   catalog: VoiceCatalogItem[]
   registry?: VoiceRegistry | null
   identities?: VoiceProfile[]
-  usage?: Record<string, { uses: number; folders: number; spend: number; last_used?: string | null; mine?: string | null }>
+  usage?: Record<string, { uses: number; folders: number; spend: number; last_used?: string | null; latest_preview?: string | null }>
 }
 
 export type Take = {

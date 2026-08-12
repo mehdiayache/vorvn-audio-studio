@@ -20,7 +20,7 @@ const ownedRoute: VoiceChoice = {
   identityId: "identity-1",
   name: "Sarah",
   description: "",
-  source: "mine",
+  source: "owned",
   engine: "audio",
   model: "flash",
   modelId: "qwen-audio-3.0-tts-flash",

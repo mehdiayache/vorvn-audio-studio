@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils"
 import { resourceHref } from "@/lib/links"
 import type { HierarchyNode } from "@/types/domain"
 
+import "./project-explorer.css"
+
 function typeLabel(node: HierarchyNode) {
   return node.type === "series" ? "Series" : node.type.slice(0, 1).toUpperCase() + node.type.slice(1)
 }

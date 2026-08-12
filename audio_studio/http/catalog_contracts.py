@@ -163,7 +163,7 @@ class VoiceUsageResponse(BaseModel):
     folders: int
     spend: float
     last_used: str | None = None
-    mine: str | None = None
+    latest_preview: str | None = None
 
 
 class VoiceUsageEnvelope(BaseModel):

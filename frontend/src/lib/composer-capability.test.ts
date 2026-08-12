@@ -6,7 +6,7 @@ import type { VoiceChoice } from "./voice-options"
 function route(capabilities: VoiceChoice["capabilities"]): VoiceChoice {
   return {
     id: "binding-1", bindingId: "binding-1", identityId: "voice-1",
-    name: "Voice", description: "", source: "mine", engine: "audio",
+    name: "Voice", description: "", source: "owned", engine: "audio",
     model: "flash", modelId: "future-model", provider: "provider-x",
     region: "region-x", adapterKey: "adapter-x", capabilities,
     compatible: true, languages: [], status: "ready",

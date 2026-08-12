@@ -18,7 +18,6 @@ import type { CaptionLayout, CaptionMutationResult, CaptionProfile, ExternalAudi
 import { SubtitleHistory } from "./subtitle-history"
 import { SubtitleResult } from "./subtitle-result"
 import "./subtitles-page.css"
-import "./subtitle-details.css"
 
 const fallbackLanguages = ["English", "Arabic", "French", "Spanish", "German", "Indonesian", "Chinese", "Japanese", "Korean"]
 

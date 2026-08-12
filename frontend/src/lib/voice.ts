@@ -90,7 +90,7 @@ export function resolveVoice(id: string | undefined, directory: VoiceDirectory, 
     : binding?.description || omniDescription || [catalogue?.gender, catalogue?.age, catalogue?.trait].filter(Boolean).join(", ") || configDescription || meta?.note || "Voice"
   const knownInConfig = Object.values(directory.config?.voices || {}).some((tier) => Object.keys(tier).some((voice) => voiceKey(voice) === key))
   const unavailable = Boolean(technicalId && !identity && !isClone && !binding && !catalogue && !omniDescription && !knownInConfig)
-  const made = directory.usage?.[key]?.mine
+  const made = directory.usage?.[key]?.latest_preview
   const previewFilename = identity?.usage?.preview_filename
   const preview = previewFilename ? `/audio/${encodeURIComponent(previewFilename)}` : catalogue?.sample ? `/samples/${encodeURIComponent(catalogue.sample)}` : made ? `/audio/${encodeURIComponent(made)}` : undefined
   return { id: technicalId, key: identity?.id || key, name: name.trim() || "Unavailable voice", detail, image: String(identity?.metadata.image || binding?.image || meta?.image || directory.config?.voice_images?.[key] || "") || undefined, cloned: Boolean(identity || isClone), unavailable, preview, editorialLanguage: String(editorialLanguage || "") || undefined }

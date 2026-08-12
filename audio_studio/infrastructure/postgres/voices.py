@@ -392,7 +392,7 @@ class VoiceRepository:
             key = voice_key(voice)
             seen = rolled.setdefault(key, {
                 "uses": 0, "folders": 0, "spend": 0.0,
-                "last_used": None, "mine": None,
+                "last_used": None, "latest_preview": None,
             })
             seen["uses"] += uses
             seen["folders"] += folders
@@ -400,5 +400,5 @@ class VoiceRepository:
             stamp = last_used.isoformat()
             if not seen["last_used"] or stamp > seen["last_used"]:
                 seen["last_used"] = stamp
-                seen["mine"] = latest
+                seen["latest_preview"] = latest
         return rolled
