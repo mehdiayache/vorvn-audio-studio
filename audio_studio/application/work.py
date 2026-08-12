@@ -165,29 +165,17 @@ class WorkService:
 
     @staticmethod
     def _series_defaults(values: dict | None) -> dict:
-        allowed = {
-            "voice", "voice_identity_id", "engine", "model", "format",
-            "language", "instruction", "speech_mode", "rate", "pitch",
-            "volume", "seed",
-        }
+        allowed = {"voice_identity_id", "language"}
         defaults = values or {}
         unknown = set(defaults) - allowed
         if unknown:
             raise DomainValidation(
                 f"Unknown Series default: {sorted(unknown)[0]}.")
-        if defaults.get("engine") not in {
-                None, "", "audio", "omni", "qwen_tts"}:
-            raise DomainValidation(
-                "Series speech engine must be Audio, Omni or Qwen3 TTS.")
-        if defaults.get("model") not in {None, "", "plus", "flash", "vc"}:
-            raise DomainValidation(
-                "Series quality must be Plus, Flash or Voice Clone.")
-        if defaults.get("speech_mode") not in {
-                None, "", "exact", "directed"}:
-            raise DomainValidation(
-                "Series reading mode must be exact or directed.")
-        return {key: value for key, value in defaults.items()
-                if value not in (None, "")}
+        return {
+            key: str(value).strip()
+            for key, value in defaults.items()
+            if value not in (None, "") and str(value).strip()
+        }
 
     def remove(
         self, collection: str, resource_id: int,

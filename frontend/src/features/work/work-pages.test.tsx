@@ -1,12 +1,25 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react"
-import { afterEach, describe, expect, it } from "vitest"
+import { MemoryRouter } from "react-router-dom"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { ProjectPage } from "./project-page"
 import { SeriesPage } from "./series-page"
 import type { ProjectOverview, SeriesOverview, WorkResource } from "@/types/domain"
 
 afterEach(cleanup)
+
+vi.mock("@/hooks/use-voice-directory", () => ({
+  useVoiceDirectory: () => ({
+    directory: { identities: [] },
+    loading: false,
+    error: "",
+  }),
+}))
+
+function renderPage(node: React.ReactNode) {
+  return render(<MemoryRouter>{node}</MemoryRouter>)
+}
 
 const projectResource: WorkResource = { public_id: "project-3", key: "project:3", id: 3, type: "project", name: "Sleeping guides", description: "Sleep audio", icon: "/icon/sleeping.jpg", cover_image: "/icon/sleeping.jpg" }
 const metrics = { series_count: 1, standalone_count: 1, production_count: 2, part_count: 7, duration_ms: 90000, total_cost: .12, current_sequence_cost: .12 }
@@ -18,13 +31,14 @@ describe("canonical work pages", () => {
       resource: projectResource,
       trail: [{ id: 2, public_id: "vnt_heartsnotes", type: "venture", name: "Heartsnotes" }],
       metrics,
-      series: [{ id: 1, public_id: "ser_prayer", key: "series:1", type: "series", icon: "", name: "Christian prayer", description: "Recurring line", defaults: {}, metrics: { production_count: 1, part_count: 7, duration_ms: 90000, total_cost: .12, current_sequence_cost: .12 } }],
+      series: [{ id: 1, public_id: "ser_prayer", key: "series:1", type: "series", icon: "", name: "Christian prayer", description: "Recurring line", defaults: {}, metrics: { production_count: 1, part_count: 7, duration_ms: 90000, total_cost: .12, current_sequence_cost: .12 }, productions: [production] }],
       standalone_productions: [{ ...production, id: 7, public_id: "prd_scratch", name: "Scratch", series_id: null }],
     }
-    render(<ProjectPage data={data} refresh={() => undefined} />)
-    expect(screen.getByRole("heading", { name: "Series" })).toBeTruthy()
-    expect(screen.getByRole("heading", { name: "Standalone Productions" })).toBeTruthy()
-    expect(screen.getByText("Inside this Project")).toBeTruthy()
+    renderPage(<ProjectPage data={data} refresh={() => undefined} />)
+    expect(screen.getByText("Series")).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "Standalone" })).toBeTruthy()
+    expect(screen.queryByText("Inside this Project")).toBeNull()
+    expect(screen.getByRole("button", { name: /Create/ })).toBeTruthy()
     expect(screen.getByRole("button", { name: /Project settings for Sleeping guides/ })).toBeTruthy()
     expect(screen.getByRole("link", { name: /Christian prayer/ }).getAttribute("href")).toBe("/audio-studio/series/ser_prayer")
     expect(screen.getByRole("link", { name: /Scratch/ }).getAttribute("href")).toBe("/audio-studio/productions/prd_scratch")
@@ -36,10 +50,11 @@ describe("canonical work pages", () => {
       trail: [{ id: 2, public_id: "vnt_heartsnotes", type: "venture", name: "Heartsnotes" }, { id: 3, public_id: "prj_sleeping", type: "project", name: "Sleeping guides" }],
       defaults: { language: "Arabic" }, metrics, productions: [production],
     }
-    render(<SeriesPage data={data} refresh={() => undefined} />)
+    renderPage(<SeriesPage data={data} refresh={() => undefined} />)
     expect(screen.getByRole("heading", { name: "Productions" })).toBeTruthy()
     expect(screen.getByText("Arabic")).toBeTruthy()
     expect(screen.queryByText("Timeline")).toBeNull()
+    expect(screen.queryByText("Reading mode")).toBeNull()
     expect(screen.getByRole("link", { name: /Falling asleep/ }).getAttribute("href")).toBe("/audio-studio/productions/prd_falling")
   })
 })

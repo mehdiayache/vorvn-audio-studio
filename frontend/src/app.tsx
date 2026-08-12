@@ -46,7 +46,7 @@ function HomeRoute() {
   return <>
     {hierarchy.status === "loading" && !hierarchy.data && <PageLoading label="Loading Work" />}
     {hierarchy.status === "error" && !hierarchy.data && <ErrorState title="Ventures unavailable" message={hierarchy.error || "Unable to load Ventures."} retry={() => void hierarchy.refresh()} />}
-    {hierarchy.data && <VentureDirectoryPage ventures={hierarchy.data.filter((node) => node.type === "venture")} />}
+    {hierarchy.data && <VentureDirectoryPage items={hierarchy.data} />}
   </>
 }
 

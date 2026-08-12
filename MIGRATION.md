@@ -744,3 +744,36 @@ provider operation was called.
 Checkpoint verification passes generated OpenAPI, TypeScript, the production
 build, 124 React tests, 316 Python tests and all 11 live database domain
 invariants. The runtime smoke used the same working tree as the verified build.
+
+### UI checkpoint 2 — Work hierarchy and safe Series defaults
+
+- Work is now the single entry page for Ventures. Venture cards retain a
+  brand-level identity and report real descendant Project and Production
+  counts, including Productions nested inside Series.
+- Venture pages keep Projects, Venture Media and recent Productions as
+  separate responsibilities. Projects remain square image-led cards rather
+  than inheriting the Venture or folder presentation.
+- A Project is now one editorial view: each Series contains its Productions
+  inline and Standalone contains the remainder. One Create menu owns New
+  Production and New Series, Series remain navigable and collapsible, and a
+  Production can be moved explicitly between a Series and Standalone.
+- Series are intentionally light. Their only editable defaults are an optional
+  preferred Voice Identity and an optional output language. These values may
+  prefill WHO and language, but they never choose a binding, provider, model,
+  capability or delivery mode.
+- Migration `024_safe_series_defaults.sql` removes provider-shaped defaults.
+  A legacy voice name is converted only when it uniquely matches one active
+  stable Voice Identity; ambiguous or missing matches are discarded rather
+  than invented. The application rejects every route-shaped Series default
+  after migration.
+- The Project overview contract now returns the real Productions nested in
+  every Series. Public links, grouped counts and generated OpenAPI all use that
+  same server projection.
+- Work uses the local UI VORVN page grammar and a feature-owned stylesheet with
+  intentional 4/3/2/1 Project grids. Browser checks at 1440, 768, 390 and 320
+  pixels found no document overflow; Work, Venture, grouped Project and Series
+  rendered against the live FastAPI application with a clean console.
+
+Verification is provider-free. The checkpoint passes generated OpenAPI,
+TypeScript, the production build, 125 React tests, 316 Python tests and all 11
+live database domain invariants. No Alibaba operation was called.

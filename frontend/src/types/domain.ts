@@ -22,7 +22,7 @@ export type WorkResource = {
   project_id?: number
 }
 
-export type SeriesSummary = components["schemas"]["SeriesSummaryResponse"]
+export type SeriesSummary = components["schemas"]["ProjectSeriesSummaryResponse"]
 
 export type ProjectSummary = components["schemas"]["ProjectSummaryResponse"]
 

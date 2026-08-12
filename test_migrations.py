@@ -48,6 +48,7 @@ class MigrationTests(unittest.TestCase):
                     "021_composer_working_drafts.sql",
                     "022_capability_composer_controls.sql",
                     "023_exact_route_speech_pricing.sql",
+                    "024_safe_series_defaults.sql",
         ])
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:

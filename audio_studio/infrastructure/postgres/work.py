@@ -379,6 +379,13 @@ def project_overview(project_id: int) -> ProjectOverview | None:
             cur, "production.project_id = %s AND production.series_id IS NULL",
             (project_id,))
         all_productions = _production_summaries(cur, "production.project_id = %s", (project_id,))
+        productions_by_series: dict[int, list[dict[str, Any]]] = {}
+        for production in all_productions:
+            if production["series_id"] is not None:
+                productions_by_series.setdefault(
+                    int(production["series_id"]), []).append(production)
+        for series in series_items:
+            series["productions"] = productions_by_series.get(series["id"], [])
         series_costs: dict[int, dict[str, float]] = {}
         for production in all_productions:
             if production["series_id"] is None:

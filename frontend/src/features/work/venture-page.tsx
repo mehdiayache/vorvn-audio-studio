@@ -8,6 +8,7 @@ import { ProjectCardGrid } from "./project-card"
 import { VentureSettingsDialog } from "./venture-settings-dialog"
 import { ProductionRow, WorkPageHeader, WorkSection } from "./work-primitives"
 import { VentureMedia } from "./venture-media"
+import "./work.css"
 
 export function VenturePage({ data, refresh }: { data: VentureOverview; refresh: () => void }) {
   const [creating, setCreating] = useState(false)

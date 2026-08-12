@@ -172,6 +172,10 @@ class ProductionSummaryResponse(BaseModel):
     updated_at: str | None = None
 
 
+class ProjectSeriesSummaryResponse(SeriesSummaryResponse):
+    productions: list[ProductionSummaryResponse] = Field(default_factory=list)
+
+
 class AssetKindSummaryResponse(BaseModel):
     collection_id: int
     name: str
@@ -200,7 +204,7 @@ class VentureOverviewEnvelope(BaseModel):
 class ProjectOverviewResponse(BaseModel):
     resource: OverviewResourceResponse
     trail: list[TrailItemResponse]
-    series: list[SeriesSummaryResponse]
+    series: list[ProjectSeriesSummaryResponse]
     standalone_productions: list[ProductionSummaryResponse]
     metrics: ProjectOverviewMetricsResponse
 

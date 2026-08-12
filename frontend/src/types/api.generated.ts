@@ -2918,11 +2918,46 @@ export interface components {
             metrics: components["schemas"]["ProjectOverviewMetricsResponse"];
             resource: components["schemas"]["OverviewResourceResponse"];
             /** Series */
-            series: components["schemas"]["SeriesSummaryResponse"][];
+            series: components["schemas"]["ProjectSeriesSummaryResponse"][];
             /** Standalone Productions */
             standalone_productions: components["schemas"]["ProductionSummaryResponse"][];
             /** Trail */
             trail: components["schemas"]["TrailItemResponse"][];
+        };
+        /** ProjectSeriesSummaryResponse */
+        ProjectSeriesSummaryResponse: {
+            /** Defaults */
+            defaults: {
+                [key: string]: unknown;
+            };
+            /** Description */
+            description: string;
+            /**
+             * Icon
+             * @default
+             */
+            icon: string;
+            /** Id */
+            id: number;
+            /** Key */
+            key: string;
+            metrics: components["schemas"]["SummaryMetricsResponse"];
+            /** Name */
+            name: string;
+            /** Productions */
+            productions?: components["schemas"]["ProductionSummaryResponse"][];
+            /** Public Id */
+            public_id: string;
+            /**
+             * Type
+             * @default series
+             * @constant
+             */
+            type: "series";
+            /** Updated At */
+            updated_at?: string | null;
+        } & {
+            [key: string]: unknown;
         };
         /** ProjectSummaryResponse */
         ProjectSummaryResponse: {
@@ -3254,39 +3289,6 @@ export interface components {
             resource: components["schemas"]["OverviewResourceResponse"];
             /** Trail */
             trail: components["schemas"]["TrailItemResponse"][];
-        };
-        /** SeriesSummaryResponse */
-        SeriesSummaryResponse: {
-            /** Defaults */
-            defaults: {
-                [key: string]: unknown;
-            };
-            /** Description */
-            description: string;
-            /**
-             * Icon
-             * @default
-             */
-            icon: string;
-            /** Id */
-            id: number;
-            /** Key */
-            key: string;
-            metrics: components["schemas"]["SummaryMetricsResponse"];
-            /** Name */
-            name: string;
-            /** Public Id */
-            public_id: string;
-            /**
-             * Type
-             * @default series
-             * @constant
-             */
-            type: "series";
-            /** Updated At */
-            updated_at?: string | null;
-        } & {
-            [key: string]: unknown;
         };
         /** SettingsSnapshotEnvelope */
         SettingsSnapshotEnvelope: {

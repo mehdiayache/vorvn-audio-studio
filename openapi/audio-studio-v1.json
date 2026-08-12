@@ -4344,7 +4344,7 @@
           },
           "series": {
             "items": {
-              "$ref": "#/components/schemas/SeriesSummaryResponse"
+              "$ref": "#/components/schemas/ProjectSeriesSummaryResponse"
             },
             "title": "Series",
             "type": "array"
@@ -4372,6 +4372,79 @@
           "metrics"
         ],
         "title": "ProjectOverviewResponse",
+        "type": "object"
+      },
+      "ProjectSeriesSummaryResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "defaults": {
+            "additionalProperties": true,
+            "title": "Defaults",
+            "type": "object"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "icon": {
+            "default": "",
+            "title": "Icon",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/SummaryMetricsResponse"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "productions": {
+            "items": {
+              "$ref": "#/components/schemas/ProductionSummaryResponse"
+            },
+            "title": "Productions",
+            "type": "array"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "series",
+            "default": "series",
+            "title": "Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "key",
+          "name",
+          "description",
+          "defaults",
+          "metrics"
+        ],
+        "title": "ProjectSeriesSummaryResponse",
         "type": "object"
       },
       "ProjectSummaryResponse": {
@@ -5259,72 +5332,6 @@
           "metrics"
         ],
         "title": "SeriesOverviewResponse",
-        "type": "object"
-      },
-      "SeriesSummaryResponse": {
-        "additionalProperties": true,
-        "properties": {
-          "defaults": {
-            "additionalProperties": true,
-            "title": "Defaults",
-            "type": "object"
-          },
-          "description": {
-            "title": "Description",
-            "type": "string"
-          },
-          "icon": {
-            "default": "",
-            "title": "Icon",
-            "type": "string"
-          },
-          "id": {
-            "title": "Id",
-            "type": "integer"
-          },
-          "key": {
-            "title": "Key",
-            "type": "string"
-          },
-          "metrics": {
-            "$ref": "#/components/schemas/SummaryMetricsResponse"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "public_id": {
-            "title": "Public Id",
-            "type": "string"
-          },
-          "type": {
-            "const": "series",
-            "default": "series",
-            "title": "Type",
-            "type": "string"
-          },
-          "updated_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Updated At"
-          }
-        },
-        "required": [
-          "id",
-          "public_id",
-          "key",
-          "name",
-          "description",
-          "defaults",
-          "metrics"
-        ],
-        "title": "SeriesSummaryResponse",
         "type": "object"
       },
       "SettingsSnapshotEnvelope": {

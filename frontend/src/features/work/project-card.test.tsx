@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
+import { MemoryRouter } from "react-router-dom"
 
 import type { ProjectSummary } from "@/types/domain"
 import { ProjectCard } from "./project-card"
 
 afterEach(cleanup)
+
+function renderCard(node: React.ReactNode) {
+  return render(<MemoryRouter>{node}</MemoryRouter>)
+}
 
 const project: ProjectSummary = {
   id: 3,
@@ -21,7 +26,7 @@ const project: ProjectSummary = {
 
 describe("ProjectCard", () => {
   it("keeps navigation, identity and settings as separate controls", () => {
-    render(<ProjectCard project={project} onUpdated={() => undefined} />)
+    renderCard(<ProjectCard project={project} onUpdated={() => undefined} />)
     expect(screen.getByRole("link", { name: /Open Project Sleeping guides/ }).getAttribute("href")).toBe("/audio-studio/projects/prj_sleeping")
     expect(screen.getByRole("heading", { name: project.name })).toBeTruthy()
     expect(screen.getByText("Project")).toBeTruthy()
@@ -31,7 +36,7 @@ describe("ProjectCard", () => {
   })
 
   it("opens Project-specific settings without navigating", async () => {
-    render(<ProjectCard project={project} venture={{ id: 2, public_id: "vnt_heartsnotes", type: "venture", name: "Heartsnotes", icon: "💜" }} onUpdated={() => undefined} />)
+    renderCard(<ProjectCard project={project} venture={{ id: 2, public_id: "vnt_heartsnotes", type: "venture", name: "Heartsnotes", icon: "💜" }} onUpdated={() => undefined} />)
     fireEvent.pointerDown(screen.getByRole("button", { name: /Project settings for Sleeping guides/ }), { button: 0, ctrlKey: false })
     fireEvent.click(await screen.findByRole("menuitem", { name: "Project settings" }))
     expect(screen.getByRole("dialog", { name: "Project settings" })).toBeTruthy()

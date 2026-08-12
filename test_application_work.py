@@ -127,13 +127,15 @@ class WorkServiceTests(unittest.TestCase):
 
     def test_series_defaults_are_normalized_and_strictly_validated(self):
         result = self.service.update("series", 4, {"defaults": {
-            "engine": "omni", "language": "Arabic", "instruction": ""}})
+            "voice_identity_id": "identity-sarah",
+            "language": "Arabic"}})
         self.assertEqual(result["defaults"], {
-            "engine": "omni", "language": "Arabic"})
+            "voice_identity_id": "identity-sarah",
+            "language": "Arabic"})
         with self.assertRaisesRegex(DomainValidation, "Unknown Series default"):
             self.service.update("series", 4, {"defaults": {"mystery": True}})
-        with self.assertRaisesRegex(DomainValidation, "Audio, Omni or Qwen3 TTS"):
-            self.service.update("series", 4, {"defaults": {"engine": "tts"}})
+        with self.assertRaisesRegex(DomainValidation, "Unknown Series default"):
+            self.service.update("series", 4, {"defaults": {"engine": "omni"}})
 
     def test_moving_a_production_does_not_mutate_the_caller_payload(self):
         changes = {"series_id": 4, "name": "Renamed"}
