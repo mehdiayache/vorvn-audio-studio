@@ -5,8 +5,8 @@ import { jobObserver } from "@/lib/job-observer"
 import type { DurableJob, GeneratePayload, GenerateResult } from "@/types/domain"
 
 const payload: GeneratePayload = {
-  text: "Immediate durable handle", insert_at: null, voice: "provider-voice",
-  binding_id: "binding-1", engine: "audio", model: "flash", format: "mp3",
+  text: "Immediate durable handle", insert_at: null,
+  voice_identity_id: "identity-1", binding_id: "binding-1", capability_id: null, format: "mp3",
   language: "English", instruction: "", speech_mode: "exact", rate: 1,
   pitch: 1, volume: 50, seed: 0,
 }
@@ -24,5 +24,10 @@ describe("speech Job API", () => {
     expect(returned.part_id).toBe(127)
     expect(jobObserver.getSnapshot("job-from-api")).toEqual(queued)
     expect(fetch).toHaveBeenCalledTimes(1)
+    const requestBody = String(fetch.mock.calls[0]?.[1]?.body)
+    expect(JSON.parse(requestBody)).toEqual(payload)
+    expect(requestBody).not.toContain('"voice"')
+    expect(requestBody).not.toContain('"engine"')
+    expect(requestBody).not.toContain('"model"')
   })
 })

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { VoiceBinding, VoiceRegistry } from "@/types/domain"
-import { getVoiceIdentities, getVoiceOptions, routesForIdentity } from "./voice-options"
+import { getVoiceIdentities, routesForIdentity } from "./voice-options"
 
 function binding(id: string, engine: "audio" | "omni", tier: "plus" | "flash", source: "system" | "custom"): VoiceBinding {
   return { identity_id: `${source}:${id}`, provider_voice_id: id, name: id, description: "", languages: ["English"], source, provider: "alibaba", region: "intl", adapter_key: engine, engine, tier, model_id: `${engine}-${tier}`, status: "active", estimate_rate_per_million_chars: 0, capabilities: [{ id: `${engine}_mode`, name: `${engine} mode`, description: "Provider capability" }] }
@@ -13,23 +13,6 @@ const registry: VoiceRegistry = {
   models: ["audio", "omni"].flatMap((engine) => ["plus", "flash"].map((tier) => { const found = bindings.filter((item) => item.engine === engine && item.tier === tier); return { engine: engine as "audio" | "omni", tier: tier as "plus" | "flash", model_id: `${engine}-${tier}`, label: engine, system_count: found.filter((item) => item.source === "system").length, custom_count: found.filter((item) => item.source === "custom").length, total_count: found.length, clone_supported: tier === "flash" || engine === "omni" } })),
   presets: [], source: { provider: "Alibaba", verified_at: "2026-08-07", audio_url: "", omni_url: "" },
 }
-
-describe("getVoiceOptions", () => {
-  it("derives exact compatibility and counts from provider bindings", () => {
-    const omni = getVoiceOptions(registry, "omni", "plus")
-    expect(omni.compatible.map((voice) => voice.id)).toEqual(["Tina", "Mehdi"])
-    expect(omni.summary).toMatchObject({ system_count: 1, custom_count: 1, total_count: 2 })
-    expect(getVoiceOptions(registry, "audio", "plus").compatible.map((voice) => voice.id)).toEqual(["Lingxin"])
-    expect(getVoiceOptions(registry, "audio", "flash").compatible.map((voice) => voice.id)).toEqual(["Sarah"])
-  })
-
-  it("keeps other model bindings discoverable without marking them compatible", () => {
-    const omniFlash = getVoiceOptions(registry, "omni", "flash")
-    expect(omniFlash.choices.some((voice) => voice.id === "Sarah")).toBe(true)
-    expect(omniFlash.compatible.map((voice) => voice.id)).toEqual(["Tina"])
-    expect(omniFlash.choices.find((voice) => voice.id === "Mehdi")?.compatible).toBe(false)
-  })
-})
 
 describe("voice-first routing", () => {
   it("groups provider bindings into one human identity", () => {
@@ -60,10 +43,6 @@ describe("voice-first routing", () => {
     const lingxin = getVoiceIdentities(registry).find((item) => item.name === "Lingxin")!
     expect(routesForIdentity(lingxin, "English")).toHaveLength(1)
     expect(routesForIdentity(lingxin, "Arabic")).toHaveLength(1)
-  })
-
-  it("chooses the preferred route without changing identity", () => {
-    const tina = getVoiceIdentities(registry).find((item) => item.name === "Tina")!
   })
 
   it("never casts a binding whose provider creation is not ready", () => {

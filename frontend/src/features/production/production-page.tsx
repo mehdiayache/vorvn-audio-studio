@@ -12,18 +12,18 @@ import { useProductionActions } from "@/hooks/use-production-actions"
 import { useRenderTasks, type RenderTaskDraft } from "@/hooks/use-render-tasks"
 import { partDurationMs } from "@/lib/format"
 import { studioApi } from "@/lib/api"
-import type { AssetCollection, ClonedVoice, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, MusicBed, Production, ProductionCastRole, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
+import type { AssetCollection, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, MusicBed, Production, ProductionCastRole, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
+import { resolveRequestVoice } from "@/lib/voice"
 
 const ProductionOverlays = lazy(() => import("@/features/production/production-overlays"))
 
-export function ProductionPage({ production, tree, music, assets, assetCollections, config, clonedVoices, directory, refresh, refreshAssets }: {
+export function ProductionPage({ production, tree, music, assets, assetCollections, config, directory, refresh, refreshAssets }: {
   production: Production
   tree: HierarchyNode[] | null
   music: MusicBed
   assets: VentureAsset[]
   assetCollections: AssetCollection[]
   config: StudioConfig | null
-  clonedVoices: ClonedVoice[]
   directory: VoiceDirectory
   refresh: () => Promise<void>
   refreshAssets: () => Promise<void>
@@ -62,11 +62,12 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
 
   const queueRender = useCallback((payload: GeneratePayload) => {
     const target = composerPart
+    const voice = resolveRequestVoice(payload, directory).name
     const task: RenderTaskDraft = {
       mode: target?.kind === "draft" ? "draft" : target ? "take" : "new",
       payload,
       text: payload.text,
-      voice: payload.voice,
+      voice,
       insertAt,
       targetPartId: target?.id,
     }
@@ -75,7 +76,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       void refresh()
       return job
     })
-  }, [closeTool, composerPart, insertAt, refresh, renderQueue])
+  }, [closeTool, composerPart, directory, insertAt, refresh, renderQueue])
 
   useEffect(() => {
     const visible = new Set(["queued", "running", "retrying", "blocked", "failed", "lost", "cancelled"])
@@ -87,7 +88,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
         id: job.id, jobId: job.id,
         mode: part.selected_take_id ? "take" : "pending",
         status: job.status, payload, text: part.text,
-        voice: payload.voice, insertAt: part.position,
+        voice: resolveRequestVoice(payload, directory).name, insertAt: part.position,
         targetPartId: part.id,
         startedAt: job.created_at ? new Date(job.created_at).getTime() : Date.now(),
         error: job.error || undefined, detail: job.detail,
@@ -96,7 +97,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
         estimate: Number(job.result?.estimate || job.result?.estimated_cost || 0),
       }, job)
     }
-  }, [production.id, production.parts, renderQueue.recover])
+  }, [directory, production.id, production.parts, renderQueue.recover])
 
   const duration = useMemo(() => sourceParts.reduce((total, part) => total + partDurationMs(part), 0) / 1000, [sourceParts])
   const activeDetail = detail ? production.parts.find((part) => part.id === detail.id) || detail : null
@@ -130,9 +131,9 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   }), [actions, player])
 
   return <>
-    <ProductionEditorCanvas production={production} tree={tree} music={music} directory={directory} cast={cast} renderTasks={renderQueue.tasks} duration={duration} releaseOpen={releaseOpen} contextPanel={contextPanel} selected={selected} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} previewing={actions.previewing} productionPlaying={actions.productionPlaying} productionLoaded={actions.productionLoaded} productionCurrentTime={actions.productionLoaded ? player.currentTime : 0} exporting={actions.exporting} onReleaseOpen={setReleaseOpen} onContextPanel={setContextPanel} onTool={openTool} onSelected={setSelected} onPreview={actions.toggleProduction} onLocate={locate} onSeekProduction={player.seek} onPlay={(source) => void player.toggleSource(source)} onMusicChange={actions.setMusic} onChooseMusic={() => openTool("music")} onExport={() => void actions.exportMp3()} onRetryRender={renderQueue.retry} onConfirmRender={(task) => void renderQueue.confirm(task).then(() => refresh()).catch(() => undefined)} onDismissRender={renderQueue.dismiss} sequenceActions={sequenceActions} />
+    <ProductionEditorCanvas production={production} tree={tree} music={music} directory={directory} cast={cast} renderTasks={renderQueue.tasks} duration={duration} releaseOpen={releaseOpen} composerOpen={tool === "speech"} contextPanel={contextPanel} selected={selected} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} previewing={actions.previewing} productionPlaying={actions.productionPlaying} productionLoaded={actions.productionLoaded} productionCurrentTime={actions.productionLoaded ? player.currentTime : 0} exporting={actions.exporting} onReleaseOpen={setReleaseOpen} onContextPanel={setContextPanel} onTool={openTool} onSelected={setSelected} onPreview={actions.toggleProduction} onLocate={locate} onSeekProduction={player.seek} onPlay={(source) => void player.toggleSource(source)} onMusicChange={actions.setMusic} onChooseMusic={() => openTool("music")} onExport={() => void actions.exportMp3()} onRetryRender={renderQueue.retry} onConfirmRender={(task) => void renderQueue.confirm(task).then(() => refresh()).catch(() => undefined)} onDismissRender={renderQueue.dismiss} sequenceActions={sequenceActions} />
     <ProductionSelectionBar count={selected.size} onSelectAll={() => setSelected(new Set(sourceParts.map((part) => part.id)))} onMove={() => setMoveOpen(true)} onDelete={() => setConfirmAction({ title: `Delete ${selected.size} parts?`, description: "The selected parts and their archived takes will be removed from this Production.", action: () => void actions.deleteParts([...selected]).then(() => setSelected(new Set())) })} onClear={() => setSelected(new Set())} />
     <ProductionPlayer source={player.source} state={player.state} currentTime={player.currentTime} duration={player.duration} volume={player.volume} speed={player.speed} productionTitle={production.name} productionSubtitle={`${sourceParts.length} parts · ${music.filename ? `with ${music.name || "background music"}` : "narration only"}`} productionDuration={duration} previewing={actions.previewing} musicName={music.filename ? music.name || "Music bed" : undefined} compact={overlaysOpen} onToggle={player.toggle} onSeek={player.seek} onVolume={player.setVolume} onSpeed={player.setSpeed} onClose={player.close} onPlayProduction={actions.toggleProduction} onOpenMusic={() => openTool("music")} />
-    {overlaysOpen && <Suspense fallback={null}><ProductionOverlays tool={tool} projectId={production.id} nextPartNumber={sourceParts.length + 1} insertAt={insertAt} insertBeforePartId={insertBeforePartId} composerPart={composerPart} config={config} clonedVoices={clonedVoices} directory={directory} cast={cast} assets={assets} assetCollectionIds={assetCollectionIds} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} activeDetail={activeDetail} moveOpen={moveOpen} selectedCount={selected.size} moveTargets={moveTargets} confirmAction={confirmAction} onCloseTool={closeTool} onSaveDraft={async (payload) => { await actions.saveDraft(payload); closeTool() }} onUpdateEditorial={async (values) => { if (!composerPart) throw new Error("That Part is no longer open."); await actions.updatePartEditorial(composerPart, values) }} onGenerate={queueRender} onAddSilence={async (seconds) => { await actions.addSilence(seconds, insertAt); closeTool() }} onInsertAsset={async (asset) => { await actions.insertAsset(asset, insertAt); closeTool() }} onSetMusic={async (asset) => { await actions.setMusicAsset(asset); closeTool() }} onUploadAsset={async (folder, file) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); await actions.uploadAsset(collectionId, folder, file) }} onPlay={(source) => void player.toggleSource(source)} onCloseDetail={() => setDetail(null)} onDetailChanged={async () => { if (activeDetail && player.source?.key === `part:${activeDetail.id}`) player.pause(); actions.invalidatePreview(); await refresh() }} onDuplicate={(part) => void actions.duplicatePart(part)} onDeleteDetail={(part) => setConfirmAction({ title: "Delete this part?", description: "The part and its archived takes will be removed. Generated audio remains recoverable on disk unless explicitly tidied later.", action: () => { setDetail(null); void actions.deletePart(part) } })} onNewTake={openNewTake} onMoveOpen={setMoveOpen} onMoveSelected={(targetId, targetName) => void actions.moveParts([...selected], targetId, targetName).then(() => { setSelected(new Set()); setMoveOpen(false) })} onConfirmAction={setConfirmAction} /></Suspense>}
+    {overlaysOpen && <Suspense fallback={null}><ProductionOverlays tool={tool} productionId={production.id} nextPartNumber={sourceParts.length + 1} insertAt={insertAt} insertBeforePartId={insertBeforePartId} composerPart={composerPart} config={config} directory={directory} cast={cast} assets={assets} assetCollectionIds={assetCollectionIds} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} activeDetail={activeDetail} moveOpen={moveOpen} selectedCount={selected.size} moveTargets={moveTargets} confirmAction={confirmAction} onCloseTool={closeTool} onSaveDraft={async (payload) => { await actions.saveDraft(payload); closeTool() }} onUpdateEditorial={async (values) => { if (!composerPart) throw new Error("That Part is no longer open."); await actions.updatePartEditorial(composerPart, values) }} onGenerate={queueRender} onAddSilence={async (seconds) => { await actions.addSilence(seconds, insertAt); closeTool() }} onInsertAsset={async (asset) => { await actions.insertAsset(asset, insertAt); closeTool() }} onSetMusic={async (asset) => { await actions.setMusicAsset(asset); closeTool() }} onUploadAsset={async (folder, file) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); await actions.uploadAsset(collectionId, folder, file) }} onPlay={(source) => void player.toggleSource(source)} onCloseDetail={() => setDetail(null)} onDetailChanged={async () => { if (activeDetail && player.source?.key === `part:${activeDetail.id}`) player.pause(); actions.invalidatePreview(); await refresh() }} onDuplicate={(part) => void actions.duplicatePart(part)} onDeleteDetail={(part) => setConfirmAction({ title: "Delete this part?", description: "The part and its archived takes will be removed. Generated audio remains recoverable on disk unless explicitly tidied later.", action: () => { setDetail(null); void actions.deletePart(part) } })} onNewTake={openNewTake} onMoveOpen={setMoveOpen} onMoveSelected={(targetId, targetName) => void actions.moveParts([...selected], targetId, targetName).then(() => { setSelected(new Set()); setMoveOpen(false) })} onConfirmAction={setConfirmAction} /></Suspense>}
   </>
 }

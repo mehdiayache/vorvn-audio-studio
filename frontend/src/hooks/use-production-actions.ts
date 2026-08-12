@@ -4,7 +4,6 @@ import { toast } from "sonner"
 import type { usePlayer } from "@/hooks/use-player"
 import { studioApi } from "@/lib/api"
 import { playableGenerateResult } from "@/lib/generated-audio"
-import { resolveVoice } from "@/lib/voice"
 import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, Production, ProductionPart, RenderTask, VentureAsset, VoiceDirectory } from "@/types/domain"
 
 type Player = ReturnType<typeof usePlayer>
@@ -152,14 +151,14 @@ export function useProductionActions({ production, music, directory, player, ref
       return settleSuccessfulRender(result, {
         key: result.id ? `part:${result.id}` : `job:${task.jobId}`,
         title: `New part in ${production.name}`,
-        subtitle: `${resolveVoice(task.payload.voice, directory).name} · ${result.cost_basis || "estimated cost"}`,
+        subtitle: `${task.voice} · ${result.cost_basis || "estimated cost"}`,
       }, "Part generated")
     }
     const part = task.targetPartId ? production.parts.find((item) => item.id === task.targetPartId) : null
     return settleSuccessfulRender(result, {
       key: part ? `part:${part.id}` : `job:${task.jobId}`,
       title: task.mode === "draft" ? `Recorded · Part ${(part?.position ?? 0) + 1}` : `New take · Part ${(part?.position ?? 0) + 1}`,
-      subtitle: resolveVoice(task.payload.voice, directory).name,
+      subtitle: task.voice,
     }, task.mode === "draft" ? "Draft recorded" : "New take ready")
   }, [directory, production.name, production.parts, settleSuccessfulRender])
 

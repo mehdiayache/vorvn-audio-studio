@@ -1,4 +1,22 @@
-import type { ClonedVoice, VoiceDirectory } from "@/types/domain"
+import type { ClonedVoice, GeneratePayload, ResolvedGeneratePayload, VoiceDirectory } from "@/types/domain"
+
+export function resolveRequestRoute(request: Pick<GeneratePayload, "binding_id" | "catalogue_voice_id">, directory: VoiceDirectory) {
+  return directory.registry?.bindings.find((item) =>
+    Boolean(request.binding_id && item.binding_id === request.binding_id)
+    || Boolean(request.catalogue_voice_id && item.catalogue_voice_id === request.catalogue_voice_id))
+}
+
+export function resolveRequestVoice(request: ResolvedGeneratePayload, directory: VoiceDirectory) {
+  const route = resolveRequestRoute(request, directory)
+  const identity = directory.identities?.find((item) => item.id === request.voice_identity_id)
+  return {
+    name: identity?.name || route?.name || "Voice",
+    providerVoiceId: request.voice || route?.provider_voice_id || "",
+    engine: request.engine || route?.engine,
+    model: request.model || route?.tier,
+    modelId: request.model_id || route?.model_id,
+  }
+}
 
 export function voiceKey(id?: string) {
   return String(id || "").replace(/^qwen[\w.-]*?-tts-(?:plus|flash)-/i, "").trim()

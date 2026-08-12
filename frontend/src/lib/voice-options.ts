@@ -1,4 +1,4 @@
-import type { VoiceModelSummary, VoiceProfile, VoiceRegistry } from "@/types/domain"
+import type { VoiceProfile, VoiceRegistry } from "@/types/domain"
 
 export type SpeechEngine = "audio" | "omni" | "qwen_tts"
 export type SpeechModel = "plus" | "flash" | "vc"
@@ -118,18 +118,4 @@ export function routesForIdentity(
   // Published language coverage is guidance, never a casting gate. A ready
   // binding stays selectable and the provider remains the final authority.
   return (identity?.routes || []).filter((route) => route.compatible)
-}
-
-export function getVoiceOptions(registry: VoiceRegistry | null, engine: SpeechEngine, model: SpeechModel) {
-  if (!registry) return { choices: [] as VoiceChoice[], compatible: [] as VoiceChoice[], summary: null as VoiceModelSummary | null }
-  const choices = registry.bindings.map((binding): VoiceChoice => {
-    const choice = toChoice(binding)
-    return {
-      ...choice,
-      compatible: choice.compatible
-        && binding.engine === engine && binding.tier === model,
-    }
-  })
-  const summary = registry.models.find((item) => item.engine === engine && item.tier === model) || null
-  return { choices, compatible: choices.filter((choice) => choice.compatible), summary }
 }

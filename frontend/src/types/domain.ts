@@ -424,34 +424,31 @@ export type DurableJob<T = Record<string, unknown>> = {
   part_id?: number | null
 }
 
-export type GeneratePayload = {
-  text: string
-  text_raw?: string | null
-  text_shaped?: string | null
-  text_tagged?: string | null
-  text_state?: "raw" | "shaped" | "tagged"
-  production_id?: number
+/**
+ * Provider-neutral speech command accepted by the public API. The exact
+ * provider route is identified only by binding_id or catalogue_voice_id.
+ * Provider voice, engine and model are server-resolved snapshot facts.
+ */
+type SpeechJobCreateRequest = components["schemas"]["SpeechJobCreate"]
+
+export type GeneratePayload = Omit<
+  SpeechJobCreateRequest,
+  "operation" | "part_id" | "confirmed" | "select_result" | "text_state"
+> & Partial<Pick<
+  SpeechJobCreateRequest,
+  "confirmed" | "select_result" | "text_state"
+>> & {
+  /** The API permits omission, but the shared Composer always owns this value. */
   insert_at: number | null
-  insert_before_part_id?: string | null
-  voice: string
-  binding_id?: string | null
-  catalogue_voice_id?: string | null
-  capability_id?: string | null
-  cast_role_id?: string | null
-  voice_identity_id?: string | null
-  engine: "audio" | "omni" | "qwen_tts"
-  model: "plus" | "flash" | "vc"
-  format: string
-  language: string
-  instruction: string
-  speech_mode: "exact" | "directed"
-  rate: number
-  pitch: number
-  volume: number
-  seed: number
-  confirmed?: boolean
-  select_result?: boolean
-  session_id?: string
+}
+
+export type ResolvedGeneratePayload = GeneratePayload & {
+  voice?: string
+  engine?: "audio" | "omni" | "qwen_tts"
+  model?: "plus" | "flash" | "vc"
+  model_id?: string
+  provider?: string
+  provider_region?: string
 }
 
 export type VoiceRouteDecision = {
@@ -490,7 +487,7 @@ export type RecordingAttempt = {
   created_at: string
   started_at?: string | null
   finished_at?: string | null
-  request: GeneratePayload
+  request: ResolvedGeneratePayload
   error: string
   warning: string
   cost: number

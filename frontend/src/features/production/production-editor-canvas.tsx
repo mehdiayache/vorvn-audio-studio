@@ -7,7 +7,7 @@ import type { InsertKind, SequenceActions } from "@/components/sequence-actions"
 import type { ToolKind } from "@/components/production-tools"
 import type { HierarchyNode, MusicBed, PlayerSource, Production, ProductionCastRole, RenderTask, VoiceDirectory } from "@/types/domain"
 
-export function ProductionEditorCanvas({ production, tree, music, directory, cast, renderTasks, duration, releaseOpen, contextPanel, selected, playingKey, playerPlaying, previewing, productionPlaying, productionLoaded, productionCurrentTime, exporting, onReleaseOpen, onContextPanel, onTool, onSelected, onPreview, onLocate, onSeekProduction, onPlay, onMusicChange, onChooseMusic, onExport, onRetryRender, onConfirmRender, onDismissRender, sequenceActions }: {
+export function ProductionEditorCanvas({ production, tree, music, directory, cast, renderTasks, duration, releaseOpen, composerOpen, contextPanel, selected, playingKey, playerPlaying, previewing, productionPlaying, productionLoaded, productionCurrentTime, exporting, onReleaseOpen, onContextPanel, onTool, onSelected, onPreview, onLocate, onSeekProduction, onPlay, onMusicChange, onChooseMusic, onExport, onRetryRender, onConfirmRender, onDismissRender, sequenceActions }: {
   production: Production
   tree: HierarchyNode[] | null
   music: MusicBed
@@ -16,6 +16,7 @@ export function ProductionEditorCanvas({ production, tree, music, directory, cas
   renderTasks: RenderTask[]
   duration: number
   releaseOpen: boolean
+  composerOpen: boolean
   contextPanel: ContextPanel
   selected: Set<number>
   playingKey?: string
@@ -42,7 +43,7 @@ export function ProductionEditorCanvas({ production, tree, music, directory, cas
   sequenceActions: SequenceActions
 }) {
   return (
-    <div className="production-page">
+    <div className={`production-page${composerOpen ? " has-studio-dock" : ""}`}>
       <ProductionHeader production={production} duration={duration} releaseOpen={releaseOpen} onExplorer={() => onContextPanel("explorer")} onAdd={(kind) => onTool(kind)} onRelease={() => onReleaseOpen(true)} onBack={() => onReleaseOpen(false)} />
       {!releaseOpen && <main className="production-main">
         {tree && <ContextToolDock panel={contextPanel} onPanel={onContextPanel} nodes={tree} activeKey={production.key} parts={production.parts} directory={directory} cast={cast} productionPlaying={productionPlaying} onLocate={onLocate} onOpenTool={onTool} onPreview={onPreview} onRelease={() => onReleaseOpen(true)} />}

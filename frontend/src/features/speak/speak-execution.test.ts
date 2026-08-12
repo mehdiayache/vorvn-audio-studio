@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest"
 import type { GeneratePayload, RecordingSession } from "@/types/domain"
 import { belongsToRecordingSession, recordingAttemptStatus, recoverSpeakExecutions } from "./speak-execution"
 
-const request = { text: "Hello", voice: "voice", binding_id: "binding" } as GeneratePayload
+const request: GeneratePayload = {
+  text: "Hello", insert_at: null, voice_identity_id: "identity", binding_id: "binding",
+  capability_id: null, format: "mp3", language: "English", instruction: "",
+  speech_mode: "exact", rate: 1, pitch: 1, volume: 50, seed: 0,
+}
 
 describe("Speak execution ownership", () => {
   it("rejects a completion from session A after the operator starts session B", () => {

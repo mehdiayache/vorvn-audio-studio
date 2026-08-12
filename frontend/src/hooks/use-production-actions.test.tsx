@@ -15,7 +15,8 @@ vi.mock("@/lib/api", async (importOriginal) => {
 
 const payload: GeneratePayload = {
   text: "In the beginning", production_id: 28, insert_at: null,
-  voice: "serinity", engine: "omni", model: "plus", format: "mp3",
+  voice_identity_id: "identity-serenity", binding_id: "binding-serenity",
+  capability_id: null, format: "mp3",
   language: "English", instruction: "", speech_mode: "exact",
   rate: 1, pitch: 1, volume: 50, seed: 0,
 }
@@ -46,7 +47,7 @@ describe("useProductionActions render completion", () => {
     expect(enqueued).toBe(durableJob)
     expect(toggleSource).not.toHaveBeenCalled()
 
-    const task = { id: "job-real-127", jobId: "job-real-127", mode: "take", status: "ok", payload, text: payload.text, voice: payload.voice, insertAt: null, targetPartId: 127, startedAt: Date.now() } satisfies RenderTask
+    const task = { id: "job-real-127", jobId: "job-real-127", mode: "take", status: "ok", payload, text: payload.text, voice: "Eve Serenity", insertAt: null, targetPartId: 127, startedAt: Date.now() } satisfies RenderTask
     let rendered
     await act(async () => { rendered = await result.current.settleRender(task, { id: 127, name: "legacy take.mp3", cost: 0.0169 }) })
 

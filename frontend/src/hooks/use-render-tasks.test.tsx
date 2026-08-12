@@ -7,7 +7,7 @@ import { studioApi } from "@/lib/api"
 import type { DurableJob, GenerateResult } from "@/types/domain"
 import { useRenderTasks, type RenderTaskDraft } from "./use-render-tasks"
 
-const draft: RenderTaskDraft = { mode: "new", text: "Hello", voice: "Tina", insertAt: null, payload: { text: "Hello", production_id: 28, insert_at: null, voice: "Tina", engine: "omni", model: "plus", format: "mp3", language: "English", instruction: "", speech_mode: "exact", rate: 1, pitch: 1, volume: 50, seed: 0 } }
+const draft: RenderTaskDraft = { mode: "new", text: "Hello", voice: "Tina", insertAt: null, payload: { text: "Hello", production_id: 28, insert_at: null, voice_identity_id: "identity-tina", binding_id: "binding-tina", capability_id: null, format: "mp3", language: "English", instruction: "", speech_mode: "exact", rate: 1, pitch: 1, volume: 50, seed: 0 } }
 const durable = (status: DurableJob<GenerateResult>["status"], result = {} as GenerateResult): DurableJob<GenerateResult> => ({ id: "backend-job-77", type: "speech", status, progress: 0, detail: status, retries: 0, result, part_id: 127 })
 
 afterEach(() => { jobObserver.reset(); vi.restoreAllMocks(); vi.useRealTimers() })

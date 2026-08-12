@@ -7,8 +7,19 @@ import { PendingPartCard } from "./pending-part-card"
 
 afterEach(cleanup)
 
-const directory: VoiceDirectory = { config: null, cloned: [], meta: { Tina: { name: "Tina" } }, catalog: [], usage: {} }
-const task: RenderTask = { id: "job-render-1", jobId: "job-render-1", mode: "new", status: "running", text: "In the beginning", voice: "Tina", insertAt: 0, startedAt: Date.now(), payload: { text: "In the beginning", production_id: 28, insert_at: 0, voice: "Tina", engine: "omni", model: "plus", format: "mp3", language: "English", instruction: "", speech_mode: "exact", rate: 1, pitch: 1, volume: 50, seed: 0 } }
+const directory = {
+  config: null, cloned: [], meta: {}, catalog: [], usage: {}, identities: [],
+  registry: {
+    bindings: [{
+      binding_id: "binding-tina", identity_id: "identity-tina", provider_voice_id: "provider-tina",
+      name: "Tina", description: "", languages: ["English"], source: "custom",
+      provider: "alibaba", region: "intl", adapter_key: "omni", engine: "omni",
+      tier: "plus", model_id: "qwen3.5-omni-plus", status: "ready", capabilities: [],
+    }],
+    models: [], presets: [], source: { provider: "Alibaba", verified_at: "", audio_url: "", omni_url: "" },
+  },
+} as unknown as VoiceDirectory
+const task: RenderTask = { id: "job-render-1", jobId: "job-render-1", mode: "new", status: "running", text: "In the beginning", voice: "Tina", insertAt: 0, startedAt: Date.now(), payload: { text: "In the beginning", production_id: 28, insert_at: 0, voice_identity_id: "identity-tina", binding_id: "binding-tina", capability_id: null, format: "mp3", language: "English", instruction: "", speech_mode: "exact", rate: 1, pitch: 1, volume: 50, seed: 0 } }
 
 describe("PendingPartCard", () => {
   it("shows generation feedback in the sequence", () => {

@@ -130,12 +130,11 @@ function registerJob<T>(job: DurableJob<T>) {
 }
 
 async function enqueueSpeech(payload: GeneratePayload, operation?: "record_part" | "render_draft" | "regenerate", partId?: number) {
-  const { voice: _voice, engine: _engine, model: _model, ...requestPayload } = payload
   const prefix = operation === "render_draft" ? `render-draft-${partId}` : operation === "record_part" ? `record-part-${partId}` : operation === "regenerate" ? `regenerate-${partId}` : "speech"
   const response = await request<{ data: DurableJob<GenerateResult> }>("/api/v1/jobs/speech", {
     method: "POST",
     headers: { "Idempotency-Key": `${prefix}-${crypto.randomUUID()}` },
-    body: JSON.stringify(operation ? { ...requestPayload, operation, part_id: partId } : requestPayload),
+    body: JSON.stringify(operation ? { ...payload, operation, part_id: partId } : payload),
   })
   return registerJob(response.data)
 }
@@ -264,7 +263,7 @@ export const studioApi = {
     }),
   saveDraft: (payload: Omit<GeneratePayload, "confirmed">) => {
     if (!payload.production_id) return Promise.reject(new ApiError("Choose a Production before saving a Draft.", 400))
-    const { production_id, voice: _voice, engine: _engine, model: _model, ...draft } = payload
+    const { production_id, ...draft } = payload
     return postV1<{ id: number }>(`/api/v1/productions/${production_id}/parts/drafts`, draft)
   },
   job: <T>(id: string) => v1<DurableJob<T>>(`/api/v1/jobs/${encodeURIComponent(id)}`),

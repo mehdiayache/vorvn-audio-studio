@@ -55,7 +55,7 @@ describe("provider-neutral Composer contract", () => {
     expect(standalone.text).toEqual(production.text)
     expect(standalone.context).toEqual({ kind: "standalone", sessionId: "session-1" })
     expect(production.context).toEqual({ kind: "production", productionId: 7, operation: "new_part", insertion: { kind: "before_part", partId: "part-public-3" } })
-    expect(toGeneratePayload(production, ownedRoute)).toMatchObject({
+    expect(toGeneratePayload(production)).toMatchObject({
       insert_at: null,
       insert_before_part_id: "part-public-3",
     })
@@ -81,15 +81,16 @@ describe("provider-neutral Composer contract", () => {
     expect(command.delivery.modeId).toBe("character_whisper_v2")
   })
 
-  it("derives compatibility labels only in the temporary HTTP adapter", () => {
+  it("sends only the exact route and never provider-derived compatibility fields", () => {
     const command = buildSpeechCommand({ context: compositionContext({}), draft: draft(routeSelection(ownedRoute)) })
-    expect(toGeneratePayload(command, ownedRoute)).toMatchObject({
+    const payload = toGeneratePayload(command)
+    expect(payload).toMatchObject({
       binding_id: "binding-1",
       catalogue_voice_id: null,
-      voice: "provider-voice-1",
-      engine: "audio",
-      model: "flash",
     })
+    expect(payload).not.toHaveProperty("voice")
+    expect(payload).not.toHaveProperty("engine")
+    expect(payload).not.toHaveProperty("model")
   })
 
   it("represents multiple modes on one exact binding and requires an explicit one", () => {

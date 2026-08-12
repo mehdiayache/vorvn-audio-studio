@@ -114,5 +114,26 @@ export function useComposerDraftRecovery(input: {
     setStatus("ready")
   }, [context, enabled])
 
-  return { status, clear, saveNow }
+  const reload = useCallback(async () => {
+    if (!enabled) return
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current)
+    timerRef.current = null
+    setStatus("loading")
+    try {
+      const record = await studioApi.composerDraft(context)
+      if (record) {
+        versionRef.current = record.version
+        restoreRef.current(record.state)
+        setStatus("saved")
+      } else {
+        versionRef.current = null
+        setStatus("ready")
+      }
+      readyRef.current = true
+    } catch {
+      setStatus("error")
+    }
+  }, [context, enabled])
+
+  return { status, clear, saveNow, reload }
 }

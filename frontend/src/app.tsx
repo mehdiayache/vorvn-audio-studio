@@ -37,7 +37,7 @@ function ProductionRoute({ productionId }: { productionId: number }) {
     {production.status === "loading" && !data && <PageLoading />}
     {!data && production.status === "error" && <ErrorState message={production.error || "Unable to load Production."} retry={() => void refresh()} />}
     {data && resources.assetError && <div className="scoped-resource-error" role="alert"><span>Asset library unavailable: {resources.assetError}</span><button type="button" onClick={() => void resources.refreshAssets().catch(() => undefined)}>Retry</button></div>}
-    {data && <ProductionPage production={data} tree={tree.status === "ready" ? tree.data : null} music={music.data || {}} assets={resources.assets} assetCollections={resources.assetCollections} config={resources.config} clonedVoices={resources.cloned} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} />}
+    {data && <ProductionPage production={data} tree={tree.status === "ready" ? tree.data : null} music={music.data || {}} assets={resources.assets} assetCollections={resources.assetCollections} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} />}
   </>
 }
 

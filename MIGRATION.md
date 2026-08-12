@@ -777,3 +777,45 @@ invariants. The runtime smoke used the same working tree as the verified build.
 Verification is provider-free. The checkpoint passes generated OpenAPI,
 TypeScript, the production build, 125 React tests, 316 Python tests and all 11
 live database domain invariants. No Alibaba operation was called.
+
+### UI checkpoint 3 — exact speech contract and shared Composer hosts
+
+- The public Composer command now carries one explicit owned `binding_id` or
+  one explicit `catalogue_voice_id`, plus `capability_id` only when the selected
+  route requires it. Provider voice, engine, model, tier and region are
+  resolved and snapshotted by FastAPI; the frontend no longer sends those
+  compatibility fields as routing authority.
+- `ComposerSurface` is now one provider-neutral state owner shared by Speak
+  and Production. Its WHO, WORDS, PERFORMANCE, OUTPUT and action sections are
+  separate components backed by one recoverable Draft contract. Capability
+  metadata owns visible delivery controls; no Composer section branches on
+  `audio`, `omni` or `qwen_tts`.
+- A fresh Composer never selects the first Voice Identity or route. Selecting
+  a Cast Role may prefill WHO but still clears the route. Changing output
+  language never changes, hides or replaces the operator's exact route.
+- Speak uses the shared Composer inline on desktop and a focus-managed,
+  full-height Sheet on mobile. Production uses a non-modal StudioDock on
+  desktop and the same mobile Sheet host. Closing either host leaves durable
+  Jobs and server Drafts intact.
+- The Production dock reserves the workspace between the sticky Studio chrome
+  and the existing transport. Its actions remain visible and do not overlap
+  playback. The Sequence remains mounted behind the non-modal desktop surface.
+- Batch now reuses `RecordingSetup` for Voice Identity, explicit route,
+  capability and language instead of maintaining a second engine/model state
+  machine. Batch still receives its final workflow convergence in UI
+  checkpoint 7.
+- Draft conflicts preserve local preparation and expose an explicit server
+  reload. Text-pass review, spend confirmation, editorial update choices and
+  durable Job observation remain owned by their existing services rather than
+  becoming visual-only Composer state.
+- The old desktop speech modal and monolithic `SpeechTool` are inaccessible and
+  deleted. Silence and Venture Audio remain in their existing focused dialogs
+  until their Production workspace slice.
+
+Verification is provider-free. Generated OpenAPI, TypeScript, the production
+build, 129 React tests, 316 Python tests and all 11 live database invariants
+pass. Live FastAPI smokes prove an empty exact-route state in fresh Speak and a
+fresh Production insertion, recoverable preparation after reload, desktop
+StudioDock geometry, full-height mobile Sheets at 390 × 844, visible action
+areas and zero document overflow. Activity reported no queued or running work;
+no provider operation was called.

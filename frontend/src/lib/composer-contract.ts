@@ -46,7 +46,7 @@ export type ComposerDelivery = {
   seed: number
 }
 
-export type ComposerOutput = { format: string; language: string }
+export type ComposerOutput = { format: GeneratePayload["format"]; language: string }
 
 export type TextReviewReference = {
   jobId: string
@@ -176,15 +176,8 @@ export function buildSpeechCommand(input: {
   }
 }
 
-/**
- * Temporary HTTP adapter. The command above is the Composer truth. Provider,
- * engine, model and provider voice labels are derived from the validated exact
- * route only because the existing endpoint still accepts those compatibility
- * fields. They are never used to discover or replace a route.
- */
-export function toGeneratePayload(command: SpeechGenerationCommand, route: VoiceChoice): GeneratePayload {
-  const routeId = routeSelectionId(command.route)
-  if (route.id !== routeId) throw new Error("The selected recording route changed. Choose it again.")
+/** Public speech payload. Route snapshots are resolved and persisted by the server. */
+export function toGeneratePayload(command: SpeechGenerationCommand): GeneratePayload {
   const selectedText = command.text[command.text.active] || ""
   const production = command.context.kind === "production" ? command.context : null
   return {
@@ -210,10 +203,6 @@ export function toGeneratePayload(command: SpeechGenerationCommand, route: Voice
     volume: command.delivery.volume,
     seed: command.delivery.seed,
     confirmed: command.confirmed,
-    // Compatibility/display fields, derived exclusively from the exact route.
-    voice: route.providerVoiceId || "",
-    engine: route.engine,
-    model: route.model,
   }
 }
 

@@ -1,8 +1,8 @@
-import type { GeneratePayload, ProductionPart } from "@/types/domain"
+import type { ProductionPart, ResolvedGeneratePayload } from "@/types/domain"
 import type { StudioConfig } from "@/types/domain"
 import { SpeechModelIdentity, speechProductName, speechTierName } from "@/components/speech-model-identity"
 
-type SpeechRoute = Pick<GeneratePayload, "engine" | "model" | "language"> | Pick<ProductionPart, "engine" | "model" | "language">
+type SpeechRoute = Pick<ResolvedGeneratePayload, "engine" | "model" | "language"> | Pick<ProductionPart, "engine" | "model" | "language">
 
 export function speechEngineLabel(engine?: string | null) {
   return engine ? speechProductName(engine) : "Speech"

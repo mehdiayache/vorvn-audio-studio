@@ -71,4 +71,27 @@ describe("useComposerDraftRecovery", () => {
     expect(api.saveComposerDraft).toHaveBeenCalledWith(context, next, null)
     expect(result.current.status).toBe("saved")
   })
+
+  it("preserves the local draft on conflict and reloads only after an explicit action", async () => {
+    api.composerDraft
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: "draft-server", version: 4, updatedAt: "later",
+        state: { ...emptyDraft(), text: { raw: "Server words", shaped: "", tagged: "", active: "raw" } },
+      })
+    api.saveComposerDraft.mockRejectedValue(Object.assign(new Error("Draft conflict"), { status: 409 }))
+    const context = { kind: "standalone" as const, sessionId: "11111111-1111-4111-8111-111111111111" }
+    const local = { ...emptyDraft(), text: { raw: "Local words", shaped: "", tagged: "", active: "raw" as const } }
+    const onRestore = vi.fn()
+    const { result } = renderHook(() => useComposerDraftRecovery({ context, draft: local, onRestore }))
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+
+    await act(async () => { await expect(result.current.saveNow(local)).rejects.toThrow("Draft conflict") })
+    expect(result.current.status).toBe("conflict")
+    expect(onRestore).not.toHaveBeenCalled()
+
+    await act(async () => { await result.current.reload() })
+    expect(onRestore).toHaveBeenCalledWith(expect.objectContaining({ text: expect.objectContaining({ raw: "Server words" }) }))
+    expect(result.current.status).toBe("saved")
+  })
 })

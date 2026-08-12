@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import type { ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
-import { SpeechTool } from "./speech-tool"
+import { ComposerSurface } from "@/features/composer/composer-surface"
 
 afterEach(cleanup)
 
@@ -30,16 +30,15 @@ const config = {
 
 const common = {
   config,
-  clonedVoices: [],
   directory,
   playerPlaying: false,
   onGenerate: vi.fn(),
   onPlay: vi.fn(),
 }
 
-describe("SpeechTool contract adapters", () => {
+describe("shared Composer contract", () => {
   it("does not silently select the first identity or exact route in fresh Speak", async () => {
-    render(<SpeechTool {...common} />)
+    render(<ComposerSurface {...common} />)
     await waitFor(() => expect(screen.getByText("Choose a voice to see its exact routes.")).toBeTruthy())
     expect(screen.getByRole("button", { name: "Choose a voice" })).toBeTruthy()
     expect(screen.getByText("No route selected")).toBeTruthy()
@@ -48,19 +47,19 @@ describe("SpeechTool contract adapters", () => {
 
   it("restores explicit Part identity context without inventing a route", async () => {
     const part = { id: 7, kind: "speech", text: "Hello", cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
-    render(<SpeechTool {...common} projectId={3} part={part} />)
+    render(<ComposerSurface {...common} productionId={3} part={part} />)
     await waitFor(() => expect(screen.getAllByText("Sarah").length).toBeGreaterThan(0))
-    expect(screen.getByText("Choose one exact provider binding. Audio Studio never picks one for you.")).toBeTruthy()
-    expect(screen.getByRole("button", { name: /Generate new take/ }).hasAttribute("disabled")).toBe(true)
+    expect(screen.getByText("Choose one exact route. Audio Studio never picks, replaces or falls back for you.")).toBeTruthy()
+    expect(screen.getByRole("button", { name: /Generate alternative/ }).hasAttribute("disabled")).toBe(true)
   })
 
   it("requires an explicit editorial decision before generating changed Part words", async () => {
     const onGenerate = vi.fn().mockResolvedValue({ id: "job-1" })
     const onUpdateEditorial = vi.fn().mockResolvedValue(undefined)
     const part = { id: 8, kind: "draft", text: "Original words", text_raw: "Original words", revision: 3, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
-    render(<SpeechTool {...common} projectId={3} part={part} onGenerate={onGenerate} onUpdateEditorial={onUpdateEditorial} />)
+    render(<ComposerSurface {...common} productionId={3} part={part} onGenerate={onGenerate} onUpdateEditorial={onUpdateEditorial} />)
     await waitFor(() => expect(screen.getByRole("button", { name: /Record Part/ }).hasAttribute("disabled")).toBe(false))
-    fireEvent.click(screen.getByRole("button", { name: /Script:/ }))
+    fireEvent.click(screen.getByRole("button", { name: /Words:/ }))
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "Revised words" } })
     fireEvent.click(screen.getByRole("button", { name: /Record Part/ }))
     expect(screen.getByText("The Part has unsaved editorial changes")).toBeTruthy()

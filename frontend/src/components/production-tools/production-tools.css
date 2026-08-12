@@ -98,7 +98,8 @@
 .voice-language-support.compact { margin-top: 4px; padding: 10px; }
 .route-conflict { padding: 11px 12px; border: 1px solid var(--danger-border); border-radius: 10px; background: var(--danger-soft); }
 .capability-unavailable { margin: 9px 2px 0; color: var(--muted-foreground); font-size: var(--type-caption); }
-.capability-empty { padding: 14px; border: 1px solid var(--danger-border); border-radius: 10px; background: var(--danger-soft); }
+.capability-empty { display: grid; gap: 4px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--muted); }
+.capability-empty span { color: var(--muted-foreground); }
 .quality-grid { max-width: 360px; margin-top: 14px; }
 .composer-fine-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 24px; }
 .composer-fine-grid label > span { display: flex; justify-content: space-between; margin-bottom: 11px; color: var(--muted-foreground); font-size: var(--type-small); }
