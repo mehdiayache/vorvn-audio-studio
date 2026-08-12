@@ -277,6 +277,14 @@ class JobRepository:
     def fail(self, job_id: int, error: str, retry: bool = False,
              result: dict[str, Any] | None = None) -> None:
         result = result or {}
+        requires_review = bool(
+            result.get("requires_review")
+            or result.get("ambiguous")
+            or result.get("provider_succeeded")
+        )
+        effective_retry = retry and not requires_review
+        final_status = "blocked" if requires_review else (
+            "retrying" if effective_retry else "failed")
         with transaction() as cursor:
             cursor.execute("""
                 UPDATE jobs SET status = %s, error = %s, retries = retries + 1,
@@ -289,7 +297,7 @@ class JobRepository:
                        finished_at = CASE WHEN %s THEN NULL ELSE now() END
                  WHERE id = %s AND status = 'running'
             """, (
-                "retrying" if retry else "failed", error[:400],
+                final_status, error[:400],
                 json.dumps(result), float(result.get("cost") or 0),
                 json.dumps(result.get("usage") or {}),
                 result.get("provider_request_id"),
@@ -298,19 +306,23 @@ class JobRepository:
                 result.get("provider_endpoint"),
                 json.dumps({"model": result.get("model"),
                             "region": result.get("provider_region")}),
-                retry, retry, job_id,
+                effective_retry, effective_retry, job_id,
             ))
             if cursor.rowcount != 1:
                 return
             cursor.execute("INSERT INTO job_events (job_id, kind, detail) VALUES (%s, %s, %s::jsonb)",
-                           (job_id, "retrying" if retry else "failed",
+                           (job_id, final_status,
                             json.dumps({"error": error[:400],
-                                        "result": result})))
+                                        "result": result,
+                                        "requires_review": requires_review})))
             cursor.execute("SELECT actor_id, organization_id, kind FROM jobs WHERE id = %s", (job_id,))
             row = cursor.fetchone()
             if row:
-                self._audit(cursor, row[0], row[1], "job.failed", job_id,
-                            {"kind": row[2], "error": error[:400]})
+                self._audit(cursor, row[0], row[1],
+                            "job.review_required" if requires_review
+                            else "job.failed", job_id,
+                            {"kind": row[2], "error": error[:400],
+                             "requires_review": requires_review})
 
     def abandon_stale(self, older_than_seconds: int = 120) -> int:
         """Expire stopped leases and preserve conservative paid-call evidence."""
@@ -342,6 +354,19 @@ class JobRepository:
                            'message','The worker stopped after this provider operation began.',
                            'reason','worker_lease_lost')
                  WHERE job_id=ANY(%s) AND status IN ('not_sent','sent')
+            """, (job_ids,))
+            cursor.execute("""
+                UPDATE jobs job
+                   SET status='blocked',
+                       error='The worker stopped after a provider request was sent. Review the attempt before retrying.',
+                       result=coalesce(job.result, '{}'::jsonb)
+                              || jsonb_build_object('ambiguous', true,
+                                                    'requires_review', true)
+                 WHERE job.id=ANY(%s)
+                   AND EXISTS (
+                       SELECT 1 FROM provider_attempts attempt
+                        WHERE attempt.job_id=job.id
+                          AND attempt.status='ambiguous')
             """, (job_ids,))
             cursor.execute("""
                 UPDATE budget_reservations reservation

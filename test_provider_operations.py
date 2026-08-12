@@ -117,10 +117,15 @@ class ProviderOperationTests(unittest.TestCase):
             budget_row = database.execute(
                 "SELECT status,actual_cost FROM budget_reservations WHERE id=%s",
                 (int(reservation),)).fetchone()
+            job_status = database.execute(
+                "SELECT status,result FROM jobs WHERE id=%s",
+                (job_id,)).fetchone()
         self.assertEqual(attempt_row[0], "ambiguous")
         self.assertAlmostEqual(float(attempt_row[1]), .02)
         self.assertEqual(budget_row[0], "ambiguous")
         self.assertAlmostEqual(float(budget_row[1]), .02)
+        self.assertEqual(job_status[0], "blocked")
+        self.assertTrue(job_status[1]["requires_review"])
 
     def test_failure_classification_is_conservative_after_send(self):
         self.assertEqual(self.service.failure_status(

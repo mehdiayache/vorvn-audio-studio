@@ -626,3 +626,40 @@ provider, adapter and price facts through assembly. Speak and Production both
 showed the expected tag/direction/tuning controls for the same cloned routes,
 with a clean browser console. Final verification passes 312 Python tests and
 114 React tests plus generated OpenAPI, TypeScript and the production build.
+
+Checkpoint 7 closes the shared Composer execution lifecycle from durable Job
+through pending presentation to Take, without moving execution truth into the
+Composer or Player.
+
+- Production still creates its pending Speech Part transactionally with the
+  Job before a provider call. Closing the Composer therefore leaves an
+  immediate durable card, and Production recovers that card from the Part's
+  latest speech Job after navigation or reload.
+- Speak now recovers queued/running/retrying Jobs from its durable recording
+  session ledger. A Job observer can be mounted before discovery and then
+  attach by public Job ID, so remounting the page no longer leaves a frozen
+  pending card or requires the original enqueue Promise to survive.
+- The shared Job observer owns polling independently of any mounted Composer.
+  Speak and Production only project its state; unmounting either UI does not
+  cancel the Job or create another polling owner.
+- Paid-call uncertainty is now a backend state invariant. Failures containing
+  ambiguous or provider-succeeded evidence become `blocked`, never an ordinary
+  retryable failure—even if a caller asks for automatic retry. A lost worker
+  lease also promotes a sent ProviderAttempt and its Job to review-required.
+- Definitive provider rejection remains `failed` and may be explicitly retried.
+  Speak and Production both render `blocked` as Review required with no Retry
+  action; evidence and cost remain attached to the original Job/Attempt.
+- Successful Speak Jobs refresh the recording-session ledger and become normal
+  immutable Take cards. Pending projections are filtered from the ledger while
+  observed, avoiding duplicate cards during the handoff.
+- Player ownership is unchanged: execution never owns playback. The global
+  player receives a source only after a successful result; blocked, failed and
+  pending states cannot expose false playback controls.
+
+Verification is provider-free. PostgreSQL tests prove definitive failure,
+ambiguous review, refusal of unsafe automatic retry and stale sent-attempt
+recovery. React tests prove observer rediscovery after navigation, active Speak
+session recovery, review presentation and the absence of retry/play controls
+for non-results. Final verification passes 313 Python tests and 119 React tests
+plus generated OpenAPI, TypeScript and the production build. No Alibaba
+operation was called.

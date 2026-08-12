@@ -36,4 +36,11 @@ describe("RecordingTakeCard", () => {
     expect(screen.getByText("Generating")).toBeTruthy()
     expect(screen.queryByRole("button", { name: /Play take/ })).toBeNull()
   })
+
+  it("shows an ambiguous attempt as review-required without retry", () => {
+    render(<RecordingTakeCard take={{ id: "blocked", status: "review", voice: "voice-3zzi", message: "Review before retrying" }} directory={directory} />)
+    expect(screen.getByText("Review required")).toBeTruthy()
+    expect(screen.getByText("Review before retrying")).toBeTruthy()
+    expect(screen.queryByRole("button", { name: /Another take/ })).toBeNull()
+  })
 })

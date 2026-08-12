@@ -207,6 +207,50 @@ class JobRepositoryTests(unittest.TestCase):
                 connection.commit()
             connection.close()
 
+    def test_paid_failure_evidence_requires_review_and_cannot_retry_automatically(self):
+        try:
+            connection = psycopg.connect(settings.database_url)
+        except psycopg.OperationalError as exc:
+            self.skipTest(str(exc))
+        repository = jobs_module.JobRepository()
+        job_ids = []
+        try:
+            ambiguous, _ = repository.enqueue(
+                "fixture_review", {},
+                idempotency_key=f"review-test-{uuid4()}")
+            job_ids.append(ambiguous.id)
+            self.assertEqual(repository.claim_next(["fixture_review"]).id,
+                             ambiguous.id)
+            repository.fail(
+                ambiguous.id, "response lost", retry=True,
+                result={"ambiguous": True, "requires_review": True,
+                        "cost": .02})
+
+            definitive, _ = repository.enqueue(
+                "fixture_failure", {},
+                idempotency_key=f"failure-test-{uuid4()}")
+            job_ids.append(definitive.id)
+            self.assertEqual(repository.claim_next(["fixture_failure"]).id,
+                             definitive.id)
+            repository.fail(definitive.id, "invalid request", result={})
+
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT status, cost, result FROM jobs WHERE id=%s",
+                    (ambiguous.id,))
+                status, cost, result = cursor.fetchone()
+                self.assertEqual(status, "blocked")
+                self.assertAlmostEqual(float(cost), .02)
+                self.assertTrue(result["requires_review"])
+                cursor.execute(
+                    "SELECT status FROM jobs WHERE id=%s", (definitive.id,))
+                self.assertEqual(cursor.fetchone()[0], "failed")
+        finally:
+            with connection.cursor() as cursor:
+                cursor.execute("DELETE FROM jobs WHERE id=ANY(%s)", (job_ids,))
+            connection.commit()
+            connection.close()
+
     def test_lease_prevents_false_loss_and_terminal_state_cannot_be_overwritten(self):
         try:
             connection = psycopg.connect(settings.database_url)

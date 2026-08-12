@@ -22,6 +22,7 @@ type Entry = {
 class DurableJobObserver {
   private entries = new Map<string, Entry>()
   private discoveries = new Map<string, Promise<unknown>>()
+  private pendingListeners = new Map<string, Set<Listener>>()
 
   register<T>(job: DurableJob<T>, reader: (id: string) => Promise<DurableJob<T>>) {
     const existing = this.entries.get(job.id)
@@ -39,12 +40,14 @@ class DurableJobObserver {
     const entry: Entry = {
       snapshot: job as DurableJob<unknown>,
       reader: reader as JobReader,
-      listeners: new Set(), completion, resolve, reject,
+      listeners: this.pendingListeners.get(job.id) || new Set(), completion, resolve, reject,
       timer: null,
       deadline: Date.now() + 30 * 60 * 1000,
       active: true,
     }
+    this.pendingListeners.delete(job.id)
     this.entries.set(job.id, entry)
+    for (const listener of entry.listeners) listener()
     if (this.settleIfTerminal(entry)) return job
     this.schedule(job.id, entry, 0)
     return job
@@ -79,7 +82,15 @@ class DurableJobObserver {
   subscribe(jobId: string | null, listener: Listener) {
     if (!jobId) return () => undefined
     const entry = this.entries.get(jobId)
-    if (!entry) return () => undefined
+    if (!entry) {
+      const listeners = this.pendingListeners.get(jobId) || new Set<Listener>()
+      listeners.add(listener)
+      this.pendingListeners.set(jobId, listeners)
+      return () => {
+        listeners.delete(listener)
+        if (!listeners.size) this.pendingListeners.delete(jobId)
+      }
+    }
     entry.listeners.add(listener)
     return () => entry.listeners.delete(listener)
   }
@@ -92,6 +103,7 @@ class DurableJobObserver {
     for (const entry of this.entries.values()) if (entry.timer !== null) globalThis.clearTimeout(entry.timer)
     this.entries.clear()
     this.discoveries.clear()
+    this.pendingListeners.clear()
   }
 
   private schedule(jobId: string, entry: Entry, delay: number) {

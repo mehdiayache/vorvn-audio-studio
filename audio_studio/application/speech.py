@@ -276,6 +276,7 @@ class SpeechGenerationService:
                 "The provider response was lost after the paid request was sent. "
                 "Review this ambiguous attempt before retrying.",
                 {"provider_attempt_id": attempt_id, "ambiguous": True,
+                 "requires_review": True,
                  "estimated_cost": estimate}) from exc
         if not made.audio:
             if attempt_id:
@@ -333,6 +334,7 @@ class SpeechGenerationService:
                 "make a new paid attempt.",
                 {"provider_attempt_id": attempt_id,
                  "provider_succeeded": True,
+                 "requires_review": True,
                  "cost": float(made.cost or 0), "usage": made.usage,
                  "cost_basis": made.cost_basis,
                  "price_version": made.price_version,
@@ -378,6 +380,7 @@ class SpeechGenerationService:
                 "must be recovered instead of synthesized again.",
                 {"provider_attempt_id": attempt_id,
                  "provider_succeeded": True,
+                 "requires_review": True,
                  "cost": float(made.cost or 0), "usage": made.usage,
                  "cost_basis": made.cost_basis,
                  "price_version": made.price_version,

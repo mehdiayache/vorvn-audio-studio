@@ -51,4 +51,16 @@ describe("job observer", () => {
     await expect(first).resolves.toEqual({ value: 9 })
     expect(read).toHaveBeenCalledTimes(1)
   })
+
+  it("notifies subscribers that mounted before a durable Job was rediscovered", async () => {
+    vi.useFakeTimers()
+    const listener = vi.fn()
+    const unsubscribe = jobObserver.subscribe("job-1", listener)
+    const read = vi.fn().mockResolvedValue(job("running"))
+    void jobObserver.observe("job-1", read)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(listener).toHaveBeenCalled()
+    expect(jobObserver.getSnapshot("job-1")).toMatchObject({ status: "running" })
+    unsubscribe()
+  })
 })
