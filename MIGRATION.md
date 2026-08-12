@@ -1135,3 +1135,26 @@ smokes cover Work → Venture → Production, the nine-Part sequence, non-modal
 Composer collapse/resume, global playback while Composer is open, readiness and
 a clean console. No Generate, clone, transcription, translation or other paid
 provider operation was invoked.
+
+### Runtime correction — archived slot reconciliation before speech enqueue
+
+- A real Production speech request exposed one deployment-order edge case:
+  migration 025 had already run while the previous API process was still able
+  to archive a Part using the pre-025 implementation. That Part subsequently
+  retained position `0`, so a new Part inserted into the otherwise empty
+  Production failed at commit before any provider request was made.
+- Migration 026 reconciles that narrow transition window. More importantly,
+  every canonical Part insertion boundary now releases any stale archived
+  positions transactionally before calculating or shifting active positions.
+  Production speech, timeline insertion/duplication and the worker-side speech
+  repository share this invariant instead of relying only on a one-time repair.
+- The regression test reproduces the exact state: an active insertion anchor,
+  an older archived Part occupying the next slot, and atomic Part + Job enqueue.
+  The archived provenance is preserved in `archived_position`, the active slot
+  is released, one draft Part and one durable Job are created, and provider code
+  is never reached by the test.
+
+Verification is provider-free: 321 Python tests and all 11 live database domain
+checks pass. Migration 026 was applied to the running database; the affected
+Production now has no archived Part occupying an active position, and the
+restarted API and worker report the same ready runtime ID.

@@ -9,6 +9,9 @@ from uuid import UUID
 
 from audio_studio.domain.jobs import Job
 from audio_studio.infrastructure.postgres.jobs import JobRepository
+from audio_studio.infrastructure.postgres.part_positions import (
+    release_archived_positions,
+)
 from audio_studio.infrastructure.postgres.session import transaction
 
 
@@ -74,6 +77,7 @@ class ProductionSpeechCommandRepository:
         """, (production_id,))
         if not cursor.fetchone():
             raise LookupError("That Production no longer exists.")
+        release_archived_positions(cursor, production_id)
         if before_part_public_id:
             cursor.execute("""
                 SELECT position FROM production_parts

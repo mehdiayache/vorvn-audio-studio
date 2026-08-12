@@ -10,6 +10,9 @@ from audio_studio.infrastructure.postgres.session import read_only, transaction
 from audio_studio.infrastructure.postgres.provider_catalogue import (
     ProviderCatalogueRepository,
 )
+from audio_studio.infrastructure.postgres.part_positions import (
+    release_archived_positions,
+)
 from audio_studio.infrastructure.postgres.spend import today_provider_spend
 
 
@@ -191,6 +194,7 @@ class SpeechRepository:
                            (production_id,))
             if not cursor.fetchone():
                 raise LookupError("That Production no longer exists.")
+            release_archived_positions(cursor, production_id)
             cursor.execute("SELECT coalesce(max(position), -1) + 1 FROM production_parts WHERE production_id = %s AND archived_at IS NULL",
                            (production_id,))
             next_position = int(cursor.fetchone()[0] or 0)

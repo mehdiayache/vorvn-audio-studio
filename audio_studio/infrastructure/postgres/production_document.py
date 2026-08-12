@@ -12,6 +12,9 @@ import json
 from typing import Any
 
 from audio_studio.infrastructure.postgres.session import read_only, transaction
+from audio_studio.infrastructure.postgres.part_positions import (
+    release_archived_positions,
+)
 
 
 MUSIC_LEVELS = {"discreet": 0.10, "present": 0.20, "loud": 0.34}
@@ -315,6 +318,7 @@ class ProductionDocumentRepository:
         with transaction() as cursor:
             if self._legacy_id(cursor, production_id, lock=True) is None:
                 return None
+            release_archived_positions(cursor, production_id)
             next_position = self._next_position(cursor, production_id)
             if before_part_public_id:
                 cursor.execute("""
@@ -613,6 +617,7 @@ class ProductionDocumentRepository:
             row = self._part_row(cursor, production_id, part_id, lock=True)
             if not row:
                 return None
+            release_archived_positions(cursor, production_id)
             position = int(row[3] or 0) + 1
             cursor.execute("""
                 UPDATE production_parts SET position=position+1, updated_at=now()

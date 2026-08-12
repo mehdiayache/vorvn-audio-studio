@@ -90,6 +90,15 @@ class JobRepositoryTests(unittest.TestCase):
                 RETURNING id, public_id
             """, (production_id, anchor_position))
             anchor_id, anchor_public_id = cursor.fetchone()
+            cursor.execute("""
+                INSERT INTO production_parts
+                    (production_id, position, kind, script,
+                     editorial_status, revision, archived_at)
+                VALUES (%s, %s, 'speech', 'Archived by an older runtime',
+                        'ready', 1, now())
+                RETURNING id
+            """, (production_id, anchor_position + 1))
+            stale_archived_id = int(cursor.fetchone()[0])
 
             @contextmanager
             def rolled_back_transaction():
@@ -131,6 +140,12 @@ class JobRepositoryTests(unittest.TestCase):
                     "SELECT position FROM production_parts WHERE id=%s",
                     (anchor_id,))
                 self.assertEqual(cursor.fetchone()[0], anchor_position + 1)
+                cursor.execute("""
+                    SELECT position, archived_position
+                      FROM production_parts WHERE id=%s
+                """, (stale_archived_id,))
+                self.assertEqual(cursor.fetchone(), (
+                    None, anchor_position + 1))
                 self.assertEqual(job.payload["operation"], "record_part")
                 self.assertEqual(job.payload["part_id"], job.part_id)
                 self.assertEqual(job.payload["_source_part_revision"], 1)
