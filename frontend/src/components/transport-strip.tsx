@@ -32,12 +32,13 @@ export type TransportStripViewProps = {
   onVolume: (volume: number) => void
   onSpeed: (speed: number) => void
   onClose: () => void
+  variant?: "shell" | "composer"
 }
 
-export function TransportStripView({ source, state, currentTime, duration, volume, speed, onToggle, onSeek, onVolume, onSpeed, onClose }: TransportStripViewProps) {
+export function TransportStripView({ source, state, currentTime, duration, volume, speed, onToggle, onSeek, onVolume, onSpeed, onClose, variant = "shell" }: TransportStripViewProps) {
   if (!source) return null
   const playLabel = state === "playing" ? `Pause ${source.title}` : `Play ${source.title}`
-  return <section className="transport-strip" aria-label="Audio player" data-source-kind={source.kind}>
+  return <section className={`transport-strip is-${variant}`} aria-label="Audio player" data-source-kind={source.kind}>
     <span className="transport-strip-art" aria-hidden="true">{source.artwork ? <img src={source.artwork} alt="" /> : <AudioLines />}</span>
     <div className="transport-strip-copy"><small>{sourceLabels[source.kind]}</small><b title={source.title}>{source.title}</b>{source.subtitle && <span title={source.subtitle}>{source.subtitle}</span>}</div>
     <Button className="transport-strip-play" size="icon" onClick={onToggle} aria-label={playLabel}>{state === "loading" ? <LoaderCircle className="spin" /> : state === "playing" ? <Pause /> : <Play />}</Button>
@@ -53,7 +54,8 @@ export function TransportStripView({ source, state, currentTime, duration, volum
   </section>
 }
 
-export function TransportStrip() {
+export function TransportStrip({ host = "shell" }: { host?: "shell" | "composer" }) {
   const player = useGlobalPlayer()
-  return <TransportStripView source={player.source} state={player.state} currentTime={player.currentTime} duration={player.duration} volume={player.volume} speed={player.speed} onToggle={() => void player.toggle()} onSeek={player.seek} onVolume={player.setVolume} onSpeed={player.setSpeed} onClose={player.close} />
+  if (player.transportHost !== host) return null
+  return <TransportStripView variant={host} source={player.source} state={player.state} currentTime={player.currentTime} duration={player.duration} volume={player.volume} speed={player.speed} onToggle={() => void player.toggle()} onSeek={player.seek} onVolume={player.setVolume} onSpeed={player.setSpeed} onClose={player.close} />
 }

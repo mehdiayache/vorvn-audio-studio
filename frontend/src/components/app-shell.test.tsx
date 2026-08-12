@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from "@testing-library/react"
-import { MemoryRouter, Route, Routes } from "react-router-dom"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { useState } from "react"
+import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { AppShell, activeAudioStudioDestination } from "@/components/app-shell"
@@ -43,6 +44,28 @@ function renderShell(mode: "standalone" | "embedded") {
   )
 }
 
+function QueryWorkspace({ queryKey }: { queryKey: "batch-job" | "subtitle-job" }) {
+  const navigate = useNavigate()
+  const [value, setValue] = useState("")
+  return <section>
+    <label>Workspace value<input aria-label={`${queryKey} workspace value`} value={value} onChange={(event) => setValue(event.target.value)} /></label>
+    <button onClick={() => navigate({ search: `?${queryKey}=job-123` })}>Persist Job in URL</button>
+  </section>
+}
+
+function renderQueryWorkspace(path: string, queryKey: "batch-job" | "subtitle-job") {
+  vi.mocked(studioApi.config).mockResolvedValue(configured)
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <ProductReadinessProvider><GlobalPlayerProvider><Routes>
+        <Route path="/audio-studio" element={<AppShell />}>
+          <Route path={queryKey === "batch-job" ? "batch" : "subtitles"} element={<QueryWorkspace queryKey={queryKey} />} />
+        </Route>
+      </Routes></GlobalPlayerProvider></ProductReadinessProvider>
+    </MemoryRouter>,
+  )
+}
+
 describe("Audio Studio shell", () => {
   it("derives one honest destination from tool and Work resource routes", () => {
     expect(activeAudioStudioDestination("/audio-studio/speak")).toBe("Speak")
@@ -63,5 +86,16 @@ describe("Audio Studio shell", () => {
     expect(screen.queryByRole("link", { name: "Audio Studio Work" })).toBeNull()
     expect(screen.getByRole("navigation", { name: "Audio Studio tools" })).toBeTruthy()
     await waitFor(() => expect(studioApi.config).toHaveBeenCalledTimes(1))
+  })
+
+  it.each([
+    ["Batch", "/audio-studio/batch", "batch-job"],
+    ["Subtitles", "/audio-studio/subtitles", "subtitle-job"],
+  ] as const)("keeps the %s workspace mounted when its durable Job query changes", (_name, path, queryKey) => {
+    renderQueryWorkspace(path, queryKey)
+    const input = screen.getByRole("textbox", { name: `${queryKey} workspace value` })
+    fireEvent.change(input, { target: { value: "operator state" } })
+    fireEvent.click(screen.getByRole("button", { name: "Persist Job in URL" }))
+    expect((screen.getByRole("textbox", { name: `${queryKey} workspace value` }) as HTMLInputElement).value).toBe("operator state")
   })
 })

@@ -99,7 +99,7 @@ export function AppShell({ mode = "standalone" }: { mode?: AudioStudioMountMode 
       )}
       <StudioHorizontalChrome items={audioStudioNavigation} />
       <main id="audio-studio-content" className="audio-studio-viewport" tabIndex={-1}>
-        <AppErrorBoundary key={`${location.pathname}${location.search}`}>
+        <AppErrorBoundary key={location.pathname}>
           <Outlet />
         </AppErrorBoundary>
       </main>

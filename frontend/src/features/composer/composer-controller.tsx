@@ -54,7 +54,7 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
   const [castRoleId, setCastRoleId] = useState(part?.cast_role_id || "")
   const [language, setLanguage] = useState(part?.language || "Auto")
   const [format, setFormat] = useState<GeneratePayload["format"]>((part?.format as GeneratePayload["format"]) || "mp3")
-  const [deliveryModeRequest, setDeliveryModeRequest] = useState<"exact" | "directed">((part?.speech_mode as "exact" | "directed") || "exact")
+  const [deliveryModeRequest, setDeliveryModeRequest] = useState<string>(part?.speech_mode || "exact")
   const [instruction, setInstruction] = useState(part?.instruction || "")
   const [rate, setRate] = useState(part?.rate ?? 1)
   const [pitch, setPitch] = useState(part?.pitch ?? 1)
@@ -79,7 +79,7 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
     setCastRoleId(part?.cast_role_id || "")
     setLanguage(part?.language || "Auto")
     setFormat((part?.format as GeneratePayload["format"]) || "mp3")
-    setDeliveryModeRequest((part?.speech_mode as "exact" | "directed") || "exact")
+    setDeliveryModeRequest(part?.speech_mode || "exact")
     setInstruction(part?.instruction || "")
     setRate(part?.rate ?? 1)
     setPitch(part?.pitch ?? 1)
@@ -91,7 +91,13 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
     [directory.identities, directory.registry],
   )
   const selectedIdentity = identities.find((identity) => identity.identityId === identityId)
-  const compatibleRoutes = useMemo(() => routesForIdentity(selectedIdentity, language), [language, selectedIdentity])
+  const selectedCastRole = cast.find((item) => item.id === castRoleId)
+  const compatibleRoutes = useMemo(() => {
+    const routes = routesForIdentity(selectedIdentity, language)
+    if (selectedCastRole?.voice_source_kind !== "catalogue" || !selectedCastRole.catalogue_voice_id) return routes
+    return routes.filter((item) => item.catalogueVoiceId === selectedCastRole.catalogue_voice_id)
+  }, [language, selectedCastRole?.catalogue_voice_id, selectedCastRole?.voice_source_kind, selectedIdentity])
+  const visibleRoutes = selectedCastRole?.voice_source_kind === "catalogue" ? compatibleRoutes : selectedIdentity?.routes || []
   const selectedRoute = selectedIdentity?.routes.find((item) => item.id === routeSelectionId(route))
   const currentRoute = resolveSelectedRoute(route, compatibleRoutes)
   const selectedCapability = selectedRouteCapability(currentRoute, route?.capabilityId)
@@ -191,7 +197,7 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
       setRoute(saved.route)
       setTextReviewReference(saved.textPreparation.pendingReview)
       textSession.restore(saved.text, saved.textPreparation.tagDensity)
-      setDeliveryModeRequest(saved.delivery.modeId === "directed" ? "directed" : "exact")
+      setDeliveryModeRequest(saved.delivery.modeId || "exact")
       setInstruction(saved.delivery.instruction)
       setRate(saved.delivery.rate)
       setPitch(saved.delivery.pitch)
@@ -270,7 +276,7 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
     productionId, sessionId, nextPartNumber, insertAt, insertBeforePartId, part, config, directory, cast, playingKey, playerPlaying, onSave, onPlay,
     route, identityId, castRoleId, language, format, deliveryModeRequest, instruction, rate, pitch, volume,
     section, busy, confirmationEstimate, pendingCommand, editorialCommand, textReviewReference,
-    identities, selectedIdentity, compatibleRoutes, currentRoute, selectedCapability, capabilityControls, deliveryMode,
+    identities, selectedIdentity, selectedCastRole, compatibleRoutes, visibleRoutes, currentRoute, selectedCapability, capabilityControls, deliveryMode,
     textSession, languageOptions, taggedIncompatible, hasInlineDeliveryTag, estimate, textPassEstimate, destination,
     recovery, performancePresets, methodLabel,
     setSection, setLanguage, setFormat, setDeliveryModeRequest, setInstruction, setRate, setPitch, setVolume,

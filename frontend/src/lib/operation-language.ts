@@ -12,3 +12,9 @@ export function operatorErrorMessage(value?: string | null) {
   const firstLine = message.split(/\r?\n/, 1)[0] || message
   return firstLine.length > 220 ? `${firstLine.slice(0, 217)}…` : firstLine
 }
+
+export function operationStatusLabel(status: string, result?: { requires_review?: boolean; ambiguous?: boolean; needs_confirmation?: boolean } | null) {
+  if (status === "blocked" && (result?.requires_review || result?.ambiguous)) return "Review required"
+  if (status === "blocked" && result?.needs_confirmation) return "Confirmation required"
+  return ({ queued: "Queued", running: "Running", retrying: "Retrying", ok: "Completed", warning: "Completed with warnings", failed: "Failed", lost: "Interrupted", cancelled: "Cancelled", blocked: "Blocked" } as Record<string, string>)[status] || status
+}

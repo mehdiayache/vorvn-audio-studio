@@ -36,6 +36,7 @@ class JobResponse(BaseModel):
     finished_at: datetime | None = None
     result: dict[str, Any]
     part_id: int | None = None
+    context: dict[str, Any] = Field(default_factory=dict)
 
 
 class JobMeta(BaseModel):
@@ -89,7 +90,7 @@ class SpeechJobCreate(BaseModel):
     format: Literal["mp3", "mp3-24k", "wav", "opus"] = "mp3"
     language: str = Field(default="Auto", max_length=80)
     instruction: str = Field(default="", max_length=100)
-    speech_mode: Literal["exact", "directed"] = "exact"
+    speech_mode: str = Field(default="exact", min_length=1, max_length=120)
     rate: float = Field(default=1, ge=.5, le=2)
     pitch: float = Field(default=1, ge=.5, le=2)
     volume: int = Field(default=50, ge=0, le=100)
@@ -221,13 +222,19 @@ class RenderJobCreate(BaseModel):
 
 
 def _payload(job: Job) -> dict:
+    context_keys = {
+        "part_id", "production_id", "transcript_id", "target", "language",
+        "operation", "confirmed",
+    }
     return {"id": str(job.public_id), "type": job.kind, "status": job.status,
             "progress": job.progress, "detail": job.detail,
             "error": job.error or None, "retries": job.retries,
             "created_at": job.created_at.isoformat() if job.created_at else None,
             "started_at": job.started_at.isoformat() if job.started_at else None,
             "finished_at": job.finished_at.isoformat() if job.finished_at else None,
-            "result": job.result, "part_id": job.part_id}
+            "result": job.result, "part_id": job.part_id,
+            "context": {key: value for key, value in job.payload.items()
+                        if key in context_keys}}
 
 
 @router.post("/speech", operation_id="createSpeechJob", status_code=202,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class OutputReference(BaseModel):
@@ -49,6 +49,8 @@ class ActivityRunResponse(BaseModel):
     provider_attempt_status: str | None = None
     provider_attempt_id: str | None = None
     requires_review: bool = False
+    needs_confirmation: bool = False
+    review_evidence: dict[str, Any] = Field(default_factory=dict)
     production_id: int | None
     production_name: str | None
     where: str

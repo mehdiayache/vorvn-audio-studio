@@ -15,7 +15,6 @@ type Entry = {
   resolve: (result: unknown) => void
   reject: (error: unknown) => void
   timer: ReturnType<typeof globalThis.setTimeout> | null
-  deadline: number
   active: boolean
 }
 
@@ -38,7 +37,6 @@ class DurableJobObserver {
         existing.completion = completion
         existing.resolve = resolve
         existing.reject = reject
-        existing.deadline = Date.now() + 30 * 60 * 1000
         existing.active = true
         this.schedule(job.id, existing, 0)
         return job
@@ -57,7 +55,6 @@ class DurableJobObserver {
       reader: reader as JobReader,
       listeners: this.pendingListeners.get(job.id) || new Set(), completion, resolve, reject,
       timer: null,
-      deadline: Date.now() + 30 * 60 * 1000,
       active: true,
     }
     this.pendingListeners.delete(job.id)
@@ -130,11 +127,6 @@ class DurableJobObserver {
   }
 
   private async poll(jobId: string, entry: Entry) {
-    if (Date.now() >= entry.deadline) {
-      entry.active = false
-      entry.reject(new ApiError("The Job is still running. Check Activity for its current state.", 408))
-      return
-    }
     try {
       const job = await entry.reader(jobId)
       this.update(entry, job)

@@ -2,7 +2,7 @@ import {
   ChevronDown, FileAudio2, Layers3, Plus, Rows3, Unlink,
 } from "lucide-react"
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -157,6 +157,7 @@ function SeriesGroup({
 }
 
 export function ProjectPage({ data, refresh }: { data: ProjectOverview; refresh: () => void }) {
+  const navigate = useNavigate()
   const [creating, setCreating] = useState<CreateKind | null>(null)
   const [moving, setMoving] = useState<ProductionSummary | null>(null)
   const project = data.resource
@@ -212,7 +213,7 @@ export function ProjectPage({ data, refresh }: { data: ProjectOverview; refresh:
               project={editableProject}
               venture={venture}
               onUpdated={refresh}
-              onArchived={() => window.location.assign(
+              onArchived={() => navigate(
                 venture
                   ? `${audioStudioBase}/ventures/${venture.public_id}`
                   : `${audioStudioBase}/`,

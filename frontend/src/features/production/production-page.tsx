@@ -9,6 +9,7 @@ import { useGlobalPlayer } from "@/components/global-player-provider"
 import { usePlayerShortcuts } from "@/hooks/use-player-shortcuts"
 import { useProductionActions } from "@/hooks/use-production-actions"
 import { useProductionSpeechJobs } from "@/features/production/use-production-speech-jobs"
+import { InlineResourceError } from "@/components/state-panel"
 import { partDurationMs } from "@/lib/format"
 import { studioApi } from "@/lib/api"
 import type { AssetCollection, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, MusicBed, Production, ProductionCastRole, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
@@ -41,15 +42,21 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const [movePositionPart, setMovePositionPart] = useState<ProductionPart | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
   const [cast, setCast] = useState<ProductionCastRole[]>([])
+  const [castError, setCastError] = useState("")
   const player = useGlobalPlayer()
   const closeTool = useCallback(() => { setTool(null); setComposerPart(null); setReplacingAsset(null) }, [])
   const actions = useProductionActions({ production, music, player, refresh, refreshAssets })
   const sourceParts = useMemo(() => production.parts.filter((part) => part.kind !== "stitch"), [production.parts])
   const refreshCast = useCallback(async () => {
-    const items = await studioApi.productionCast(production.public_id)
-    setCast(items)
+    try {
+      const items = await studioApi.productionCast(production.public_id)
+      setCast(items); setCastError("")
+    } catch (reason) {
+      setCastError(reason instanceof Error ? reason.message : "Production Cast is unavailable.")
+      throw reason
+    }
   }, [production.public_id])
-  useEffect(() => { let active = true; void studioApi.productionCast(production.public_id).then((items) => { if (active) setCast(items) }).catch(() => { if (active) setCast([]) }); return () => { active = false } }, [production.public_id])
+  useEffect(() => { let active = true; void studioApi.productionCast(production.public_id).then((items) => { if (active) { setCast(items); setCastError("") } }).catch((reason) => { if (active) setCastError(reason instanceof Error ? reason.message : "Production Cast is unavailable.") }); return () => { active = false } }, [production.public_id])
 
   const liveJobs = useProductionSpeechJobs(production.parts, refresh)
 
@@ -122,6 +129,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   }), [actions, player])
 
   return <>
+    {castError && <InlineResourceError message={`Production Cast unavailable: ${castError}`} retry={() => void refreshCast().catch(() => undefined)} />}
     <ProductionEditorCanvas
       production={production}
       tree={tree}
@@ -171,7 +179,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       onMove={() => setMoveOpen(true)}
       onDelete={() => setConfirmAction({
         title: `Delete ${selected.size} parts?`,
-        description: "The selected parts and their archived takes will be removed from this Production.",
+        description: "The selected Parts leave the active Sequence. Their Takes, provider evidence and recorded spend remain in history.",
         action: () => void actions.deleteParts([...selected]).then(() => setSelected(new Set())),
       })}
       onClear={() => setSelected(new Set())}
@@ -227,7 +235,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
         onDuplicate={(part) => void actions.duplicatePart(part)}
         onDeleteDetail={(part) => setConfirmAction({
           title: "Delete this part?",
-          description: "The part and its archived takes will be removed. Generated audio remains recoverable on disk unless explicitly tidied later.",
+          description: "The Part leaves the active Sequence. Its Takes, provider evidence, generated audio and recorded spend remain recoverable history.",
           action: () => { setDetail(null); void actions.deletePart(part) },
         })}
         onNewTake={openNewTake}

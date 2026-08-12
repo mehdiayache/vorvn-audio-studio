@@ -4,7 +4,7 @@ import {
 } from "react-router-dom"
 
 import { AppShell, type AudioStudioMountMode } from "@/components/app-shell"
-import { ErrorState, PageLoading } from "@/components/state-panel"
+import { ErrorState, InlineResourceError, PageLoading } from "@/components/state-panel"
 import { AppErrorBoundary } from "@/components/app-error-boundary"
 import { GlobalPlayerProvider } from "@/components/global-player-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -36,8 +36,11 @@ function ProductionRoute({ productionId }: { productionId: number }) {
   return <>
     {production.status === "loading" && !data && <PageLoading />}
     {!data && production.status === "error" && <ErrorState message={production.error || "Unable to load Production."} retry={() => void refresh()} />}
-    {data && resources.assetError && <div className="scoped-resource-error" role="alert"><span>Asset library unavailable: {resources.assetError}</span><button type="button" onClick={() => void resources.refreshAssets().catch(() => undefined)}>Retry</button></div>}
-    {data && <LazyRoute label="Loading Production workspace"><ProductionPage production={data} tree={tree.status === "ready" ? tree.data : null} music={music.data || {}} assets={resources.assets} assetCollections={resources.assetCollections} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} /></LazyRoute>}
+    {data && tree.status === "error" && <InlineResourceError message={`Production explorer unavailable: ${tree.error}`} retry={() => void refresh()} />}
+    {data && music.status === "error" && <InlineResourceError message={`Music settings unavailable: ${music.error}`} retry={() => void refresh()} />}
+    {data && resources.assetError && <InlineResourceError message={`Asset library unavailable: ${resources.assetError}`} retry={() => void resources.refreshAssets().catch(() => undefined)} />}
+    {data && resources.voiceError && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void resources.refreshVoices()} />}
+    {data && <LazyRoute label="Loading Production workspace"><ProductionPage production={data} tree={tree.data || null} music={music.data || {}} assets={resources.assets} assetCollections={resources.assetCollections} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} /></LazyRoute>}
   </>
 }
 

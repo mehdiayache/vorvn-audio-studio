@@ -24,17 +24,17 @@ export function useProduction(id: number | null) {
     if (productionResult.status === "fulfilled") {
       setProduction({ status: "ready", data: productionResult.value })
     } else {
-      setProduction({ status: "error", error: productionResult.reason?.message || "Unable to load Production." })
+      setProduction((state) => ({ status: "error", data: state.data, error: productionResult.reason?.message || "Unable to load Production." }))
     }
     if (treeResult.status === "fulfilled") {
       setTree({ status: "ready", data: treeResult.value })
     } else {
-      setTree({ status: "error", error: treeResult.reason?.message || "Unable to load Projects." })
+      setTree((state) => ({ status: "error", data: state.data, error: treeResult.reason?.message || "Unable to load Projects." }))
     }
     if (musicResult.status === "fulfilled") {
       setMusic({ status: "ready", data: musicResult.value })
     } else {
-      setMusic({ status: "error", error: musicResult.reason?.message || "Unable to load music." })
+      setMusic((state) => ({ status: "error", data: state.data, error: musicResult.reason?.message || "Unable to load music." }))
     }
   }, [id])
 

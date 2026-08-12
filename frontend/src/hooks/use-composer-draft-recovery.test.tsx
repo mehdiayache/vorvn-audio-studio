@@ -94,4 +94,33 @@ describe("useComposerDraftRecovery", () => {
     expect(onRestore).toHaveBeenCalledWith(expect.objectContaining({ text: expect.objectContaining({ raw: "Server words" }) }))
     expect(result.current.status).toBe("saved")
   })
+
+  it("flushes the latest meaningful edit when the Composer closes before debounce", async () => {
+    vi.useFakeTimers()
+    api.composerDraft.mockResolvedValue(null)
+    api.saveComposerDraft.mockResolvedValue({ id: "draft-quick", state: emptyDraft(), version: 1, updatedAt: "now" })
+    const context = { kind: "standalone" as const, sessionId: "11111111-1111-4111-8111-111111111111" }
+    let draft = emptyDraft()
+    const { rerender, unmount } = renderHook(() => useComposerDraftRecovery({ context, draft, onRestore: vi.fn() }))
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    draft = { ...draft, text: { ...draft.text, raw: "Do not lose this" } }
+    rerender()
+    unmount()
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    expect(api.saveComposerDraft).toHaveBeenCalledWith(context, draft, null)
+  })
+
+  it("does not resurrect a deliberately cleared draft during unmount", async () => {
+    api.composerDraft.mockResolvedValue({ id: "draft-old", state: emptyDraft(), version: 3, updatedAt: "now" })
+    api.deleteComposerDraft.mockResolvedValue({ deleted: true })
+    const context = { kind: "standalone" as const, sessionId: "11111111-1111-4111-8111-111111111111" }
+    const draft = { ...emptyDraft(), text: { ...emptyDraft().text, raw: "Generated words" } }
+    const { result, unmount } = renderHook(() => useComposerDraftRecovery({ context, draft, onRestore: vi.fn() }))
+    await waitFor(() => expect(result.current.status).toBe("saved"))
+    await act(async () => { await result.current.clear() })
+    unmount()
+    await act(async () => { await Promise.resolve() })
+    expect(api.deleteComposerDraft).toHaveBeenCalledWith(context, 3)
+    expect(api.saveComposerDraft).not.toHaveBeenCalled()
+  })
 })

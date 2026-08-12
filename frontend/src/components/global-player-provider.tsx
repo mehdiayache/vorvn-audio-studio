@@ -1,15 +1,23 @@
-import { createContext, useContext } from "react"
+import { createContext, useCallback, useContext, useState } from "react"
 import type { ReactNode } from "react"
 
 import { usePlayer } from "@/hooks/use-player"
 
-export type GlobalPlayerValue = ReturnType<typeof usePlayer>
+export type GlobalPlayerValue = ReturnType<typeof usePlayer> & {
+  transportHost: "shell" | "composer"
+  claimTransport: (host: "shell" | "composer") => () => void
+}
 
 const PlayerContext = createContext<GlobalPlayerValue | null>(null)
 
 export function GlobalPlayerProvider({ children }: { children: ReactNode }) {
   const player = usePlayer()
-  return <PlayerContext.Provider value={player}>{children}</PlayerContext.Provider>
+  const [transportHost, setTransportHost] = useState<"shell" | "composer">("shell")
+  const claimTransport = useCallback((host: "shell" | "composer") => {
+    setTransportHost(host)
+    return () => setTransportHost((current) => current === host ? "shell" : current)
+  }, [])
+  return <PlayerContext.Provider value={{ ...player, transportHost, claimTransport }}>{children}</PlayerContext.Provider>
 }
 
 export function useGlobalPlayer(): GlobalPlayerValue {

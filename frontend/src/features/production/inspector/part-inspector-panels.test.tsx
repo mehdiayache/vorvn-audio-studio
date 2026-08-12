@@ -36,4 +36,20 @@ describe("Part Inspector panels", () => {
     expect(screen.getByText("attempt-public")).toBeTruthy()
     expect(screen.getAllByText("qwen-model")).toHaveLength(2)
   })
+
+  it("does not project speech route concepts onto Silence Parts", () => {
+    const silence = { ...part, id: 5, kind: "silence", text: "", duration_ms: 2500, selected_take_id: null } as ProductionPart
+    render(<PartInspectorScript part={silence} directory={directory} currentPlaying={false} onPlay={vi.fn()} onNewTake={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
+    expect(screen.getByText("Intentional silence")).toBeTruthy()
+    expect(screen.getByText(/no voice route, Take, provider operation or generation cost/i)).toBeTruthy()
+    expect(screen.queryByText("Canonical Part script")).toBeNull()
+  })
+
+  it("shows Asset provenance instead of a fictional recording route", () => {
+    const asset = { ...part, id: 6, kind: "asset", text: "Intro", title: "Evening intro", filename: "intro.mp3", selected_take_id: null } as ProductionPart
+    render(<PartInspectorDetails part={asset} directory={directory} />)
+    expect(screen.getByText("Linked Venture asset")).toBeTruthy()
+    expect(screen.getByText("Evening intro")).toBeTruthy()
+    expect(screen.queryByText("Recording route")).toBeNull()
+  })
 })

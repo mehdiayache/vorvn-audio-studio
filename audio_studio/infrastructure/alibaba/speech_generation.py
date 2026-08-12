@@ -91,11 +91,10 @@ class _Options:
         self.format = str(values.get("format") or "mp3")
         instruction = str(values.get("instruction") or "").strip()
         self.instruction = instruction[:INSTRUCTION_MAX] or None
-        self.speech_mode = (
-            "directed" if self.engine == "omni"
-            and values.get("speech_mode") == "directed" and self.instruction
-            else "exact"
-        )
+        # Capability mode IDs are open provider metadata, not a closed
+        # exact/directed enum. Individual adapters may interpret known modes,
+        # but the chosen ID must survive unchanged into evidence and Takes.
+        self.speech_mode = str(values.get("speech_mode") or "exact")
         self.rate = float(values.get("rate", 1))
         self.pitch = float(values.get("pitch", 1))
         self.volume = int(values.get("volume", 50))

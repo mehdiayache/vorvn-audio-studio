@@ -26,5 +26,5 @@ export function useStudioResources(productionId: number) {
     void refreshAssets().catch(() => undefined)
   }, [refreshAssets])
 
-  return { assets, assetCollections, assetError, config: voices.config, cloned: voices.cloned, voiceDirectory: voices.directory, refreshAssets, refreshVoices: voices.refresh }
+  return { assets, assetCollections, assetError, voiceError: voices.error || null, config: voices.config, cloned: voices.cloned, voiceDirectory: voices.directory, refreshAssets, refreshVoices: voices.refresh }
 }

@@ -52,7 +52,7 @@ def _run(row) -> dict[str, Any]:
      provider_endpoint, price_version, currency, output_ids, usage,
      production_id, production_name, cost_basis, created_at, started_at,
      finished_at, provider_diagnostics, provider_request_ids,
-     provider_attempt_status, provider_attempt_id) = row
+     provider_attempt_status, provider_attempt_id, result) = row
     label = KIND_LABELS.get(kind, kind.replace("_", " ").title())
     public_error, diagnostic_id = _public_error(error, public_id)
     return {
@@ -79,7 +79,14 @@ def _run(row) -> dict[str, Any]:
         "provider_request_ids": provider_request_ids or [],
         "provider_attempt_status": provider_attempt_status,
         "provider_attempt_id": str(provider_attempt_id) if provider_attempt_id else None,
-        "requires_review": provider_attempt_status == "ambiguous",
+        "requires_review": (provider_attempt_status == "ambiguous"
+                            or bool((result or {}).get("requires_review"))
+                            or bool((result or {}).get("ambiguous"))),
+        "needs_confirmation": bool((result or {}).get("needs_confirmation")),
+        "review_evidence": {key: (result or {}).get(key) for key in (
+            "estimate", "estimated_cost", "needs_confirmation",
+            "requires_review", "ambiguous", "continued_by_job_id")
+                            if key in (result or {})},
         "production_id": production_id, "production_name": production_name,
         "where": production_name or source_tool or "Audio Studio",
         "cost_basis": _basis(cost_basis),
@@ -111,7 +118,8 @@ class ActivityRepository:
                    job.production_id, production.name, job.cost_basis,
                    job.created_at, job.started_at, job.finished_at,
                    job.result->'provider_diagnostics',
-                   job.result->'request_ids', attempt.status, attempt.public_id
+                   job.result->'request_ids', attempt.status, attempt.public_id,
+                   job.result
               FROM jobs job
               LEFT JOIN productions production
                 ON production.id = job.production_id

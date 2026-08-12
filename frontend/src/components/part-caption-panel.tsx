@@ -2,13 +2,14 @@ import { Captions, Download, Languages, LoaderCircle, RefreshCw } from "lucide-r
 import { useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
+import { OperationState } from "@/components/operation-state"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { CaptionConfirmation } from "@/hooks/use-part-detail-data"
 import { formatDuration } from "@/lib/format"
-import type { Transcript, TranscriptSummary } from "@/types/domain"
+import type { CaptionMutationResult, DurableJob, Transcript, TranscriptSummary } from "@/types/domain"
 
 function downloadText(filename: string, body: string) {
   const link = document.createElement("a")
@@ -18,7 +19,7 @@ function downloadText(filename: string, body: string) {
   window.setTimeout(() => URL.revokeObjectURL(link.href), 1000)
 }
 
-export function PartCaptionPanel({ captions, transcript, languages, sourceLanguage, loading, busy, confirmation, onSelect, onCreate, onTranslate, onConfirm, onCancel }: {
+export function PartCaptionPanel({ captions, transcript, languages, sourceLanguage, loading, busy, confirmation, job, onSelect, onCreate, onTranslate, onConfirm, onCancel, onRetryJob, onDismissJob }: {
   captions: TranscriptSummary[]
   transcript: Transcript | null
   languages: string[]
@@ -26,11 +27,14 @@ export function PartCaptionPanel({ captions, transcript, languages, sourceLangua
   loading: boolean
   busy: "transcribe" | "translate" | null
   confirmation: CaptionConfirmation | null
+  job: DurableJob<CaptionMutationResult> | null
   onSelect: (item: TranscriptSummary) => Promise<void>
   onCreate: () => Promise<void>
   onTranslate: (target: string) => Promise<void>
   onConfirm: () => Promise<void>
   onCancel: () => void
+  onRetryJob: () => Promise<void>
+  onDismissJob: () => void
 }) {
   const [format, setFormat] = useState<"text" | "srt" | "vtt">("text")
   const availableLanguages = useMemo(() => {
@@ -44,6 +48,7 @@ export function PartCaptionPanel({ captions, transcript, languages, sourceLangua
   const body = transcript ? transcript[format] : ""
 
   return <div className="detail-body caption-detail">
+    {job && <OperationState job={job} title={job.type === "translate" ? "Subtitle translation" : "Create subtitles"} onRetry={job.status === "failed" ? () => void onRetryJob() : undefined} onDismiss={!busy && !confirmation ? onDismissJob : undefined} />}
     <section>
       <div className="detail-section-head caption-actions">
         <div><h3>Subtitles</h3><p>Create timed text from the current take, then translate it when needed.</p></div>

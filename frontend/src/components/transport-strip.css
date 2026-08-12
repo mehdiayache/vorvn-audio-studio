@@ -32,6 +32,7 @@
 .transport-strip-speed { min-width: 2.75rem; font-variant-numeric: tabular-nums; }
 .transport-strip-error { position: absolute; right: var(--vrn-space-3); bottom: calc(100% + var(--vrn-space-2)); margin: 0; padding: var(--vrn-space-2) var(--vrn-space-3); color: var(--destructive-foreground); background: var(--destructive); border-radius: var(--vrn-radius-sm); box-shadow: var(--vrn-shadow-card); }
 .studio-app-shell:has(.transport-strip) .audio-studio-viewport { padding-bottom: calc(var(--transport-height) + var(--safe-bottom) + var(--vrn-space-6)); }
+.transport-strip.is-composer { position: static; width: 100%; border-right: 0; border-bottom: 0; border-left: 0; border-radius: 0; box-shadow: none; }
 @media (max-width: 64rem) {
   .transport-strip { grid-template-columns: 2.75rem minmax(8rem, 1fr) 2.75rem minmax(7rem, 14rem) auto 2.5rem 2.5rem; }
   .transport-strip-time, .transport-strip-volume-icon, .transport-strip-volume, .transport-strip-speed { display: none; }
@@ -43,6 +44,5 @@
   .transport-strip a[download] { display: none; }
   .transport-strip-copy small { display: none; }
   .studio-app-shell:has(.transport-strip) .audio-studio-viewport { padding-bottom: calc(var(--transport-mobile-height) + var(--safe-bottom) + var(--vrn-space-4)); }
-  body:has(.composer-mobile-sheet) .transport-strip { z-index: calc(var(--layer-sheet) + 1); bottom: calc(var(--composer-mobile-actions-height) + var(--transport-mobile-height) + var(--safe-bottom)); }
-  body:has(.composer-mobile-sheet) .composer-mobile-sheet .composer-surface { padding-bottom: calc(var(--transport-mobile-height) + var(--safe-bottom)); }
+  .composer-mobile-transport { flex: 0 0 auto; padding-bottom: var(--safe-bottom); background: var(--surface-raised); }
 }

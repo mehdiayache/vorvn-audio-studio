@@ -671,8 +671,11 @@ class ProductionDocumentRepository:
             """, (ids,))
             files = [row[0] for row in cursor.fetchall()]
             cursor.execute("""
-                UPDATE production_parts SET archived_at=now(), selected_take_id=NULL,
-                       updated_at=now() WHERE id=ANY(%s)
+                UPDATE production_parts
+                   SET archived_position=position, position=NULL,
+                       archived_at=now(), selected_take_id=NULL,
+                       updated_at=now()
+                 WHERE id=ANY(%s)
             """, (ids,))
             cursor.execute("""
                 WITH ranked AS (

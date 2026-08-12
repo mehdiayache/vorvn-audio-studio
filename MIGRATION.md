@@ -1093,3 +1093,45 @@ contracts, 15 render contracts and 11 live database invariants. The restarted
 runtime reports the provider key and workspace configured, private storage
 configured, a ready worker and matching API/worker runtime IDs. No paid provider
 operation was invoked.
+
+### Closure checkpoint — durable Part lifecycle and state convergence
+
+- The Production generation 500 was traced to a database invariant, not to
+  Alibaba: archived Parts still occupied their old `(production_id, position)`
+  while the active sequence correctly reused that position. Migration 025
+  preserves the former position as `archived_position` and removes archived
+  Parts from the active positional namespace.
+- Deleting a Part now removes it only from the active edit. Its immutable
+  Takes, provider evidence, media locator and historical spend remain
+  attributable. The active sequence is compacted transactionally and the
+  vacated position can be reused without a uniqueness failure.
+- Composer drafts flush on close, collapse-safe unmount and navigation, while
+  successful clear/save paths cannot resurrect an obsolete draft. Query-string
+  changes no longer remount route error boundaries or erase local Batch and
+  Subtitles state.
+- Part captions use durable Jobs and the shared observer. Confirmation targets
+  the exact blocked Job; failed retry is explicit; ambiguous paid work remains
+  review-only. Closing the Inspector or reloading the page does not own or end
+  the operation.
+- Inspector data is Part-scoped and race guarded. Tabs reset on Part changes,
+  stale responses cannot overwrite a newer Part, and Silence/Asset views no
+  longer present speech-only metadata.
+- Operation wording and review evidence are shared by Activity and contextual
+  operation surfaces. Production resource failures preserve stale data and
+  expose scoped retry instead of presenting an empty workspace.
+- Catalogue Cast Roles expose only their exact assigned catalogue route. The
+  operator still selects that route explicitly; no provider/model fallback was
+  introduced. Arbitrary provider capability mode IDs survive the Composer
+  contract without being collapsed into a closed frontend enum.
+- The Job observer no longer invents a terminal failure after 30 minutes.
+  Timing content is lazy, Project archive navigation uses React Router, Speak
+  calls its standalone outputs Recordings, and mobile Composer transport uses
+  the same global player owner and TransportStrip presentation.
+
+Verification is provider-free. OpenAPI generation, the production web build,
+148 React tests, 321 Python tests and all 11 live database domain invariants
+pass. The running API and supervised worker report the same runtime ID. Browser
+smokes cover Work → Venture → Production, the nine-Part sequence, non-modal
+Composer collapse/resume, global playback while Composer is open, readiness and
+a clean console. No Generate, clone, transcription, translation or other paid
+provider operation was invoked.

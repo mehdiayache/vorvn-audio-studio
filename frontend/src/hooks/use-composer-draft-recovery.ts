@@ -20,9 +20,13 @@ export function useComposerDraftRecovery(input: {
   const versionRef = useRef<number | null>(null)
   const readyRef = useRef(false)
   const chainRef = useRef<Promise<unknown>>(Promise.resolve())
+  const loadRef = useRef<Promise<unknown>>(Promise.resolve())
   const timerRef = useRef<number | null>(null)
+  const latestDraftRef = useRef(draft)
+  const suppressFlushRef = useRef(false)
   const [status, setStatus] = useState<RecoveryStatus>("loading")
   restoreRef.current = input.onRestore
+  latestDraftRef.current = draft
 
   const persist = useCallback((next: RecoverableCompositionDraft, rethrow = false) => {
     if (!enabled) return Promise.resolve()
@@ -61,10 +65,10 @@ export function useComposerDraftRecovery(input: {
     readyRef.current = false
     versionRef.current = null
     setStatus("loading")
-    void studioApi.composerDraft(context).then((record) => {
+    const load = studioApi.composerDraft(context).then((record) => {
+      versionRef.current = record?.version ?? null
       if (!active) return
       if (record) {
-        versionRef.current = record.version
         restoreRef.current(record.state)
         setStatus("saved")
       } else setStatus("ready")
@@ -75,6 +79,7 @@ export function useComposerDraftRecovery(input: {
       setStatus("error")
       readyRef.current = true
     })
+    loadRef.current = load
     return () => { active = false }
   // Context identity is the owner. Object identity is intentionally ignored.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,6 +88,8 @@ export function useComposerDraftRecovery(input: {
   useEffect(() => {
     if (!enabled || !readyRef.current) return
     const next = JSON.parse(serialized) as RecoverableCompositionDraft
+    latestDraftRef.current = next
+    suppressFlushRef.current = false
     timerRef.current = window.setTimeout(() => {
       timerRef.current = null
       void persist(next)
@@ -95,8 +102,21 @@ export function useComposerDraftRecovery(input: {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contextId, enabled, persist, serialized])
 
+  useEffect(() => () => {
+    if (!enabled || suppressFlushRef.current) return
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current)
+    timerRef.current = null
+    const next = latestDraftRef.current
+    if (!meaningfulDraft(next)) return
+    // A close, navigation or context switch must not cancel the last debounced
+    // edit. Wait for discovery so an existing draft version is never guessed.
+    void loadRef.current.then(() => persist(next))
+  }, [contextId, enabled, persist])
+
   const saveNow = useCallback(async (next: RecoverableCompositionDraft = draft) => {
     if (!enabled) return
+    suppressFlushRef.current = false
+    latestDraftRef.current = next
     if (timerRef.current !== null) window.clearTimeout(timerRef.current)
     timerRef.current = null
     await persist(next, true)
@@ -104,8 +124,10 @@ export function useComposerDraftRecovery(input: {
 
   const clear = useCallback(async () => {
     if (!enabled) return
+    suppressFlushRef.current = true
     if (timerRef.current !== null) window.clearTimeout(timerRef.current)
     timerRef.current = null
+    await loadRef.current
     await chainRef.current
     if (versionRef.current !== null) {
       await studioApi.deleteComposerDraft(context, versionRef.current)

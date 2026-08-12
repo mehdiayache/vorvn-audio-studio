@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2, CircleHelp, LoaderCircle, RotateCw } from 
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import type { DurableJob } from "@/types/domain"
-import { operatorErrorMessage } from "@/lib/operation-language"
+import { operatorErrorMessage, operationStatusLabel } from "@/lib/operation-language"
 
 import "./operation-state.css"
 
@@ -11,9 +11,7 @@ const activeStatuses = new Set(["queued", "running", "retrying"])
 const failedStatuses = new Set(["failed", "lost", "cancelled"])
 
 export function operationStateLabel(job: DurableJob<unknown>) {
-  if (job.status === "blocked" && (job.result as { requires_review?: boolean; ambiguous?: boolean })?.requires_review) return "Review required"
-  if (job.status === "blocked") return "Confirmation required"
-  return ({ queued: "Queued", running: "Running", retrying: "Retrying", ok: "Completed", warning: "Completed with warnings", failed: "Failed", lost: "Interrupted", cancelled: "Cancelled" } as Record<string, string>)[job.status] || job.status
+  return operationStatusLabel(job.status, job.result as { requires_review?: boolean; ambiguous?: boolean; needs_confirmation?: boolean })
 }
 
 export function OperationState<T>({ job, title, onConfirm, onRetry, onDismiss }: {

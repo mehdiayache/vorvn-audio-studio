@@ -77,4 +77,16 @@ describe("job observer", () => {
     expect(read).toHaveBeenCalledTimes(1)
     expect(jobObserver.getSnapshot("job-1")).toMatchObject({ status: "ok" })
   })
+
+  it("keeps observing long-running durable work without inventing a client timeout", async () => {
+    vi.useFakeTimers()
+    const read = vi.fn()
+      .mockResolvedValueOnce(job("running"))
+      .mockResolvedValueOnce(job("ok", { value: 12 }))
+    jobObserver.register(job("running"), read)
+    const completion = jobObserver.completion("job-1")
+    await vi.advanceTimersByTimeAsync(31 * 60 * 1000)
+    await expect(completion).resolves.toEqual({ value: 12 })
+    expect(read).toHaveBeenCalledTimes(2)
+  })
 })

@@ -20,7 +20,7 @@ export function ComposerWho() {
             {composer.cast.map((role) => <SelectItem key={role.id} value={role.id}>{role.name}{role.persona_name ? ` · ${role.persona_name}` : ""}</SelectItem>)}
           </SelectContent>
         </Select>
-        <small>A role applies its assigned voice identity, never a provider route.</small>
+        <small>{composer.selectedCastRole?.voice_source_kind === "catalogue" ? "This catalogue role is restricted to its exact assigned provider voice. You still choose its recording method explicitly." : "An owned-voice role applies its Voice Identity, never a provider route."}</small>
       </label>}
       <label className="wide">
         <span>Voice</span>
@@ -29,8 +29,8 @@ export function ComposerWho() {
       </label>
     </div>
     <div className="method-heading"><b>Exact recording method</b><span>Choose one exact route. Audio Studio never picks, replaces or falls back for you.</span></div>
-    {composer.selectedIdentity?.routes.length
-      ? <VoiceMethodPicker routes={composer.selectedIdentity.routes} availableRoutes={composer.compatibleRoutes} selectedRouteId={routeSelectionId(composer.route)} selectedCapabilityId={composer.route?.capabilityId || null} language={composer.language} customVoice={composer.selectedIdentity.source === "owned"} config={composer.config} onSelect={composer.applyRoute} />
+    {composer.visibleRoutes.length
+      ? <VoiceMethodPicker routes={composer.visibleRoutes} availableRoutes={composer.compatibleRoutes} selectedRouteId={routeSelectionId(composer.route)} selectedCapabilityId={composer.route?.capabilityId || null} language={composer.language} customVoice={composer.selectedIdentity?.source === "owned"} config={composer.config} onSelect={composer.applyRoute} />
       : <div className="capability-empty"><b>{composer.selectedIdentity ? "This voice has no ready recording method." : "Choose a voice to see its exact routes."}</b><span>{composer.selectedIdentity ? "Open Voices to create a provider binding." : "Nothing is preselected. You stay in control of the exact route."}</span></div>}
     {composer.currentRoute && <div className="composer-registry-note">
       <b>Selected route</b>

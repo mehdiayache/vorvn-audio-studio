@@ -3,12 +3,18 @@ import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import { useComposer } from "./composer-controller"
 
+function modeLabel(mode: string) {
+  if (mode === "exact") return "Keep the script"
+  if (mode === "directed") return "Add direction"
+  return mode.replace(/[_-]+/g, " ").replace(/^./, (letter) => letter.toUpperCase())
+}
+
 export function ComposerPerformance() {
   const composer = useComposer()
   const controls = composer.capabilityControls
   return <section className="composer-section">
     <header><div><span className="eyebrow">Performance</span><h3>How should it sound?</h3></div></header>
-    {controls.directionModes.length > 1 && <div className="delivery-mode"><div><span>Delivery</span>{controls.directionModes.includes("exact") && <Button variant={composer.deliveryMode === "exact" ? "secondary" : "outline"} onClick={() => composer.setDeliveryModeRequest("exact")}>Keep the script</Button>}{controls.directionModes.includes("directed") && <Button variant={composer.deliveryMode === "directed" ? "secondary" : "outline"} onClick={() => composer.setDeliveryModeRequest("directed")}>Add direction</Button>}</div><p>{composer.deliveryMode === "exact" ? controls.exactHelp : controls.directedHelp}</p></div>}
+    {controls.directionModes.length > 1 && <div className="delivery-mode"><div><span>Delivery</span>{controls.directionModes.map((mode) => <Button key={mode} variant={composer.deliveryMode === mode ? "secondary" : "outline"} onClick={() => composer.setDeliveryModeRequest(mode)}>{modeLabel(mode)}</Button>)}</div><p>{composer.deliveryMode === "exact" ? controls.exactHelp : controls.directedHelp}</p></div>}
     {controls.naturalDirection
       ? <label><span>{controls.directionLabel}</span><Input value={composer.instruction} disabled={composer.deliveryMode === "exact"} maxLength={composer.config?.instruction_max || 100} onChange={(event) => composer.setInstruction(event.target.value)} placeholder="Describe the performance in natural language" />{composer.deliveryMode === "exact" && <small>Choose Add direction to control the overall performance.</small>}</label>
       : <p className="composer-engine-note">{composer.selectedCapability?.description || "This method uses the prepared script without a separate performance direction."}</p>}

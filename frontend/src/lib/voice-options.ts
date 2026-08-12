@@ -42,7 +42,7 @@ export type VoiceIdentityChoice = {
   routes: VoiceChoice[]
 }
 
-// A provider binding is castable only after Alibaba has confirmed it.  Keep
+// A provider binding is castable only after its provider has confirmed it. Keep
 // this as a positive list: a new job/interruption status must never become a
 // selectable voice route by accident.
 const readyStatuses = new Set(["active", "ready"])

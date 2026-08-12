@@ -14,6 +14,9 @@ from audio_studio.http.work_contracts import ProductionEditorEnvelope
 from audio_studio.infrastructure.postgres.production_document import (
     ProductionDocumentRepository,
 )
+from audio_studio.infrastructure.postgres.accounting import (
+    ProductionAccountingRepository,
+)
 from audio_studio.infrastructure.postgres.timeline import PostgresTimelineRecords
 from audio_studio.infrastructure.postgres.venture_assets import (
     VentureAssetRepository,
@@ -164,14 +167,16 @@ class ProductionDocumentTests(unittest.TestCase):
                         (part_id, source_part_revision, source_script_hash,
                          provider, provider_region, provider_voice_id,
                          model_id, tier, raw_text, spoken_text, filename, path,
-                         snapshot)
+                         cost, cost_basis, snapshot)
                     SELECT id, revision, encode(digest('Archived opening','sha256'),'hex'),
                            'alibaba','intl','Tina','qwen3.5-omni-plus','plus',
-                           'Archived opening','Archived opening','','',
+                           'Archived opening','Archived opening',%s,%s,
+                           0.123,'actual_usage',
                            '{"engine":"omni","format":"mp3"}'::jsonb
                       FROM production_parts WHERE id=%s
                     RETURNING id
-                """, (draft["id"],))
+                """, (f"retained-{self.marker}.mp3",
+                      f"/durable/retained-{self.marker}.mp3", draft["id"]))
                 take_id = int(cursor.fetchone()[0])
             database.commit()
         archived_take = self.timeline.takes(first_id, draft["id"])[0]
@@ -218,6 +223,44 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual(next(item for item in editor["parts"]
                               if item["id"] == draft["id"])["takes"], 0)
         ProductionEditorEnvelope.model_validate({"data": editor})
+
+        accounting = ProductionAccountingRepository()
+        before_delete = accounting.one(first_id)
+        self.timeline.delete_parts(first_id, [draft["id"]])
+        after_delete = accounting.one(first_id)
+        self.assertEqual(after_delete["retained_generation_cost"],
+                         before_delete["retained_generation_cost"])
+        self.assertEqual(after_delete["historical_spend"],
+                         before_delete["historical_spend"])
+        self.assertLess(after_delete["current_sequence_cost"],
+                        before_delete["current_sequence_cost"])
+        with psycopg.connect(settings.database_url) as database:
+            with database.cursor() as cursor:
+                cursor.execute("""
+                    SELECT archived_at IS NOT NULL, position,
+                           archived_position, selected_take_id
+                      FROM production_parts WHERE id=%s
+                """, (draft["id"],))
+                archived, position, archived_position, selected = cursor.fetchone()
+                self.assertTrue(archived)
+                self.assertIsNone(position)
+                self.assertIsNotNone(archived_position)
+                self.assertIsNone(selected)
+                cursor.execute("""
+                    SELECT filename, cost FROM takes WHERE id=%s
+                """, (take_id,))
+                retained_filename, retained_cost = cursor.fetchone()
+                self.assertEqual(retained_filename,
+                                 f"retained-{self.marker}.mp3")
+                self.assertEqual(float(retained_cost), 0.123)
+
+        # Reusing the archived slot must commit cleanly; this is the exact
+        # regression that previously returned HTTP 500 before provider work.
+        replacement = self.timeline.add_silence(first_id, 1, 0)
+        active = self.repository.parts(first_id)
+        self.assertEqual(active[0]["id"], replacement["id"])
+        self.assertEqual([part["position"] for part in active],
+                         list(range(len(active))))
 
     def test_editorial_revision_and_outdated_take_require_human_confirmation(self):
         production_id = int(self.first["id"])

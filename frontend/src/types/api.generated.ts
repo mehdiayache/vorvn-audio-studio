@@ -1608,6 +1608,11 @@ export interface components {
             kind_label: string;
             /** Model */
             model: string | null;
+            /**
+             * Needs Confirmation
+             * @default false
+             */
+            needs_confirmation: boolean;
             /** Operation */
             operation: string;
             /** Organization Id */
@@ -1641,6 +1646,10 @@ export interface components {
              * @default false
              */
             requires_review: boolean;
+            /** Review Evidence */
+            review_evidence?: {
+                [key: string]: unknown;
+            };
             /** Seconds */
             seconds: number;
             /** Source Tool */
@@ -2401,6 +2410,10 @@ export interface components {
         };
         /** JobResponse */
         JobResponse: {
+            /** Context */
+            context?: {
+                [key: string]: unknown;
+            };
             /** Created At */
             created_at?: string | null;
             /** Detail */
@@ -3536,9 +3549,8 @@ export interface components {
             /**
              * Speech Mode
              * @default exact
-             * @enum {string}
              */
-            speech_mode: "exact" | "directed";
+            speech_mode: string;
             /** Text */
             text: string;
             /** Text Raw */

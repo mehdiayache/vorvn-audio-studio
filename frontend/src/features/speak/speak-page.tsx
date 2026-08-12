@@ -174,7 +174,7 @@ export function SpeakPage() {
     {voices.error && voices.config && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void voices.refresh()} />}
     <section className="speak-workspace"><StandaloneComposerHost key={sessionId} sessionId={sessionId} config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} /></section>
     <section className="speak-takes" aria-live="polite">
-      <header><div><small>Recording session</small><h2>Takes</h2></div><span>{attemptCount} attempts · ${Number(session?.total_cost || 0).toFixed(4)}</span></header>
+      <header><div><small>Recording session</small><h2>Recordings</h2></div><span>{attemptCount} attempts · ${Number(session?.total_cost || 0).toFixed(4)}</span></header>
       {executions.map((execution) => <PendingSpeakExecution key={execution.jobId} execution={execution} directory={voices.directory} onTerminal={(item, job) => void settleExecution(item, job)} />)}
       {sessionLoading && !session?.attempts.length ? <p className="speak-empty">Loading this session…</p> : session?.attempts.length ? session.attempts.filter((attempt) => !executions.some((execution) => execution.jobId === attempt.id)).map((attempt) => {
         const sourceKey = `job:${attempt.id}`

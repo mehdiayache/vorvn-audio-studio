@@ -467,6 +467,15 @@ export type DurableJob<T = Record<string, unknown>> = {
   finished_at?: string | null
   result: T
   part_id?: number | null
+  context?: {
+    part_id?: number | null
+    production_id?: number | null
+    transcript_id?: number | null
+    target?: string
+    language?: string
+    operation?: string
+    confirmed?: boolean
+  }
 }
 
 /**
@@ -584,8 +593,12 @@ export type TextPassResult = {
 }
 
 export type CaptionMutationResult = Transcript & {
+  part_id?: number | null
+  take_id?: number | null
   needs_confirmation?: boolean
   estimate?: number
+  requires_review?: boolean
+  ambiguous?: boolean
 }
 
 export type LoadState<T> =

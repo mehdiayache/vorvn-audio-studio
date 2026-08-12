@@ -197,17 +197,11 @@ export function toGeneratePayload(command: SpeechGenerationCommand): GeneratePay
     format: command.output.format,
     language: command.output.language || "Auto",
     instruction: command.delivery.instruction,
-    speech_mode: compatibilitySpeechMode(command.delivery.modeId),
+    speech_mode: command.delivery.modeId || "exact",
     rate: command.delivery.rate,
     pitch: command.delivery.pitch,
     volume: command.delivery.volume,
     seed: command.delivery.seed,
     confirmed: command.confirmed,
   }
-}
-
-function compatibilitySpeechMode(modeId: string | null): "exact" | "directed" {
-  if (modeId === null || modeId === "exact") return "exact"
-  if (modeId === "directed") return "directed"
-  throw new Error(`The current speech endpoint does not support delivery mode '${modeId}'.`)
 }

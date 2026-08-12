@@ -4,6 +4,13 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { StudioDock } from "./studio-dock"
 
+const player = vi.hoisted(() => ({
+  source: null, state: "idle", currentTime: 0, duration: 0, volume: 1, speed: 1,
+  toggle: vi.fn(), seek: vi.fn(), setVolume: vi.fn(), setSpeed: vi.fn(), close: vi.fn(),
+  transportHost: "shell", claimTransport: vi.fn(() => vi.fn()),
+}))
+vi.mock("@/components/global-player-provider", () => ({ useGlobalPlayer: () => player }))
+
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()

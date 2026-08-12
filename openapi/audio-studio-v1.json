@@ -188,6 +188,11 @@
             ],
             "title": "Model"
           },
+          "needs_confirmation": {
+            "default": false,
+            "title": "Needs Confirmation",
+            "type": "boolean"
+          },
           "operation": {
             "title": "Operation",
             "type": "string"
@@ -317,6 +322,11 @@
             "default": false,
             "title": "Requires Review",
             "type": "boolean"
+          },
+          "review_evidence": {
+            "additionalProperties": true,
+            "title": "Review Evidence",
+            "type": "object"
           },
           "seconds": {
             "title": "Seconds",
@@ -2530,6 +2540,11 @@
       },
       "JobResponse": {
         "properties": {
+          "context": {
+            "additionalProperties": true,
+            "title": "Context",
+            "type": "object"
+          },
           "created_at": {
             "anyOf": [
               {
@@ -6066,10 +6081,8 @@
           },
           "speech_mode": {
             "default": "exact",
-            "enum": [
-              "exact",
-              "directed"
-            ],
+            "maxLength": 120,
+            "minLength": 1,
             "title": "Speech Mode",
             "type": "string"
           },

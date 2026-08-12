@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { PartCaptionPanel } from "@/components/part-caption-panel"
 import { Button } from "@/components/ui/button"
@@ -31,6 +31,7 @@ export function PartInspector({ productionId, part, directory, playingKey, playe
   const data = usePartDetailData(productionId, part, onChanged)
   const recorded = Boolean(part && ["audio", "speech"].includes(part.kind))
   const title = part?.kind === "silence" ? "Silence" : part?.kind === "asset" ? "Venture audio" : part?.kind === "draft" ? "Draft speech" : "Speech Part"
+  useEffect(() => { setTab("script") }, [part?.id])
   return <Sheet open={Boolean(part)} onOpenChange={(open) => { if (!open) onClose() }}>
     <SheetContent className="part-inspector">
       {part && <>
@@ -40,7 +41,7 @@ export function PartInspector({ productionId, part, directory, playingKey, playe
           <ScrollArea className="part-inspector-scroll">
             <TabsContent value="script"><PartInspectorScript part={part} directory={directory} currentPlaying={playerPlaying && playingKey === `part:${part.id}`} onPlay={onPlay} onNewTake={onNewTake} onDuplicate={onDuplicate} onDelete={onDelete} /></TabsContent>
             {recorded && <TabsContent value="takes"><PartInspectorTakes part={part} takes={data.takes} loading={data.loading} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onNewTake={onNewTake} onPromote={(take) => void data.promote(take)} /></TabsContent>}
-            {recorded && <TabsContent value="captions"><PartCaptionPanel captions={data.captions} transcript={data.transcript} languages={directory.config?.languages || []} sourceLanguage={part.language} loading={data.loading} busy={data.captionBusy} confirmation={data.captionConfirmation} onSelect={data.selectTranscript} onCreate={data.makeCaptions} onTranslate={data.translate} onConfirm={data.confirmCaptionAction} onCancel={data.cancelCaptionAction} /></TabsContent>}
+            {recorded && <TabsContent value="captions"><PartCaptionPanel captions={data.captions} transcript={data.transcript} languages={directory.config?.languages || []} sourceLanguage={part.language} loading={data.loading} busy={data.captionBusy} confirmation={data.captionConfirmation} job={data.captionJob} onSelect={data.selectTranscript} onCreate={data.makeCaptions} onTranslate={data.translate} onConfirm={data.confirmCaptionAction} onCancel={data.cancelCaptionAction} onRetryJob={data.retryCaptionJob} onDismissJob={data.dismissCaptionJob} /></TabsContent>}
             <TabsContent value="details"><PartInspectorDetails part={part} directory={directory} /></TabsContent>
           </ScrollArea>
         </Tabs>

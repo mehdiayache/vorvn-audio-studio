@@ -2,7 +2,7 @@ import { AlertTriangle, CheckCircle2, LoaderCircle } from "lucide-react"
 
 import { SpeechModelIdentity } from "@/components/speech-model-identity"
 import { formatMoney } from "@/lib/format"
-import { operatorErrorMessage } from "@/lib/operation-language"
+import { operatorErrorMessage, operationStatusLabel } from "@/lib/operation-language"
 import type { ActivityRun } from "@/types/domain"
 
 export function costBasisLabel(basis: string) {
@@ -18,7 +18,7 @@ export function ActivityRunCard({ run, onOpen }: { run: ActivityRun; onOpen: () 
   return <button className={`activity-run ${run.status}`} onClick={onOpen}>
     <span className="activity-run-icon"><Icon className={active ? "spin" : ""} /></span>
     <div className="activity-run-copy">
-      <header><b>{run.operation}</b><span>{run.requires_review ? "Ambiguous · review" : run.status}</span></header>
+      <header><b>{run.operation}</b><span>{operationStatusLabel(run.status, run)}</span></header>
       <p>{run.production_name || run.kind_label} · {run.actor_label}</p>
       {run.model && <SpeechModelIdentity modelId={run.model} compact />}
       {run.error && <em>{operatorErrorMessage(run.error)}</em>}
