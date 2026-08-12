@@ -1057,3 +1057,22 @@ live database domain checks pass. Browser checks cover Work, Venture, Project,
 Production, StudioDock, Speak, Batch and Settings at 1440, 1024, 768, 390 and
 320 pixels. The console is clean, measured pages have no document overflow, and
 no Generate, enrollment or other provider operation was invoked.
+
+### UI checkpoint 10 — VORVN token runtime alignment
+
+- Audio Studio continues to consume the versioned UI VORVN token snapshot; the
+  snapshot still differs from its source only for the intentional interactive
+  viewport conversion from `vh` to `dvh`.
+- Inter Variable is now bundled and loaded explicitly instead of relying on a
+  machine-dependent `Inter` fallback. The global body and heading hierarchy use
+  the same semantic VORVN typography tokens as the Origins UI foundation.
+- The remaining standalone Speak and Subtitles heading surfaces touched by this
+  pass now use semantic spacing, weight, radius and typography tokens rather
+  than local one-off values.
+
+Verification is provider-free. All 140 React tests and the production
+TypeScript/Vite build pass. The desktop Speak runtime reports `Inter Variable`,
+the VORVN 14-pixel body scale and 22-pixel/600 page heading, with no horizontal
+overflow or browser console warning. This checkpoint aligns the design-system
+runtime; it does not claim that Audio Studio has already adopted the future
+Origins shell composition.
