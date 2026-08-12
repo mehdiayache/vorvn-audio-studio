@@ -15,7 +15,8 @@ export function recoverSpeakExecutions(current: SpeakExecution[], session: Recor
   return recovered.length ? [...current, ...recovered] : current
 }
 
-export function recordingAttemptStatus(attempt: Pick<RecordingAttempt, "status">) {
+export function recordingAttemptStatus(attempt: Pick<RecordingAttempt, "status"> & Partial<Pick<RecordingAttempt, "continued_by_job_id">>) {
+  if (attempt.continued_by_job_id) return "continued" as const
   if (attempt.status === "blocked") return "review" as const
   if (["failed", "lost", "cancelled"].includes(attempt.status)) return "failed" as const
   if (attempt.status === "warning") return "warning" as const

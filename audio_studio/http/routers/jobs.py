@@ -369,3 +369,24 @@ def cancel_job(job_id: UUID) -> dict:
     if not job:
         raise ApiProblem(404, "job_not_found", "That Job does not exist.")
     return {"data": _payload(job)}
+
+
+@router.post(
+    "/{job_id}/confirm", operation_id="confirmJobCost",
+    status_code=202, response_model=JobCreatedEnvelope,
+)
+def confirm_job_cost(
+    job_id: UUID,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+) -> dict:
+    try:
+        job, created = job_service.confirm(
+            job_id,
+            idempotency_key=(idempotency_key
+                             or f"confirm-{job_id}-{uuid4()}")[:200],
+        )
+    except LookupError as exc:
+        raise ApiProblem(404, "job_not_found", str(exc)) from exc
+    except ValueError as exc:
+        raise ApiProblem(409, "job_not_confirmable", str(exc)) from exc
+    return {"data": _payload(job), "meta": {"created": created}}

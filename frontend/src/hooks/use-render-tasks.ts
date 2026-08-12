@@ -29,6 +29,9 @@ export function useRenderTasks(
         status: job.status,
         detail: job.detail,
         error: job.error || undefined,
+        needsConfirmation: Boolean(job.result?.needs_confirmation),
+        requiresReview: Boolean(job.result?.requires_review || job.result?.ambiguous),
+        estimate: Number(job.result?.estimate || job.result?.estimated_cost || 0),
       } : item))
     }
     subscriptions.current.get(task.jobId)?.()
@@ -66,6 +69,9 @@ export function useRenderTasks(
       status: job.status,
       detail: job.detail,
       error: job.error || undefined,
+      needsConfirmation: Boolean(job.result?.needs_confirmation),
+      requiresReview: Boolean(job.result?.requires_review || job.result?.ambiguous),
+      estimate: Number(job.result?.estimate || job.result?.estimated_cost || 0),
       targetPartId: job.part_id || draft.targetPartId,
       startedAt: job.created_at ? new Date(job.created_at).getTime() : Date.now(),
     }
@@ -88,7 +94,30 @@ export function useRenderTasks(
       if (mounted.current) setTasks((current) => current.filter((item) => item.jobId !== task.jobId))
     }).catch(() => undefined)
   }, [enqueue])
+  const confirm = useCallback(async (task: RenderTask) => {
+    const job = await studioApi.confirmJob<GenerateResult>(task.jobId)
+    const continued: RenderTask = {
+      ...task,
+      id: job.id,
+      jobId: job.id,
+      status: job.status,
+      detail: job.detail,
+      error: job.error || undefined,
+      needsConfirmation: Boolean(job.result?.needs_confirmation),
+      requiresReview: Boolean(job.result?.requires_review || job.result?.ambiguous),
+      estimate: Number(job.result?.estimate || job.result?.estimated_cost || 0),
+      startedAt: job.created_at ? new Date(job.created_at).getTime() : Date.now(),
+    }
+    if (mounted.current) setTasks((current) => [
+      ...current.filter((item) => (
+        item.jobId !== task.jobId && item.jobId !== job.id
+      )),
+      continued,
+    ])
+    track(continued)
+    return job
+  }, [track])
   const dismiss = useCallback((id: string) => setTasks((current) => current.filter((task) => task.jobId !== id)), [])
 
-  return { tasks, enqueue, recover, retry, dismiss }
+  return { tasks, enqueue, recover, retry, confirm, dismiss }
 }

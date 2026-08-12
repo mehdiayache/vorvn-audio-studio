@@ -268,6 +268,14 @@ export const studioApi = {
     return postV1<{ id: number }>(`/api/v1/productions/${production_id}/parts/drafts`, draft)
   },
   job: <T>(id: string) => v1<DurableJob<T>>(`/api/v1/jobs/${encodeURIComponent(id)}`),
+  confirmJob: async <T>(id: string) => {
+    const response = await request<{ data: DurableJob<T> }>(`/api/v1/jobs/${encodeURIComponent(id)}/confirm`, {
+      method: "POST",
+      headers: { "Idempotency-Key": `confirm-${id}-${crypto.randomUUID()}` },
+      body: JSON.stringify({}),
+    })
+    return registerJob(response.data)
+  },
   enqueueGenerate: (payload: GeneratePayload) => enqueueSpeech(payload),
   enqueueRecordPart: (id: number, payload: GeneratePayload) => enqueueSpeech(payload, "record_part", id),
   enqueueRenderDraft: (id: number, payload: GeneratePayload) => enqueueSpeech(payload, "render_draft", id),

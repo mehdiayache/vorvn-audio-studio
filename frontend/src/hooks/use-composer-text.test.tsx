@@ -7,7 +7,7 @@ import { useComposerText } from "./use-composer-text"
 
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>()
-  return { ...actual, studioApi: { ...actual.studioApi, enqueueTextPass: vi.fn(), textPassResult: vi.fn() } }
+  return { ...actual, studioApi: { ...actual.studioApi, enqueueTextPass: vi.fn(), textPassResult: vi.fn(), confirmJob: vi.fn() } }
 })
 
 afterEach(cleanup)
@@ -20,6 +20,9 @@ describe("useComposerText text preparation contract", () => {
     })
     vi.mocked(studioApi.textPassResult).mockResolvedValue({
       before: "مرحبا", after: "[whispers] مرحبا", difference: [], cost: 0,
+    })
+    vi.mocked(studioApi.confirmJob).mockResolvedValue({
+      id: "33333333-3333-4333-8333-333333333333", type: "text", status: "queued", progress: 0, detail: "", retries: 0, result: {},
     })
   })
 
@@ -82,5 +85,28 @@ describe("useComposerText text preparation contract", () => {
       jobId: "11111111-1111-4111-8111-111111111111", kind: "shape",
     })
     expect(result.current.busy).toBe("shape")
+  })
+
+  it("continues the exact blocked text Job instead of enqueueing mutable text again", async () => {
+    const blocked = "22222222-2222-4222-8222-222222222222"
+    const continued = "33333333-3333-4333-8333-333333333333"
+    vi.mocked(studioApi.textPassResult).mockImplementation(async (jobId) => (
+      jobId === blocked
+        ? { before: "مرحبا", after: "", difference: [], cost: 0, needs_confirmation: true, estimate: .04 }
+        : { before: "مرحبا", after: "[whispers] مرحبا", difference: [], cost: .04 }
+    ))
+    const onReviewReferenceChange = vi.fn().mockResolvedValue(undefined)
+    const { result } = renderHook(() => useComposerText(
+      undefined, undefined, "expressive_tags",
+      { reviewReference: { jobId: blocked, kind: "tag" }, onReviewReferenceChange },
+    ))
+
+    await waitFor(() => expect(result.current.pending?.estimate).toBe(.04))
+    await act(async () => { await result.current.confirmPending() })
+
+    expect(studioApi.confirmJob).toHaveBeenCalledWith(blocked)
+    expect(studioApi.enqueueTextPass).not.toHaveBeenCalled()
+    expect(onReviewReferenceChange).toHaveBeenCalledWith({ jobId: continued, kind: "tag" })
+    await waitFor(() => expect(result.current.review?.result.after).toBe("[whispers] مرحبا"))
   })
 })

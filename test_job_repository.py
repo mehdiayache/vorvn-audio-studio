@@ -23,6 +23,7 @@ class JobRepositoryTests(unittest.TestCase):
         except psycopg.OperationalError as exc:
             self.skipTest(str(exc))
         original = production_speech_module.transaction
+        original_jobs_transaction = jobs_module.transaction
 
         with connection.cursor() as cursor:
             cursor.execute("""
@@ -54,6 +55,7 @@ class JobRepositoryTests(unittest.TestCase):
                 yield cursor
 
             production_speech_module.transaction = rolled_back_transaction
+            jobs_module.transaction = rolled_back_transaction
             try:
                 request = {
                     "operation": "create",
@@ -104,6 +106,28 @@ class JobRepositoryTests(unittest.TestCase):
                 self.assertEqual(repeated.id, job.id)
                 self.assertEqual(repeated.part_id, job.part_id)
 
+                cursor.execute("""
+                    UPDATE jobs SET status='blocked',
+                           result='{"needs_confirmation":true,"estimate":0.04}'::jsonb
+                     WHERE id=%s
+                """, (job.id,))
+                confirmed, confirmed_created = repository.jobs.confirm(
+                    job.public_id,
+                    idempotency_key=f"production-confirm-{uuid4()}")
+                self.assertTrue(confirmed_created)
+                self.assertEqual(confirmed.part_id, job.part_id)
+                self.assertEqual(confirmed.payload["operation"], "record_part")
+                self.assertTrue(confirmed.payload["confirmed"])
+                cursor.execute("""
+                    SELECT parent_id, part_id FROM jobs WHERE id=%s
+                """, (confirmed.id,))
+                self.assertEqual(cursor.fetchone(), (job.id, job.part_id))
+                cursor.execute("""
+                    SELECT count(*) FROM production_parts
+                     WHERE production_id=%s AND script='Canonical Part script'
+                """, (production_id,))
+                self.assertEqual(cursor.fetchone()[0], 1)
+
                 retry, retry_created = (
                     repository.enqueue(
                         {**request, "operation": "record_part",
@@ -140,6 +164,7 @@ class JobRepositoryTests(unittest.TestCase):
                 self.assertEqual(cursor.fetchone()[0], 1)
             finally:
                 production_speech_module.transaction = original
+                jobs_module.transaction = original_jobs_transaction
                 connection.rollback()
                 connection.close()
 
@@ -249,6 +274,87 @@ class JobRepositoryTests(unittest.TestCase):
             with connection.cursor() as cursor:
                 cursor.execute("DELETE FROM jobs WHERE id=ANY(%s)", (job_ids,))
             connection.commit()
+            connection.close()
+
+    def test_cost_confirmation_creates_one_linked_job_without_provider_attempt(self):
+        try:
+            connection = psycopg.connect(settings.database_url)
+        except psycopg.OperationalError as exc:
+            self.skipTest(str(exc))
+        repository = jobs_module.JobRepository()
+        job_ids = []
+        try:
+            blocked, _ = repository.enqueue(
+                "fixture_confirm", {"confirmed": False, "value": 7},
+                idempotency_key=f"confirm-source-{uuid4()}",
+                source_tool="speak", operation_label="Paid fixture")
+            job_ids.append(blocked.id)
+            self.assertEqual(repository.claim_next(["fixture_confirm"]).id,
+                             blocked.id)
+            self.assertTrue(repository.finish(
+                blocked.id,
+                {"needs_confirmation": True, "estimate": .04},
+                status="blocked"))
+
+            confirmation_key = f"confirm-child-{uuid4()}"
+            confirmed, created = repository.confirm(
+                blocked.public_id, idempotency_key=confirmation_key)
+            job_ids.append(confirmed.id)
+            self.assertTrue(created)
+            self.assertTrue(confirmed.payload["confirmed"])
+            repeated, repeated_created = repository.confirm(
+                blocked.public_id, idempotency_key=confirmation_key)
+            self.assertFalse(repeated_created)
+            self.assertEqual(repeated.id, confirmed.id)
+            second_click, second_click_created = repository.confirm(
+                blocked.public_id,
+                idempotency_key=f"different-browser-click-{uuid4()}")
+            self.assertFalse(second_click_created)
+            self.assertEqual(second_click.id, confirmed.id)
+
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT parent_id, provider_attempt_id, source_tool,
+                           operation_label FROM jobs WHERE id=%s
+                """, (confirmed.id,))
+                self.assertEqual(cursor.fetchone(), (
+                    blocked.id, None, "speak", "Paid fixture"))
+                cursor.execute("""
+                    SELECT kind FROM job_events WHERE job_id=%s ORDER BY id
+                """, (blocked.id,))
+                self.assertIn("confirmed", [row[0] for row in cursor.fetchall()])
+        finally:
+            with connection.cursor() as cursor:
+                cursor.execute("DELETE FROM jobs WHERE id=ANY(%s)",
+                               (list(reversed(job_ids)),))
+            connection.commit()
+            connection.close()
+
+    def test_ambiguous_block_cannot_use_cost_confirmation(self):
+        try:
+            connection = psycopg.connect(settings.database_url)
+        except psycopg.OperationalError as exc:
+            self.skipTest(str(exc))
+        repository = jobs_module.JobRepository()
+        job_id = None
+        try:
+            blocked, _ = repository.enqueue(
+                "fixture_ambiguous_confirm", {"confirmed": False},
+                idempotency_key=f"ambiguous-confirm-{uuid4()}")
+            job_id = blocked.id
+            repository.claim_next(["fixture_ambiguous_confirm"])
+            repository.fail(blocked.id, "response lost", result={
+                "needs_confirmation": True, "requires_review": True,
+                "ambiguous": True})
+            with self.assertRaisesRegex(ValueError, "cost confirmation"):
+                repository.confirm(
+                    blocked.public_id,
+                    idempotency_key=f"unsafe-confirm-{uuid4()}")
+        finally:
+            if job_id is not None:
+                with connection.cursor() as cursor:
+                    cursor.execute("DELETE FROM jobs WHERE id=%s", (job_id,))
+                connection.commit()
             connection.close()
 
     def test_lease_prevents_false_loss_and_terminal_state_cannot_be_overwritten(self):

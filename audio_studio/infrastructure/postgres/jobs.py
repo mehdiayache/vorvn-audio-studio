@@ -76,7 +76,9 @@ class JobRepository:
                 project_id: int | None = None,
                 production_id: int | None = None,
                 source_tool: str | None = None,
-                operation_label: str | None = None) -> tuple[Job, bool]:
+                operation_label: str | None = None,
+                parent_id: int | None = None,
+                part_id: int | None = None) -> tuple[Job, bool]:
         actor_id = actor_id or _DEFAULT_ACTOR
         organization_id = organization_id or _DEFAULT_ORGANIZATION
         with transaction() as cursor:
@@ -84,7 +86,8 @@ class JobRepository:
                 cursor, kind, payload, idempotency_key=idempotency_key,
                 actor_id=actor_id, organization_id=organization_id,
                 project_id=project_id, production_id=production_id,
-                source_tool=source_tool, operation_label=operation_label)
+                source_tool=source_tool, operation_label=operation_label,
+                parent_id=parent_id, part_id=part_id)
 
     def enqueue_in_transaction(self, cursor, kind: str,
                  payload: dict[str, Any], *,
@@ -92,7 +95,9 @@ class JobRepository:
                  organization_id: str | None, project_id: int | None = None,
                  production_id: int | None = None,
                  source_tool: str | None = None,
-                 operation_label: str | None = None) -> tuple[Job, bool]:
+                 operation_label: str | None = None,
+                 parent_id: int | None = None,
+                 part_id: int | None = None) -> tuple[Job, bool]:
         actor_id = actor_id or _DEFAULT_ACTOR
         organization_id = organization_id or _DEFAULT_ORGANIZATION
         requested_model = _requested_model(kind, payload)
@@ -111,9 +116,11 @@ class JobRepository:
                     (kind, status, payload, idempotency_key, actor_id,
                      organization_id, project_id, production_id, estimated, cost,
                      requested_route, resolved_route, source_tool, operation_label,
-                     model, voice, engine, tier, idempotency_fingerprint)
+                     model, voice, engine, tier, idempotency_fingerprint,
+                     parent_id, part_id)
                 VALUES (%s, 'queued', %s::jsonb, %s, %s, %s, %s, %s, 0, 0,
-                        %s::jsonb, '{}'::jsonb, %s, %s, %s, %s, %s, %s, %s)
+                        %s::jsonb, '{}'::jsonb, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s)
                 ON CONFLICT (organization_id, idempotency_key)
                     WHERE idempotency_key IS NOT NULL
                       AND organization_id IS NOT NULL
@@ -123,7 +130,7 @@ class JobRepository:
                   organization_id, project_id, production_id,
                   json.dumps(requested_route), source_tool, operation_label,
                   requested_model, payload.get("voice"), payload.get("engine"),
-                  payload.get("model"), fingerprint))
+                  payload.get("model"), fingerprint, parent_id, part_id))
         inserted = cursor.fetchone()
         if not inserted:
             cursor.execute("""
@@ -152,6 +159,61 @@ class JobRepository:
                              "operation": operation_label})
         cursor.execute(_SELECT + " WHERE id = %s", (job_id,))
         return _job(cursor.fetchone()), True
+
+    def confirm(self, public_id: UUID, *, idempotency_key: str) \
+            -> tuple[Job, bool]:
+        """Continue a pre-call cost block as a new, explicitly linked Job."""
+        with transaction() as cursor:
+            cursor.execute("""
+                SELECT id, kind, status, payload, result, actor_id,
+                       organization_id, project_id, production_id,
+                       source_tool, operation_label, provider_attempt_id,
+                       part_id
+                  FROM jobs WHERE public_id=%s FOR UPDATE
+            """, (public_id,))
+            source = cursor.fetchone()
+            if not source:
+                raise LookupError("That Job no longer exists.")
+            result = source[4] or {}
+            if source[2] != "blocked" or not result.get("needs_confirmation"):
+                raise ValueError(
+                    "Only a Job stopped before provider execution for cost "
+                    "confirmation can be continued.")
+            if (result.get("requires_review") or result.get("ambiguous")
+                    or source[11] is not None):
+                raise ValueError(
+                    "This provider attempt needs human review and cannot be "
+                    "continued as a cost confirmation.")
+            cursor.execute(
+                _SELECT + """
+                 WHERE parent_id = %s
+                   AND payload->>'confirmed' = 'true'
+                 ORDER BY id
+                 LIMIT 1
+                """, (source[0],))
+            existing = cursor.fetchone()
+            if existing:
+                return _job(existing), False
+            payload = {**(source[3] or {}), "confirmed": True}
+            confirmed, created = self.enqueue_in_transaction(
+                cursor, source[1], payload,
+                idempotency_key=idempotency_key,
+                actor_id=source[5], organization_id=source[6],
+                project_id=source[7], production_id=source[8],
+                source_tool=source[9], operation_label=source[10],
+                parent_id=int(source[0]),
+                part_id=int(source[12]) if source[12] is not None else None)
+            if created:
+                cursor.execute("""
+                    INSERT INTO job_events (job_id, kind, detail)
+                    VALUES (%s, 'confirmed', %s::jsonb),
+                           (%s, 'continued_from', %s::jsonb)
+                """, (source[0], json.dumps({"job_id": str(confirmed.public_id)}),
+                      confirmed.id, json.dumps({"job_id": str(public_id)})))
+                self._audit(
+                    cursor, source[5], source[6], "job.cost_confirmed",
+                    int(source[0]), {"continued_by": str(confirmed.public_id)})
+            return confirmed, created
 
     def get(self, public_id: UUID) -> Job | None:
         with read_only() as cursor:

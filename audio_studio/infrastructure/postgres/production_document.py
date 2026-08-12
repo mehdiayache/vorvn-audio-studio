@@ -171,6 +171,7 @@ class ProductionDocumentRepository:
                        coalesce(speech_job.error, ''), speech_job.retries,
                        speech_job.created_at, speech_job.started_at,
                        speech_job.finished_at, speech_job.payload,
+                       speech_job.result,
                        take.source_script_hash
                   FROM production_parts part
                   LEFT JOIN production_cast_roles role ON role.id = part.cast_role_id
@@ -193,7 +194,8 @@ class ProductionDocumentRepository:
                   LEFT JOIN LATERAL (
                     SELECT job.public_id, job.status, job.done, job.total,
                            job.detail, job.error, job.retries, job.created_at,
-                           job.started_at, job.finished_at, job.payload
+                           job.started_at, job.finished_at, job.payload,
+                           job.result
                       FROM jobs job
                      WHERE job.part_id=part.id AND job.kind='speech'
                      ORDER BY job.created_at DESC, job.id DESC LIMIT 1
@@ -209,6 +211,7 @@ class ProductionDocumentRepository:
             diagnostics = row[29] or {}
             delivery = row[23] or {}
             job_payload = row[50] or {}
+            job_result = row[51] or {}
             selected_revision = row[17]
             item = {
                 "id": row[0], "public_id": str(row[1]),
@@ -219,7 +222,7 @@ class ProductionDocumentRepository:
                 "revision": row[10], "selected_take_id": row[11],
                 "outdated": bool(row[11] and (
                     selected_revision != row[10]
-                    or row[51] != script_hash(row[6]))),
+                    or row[52] != script_hash(row[6]))),
                 "asset_id": row[12], "asset_version_id": row[13],
                 "duration_ms": row[27] if row[11] else row[14],
                 "text_raw": snapshot.get("text_raw", draft.get("text_raw")),
@@ -264,7 +267,7 @@ class ProductionDocumentRepository:
                     "created_at": row[47].isoformat() if row[47] else None,
                     "started_at": row[48].isoformat() if row[48] else None,
                     "finished_at": row[49].isoformat() if row[49] else None,
-                    "part_id": row[0], "result": {}, "request": request,
+                    "part_id": row[0], "result": job_result, "request": request,
                 }
             if item["kind"] == "asset":
                 item["missing"] = not bool(row[34])

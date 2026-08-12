@@ -23,6 +23,10 @@ class RecordingAttemptResponse(BaseModel):
     size_bytes: int
     audio_url: str | None
     fidelity: dict[str, Any] | None
+    needs_confirmation: bool = False
+    requires_review: bool = False
+    estimate: float = 0
+    continued_by_job_id: str | None = None
 
 
 class RecordingSessionResponse(BaseModel):

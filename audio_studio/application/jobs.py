@@ -25,6 +25,8 @@ class JobStore(JobProgress, Protocol):
     def get(self, public_id: UUID) -> Job | None: ...
     def events(self, public_id: UUID) -> list[dict[str, Any]]: ...
     def cancel(self, public_id: UUID) -> Job | None: ...
+    def confirm(self, public_id: UUID, *, idempotency_key: str) \
+            -> tuple[Job, bool]: ...
     def abandon_stale(self, older_than_seconds: int = 120) -> int: ...
 
 
@@ -48,6 +50,11 @@ class JobService:
 
     def cancel(self, public_id: UUID) -> Job | None:
         return self.repository.cancel(public_id)
+
+    def confirm(self, public_id: UUID, *, idempotency_key: str) \
+            -> tuple[Job, bool]:
+        return self.repository.confirm(
+            public_id, idempotency_key=idempotency_key)
 
     def abandon_stale(self, older_than_seconds: int = 120) -> int:
         return self.repository.abandon_stale(older_than_seconds)

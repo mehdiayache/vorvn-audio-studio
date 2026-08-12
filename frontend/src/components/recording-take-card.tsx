@@ -11,7 +11,7 @@ import "./recording-take-card.css"
 
 export type RecordingTakeView = {
   id: string
-  status: "pending" | "ready" | "warning" | "review" | "outdated" | "failed" | "current"
+  status: "pending" | "ready" | "warning" | "review" | "continued" | "outdated" | "failed" | "current"
   voice?: string
   voiceIdentityId?: string | null
   createdAt?: string | null
@@ -41,7 +41,7 @@ export function RecordingTakeCard({ take, directory, active = false, onPlay, onS
   const review = take.status === "review"
   const outdated = take.status === "outdated"
   const StatusIcon = working ? LoaderCircle : failed || outdated || review ? AlertCircle : CheckCircle2
-  const statusLabel = working ? "Generating" : failed ? "Generation failed" : review ? "Review required" : outdated ? "Outdated" : take.status === "warning" ? "Ready · review wording" : take.status === "current" ? "Current take" : "Ready"
+  const statusLabel = working ? "Generating" : failed ? "Generation failed" : review ? "Review required" : take.status === "continued" ? "Cost confirmed · continued" : outdated ? "Outdated" : take.status === "warning" ? "Ready · review wording" : take.status === "current" ? "Current take" : "Ready"
   const created = take.createdAt ? new Date(take.createdAt).toLocaleString() : ""
 
   return <article className={cn("recording-take-card", `is-${outdated || review ? "warning" : take.status}`)}>

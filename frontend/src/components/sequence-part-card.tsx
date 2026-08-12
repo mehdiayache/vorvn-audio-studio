@@ -21,7 +21,7 @@ function kindLabel(part: ProductionPart) {
   return "Recorded speech"
 }
 
-export function SequencePartCard({ part, renderTask, index, count, selected, playing, directory, onSelect, onRetryRender, onDismissRender, actions }: {
+export function SequencePartCard({ part, renderTask, index, count, selected, playing, directory, onSelect, onRetryRender, onConfirmRender, onDismissRender, actions }: {
   part: ProductionPart
   renderTask?: RenderTask
   index: number
@@ -31,6 +31,7 @@ export function SequencePartCard({ part, renderTask, index, count, selected, pla
   directory: VoiceDirectory
   onSelect: (checked: boolean, shift: boolean) => void
   onRetryRender: (task: RenderTask) => void
+  onConfirmRender: (task: RenderTask) => void
   onDismissRender: (id: string) => void
   actions: SequenceActions
 }) {
@@ -79,7 +80,7 @@ export function SequencePartCard({ part, renderTask, index, count, selected, pla
         </DropdownMenu>
       </div>
       {renderTask && <div className={`take-render-status ${renderTask.status}`} role="status" aria-live="polite">
-        {["queued", "running", "retrying"].includes(renderTask.status) ? <><LoaderCircle className="spin" /><span><b>{renderTask.mode === "draft" ? "Recording this draft…" : renderTask.mode === "pending" ? "Recording this Part…" : "Generating a new take…"}</b><small>{renderTask.detail || "The current card stays usable while Alibaba works."}</small></span></> : <><CircleAlert /><span><b>{renderTask.status === "blocked" ? "Recording needs review" : renderTask.mode === "pending" ? "Recording failed" : "New take failed"}</b><small>{renderTask.error || renderTask.detail}</small></span>{renderTask.status !== "blocked" && <Button variant="outline" size="sm" onClick={() => onRetryRender(renderTask)}><RefreshCw /> Retry</Button>}<Button variant="ghost" size="icon" aria-label="Dismiss failed take" onClick={() => onDismissRender(renderTask.jobId)}><X /></Button></>}
+        {["queued", "running", "retrying"].includes(renderTask.status) ? <><LoaderCircle className="spin" /><span><b>{renderTask.mode === "draft" ? "Recording this draft…" : renderTask.mode === "pending" ? "Recording this Part…" : "Generating a new take…"}</b><small>{renderTask.detail || "The current card stays usable while Alibaba works."}</small></span></> : <><CircleAlert /><span><b>{renderTask.status === "blocked" && renderTask.needsConfirmation && !renderTask.requiresReview ? "Cost confirmation needed" : renderTask.status === "blocked" ? "Recording needs review" : renderTask.mode === "pending" ? "Recording failed" : "New take failed"}</b><small>{renderTask.error || renderTask.detail}</small></span>{renderTask.status !== "blocked" && <Button variant="outline" size="sm" onClick={() => onRetryRender(renderTask)}><RefreshCw /> Retry</Button>}{renderTask.status === "blocked" && renderTask.needsConfirmation && !renderTask.requiresReview && <Button size="sm" onClick={() => onConfirmRender(renderTask)}>Confirm ${Number(renderTask.estimate || 0).toFixed(4)}</Button>}<Button variant="ghost" size="icon" aria-label="Dismiss failed take" onClick={() => onDismissRender(renderTask.jobId)}><X /></Button></>}
       </div>}
     </article>
   )

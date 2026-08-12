@@ -1,6 +1,6 @@
 """Real HTTP Job lifecycle using an inert, non-provider fixture kind."""
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 import unittest
 
 from fastapi.testclient import TestClient
@@ -45,6 +45,69 @@ class JobHttpTests(unittest.TestCase):
                         "DELETE FROM audit_records WHERE resource_type = 'job' "
                         "AND resource_id = %s", (str(job.id),))
                     cursor.execute("DELETE FROM jobs WHERE id = %s", (job.id,))
+                connection.commit()
+            connection.close()
+
+    def test_cost_confirmation_continues_once_and_review_blocks_cannot_continue(self):
+        try:
+            connection = psycopg.connect(settings.database_url)
+        except psycopg.OperationalError as exc:
+            self.skipTest(str(exc))
+        repository = JobRepository()
+        jobs = []
+        client = TestClient(app)
+        try:
+            source, _ = repository.enqueue(
+                "fixture_http_confirm", {"confirmed": False, "route": "exact"},
+                idempotency_key=f"fixture-http-confirm-{uuid4()}")
+            jobs.append(source)
+            repository.claim_next(["fixture_http_confirm"])
+            repository.finish(source.id, {
+                "needs_confirmation": True, "estimate": .04,
+            }, status="blocked")
+
+            first = client.post(
+                f"/api/v1/jobs/{source.public_id}/confirm",
+                headers={"Idempotency-Key": f"http-confirm-{uuid4()}"})
+            second = client.post(
+                f"/api/v1/jobs/{source.public_id}/confirm",
+                headers={"Idempotency-Key": f"http-second-click-{uuid4()}"})
+            self.assertEqual(first.status_code, 202, first.text)
+            self.assertEqual(second.status_code, 202, second.text)
+            self.assertTrue(first.json()["meta"]["created"])
+            self.assertFalse(second.json()["meta"]["created"])
+            self.assertEqual(first.json()["data"]["id"], second.json()["data"]["id"])
+            child = repository.get(UUID(first.json()["data"]["id"]))
+            jobs.append(child)
+            self.assertTrue(child.payload["confirmed"])
+
+            ambiguous, _ = repository.enqueue(
+                "fixture_http_ambiguous", {"confirmed": False},
+                idempotency_key=f"fixture-http-ambiguous-{uuid4()}")
+            jobs.append(ambiguous)
+            repository.claim_next(["fixture_http_ambiguous"])
+            repository.fail(ambiguous.id, "response lost", result={
+                "needs_confirmation": True,
+                "requires_review": True,
+                "ambiguous": True,
+            })
+            rejected = client.post(
+                f"/api/v1/jobs/{ambiguous.public_id}/confirm")
+            self.assertEqual(rejected.status_code, 409, rejected.text)
+            self.assertEqual(
+                rejected.json()["error"]["code"], "job_not_confirmable")
+        finally:
+            client.close()
+            ids = [job.id for job in jobs if job is not None]
+            if ids:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "DELETE FROM audit_records WHERE resource_type = 'job' "
+                        "AND resource_id = ANY(%s)",
+                        ([str(identifier) for identifier in ids],))
+                    cursor.execute(
+                        "DELETE FROM jobs WHERE id = ANY(%s)",
+                        (list(reversed(ids)),))
                 connection.commit()
             connection.close()
 

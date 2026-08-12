@@ -55,6 +55,10 @@ class FakeJobStore:
         self.cancelled = public_id
         return self.saved
 
+    def confirm(self, public_id, *, idempotency_key):
+        self.confirmed = (public_id, idempotency_key)
+        return self.saved, True
+
     def abandon_stale(self, older_than_seconds=120):
         self.stale_seconds = older_than_seconds
         return 2
@@ -76,6 +80,11 @@ class JobServiceTests(unittest.TestCase):
         self.assertEqual(store.cancelled, saved.public_id)
         self.assertEqual(service.abandon_stale(45), 2)
         self.assertEqual(store.stale_seconds, 45)
+        confirmed, created = service.confirm(
+            saved.public_id, idempotency_key="confirmed-key")
+        self.assertTrue(created)
+        self.assertIs(confirmed, saved)
+        self.assertEqual(store.confirmed, (saved.public_id, "confirmed-key"))
 
     def test_worker_finishes_success_with_normalized_status(self):
         job = fixture_job("speech")

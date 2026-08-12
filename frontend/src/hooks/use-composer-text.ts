@@ -36,6 +36,8 @@ export function useComposerText(
   const [activeReference, setActiveReference] = useState<TextReviewReference | null>(options.reviewReference || null)
   const referenceChangeRef = useRef(options.onReviewReferenceChange)
   referenceChangeRef.current = options.onReviewReferenceChange
+  const restoredJobId = options.reviewReference?.jobId
+  const restoredKind = options.reviewReference?.kind
   const text = states[view] || ""
 
   useEffect(() => {
@@ -50,8 +52,12 @@ export function useComposerText(
   }, [part?.id])
 
   useEffect(() => {
-    setActiveReference(options.reviewReference || null)
-  }, [options.reviewReference])
+    setActiveReference(
+      restoredJobId && restoredKind
+        ? { jobId: restoredJobId, kind: restoredKind }
+        : null,
+    )
+  }, [restoredJobId, restoredKind])
 
   useEffect(() => {
     if (!activeReference) return
@@ -148,15 +154,28 @@ export function useComposerText(
     setPending(null); setActiveReference(null)
   }
 
+  async function confirmPending() {
+    const reference = activeReference
+    if (!reference || !pending) return
+    setBusy(reference.kind); setError(""); setPending(null)
+    try {
+      const job = await studioApi.confirmJob<TextPassResult>(reference.jobId)
+      const continued = { jobId: job.id, kind: reference.kind } satisfies TextReviewReference
+      setActiveReference(continued)
+      await referenceChangeRef.current?.(continued)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Cost confirmation failed.")
+      setPending({ kind: reference.kind, estimate: pending.estimate })
+    } finally {
+      setBusy(null)
+    }
+  }
+
   return { text, states, view, review, pending, busy, error, density,
     setDensity: (value: string) => {
       if (["none", "light", "normal", "heavy"].includes(value)) setDensityState(value as TagDensity)
     },
     updateText, select, restore, run, accept, reject, cancelPending,
-    confirmPending: async () => {
-      const kind = pending?.kind
-      setPending(null)
-      if (kind) await run(kind, true)
-    },
+    confirmPending,
   }
 }

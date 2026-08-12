@@ -4675,6 +4675,17 @@
             ],
             "title": "Audio Url"
           },
+          "continued_by_job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Continued By Job Id"
+          },
           "cost": {
             "title": "Cost",
             "type": "number"
@@ -4695,6 +4706,11 @@
           "error": {
             "title": "Error",
             "type": "string"
+          },
+          "estimate": {
+            "default": 0,
+            "title": "Estimate",
+            "type": "number"
           },
           "fidelity": {
             "anyOf": [
@@ -4724,10 +4740,20 @@
             "title": "Id",
             "type": "string"
           },
+          "needs_confirmation": {
+            "default": false,
+            "title": "Needs Confirmation",
+            "type": "boolean"
+          },
           "request": {
             "additionalProperties": true,
             "title": "Request",
             "type": "object"
+          },
+          "requires_review": {
+            "default": false,
+            "title": "Requires Review",
+            "type": "boolean"
           },
           "size_bytes": {
             "title": "Size Bytes",
@@ -11358,6 +11384,65 @@
           }
         },
         "summary": "Cancel Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/v1/jobs/{job_id}/confirm": {
+      "post": {
+        "operationId": "confirmJobCost",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobCreatedEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Confirm Job Cost",
         "tags": [
           "jobs"
         ]

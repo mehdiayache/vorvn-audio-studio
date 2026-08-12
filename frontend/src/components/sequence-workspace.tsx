@@ -11,7 +11,7 @@ import type { ProductionPart, RenderTask, VoiceDirectory } from "@/types/domain"
 
 import "@/components/sequence-workspace.css"
 
-export function SequenceWorkspace({ parts, renderTasks = [], selected, playingKey, playerPlaying, directory, onSelected, onInsert, onRetryRender, onDismissRender, actions }: {
+export function SequenceWorkspace({ parts, renderTasks = [], selected, playingKey, playerPlaying, directory, onSelected, onInsert, onRetryRender, onConfirmRender, onDismissRender, actions }: {
   parts: ProductionPart[]
   renderTasks?: RenderTask[]
   selected: Set<number>
@@ -21,6 +21,7 @@ export function SequenceWorkspace({ parts, renderTasks = [], selected, playingKe
   onSelected: (ids: Set<number>) => void
   onInsert: (kind: InsertKind, at: number | null) => void
   onRetryRender: (task: RenderTask) => void
+  onConfirmRender: (task: RenderTask) => void
   onDismissRender: (id: string) => void
   actions: SequenceActions
 }) {
@@ -59,15 +60,15 @@ export function SequenceWorkspace({ parts, renderTasks = [], selected, playingKe
       <header className="sequence-workspace-title"><div><span>Source sequence</span><h2>Production parts</h2></div><p>One ordered narration. Open a part for its full script, takes, and captions.</p></header>
       <div className="sequence-spine" aria-hidden="true" />
       <SequenceInsertControl at={0} insertAt={sourceParts[0]?.position ?? 0} onInsert={onInsert} />
-      {tasksAt(0).map((task, taskOffset) => <PendingPartCard task={task} index={taskOffset} directory={directory} onRetry={onRetryRender} onDismiss={onDismissRender} key={task.id} />)}
+      {tasksAt(0).map((task, taskOffset) => <PendingPartCard task={task} index={taskOffset} directory={directory} onRetry={onRetryRender} onConfirm={onConfirmRender} onDismiss={onDismissRender} key={task.id} />)}
       {sourceParts.map((part, index) => <Fragment key={part.id}>
         <div className={cn("sequence-row", part.kind === "silence" && "silence")}>
           <div className="sequence-node-column"><span className={cn("sequence-row-node", part.kind === "asset" && "asset", part.kind === "draft" && "draft", part.missing && "issue")}>{part.kind === "silence" ? "" : String(index + tasksBefore(index) + 1).padStart(2, "0")}</span></div>
           {part.kind === "silence"
             ? <SequenceSilenceCard part={part} index={index} selected={selected.has(part.id)} onSelect={(checked, shift) => select(index, checked, shift)} actions={actions} />
-            : <SequencePartCard part={part} renderTask={renderTasks.find((task) => task.targetPartId === part.id)} index={index} count={sourceParts.length} selected={selected.has(part.id)} playing={playerPlaying && playingKey === `part:${part.id}`} directory={directory} onSelect={(checked, shift) => select(index, checked, shift)} onRetryRender={onRetryRender} onDismissRender={onDismissRender} actions={actions} />}
+            : <SequencePartCard part={part} renderTask={renderTasks.find((task) => task.targetPartId === part.id)} index={index} count={sourceParts.length} selected={selected.has(part.id)} playing={playerPlaying && playingKey === `part:${part.id}`} directory={directory} onSelect={(checked, shift) => select(index, checked, shift)} onRetryRender={onRetryRender} onConfirmRender={onConfirmRender} onDismissRender={onDismissRender} actions={actions} />}
         </div>
-        {tasksAt(index + 1).map((task, taskOffset) => <PendingPartCard task={task} index={index + tasksBefore(index) + taskOffset + 1} directory={directory} onRetry={onRetryRender} onDismiss={onDismissRender} key={task.id} />)}
+        {tasksAt(index + 1).map((task, taskOffset) => <PendingPartCard task={task} index={index + tasksBefore(index) + taskOffset + 1} directory={directory} onRetry={onRetryRender} onConfirm={onConfirmRender} onDismiss={onDismissRender} key={task.id} />)}
         <SequenceInsertControl at={index + 1} insertAt={index === sourceParts.length - 1 ? null : sourceParts[index + 1]?.position ?? index + 1} last={index === sourceParts.length - 1} onInsert={onInsert} />
       </Fragment>)}
     </section>

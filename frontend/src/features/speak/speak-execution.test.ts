@@ -29,5 +29,6 @@ describe("Speak execution ownership", () => {
     expect(recordingAttemptStatus({ status: "failed" })).toBe("failed")
     expect(recordingAttemptStatus({ status: "running" })).toBe("pending")
     expect(recordingAttemptStatus({ status: "ok" })).toBe("ready")
+    expect(recordingAttemptStatus({ status: "blocked", continued_by_job_id: "next-job" })).toBe("continued")
   })
 })

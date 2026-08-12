@@ -33,9 +33,15 @@ class RecordingSessionRepository:
                        job.started_at, job.finished_at, job.payload,
                        job.error, job.cost, job.cost_basis, job.result,
                        take.filename, take.duration_ms,
-                       take.size_bytes
+                       take.size_bytes,
+                       continuation.public_id
                   FROM jobs job
                   LEFT JOIN takes take ON take.id = job.take_id
+                  LEFT JOIN LATERAL (
+                    SELECT child.public_id FROM jobs child
+                     WHERE child.parent_id=job.id
+                     ORDER BY child.created_at DESC, child.id DESC LIMIT 1
+                  ) continuation ON true
                  WHERE job.kind = 'speech'
                    AND job.source_tool = 'speak'
                    AND job.production_id IS NULL
@@ -63,5 +69,11 @@ class RecordingSessionRepository:
                 "size_bytes": int(row[12] or 0),
                 "audio_url": f"/audio/{quote(str(filename))}" if filename else None,
                 "fidelity": result.get("fidelity") or None,
+                "needs_confirmation": bool(result.get("needs_confirmation")),
+                "requires_review": bool(result.get("requires_review")
+                                        or result.get("ambiguous")),
+                "estimate": float(result.get("estimate")
+                                  or result.get("estimated_cost") or 0),
+                "continued_by_job_id": str(row[13]) if row[13] else None,
             })
         return attempts

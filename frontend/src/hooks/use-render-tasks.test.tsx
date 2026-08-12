@@ -60,4 +60,32 @@ describe("useRenderTasks", () => {
     })
     expect(success).not.toHaveBeenCalled()
   })
+
+  it("continues a cost-confirmation block as one new linked durable Job", async () => {
+    vi.useFakeTimers()
+    const blocked = durable("blocked", { needs_confirmation: true, estimate: .04 })
+    const continued = { ...durable("queued"), id: "confirmed-job-88" }
+    vi.spyOn(studioApi, "confirmJob").mockImplementation(async () => {
+      jobObserver.register(continued, vi.fn().mockResolvedValue({
+        ...continued, status: "running",
+      }))
+      return continued
+    })
+    const { result } = renderHook(() => useRenderTasks(vi.fn(), vi.fn(async () => undefined)))
+    const recovered = {
+      ...draft, id: blocked.id, jobId: blocked.id, mode: "pending",
+      status: "blocked", targetPartId: 127, startedAt: Date.now(),
+      needsConfirmation: true, estimate: .04,
+    } as const
+    act(() => result.current.recover(recovered, blocked))
+    await act(async () => { await result.current.confirm(recovered) })
+    await act(async () => { await result.current.confirm(recovered) })
+
+    expect(studioApi.confirmJob).toHaveBeenCalledTimes(2)
+    expect(studioApi.confirmJob).toHaveBeenCalledWith("backend-job-77")
+    expect(result.current.tasks).toHaveLength(1)
+    expect(result.current.tasks[0]).toMatchObject({
+      jobId: "confirmed-job-88", targetPartId: 127, status: "queued",
+    })
+  })
 })

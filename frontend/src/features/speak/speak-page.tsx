@@ -102,6 +102,18 @@ export function SpeakPage() {
     }
   }
 
+  async function confirmAttempt(attempt: RecordingAttempt) {
+    try {
+      const job = await studioApi.confirmJob<GenerateResult>(attempt.id)
+      setExecutions((current) => current.some((item) => item.jobId === job.id)
+        ? current
+        : [...current, { jobId: job.id, sessionId, payload: attempt.request }])
+      await refreshSession(sessionId)
+    } catch (reason) {
+      toast.error(reason instanceof Error ? reason.message : "Cost confirmation failed.")
+    }
+  }
+
   const settleExecution = useCallback(async (execution: SpeakExecution, job: DurableJob<GenerateResult>) => {
     // A durable Job keeps running globally, but a result from an abandoned
     // session must never mutate or start playback in the current session.
@@ -163,7 +175,8 @@ export function SpeakPage() {
       {executions.map((execution) => <PendingSpeakExecution key={execution.jobId} execution={execution} directory={voices.directory} onTerminal={(item, job) => void settleExecution(item, job)} />)}
       {sessionLoading && !session?.attempts.length ? <p className="speak-empty">Loading this session…</p> : session?.attempts.length ? session.attempts.filter((attempt) => !executions.some((execution) => execution.jobId === attempt.id)).map((attempt) => {
         const sourceKey = `job:${attempt.id}`
-        return <RecordingTakeCard key={attempt.id} take={takeView(attempt)} directory={voices.directory} active={player.source?.key === sourceKey && player.state === "playing"} onPlay={attempt.audio_url ? () => void player.toggleSource({ key: sourceKey, url: attempt.audio_url!, title: "Generated recording", subtitle: resolveVoice(attempt.request.voice, voices.directory, attempt.request.voice_identity_id).name, kind: "part" }) : undefined} onSecondaryAction={attempt.status === "blocked" ? undefined : () => void generate({ ...attempt.request, session_id: sessionId })} secondaryLabel="Another take · same setup" />
+        const confirmation = attempt.status === "blocked" && attempt.needs_confirmation && !attempt.requires_review && !attempt.continued_by_job_id
+        return <RecordingTakeCard key={attempt.id} take={takeView(attempt)} directory={voices.directory} active={player.source?.key === sourceKey && player.state === "playing"} onPlay={attempt.audio_url ? () => void player.toggleSource({ key: sourceKey, url: attempt.audio_url!, title: "Generated recording", subtitle: resolveVoice(attempt.request.voice, voices.directory, attempt.request.voice_identity_id).name, kind: "part" }) : undefined} onSecondaryAction={confirmation ? () => void confirmAttempt(attempt) : attempt.status === "blocked" ? undefined : () => void generate({ ...attempt.request, session_id: sessionId })} secondaryLabel={confirmation ? `Confirm $${Number(attempt.estimate || 0).toFixed(4)}` : "Another take · same setup"} />
       }) : !executions.length && <p className="speak-empty">Your first generated recording will appear here. Another take keeps the exact same voice, model, language, script and settings.</p>}
     </section>
     <AudioPlayerDock label="Generated audio" source={player.source} state={player.state} currentTime={player.currentTime} duration={player.duration} onToggle={() => void player.toggle()} onSeek={player.seek} onClose={player.close} />

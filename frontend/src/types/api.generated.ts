@@ -379,6 +379,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs/{job_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Job Cost */
+        post: operations["confirmJobCost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs/{job_id}/events": {
         parameters: {
             query?: never;
@@ -3042,6 +3059,8 @@ export interface components {
         RecordingAttemptResponse: {
             /** Audio Url */
             audio_url: string | null;
+            /** Continued By Job Id */
+            continued_by_job_id?: string | null;
             /** Cost */
             cost: number;
             /** Cost Basis */
@@ -3055,6 +3074,11 @@ export interface components {
             duration_ms: number;
             /** Error */
             error: string;
+            /**
+             * Estimate
+             * @default 0
+             */
+            estimate: number;
             /** Fidelity */
             fidelity: {
                 [key: string]: unknown;
@@ -3063,10 +3087,20 @@ export interface components {
             finished_at: string | null;
             /** Id */
             id: string;
+            /**
+             * Needs Confirmation
+             * @default false
+             */
+            needs_confirmation: boolean;
             /** Request */
             request: {
                 [key: string]: unknown;
             };
+            /**
+             * Requires Review
+             * @default false
+             */
+            requires_review: boolean;
             /** Size Bytes */
             size_bytes: number;
             /** Started At */
@@ -5643,6 +5677,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirmJobCost: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobCreatedEnvelope"];
                 };
             };
             /** @description Validation Error */

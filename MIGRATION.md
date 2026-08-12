@@ -663,3 +663,43 @@ session recovery, review presentation and the absence of retry/play controls
 for non-results. Final verification passes 313 Python tests and 119 React tests
 plus generated OpenAPI, TypeScript and the production build. No Alibaba
 operation was called.
+
+Checkpoint 8 closes the human continuation contract for work stopped before a
+paid provider request, without weakening the ambiguous-payment invariant.
+
+- `blocked` is now projected as two distinct operator states. A safe
+  `needs_confirmation` block means no provider request was sent and exposes a
+  cost-confirmation action. `requires_review`/`ambiguous` means a request may
+  already have been billed and never exposes that action.
+- Confirmation never mutates or replays the original Job. It creates one new
+  durable child Job linked through `parent_id`, copying the original exact
+  route, payload, Production, Part and source metadata while changing only the
+  explicit `confirmed` authorization. The original evidence remains intact.
+- The repository locks the source Job and returns an already-created child for
+  every later confirmation, even when a second browser click uses a different
+  Idempotency-Key. A double click therefore cannot enqueue duplicate paid work.
+- Production retains the same pending Part. Confirmation does not create a
+  second Part, and the latest linked Job is recovered from the Production read
+  model after close, navigation or reload.
+- Speak stores no execution truth in React. Its durable recording-session
+  ledger exposes the confirmation/review classification and the continuation
+  Job ID, so the historical blocked card becomes `Cost confirmed · continued`
+  while the child Job is observed normally.
+- Paid Spoken/Tagged preparation uses the same confirmation endpoint. It
+  continues the persisted Job UUID rather than enqueueing again from the
+  Composer's potentially changed text. Accept/Reject behavior remains
+  unchanged after the continued result arrives.
+- The text-preparation recovery hook now keys restored work by stable Job ID
+  and operation kind. Recreated parent objects cannot trigger an effect loop or
+  repeatedly re-observe the same Job.
+- The public OpenAPI contract includes the confirmation operation and all
+  recovered confirmation fields. No provider-specific branch, route fallback,
+  silent model change or language gate was introduced.
+
+Verification is provider-free. HTTP and PostgreSQL tests prove safe
+confirmation, distinct-key double-click idempotence, ambiguous rejection,
+linked audit/events, exact Production Part reuse and full reload projections.
+React tests prove Speak classification, Production pending-card continuation,
+safe-vs-ambiguous actions and exact Job continuation for Spoken/Tagged. The
+full checkpoint passes 316 Python tests and 122 React tests plus generated
+OpenAPI, TypeScript and the production build. No Alibaba operation was called.

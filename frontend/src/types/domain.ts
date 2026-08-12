@@ -339,6 +339,9 @@ export type RenderTask = {
   startedAt: number
   error?: string
   detail?: string
+  needsConfirmation?: boolean
+  requiresReview?: boolean
+  estimate?: number
 }
 
 export type Take = {
@@ -401,6 +404,7 @@ export type BatchResult = {
   made: number
   failed: number
   needs_confirmation?: boolean
+  requires_review?: boolean
   estimate?: number
   failures?: Array<{ row: number; error: string }>
 }
@@ -473,7 +477,10 @@ export type GenerateResult = {
   fidelity?: FidelityResult
   failures?: Array<{ index: number; text: string; error: string }>
   needs_confirmation?: boolean
+  requires_review?: boolean
+  ambiguous?: boolean
   estimate?: number
+  estimated_cost?: number
   voice_route?: VoiceRouteDecision
 }
 
@@ -492,6 +499,10 @@ export type RecordingAttempt = {
   size_bytes: number
   audio_url?: string | null
   fidelity?: FidelityResult | null
+  needs_confirmation: boolean
+  requires_review: boolean
+  estimate: number
+  continued_by_job_id?: string | null
 }
 
 export type RecordingSession = {

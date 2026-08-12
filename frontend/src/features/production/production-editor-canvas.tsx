@@ -7,7 +7,7 @@ import type { InsertKind, SequenceActions } from "@/components/sequence-actions"
 import type { ToolKind } from "@/components/production-tools"
 import type { HierarchyNode, MusicBed, PlayerSource, Production, ProductionCastRole, RenderTask, VoiceDirectory } from "@/types/domain"
 
-export function ProductionEditorCanvas({ production, tree, music, directory, cast, renderTasks, duration, releaseOpen, contextPanel, selected, playingKey, playerPlaying, previewing, productionPlaying, productionLoaded, productionCurrentTime, exporting, onReleaseOpen, onContextPanel, onTool, onSelected, onPreview, onLocate, onSeekProduction, onPlay, onMusicChange, onChooseMusic, onExport, onRetryRender, onDismissRender, sequenceActions }: {
+export function ProductionEditorCanvas({ production, tree, music, directory, cast, renderTasks, duration, releaseOpen, contextPanel, selected, playingKey, playerPlaying, previewing, productionPlaying, productionLoaded, productionCurrentTime, exporting, onReleaseOpen, onContextPanel, onTool, onSelected, onPreview, onLocate, onSeekProduction, onPlay, onMusicChange, onChooseMusic, onExport, onRetryRender, onConfirmRender, onDismissRender, sequenceActions }: {
   production: Production
   tree: HierarchyNode[] | null
   music: MusicBed
@@ -37,6 +37,7 @@ export function ProductionEditorCanvas({ production, tree, music, directory, cas
   onChooseMusic: () => void
   onExport: () => void
   onRetryRender: (task: RenderTask) => void
+  onConfirmRender: (task: RenderTask) => void
   onDismissRender: (id: string) => void
   sequenceActions: SequenceActions
 }) {
@@ -46,7 +47,7 @@ export function ProductionEditorCanvas({ production, tree, music, directory, cas
       {!releaseOpen && <main className="production-main">
         {tree && <ContextToolDock panel={contextPanel} onPanel={onContextPanel} nodes={tree} activeKey={production.key} parts={production.parts} directory={directory} cast={cast} productionPlaying={productionPlaying} onLocate={onLocate} onOpenTool={onTool} onPreview={onPreview} onRelease={() => onReleaseOpen(true)} />}
         <TimingOverview parts={production.parts} music={music} previewing={previewing} playingKey={playingKey} playing={playerPlaying} productionPlaying={productionPlaying} productionLoaded={productionLoaded} productionCurrentTime={productionCurrentTime} onPreview={onPreview} onLocate={onLocate} onSeekProduction={onSeekProduction} onPlay={onPlay} onMusicChange={onMusicChange} onChooseMusic={onChooseMusic} />
-        <SequenceWorkspace parts={production.parts} renderTasks={renderTasks} selected={selected} playingKey={playingKey} playerPlaying={playerPlaying} directory={directory} onSelected={onSelected} onInsert={(kind: InsertKind, at) => onTool(kind, at)} onRetryRender={onRetryRender} onDismissRender={onDismissRender} actions={sequenceActions} />
+        <SequenceWorkspace parts={production.parts} renderTasks={renderTasks} selected={selected} playingKey={playingKey} playerPlaying={playerPlaying} directory={directory} onSelected={onSelected} onInsert={(kind: InsertKind, at) => onTool(kind, at)} onRetryRender={onRetryRender} onConfirmRender={onConfirmRender} onDismissRender={onDismissRender} actions={sequenceActions} />
       </main>}
       {releaseOpen && <main className="production-main"><ReleaseWorkspace production={production} music={music} previewing={previewing} productionPlaying={productionPlaying} onPreview={onPreview} onExport={onExport} exporting={exporting} /></main>}
     </div>
