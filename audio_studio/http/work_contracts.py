@@ -297,6 +297,7 @@ class ProductionPartResponse(BaseModel):
     text_tagged: str | None = None
     text_state: str | None = None
     voice: str | None = None
+    voice_name: str | None = None
     voice_identity_id: str | None = None
     binding_id: str | None = None
     catalogue_voice_id: str | None = None

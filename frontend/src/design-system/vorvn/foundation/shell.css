@@ -4,6 +4,10 @@
   background: var(--vrn-canvas);
 }
 
+.studio-app-shell[data-mount-mode="embedded"] {
+  --studio-standalone-header-height: 0rem;
+}
+
 .studio-skip-link {
   position: fixed;
   z-index: var(--layer-toast);

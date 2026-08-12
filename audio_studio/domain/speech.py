@@ -33,6 +33,7 @@ class PreparedSpeech:
     capability_name: str | None = None
     provider: str | None = None
     provider_region: str | None = None
+    voice_name: str | None = None
     pronunciations: list = field(default_factory=list)
     rewrites: list = field(default_factory=list)
     context: object = field(repr=False, compare=False, default=None)

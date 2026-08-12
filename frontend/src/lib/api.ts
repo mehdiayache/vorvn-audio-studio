@@ -219,6 +219,10 @@ export const studioApi = {
   seriesOverview: (id: number) => request<SeriesOverviewEnvelope>(`/api/v1/series/${id}/overview`).then((response) => response.data),
   production: (id: number) => v1<Production>(`/api/v1/productions/${id}/editor`),
   productionCast: (publicId: string) => request<{ data: import("@/types/domain").ProductionCastRole[] }>(`/api/v1/productions/${encodeURIComponent(publicId)}/cast`).then((response) => response.data),
+  venturePersonas: (publicId: string) => request<{ data: import("@/types/domain").ProductionPersona[] }>(`/api/v1/ventures/${encodeURIComponent(publicId)}/personas`).then((response) => response.data),
+  createPersona: (venturePublicId: string, values: { name: string; description?: string }) => request<{ data: import("@/types/domain").ProductionPersona }>(`/api/v1/ventures/${encodeURIComponent(venturePublicId)}/personas`, { method: "POST", body: JSON.stringify(values) }).then((response) => response.data),
+  createCastRole: (productionPublicId: string, values: { name: string; persona_id?: string | null; color?: string; position?: number | null; voice_source_kind: "identity" | "catalogue"; voice_identity_id?: string | null; catalogue_voice_id?: string | null }) => request<{ data: import("@/types/domain").ProductionCastRole }>(`/api/v1/productions/${encodeURIComponent(productionPublicId)}/cast`, { method: "POST", body: JSON.stringify(values) }).then((response) => response.data),
+  recastRole: (rolePublicId: string, values: { voice_source_kind: "identity" | "catalogue"; voice_identity_id?: string | null; catalogue_voice_id?: string | null }) => request<{ data: import("@/types/domain").ProductionCastRole }>(`/api/v1/cast-roles/${encodeURIComponent(rolePublicId)}/assignment`, { method: "PATCH", body: JSON.stringify(values) }).then((response) => response.data),
   createVenture: (name: string, description = "") => postV1<HierarchyNode>("/api/v1/ventures", { name, description }),
   createProject: (ventureId: number, name: string, description = "") => postV1<HierarchyNode>(`/api/v1/ventures/${ventureId}/projects`, { name, description }),
   createSeries: (projectId: number, name: string, description = "") => postV1<HierarchyNode>(`/api/v1/projects/${projectId}/series`, { name, description }),
@@ -242,10 +246,10 @@ export const studioApi = {
     return waitForJob<{ url: string; name: string; error?: string }>(response.data.id)
   },
   reorder: (id: number, order: number[]) => request<TimelineReorderEnvelope>(`/api/v1/productions/${id}/parts/reorder`, { method: "POST", body: JSON.stringify({ order }) }).then((response) => response.data),
-  addSilence: (projectId: number, seconds: number, insertAt: number | null) =>
-    request<TimelinePartEnvelope>(`/api/v1/productions/${projectId}/parts/silence`, { method: "POST", body: JSON.stringify({
+  addSilence: (productionId: number, seconds: number, beforePartId: string | null) =>
+    request<TimelinePartEnvelope>(`/api/v1/productions/${productionId}/parts/silence`, { method: "POST", body: JSON.stringify({
       seconds,
-      insert_at: insertAt,
+      before_part_id: beforePartId,
     }) }).then((response) => response.data),
   editSilence: (productionId: number, id: number, seconds: number) =>
     request<TimelinePartEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/silence`, { method: "PATCH", body: JSON.stringify({ seconds }) }).then((response) => response.data),
@@ -256,11 +260,13 @@ export const studioApi = {
   moveParts: (sourceProductionId: number, ids: number[], destinationProductionId: number) => request<TimelineMoveEnvelope>(`/api/v1/productions/${sourceProductionId}/parts/move`, { method: "POST", body: JSON.stringify({ ids, destination_production_id: destinationProductionId }) }).then((response) => response.data),
   setMusic: (id: number, settings: Partial<MusicBed>) =>
     request<{ data: MusicBed }>(`/api/v1/productions/${id}/music`, { method: "PATCH", body: JSON.stringify(settings) }).then((response) => response.data),
-  insertAsset: (projectId: number, assetId: number, at: number | null) =>
-    postV1<{ ok?: boolean; id?: number }>(`/api/v1/productions/${projectId}/parts/assets`, {
+  insertAsset: (productionId: number, assetId: number, beforePartId: string | null) =>
+    postV1<{ ok?: boolean; id?: number }>(`/api/v1/productions/${productionId}/parts/assets`, {
       asset_id: assetId,
-      insert_at: at,
+      before_part_id: beforePartId,
     }),
+  replaceAsset: (productionId: number, partId: number, assetId: number) =>
+    request<TimelinePartEnvelope>(`/api/v1/productions/${productionId}/parts/${partId}/asset`, { method: "PATCH", body: JSON.stringify({ asset_id: assetId }) }).then((response) => response.data),
   saveDraft: (payload: Omit<GeneratePayload, "confirmed">) => {
     if (!payload.production_id) return Promise.reject(new ApiError("Choose a Production before saving a Draft.", 400))
     const { production_id, ...draft } = payload

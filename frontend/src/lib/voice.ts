@@ -79,7 +79,10 @@ export function resolveVoice(id: string | undefined, directory: VoiceDirectory, 
   const isClone = Boolean(cloned || cloneMatch || /qwen-omni-vc-/i.test(technicalId))
   const fallbackCloneName = cloneMatch?.[1] || cloned?.name || key.replace(/-[0-9a-f]{16,}$/i, "")
   const configDescription = Object.values(directory.config?.voices || {}).map((tier) => tier[technicalId] || Object.entries(tier).find(([voice]) => voiceKey(voice) === key)?.[1]).find(Boolean)
-  const name = identity?.name || meta?.name || binding?.name || cloned?.name || catalogue?.name || (omniDescription ? technicalId : isClone ? `${humanize(fallbackCloneName)} · your voice` : stockFallbackName(key || "Unknown voice"))
+  const ownedSnapshotName = identityId
+    ? /^(?:qwen|cosyvoice)[-_]/i.test(technicalId) ? "Owned voice" : humanize(technicalId)
+    : ""
+  const name = identity?.name || meta?.name || binding?.name || cloned?.name || catalogue?.name || ownedSnapshotName || (omniDescription ? technicalId : isClone ? `${humanize(fallbackCloneName)} · your voice` : stockFallbackName(key || "Unknown voice"))
   const editorialLanguage = identity?.metadata.editorial_language
   const identityDetail = [editorialLanguage ? `${languageFlag(String(editorialLanguage))} ${languageDisplay(String(editorialLanguage))} focus` : "", identity?.metadata.trait, identity?.metadata.accent].filter(Boolean).join(" · ")
   const detail = identity ? identityDetail || "Your cloned voice" : isClone

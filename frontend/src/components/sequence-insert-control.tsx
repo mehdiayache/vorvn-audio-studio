@@ -4,11 +4,11 @@ import type { InsertKind } from "@/components/sequence-actions"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
-export function SequenceInsertControl({ at, insertAt, last = false, onInsert }: {
+export function SequenceInsertControl({ at, beforePartId, last = false, onInsert }: {
   at: number
-  insertAt: number | null
+  beforePartId: string | null
   last?: boolean
-  onInsert: (kind: InsertKind, at: number | null) => void
+  onInsert: (kind: InsertKind, beforePartId: string | null) => void
 }) {
   return (
     <div className={`sequence-insert${last ? " last" : ""}`}>
@@ -21,9 +21,9 @@ export function SequenceInsertControl({ at, insertAt, last = false, onInsert }: 
         </DropdownMenuTrigger>
         <DropdownMenuContent className="sequence-insert-menu" align="start">
           <span className="sequence-menu-label">Position {at + 1}</span>
-          <DropdownMenuItem onSelect={() => onInsert("speech", insertAt)}><Mic2 /><span><b>Speech</b><small>Write or paste the words to record.</small></span></DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onInsert("silence", insertAt)}><Clock3 /><span><b>Silence</b><small>Add an exact timed pause.</small></span></DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onInsert("asset", insertAt)}><FileAudio /><span><b>Venture audio</b><small>Insert an Intro, Outro, or Stinger.</small></span></DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onInsert("speech", beforePartId)}><Mic2 /><span><b>Speech</b><small>Write or paste the words to record.</small></span></DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onInsert("silence", beforePartId)}><Clock3 /><span><b>Silence</b><small>Add an exact timed pause.</small></span></DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onInsert("asset", beforePartId)}><FileAudio /><span><b>Venture audio</b><small>Insert an Intro, Outro, or Stinger.</small></span></DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

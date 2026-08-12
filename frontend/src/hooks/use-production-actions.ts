@@ -3,15 +3,13 @@ import { toast } from "sonner"
 
 import type { usePlayer } from "@/hooks/use-player"
 import { studioApi } from "@/lib/api"
-import { playableGenerateResult } from "@/lib/generated-audio"
-import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, Production, ProductionPart, RenderTask, VentureAsset, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, Production, ProductionPart, VentureAsset } from "@/types/domain"
 
 type Player = ReturnType<typeof usePlayer>
 
-export function useProductionActions({ production, music, directory, player, refresh, refreshAssets }: {
+export function useProductionActions({ production, music, player, refresh, refreshAssets }: {
   production: Production
   music: MusicBed
-  directory: VoiceDirectory
   player: Player
   refresh: () => Promise<void>
   refreshAssets: () => Promise<void>
@@ -25,34 +23,6 @@ export function useProductionActions({ production, music, directory, player, ref
   const productionPlaying = playerPlaying && productionLoaded
 
   const invalidatePreview = useCallback(() => setPreviewRevision((value) => value + 1), [])
-
-  const settleSuccessfulRender = useCallback(async (
-    rawResult: GenerateResult,
-    source: { key: string; title: string; subtitle: string },
-    success: string,
-  ): Promise<GenerateResult> => {
-    const result = playableGenerateResult(rawResult)
-    invalidatePreview()
-
-    // The provider call has already succeeded and may already be billed. A
-    // stale timeline request must never relabel that completed render as a
-    // provider failure or expose a dangerous paid Retry action.
-    try {
-      await refresh()
-    } catch {
-      toast.warning("Audio created, but the timeline could not refresh. Reload the page to see it.")
-    }
-
-    await player.toggleSource({ ...source, url: result.url, kind: "take" })
-    if (result.fidelity && result.fidelity.status !== "pass") {
-      toast.warning(`${result.fidelity.message} Review this take before using it.`)
-    } else if (result.failures?.length) {
-      toast.warning(`${result.failures.length} section${result.failures.length === 1 ? "" : "s"} failed and are missing from the audio.`)
-    } else {
-      toast.success(`${success}${result.cost !== undefined ? ` · $${result.cost.toFixed(4)}` : ""}`)
-    }
-    return result
-  }, [invalidatePreview, player, refresh])
 
   const mutate = useCallback(async (action: () => Promise<unknown>, success?: string) => {
     try {
@@ -146,22 +116,6 @@ export function useProductionActions({ production, music, directory, player, ref
     }
   }, [production.id])
 
-  const settleRender = useCallback(async (task: RenderTask, result: GenerateResult) => {
-    if (task.mode === "new" || task.mode === "pending") {
-      return settleSuccessfulRender(result, {
-        key: result.id ? `part:${result.id}` : `job:${task.jobId}`,
-        title: `New part in ${production.name}`,
-        subtitle: `${task.voice} · ${result.cost_basis || "estimated cost"}`,
-      }, "Part generated")
-    }
-    const part = task.targetPartId ? production.parts.find((item) => item.id === task.targetPartId) : null
-    return settleSuccessfulRender(result, {
-      key: part ? `part:${part.id}` : `job:${task.jobId}`,
-      title: task.mode === "draft" ? `Recorded · Part ${(part?.position ?? 0) + 1}` : `New take · Part ${(part?.position ?? 0) + 1}`,
-      subtitle: task.voice,
-    }, task.mode === "draft" ? "Draft recorded" : "New take ready")
-  }, [directory, production.name, production.parts, settleSuccessfulRender])
-
   const movePart = useCallback((part: ProductionPart, direction: -1 | 1) => {
     const order = production.parts.filter((item) => item.kind !== "stitch").map((item) => item.id)
     const index = order.indexOf(part.id)
@@ -177,8 +131,9 @@ export function useProductionActions({ production, music, directory, player, ref
   const editSilence = useCallback((part: ProductionPart, seconds: number) => mutate(() => studioApi.editSilence(production.id, part.id, seconds), "Silence updated"), [mutate, production.id])
   const deleteParts = useCallback((ids: number[]) => mutate(() => studioApi.deleteParts(production.id, ids), "Parts deleted"), [mutate, production.id])
   const saveDraft = useCallback((payload: Omit<GeneratePayload, "confirmed">) => mutate(() => studioApi.saveDraft(payload), "Draft added"), [mutate])
-  const addSilence = useCallback((seconds: number, insertAt: number | null) => mutate(() => studioApi.addSilence(production.id, seconds, insertAt), "Silence added"), [mutate, production.id])
-  const insertAsset = useCallback((asset: VentureAsset, insertAt: number | null) => mutate(() => studioApi.insertAsset(production.id, asset.id, insertAt), "Library audio inserted"), [mutate, production.id])
+  const addSilence = useCallback((seconds: number, beforePartId: string | null) => mutate(() => studioApi.addSilence(production.id, seconds, beforePartId), "Silence added"), [mutate, production.id])
+  const insertAsset = useCallback((asset: VentureAsset, beforePartId: string | null) => mutate(() => studioApi.insertAsset(production.id, asset.id, beforePartId), "Library audio inserted"), [mutate, production.id])
+  const replaceAsset = useCallback((part: ProductionPart, asset: VentureAsset) => mutate(() => studioApi.replaceAsset(production.id, part.id, asset.id), "Venture audio replaced"), [mutate, production.id])
   const setMusicAsset = useCallback((asset: VentureAsset) => mutate(() => studioApi.setMusic(production.id, { music_of: asset.id }), "Music bed selected"), [mutate, production.id])
   const moveParts = useCallback((ids: number[], targetId: number, targetName: string) => mutate(() => studioApi.moveParts(production.id, ids, targetId), `Moved to ${targetName}`), [mutate, production.id])
   const uploadAsset = useCallback(async (collectionId: number, folder: string, file: File) => {
@@ -187,5 +142,5 @@ export function useProductionActions({ production, music, directory, player, ref
     toast.success(`${file.name} uploaded to ${folder}`)
   }, [refreshAssets])
 
-  return { previewing, exporting, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, regeneratePart, renderDraft, updatePartEditorial, settleRender, movePart, setMusic, duplicatePart, deletePart, editSilence, deleteParts, saveDraft, addSilence, insertAsset, setMusicAsset, moveParts, uploadAsset }
+  return { previewing, exporting, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, regeneratePart, renderDraft, updatePartEditorial, movePart, setMusic, duplicatePart, deletePart, editSilence, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, moveParts, uploadAsset }
 }

@@ -10,6 +10,8 @@ class Records:
         self.parts = {7: {"id": 7, "kind": "audio", "filename": "part.mp3", "revision": 3}}
         self.assets = {}
         self.created = []
+        self.inserted_assets = []
+        self.replaced_assets = []
         self.duplicated = []
         self.music_values = []
         self.allow_asset = True
@@ -34,8 +36,10 @@ class Records:
     def reorder(_production_id, _order):
         return True
 
-    def create_part(self, production_id, values, insert_at=None):
-        self.created.append((production_id, values, insert_at))
+    def create_part(self, production_id, values, insert_at=None,
+                    before_part_public_id=None):
+        self.created.append((production_id, values, insert_at,
+                             before_part_public_id))
         return 101
 
     def asset(self, asset_id):
@@ -47,9 +51,15 @@ class Records:
     def asset_allowed(self, _production_id, _asset_id, _kinds):
         return self.allow_asset
 
-    @staticmethod
-    def insert_asset(_production_id, _asset_id, _insert_at):
+    def insert_asset(self, production_id, asset_id, insert_at,
+                     before_part_public_id=None):
+        self.inserted_assets.append((production_id, asset_id, insert_at,
+                                     before_part_public_id))
         return 102
+
+    def replace_asset(self, production_id, part_id, asset_id):
+        self.replaced_assets.append((production_id, part_id, asset_id))
+        return True
 
     def duplicate(self, production_id, part_id, filename):
         self.duplicated.append((production_id, part_id, filename))
@@ -137,10 +147,11 @@ class TimelineServiceTests(unittest.TestCase):
 
     def test_silence_is_clamped_and_saved_with_exact_free_contract(self):
         result = self.service.add_silence(6, 500, 3)
-        _, values, insert_at = self.records.created[0]
+        _, values, insert_at, before_part_id = self.records.created[0]
         self.assertEqual(result, {"id": 101, "seconds": 120.0})
         self.assertEqual((values["kind"], values["duration_ms"], insert_at),
                          ("silence", 120_000, 3))
+        self.assertIsNone(before_part_id)
         self.assertEqual(values["cost_basis"], "not billed")
 
     def test_draft_preserves_composer_settings_without_provider_work(self):
@@ -149,7 +160,7 @@ class TimelineServiceTests(unittest.TestCase):
             "voice_identity_id": "voice-1", "engine": "omni",
             "model": "plus", "insert_at": 2,
         })
-        _, values, insert_at = self.records.created[0]
+        _, values, insert_at, _ = self.records.created[0]
         self.assertEqual((values["text"], values["voice_identity_id"],
                           values["kind"], insert_at),
                          ("Rest now", "voice-1", "draft", 2))
@@ -163,6 +174,25 @@ class TimelineServiceTests(unittest.TestCase):
             "filename": "bed.mp3", "context": {"collection": "Music"}}
         with self.assertRaisesRegex(TimelineError, "background bed"):
             self.service.insert_asset(6, 55, None)
+
+    def test_public_part_anchor_is_the_stable_insertion_contract(self):
+        self.service.add_silence(6, 2, None, "part-before")
+        self.assertEqual(self.records.created[0][2:],
+                         (None, "part-before"))
+        self.records.assets[55] = {
+            "filename": "intro.mp3", "context": {"collection": "Intros"}}
+        self.service.insert_asset(6, 55, None, "part-before")
+        self.assertEqual(self.records.inserted_assets,
+                         [(6, 55, None, "part-before")])
+
+    def test_asset_replacement_keeps_the_part_identity(self):
+        self.records.parts[7]["kind"] = "asset"
+        self.records.assets[55] = {"filename": "outro.mp3"}
+        self.assertEqual(self.service.replace_asset(6, 7, 55), {"id": 7})
+        self.assertEqual(self.records.replaced_assets, [(6, 7, 55)])
+        self.records.parts[7]["kind"] = "speech"
+        with self.assertRaisesRegex(TimelineError, "not a Venture Asset"):
+            self.service.replace_asset(6, 7, 55)
 
     def test_duplicate_database_failure_discards_new_file(self):
         self.records.duplicate_id = None

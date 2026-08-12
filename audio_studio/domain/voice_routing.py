@@ -19,6 +19,7 @@ class VoiceRoute:
     identity_id: str | None
     reference_id: str | None
     provider_voice_id: str
+    voice_name: str
     provider: str
     region: str
     adapter_key: str
@@ -40,6 +41,7 @@ def _normalise(item: dict) -> dict:
         "identity_id": str(item.get("identity_id") or "") or None,
         "reference_id": str(item.get("reference_id") or "") or None,
         "provider_voice_id": str(item.get("provider_voice_id") or ""),
+        "voice_name": str(item.get("name") or item.get("voice_name") or ""),
         "provider": str(item.get("provider") or ""),
         "region": str(item.get("region") or item.get("provider_region") or ""),
         "adapter_key": str(item.get("adapter_key") or ""),
@@ -99,6 +101,7 @@ def resolve(payload: dict, bindings: list[dict] | None = None,
         identity_id=chosen["identity_id"] if binding_id else None,
         reference_id=chosen["reference_id"] if binding_id else None,
         provider_voice_id=chosen["provider_voice_id"],
+        voice_name=chosen["voice_name"],
         provider=chosen["provider"], region=chosen["region"],
         adapter_key=chosen["adapter_key"],
         engine=chosen["engine"], tier=chosen["tier"],

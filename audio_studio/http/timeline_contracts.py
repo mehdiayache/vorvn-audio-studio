@@ -69,6 +69,7 @@ class TakeResponse(BaseModel):
     id: int
     when: str
     voice: str
+    voice_name: str | None = None
     voice_identity_id: str | None = None
     engine: str
     model: str

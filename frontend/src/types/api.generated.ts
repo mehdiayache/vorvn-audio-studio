@@ -585,6 +585,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/productions/{production_id}/parts/{part_id}/asset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Replace Asset */
+        patch: operations["replaceProductionAsset"];
+        trace?: never;
+    };
     "/api/v1/productions/{production_id}/parts/{part_id}/captions": {
         parameters: {
             query?: never;
@@ -1686,6 +1703,8 @@ export interface components {
         AssetBody: {
             /** Asset Id */
             asset_id: number;
+            /** Before Part Id */
+            before_part_id?: string | null;
             /** Insert At */
             insert_at?: number | null;
         };
@@ -2852,6 +2871,8 @@ export interface components {
             voice?: string | null;
             /** Voice Identity Id */
             voice_identity_id?: string | null;
+            /** Voice Name */
+            voice_name?: string | null;
             /** Volume */
             volume?: number | null;
         } & {
@@ -3168,6 +3189,11 @@ export interface components {
             /** Production Id */
             production_id: number;
         };
+        /** ReplaceAssetBody */
+        ReplaceAssetBody: {
+            /** Asset Id */
+            asset_id: number;
+        };
         /** ResourceCreate */
         ResourceCreate: {
             /**
@@ -3334,6 +3360,8 @@ export interface components {
         };
         /** SilenceBody */
         SilenceBody: {
+            /** Before Part Id */
+            before_part_id?: string | null;
             /** Insert At */
             insert_at?: number | null;
             /** Seconds */
@@ -3829,6 +3857,8 @@ export interface components {
             voice: string;
             /** Voice Identity Id */
             voice_identity_id?: string | null;
+            /** Voice Name */
+            voice_name?: string | null;
             /** When */
             when: string;
         } & {
@@ -6137,6 +6167,42 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["SilenceBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartCreatedEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replaceProductionAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: number;
+                part_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceAssetBody"];
             };
         };
         responses: {

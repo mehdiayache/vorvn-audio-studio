@@ -1,4 +1,4 @@
-import { ArrowLeft, Folder, Plus, SlidersHorizontal } from "lucide-react"
+import { ArrowLeft, CircleAlert, Command, Folder, MoreHorizontal, Pause, Play, Plus, SlidersHorizontal, Users } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -7,26 +7,33 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { formatDuration, formatMoney } from "@/lib/format"
 import type { Production } from "@/types/domain"
 
-export function ProductionHeader({ production, duration, releaseOpen, onExplorer, onAdd, onRelease, onBack }: {
+export function ProductionHeader({ production, duration, releaseOpen, productionPlaying, issueCount, onExplorer, onCast, onCommands, onHealth, onPreview, onAdd, onRelease, onBack }: {
   production: Production
   duration: number
   releaseOpen: boolean
+  productionPlaying: boolean
+  issueCount: number
   onExplorer: () => void
+  onCast: () => void
+  onCommands: () => void
+  onHealth: () => void
+  onPreview: () => void
   onAdd: (kind: "speech" | "asset" | "silence") => void
   onRelease: () => void
   onBack: () => void
 }) {
   return (
-    <>
-      <section className="production-context-bar" aria-label="Production navigation">
+      <section className="production-context-bar production-header-compact" aria-label="Production navigation">
         <div className="production-context-left">
           <Button variant="outline" size="icon" onClick={onExplorer} aria-label="Open Production Explorer"><Folder /></Button>
           <div className="production-context-copy">
             <ShellBreadcrumbs trail={production.trail} current={{ type: "production", name: production.name }} />
+            <div className="production-header-title"><span className="eyebrow">{releaseOpen ? "Mix & export" : "Production"}</span><h1>{production.name}</h1><div className="production-metrics" aria-label="Production metrics"><Badge variant="outline">{production.status.replaceAll("_", " ")}</Badge><span><b>{production.parts.filter((part) => part.kind !== "stitch").length}</b> parts</span><span><b>{formatDuration(duration)}</b></span><span title="Historical provider spend"><b>{formatMoney(production.total_cost)}</b> spent</span>{production.parts.some((part) => part.kind === "draft") && <Badge variant="secondary">Has drafts</Badge>}</div></div>
           </div>
         </div>
         <div className="production-context-actions">
           {releaseOpen ? <Button variant="outline" onClick={onBack}><ArrowLeft /> Back to production</Button> : <>
+            <Button variant="outline" onClick={onPreview}>{productionPlaying ? <Pause /> : <Play />} {productionPlaying ? "Pause" : "Preview"}</Button>
             <Button className="mix-export-action" variant="outline" onClick={onRelease}><SlidersHorizontal /> Mix & Export</Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button><Plus /> Add part</Button></DropdownMenuTrigger>
@@ -36,23 +43,14 @@ export function ProductionHeader({ production, duration, releaseOpen, onExplorer
                 <DropdownMenuItem onSelect={() => onAdd("asset")}><Plus /> Add Intro, Outro or Stinger</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="More Production actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={onExplorer}><Folder /> Open Explorer</DropdownMenuItem>
+              <DropdownMenuItem onSelect={onCast}><Users /> Manage Cast</DropdownMenuItem>
+              <DropdownMenuItem onSelect={onCommands}><Command /> Command menu</DropdownMenuItem>
+              <DropdownMenuItem onSelect={onHealth}><CircleAlert /> Production health{issueCount ? ` · ${issueCount}` : ""}</DropdownMenuItem>
+            </DropdownMenuContent></DropdownMenu>
           </>}
         </div>
       </section>
-      <section className="production-overview">
-        <div className="production-heading">
-          <span className="eyebrow">{releaseOpen ? "Mix & export" : "Production"}</span>
-          <h1>{production.name}</h1>
-          <p>{production.description || "An editable voice Production."}</p>
-          <div className="production-metrics" aria-label="Production metrics">
-            <span><b>{production.parts.filter((part) => part.kind !== "stitch").length}</b> parts</span>
-            <span><b>{formatDuration(duration)}</b> duration</span>
-            <span title="Includes provider spend for deleted Parts and earlier work"><b>{formatMoney(production.total_cost)}</b> historical spend</span>
-            {Math.abs(production.total_cost - production.current_sequence_cost) > 0.000001 && <span title="Only the takes currently placed in this sequence"><b>{formatMoney(production.current_sequence_cost)}</b> current sequence</span>}
-            {production.parts.some((part) => part.kind === "draft") && <Badge variant="secondary">Has drafts</Badge>}
-          </div>
-        </div>
-      </section>
-    </>
   )
 }

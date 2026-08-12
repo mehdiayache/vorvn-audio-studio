@@ -11,9 +11,10 @@ import type { PlayerSource, VentureAsset } from "@/types/domain"
 
 export type AssetMode = "sequence" | "music"
 
-export function AssetTool({ assets, mode, playingKey, playerPlaying, onMode, onChoose, onPlay, onUpload }: {
+export function AssetTool({ assets, mode, chooseLabel, playingKey, playerPlaying, onMode, onChoose, onPlay, onUpload }: {
   assets: VentureAsset[]
   mode: AssetMode
+  chooseLabel?: string
   playingKey?: string
   playerPlaying: boolean
   onMode: (mode: AssetMode) => void
@@ -46,7 +47,7 @@ export function AssetTool({ assets, mode, playingKey, playerPlaying, onMode, onC
           <span className="asset-art">{mode === "music" ? <Music2 /> : <FileAudio />}</span>
           <div><b>{asset.title || asset.text || "Untitled asset"}</b><span>{asset.folder || asset.collection} · {formatDuration(Number(asset.duration_ms || 0) / 1000)}</span></div>
           {asset.filename && <Button variant="ghost" onClick={() => onPlay({ key: sourceKey, url: audioUrl(asset.filename), title: asset.title || asset.text || "Library asset", subtitle: "Source audition", kind: "asset" })}>{active ? <Pause /> : <Play />}{active ? "Pause" : "Play"}</Button>}
-          <Button variant="outline" onClick={() => void onChoose(asset)}>{mode === "music" ? "Use as bed" : "Insert"}</Button>
+          <Button variant="outline" onClick={() => void onChoose(asset)}>{mode === "music" ? "Use as bed" : chooseLabel || "Insert"}</Button>
         </article>
       }) : <div className="asset-empty"><Upload /><b>No matching {folder} audio</b><p>Drop a reusable file above. Uploading never calls Alibaba.</p></div>}
     </ScrollArea>

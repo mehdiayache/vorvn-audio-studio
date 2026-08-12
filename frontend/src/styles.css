@@ -288,7 +288,6 @@
 .production-page { min-width: 0; }
 .production-context-bar {
   position: sticky;
-  top: 64px;
   z-index: 45;
   min-height: 54px;
   display: grid;
@@ -604,83 +603,25 @@
   .project-cover-field { width: min(220px,100%); }
 }
 
-.context-tool-dock {
-  position: fixed;
-  z-index: 52;
-  left: 20px;
-  top: calc(50% + 38px);
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: rgba(255,255,255,.94);
-  box-shadow: 0 14px 38px hsl(var(--shadow-color) / .11);
-  backdrop-filter: blur(20px);
-}
-.context-tool-dock button { width: 38px; height: 38px; }
-.context-tool-dock .dock-primary { margin-bottom: 3px; }
-.context-tool-dock button[data-state="open"], .context-tool-dock .dock-leading { color: var(--foreground); background: var(--accent); }
-.context-tool-dock > [data-radix-popper-content-wrapper] { z-index: 80; }
-.context-popover { width: min(380px, calc(100vw - 100px)); max-height: min(660px, calc(100vh - 120px)); padding: 0; overflow: hidden; border-radius: 16px; box-shadow: 0 28px 80px hsl(var(--shadow-color) / .16); }
-.context-panel-head { display: flex; align-items: flex-start; gap: 12px; padding: 18px 18px 14px; border-bottom: 1px solid var(--border); }
-.context-panel-head > div { min-width: 0; flex: 1; }
-.context-panel-head b { font-size: var(--type-small); }
-.context-panel-head p { margin-top: 5px; color: var(--muted-foreground); font-size: var(--type-caption); line-height: 1.45; }
-.context-panel-head button { flex: 0 0 auto; }
-.context-explorer { height: min(520px, calc(100vh - 245px)); }
-.context-explorer .project-explorer { position: static; width: 100%; height: 100%; border: 0; background: var(--surface-raised); }
-.context-explorer .explorer-head { display: none; }
-.context-explorer .explorer-scroll { height: calc(100% - 60px); }
-.context-list { max-height: min(520px, calc(100vh - 245px)); overflow-y: auto; padding: 8px; }
-.context-list > button { width: 100%; min-height: 50px; display: flex; align-items: center; gap: 10px; padding: 8px 9px; border: 0; border-radius: 9px; background: transparent; text-align: left; }
-.context-list > button:hover { background: var(--accent); }
-.context-list > button > span, .context-list > button > svg { width: 26px; flex: 0 0 26px; color: var(--muted-foreground); font-size: var(--type-caption); text-align: center; }
-.context-list > button > div { min-width: 0; display: flex; flex-direction: column; }
-.context-list > button b, .context-list > button small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.context-list > button small { margin-top: 4px; color: var(--muted-foreground); font-size: var(--type-caption); }
-.context-empty { padding: 32px 20px; color: var(--muted-foreground); text-align: center; font-size: var(--type-caption); }
-.context-actions-list { display: grid; gap: 5px; padding: 10px; }
-.context-actions-list > button { height: auto; justify-content: flex-start; padding: 11px; text-align: left; }
-.context-actions-list > button > span { display: flex; flex-direction: column; align-items: flex-start; }
-.context-actions-list small { margin-top: 3px; color: var(--muted-foreground); font-size: var(--type-caption); font-weight: 400; }
-.context-search { padding: 12px; }
-.context-search > label { position: relative; display: block; }
-.context-search > label > svg { position: absolute; z-index: 1; left: 10px; top: 50%; width: 15px; transform: translateY(-50%); color: var(--muted-foreground); }
-.context-search > label input { padding-left: 34px; }
-.context-search .context-list { margin: 8px -4px -4px; padding: 0; }
-.context-command { max-height: min(520px, calc(100vh - 245px)); border-radius: 0; }
-
 @media (max-width: 1120px) {
   .production-context-bar { grid-template-columns: minmax(220px,1fr) auto; }
-  .context-tool-dock { left: 10px; }
-  .production-main, .production-overview { width: min(100% - 96px, 1120px); margin-left: 72px; margin-right: 24px; }
 }
 
 @media (max-width: 860px) {
-  .production-context-bar { top: 95px; grid-template-columns: minmax(0,1fr) auto; gap: 8px; padding: 8px 10px; }
+  .production-context-bar { grid-template-columns: minmax(0,1fr) auto; gap: 8px; padding: 8px 10px; }
   .production-context-actions { grid-column: 2; grid-row: 1; }
   .mix-export-action span { display: none; }
   .production-context-copy > b { display: none; }
-  .production-main, .production-overview { width: min(100% - 72px, 820px); margin-left: 58px; margin-right: 14px; }
-  .context-tool-dock { top: auto; bottom: 94px; transform: none; }
 }
 
 @media (max-width: 600px) {
   .global-header { height: 91px; }
-  .production-context-bar { top: 91px; }
   .production-context-left > button { width: 34px; }
   .production-context-copy .shell-breadcrumb-item:not(:last-child) { display: none; } .production-context-copy .shell-breadcrumb-root { display: none; }
   .production-context-copy .shell-breadcrumbs b { max-width: 150px; }
   .production-context-actions .mix-export-action { display: none; }
   .production-overview { margin-top: 18px; }
   .production-heading h1 { font-size: var(--type-heading-lg); }
-  .production-main, .production-overview { width: min(100% - 66px, 820px); margin-left: 54px; margin-right: 12px; }
-  .context-tool-dock { left: 7px; bottom: 84px; gap: 2px; padding: 4px; }
-  .context-tool-dock button { width: 34px; height: 34px; }
-  .context-popover { width: calc(100vw - 62px); max-height: calc(100vh - 170px); }
 }
 
 /* Production workspace v5 — one human workflow */

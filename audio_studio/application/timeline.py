@@ -14,6 +14,7 @@ class TimelineRecords(Protocol):
     def create_part(
         self, production_id: int, values: dict,
         insert_at: int | None = None,
+        before_part_public_id: str | None = None,
     ) -> int | None: ...
     def asset(self, asset_id: int) -> dict | None: ...
     def asset_context(self, asset_id: int) -> dict | None: ...
@@ -22,7 +23,11 @@ class TimelineRecords(Protocol):
     ) -> bool: ...
     def insert_asset(
         self, production_id: int, asset_id: int, insert_at: int | None,
+        before_part_public_id: str | None = None,
     ) -> int | None: ...
+    def replace_asset(
+        self, production_id: int, part_id: int, asset_id: int,
+    ) -> bool: ...
     def duplicate(
         self, production_id: int, part_id: int, filename: str,
     ) -> int | None: ...
@@ -109,6 +114,7 @@ class TimelineService:
 
     def add_silence(
         self, production_id: int, seconds: float, insert_at: int | None,
+        before_part_public_id: str | None = None,
     ) -> dict[str, Any]:
         self._production(production_id)
         seconds = max(0.1, min(120.0, float(seconds)))
@@ -121,7 +127,8 @@ class TimelineService:
             "duration_ms": round(seconds * 1000), "chars": 0, "requests": 0,
             "cost": 0, "kind": "silence", "title": f"{seconds:g}",
             "usage": {}, "cost_basis": "not billed", "failures": [],
-        }, insert_at=insert_at)
+        }, insert_at=insert_at,
+           before_part_public_id=before_part_public_id)
         if not new_id:
             raise TimelineError("The silence could not be saved.")
         return {"id": new_id, "seconds": seconds}
@@ -172,6 +179,7 @@ class TimelineService:
 
     def insert_asset(
         self, production_id: int, asset_id: int, insert_at: int | None,
+        before_part_public_id: str | None = None,
     ) -> dict[str, Any]:
         self._production(production_id)
         asset = self.records.asset(asset_id)
@@ -185,9 +193,27 @@ class TimelineService:
                 production_id, asset_id, {"intros", "outros", "stingers"}):
             raise TimelineError(
                 "That clip is not in this Venture's reusable clip library.")
-        part_id = self.records.insert_asset(production_id, asset_id, insert_at)
+        part_id = self.records.insert_asset(
+            production_id, asset_id, insert_at, before_part_public_id)
         if not part_id:
             raise TimelineError("The Asset could not be inserted.")
+        return {"id": part_id}
+
+    def replace_asset(
+        self, production_id: int, part_id: int, asset_id: int,
+    ) -> dict[str, Any]:
+        part = self._part(production_id, part_id)
+        if part.get("kind") != "asset":
+            raise TimelineError("That Part is not a Venture Asset.")
+        asset = self.records.asset(asset_id)
+        if not asset or not asset.get("filename"):
+            raise TimelineError("That Asset does not exist.")
+        if not self.records.asset_allowed(
+                production_id, asset_id, {"intros", "outros", "stingers"}):
+            raise TimelineError(
+                "That clip is not in this Venture's reusable clip library.")
+        if not self.records.replace_asset(production_id, part_id, asset_id):
+            raise TimelineError("The Asset Part could not be replaced.")
         return {"id": part_id}
 
     def duplicate(self, production_id: int, part_id: int) -> dict[str, Any]:

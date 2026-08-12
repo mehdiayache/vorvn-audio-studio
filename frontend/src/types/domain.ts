@@ -66,6 +66,7 @@ export type ProductionPart = {
   text_tagged?: string
   text_state?: "raw" | "shaped" | "tagged" | string
   voice?: string
+  voice_name?: string
   voice_identity_id?: string | null
   binding_id?: string | null
   catalogue_voice_id?: string | null
@@ -128,6 +129,18 @@ export type ProductionCastRole = {
   voice_identity_id: string | null
   catalogue_voice_id: string | null
   assignment_revision: number
+  part_count?: number
+}
+
+export type ProductionPersona = {
+  id: string
+  name: string
+  image: string
+  description: string
+  aliases: string[]
+  notes: string
+  presentation: Record<string, unknown>
+  metadata: Record<string, unknown>
 }
 
 export type Production = {
@@ -325,29 +338,11 @@ export type VoiceDirectory = {
   usage?: Record<string, { uses: number; folders: number; spend: number; last_used?: string | null; mine?: string | null }>
 }
 
-export type RenderTask = {
-  /** Temporary Production presentation shell. This is the durable backend Job ID. */
-  id: string
-  jobId: string
-  mode: "new" | "pending" | "draft" | "take"
-  status: DurableJob["status"]
-  payload: GeneratePayload
-  text: string
-  voice: string
-  insertAt: number | null
-  targetPartId?: number
-  startedAt: number
-  error?: string
-  detail?: string
-  needsConfirmation?: boolean
-  requiresReview?: boolean
-  estimate?: number
-}
-
 export type Take = {
   id: number
   when: string
   voice: string
+  voice_name?: string
   voice_identity_id?: string | null
   engine: string
   model: string

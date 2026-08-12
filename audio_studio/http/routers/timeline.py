@@ -31,11 +31,17 @@ class OrderBody(BaseModel):
 class SilenceBody(BaseModel):
     seconds: float = Field(ge=.1, le=120)
     insert_at: int | None = None
+    before_part_id: str | None = None
 
 
 class AssetBody(BaseModel):
     asset_id: int = Field(gt=0)
     insert_at: int | None = None
+    before_part_id: str | None = None
+
+
+class ReplaceAssetBody(BaseModel):
+    asset_id: int = Field(gt=0)
 
 
 class DraftBody(BaseModel):
@@ -142,7 +148,8 @@ def reorder_parts(production_id: int, payload: OrderBody) -> dict:
              response_model_exclude_none=True)
 def add_silence(production_id: int, payload: SilenceBody) -> dict:
     return _run(lambda: timeline_service.add_silence(
-        production_id, payload.seconds, payload.insert_at))
+        production_id, payload.seconds, payload.insert_at,
+        payload.before_part_id))
 
 
 @router.post("/parts/drafts", operation_id="addProductionDraft",
@@ -166,7 +173,17 @@ def update_silence(production_id: int, part_id: int, payload: SilenceBody) -> di
              response_model_exclude_none=True)
 def insert_asset(production_id: int, payload: AssetBody) -> dict:
     return _run(lambda: timeline_service.insert_asset(
-        production_id, payload.asset_id, payload.insert_at))
+        production_id, payload.asset_id, payload.insert_at,
+        payload.before_part_id))
+
+
+@router.patch("/parts/{part_id}/asset", operation_id="replaceProductionAsset",
+              response_model=PartCreatedEnvelope,
+              response_model_exclude_none=True)
+def replace_asset(production_id: int, part_id: int,
+                  payload: ReplaceAssetBody) -> dict:
+    return _run(lambda: timeline_service.replace_asset(
+        production_id, part_id, payload.asset_id))
 
 
 @router.post("/parts/{part_id}/duplicate", operation_id="duplicateProductionPart",

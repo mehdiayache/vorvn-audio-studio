@@ -580,6 +580,17 @@
             "title": "Asset Id",
             "type": "integer"
           },
+          "before_part_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before Part Id"
+          },
           "insert_at": {
             "anyOf": [
               {
@@ -4167,6 +4178,17 @@
             ],
             "title": "Voice Identity Id"
           },
+          "voice_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Name"
+          },
           "volume": {
             "anyOf": [
               {
@@ -4934,6 +4956,20 @@
         "title": "RenderJobCreate",
         "type": "object"
       },
+      "ReplaceAssetBody": {
+        "properties": {
+          "asset_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Asset Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "asset_id"
+        ],
+        "title": "ReplaceAssetBody",
+        "type": "object"
+      },
       "ResourceCreate": {
         "properties": {
           "description": {
@@ -5504,6 +5540,17 @@
       },
       "SilenceBody": {
         "properties": {
+          "before_part_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before Part Id"
+          },
           "insert_at": {
             "anyOf": [
               {
@@ -6849,6 +6896,17 @@
               }
             ],
             "title": "Voice Identity Id"
+          },
+          "voice_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Name"
           },
           "when": {
             "title": "When",
@@ -12073,6 +12131,67 @@
           }
         },
         "summary": "Add Silence",
+        "tags": [
+          "timeline"
+        ]
+      }
+    },
+    "/api/v1/productions/{production_id}/parts/{part_id}/asset": {
+      "patch": {
+        "operationId": "replaceProductionAsset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "part_id",
+            "required": true,
+            "schema": {
+              "title": "Part Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceAssetBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartCreatedEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Replace Asset",
         "tags": [
           "timeline"
         ]

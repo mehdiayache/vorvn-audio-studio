@@ -87,6 +87,7 @@ class _Options:
         self.model = route.tier
         self.model_id = route.model_id
         self.voice_route = {**route.payload(), "provider_voice_id": self.voice}
+        self.voice_name = route.voice_name
         self.format = str(values.get("format") or "mp3")
         instruction = str(values.get("instruction") or "").strip()
         self.instruction = instruction[:INSTRUCTION_MAX] or None
@@ -167,6 +168,7 @@ class AlibabaSpeechProvider:
             capability_name=options.capability_name,
             provider=options.provider,
             provider_region=options.provider_region,
+            voice_name=options.voice_name,
         )
 
     def synthesize(self, prepared: PreparedSpeech,

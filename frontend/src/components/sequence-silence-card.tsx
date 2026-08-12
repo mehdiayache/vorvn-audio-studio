@@ -1,4 +1,4 @@
-import { Clock3, Copy, MoreHorizontal, Trash2 } from "lucide-react"
+import { ChevronDown, ChevronUp, Clock3, Copy, MoreHorizontal, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import type { SequenceActions } from "@/components/sequence-actions"
@@ -17,9 +17,10 @@ function SilenceDuration({ part, onSave }: { part: ProductionPart; onSave: (seco
   return <label className="silence-duration"><Input aria-label="Silence duration in seconds" type="number" min={0.1} max={120} step={0.1} value={seconds} onChange={(event) => setSeconds(Number(event.target.value))} onBlur={save} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur() }} /><span>seconds</span></label>
 }
 
-export function SequenceSilenceCard({ part, index, selected, onSelect, actions }: {
+export function SequenceSilenceCard({ part, index, count, selected, onSelect, actions }: {
   part: ProductionPart
   index: number
+  count: number
   selected: boolean
   onSelect: (checked: boolean, shift: boolean) => void
   actions: SequenceActions
@@ -33,7 +34,7 @@ export function SequenceSilenceCard({ part, index, selected, onSelect, actions }
       <span className="silence-cost">Free</span>
       <DropdownMenu>
         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Silence actions"><MoreHorizontal /></Button></DropdownMenuTrigger>
-        <DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => actions.duplicate(part)}><Copy /> Duplicate</DropdownMenuItem><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}><Trash2 /> Delete silence</DropdownMenuItem></DropdownMenuContent>
+        <DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => actions.duplicate(part)}><Copy /> Duplicate</DropdownMenuItem><DropdownMenuItem disabled={index === 0} onSelect={() => actions.move(part, -1)}><ChevronUp /> Move earlier</DropdownMenuItem><DropdownMenuItem disabled={index === count - 1} onSelect={() => actions.move(part, 1)}><ChevronDown /> Move later</DropdownMenuItem><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}><Trash2 /> Delete silence</DropdownMenuItem></DropdownMenuContent>
       </DropdownMenu>
     </article>
   )

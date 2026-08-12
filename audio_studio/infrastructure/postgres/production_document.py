@@ -123,7 +123,8 @@ class ProductionDocumentRepository:
             if not row:
                 return None
             cursor.execute("""
-                SELECT filename, provider_voice_id, voice_identity_id, snapshot
+                SELECT filename, provider_voice_id, voice_identity_id, snapshot,
+                       voice_name_snapshot
                   FROM takes WHERE id = %s
             """, (row[10],))
             take = cursor.fetchone() if row[10] else None
@@ -137,6 +138,7 @@ class ProductionDocumentRepository:
             "created_at": row[14], "updated_at": row[15],
             "filename": take[0] if take else "",
             "voice": (take[1] or (take[3] or {}).get("voice")) if take else "",
+            "voice_name": (take[4] or (take[3] or {}).get("voice_name")) if take else "",
             "voice_identity_id": take[2] if take else None,
         }
 
@@ -172,7 +174,7 @@ class ProductionDocumentRepository:
                        speech_job.created_at, speech_job.started_at,
                        speech_job.finished_at, speech_job.payload,
                        speech_job.result,
-                       take.source_script_hash
+                       take.source_script_hash, take.voice_name_snapshot
                   FROM production_parts part
                   LEFT JOIN production_cast_roles role ON role.id = part.cast_role_id
                   LEFT JOIN composition_drafts draft ON draft.part_id = part.id
@@ -231,6 +233,7 @@ class ProductionDocumentRepository:
                 "text_state": snapshot.get("text_state", draft.get("text_state", "raw")),
                 "voice_identity_id": row[18] or draft.get("voice_identity_id") or job_payload.get("voice_identity_id"),
                 "voice": row[19] or snapshot.get("voice") or draft.get("legacy_voice") or job_payload.get("voice", ""),
+                "voice_name": row[53] or snapshot.get("voice_name") or job_payload.get("voice_name", ""),
                 "engine": snapshot.get("engine") or draft.get("legacy_engine") or job_payload.get("engine"),
                 "model": row[21] or snapshot.get("model") or draft.get("legacy_model") or job_payload.get("model"),
                 "format": snapshot.get("format") or draft.get("format") or job_payload.get("format", "mp3"),
@@ -280,13 +283,26 @@ class ProductionDocumentRepository:
             return self._next_position(cursor, production_id)
 
     def create_part(self, production_id: int, values: dict[str, Any],
-                    insert_at: int | None = None) -> int | None:
+                    insert_at: int | None = None,
+                    before_part_public_id: str | None = None) -> int | None:
         with transaction() as cursor:
             if self._legacy_id(cursor, production_id, lock=True) is None:
                 return None
             next_position = self._next_position(cursor, production_id)
-            position = next_position if insert_at is None else max(
-                0, min(int(insert_at), next_position))
+            if before_part_public_id:
+                cursor.execute("""
+                    SELECT position FROM production_parts
+                     WHERE public_id=%s AND production_id=%s
+                       AND archived_at IS NULL FOR UPDATE
+                """, (before_part_public_id, production_id))
+                anchor = cursor.fetchone()
+                if not anchor:
+                    raise ValueError(
+                        "The selected insertion point no longer exists.")
+                position = int(anchor[0])
+            else:
+                position = next_position if insert_at is None else max(
+                    0, min(int(insert_at), next_position))
             if position < next_position:
                 cursor.execute("""
                     UPDATE production_parts SET position = position + 1,
@@ -317,7 +333,8 @@ class ProductionDocumentRepository:
             return part_id
 
     def insert_asset(self, production_id: int, asset_id: int,
-                     insert_at: int | None = None) -> int | None:
+                     insert_at: int | None = None,
+                     before_part_public_id: str | None = None) -> int | None:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT asset.id, version.id, asset.name, version.duration_ms
@@ -338,7 +355,36 @@ class ProductionDocumentRepository:
             "kind": "asset", "text": row[2] or "", "title": row[2] or "",
             "asset_id": row[0], "asset_version_id": row[1],
             "duration_ms": row[3],
-        }, insert_at)
+        }, insert_at, before_part_public_id)
+
+    def replace_asset(self, production_id: int, part_id: int,
+                      asset_id: int) -> bool:
+        with transaction() as cursor:
+            cursor.execute("""
+                SELECT version.id, asset.name, version.duration_ms
+                  FROM assets asset
+                  JOIN productions production ON production.id=%s
+                  JOIN work_projects project ON project.id=production.project_id
+                  JOIN LATERAL (
+                    SELECT item.* FROM asset_versions item
+                     WHERE item.asset_id=asset.id
+                     ORDER BY item.version DESC LIMIT 1
+                  ) version ON true
+                 WHERE asset.id=%s AND asset.venture_id=project.venture_id
+                   AND asset.kind IN ('intros','outros','stingers')
+            """, (production_id, asset_id))
+            asset = cursor.fetchone()
+            if not asset:
+                return False
+            cursor.execute("""
+                UPDATE production_parts
+                   SET asset_id=%s, asset_version_id=%s, script=%s, title=%s,
+                       duration_ms=%s, revision=revision+1, updated_at=now()
+                 WHERE id=%s AND production_id=%s AND kind='asset'
+                   AND archived_at IS NULL
+            """, (asset_id, asset[0], asset[1] or "", asset[1] or "",
+                  asset[2], part_id, production_id))
+            return cursor.rowcount == 1
 
     def music(self, production_id: int) -> dict[str, Any]:
         with read_only() as cursor:
@@ -653,7 +699,8 @@ class ProductionDocumentRepository:
                        take.spoken_text, take.duration_ms, take.delivery,
                        take.language, take.diagnostics,
                        take.source_part_revision, take.source_script_hash,
-                       take.binding_id, take.capability_id, take.snapshot
+                       take.binding_id, take.capability_id, take.snapshot,
+                       take.voice_name_snapshot
                   FROM takes take
                  WHERE take.part_id=%s AND take.id IS DISTINCT FROM %s
                  ORDER BY take.created_at DESC
@@ -661,6 +708,7 @@ class ProductionDocumentRepository:
             rows = cursor.fetchall()
         return [{
             "id": row[0], "when": row[1].isoformat(), "voice": row[2] or "",
+            "voice_name": row[19] or (row[18] or {}).get("voice_name") or "",
             "voice_identity_id": row[3], "engine": (row[18] or {}).get("engine", ""),
             "model": row[5] or row[4] or "", "rate": _float((row[11] or {}).get("rate"), 1),
             "pitch": _float((row[11] or {}).get("pitch"), 1),

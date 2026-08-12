@@ -854,3 +854,47 @@ source switching, pause/resume, a single player surface, persistence from a
 Production to Voices, desktop geometry, and mobile 390 × 844 Composer/player
 coexistence without action overlap. The database contained no queued, running,
 retrying or blocked Jobs before the smoke; no provider operation was called.
+
+### UI checkpoint 5 — durable Production workspace, Cast and Sequence
+
+- Production now opens as one creative workspace: compact header, visible Cast
+  strip, secondary collapsible Preview/Timing/Music, and Sequence as the primary
+  surface. Explorer, Cast management and Production health use named Sheets;
+  commands use one searchable command menu. The fixed `ContextToolDock` is
+  deleted and no parallel navigation rail remains.
+- A Production insertion is identified by `before_part_id`, the stable public
+  ID of the following Part. End-of-sequence uses `null`. The repository resolves
+  and locks that anchor transactionally; a stale anchor fails explicitly instead
+  of silently inserting at a different visible index.
+- Speech generation cards are projections of the durable server Part and its
+  durable Job. The React-only `RenderTask`, `PendingPartCard` and render-task hook
+  are deleted. Closing Composer, navigating away or reloading cannot erase the
+  queued/running/retrying/blocked/failed/ambiguous result state.
+- Speech, Venture Asset and Silence now have separate card components and
+  semantics. Silence duration remains editable inline. Asset replacement keeps
+  the stable Part identity and increments its revision. The false drag handle is
+  gone; accessible move actions remain the source of truth.
+- Cast is WHO only. The manager assigns an owned Voice Identity or an exact
+  catalogue voice to a role, never a binding, provider, model or language.
+  Recasting still uses the existing transactional domain rule that increments
+  every affected speech Part revision without rewriting historical Takes.
+- Existing owned Takes now expose a human voice-name snapshot through the API.
+  New speech generation snapshots the route's human voice name at creation;
+  historical provider IDs are never presented as the operator-facing identity
+  while the Voice Directory hydrates.
+- Production health derives durable missing-result, draft, outdated-Take,
+  captions, fidelity, failed and blocked states. Important problems therefore
+  remain visible in the Part and health summary rather than living only in a
+  toast.
+- Mobile Production uses the same hierarchy without overlap: Cast, Preview and
+  Sequence stack intentionally, insertion controls are always visible and
+  touchable, and the embedded shell geometry removes the standalone header
+  offset. Desktop and mobile share the same Parts and commands.
+
+Verification is provider-free. Generated OpenAPI, TypeScript, the production
+build and 126 React tests pass, together with 318 Python tests, exact-route
+contracts, nine timeline application tests and all 11 live database domain
+invariants. Live FastAPI browser smokes prove human Voice Identity labels,
+stable insertion menus, Explorer, Cast, mobile 390 x 844 geometry, zero document
+overflow and a clean console. API and worker were restarted from the same
+verified working tree. No provider operation was called.

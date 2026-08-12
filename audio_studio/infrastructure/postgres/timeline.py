@@ -36,8 +36,10 @@ class PostgresTimelineRecords:
     def create_part(
         self, production_id: int, values: dict,
         insert_at: int | None = None,
+        before_part_public_id: str | None = None,
     ) -> int | None:
-        return self.documents.create_part(production_id, values, insert_at)
+        return self.documents.create_part(
+            production_id, values, insert_at, before_part_public_id)
 
     def asset(self, asset_id: int) -> dict | None:
         return self.assets.get(asset_id)
@@ -52,8 +54,15 @@ class PostgresTimelineRecords:
 
     def insert_asset(
         self, production_id: int, asset_id: int, insert_at: int | None,
+        before_part_public_id: str | None = None,
     ) -> int | None:
-        return self.documents.insert_asset(production_id, asset_id, insert_at)
+        return self.documents.insert_asset(
+            production_id, asset_id, insert_at, before_part_public_id)
+
+    def replace_asset(
+        self, production_id: int, part_id: int, asset_id: int,
+    ) -> bool:
+        return self.documents.replace_asset(production_id, part_id, asset_id)
 
     def duplicate(
         self, production_id: int, part_id: int, filename: str,
