@@ -1,4 +1,4 @@
-import { PartDetailSheet } from "@/components/part-detail-sheet"
+import { PartInspector } from "@/features/production/inspector/part-inspector"
 import { ProductionToolDialog, type ToolKind } from "@/components/production-tools"
 import { StudioDock } from "@/features/composer/studio-dock"
 import { Button } from "@/components/ui/button"
@@ -67,7 +67,7 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
       onPlay={onPlay}
     />}
     <ProductionToolDialog open={tool === "speech" ? null : tool} nextPartNumber={nextPartNumber} beforePartId={insertBeforePartId} replacingAsset={replacingAsset} assets={assets} assetCollectionIds={assetCollectionIds} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseTool} onAddSilence={onAddSilence} onInsertAsset={onInsertAsset} onSetMusic={onSetMusic} onUploadAsset={onUploadAsset} onPlay={onPlay} />
-    <PartDetailSheet productionId={productionId} part={activeDetail} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseDetail} onPlay={onPlay} onChanged={onDetailChanged} onDuplicate={onDuplicate} onDelete={onDeleteDetail} onNewTake={onNewTake} />
+    <PartInspector productionId={productionId} part={activeDetail} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseDetail} onPlay={onPlay} onChanged={onDetailChanged} onDuplicate={onDuplicate} onDelete={onDeleteDetail} onNewTake={onNewTake} />
     <Sheet open={moveOpen} onOpenChange={onMoveOpen}><SheetContent className="move-sheet"><SheetHeader><SheetTitle>Move {selectedCount} selected part{selectedCount === 1 ? "" : "s"}</SheetTitle><SheetDescription>Choose another Production. The order inside this Production closes up automatically.</SheetDescription></SheetHeader><div className="move-targets">{moveTargets.map((node) => <Button key={node.id} variant="outline" onClick={() => onMoveSelected(node.id, node.name)}><span>{node.name.slice(0, 1).toUpperCase()}</span><b>{node.name}</b></Button>)}</div></SheetContent></Sheet>
     <Dialog open={Boolean(confirmAction)} onOpenChange={(open) => { if (!open) onConfirmAction(null) }}><DialogContent><DialogHeader><DialogTitle>{confirmAction?.title}</DialogTitle><DialogDescription>{confirmAction?.description}</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => onConfirmAction(null)}>Cancel</Button><Button variant="destructive" onClick={() => { const action = confirmAction?.action; onConfirmAction(null); action?.() }}>Delete</Button></DialogFooter></DialogContent></Dialog>
   </>

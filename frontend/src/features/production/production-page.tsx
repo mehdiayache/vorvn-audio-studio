@@ -141,6 +141,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       productionLoaded={actions.productionLoaded}
       productionCurrentTime={actions.productionLoaded ? player.currentTime : 0}
       exporting={actions.exporting}
+      exportJob={actions.exportJob}
       onReleaseOpen={setReleaseOpen}
       onExplorerOpen={setExplorerOpen}
       onCastOpen={setCastOpen}

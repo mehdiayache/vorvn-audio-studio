@@ -898,3 +898,45 @@ invariants. Live FastAPI browser smokes prove human Voice Identity labels,
 stable insertion menus, Explorer, Cast, mobile 390 x 844 geometry, zero document
 overflow and a clean console. API and worker were restarted from the same
 verified working tree. No provider operation was called.
+
+### UI checkpoint 6 — Part Inspector, Takes, captions and Mix & Export
+
+- The former summary-oriented Part detail Sheet is replaced by one modular
+  Inspector with fixed Script, Takes, Captions and Details panels. Script owns
+  the canonical Part revision and explicitly separates Raw, Spoken, Tagged and
+  provider-returned wording from editorial truth.
+- Takes exposes the selected Take and immutable alternatives. Outdated Takes
+  remain playable and require explicit confirmation before selection; creating
+  an alternative never removes or changes the currently selected Take.
+- Details now projects the exact durable Take and ProviderAttempt evidence:
+  Voice Identity, reference, binding or catalogue identity, capability,
+  provider, region, exact model ID, tier, attempt status, usage, cost basis and
+  protected diagnostics. Generic product language says `Provider returned`.
+- The PostgreSQL read model now distinguishes exact model ID from tier. A live
+  browser smoke exposed the previous `flash/plus/vc` projection in the model
+  field; repository tests now prove exact model and tier independently for
+  selected and historical Takes.
+- Captions remain inside the same Inspector lifecycle and retain durable stale,
+  review, translation and cost-confirmation behavior rather than becoming a
+  separate Part truth.
+- Mix & Export is a dedicated Production workspace. It summarizes current
+  order, selected Takes, missing media, outdated Takes, stale captions, music,
+  duration and previous immutable exports before enabling the local FFmpeg
+  output.
+- Export is now a durable Job from enqueue through completion. The latest
+  Production export Job is projected by FastAPI, so close, navigation or reload
+  cannot erase queued/running/failed/ready progress. The React instance that
+  clicked Make MP3 is not the owner of that operation.
+- Music settings now include volume, source position, ducking and explicit fade
+  in/out controls. They remain Production mix state and never become another
+  Sequence Part.
+- The old `PartDetailSheet` and `ReleaseWorkspace`, their styles and obsolete
+  tests are deleted. The replacement panels and Mix workspace are feature-owned
+  components rather than additions to the global stylesheet.
+
+Verification is provider-free. Generated OpenAPI, TypeScript, the production
+build and 131 React tests pass, together with 319 Python tests and all 11 live
+database domain invariants. Live FastAPI browser smokes prove all four Inspector
+panels against real Take/ProviderAttempt data, exact route evidence, Mix & Export
+at desktop and 390 x 844, and zero mobile document overflow. The smoke ran the
+API without the worker so no queued or paid provider operation could resume.

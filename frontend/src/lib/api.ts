@@ -242,8 +242,12 @@ export const studioApi = {
     return waitForJob<PreviewResult>(response.data.id)
   },
   stitch: async (id: number) => {
-    const response = await request<{ data: DurableJob<{ url: string; name: string; error?: string }> }>("/api/v1/jobs/render", { method: "POST", headers: { "Idempotency-Key": `export-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ production_id: id, operation: "export" }) })
-    return waitForJob<{ url: string; name: string; error?: string }>(response.data.id)
+    const job = await studioApi.enqueueRender(id, "export")
+    return waitForJob<{ url: string; name: string; error?: string }>(job.id)
+  },
+  enqueueRender: async (id: number, operation: "preview" | "export") => {
+    const response = await request<{ data: DurableJob<{ url?: string; name?: string; error?: string }> }>("/api/v1/jobs/render", { method: "POST", headers: { "Idempotency-Key": `${operation}-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ production_id: id, operation }) })
+    return registerJob(response.data)
   },
   reorder: (id: number, order: number[]) => request<TimelineReorderEnvelope>(`/api/v1/productions/${id}/parts/reorder`, { method: "POST", body: JSON.stringify({ order }) }).then((response) => response.data),
   addSilence: (productionId: number, seconds: number, beforePartId: string | null) =>

@@ -1,8 +1,13 @@
-import type { ProductionPart, ResolvedGeneratePayload } from "@/types/domain"
 import type { StudioConfig } from "@/types/domain"
 import { SpeechModelIdentity, speechProductName, speechTierName } from "@/components/speech-model-identity"
 
-type SpeechRoute = Pick<ResolvedGeneratePayload, "engine" | "model" | "language"> | Pick<ProductionPart, "engine" | "model" | "language">
+type SpeechRoute = {
+  engine?: string | null
+  model?: string | null
+  model_id?: string | null
+  tier?: string | null
+  language?: string | null
+}
 
 export function speechEngineLabel(engine?: string | null) {
   return engine ? speechProductName(engine) : "Speech"
@@ -13,5 +18,7 @@ export function speechModelLabel(model?: string | null) {
 }
 
 export function SpeechRouteLabel({ route, includeLanguage = false, config = null }: { route: SpeechRoute; includeLanguage?: boolean; config?: StudioConfig | null }) {
-  return <span className="speech-route-label"><SpeechModelIdentity engine={route.engine} tier={route.model} config={config} compact />{includeLanguage && route.language && <em>{route.language}</em>}</span>
+  const exactModel = route.model_id || (route.tier ? route.model : null)
+  const tier = route.tier || (route.model_id ? route.model : null)
+  return <span className="speech-route-label"><SpeechModelIdentity engine={route.engine} tier={tier} modelId={exactModel} config={config} compact />{includeLanguage && route.language && <em>{route.language}</em>}</span>
 }

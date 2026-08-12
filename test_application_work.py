@@ -59,6 +59,14 @@ class Records:
         return [{"id": 13}]
 
     @staticmethod
+    def latest_render_job(_production_id, operation):
+        return {
+            "id": "job-export", "type": "render", "status": "running",
+            "progress": .4, "detail": "Mixing", "error": None,
+            "retries": 0, "result": {}, "operation": operation,
+        }
+
+    @staticmethod
     def accounting(_production_id):
         return {"historical_spend": 1.25, "current_sequence_cost": .75}
 
@@ -119,6 +127,8 @@ class WorkServiceTests(unittest.TestCase):
         self.assertEqual(editor["current_sequence_cost"], .75)
         self.assertEqual(editor["total_bytes"], 100)
         self.assertEqual(editor["exports"], [{"id": 13}])
+        self.assertEqual(editor["export_job"]["id"], "job-export")
+        self.assertEqual(editor["export_job"]["operation"], "export")
 
     def test_production_assets_resolve_the_owning_venture(self):
         result = self.service.production_assets(6)

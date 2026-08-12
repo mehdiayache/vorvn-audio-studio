@@ -67,10 +67,24 @@ export type ProductionPart = {
   text_state?: "raw" | "shaped" | "tagged" | string
   voice?: string
   voice_name?: string
+  take_public_id?: string | null
   voice_identity_id?: string | null
   binding_id?: string | null
   catalogue_voice_id?: string | null
   capability_id?: string | null
+  reference_id?: string | null
+  provider?: string | null
+  provider_region?: string | null
+  tier?: string | null
+  provider_attempt_id?: string | null
+  provider_attempt_status?: string | null
+  binding_resolution_status?: string | null
+  take_raw_text?: string | null
+  take_spoken_text?: string | null
+  take_tagged_text?: string | null
+  take_delivery?: Record<string, unknown>
+  take_usage?: Record<string, unknown>
+  take_segmentation?: Record<string, unknown>
   cast_role_id?: string | null
   cast_role_name?: string | null
   revision?: number
@@ -158,6 +172,7 @@ export type Production = {
   trail: TrailItem[]
   parts: ProductionPart[]
   exports: ProductionExport[]
+  export_job?: DurableJob<{ url?: string; name?: string; error?: string }> | null
   total_cost: number
   current_sequence_cost: number
   accounting: {
@@ -340,6 +355,7 @@ export type VoiceDirectory = {
 
 export type Take = {
   id: number
+  public_id: string
   when: string
   voice: string
   voice_name?: string
@@ -360,6 +376,21 @@ export type Take = {
   source_part_revision: number
   source_script_hash: string
   outdated: boolean
+  binding_id?: string | null
+  catalogue_voice_id?: string | null
+  capability_id?: string | null
+  reference_id?: string | null
+  provider?: string | null
+  provider_region?: string | null
+  tier?: string | null
+  raw_text?: string | null
+  tagged_text?: string | null
+  usage?: Record<string, unknown>
+  segmentation?: Record<string, unknown>
+  cost_basis?: string | null
+  binding_resolution_status?: string | null
+  provider_attempt_id?: string | null
+  provider_attempt_status?: string | null
 }
 
 export type HistoricalVoiceReference = components["schemas"]["HistoricalVoiceResponse"]

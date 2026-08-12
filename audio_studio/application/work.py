@@ -22,6 +22,9 @@ class WorkRecords(Protocol):
     def assets(self, venture_id: int) -> list[dict]: ...
     def parts(self, production_id: int) -> list[dict]: ...
     def exports(self, production_id: int) -> list[dict]: ...
+    def latest_render_job(
+        self, production_id: int, operation: str,
+    ) -> dict | None: ...
     def accounting(self, production_id: int) -> dict: ...
     def create_venture(self, name: str, description: str) -> dict | None: ...
     def create_project(
@@ -107,10 +110,12 @@ class WorkService:
             return None
         parts = self.records.parts(internal_id)
         exports = self.records.exports(internal_id)
+        export_job = self.records.latest_render_job(internal_id, "export")
         visible = [part for part in parts if part.get("kind") != "stitch"]
         accounting = self.records.accounting(internal_id)
         return {
             **production, "parts": parts, "exports": exports,
+            "export_job": export_job,
             "total_cost": accounting["historical_spend"],
             "current_sequence_cost": accounting["current_sequence_cost"],
             "accounting": accounting,

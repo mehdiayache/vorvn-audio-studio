@@ -105,7 +105,7 @@ class ProductionDocumentRepository:
             "failures": (row[17] or {}).get("failures", []),
             "voice_identity_id": row[18],
             "voice": row[19] or snapshot.get("voice") or "",
-            "model": row[21] or snapshot.get("model") or "",
+            "model": row[20] or snapshot.get("model") or "",
             "engine": snapshot.get("engine") or "",
             "format": snapshot.get("format") or "mp3",
             "instruction": snapshot.get("instruction") or "",
@@ -174,11 +174,19 @@ class ProductionDocumentRepository:
                        speech_job.created_at, speech_job.started_at,
                        speech_job.finished_at, speech_job.payload,
                        speech_job.result,
-                       take.source_script_hash, take.voice_name_snapshot
+                       take.source_script_hash, take.voice_name_snapshot,
+                       take.public_id, take.reference_id, take.provider,
+                       take.provider_region, take.tier,
+                       attempt.public_id, attempt.status,
+                       take.raw_text, take.spoken_text, take.tagged_text,
+                       take.delivery, take.usage, take.segmentation,
+                       take.binding_resolution_status
                   FROM production_parts part
                   LEFT JOIN production_cast_roles role ON role.id = part.cast_role_id
                   LEFT JOIN composition_drafts draft ON draft.part_id = part.id
                   LEFT JOIN takes take ON take.id = part.selected_take_id
+                  LEFT JOIN provider_attempts attempt
+                    ON attempt.id = take.provider_attempt_id
                   LEFT JOIN asset_versions version ON version.id = part.asset_version_id
                   LEFT JOIN LATERAL (
                     SELECT count(*) AS take_count, coalesce(sum(cost), 0) AS spend
@@ -234,8 +242,22 @@ class ProductionDocumentRepository:
                 "voice_identity_id": row[18] or draft.get("voice_identity_id") or job_payload.get("voice_identity_id"),
                 "voice": row[19] or snapshot.get("voice") or draft.get("legacy_voice") or job_payload.get("voice", ""),
                 "voice_name": row[53] or snapshot.get("voice_name") or job_payload.get("voice_name", ""),
+                "take_public_id": str(row[54]) if row[54] else None,
+                "reference_id": row[55],
+                "provider": row[56] or snapshot.get("provider"),
+                "provider_region": row[57] or snapshot.get("provider_region"),
+                "tier": row[58] or snapshot.get("tier"),
+                "provider_attempt_id": str(row[59]) if row[59] else None,
+                "provider_attempt_status": row[60],
+                "take_raw_text": row[61],
+                "take_spoken_text": row[62],
+                "take_tagged_text": row[63],
+                "take_delivery": row[64] or {},
+                "take_usage": row[65] or {},
+                "take_segmentation": row[66] or {},
+                "binding_resolution_status": row[67],
                 "engine": snapshot.get("engine") or draft.get("legacy_engine") or job_payload.get("engine"),
-                "model": row[21] or snapshot.get("model") or draft.get("legacy_model") or job_payload.get("model"),
+                "model": row[20] or snapshot.get("model") or draft.get("legacy_model") or job_payload.get("model"),
                 "format": snapshot.get("format") or draft.get("format") or job_payload.get("format", "mp3"),
                 "language": row[22] or draft.get("language") or job_payload.get("language"),
                 "instruction": delivery.get("instruction", draft.get("instruction", job_payload.get("instruction", ""))),
@@ -700,8 +722,16 @@ class ProductionDocumentRepository:
                        take.language, take.diagnostics,
                        take.source_part_revision, take.source_script_hash,
                        take.binding_id, take.capability_id, take.snapshot,
-                       take.voice_name_snapshot
+                       take.voice_name_snapshot, take.public_id,
+                       take.reference_id, take.catalogue_voice_id,
+                       take.provider, take.provider_region, take.tier,
+                       take.raw_text, take.tagged_text, take.usage,
+                       take.segmentation, take.cost_basis,
+                       take.binding_resolution_status,
+                       attempt.public_id, attempt.status
                   FROM takes take
+                  LEFT JOIN provider_attempts attempt
+                    ON attempt.id = take.provider_attempt_id
                  WHERE take.part_id=%s AND take.id IS DISTINCT FROM %s
                  ORDER BY take.created_at DESC
             """, (part_id, part[10]))
@@ -709,8 +739,16 @@ class ProductionDocumentRepository:
         return [{
             "id": row[0], "when": row[1].isoformat(), "voice": row[2] or "",
             "voice_name": row[19] or (row[18] or {}).get("voice_name") or "",
+            "public_id": str(row[20]), "reference_id": row[21],
+            "catalogue_voice_id": row[22], "provider": row[23],
+            "provider_region": row[24], "tier": row[25],
+            "raw_text": row[26], "tagged_text": row[27],
+            "usage": row[28] or {}, "segmentation": row[29] or {},
+            "cost_basis": row[30], "binding_resolution_status": row[31],
+            "provider_attempt_id": str(row[32]) if row[32] else None,
+            "provider_attempt_status": row[33],
             "voice_identity_id": row[3], "engine": (row[18] or {}).get("engine", ""),
-            "model": row[5] or row[4] or "", "rate": _float((row[11] or {}).get("rate"), 1),
+            "model": row[4] or "", "rate": _float((row[11] or {}).get("rate"), 1),
             "pitch": _float((row[11] or {}).get("pitch"), 1),
             "seed": int((row[11] or {}).get("seed", 0) or 0),
             "filename": row[6], "size_bytes": int(row[7] or 0),

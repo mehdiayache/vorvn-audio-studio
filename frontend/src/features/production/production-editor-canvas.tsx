@@ -1,5 +1,5 @@
 import { ProductionHeader } from "@/components/production-header"
-import { ReleaseWorkspace } from "@/components/release-workspace"
+import { MixExportWorkspace } from "@/features/production/mix-export-workspace"
 import { SequenceWorkspace } from "@/components/sequence-workspace"
 import { TimingOverview } from "@/components/timing-overview"
 import { CastManagerSheet } from "@/features/production/cast-manager-sheet"
@@ -13,7 +13,7 @@ import type { DurableJob, GenerateResult, HierarchyNode, MusicBed, PlayerSource,
 
 import "@/features/production/production-workspace.css"
 
-export function ProductionEditorCanvas({ production, tree, music, directory, cast, liveJobs, duration, releaseOpen, composerOpen, explorerOpen, castOpen, healthOpen, commandsOpen, selected, playingKey, playerPlaying, previewing, productionPlaying, productionLoaded, productionCurrentTime, exporting, onReleaseOpen, onExplorerOpen, onCastOpen, onHealthOpen, onCommandsOpen, onCastChanged, onTool, onSelected, onPreview, onLocate, onSeekProduction, onPlay, onMusicChange, onChooseMusic, onExport, onRetryJob, onConfirmJob, onReplaceAsset, sequenceActions }: {
+export function ProductionEditorCanvas({ production, tree, music, directory, cast, liveJobs, duration, releaseOpen, composerOpen, explorerOpen, castOpen, healthOpen, commandsOpen, selected, playingKey, playerPlaying, previewing, productionPlaying, productionLoaded, productionCurrentTime, exporting, exportJob, onReleaseOpen, onExplorerOpen, onCastOpen, onHealthOpen, onCommandsOpen, onCastChanged, onTool, onSelected, onPreview, onLocate, onSeekProduction, onPlay, onMusicChange, onChooseMusic, onExport, onRetryJob, onConfirmJob, onReplaceAsset, sequenceActions }: {
   production: Production
   tree: HierarchyNode[] | null
   music: MusicBed
@@ -35,6 +35,7 @@ export function ProductionEditorCanvas({ production, tree, music, directory, cas
   productionLoaded: boolean
   productionCurrentTime: number
   exporting: boolean
+  exportJob: DurableJob<{ url?: string; name?: string; error?: string }> | null
   onReleaseOpen: (open: boolean) => void
   onExplorerOpen: (open: boolean) => void
   onCastOpen: (open: boolean) => void
@@ -64,7 +65,7 @@ export function ProductionEditorCanvas({ production, tree, music, directory, cas
         <details className="production-preview-section"><summary>Preview, timing &amp; music <span>{productionLoaded ? "Preview ready" : music.filename ? "Music attached" : "Narration only"}</span></summary><TimingOverview parts={production.parts} music={music} previewing={previewing} playingKey={playingKey} playing={playerPlaying} productionPlaying={productionPlaying} productionLoaded={productionLoaded} productionCurrentTime={productionCurrentTime} onPreview={onPreview} onLocate={onLocate} onSeekProduction={onSeekProduction} onPlay={onPlay} onMusicChange={onMusicChange} onChooseMusic={onChooseMusic} /></details>
         <SequenceWorkspace parts={production.parts} liveJobs={liveJobs} selected={selected} playingKey={playingKey} playerPlaying={playerPlaying} directory={directory} onSelected={onSelected} onInsert={(kind: InsertKind, beforePartId) => onTool(kind, beforePartId)} onRetryJob={onRetryJob} onConfirmJob={onConfirmJob} onReplaceAsset={onReplaceAsset} actions={sequenceActions} />
       </main>}
-      {releaseOpen && <main className="production-main"><ReleaseWorkspace production={production} music={music} previewing={previewing} productionPlaying={productionPlaying} onPreview={onPreview} onExport={onExport} exporting={exporting} /></main>}
+      {releaseOpen && <main className="production-main"><MixExportWorkspace production={production} music={music} previewing={previewing} productionPlaying={productionPlaying} exportJob={exportJob} onPreview={onPreview} onExport={onExport} exporting={exporting} /></main>}
       {tree && <ProductionExplorerSheet open={explorerOpen} nodes={tree} activeKey={production.key} onOpenChange={onExplorerOpen} />}
       <CastManagerSheet open={castOpen} production={production} cast={cast} directory={directory} onOpenChange={onCastOpen} onChanged={onCastChanged} />
       <ProductionHealthSheet open={healthOpen} issues={issues} onOpenChange={onHealthOpen} onLocate={onLocate} />

@@ -3485,6 +3485,16 @@
             "title": "Description",
             "type": "string"
           },
+          "export_job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductionRenderJobResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "exports": {
             "items": {
               "$ref": "#/components/schemas/ProductionExportResponse"
@@ -3761,6 +3771,17 @@
             ],
             "title": "Binding Id"
           },
+          "binding_resolution_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding Resolution Status"
+          },
           "capability_id": {
             "anyOf": [
               {
@@ -3986,6 +4007,50 @@
             ],
             "title": "Position"
           },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "provider_attempt_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Attempt Id"
+          },
+          "provider_attempt_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Attempt Status"
+          },
+          "provider_region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Region"
+          },
           "provider_text": {
             "anyOf": [
               {
@@ -4011,6 +4076,17 @@
               }
             ],
             "title": "Rate"
+          },
+          "reference_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Id"
           },
           "revision": {
             "default": 1,
@@ -4092,6 +4168,65 @@
             "title": "Subtitles Stale",
             "type": "boolean"
           },
+          "take_delivery": {
+            "additionalProperties": true,
+            "title": "Take Delivery",
+            "type": "object"
+          },
+          "take_public_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Take Public Id"
+          },
+          "take_raw_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Take Raw Text"
+          },
+          "take_segmentation": {
+            "additionalProperties": true,
+            "title": "Take Segmentation",
+            "type": "object"
+          },
+          "take_spoken_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Take Spoken Text"
+          },
+          "take_tagged_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Take Tagged Text"
+          },
+          "take_usage": {
+            "additionalProperties": true,
+            "title": "Take Usage",
+            "type": "object"
+          },
           "takes": {
             "default": 0,
             "title": "Takes",
@@ -4144,6 +4279,17 @@
               }
             ],
             "title": "Text Tagged"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
           },
           "title": {
             "anyOf": [
@@ -4211,6 +4357,115 @@
           "cost"
         ],
         "title": "ProductionPartResponse",
+        "type": "object"
+      },
+      "ProductionRenderJobResponse": {
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "part_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Part Id"
+          },
+          "progress": {
+            "title": "Progress",
+            "type": "number"
+          },
+          "result": {
+            "additionalProperties": true,
+            "title": "Result",
+            "type": "object"
+          },
+          "retries": {
+            "title": "Retries",
+            "type": "integer"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "retrying",
+              "ok",
+              "warning",
+              "failed",
+              "blocked",
+              "lost",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "status",
+          "progress",
+          "detail",
+          "retries"
+        ],
+        "title": "ProductionRenderJobResponse",
         "type": "object"
       },
       "ProductionSummaryResponse": {
@@ -6776,6 +7031,17 @@
             ],
             "title": "Binding Id"
           },
+          "binding_resolution_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding Resolution Status"
+          },
           "capability_id": {
             "anyOf": [
               {
@@ -6787,9 +7053,31 @@
             ],
             "title": "Capability Id"
           },
+          "catalogue_voice_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Voice Id"
+          },
           "cost": {
             "title": "Cost",
             "type": "number"
+          },
+          "cost_basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Basis"
           },
           "duration_ms": {
             "anyOf": [
@@ -6858,13 +7146,88 @@
             "title": "Pitch",
             "type": "number"
           },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "provider_attempt_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Attempt Id"
+          },
+          "provider_attempt_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Attempt Status"
+          },
+          "provider_region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Region"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
           "rate": {
             "title": "Rate",
             "type": "number"
           },
+          "raw_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Text"
+          },
+          "reference_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Id"
+          },
           "seed": {
             "title": "Seed",
             "type": "integer"
+          },
+          "segmentation": {
+            "additionalProperties": true,
+            "title": "Segmentation",
+            "type": "object"
           },
           "size_bytes": {
             "title": "Size Bytes",
@@ -6878,9 +7241,36 @@
             "title": "Source Script Hash",
             "type": "string"
           },
+          "tagged_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tagged Text"
+          },
           "text": {
             "title": "Text",
             "type": "string"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
+          "usage": {
+            "additionalProperties": true,
+            "title": "Usage",
+            "type": "object"
           },
           "voice": {
             "title": "Voice",
@@ -6917,6 +7307,7 @@
           "id",
           "when",
           "voice",
+          "public_id",
           "engine",
           "model",
           "rate",

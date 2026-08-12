@@ -221,6 +221,27 @@ class JobRepository:
             row = cursor.fetchone()
             return _job(row) if row else None
 
+    def latest_for_production(
+        self, production_id: int, *, kind: str, operation: str,
+    ) -> Job | None:
+        """Return the latest durable operation projected into a Production.
+
+        This is a read model for recovering progress after the React host that
+        created a Job has closed or reloaded. It does not own Job execution.
+        """
+        with read_only() as cursor:
+            cursor.execute(
+                _SELECT + """
+                 WHERE production_id = %s AND kind = %s
+                   AND payload->>'operation' = %s
+                 ORDER BY created_at DESC, id DESC
+                 LIMIT 1
+                """,
+                (production_id, kind, operation),
+            )
+            row = cursor.fetchone()
+            return _job(row) if row else None
+
     def claim_next(self, kinds: Iterable[str]) -> Job | None:
         kinds = list(kinds)
         if not kinds:

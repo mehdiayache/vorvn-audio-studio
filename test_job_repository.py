@@ -17,6 +17,47 @@ from audio_studio.domain.jobs import IdempotencyConflict
 
 
 class JobRepositoryTests(unittest.TestCase):
+    def test_latest_render_job_recovers_export_progress_for_a_production(self):
+        try:
+            connection = psycopg.connect(settings.database_url)
+        except psycopg.OperationalError as exc:
+            self.skipTest(str(exc))
+        repository = jobs_module.JobRepository()
+        job_ids = []
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT id FROM productions WHERE archived_at IS NULL "
+                    "ORDER BY id LIMIT 1")
+                owner = cursor.fetchone()
+            if not owner:
+                self.skipTest("No Production fixture is available")
+            production_id = int(owner[0])
+            preview, _ = repository.enqueue(
+                "render", {"production_id": production_id,
+                           "operation": "preview"},
+                idempotency_key=f"preview-recovery-{uuid4()}",
+                production_id=production_id)
+            export, _ = repository.enqueue(
+                "render", {"production_id": production_id,
+                           "operation": "export"},
+                idempotency_key=f"export-recovery-{uuid4()}",
+                production_id=production_id)
+            job_ids.extend([preview.id, export.id])
+
+            recovered = repository.latest_for_production(
+                production_id, kind="render", operation="export")
+            self.assertIsNotNone(recovered)
+            self.assertEqual(recovered.id, export.id)
+            self.assertNotEqual(recovered.id, preview.id)
+        finally:
+            if job_ids:
+                with connection.cursor() as cursor:
+                    cursor.execute("DELETE FROM jobs WHERE id=ANY(%s)",
+                                   (job_ids,))
+                connection.commit()
+            connection.close()
+
     def test_production_speech_creates_one_part_before_provider_and_reuses_it_on_retry(self):
         try:
             connection = psycopg.connect(settings.database_url)

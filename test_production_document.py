@@ -174,7 +174,8 @@ class ProductionDocumentTests(unittest.TestCase):
         archived_take = self.timeline.takes(first_id, draft["id"])[0]
         self.assertEqual(archived_take["id"], take_id)
         self.assertEqual(archived_take["engine"], "omni")
-        self.assertEqual(archived_take["model"], "plus")
+        self.assertEqual(archived_take["model"], "qwen3.5-omni-plus")
+        self.assertEqual(archived_take["tier"], "plus")
         self.assertIsNone(archived_take["fidelity"])
         current_draft = self.repository.part(first_id, draft["id"])
         review = self.timeline.promote(

@@ -25,8 +25,12 @@ export function MusicBed({
 }) {
   const [volume, setVolume] = useState(Math.round((music.volume ?? 0.1) * 100))
   const [start, setStart] = useState(music.start ?? 0)
+  const [fadeIn, setFadeIn] = useState(music.fade_in ?? 2)
+  const [fadeOut, setFadeOut] = useState(music.fade_out ?? 3)
   useEffect(() => setVolume(Math.round((music.volume ?? 0.1) * 100)), [music.volume])
   useEffect(() => setStart(music.start ?? 0), [music.start])
+  useEffect(() => setFadeIn(music.fade_in ?? 2), [music.fade_in])
+  useEffect(() => setFadeOut(music.fade_out ?? 3), [music.fade_out])
 
   if (!music.filename) {
     return (
@@ -49,6 +53,8 @@ export function MusicBed({
       <div className="mix-controls">
         <label><span><Headphones /> Mix level <b>{volume}%</b></span><Slider value={[volume]} max={60} step={1} onValueChange={([value = 0]) => setVolume(value)} onValueCommit={() => void onChange({ volume: volume / 100 })} /></label>
         <label><span><RotateCcw /> Source position <b>{formatDuration(start)}</b></span><Slider value={[start]} max={Math.max(Number(music.duration_ms || 0) / 1000, 1)} step={0.1} onValueChange={([value = 0]) => setStart(value)} onValueCommit={() => void onChange({ start })} /></label>
+        <label><span>Fade in <b>{fadeIn.toFixed(1)}s</b></span><Slider aria-label="Music fade in" value={[fadeIn]} max={15} step={0.1} onValueChange={([value = 0]) => setFadeIn(value)} onValueCommit={() => void onChange({ fade_in: fadeIn })} /></label>
+        <label><span>Fade out <b>{fadeOut.toFixed(1)}s</b></span><Slider aria-label="Music fade out" value={[fadeOut]} max={15} step={0.1} onValueChange={([value = 0]) => setFadeOut(value)} onValueCommit={() => void onChange({ fade_out: fadeOut })} /></label>
         <div className="music-switches">
           <SwitchLike label="Duck under voice" checked={Boolean(music.duck)} onChange={(duck) => void onChange({ duck })} />
           <Button variant="ghost" onClick={onChoose}><SlidersHorizontal /> Replace</Button>

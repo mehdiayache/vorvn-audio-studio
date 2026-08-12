@@ -5,6 +5,7 @@ from audio_studio.infrastructure.postgres.accounting import (
     ProductionAccountingRepository,
 )
 from audio_studio.infrastructure.postgres.exports import ProductionExportRepository
+from audio_studio.infrastructure.postgres.jobs import JobRepository
 from audio_studio.infrastructure.postgres.production_document import (
     ProductionDocumentRepository,
 )
@@ -19,11 +20,13 @@ class PostgresWorkRecords:
         accounting: ProductionAccountingRepository | None = None,
         documents: ProductionDocumentRepository | None = None,
         exports: ProductionExportRepository | None = None,
+        jobs: JobRepository | None = None,
     ):
         self.asset_records = assets or VentureAssetRepository()
         self.accounting_records = accounting or ProductionAccountingRepository()
         self.documents = documents or ProductionDocumentRepository()
         self.export_records = exports or ProductionExportRepository()
+        self.job_records = jobs or JobRepository()
 
     @staticmethod
     def hierarchy() -> list[dict]:
@@ -64,6 +67,24 @@ class PostgresWorkRecords:
 
     def exports(self, production_id: int) -> list[dict]:
         return self.export_records.list(production_id)
+
+    def latest_render_job(
+        self, production_id: int, operation: str,
+    ) -> dict | None:
+        job = self.job_records.latest_for_production(
+            production_id, kind="render", operation=operation)
+        if not job:
+            return None
+        return {
+            "id": str(job.public_id), "type": job.kind,
+            "status": job.status.value, "progress": job.progress,
+            "detail": job.detail, "error": job.error or None,
+            "retries": job.retries,
+            "created_at": job.created_at.isoformat() if job.created_at else None,
+            "started_at": job.started_at.isoformat() if job.started_at else None,
+            "finished_at": job.finished_at.isoformat() if job.finished_at else None,
+            "result": job.result or {}, "part_id": job.part_id,
+        }
 
     def accounting(self, production_id: int) -> dict:
         return self.accounting_records.one(production_id)

@@ -298,10 +298,24 @@ class ProductionPartResponse(BaseModel):
     text_state: str | None = None
     voice: str | None = None
     voice_name: str | None = None
+    take_public_id: str | None = None
     voice_identity_id: str | None = None
     binding_id: str | None = None
     catalogue_voice_id: str | None = None
     capability_id: str | None = None
+    reference_id: str | None = None
+    provider: str | None = None
+    provider_region: str | None = None
+    tier: str | None = None
+    provider_attempt_id: str | None = None
+    provider_attempt_status: str | None = None
+    binding_resolution_status: str | None = None
+    take_raw_text: str | None = None
+    take_spoken_text: str | None = None
+    take_tagged_text: str | None = None
+    take_delivery: dict[str, Any] = Field(default_factory=dict)
+    take_usage: dict[str, Any] = Field(default_factory=dict)
+    take_segmentation: dict[str, Any] = Field(default_factory=dict)
     cast_role_id: str | None = None
     cast_role_name: str | None = None
     revision: int = 1
@@ -357,6 +371,24 @@ class ProductionAccountingResponse(BaseModel):
     untracked_legacy_spend: float
 
 
+class ProductionRenderJobResponse(BaseModel):
+    id: str
+    type: str
+    status: Literal[
+        "queued", "running", "retrying", "ok", "warning", "failed",
+        "blocked", "lost", "cancelled",
+    ]
+    progress: float
+    detail: str
+    error: str | None = None
+    retries: int
+    created_at: str | None = None
+    started_at: str | None = None
+    finished_at: str | None = None
+    result: dict[str, Any] = Field(default_factory=dict)
+    part_id: int | None = None
+
+
 class ProductionEditorResponse(WorkResourceResponse):
     type: Literal["production"]
     project_id: int
@@ -366,6 +398,7 @@ class ProductionEditorResponse(WorkResourceResponse):
     trail: list[TrailItemResponse]
     parts: list[ProductionPartResponse]
     exports: list[ProductionExportResponse]
+    export_job: ProductionRenderJobResponse | None = None
     total_cost: float
     current_sequence_cost: float
     accounting: ProductionAccountingResponse

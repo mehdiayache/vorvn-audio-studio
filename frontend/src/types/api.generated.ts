@@ -2688,6 +2688,7 @@ export interface components {
             current_sequence_cost: number;
             /** Description */
             description: string;
+            export_job?: components["schemas"]["ProductionRenderJobResponse"] | null;
             /** Exports */
             exports: components["schemas"]["ProductionExportResponse"][];
             /** Icon */
@@ -2768,6 +2769,8 @@ export interface components {
             asset_version_id?: number | null;
             /** Binding Id */
             binding_id?: string | null;
+            /** Binding Resolution Status */
+            binding_resolution_status?: string | null;
             /** Capability Id */
             capability_id?: string | null;
             /** Cast Role Id */
@@ -2818,12 +2821,22 @@ export interface components {
             pitch?: number | null;
             /** Position */
             position: number | null;
+            /** Provider */
+            provider?: string | null;
+            /** Provider Attempt Id */
+            provider_attempt_id?: string | null;
+            /** Provider Attempt Status */
+            provider_attempt_status?: string | null;
+            /** Provider Region */
+            provider_region?: string | null;
             /** Provider Text */
             provider_text?: string | null;
             /** Public Id */
             public_id: string;
             /** Rate */
             rate?: number | null;
+            /** Reference Id */
+            reference_id?: string | null;
             /**
              * Revision
              * @default 1
@@ -2850,6 +2863,26 @@ export interface components {
              * @default false
              */
             subtitles_stale: boolean;
+            /** Take Delivery */
+            take_delivery?: {
+                [key: string]: unknown;
+            };
+            /** Take Public Id */
+            take_public_id?: string | null;
+            /** Take Raw Text */
+            take_raw_text?: string | null;
+            /** Take Segmentation */
+            take_segmentation?: {
+                [key: string]: unknown;
+            };
+            /** Take Spoken Text */
+            take_spoken_text?: string | null;
+            /** Take Tagged Text */
+            take_tagged_text?: string | null;
+            /** Take Usage */
+            take_usage?: {
+                [key: string]: unknown;
+            };
             /**
              * Takes
              * @default 0
@@ -2865,6 +2898,8 @@ export interface components {
             text_state?: string | null;
             /** Text Tagged */
             text_tagged?: string | null;
+            /** Tier */
+            tier?: string | null;
             /** Title */
             title?: string | null;
             /** Voice */
@@ -2877,6 +2912,38 @@ export interface components {
             volume?: number | null;
         } & {
             [key: string]: unknown;
+        };
+        /** ProductionRenderJobResponse */
+        ProductionRenderJobResponse: {
+            /** Created At */
+            created_at?: string | null;
+            /** Detail */
+            detail: string;
+            /** Error */
+            error?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: string;
+            /** Part Id */
+            part_id?: number | null;
+            /** Progress */
+            progress: number;
+            /** Result */
+            result?: {
+                [key: string]: unknown;
+            };
+            /** Retries */
+            retries: number;
+            /** Started At */
+            started_at?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "retrying" | "ok" | "warning" | "failed" | "blocked" | "lost" | "cancelled";
+            /** Type */
+            type: string;
         };
         /** ProductionSummaryResponse */
         ProductionSummaryResponse: {
@@ -3818,10 +3885,16 @@ export interface components {
         TakeResponse: {
             /** Binding Id */
             binding_id?: string | null;
+            /** Binding Resolution Status */
+            binding_resolution_status?: string | null;
             /** Capability Id */
             capability_id?: string | null;
+            /** Catalogue Voice Id */
+            catalogue_voice_id?: string | null;
             /** Cost */
             cost: number;
+            /** Cost Basis */
+            cost_basis?: string | null;
             /** Duration Ms */
             duration_ms?: number | null;
             /** Engine */
@@ -3841,18 +3914,44 @@ export interface components {
             outdated: boolean;
             /** Pitch */
             pitch: number;
+            /** Provider */
+            provider?: string | null;
+            /** Provider Attempt Id */
+            provider_attempt_id?: string | null;
+            /** Provider Attempt Status */
+            provider_attempt_status?: string | null;
+            /** Provider Region */
+            provider_region?: string | null;
+            /** Public Id */
+            public_id: string;
             /** Rate */
             rate: number;
+            /** Raw Text */
+            raw_text?: string | null;
+            /** Reference Id */
+            reference_id?: string | null;
             /** Seed */
             seed: number;
+            /** Segmentation */
+            segmentation?: {
+                [key: string]: unknown;
+            };
             /** Size Bytes */
             size_bytes: number;
             /** Source Part Revision */
             source_part_revision: number;
             /** Source Script Hash */
             source_script_hash: string;
+            /** Tagged Text */
+            tagged_text?: string | null;
             /** Text */
             text: string;
+            /** Tier */
+            tier?: string | null;
+            /** Usage */
+            usage?: {
+                [key: string]: unknown;
+            };
             /** Voice */
             voice: string;
             /** Voice Identity Id */

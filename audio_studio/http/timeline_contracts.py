@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from audio_studio.http.work_contracts import FidelityResponse
 
@@ -70,6 +70,7 @@ class TakeResponse(BaseModel):
     when: str
     voice: str
     voice_name: str | None = None
+    public_id: str
     voice_identity_id: str | None = None
     engine: str
     model: str
@@ -88,7 +89,20 @@ class TakeResponse(BaseModel):
     source_script_hash: str
     outdated: bool
     binding_id: str | None = None
+    catalogue_voice_id: str | None = None
     capability_id: str | None = None
+    reference_id: str | None = None
+    provider: str | None = None
+    provider_region: str | None = None
+    tier: str | None = None
+    raw_text: str | None = None
+    tagged_text: str | None = None
+    usage: dict = Field(default_factory=dict)
+    segmentation: dict = Field(default_factory=dict)
+    cost_basis: str | None = None
+    binding_resolution_status: str | None = None
+    provider_attempt_id: str | None = None
+    provider_attempt_status: str | None = None
 
 
 class TakeListEnvelope(BaseModel):

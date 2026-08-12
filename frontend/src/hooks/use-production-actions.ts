@@ -1,7 +1,8 @@
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import type { usePlayer } from "@/hooks/use-player"
+import { useJobExecution } from "@/hooks/use-job-execution"
 import { studioApi } from "@/lib/api"
 import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, Production, ProductionPart, VentureAsset } from "@/types/domain"
 
@@ -16,13 +17,21 @@ export function useProductionActions({ production, music, player, refresh, refre
 }) {
   const [previewing, setPreviewing] = useState(false)
   const [previewRevision, setPreviewRevision] = useState(0)
-  const [exporting, setExporting] = useState(false)
+  const [exportJobId, setExportJobId] = useState<string | null>(production.export_job?.id || null)
+  const observedExportJob = useJobExecution<{ url?: string; name?: string; error?: string }>(exportJobId)
+  const exportJob = observedExportJob || production.export_job || null
+  const reportedExportJob = useRef<string | null>(null)
   const previewKey = `preview:${production.id}:${previewRevision}`
   const playerPlaying = player.state === "playing"
   const productionLoaded = player.source?.key === previewKey
   const productionPlaying = playerPlaying && productionLoaded
 
   const invalidatePreview = useCallback(() => setPreviewRevision((value) => value + 1), [])
+
+  useEffect(() => {
+    setExportJobId(production.export_job?.id || null)
+    reportedExportJob.current = null
+  }, [production.id])
 
   const mutate = useCallback(async (action: () => Promise<unknown>, success?: string) => {
     try {
@@ -59,17 +68,24 @@ export function useProductionActions({ production, music, player, refresh, refre
   }, [player, preview, previewKey, previewing])
 
   const exportMp3 = useCallback(async () => {
-    setExporting(true)
     try {
-      const result = await studioApi.stitch(production.id)
-      toast.success("Final MP3 created", { action: { label: "Download", onClick: () => { window.location.href = result.url } } })
-      await refresh()
+      const job = await studioApi.enqueueRender(production.id, "export")
+      setExportJobId(job.id)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Export failed.")
-    } finally {
-      setExporting(false)
     }
-  }, [production.id, refresh])
+  }, [production.id])
+
+  useEffect(() => {
+    if (!exportJob || reportedExportJob.current === exportJob.id) return
+    if (exportJob.status === "ok" || exportJob.status === "warning") {
+      reportedExportJob.current = exportJob.id
+      toast.success("Final MP3 created", exportJob.result.url ? { action: { label: "Download", onClick: () => { window.location.href = exportJob.result.url! } } } : undefined)
+      void refresh()
+    }
+    if (["failed", "lost", "cancelled"].includes(exportJob.status)) reportedExportJob.current = exportJob.id
+  }, [exportJob, refresh])
+  const exporting = Boolean(exportJob && ["queued", "running", "retrying"].includes(exportJob.status))
 
   const generatePart = useCallback(async (payload: GeneratePayload): Promise<DurableJob<GenerateResult>> => {
     try {
@@ -142,5 +158,5 @@ export function useProductionActions({ production, music, player, refresh, refre
     toast.success(`${file.name} uploaded to ${folder}`)
   }, [refreshAssets])
 
-  return { previewing, exporting, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, regeneratePart, renderDraft, updatePartEditorial, movePart, setMusic, duplicatePart, deletePart, editSilence, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, moveParts, uploadAsset }
+  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, regeneratePart, renderDraft, updatePartEditorial, movePart, setMusic, duplicatePart, deletePart, editSilence, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, moveParts, uploadAsset }
 }
