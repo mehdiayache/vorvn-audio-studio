@@ -12,4 +12,6 @@ Baseline: `e8609d8f216e7f09bc1293ea718a52bd0c1b299f`
 - [ ] Scope 6 — Long-production manipulation/productivity
 - [ ] Scope 7 — Mix/Export + final convergence
 
-Current authorized scope: **NONE — Scope 0 complete; awaiting founder approval for Scope 1**
+Scope 0 completion correction: `48221b8` — standalone desktop Production now uses the Production Focus presentation; normal tools, mobile Production, and embedded-host behavior retain their existing chrome.
+
+Current authorized scope: **NONE — Scope 0 complete after review correction; awaiting founder approval for Scope 1**
