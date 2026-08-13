@@ -89,8 +89,11 @@ export type ProductionPart = {
   cast_role_name?: string | null
   revision?: number
   selected_take_id?: number | null
+  selected_take_number?: number | null
+  selected_take_text_state?: "raw" | "shaped" | "tagged" | string | null
   editorial_status?: string | null
   speech_job?: (DurableJob<GenerateResult> & { request: GeneratePayload }) | null
+  caption_job?: DurableJob<CaptionMutationResult> | null
   outdated?: boolean
   engine?: string
   model?: string
@@ -516,7 +519,7 @@ export type VoiceRouteDecision = {
   capability_id?: string | null
 }
 
-export type GenerateResult = {
+export type GenerateResult = components["schemas"]["SpeechGenerateResultResponse"] & {
   job_id?: string
   id?: number
   url?: string

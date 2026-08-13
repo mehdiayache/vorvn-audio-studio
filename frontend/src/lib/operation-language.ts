@@ -1,3 +1,5 @@
+import type { DurableJob } from "@/types/domain"
+
 /** Human summary for operator surfaces. Raw diagnostics remain available in Details. */
 export function operatorErrorMessage(value?: string | null) {
   const message = String(value || "").trim()
@@ -17,4 +19,30 @@ export function operationStatusLabel(status: string, result?: { requires_review?
   if (status === "blocked" && (result?.requires_review || result?.ambiguous)) return "Review required"
   if (status === "blocked" && result?.needs_confirmation) return "Cost confirmation needed"
   return ({ queued: "Queued", running: "Running", retrying: "Retrying", ok: "Completed", warning: "Completed with warning", failed: "Failed", lost: "Failed", cancelled: "Cancelled", blocked: "Review required" } as Record<string, string>)[status] || status
+}
+
+export type DurableOperationTruth = {
+  active: boolean
+  failed: boolean
+  review: boolean
+  confirmation: boolean
+  label: string
+  detail: string
+}
+
+/** One interpretation of durable Job truth, shared by every presentation. */
+export function durableOperationTruth(job: DurableJob<unknown>): DurableOperationTruth {
+  const result = job.result as { requires_review?: boolean; ambiguous?: boolean; needs_confirmation?: boolean }
+  const active = ["queued", "running", "retrying"].includes(job.status)
+  const failed = ["failed", "lost", "cancelled"].includes(job.status)
+  const review = job.status === "blocked" && Boolean(result?.requires_review || result?.ambiguous)
+  const confirmation = job.status === "blocked" && !review && Boolean(result?.needs_confirmation)
+  return {
+    active,
+    failed,
+    review,
+    confirmation,
+    label: operationStatusLabel(job.status, result),
+    detail: failed ? operatorErrorMessage(job.error || job.detail) : job.detail,
+  }
 }

@@ -184,7 +184,17 @@ class ProductionDocumentRepository:
                        take.raw_text, take.spoken_text, take.tagged_text,
                        take.delivery, take.usage, take.segmentation,
                        take.binding_resolution_status,
-                       collection.kind, collection.name
+                       collection.kind, collection.name,
+                       history.selected_take_number,
+                       caption_job.public_id, caption_job.status,
+                       CASE WHEN caption_job.total > 0
+                            THEN caption_job.done::float / caption_job.total
+                            ELSE 0 END,
+                       coalesce(caption_job.detail, ''),
+                       coalesce(caption_job.error, ''), caption_job.retries,
+                       caption_job.created_at, caption_job.started_at,
+                       caption_job.finished_at, caption_job.payload,
+                       caption_job.result
                   FROM production_parts part
                   LEFT JOIN production_cast_roles role ON role.id = part.cast_role_id
                   LEFT JOIN composition_drafts draft ON draft.part_id = part.id
@@ -195,7 +205,14 @@ class ProductionDocumentRepository:
                   LEFT JOIN assets asset ON asset.id = part.asset_id
                   LEFT JOIN asset_collections collection ON collection.id = asset.collection_id
                   LEFT JOIN LATERAL (
-                    SELECT count(*) AS take_count, coalesce(sum(cost), 0) AS spend
+                    SELECT count(*) AS take_count,
+                           coalesce(sum(cost), 0) AS spend,
+                           count(*) FILTER (
+                             WHERE take.id IS NOT NULL
+                               AND (item.created_at < take.created_at
+                                 OR (item.created_at = take.created_at
+                                   AND item.id <= take.id))
+                           ) AS selected_take_number
                       FROM takes item WHERE item.part_id = part.id
                   ) history ON true
                   LEFT JOIN LATERAL (
@@ -216,6 +233,23 @@ class ProductionDocumentRepository:
                      WHERE job.part_id=part.id AND job.kind='speech'
                      ORDER BY job.created_at DESC, job.id DESC LIMIT 1
                   ) speech_job ON true
+                  LEFT JOIN LATERAL (
+                    SELECT job.public_id, job.status, job.done, job.total,
+                           job.detail, job.error, job.retries, job.created_at,
+                           job.started_at, job.finished_at, job.payload,
+                           job.result
+                      FROM jobs job
+                     WHERE job.kind = 'transcribe'
+                       AND (job.part_id = part.id
+                         OR job.payload @> jsonb_build_object('part_id', part.id))
+                       AND take.id IS NOT NULL
+                       AND (job.take_id = take.id
+                         OR job.result @> jsonb_build_object('take_id', take.id)
+                         OR (job.take_id IS NULL
+                           AND NOT (job.result ? 'take_id')
+                           AND job.payload->>'file' = take.filename))
+                     ORDER BY job.created_at DESC, job.id DESC LIMIT 1
+                  ) caption_job ON true
                  WHERE part.production_id = %s AND part.archived_at IS NULL
                  ORDER BY part.position NULLS LAST, part.created_at, part.id
             """, (production_id,))
@@ -229,6 +263,7 @@ class ProductionDocumentRepository:
             job_payload = row[50] or {}
             job_result = row[51] or {}
             selected_revision = row[17]
+            has_selected_take = row[11] is not None
             item = {
                 "id": row[0], "public_id": str(row[1]),
                 "created_at": row[2].isoformat(), "position": row[3],
@@ -236,6 +271,9 @@ class ProductionDocumentRepository:
                 "text": row[6], "cast_role_id": row[7],
                 "cast_role_name": row[8], "editorial_status": row[9],
                 "revision": row[10], "selected_take_id": row[11],
+                "selected_take_number": int(row[70]) if row[70] else None,
+                "selected_take_text_state": (
+                    snapshot.get("text_state") if has_selected_take else None),
                 "outdated": bool(row[11] and (
                     selected_revision != row[10]
                     or row[52] != script_hash(row[6]))),
@@ -245,14 +283,20 @@ class ProductionDocumentRepository:
                 "text_shaped": snapshot.get("text_shaped", draft.get("text_shaped")),
                 "text_tagged": snapshot.get("text_tagged", draft.get("text_tagged")),
                 "text_state": snapshot.get("text_state", draft.get("text_state", "raw")),
-                "voice_identity_id": row[18] or draft.get("voice_identity_id") or job_payload.get("voice_identity_id"),
-                "voice": row[19] or snapshot.get("voice") or draft.get("legacy_voice") or job_payload.get("voice", ""),
-                "voice_name": row[53] or snapshot.get("voice_name") or job_payload.get("voice_name", ""),
+                "voice_identity_id": (row[18] if has_selected_take else
+                                      draft.get("voice_identity_id") or job_payload.get("voice_identity_id")),
+                "voice": ((row[19] or snapshot.get("voice") or "") if has_selected_take else
+                          draft.get("legacy_voice") or job_payload.get("voice", "")),
+                "voice_name": ((row[53] or snapshot.get("voice_name") or "") if has_selected_take else
+                               job_payload.get("voice_name", "")),
                 "take_public_id": str(row[54]) if row[54] else None,
                 "reference_id": row[55],
-                "provider": row[56] or snapshot.get("provider"),
-                "provider_region": row[57] or snapshot.get("provider_region"),
-                "tier": row[58] or snapshot.get("tier"),
+                "provider": ((row[56] or snapshot.get("provider")) if has_selected_take else
+                             job_payload.get("provider")),
+                "provider_region": ((row[57] or snapshot.get("provider_region")) if has_selected_take else
+                                    job_payload.get("provider_region")),
+                "tier": ((row[58] or snapshot.get("tier")) if has_selected_take else
+                         draft.get("legacy_model") or job_payload.get("model")),
                 "provider_attempt_id": str(row[59]) if row[59] else None,
                 "provider_attempt_status": row[60],
                 "take_raw_text": row[61],
@@ -264,10 +308,13 @@ class ProductionDocumentRepository:
                 "binding_resolution_status": row[67],
                 "asset_kind": row[68],
                 "asset_collection": row[69],
-                "engine": snapshot.get("engine") or draft.get("legacy_engine") or job_payload.get("engine"),
-                "model": row[20] or snapshot.get("model") or draft.get("legacy_model") or job_payload.get("model"),
+                "engine": (snapshot.get("engine") if has_selected_take else
+                           draft.get("legacy_engine") or job_payload.get("engine")),
+                "model": ((row[20] or snapshot.get("model")) if has_selected_take else
+                          draft.get("legacy_model") or job_payload.get("model")),
                 "format": snapshot.get("format") or draft.get("format") or job_payload.get("format", "mp3"),
-                "language": row[22] or draft.get("language") or job_payload.get("language"),
+                "language": ((row[22] or snapshot.get("language")) if has_selected_take else
+                             draft.get("language") or job_payload.get("language")),
                 "instruction": delivery.get("instruction", draft.get("instruction", job_payload.get("instruction", ""))),
                 "speech_mode": delivery.get("speech_mode", snapshot.get("speech_mode", job_payload.get("speech_mode", "exact"))),
                 "rate": _float(delivery.get("rate", snapshot.get("rate", job_payload.get("rate"))), 1),
@@ -279,9 +326,12 @@ class ProductionDocumentRepository:
                 "spent": _float(row[33]), "cost_basis": row[28],
                 "provider_text": diagnostics.get("provider_text"),
                 "fidelity": diagnostics.get("fidelity") or None,
-                "capability_id": row[31] or job_payload.get("capability_id"),
-                "binding_id": str(row[39]) if row[39] else job_payload.get("binding_id"),
-                "catalogue_voice_id": row[40] or job_payload.get("catalogue_voice_id"),
+                "capability_id": ((row[31] or snapshot.get("capability_id")) if has_selected_take else
+                                 job_payload.get("capability_id")),
+                "binding_id": ((str(row[39]) if row[39] else None) if has_selected_take else
+                               job_payload.get("binding_id")),
+                "catalogue_voice_id": (row[40] if has_selected_take else
+                                       job_payload.get("catalogue_voice_id")),
                 "takes": max(0, int(row[32] or 0) - (1 if row[11] else 0)),
                 "subtitled": bool(row[36]), "subtitles_stale": bool(row[37]),
                 "languages": sorted(set(row[38] or [])),
@@ -301,6 +351,23 @@ class ProductionDocumentRepository:
                     "started_at": row[48].isoformat() if row[48] else None,
                     "finished_at": row[49].isoformat() if row[49] else None,
                     "part_id": row[0], "result": job_result, "request": request,
+                }
+            if row[71]:
+                caption_payload = row[80] or {}
+                item["caption_job"] = {
+                    "id": str(row[71]), "type": "transcribe",
+                    "status": row[72], "progress": float(row[73] or 0),
+                    "detail": row[74] or "", "error": row[75] or None,
+                    "retries": int(row[76] or 0),
+                    "created_at": row[77].isoformat() if row[77] else None,
+                    "started_at": row[78].isoformat() if row[78] else None,
+                    "finished_at": row[79].isoformat() if row[79] else None,
+                    "part_id": row[0], "result": row[81] or {},
+                    "context": {
+                        key: caption_payload.get(key)
+                        for key in ("part_id", "production_id", "language")
+                        if caption_payload.get(key) is not None
+                    },
                 }
             if item["kind"] == "asset":
                 item["missing"] = not bool(row[34])

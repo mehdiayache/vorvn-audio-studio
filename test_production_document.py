@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import unittest
 from uuid import uuid4
 
@@ -14,6 +15,7 @@ from audio_studio.http.work_contracts import ProductionEditorEnvelope
 from audio_studio.infrastructure.postgres.production_document import (
     ProductionDocumentRepository,
 )
+from audio_studio.infrastructure.postgres.jobs import JobRepository
 from audio_studio.infrastructure.postgres.accounting import (
     ProductionAccountingRepository,
 )
@@ -304,6 +306,111 @@ class ProductionDocumentTests(unittest.TestCase):
             {"script": "Revised words"})
         self.assertEqual((unchanged["changed"], unchanged["outdated"]),
                          (False, True))
+
+    def test_selected_take_projection_is_stable_immutable_and_caption_relevant(self):
+        production_id = int(self.first["id"])
+        draft = self.timeline.add_draft(production_id, {
+            "text": "The selected performance stays true", "insert_at": 0,
+            "voice": "future-eve", "engine": "audio", "model": "flash",
+        })
+        part = self.repository.part(production_id, draft["id"])
+        take_ids: list[int] = []
+        filenames = [f"ordinal-{index}-{self.marker}.mp3" for index in range(1, 4)]
+        snapshots = [
+            {"engine": "omni", "model": "qwen3.5-omni-plus",
+             "voice_name": "Maya", "text_state": "raw", "language": "English",
+             "capability_id": "expressive-tags"},
+            {"engine": "omni", "model": "qwen3.5-omni-plus",
+             "voice_name": "Maya", "text_state": "shaped", "language": "English",
+             "capability_id": "expressive-tags"},
+            {"engine": "audio", "model": "qwen3-tts-flash",
+             "voice_name": "Eve", "text_state": "tagged", "language": "French",
+             "capability_id": "expressive-tags"},
+        ]
+        with psycopg.connect(settings.database_url) as database:
+            with database.cursor() as cursor:
+                for index, (filename, snapshot) in enumerate(zip(filenames, snapshots)):
+                    cursor.execute("""
+                        INSERT INTO takes
+                            (part_id, source_part_revision, source_script_hash,
+                             provider, provider_region, provider_voice_id,
+                             model_id, tier, language,
+                             raw_text, spoken_text, tagged_text, filename, path,
+                             cost, cost_basis, snapshot, voice_name_snapshot,
+                             created_at)
+                        VALUES (%s,%s,encode(digest(%s,'sha256'),'hex'),
+                                'alibaba','intl',%s,%s,%s,%s,
+                                %s,%s,%s,%s,%s,0.01,'actual_usage',%s::jsonb,%s,
+                                TIMESTAMPTZ '2026-08-13 10:00:00+00'
+                                  + make_interval(secs => %s))
+                        RETURNING id
+                    """, (
+                        draft["id"], part["revision"],
+                        "The selected performance stays true",
+                        f"provider-{index}", snapshot["model"],
+                        "plus" if index < 2 else "flash", snapshot["language"],
+                        "Raw words", "Spoken words",
+                        "<happy>Tagged words</happy>", filename,
+                        f"/durable/{filename}", json.dumps(snapshot),
+                        snapshot["voice_name"], 0 if index < 2 else 1,
+                    ))
+                    take_ids.append(int(cursor.fetchone()[0]))
+                cursor.execute("""
+                    UPDATE production_parts
+                       SET selected_take_id=%s, kind='speech'
+                     WHERE id=%s
+                """, (take_ids[1], draft["id"]))
+            database.commit()
+
+        jobs = JobRepository()
+        selected_caption, _ = jobs.enqueue(
+            "transcribe", {
+                "part_id": draft["id"], "production_id": production_id,
+                "file": filenames[1],
+            }, idempotency_key=f"selected-caption-{self.marker}",
+            production_id=production_id, part_id=draft["id"])
+        obsolete_caption, _ = jobs.enqueue(
+            "transcribe", {
+                "part_id": draft["id"], "production_id": production_id,
+                "file": filenames[0],
+            }, idempotency_key=f"obsolete-caption-{self.marker}",
+            production_id=production_id, part_id=draft["id"])
+        with psycopg.connect(settings.database_url) as database:
+            with database.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE jobs SET status='running', started_at=now()
+                     WHERE id=%s
+                """, (selected_caption.id,))
+                cursor.execute("""
+                    UPDATE jobs SET status='failed', result=%s::jsonb,
+                           error='Obsolete take failed', finished_at=now()
+                     WHERE id=%s
+                """, (
+                    json.dumps({"take_id": take_ids[0]}),
+                    obsolete_caption.id,
+                ))
+            database.commit()
+
+        projected = self.repository.parts(production_id)[0]
+        self.assertEqual(projected["selected_take_number"], 2)
+        self.assertEqual(projected["selected_take_text_state"], "shaped")
+        self.assertEqual(projected["takes"], 2)
+        self.assertEqual(projected["voice_name"], "Maya")
+        self.assertEqual(projected["model"], "qwen3.5-omni-plus")
+        self.assertEqual(projected["language"], "English")
+        self.assertEqual(projected["caption_job"]["id"],
+                         str(selected_caption.public_id))
+        self.assertEqual(projected["caption_job"]["status"], "running")
+
+        with psycopg.connect(settings.database_url) as database:
+            with database.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE takes SET snapshot = snapshot - 'text_state'
+                     WHERE id=%s
+                """, (take_ids[1],))
+            database.commit()
+        historical = self.repository.parts(production_id)[0]
+        self.assertIsNone(historical["selected_take_text_state"])
 
 if __name__ == "__main__":
     unittest.main()

@@ -2588,6 +2588,46 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** PartCaptionJobResponse */
+        PartCaptionJobResponse: {
+            /** Context */
+            context?: {
+                [key: string]: unknown;
+            };
+            /** Created At */
+            created_at?: string | null;
+            /** Detail */
+            detail: string;
+            /** Error */
+            error?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: string;
+            /** Part Id */
+            part_id: number;
+            /** Progress */
+            progress: number;
+            /** Result */
+            result?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Retries
+             * @default 0
+             */
+            retries: number;
+            /** Started At */
+            started_at?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Type
+             * @default transcribe
+             * @constant
+             */
+            type: "transcribe";
+        };
         /** PartCreatedEnvelope */
         PartCreatedEnvelope: {
             data: components["schemas"]["PartCreatedResponse"];
@@ -2818,6 +2858,7 @@ export interface components {
             binding_resolution_status?: string | null;
             /** Capability Id */
             capability_id?: string | null;
+            caption_job?: components["schemas"]["PartCaptionJobResponse"] | null;
             /** Cast Role Id */
             cast_role_id?: string | null;
             /** Cast Role Name */
@@ -2891,6 +2932,10 @@ export interface components {
             seed?: number | null;
             /** Selected Take Id */
             selected_take_id?: number | null;
+            /** Selected Take Number */
+            selected_take_number?: number | null;
+            /** Selected Take Text State */
+            selected_take_text_state?: string | null;
             /** Size Bytes */
             size_bytes?: number | null;
             speech_job?: components["schemas"]["PartSpeechJobResponse"] | null;
@@ -3479,6 +3524,20 @@ export interface components {
             /** Seconds */
             seconds: number;
         };
+        /**
+         * SpeechGenerateResultResponse
+         * @description Documented speech result facts already produced by the runtime.
+         */
+        SpeechGenerateResultResponse: {
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /** Part Id */
+            part_id?: number | null;
+            /** Take Id */
+            take_id?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** SpeechJobCreate */
         SpeechJobCreate: {
             /** Binding Id */
@@ -3572,6 +3631,41 @@ export interface components {
              * @default 50
              */
             volume: number;
+        };
+        /** SpeechJobCreatedEnvelope */
+        SpeechJobCreatedEnvelope: {
+            data: components["schemas"]["SpeechJobResponse"];
+            meta: components["schemas"]["JobMeta"];
+        };
+        /** SpeechJobResponse */
+        SpeechJobResponse: {
+            /** Context */
+            context?: {
+                [key: string]: unknown;
+            };
+            /** Created At */
+            created_at?: string | null;
+            /** Detail */
+            detail: string;
+            /** Error */
+            error?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: string;
+            /** Part Id */
+            part_id?: number | null;
+            /** Progress */
+            progress: number;
+            result: components["schemas"]["SpeechGenerateResultResponse"];
+            /** Retries */
+            retries: number;
+            /** Started At */
+            started_at?: string | null;
+            /** Status */
+            status: string;
+            /** Type */
+            type: string;
         };
         /** SpeechSettingsResponse */
         SpeechSettingsResponse: {
@@ -5717,7 +5811,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JobCreatedEnvelope"];
+                    "application/json": components["schemas"]["SpeechJobCreatedEnvelope"];
                 };
             };
             /** @description Validation Error */

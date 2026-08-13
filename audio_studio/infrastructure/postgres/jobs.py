@@ -313,8 +313,8 @@ class JobRepository:
                 return False
             kind = job_row[0] if job_row else "job"
             outputs = _output_ids(kind, result)
-            part_id = result.get("part_id") if kind == "speech" else None
-            take_id = result.get("take_id") if kind == "speech" else None
+            part_id = result.get("part_id") if kind in {"speech", "transcribe"} else None
+            take_id = result.get("take_id") if kind in {"speech", "transcribe"} else None
             final_status = "cancelled" if job_row[3] else status
             cursor.execute("""
                 UPDATE jobs SET status = %s, result = %s::jsonb, cost = %s,

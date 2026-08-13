@@ -3174,6 +3174,104 @@
         "title": "PaginationMetaResponse",
         "type": "object"
       },
+      "PartCaptionJobResponse": {
+        "properties": {
+          "context": {
+            "additionalProperties": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "part_id": {
+            "title": "Part Id",
+            "type": "integer"
+          },
+          "progress": {
+            "title": "Progress",
+            "type": "number"
+          },
+          "result": {
+            "additionalProperties": true,
+            "title": "Result",
+            "type": "object"
+          },
+          "retries": {
+            "default": 0,
+            "title": "Retries",
+            "type": "integer"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "type": {
+            "const": "transcribe",
+            "default": "transcribe",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "progress",
+          "detail",
+          "part_id"
+        ],
+        "title": "PartCaptionJobResponse",
+        "type": "object"
+      },
       "PartCreatedEnvelope": {
         "properties": {
           "data": {
@@ -3871,6 +3969,16 @@
             ],
             "title": "Capability Id"
           },
+          "caption_job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartCaptionJobResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "cast_role_id": {
             "anyOf": [
               {
@@ -4192,6 +4300,28 @@
               }
             ],
             "title": "Selected Take Id"
+          },
+          "selected_take_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Take Number"
+          },
+          "selected_take_text_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Take Text State"
           },
           "size_bytes": {
             "anyOf": [
@@ -5908,6 +6038,47 @@
         "title": "SilenceBody",
         "type": "object"
       },
+      "SpeechGenerateResultResponse": {
+        "additionalProperties": true,
+        "description": "Documented speech result facts already produced by the runtime.",
+        "properties": {
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "part_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Part Id"
+          },
+          "take_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Take Id"
+          }
+        },
+        "title": "SpeechGenerateResultResponse",
+        "type": "object"
+      },
       "SpeechJobCreate": {
         "additionalProperties": false,
         "properties": {
@@ -6167,6 +6338,127 @@
           "text"
         ],
         "title": "SpeechJobCreate",
+        "type": "object"
+      },
+      "SpeechJobCreatedEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SpeechJobResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/JobMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SpeechJobCreatedEnvelope",
+        "type": "object"
+      },
+      "SpeechJobResponse": {
+        "properties": {
+          "context": {
+            "additionalProperties": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "part_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Part Id"
+          },
+          "progress": {
+            "title": "Progress",
+            "type": "number"
+          },
+          "result": {
+            "$ref": "#/components/schemas/SpeechGenerateResultResponse"
+          },
+          "retries": {
+            "title": "Retries",
+            "type": "integer"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "status",
+          "progress",
+          "detail",
+          "retries",
+          "result"
+        ],
+        "title": "SpeechJobResponse",
         "type": "object"
       },
       "SpeechSettingsResponse": {
@@ -11676,7 +11968,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobCreatedEnvelope"
+                  "$ref": "#/components/schemas/SpeechJobCreatedEnvelope"
                 }
               }
             },

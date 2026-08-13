@@ -51,6 +51,25 @@ class JobCreatedEnvelope(JobEnvelope):
     meta: JobMeta
 
 
+class SpeechGenerateResultResponse(BaseModel):
+    """Documented speech result facts already produced by the runtime."""
+
+    model_config = ConfigDict(extra="allow")
+
+    part_id: int | None = None
+    take_id: int | None = None
+    duration_ms: int | None = None
+
+
+class SpeechJobResponse(JobResponse):
+    result: SpeechGenerateResultResponse
+
+
+class SpeechJobCreatedEnvelope(BaseModel):
+    data: SpeechJobResponse
+    meta: JobMeta
+
+
 class JobEventResponse(BaseModel):
     id: int
     created_at: datetime
@@ -238,7 +257,7 @@ def _payload(job: Job) -> dict:
 
 
 @router.post("/speech", operation_id="createSpeechJob", status_code=202,
-             response_model=JobCreatedEnvelope)
+             response_model=SpeechJobCreatedEnvelope)
 def create_speech_job(payload: SpeechJobCreate,
                       idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
     # Keep explicit nulls: selecting a system voice intentionally clears a
@@ -312,6 +331,7 @@ def create_transcription_job(payload: TranscriptionJobCreate,
         "transcribe", values,
         idempotency_key=(idempotency_key or f"transcribe-{uuid4()}")[:200],
         production_id=payload.production_id,
+        part_id=payload.part_id,
         source_tool="production" if payload.production_id else "subtitles",
         operation_label="Create subtitles",
     )
