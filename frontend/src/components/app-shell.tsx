@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/sheet"
 import { StudioHorizontalChrome, StudioIcon, useProductReadiness } from "@/design-system/vorvn"
 import type { StudioNavigationItem } from "@/design-system/vorvn"
+import { useMediaQuery } from "@/hooks/use-media-query"
+import { studioRouteFromLocation } from "@/lib/routes"
 import { cn } from "@/lib/utils"
 
 export type AudioStudioMountMode = "standalone" | "embedded"
@@ -81,10 +83,13 @@ function MobileNavigation() {
 export function AppShell({ mode = "standalone" }: { mode?: AudioStudioMountMode }) {
   const location = useLocation()
   const activeDestination = activeAudioStudioDestination(location.pathname)
+  const desktop = useMediaQuery("(min-width: 48.001rem)")
+  const route = studioRouteFromLocation(location.pathname, location.search)
+  const productionFocus = mode === "standalone" && desktop && route.type === "production"
   return (
-    <div className="studio-app-shell" data-mount-mode={mode}>
+    <div className="studio-app-shell" data-mount-mode={mode} data-presentation={productionFocus ? "production-focus" : "standard"}>
       <a className="studio-skip-link" href="#audio-studio-content">Skip to Audio Studio content</a>
-      {mode === "standalone" && (
+      {mode === "standalone" && !productionFocus && (
         <header className="vorvn-standalone-header">
           <NavLink className="vorvn-studio-brand" to="/audio-studio/" aria-label="Audio Studio Work">
             <span className="vorvn-studio-mark"><StudioIcon role="studio" /></span>
@@ -97,7 +102,7 @@ export function AppShell({ mode = "standalone" }: { mode?: AudioStudioMountMode 
           </div>
         </header>
       )}
-      <StudioHorizontalChrome items={audioStudioNavigation} />
+      {!productionFocus && <StudioHorizontalChrome items={audioStudioNavigation} />}
       <main id="audio-studio-content" className="audio-studio-viewport" tabIndex={-1}>
         <AppErrorBoundary key={location.pathname}>
           <Outlet />

@@ -1,5 +1,5 @@
 .speech-model-identity { min-width: 0; display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
-.speech-model-identity > span { color: var(--foreground); font-size: var(--type-small); font-weight: 700; }
-.speech-model-identity code { max-width: 100%; overflow: hidden; color: var(--muted-foreground); font: 500 var(--type-caption)/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; text-overflow: ellipsis; white-space: nowrap; }
+.speech-model-identity > span { color: var(--foreground); font-size: var(--vrn-type-metadata-size); font-weight: var(--vrn-weight-label); }
+.speech-model-identity code { max-width: 100%; overflow: hidden; color: var(--muted-foreground); font: var(--vrn-weight-regular) var(--vrn-type-code-size)/var(--vrn-type-code-line) var(--vrn-font-mono); text-overflow: ellipsis; white-space: nowrap; }
 .speech-model-identity.compact { display: inline-grid; gap: 1px; }
 .speech-model-identity.compact > span { font-size: var(--type-caption); }

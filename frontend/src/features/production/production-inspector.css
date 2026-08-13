@@ -1,26 +1,28 @@
 .part-inspector { width: min(680px, 96vw) !important; max-width: none !important; display: flex !important; flex-direction: column; padding: 0 !important; }
+.part-inspector-content { position: relative; min-height: 0; height: 100%; display: flex; flex-direction: column; }
 .part-inspector [data-slot="sheet-header"] { padding: 22px 24px 18px; border-bottom: 1px solid var(--border); }
 .part-inspector-tabs { min-height: 0; flex: 1; display: flex; flex-direction: column; }
-.part-inspector-tabs > [data-slot="tabs-list"] { margin: 12px 22px 0; }
-.part-inspector-scroll { height: calc(100dvh - 172px); }
-.inspector-panel { display: grid; gap: 22px; padding: 22px 24px 36px; }
+.part-inspector-tabs > [data-slot="tabs-list"] { width: 100%; justify-content: flex-start; margin: 0; padding: 0 var(--vrn-space-4); border-bottom: var(--vrn-stroke-hairline) solid var(--border); border-radius: 0; background: var(--surface-raised); }
+.part-inspector-scroll { min-height: 0; flex: 1; }
+.part-inspector > .part-inspector-content .part-inspector-scroll { height: calc(100dvh - 172px); }
+.inspector-panel { display: grid; gap: var(--vrn-space-4); padding: var(--vrn-space-4) var(--vrn-space-4) var(--vrn-space-8); }
 .inspector-panel > section { min-width: 0; }
-.inspector-part-summary { display: flex; align-items: center; gap: 12px; }
-.inspector-part-summary > span { width: 42px; height: 42px; display: grid; place-items: center; flex: 0 0 auto; border-radius: var(--radius-md); background: var(--muted); }
+.inspector-part-summary { display: flex; align-items: center; gap: var(--vrn-space-3); padding-bottom: var(--vrn-space-4); border-bottom: var(--vrn-stroke-hairline) solid var(--border); }
+.inspector-part-summary > span { width: 38px; height: 38px; display: grid; place-items: center; flex: 0 0 auto; border: var(--vrn-stroke-hairline) solid var(--border); border-radius: var(--vrn-radius-md); background: var(--surface-muted); }
 .inspector-part-summary p { color: var(--muted-foreground); font-size: var(--type-small); }
 .inspector-summary-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .inspector-warning { display: flex; gap: 10px; padding: 13px; color: var(--destructive); background: var(--danger-soft); border: 1px solid color-mix(in oklch, var(--destructive) 24%, transparent); border-radius: var(--radius-md); }
 .inspector-warning svg { flex: 0 0 auto; width: 18px; }
 .inspector-warning p { margin-top: 3px; color: color-mix(in oklch, var(--destructive) 78%, var(--foreground)); font-size: var(--type-small); }
-.inspector-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 10px; }
+.inspector-section-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--vrn-space-3); margin-bottom: var(--vrn-space-2); }
 .inspector-section-heading h3 { margin: 2px 0 0; font-size: var(--type-heading-sm); }
 .inspector-section-heading > span { color: var(--muted-foreground); }
 .inspector-section-heading code { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
-.inspector-script, .inspector-script-state p { padding: 14px; line-height: 1.7; white-space: pre-wrap; background: var(--muted); border-radius: var(--radius-md); }
+.inspector-script, .inspector-script-state p { padding: var(--vrn-space-3); border: var(--vrn-stroke-hairline) solid var(--border); border-radius: var(--vrn-radius-sm); background: var(--surface-subtle); line-height: 1.65; white-space: pre-wrap; }
 .inspector-script[dir="rtl"], .inspector-script-state p[dir="rtl"] { text-align: right; font-size: var(--type-heading-md); line-height: 1.95; }
 .inspector-text-states { display: grid; gap: 10px; }
 .inspector-script-state h3 { margin-bottom: 6px; color: var(--muted-foreground); font-size: var(--type-small); }
-.inspector-destructive-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px; border-top: 1px solid var(--border); }
+.inspector-destructive-actions { display: flex; gap: var(--vrn-space-2); flex-wrap: wrap; padding-top: var(--vrn-space-4); border-top: var(--vrn-stroke-hairline) solid var(--border); }
 .inspector-take-list { display: grid; gap: 10px; }
 .inspector-empty { display: flex; align-items: center; gap: 8px; padding: 18px; color: var(--muted-foreground); background: var(--muted); border-radius: var(--radius-md); font-size: var(--type-small); }
 .inspector-facts { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }

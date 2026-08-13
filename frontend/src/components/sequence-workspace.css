@@ -1,8 +1,8 @@
 .sequence-workspace {
   position: relative;
-  width: min(880px, 100%);
+  width: min(840px, 100%);
   margin: 0 auto;
-  padding-bottom: 8px;
+  padding: var(--vrn-space-1) 0 var(--vrn-space-2);
 }
 .sequence-part-list { display: contents; }
 
@@ -37,9 +37,9 @@
   left: 23px;
   top: 68px;
   bottom: 38px;
-  width: 2px;
+  width: var(--vrn-stroke-hairline);
   border-radius: 99px;
-  background: var(--border-strong);
+  background: var(--border);
 }
 .sequence-row {
   position: relative;
@@ -58,13 +58,14 @@
   display: grid;
   place-items: center;
   border: 1px solid var(--border);
-  border-radius: 50%;
+  border-radius: var(--vrn-radius-round);
   background: var(--surface-raised);
   color: var(--muted-foreground);
-  box-shadow: 0 1px 2px hsl(var(--shadow-color) / .05);
-  font-size: var(--type-caption);
-  font-weight: 750;
+  box-shadow: var(--vrn-shadow-subtle);
+  font-size: var(--vrn-type-metadata-size);
+  font-weight: var(--vrn-weight-label);
 }
+.sequence-row.is-workbench-active .sequence-row-node { color: var(--primary-foreground); border-color: var(--primary); background: var(--primary); box-shadow: 0 0 0 3px var(--surface-subtle); }
 .sequence-row-node.asset { color: var(--asset); border-color: color-mix(in oklab, var(--asset) 38%, var(--border)); background: var(--asset-soft); }
 .sequence-row-node.draft { color: var(--warning); border-color: color-mix(in oklab, var(--warning) 38%, var(--border)); background: var(--warning-soft); }
 .sequence-row-node.issue { color: var(--destructive); border-color: var(--danger-border); background: var(--danger-soft); }
@@ -81,28 +82,30 @@
 
 .sequence-card {
   position: relative;
-  min-height: 88px;
+  min-height: 80px;
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr) auto;
   align-items: stretch;
-  gap: 10px;
-  padding: 12px;
+  gap: var(--vrn-space-2);
+  padding: var(--vrn-space-2) var(--vrn-space-3);
   background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 1px 2px hsl(var(--shadow-color) / .035);
+  border: var(--vrn-stroke-hairline) solid var(--border);
+  border-radius: var(--vrn-radius-md);
+  box-shadow: var(--vrn-shadow-subtle);
   transition: border-color .15s, box-shadow .15s, background .15s;
 }
-.sequence-card:hover { border-color: var(--border-strong); box-shadow: 0 5px 18px hsl(var(--shadow-color) / .06); }
+.sequence-card:hover { border-color: var(--border-strong); box-shadow: var(--vrn-shadow-raised); }
 .sequence-card.selected { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
-.sequence-card.playing { box-shadow: inset 3px 0 var(--primary), 0 5px 18px hsl(var(--shadow-color) / .06); }
+.sequence-row.is-workbench-active .sequence-card { border-color: var(--border-strong); background: var(--surface-raised); box-shadow: inset 3px 0 var(--primary), var(--vrn-shadow-subtle); }
+.sequence-row.is-workbench-active .sequence-card.selected { box-shadow: inset 3px 0 var(--primary), 0 0 0 3px var(--primary-soft); }
+.sequence-card.playing { box-shadow: inset 3px 0 var(--primary), var(--vrn-shadow-raised); }
 .sequence-card.asset { background: color-mix(in oklab, var(--asset-soft) 58%, white); border-color: color-mix(in oklab, var(--asset) 24%, var(--border)); box-shadow: inset 3px 0 var(--asset); }
 .sequence-card.draft { background: color-mix(in oklab, var(--warning-soft) 48%, white); border-color: color-mix(in oklab, var(--warning) 22%, var(--border)); box-shadow: inset 3px 0 var(--warning); }
 .sequence-card.missing { border-color: var(--danger-border); box-shadow: inset 3px 0 var(--destructive); }
-.speech-route-label { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: var(--type-caption); font-weight: 650; }
+.speech-route-label { display: inline-flex; align-items: center; padding: 1px var(--vrn-space-2); border: var(--vrn-stroke-hairline) solid var(--border); border-radius: var(--vrn-radius-sm); color: var(--foreground); background: var(--surface-muted); font-size: var(--vrn-type-metadata-size); font-weight: var(--vrn-weight-label); }
 .sequence-card-select { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 4px; color: var(--muted-foreground); }
 .sequence-card-open { min-width: 0; display: block; padding: 0; color: inherit; background: transparent; border: 0; text-align: left; }
-.sequence-card-open:focus-visible { border-radius: 7px; outline: 3px solid var(--primary-soft); }
+.sequence-card-open:focus-visible { border-radius: var(--vrn-radius-sm); outline: var(--vrn-focus-width-strong) solid var(--vrn-focus-ring-soft); outline-offset: var(--vrn-focus-offset); }
 .sequence-card-heading { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sequence-card .voice-copy b, .sequence-asset-identity b { font-size: var(--type-body); }
 .sequence-card .voice-copy small, .sequence-asset-identity small { margin-top: 2px; color: var(--muted-foreground); font-size: var(--type-small); }
@@ -111,16 +114,16 @@
 .sequence-card-open > p {
   display: -webkit-box;
   overflow: hidden;
-  margin-top: 7px;
+  margin-top: var(--vrn-space-1);
   color: color-mix(in oklab, var(--foreground) 90%, var(--muted-foreground));
-  font-size: var(--type-small);
-  line-height: 1.48;
+  font-size: var(--vrn-type-supporting-size);
+  line-height: var(--vrn-type-supporting-line);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 .sequence-card-open > p[dir="rtl"] { text-align: right; font-size: var(--type-body); line-height: 1.7; }
-.sequence-card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 7px; }
-.sequence-card-meta span { display: inline-flex; align-items: center; gap: 4px; color: var(--muted-foreground); font-size: var(--type-small); }
+.sequence-card-meta { display: flex; align-items: center; gap: var(--vrn-space-2); flex-wrap: wrap; margin-top: var(--vrn-space-1); }
+.sequence-card-meta span { display: inline-flex; align-items: center; gap: var(--vrn-space-1); color: var(--muted-foreground); font-size: var(--vrn-type-metadata-size); line-height: var(--vrn-type-metadata-line); }
 .sequence-card-meta svg { width: 13px; }
 .sequence-card-actions { display: flex; align-items: center; justify-content: flex-end; align-self: center; gap: 3px; }
 .sequence-card-actions button { flex: 0 0 auto; }
@@ -158,7 +161,7 @@
   z-index: 3;
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
-  height: 18px;
+  height: 14px;
   align-items: center;
 }
 .sequence-insert-line { grid-column: 2; border-top: 1px solid transparent; transition: border-color .15s; }
@@ -180,7 +183,7 @@
 .sequence-insert-trigger svg { width: 15px; flex: 0 0 auto; }
 .sequence-insert:hover .sequence-insert-line, .sequence-insert:focus-within .sequence-insert-line { border-color: color-mix(in oklab, var(--primary) 34%, var(--border)); }
 .sequence-insert:hover .sequence-insert-trigger, .sequence-insert:focus-within .sequence-insert-trigger { opacity: 1; pointer-events: auto; box-shadow: 0 2px 8px hsl(var(--shadow-color) / .08); }
-.sequence-insert.last { height: 42px; }
+.sequence-insert.last { height: 36px; }
 .sequence-insert.last .sequence-insert-trigger { opacity: 1; pointer-events: auto; }
 .sequence-insert-menu { width: 290px; padding: 7px; }
 .sequence-menu-label { display: block; padding: 6px 9px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }

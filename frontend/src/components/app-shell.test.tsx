@@ -27,15 +27,21 @@ beforeEach(() => {
 })
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
-function renderShell(mode: "standalone" | "embedded") {
+function renderShell(mode: "standalone" | "embedded", path = "/audio-studio/", desktop = false) {
   vi.mocked(studioApi.config).mockResolvedValue(configured)
+  vi.stubGlobal("matchMedia", vi.fn().mockImplementation(() => ({
+    matches: desktop,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  })))
   return render(
-    <MemoryRouter initialEntries={["/audio-studio/"]}>
+    <MemoryRouter initialEntries={[path]}>
       <ProductReadinessProvider>
         <GlobalPlayerProvider>
           <Routes>
             <Route path="/audio-studio" element={<AppShell mode={mode} />}>
               <Route index element={<h1>Work content</h1>} />
+              <Route path="productions/:identifier" element={<h1>Production content</h1>} />
             </Route>
           </Routes>
         </GlobalPlayerProvider>
@@ -73,12 +79,35 @@ describe("Audio Studio shell", () => {
     expect(activeAudioStudioDestination("/audio-studio/projects/project-id")).toBe("Work")
   })
   it("renders one standalone identity and the Studio-owned navigation", async () => {
-    renderShell("standalone")
+    const { container } = renderShell("standalone", "/audio-studio/", true)
     expect(screen.getByRole("link", { name: "Audio Studio Work" })).toBeTruthy()
     expect(screen.getByRole("navigation", { name: "Audio Studio tools" })).toBeTruthy()
     expect(screen.getByRole("heading", { name: "Work content" })).toBeTruthy()
+    expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
     await waitFor(() => expect(screen.getByText("Audio Studio ready")).toBeTruthy())
     expect(studioApi.config).toHaveBeenCalledTimes(1)
+  })
+
+  it("makes the Focus Bar the only Audio Studio chrome on standalone desktop Production", () => {
+    const { container } = renderShell("standalone", "/audio-studio/productions/production-id", true)
+    expect(screen.queryByRole("link", { name: "Audio Studio Work" })).toBeNull()
+    expect(screen.queryByRole("navigation", { name: "Audio Studio tools" })).toBeNull()
+    expect(screen.getByRole("heading", { name: "Production content" })).toBeTruthy()
+    expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("production-focus")
+  })
+
+  it("preserves the normal standalone chrome for mobile Production", () => {
+    const { container } = renderShell("standalone", "/audio-studio/productions/production-id")
+    expect(screen.getByRole("link", { name: "Audio Studio Work" })).toBeTruthy()
+    expect(screen.getByRole("navigation", { name: "Audio Studio tools" })).toBeTruthy()
+    expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
+  })
+
+  it("does not infer authority over an embedded host on desktop Production", () => {
+    const { container } = renderShell("embedded", "/audio-studio/productions/production-id", true)
+    expect(screen.queryByRole("link", { name: "Audio Studio Work" })).toBeNull()
+    expect(screen.getByRole("navigation", { name: "Audio Studio tools" })).toBeTruthy()
+    expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
   })
 
   it("omits the standalone identity when mounted inside Origins", async () => {

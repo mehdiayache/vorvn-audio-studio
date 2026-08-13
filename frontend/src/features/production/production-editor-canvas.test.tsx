@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from "@testing-library/react"
-import type { ComponentProps } from "react"
+import type { ComponentProps, ReactNode } from "react"
 import { describe, expect, it, vi } from "vitest"
 
 const timing = vi.hoisted(() => vi.fn(() => <div>Timing mounted</div>))
@@ -12,7 +12,7 @@ vi.mock("@/features/production/cast-manager-sheet", () => ({ CastManagerSheet: (
 vi.mock("@/features/production/production-command-menu", () => ({ ProductionCommandMenu: () => null }))
 vi.mock("@/features/production/production-explorer-sheet", () => ({ ProductionExplorerSheet: () => null }))
 vi.mock("@/features/production/production-health-sheet", () => ({ productionHealth: () => [], ProductionHealthSheet: () => null }))
-vi.mock("@/features/production/mix-export-workspace", () => ({ MixExportWorkspace: () => null }))
+vi.mock("@/features/production/production-workbench", () => ({ ProductionWorkbench: ({ canvas, children }: { canvas: ReactNode; children: ReactNode }) => <>{canvas}{children}</> }))
 
 import { ProductionEditorCanvas } from "./production-editor-canvas"
 
@@ -21,22 +21,21 @@ describe("ProductionEditorCanvas timing", () => {
     const props = {
       production: { id: 7, key: "production", title: "Production", parts: [] },
       tree: null, music: {}, directory: {}, cast: [], liveJobs: {}, duration: 0,
-      releaseOpen: false, composerOpen: false, explorerOpen: false, castOpen: false,
+      workbenchMode: null, workbenchTitle: "Production Workbench", workbenchContent: null,
+      explorerOpen: false, castOpen: false,
       healthOpen: false, commandsOpen: false, selected: new Set(), playerPlaying: false,
       previewing: false, productionPlaying: false, productionLoaded: false,
-      productionCurrentTime: 0, exporting: false, exportJob: null,
-      onReleaseOpen: vi.fn(), onExplorerOpen: vi.fn(), onCastOpen: vi.fn(),
+      productionCurrentTime: 0,
+      onOpenMixExport: vi.fn(), onCloseWorkbench: vi.fn(), onExplorerOpen: vi.fn(), onCastOpen: vi.fn(),
       onHealthOpen: vi.fn(), onCommandsOpen: vi.fn(), onCastChanged: vi.fn(),
       onTool: vi.fn(), onSelected: vi.fn(), onPreview: vi.fn(), onLocate: vi.fn(),
       onSeekProduction: vi.fn(), onPlay: vi.fn(), onMusicChange: vi.fn(),
-      onChooseMusic: vi.fn(), onExport: vi.fn(), onRetryJob: vi.fn(),
+      onChooseMusic: vi.fn(), onRetryJob: vi.fn(),
       onConfirmJob: vi.fn(), onReplaceAsset: vi.fn(), sequenceActions: {},
     } as unknown as ComponentProps<typeof ProductionEditorCanvas>
     render(<ProductionEditorCanvas {...props} />)
     expect(timing).not.toHaveBeenCalled()
-    const details = screen.getByText(/Preview, timing & music/i).closest("details")!
-    details.open = true
-    fireEvent(details, new Event("toggle"))
+    fireEvent.click(screen.getByRole("button", { name: "Timing" }))
     expect(screen.getByText("Timing mounted")).toBeTruthy()
     expect(timing).toHaveBeenCalledTimes(1)
   })

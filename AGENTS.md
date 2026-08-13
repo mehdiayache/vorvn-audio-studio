@@ -17,6 +17,42 @@ on legacy `server.py`, legacy `db.py` patterns, or the old UI.
 Avoid premature abstraction and unnecessary architectural complexity. This is
 a developing product, not a distributed enterprise system.
 
+## UI direction
+
+This section governs Audio Studio visual and interaction work only. Do not use
+it as authorization to implement or redesign Origins shell integration.
+
+Use UI VORVN as the mature visual and interaction reference:
+
+- Registry: `/Users/berberos/VORVN-DEV/vorvn-os/projects/ui-vorvn/src/registry/ui-vorvn.registry.json`
+- Runnable catalog: `/Users/berberos/VORVN-DEV/vorvn-os/projects/ui-vorvn/components/index.html`
+- Foundation tokens: `/Users/berberos/VORVN-DEV/vorvn-os/projects/ui-vorvn/src/foundation/tokens.css`
+- Foundation guidance: `/Users/berberos/VORVN-DEV/vorvn-os/projects/ui-vorvn/docs/FOUNDATION_V1.md`
+- Typography guidance: `/Users/berberos/VORVN-DEV/vorvn-os/projects/ui-vorvn/docs/TYPOGRAPHY_V1.md`
+- Media and voice guidance: `/Users/berberos/VORVN-DEV/vorvn-os/projects/ui-vorvn/docs/MEDIA_VIDEO_AND_VOICE.md`
+- Media contract: `/Users/berberos/VORVN-DEV/vorvn-os/projects/ui-vorvn/src/patterns/media-contract.js`
+- Runnable media implementation: `/Users/berberos/VORVN-DEV/vorvn-os/projects/ui-vorvn/components/media.js`
+- Runnable media styles: `/Users/berberos/VORVN-DEV/vorvn-os/projects/ui-vorvn/components/media.css`
+
+Interpret the UI VORVN registry status deliberately:
+
+- `reference` is established precedent;
+- `candidate` is inspiration that requires validation in Audio Studio;
+- `fixture` is demonstration only;
+- rejected labs and prototypes must never be used.
+
+Locked Production-v2 decisions, the Audio Studio domain, and the active scope
+remain authoritative. Translate relevant UI VORVN precedent into the existing
+React architecture and semantic VORVN token system; do not copy catalog
+HTML/CSS literally or import a parallel UI system.
+
+Continue using Audio Studio's local shadcn primitives. For every UI task,
+inspect the existing local primitives first and query the shadcn MCP before
+creating or recreating a generic primitive. Use shadcn registry examples to
+validate composition and interaction, then adapt them to Audio Studio rather
+than replacing the local design system. After adding new component code, use
+the shadcn audit checklist as part of verification.
+
 ## Change discipline
 
 Before substantial changes, inspect the existing implementation and understand

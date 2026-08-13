@@ -15,7 +15,7 @@ vi.mock("./part-inspector-takes", () => ({ PartInspectorTakes: () => <div>Takes 
 vi.mock("./part-inspector-details", () => ({ PartInspectorDetails: () => <div>Details panel</div> }))
 vi.mock("@/components/part-caption-panel", () => ({ PartCaptionPanel: () => <div>Captions panel</div> }))
 
-import { PartInspector } from "./part-inspector"
+import { PartInspectorContent } from "./part-inspector"
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
@@ -24,15 +24,15 @@ describe("PartInspector tab ownership", () => {
     vi.stubGlobal("ResizeObserver", class { observe() {}; unobserve() {}; disconnect() {} })
     const base = { id: 4, public_id: "part-4", position: 0, created_at: "", text: "Words" }
     const props = { productionId: 7, directory: { config: null }, playerPlaying: false, onClose: vi.fn(), onDuplicate: vi.fn(), onDelete: vi.fn(), onNewTake: vi.fn(), onPlay: vi.fn(), onChanged: vi.fn() }
-    const speechProps = { ...props, part: { ...base, kind: "speech" } } as unknown as ComponentProps<typeof PartInspector>
-    const silenceProps = { ...props, part: { ...base, kind: "silence", text: "" } } as unknown as ComponentProps<typeof PartInspector>
-    const view = render(<PartInspector {...speechProps} />)
+    const speechProps = { ...props, part: { ...base, kind: "speech" } } as unknown as ComponentProps<typeof PartInspectorContent>
+    const silenceProps = { ...props, part: { ...base, kind: "silence", text: "" } } as unknown as ComponentProps<typeof PartInspectorContent>
+    const view = render(<PartInspectorContent {...speechProps} />)
     const takesTab = screen.getByRole("tab", { name: /Takes/i })
     fireEvent.mouseDown(takesTab, { button: 0, ctrlKey: false })
     fireEvent.click(takesTab)
     await waitFor(() => expect(screen.getByRole("tab", { name: /Takes/i }).getAttribute("data-state")).toBe("active"))
 
-    view.rerender(<PartInspector {...silenceProps} />)
+    view.rerender(<PartInspectorContent {...silenceProps} />)
     await waitFor(() => expect(screen.queryByRole("tab", { name: /Takes/i })).toBeNull())
     expect(screen.getByRole("tab", { name: "Script" }).getAttribute("data-state")).toBe("active")
   })

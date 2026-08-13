@@ -22,7 +22,7 @@ export function partInspectorTabs(part: ProductionPart | null): PartInspectorTab
     : ["script", "details"]
 }
 
-export function PartInspector({ productionId, part, directory, playingKey, playerPlaying, onClose, onDuplicate, onDelete, onNewTake, onPlay, onChanged }: {
+export type PartInspectorProps = {
   productionId: number
   part: ProductionPart | null
   directory: VoiceDirectory
@@ -34,11 +34,16 @@ export function PartInspector({ productionId, part, directory, playingKey, playe
   onNewTake: (part: ProductionPart) => void
   onPlay: (source: PlayerSource) => void
   onChanged: () => Promise<void>
-}) {
+}
+
+export function partInspectorTitle(part: ProductionPart | null) {
+  return part?.kind === "silence" ? "Silence" : part?.kind === "asset" ? "Venture audio" : part?.kind === "draft" ? "Draft speech" : "Speech Part"
+}
+
+export function PartInspectorContent({ productionId, part, directory, playingKey, playerPlaying, onDuplicate, onDelete, onNewTake, onPlay, onChanged }: PartInspectorProps) {
   const [tab, setTab] = useState<PartInspectorTab>("script")
   const data = usePartDetailData(productionId, part, onChanged)
   const recorded = Boolean(part && ["audio", "speech"].includes(part.kind))
-  const title = part?.kind === "silence" ? "Silence" : part?.kind === "asset" ? "Venture audio" : part?.kind === "draft" ? "Draft speech" : "Speech Part"
   useEffect(() => {
     const available = new Set(partInspectorTabs(part))
     if (!available.has(tab)) setTab("script")
@@ -46,12 +51,10 @@ export function PartInspector({ productionId, part, directory, playingKey, playe
   // Part identity and type jointly own the valid tab set.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [part?.id, part?.kind])
-  return <Sheet open={Boolean(part)} onOpenChange={(open) => { if (!open) onClose() }}>
-    <SheetContent className="part-inspector">
-      {part && <>
-        <SheetHeader><SheetTitle>{title}</SheetTitle><SheetDescription>Part {(part.position ?? 0) + 1} · revision {part.revision || 1}</SheetDescription></SheetHeader>
+  if (!part) return null
+  return <div className="part-inspector-content">
         <Tabs value={tab} onValueChange={(value) => setTab(value as PartInspectorTab)} className="part-inspector-tabs">
-          <TabsList><TabsTrigger value="script">Script</TabsTrigger>{recorded && <TabsTrigger value="takes">Takes {data.takes.length + 1}</TabsTrigger>}{recorded && <TabsTrigger value="captions">Captions {data.captions.length}</TabsTrigger>}<TabsTrigger value="details">Details</TabsTrigger></TabsList>
+          <TabsList variant="line"><TabsTrigger value="script">Script</TabsTrigger>{recorded && <TabsTrigger value="takes">Takes {data.takes.length + 1}</TabsTrigger>}{recorded && <TabsTrigger value="captions">Captions {data.captions.length}</TabsTrigger>}<TabsTrigger value="details">Details</TabsTrigger></TabsList>
           <ScrollArea className="part-inspector-scroll">
             <TabsContent value="script"><PartInspectorScript part={part} directory={directory} currentPlaying={playerPlaying && playingKey === `part:${part.id}`} onPlay={onPlay} onNewTake={onNewTake} onDuplicate={onDuplicate} onDelete={onDelete} /></TabsContent>
             {recorded && <TabsContent value="takes"><PartInspectorTakes part={part} takes={data.takes} loading={data.loading} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onNewTake={onNewTake} onPromote={(take) => void data.promote(take)} /></TabsContent>}
@@ -61,6 +64,16 @@ export function PartInspector({ productionId, part, directory, playingKey, playe
         </Tabs>
         {data.message && <div className="part-inspector-message" role="status" aria-live="polite">{data.message}</div>}
         <Dialog open={Boolean(data.takeConfirmation)} onOpenChange={(open) => { if (!open) data.cancelTakeConfirmation() }}><DialogContent><DialogHeader><DialogTitle>Use this outdated Take?</DialogTitle><DialogDescription>This audio was made before the Part’s script or Cast changed. It remains historical and visibly outdated if you select it.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={data.cancelTakeConfirmation}>Cancel</Button><Button onClick={() => void data.confirmTake()}>Use outdated Take</Button></DialogFooter></DialogContent></Dialog>
+  </div>
+}
+
+export function MobilePartInspectorSheet(props: PartInspectorProps) {
+  const { part, onClose } = props
+  return <Sheet open={Boolean(part)} onOpenChange={(open) => { if (!open) onClose() }}>
+    <SheetContent className="part-inspector">
+      {part && <>
+        <SheetHeader><SheetTitle>{partInspectorTitle(part)}</SheetTitle><SheetDescription>Part {(part.position ?? 0) + 1} · revision {part.revision || 1}</SheetDescription></SheetHeader>
+        <PartInspectorContent {...props} />
       </>}
     </SheetContent>
   </Sheet>
