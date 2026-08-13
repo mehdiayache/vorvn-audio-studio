@@ -2,13 +2,28 @@
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { SpeechPartCard } from "./speech-part-card"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import type { ProductionPart, VoiceDirectory } from "@/types/domain"
 
-afterEach(cleanup)
+beforeEach(() => {
+  Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
+    configurable: true,
+    get() { return this.classList.contains("speech-part-script-copy") && (this.textContent?.length ?? 0) > 260 ? 120 : 40 },
+  })
+  Object.defineProperty(HTMLElement.prototype, "clientHeight", {
+    configurable: true,
+    get() { return this.classList.contains("speech-part-script-copy") ? 60 : 40 },
+  })
+})
+
+afterEach(() => {
+  cleanup()
+  delete (HTMLElement.prototype as unknown as Record<string, unknown>).scrollHeight
+  delete (HTMLElement.prototype as unknown as Record<string, unknown>).clientHeight
+})
 
 const directory = {
   config: { capabilities: { audio: { operator_title: "Expressive + tags", label: "Audio", models: { flash: "qwen-audio-3.0-tts-flash" } } } },
@@ -41,7 +56,7 @@ function renderCard(component: ReactNode) {
 }
 
 describe("SpeechPartCard", () => {
-  it("keeps the complete long script in the DOM and expands the four-line presentation", () => {
+  it("keeps the complete long script in the DOM and expands only rendered overflow", () => {
     renderCard(<SpeechPartCard part={part()} job={null} index={0} count={1} selected={false} playing={false} directory={directory} onSelect={vi.fn()} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actions()} />)
     const script = screen.getByText(longText)
     expect(script.textContent).toBe(longText)
@@ -51,20 +66,36 @@ describe("SpeechPartCard", () => {
     expect(screen.getByRole("button", { name: /show less/i })).toBeTruthy()
   })
 
+  it("does not offer expansion when the rendered script fits", () => {
+    const shortText = "One compact authored line."
+    renderCard(<SpeechPartCard part={part({ text: shortText })} job={null} index={0} count={1} selected={false} playing={false} directory={directory} onSelect={vi.fn()} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actions()} />)
+    expect(screen.getByText(shortText).textContent).toBe(shortText)
+    expect(screen.queryByRole("button", { name: /show more/i })).toBeNull()
+  })
+
   it("keeps Voice, exact method, Take, captions and spend visible during generation", () => {
     renderCard(<SpeechPartCard part={part()} job={{ id: "speech-1", type: "speech", status: "running", progress: 68, detail: "Generating", retries: 0, result: {} }} captionJob={{ id: "cc-1", type: "transcribe", status: "running", progress: .2, detail: "Listening", retries: 0, result: {} }} index={0} count={1} selected playing={false} directory={directory} onSelect={vi.fn()} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actions()} />)
     expect(screen.getByText("Maya")).toBeTruthy()
-    expect(screen.getByText("Qwen Audio · Flash · Expressive + tags · English")).toBeTruthy()
-    expect(screen.getByText(/Take 2 selected · 0:05.1 · 2 Takes · Tagged input/)).toBeTruthy()
+    expect(screen.getByText("Qwen Audio · Flash · Expressive + tags · EN")).toBeTruthy()
+    expect(screen.getByRole("button", { name: /Take 2 selected · 0:05.1 · 2 Takes · Tagged input/ })).toBeTruthy()
     expect(screen.getByRole("button", { name: /CC Creating/ })).toBeTruthy()
-    expect(screen.getByText("$0.02 spent")).toBeTruthy()
+    expect(screen.getByText("$0.02")).toBeTruthy()
     expect(screen.getByText("TAKE 3 · GENERATING 68%")).toBeTruthy()
+  })
+
+  it("keeps ready-state actions in the result footer without idle operation chrome", () => {
+    const { container } = renderCard(<SpeechPartCard part={part()} job={null} index={0} count={1} selected={false} playing={false} directory={directory} onSelect={vi.fn()} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={{ ...actions(), newTake: vi.fn() }} />)
+    const footer = container.querySelector(".speech-part-result")
+    expect(footer?.contains(screen.getByRole("button", { name: /play part/i }))).toBe(true)
+    expect(footer?.contains(screen.getByRole("button", { name: /New Take/i }))).toBe(true)
+    expect(container.querySelector(".speech-operation-lane")).toBeNull()
+    expect(screen.queryByText("Direct voice")).toBeNull()
   })
 
   it("gives drafts their own truthful actions and zero-duration state", () => {
     const actionSet = actions()
     renderCard(<SpeechPartCard part={part({ kind: "draft", selected_take_id: null, filename: "", duration_ms: 9000, takes: 0 })} job={null} index={0} count={1} selected={false} playing={false} directory={directory} onSelect={vi.fn()} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
-    expect(screen.getByText("Not recorded · 0:00")).toBeTruthy()
+    expect(screen.getByText("Not recorded")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Continue writing" }))
     fireEvent.click(screen.getByRole("button", { name: "Record" }))
     expect(actionSet.openPart).toHaveBeenCalledTimes(2)

@@ -44,7 +44,8 @@ describe("speechPartCardFacts", () => {
     const facts = speechPartCardFacts({ part: part(), speechJob: null, directory, castRole })
     expect(facts.selectedVoiceName).toBe("Maya")
     expect(facts.futureVoiceName).toBe("Eve")
-    expect(facts.methodLine).toBe("Qwen Audio · Flash · Expressive + tags · English")
+    expect(facts.methodLine).toBe("Qwen Audio · Flash · Expressive + tags · EN")
+    expect(facts.technicalDetail).toContain("Language: English")
     expect(facts.takeSummary).toBe("Take 3 selected · 0:12.4 · 4 Takes · Spoken input")
     expect(facts.captionSummary).toBe("CC EN + FR")
   })
@@ -91,7 +92,7 @@ describe("speechPartCardFacts", () => {
     ["failed", 0, {}, "failed", "TAKE 5 · FAILED", true, false],
     ["lost", 0, {}, "failed", "TAKE 5 · FAILED", true, false],
     ["cancelled", 0, {}, "failed", "TAKE 5 · CANCELLED", false, false],
-  ] as const)("maps durable %s truth into the reserved lane", (status, progress, result, kind, label, canRetry, canConfirm) => {
+  ] as const)("maps durable %s truth into the conditional operation presentation", (status, progress, result, kind, label, canRetry, canConfirm) => {
     const job = {
       id: `speech-${status}`, type: "speech", status, progress,
       detail: `${status} detail`, retries: 0, result, request: { select_result: false },

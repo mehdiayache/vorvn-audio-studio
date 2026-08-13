@@ -34,11 +34,15 @@ export type SpeechPartCardFacts = {
   technicalDetail: string
   script: string
   takeSummary: string
+  durationLabel: string
+  selectedTakeLabel: string
+  takeCountLabel: string
   inputLabel: "Original" | "Spoken" | "Tagged" | null
   totalTakes: number
   captionSummary: string
   captionTone: "neutral" | "active" | "warning" | "danger"
   spendSummary: string
+  spendValue: string
   alerts: SpeechPartAlert[]
   operation: SpeechPartOperationFact
 }
@@ -165,14 +169,19 @@ export function speechPartCardFacts({ part, speechJob, captionJob, directory, ca
   const model = resolveSpeechModel({ engine: part.engine, tier: part.tier, model: part.model, config: directory.config })
   const capability = selectedCapability(part, directory)
   const family = FAMILY_LABELS[String(model.engine || "")] || model.product
-  const methodLine = [family, model.tierName, capability, part.language].filter(Boolean).join(" · ")
-  const technicalDetail = [model.modelId, part.provider, part.provider_region].filter(Boolean).join(" · ")
+  const methodLine = [family, model.tierName, capability, languageCode(part.language)].filter(Boolean).join(" · ")
+  const technicalDetail = [model.modelId, part.provider, part.provider_region, part.language ? `Language: ${part.language}` : ""].filter(Boolean).join(" · ")
   const alternatives = Math.max(0, Number(part.takes || 0))
   const totalTakes = alternatives + (recorded ? 1 : 0)
   const inputLabel = selectedTakeInputLabel(part.selected_take_text_state)
   const duration = partDurationMs(part)
+  const durationLabel = compactDuration(duration)
+  const selectedTakeLabel = recorded
+    ? [`Take ${part.selected_take_number || "—"}`, inputLabel || "Unknown input"].join(" · ")
+    : "Not recorded"
+  const takeCountLabel = `${totalTakes} ${totalTakes === 1 ? "Take" : "Takes"}`
   const takeSummary = recorded
-    ? [`Take ${part.selected_take_number || "—"} selected`, compactDuration(duration), `${totalTakes} ${totalTakes === 1 ? "Take" : "Takes"}`, inputLabel ? `${inputLabel} input` : "Input unknown"].join(" · ")
+    ? [`Take ${part.selected_take_number || "—"} selected`, durationLabel, takeCountLabel, inputLabel ? `${inputLabel} input` : "Input unknown"].join(" · ")
     : "Not recorded · 0:00"
   const captions = captionFacts(part, captionJob || null)
   const alerts: SpeechPartAlert[] = []
@@ -196,11 +205,15 @@ export function speechPartCardFacts({ part, speechJob, captionJob, directory, ca
     technicalDetail,
     script: part.text || "Untitled speech",
     takeSummary,
+    durationLabel,
+    selectedTakeLabel,
+    takeCountLabel,
     inputLabel,
     totalTakes,
     captionSummary: captions.summary,
     captionTone: captions.tone,
     spendSummary: Number(part.spent || 0) > 0 ? `${formatMoney(Number(part.spent))} spent` : "No generation spend",
+    spendValue: Number(part.spent || 0) > 0 ? formatMoney(Number(part.spent)) : "—",
     alerts,
     operation: operationFacts(part, speechJob, totalTakes + (speechJob && !["ok", "warning"].includes(speechJob.status) ? 1 : 0)),
   }

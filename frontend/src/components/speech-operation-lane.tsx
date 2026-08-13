@@ -10,7 +10,7 @@ export function SpeechOperationLane({ operation, onRetry, onConfirm, onReviewTak
   onConfirm: () => void
   onReviewTake: () => void
 }) {
-  if (operation.kind === "idle") return <div className="speech-operation-lane is-idle" aria-hidden="true" />
+  if (operation.kind === "idle") return null
   const Icon = operation.kind === "active" ? LoaderCircle
     : operation.kind === "failed" ? AlertTriangle
       : operation.kind === "confirmation" || operation.kind === "review" ? CircleHelp
