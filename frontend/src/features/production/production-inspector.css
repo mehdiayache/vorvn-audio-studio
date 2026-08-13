@@ -1,8 +1,10 @@
 .part-inspector { width: min(680px, 96vw) !important; max-width: none !important; display: flex !important; flex-direction: column; padding: 0 !important; }
+.part-inspector-content { position: relative; min-height: 0; height: 100%; display: flex; flex-direction: column; }
 .part-inspector [data-slot="sheet-header"] { padding: 22px 24px 18px; border-bottom: 1px solid var(--border); }
 .part-inspector-tabs { min-height: 0; flex: 1; display: flex; flex-direction: column; }
 .part-inspector-tabs > [data-slot="tabs-list"] { margin: 12px 22px 0; }
-.part-inspector-scroll { height: calc(100dvh - 172px); }
+.part-inspector-scroll { min-height: 0; flex: 1; }
+.part-inspector > .part-inspector-content .part-inspector-scroll { height: calc(100dvh - 172px); }
 .inspector-panel { display: grid; gap: 22px; padding: 22px 24px 36px; }
 .inspector-panel > section { min-width: 0; }
 .inspector-part-summary { display: flex; align-items: center; gap: 12px; }

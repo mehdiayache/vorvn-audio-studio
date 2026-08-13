@@ -66,8 +66,6 @@
   --transport-height: 4.25rem;
   --transport-mobile-height: 5.5rem;
   --composer-mobile-actions-height: 9rem;
-  --studio-dock-collapsed-height: 3.25rem;
-  --studio-dock-expanded-height: min(35rem, 68dvh);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 

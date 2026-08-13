@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import type { ToolKind } from "@/components/production-tools"
 import type { SequenceActions } from "@/components/sequence-actions"
 import { ProductionEditorCanvas } from "@/features/production/production-editor-canvas"
@@ -9,7 +9,12 @@ import { useGlobalPlayer } from "@/components/global-player-provider"
 import { usePlayerShortcuts } from "@/hooks/use-player-shortcuts"
 import { useProductionActions } from "@/hooks/use-production-actions"
 import { useProductionSpeechJobs } from "@/features/production/use-production-speech-jobs"
+import { ProductionComposerWorkbench } from "@/features/composer/production-composer-host"
+import { MixExportWorkspace } from "@/features/production/mix-export-workspace"
+import { PartInspectorContent, partInspectorTitle } from "@/features/production/inspector/part-inspector"
+import type { ProductionWorkbenchMode } from "@/features/production/production-workbench"
 import { InlineResourceError } from "@/components/state-panel"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { partDurationMs } from "@/lib/format"
 import { studioApi } from "@/lib/api"
 import type { AssetCollection, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, MusicBed, Production, ProductionCastRole, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
@@ -43,6 +48,9 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
   const [cast, setCast] = useState<ProductionCastRole[]>([])
   const [castError, setCastError] = useState("")
+  const workbenchOrigin = useRef<HTMLElement | null>(null)
+  const canvasScrollPosition = useRef<number | null>(null)
+  const mobile = useMediaQuery("(max-width: 48rem)")
   const player = useGlobalPlayer()
   const closeTool = useCallback(() => { setTool(null); setComposerPart(null); setReplacingAsset(null) }, [])
   const actions = useProductionActions({ production, music, player, refresh, refreshAssets })
@@ -77,20 +85,36 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const activeDetail = detail ? production.parts.find((part) => part.id === detail.id) || detail : null
   const assetCollectionIds = Object.fromEntries(assetCollections.map((collection) => [collection.name, collection.id]))
   const moveTargets = (tree || []).filter((node) => node.type === "production" && node.id !== production.id)
-  const overlaysOpen = Boolean(tool || activeDetail || moveOpen || confirmAction)
+  const modalTool = mobile ? tool : tool === "speech" ? null : tool
+  const modalDetail = mobile ? activeDetail : null
+  const overlaysOpen = Boolean(modalTool || modalDetail || moveOpen || confirmAction)
+
+  const rememberWorkbenchOrigin = useCallback(() => {
+    workbenchOrigin.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    canvasScrollPosition.current = document.querySelector<HTMLElement>(".production-canvas")?.scrollTop ?? null
+  }, [])
 
   const openTool = useCallback((next: Exclude<ToolKind, null>, beforePartId: string | null = null) => {
+    rememberWorkbenchOrigin()
+    setReleaseOpen(false)
+    setDetail(null)
     setInsertBeforePartId(beforePartId)
     setComposerPart(null)
     setReplacingAsset(null)
     setTool(next)
-  }, [])
+  }, [rememberWorkbenchOrigin])
   const openAssetReplacement = useCallback((part: ProductionPart) => {
-    setInsertBeforePartId(null); setComposerPart(null); setReplacingAsset(part); setTool("asset")
+    setReleaseOpen(false); setDetail(null); setInsertBeforePartId(null); setComposerPart(null); setReplacingAsset(part); setTool("asset")
   }, [])
   const openNewTake = useCallback((part: ProductionPart) => {
-    setDetail(null); setInsertBeforePartId(null); setComposerPart(part); setTool("speech")
+    setReleaseOpen(false); setDetail(null); setInsertBeforePartId(null); setComposerPart(part); setTool("speech")
   }, [])
+  const openPart = useCallback((part: ProductionPart) => {
+    rememberWorkbenchOrigin(); setReleaseOpen(false); closeTool(); setDetail(part)
+  }, [closeTool, rememberWorkbenchOrigin])
+  const openMixExport = useCallback(() => {
+    rememberWorkbenchOrigin(); setDetail(null); closeTool(); setReleaseOpen(true)
+  }, [closeTool, rememberWorkbenchOrigin])
 
   const retryJob = useCallback(async (part: ProductionPart, _job: DurableJob<GenerateResult>) => {
     const payload = { ...(part.speech_job?.request || {}), production_id: production.id } as GeneratePayload
@@ -113,10 +137,69 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     setCastOpen(false)
     setHealthOpen(false)
     setCommandsOpen(false)
+    setReleaseOpen(false)
     setDetail(null)
     closeTool()
   }, [closeTool])
   usePlayerShortcuts({ hasSource: Boolean(player.source), currentTime: player.currentTime, toggle: player.toggle, seek: player.seek }, closeTransientUi)
+
+  const workbenchMode: ProductionWorkbenchMode | null = mobile ? null : tool === "speech" ? "composer" : activeDetail ? "part" : releaseOpen ? "mix-export" : null
+  const composerTitle = composerPart ? composerPart.kind === "draft" ? `Record draft · Part ${(composerPart.position ?? 0) + 1}` : `Generate alternative · Part ${(composerPart.position ?? 0) + 1}` : insertBeforePartId ? "Add speech at insertion" : "Add speech"
+  const composerDescription = composerPart?.kind === "draft" ? "Turn this saved script into its first recording." : composerPart ? "Create another performance without replacing the selected Take." : insertBeforePartId ? "Insert at the selected Sequence position." : `Add as Part ${sourceParts.length + 1}.`
+  const workbenchTitle = workbenchMode === "composer" ? composerTitle : workbenchMode === "part" ? partInspectorTitle(activeDetail) : workbenchMode === "mix-export" ? "Mix & Export" : "Production Workbench"
+  const workbenchDescription = workbenchMode === "composer" ? composerDescription : workbenchMode === "part" && activeDetail ? `Part ${(activeDetail.position ?? 0) + 1} · revision ${activeDetail.revision || 1}` : workbenchMode === "mix-export" ? "Preview the current mix and create immutable output." : undefined
+  useLayoutEffect(() => {
+    const canvas = document.querySelector<HTMLElement>(".production-canvas")
+    if (canvas && canvasScrollPosition.current !== null) canvas.scrollTop = canvasScrollPosition.current
+  }, [workbenchMode])
+  const closeWorkbench = useCallback(() => {
+    canvasScrollPosition.current = document.querySelector<HTMLElement>(".production-canvas")?.scrollTop ?? null
+    if (tool === "speech") closeTool()
+    if (activeDetail) setDetail(null)
+    if (releaseOpen) setReleaseOpen(false)
+    const origin = workbenchOrigin.current
+    window.requestAnimationFrame(() => origin?.focus())
+  }, [activeDetail, closeTool, releaseOpen, tool])
+
+  const workbenchContent = workbenchMode === "composer" ? <ProductionComposerWorkbench
+    productionId={production.id}
+    nextPartNumber={sourceParts.length + 1}
+    insertAt={null}
+    insertBeforePartId={insertBeforePartId}
+    part={composerPart}
+    config={config}
+    directory={directory}
+    cast={cast}
+    playingKey={player.source?.key}
+    playerPlaying={actions.playerPlaying}
+    onSave={async (payload) => { await actions.saveDraft(payload); closeTool() }}
+    onUpdateEditorial={async (values) => {
+      if (!composerPart) throw new Error("That Part is no longer open.")
+      await actions.updatePartEditorial(composerPart, values)
+    }}
+    onGenerate={queueRender}
+    onPlay={(source) => void player.toggleSource(source)}
+  /> : workbenchMode === "part" ? <PartInspectorContent
+    productionId={production.id}
+    part={activeDetail}
+    directory={directory}
+    playingKey={player.source?.key}
+    playerPlaying={actions.playerPlaying}
+    onClose={() => setDetail(null)}
+    onPlay={(source) => void player.toggleSource(source)}
+    onChanged={async () => {
+      if (activeDetail && player.source?.key === `part:${activeDetail.id}`) player.pause()
+      actions.invalidatePreview()
+      await refresh()
+    }}
+    onDuplicate={(part) => void actions.duplicatePart(part)}
+    onDelete={(part) => setConfirmAction({
+      title: "Delete this part?",
+      description: "The Part leaves the active Sequence. Its Takes, provider evidence, generated audio and recorded spend remain recoverable history.",
+      action: () => { setDetail(null); void actions.deletePart(part) },
+    })}
+    onNewTake={openNewTake}
+  /> : workbenchMode === "mix-export" ? <MixExportWorkspace production={production} music={music} previewing={actions.previewing} productionPlaying={actions.productionPlaying} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={() => void actions.exportMp3()} exporting={actions.exporting} /> : null
 
   const sequenceActions: SequenceActions = useMemo(() => ({
     play: (source) => void player.toggleSource(source),
@@ -125,8 +208,8 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     move: actions.movePart,
     moveToPosition: setMovePositionPart,
     editSilence: (part, seconds) => void actions.editSilence(part, seconds),
-    openPart: setDetail,
-  }), [actions, player])
+    openPart,
+  }), [actions, openPart, player])
 
   return <>
     {castError && <InlineResourceError message={`Production Cast unavailable: ${castError}`} retry={() => void refreshCast().catch(() => undefined)} />}
@@ -138,22 +221,22 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       cast={cast}
       liveJobs={liveJobs}
       duration={duration}
-      releaseOpen={releaseOpen}
-      composerOpen={tool === "speech"}
+      workbenchMode={workbenchMode}
+      workbenchTitle={workbenchTitle}
+      workbenchDescription={workbenchDescription}
+      workbenchContent={workbenchContent}
       explorerOpen={explorerOpen}
       castOpen={castOpen}
       healthOpen={healthOpen}
       commandsOpen={commandsOpen}
       selected={selected}
+      activePartId={activeDetail?.id}
       playingKey={player.source?.key}
       playerPlaying={actions.playerPlaying}
       previewing={actions.previewing}
       productionPlaying={actions.productionPlaying}
       productionLoaded={actions.productionLoaded}
       productionCurrentTime={actions.productionLoaded ? player.currentTime : 0}
-      exporting={actions.exporting}
-      exportJob={actions.exportJob}
-      onReleaseOpen={setReleaseOpen}
       onExplorerOpen={setExplorerOpen}
       onCastOpen={setCastOpen}
       onHealthOpen={setHealthOpen}
@@ -162,12 +245,13 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       onTool={openTool}
       onSelected={setSelected}
       onPreview={actions.toggleProduction}
+      onOpenMixExport={openMixExport}
+      onCloseWorkbench={closeWorkbench}
       onLocate={locate}
       onSeekProduction={player.seek}
       onPlay={(source) => void player.toggleSource(source)}
       onMusicChange={actions.setMusic}
       onChooseMusic={() => openTool("music")}
-      onExport={() => void actions.exportMp3()}
       onRetryJob={(part, job) => void retryJob(part, job)}
       onConfirmJob={(part, job) => void confirmJob(part, job)}
       onReplaceAsset={openAssetReplacement}
@@ -187,7 +271,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     <MovePartPositionDialog part={movePositionPart} count={sourceParts.length} onClose={() => setMovePositionPart(null)} onMove={actions.movePartToPosition} />
     {overlaysOpen && <Suspense fallback={null}>
       <ProductionOverlays
-        tool={tool}
+        tool={modalTool}
         productionId={production.id}
         nextPartNumber={sourceParts.length + 1}
         insertAt={null}
@@ -201,7 +285,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
         assetCollectionIds={assetCollectionIds}
         playingKey={player.source?.key}
         playerPlaying={actions.playerPlaying}
-        activeDetail={activeDetail}
+        activeDetail={modalDetail}
         moveOpen={moveOpen}
         selectedCount={selected.size}
         moveTargets={moveTargets}

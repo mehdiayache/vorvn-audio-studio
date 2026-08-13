@@ -1,6 +1,7 @@
 import { AudioLines, Download, LoaderCircle, Pause, Play, Volume1, X } from "lucide-react"
 
 import { useGlobalPlayer } from "@/components/global-player-provider"
+import type { TransportHost } from "@/components/global-player-provider"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import type { PlayerState } from "@/hooks/use-player"
@@ -32,7 +33,7 @@ export type TransportStripViewProps = {
   onVolume: (volume: number) => void
   onSpeed: (speed: number) => void
   onClose: () => void
-  variant?: "shell" | "composer"
+  variant?: TransportHost
 }
 
 export function TransportStripView({ source, state, currentTime, duration, volume, speed, onToggle, onSeek, onVolume, onSpeed, onClose, variant = "shell" }: TransportStripViewProps) {
@@ -54,7 +55,7 @@ export function TransportStripView({ source, state, currentTime, duration, volum
   </section>
 }
 
-export function TransportStrip({ host = "shell" }: { host?: "shell" | "composer" }) {
+export function TransportStrip({ host = "shell" }: { host?: TransportHost }) {
   const player = useGlobalPlayer()
   if (player.transportHost !== host) return null
   return <TransportStripView variant={host} source={player.source} state={player.state} currentTime={player.currentTime} duration={player.duration} volume={player.volume} speed={player.speed} onToggle={() => void player.toggle()} onSeek={player.seek} onVolume={player.setVolume} onSpeed={player.setSpeed} onClose={player.close} />

@@ -149,62 +149,17 @@
   border-radius: 0;
 }
 
-.studio-dock {
-  position: fixed;
-  z-index: var(--layer-dock, 40);
-  top: calc(var(--studio-standalone-header-height) + var(--studio-local-chrome-height) + var(--vrn-space-2));
-  right: var(--vrn-space-4);
-  bottom: calc(var(--transport-height) + var(--safe-bottom) + var(--vrn-space-4));
-  left: 5.5rem;
-  display: flex;
-  flex-direction: column;
-  max-width: 92rem;
-  margin-inline: auto;
-  max-height: none;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--vrn-radius-lg);
-  background: var(--background);
-  box-shadow: var(--vrn-shadow-dialog);
-}
-
-.studio-dock .composer-surface {
-  flex: 1 1 auto;
-  height: auto;
-  min-height: 0;
-}
-
-[data-mount-mode="embedded"] .studio-dock {
-  top: calc(var(--studio-local-chrome-height) + var(--vrn-space-2));
-}
-
-.production-page.has-studio-dock .production-main {
-  padding-bottom: 38rem;
-}
-
-.studio-dock-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--vrn-space-4);
-  padding: var(--vrn-space-3) var(--vrn-space-4);
-  border-bottom: 1px solid var(--border);
-}
-
-.studio-dock-header h2,
-.studio-dock-header p { margin: 0; }
-.studio-dock-header p { color: var(--muted-foreground); }
-.studio-dock-header > div:last-child { display: flex; }
-.studio-dock.is-collapsed {
-  top: auto;
-  bottom: calc(var(--transport-height) + var(--safe-bottom) + var(--vrn-space-4));
-  max-width: 48rem;
-}
-.studio-dock.is-collapsed .studio-dock-header { border-bottom: 0; }
-.studio-dock.is-collapsed .studio-dock-header svg { transform: rotate(180deg); }
+.production-composer-workbench,
+.production-composer-workbench .composer-surface { min-height: 100%; height: 100%; }
+.production-composer-workbench .speech-composer { min-width: 0; grid-template-columns: 9.5rem minmax(0, 1fr); }
+.production-composer-workbench .composer-nav { padding: 12px 8px; }
+.production-composer-workbench .composer-section { padding: 20px 18px; }
+.production-composer-workbench .composer-footer { min-height: 116px; align-items: stretch; flex-direction: column; gap: 8px; padding: 10px 14px; }
+.production-composer-workbench .composer-footer .composer-cost { width: 100%; min-width: 0; margin: 0; }
+.production-composer-workbench .composer-footer .composer-actions { width: 100%; flex-wrap: wrap; }
+.production-composer-workbench .composer-footer .composer-actions > button { flex: 1 1 10rem; }
 
 @media (max-width: 48rem) {
-  .production-page.has-studio-dock .production-main { padding-bottom: 0; }
   .composer-mobile-launcher { align-items: stretch; flex-direction: column; }
   .speech-composer { grid-template-columns: 1fr; grid-template-rows: auto minmax(0,1fr) auto; }
   .composer-nav { grid-row: 1; flex-direction: row; overflow-x: auto; padding: 8px; border-right: 0; border-bottom: 1px solid var(--border); }
