@@ -194,7 +194,8 @@ class ProductionDocumentRepository:
                        coalesce(caption_job.error, ''), caption_job.retries,
                        caption_job.created_at, caption_job.started_at,
                        caption_job.finished_at, caption_job.payload,
-                       caption_job.result
+                       caption_job.result, take.capability_name_snapshot,
+                       captions.source_language
                   FROM production_parts part
                   LEFT JOIN production_cast_roles role ON role.id = part.cast_role_id
                   LEFT JOIN composition_drafts draft ON draft.part_id = part.id
@@ -219,7 +220,9 @@ class ProductionDocumentRepository:
                     SELECT bool_or(transcript.translated_from IS NULL) AS subtitled,
                            bool_or(transcript.stale AND transcript.translated_from IS NULL) AS stale,
                            array_agg(DISTINCT transcript.language)
-                             FILTER (WHERE transcript.translated_from IS NOT NULL) AS languages
+                             FILTER (WHERE transcript.translated_from IS NOT NULL) AS languages,
+                           max(transcript.language)
+                             FILTER (WHERE transcript.translated_from IS NULL) AS source_language
                       FROM transcripts transcript
                      WHERE transcript.part_id = part.id
                        AND (transcript.take_id IS NULL OR transcript.take_id = take.id)
@@ -328,6 +331,8 @@ class ProductionDocumentRepository:
                 "fidelity": diagnostics.get("fidelity") or None,
                 "capability_id": ((row[31] or snapshot.get("capability_id")) if has_selected_take else
                                  job_payload.get("capability_id")),
+                "capability_name": ((row[82] or snapshot.get("capability_name")) if has_selected_take else
+                                   job_payload.get("capability_name")),
                 "binding_id": ((str(row[39]) if row[39] else None) if has_selected_take else
                                job_payload.get("binding_id")),
                 "catalogue_voice_id": (row[40] if has_selected_take else
@@ -335,6 +340,7 @@ class ProductionDocumentRepository:
                 "takes": max(0, int(row[32] or 0) - (1 if row[11] else 0)),
                 "subtitled": bool(row[36]), "subtitles_stale": bool(row[37]),
                 "languages": sorted(set(row[38] or [])),
+                "caption_source_language": row[83],
             }
             if row[41]:
                 request = {

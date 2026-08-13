@@ -72,6 +72,7 @@ export type ProductionPart = {
   binding_id?: string | null
   catalogue_voice_id?: string | null
   capability_id?: string | null
+  capability_name?: string | null
   reference_id?: string | null
   provider?: string | null
   provider_region?: string | null
@@ -122,6 +123,7 @@ export type ProductionPart = {
   takes?: number
   subtitled?: boolean
   subtitles_stale?: boolean
+  caption_source_language?: string | null
   languages?: string[]
   missing?: boolean
 }

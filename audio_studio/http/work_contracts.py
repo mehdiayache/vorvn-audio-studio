@@ -319,6 +319,7 @@ class ProductionPartResponse(BaseModel):
     binding_id: str | None = None
     catalogue_voice_id: str | None = None
     capability_id: str | None = None
+    capability_name: str | None = None
     reference_id: str | None = None
     provider: str | None = None
     provider_region: str | None = None
@@ -369,6 +370,7 @@ class ProductionPartResponse(BaseModel):
     takes: int = 0
     subtitled: bool = False
     subtitles_stale: bool = False
+    caption_source_language: str | None = None
     languages: list[str] = Field(default_factory=list)
     missing: bool | None = None
 

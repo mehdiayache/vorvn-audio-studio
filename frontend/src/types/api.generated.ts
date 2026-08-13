@@ -2858,7 +2858,11 @@ export interface components {
             binding_resolution_status?: string | null;
             /** Capability Id */
             capability_id?: string | null;
+            /** Capability Name */
+            capability_name?: string | null;
             caption_job?: components["schemas"]["PartCaptionJobResponse"] | null;
+            /** Caption Source Language */
+            caption_source_language?: string | null;
             /** Cast Role Id */
             cast_role_id?: string | null;
             /** Cast Role Name */

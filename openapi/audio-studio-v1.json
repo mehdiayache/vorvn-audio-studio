@@ -3969,6 +3969,17 @@
             ],
             "title": "Capability Id"
           },
+          "capability_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Name"
+          },
           "caption_job": {
             "anyOf": [
               {
@@ -3978,6 +3989,17 @@
                 "type": "null"
               }
             ]
+          },
+          "caption_source_language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caption Source Language"
           },
           "cast_role_id": {
             "anyOf": [

@@ -102,7 +102,6 @@
 .sequence-card.asset { background: color-mix(in oklab, var(--asset-soft) 58%, white); border-color: color-mix(in oklab, var(--asset) 24%, var(--border)); box-shadow: inset 3px 0 var(--asset); }
 .sequence-card.draft { background: color-mix(in oklab, var(--warning-soft) 48%, white); border-color: color-mix(in oklab, var(--warning) 22%, var(--border)); box-shadow: inset 3px 0 var(--warning); }
 .sequence-card.missing { border-color: var(--danger-border); box-shadow: inset 3px 0 var(--destructive); }
-.speech-route-label { display: inline-flex; align-items: center; padding: 1px var(--vrn-space-2); border: var(--vrn-stroke-hairline) solid var(--border); border-radius: var(--vrn-radius-sm); color: var(--foreground); background: var(--surface-muted); font-size: var(--vrn-type-metadata-size); font-weight: var(--vrn-weight-label); }
 .sequence-card-select { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 4px; color: var(--muted-foreground); }
 .sequence-card-open { min-width: 0; display: block; padding: 0; color: inherit; background: transparent; border: 0; text-align: left; }
 .sequence-card-open:focus-visible { border-radius: var(--vrn-radius-sm); outline: var(--vrn-focus-width-strong) solid var(--vrn-focus-ring-soft); outline-offset: var(--vrn-focus-offset); }
@@ -111,17 +110,6 @@
 .sequence-card .voice-copy small, .sequence-asset-identity small { margin-top: 2px; color: var(--muted-foreground); font-size: var(--type-small); }
 .sequence-card-status { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; }
 .sequence-card-status > b { color: var(--muted-foreground); font-size: var(--type-small); font-variant-numeric: tabular-nums; }
-.sequence-card-open > p {
-  display: -webkit-box;
-  overflow: hidden;
-  margin-top: var(--vrn-space-1);
-  color: color-mix(in oklab, var(--foreground) 90%, var(--muted-foreground));
-  font-size: var(--vrn-type-supporting-size);
-  line-height: var(--vrn-type-supporting-line);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-.sequence-card-open > p[dir="rtl"] { text-align: right; font-size: var(--type-body); line-height: 1.7; }
 .sequence-card-meta { display: flex; align-items: center; gap: var(--vrn-space-2); flex-wrap: wrap; margin-top: var(--vrn-space-1); }
 .sequence-card-meta span { display: inline-flex; align-items: center; gap: var(--vrn-space-1); color: var(--muted-foreground); font-size: var(--vrn-type-metadata-size); line-height: var(--vrn-type-metadata-line); }
 .sequence-card-meta svg { width: 13px; }

@@ -73,7 +73,7 @@ export function ProductionEditorCanvas({ production, tree, music, directory, cas
     <ProductionCastStrip cast={cast} directory={directory} onManage={() => onCastOpen(true)} />
     {view === "sequence" && <details className="production-preview-section production-music-lane" open={previewOpen} onToggle={(event) => setPreviewOpen(event.currentTarget.open)}><summary><span><b>Music Bed</b><small>{music.filename || "None"}</small></span><span>{productionLoaded ? "Preview ready" : music.filename ? "Music attached" : "Narration only"}</span></summary>{previewOpen && timing}</details>}
     <ProductionSequenceToolbar view={view} partCount={sourceParts.length} duration={duration} onViewChange={setView} onAdd={() => onTool("speech")} />
-    {view === "sequence" ? <SequenceWorkspace parts={production.parts} liveJobs={liveJobs} selected={selected} activePartId={activePartId} playingKey={playingKey} playerPlaying={playerPlaying} directory={directory} onSelected={onSelected} onInsert={(kind: InsertKind, beforePartId) => onTool(kind, beforePartId)} onRetryJob={onRetryJob} onConfirmJob={onConfirmJob} onReplaceAsset={onReplaceAsset} actions={sequenceActions} /> : timing}
+    {view === "sequence" ? <SequenceWorkspace parts={production.parts} cast={cast} liveJobs={liveJobs} selected={selected} activePartId={activePartId} playingKey={playingKey} playerPlaying={playerPlaying} directory={directory} onSelected={onSelected} onInsert={(kind: InsertKind, beforePartId) => onTool(kind, beforePartId)} onRetryJob={onRetryJob} onConfirmJob={onConfirmJob} onReplaceAsset={onReplaceAsset} actions={sequenceActions} /> : timing}
   </main>
 
   return (
