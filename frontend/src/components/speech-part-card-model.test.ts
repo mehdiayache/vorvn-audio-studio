@@ -82,10 +82,39 @@ describe("speechPartCardFacts", () => {
     expect(facts.takeSummary).toContain("Take 3 selected")
   })
 
+  it.each([
+    ["queued", 0, {}, "active", "TAKE 5 · QUEUED", false, false],
+    ["running", 43, {}, "active", "TAKE 5 · GENERATING 43%", false, false],
+    ["retrying", 27, {}, "active", "TAKE 5 · RETRYING", false, false],
+    ["blocked", 0, { needs_confirmation: true }, "confirmation", "TAKE 5 · WAITING FOR CONFIRMATION", false, true],
+    ["blocked", 0, { requires_review: true }, "review", "TAKE 5 · REVIEW REQUIRED", false, false],
+    ["failed", 0, {}, "failed", "TAKE 5 · FAILED", true, false],
+    ["lost", 0, {}, "failed", "TAKE 5 · FAILED", true, false],
+    ["cancelled", 0, {}, "failed", "TAKE 5 · CANCELLED", false, false],
+  ] as const)("maps durable %s truth into the reserved lane", (status, progress, result, kind, label, canRetry, canConfirm) => {
+    const job = {
+      id: `speech-${status}`, type: "speech", status, progress,
+      detail: `${status} detail`, retries: 0, result, request: { select_result: false },
+    } as DurableJob<GenerateResult> & { request: { select_result: boolean } }
+
+    const operation = speechPartCardFacts({ part: part(), speechJob: job, directory }).operation
+
+    expect(operation).toMatchObject({ kind, label, canRetry, canConfirm })
+  })
+
   it("uses only the current caption Job supplied by the read model", () => {
     const caption: DurableJob = { id: "caption-current", type: "transcribe", status: "running", progress: .4, detail: "Listening", retries: 0, result: {} }
     const facts = speechPartCardFacts({ part: part({ subtitled: false, languages: [] }), speechJob: null, captionJob: caption, directory })
     expect(facts.captionSummary).toBe("CC Creating…")
     expect(facts.captionTone).toBe("active")
+  })
+
+  it("keeps failed and stale translated caption states distinct", () => {
+    const failedCaption: DurableJob = { id: "caption-failed", type: "transcribe", status: "failed", progress: 0, detail: "Failed", retries: 0, result: {} }
+    const failed = speechPartCardFacts({ part: part({ subtitled: false, languages: [] }), speechJob: null, captionJob: failedCaption, directory })
+    const stale = speechPartCardFacts({ part: part({ subtitles_stale: true }), speechJob: null, directory })
+
+    expect(failed).toMatchObject({ captionSummary: "CC Failed", captionTone: "danger" })
+    expect(stale).toMatchObject({ captionSummary: "CC EN + FR stale", captionTone: "warning" })
   })
 })
