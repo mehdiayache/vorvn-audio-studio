@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
 
 import { ProductionHeader } from "@/components/production-header"
@@ -67,15 +67,28 @@ export function ProductionEditorCanvas({ production, tree, music, directory, cas
 }) {
   const [view, setView] = useState<ProductionCanvasView>("sequence")
   const [filters, setFilters] = useState<SequenceFilters>(EMPTY_SEQUENCE_FILTERS)
+  const [pendingLocateId, setPendingLocateId] = useState<number | null>(null)
   const issues = productionHealth(production.parts)
   const sourceParts = production.parts.filter((part) => part.kind !== "stitch")
   const issuePartIds = useMemo(() => new Set(issues.map((issue) => issue.part.id)), [issues])
   const visibleParts = useMemo(() => filterProductionParts(production.parts, cast, issuePartIds, filters), [cast, filters, issuePartIds, production.parts])
   const filtersActive = activeSequenceFilterCount(filters) > 0
   const revealPart = (id: number) => {
-    if (filtersActive) setFilters(EMPTY_SEQUENCE_FILTERS)
-    window.requestAnimationFrame(() => onLocate(id))
+    if (!filtersActive) {
+      onLocate(id)
+      return
+    }
+    setPendingLocateId(id)
+    setFilters(EMPTY_SEQUENCE_FILTERS)
   }
+  useEffect(() => {
+    if (pendingLocateId === null || filtersActive) return
+    const frame = window.requestAnimationFrame(() => {
+      onLocate(pendingLocateId)
+      setPendingLocateId(null)
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [filtersActive, onLocate, pendingLocateId])
 
   const timing = <TimingOverview parts={production.parts} music={music} playingKey={playingKey} productionLoaded={productionLoaded} productionCurrentTime={productionCurrentTime} onLocate={onLocate} onSeekProduction={onSeekProduction} />
   const canvas = <main className="production-main">
@@ -83,7 +96,7 @@ export function ProductionEditorCanvas({ production, tree, music, directory, cas
       <ProductionCastStrip cast={cast} directory={directory} onManage={() => onCastOpen(true)} />
       {view === "sequence" && <ProductionMusicLane music={music} playingKey={playingKey} playing={playerPlaying} previewReady={productionLoaded} onPlay={onPlay} onAdd={onChooseMusic} onEdit={onMusicOpen} />}
     </div>
-    <ProductionSequenceToolbar view={view} partCount={sourceParts.length} visiblePartCount={filtersActive ? visibleParts.length : undefined} duration={duration} issueCount={issues.length} navigator={<ProductionSequenceSearch parts={production.parts} cast={cast} issuePartIds={issuePartIds} value={filters} onChange={setFilters} onLocate={onLocate} />} onViewChange={setView} onIssues={() => setFilters((current) => ({ ...current, issues: !current.issues }))} onAdd={() => onTool("speech")} />
+    <ProductionSequenceToolbar view={view} partCount={sourceParts.length} visiblePartCount={filtersActive ? visibleParts.length : undefined} duration={duration} navigator={<ProductionSequenceSearch parts={production.parts} cast={cast} issuePartIds={issuePartIds} value={filters} onChange={setFilters} onLocate={revealPart} />} onViewChange={setView} />
     {view === "sequence" ? <SequenceWorkspace parts={production.parts} cast={cast} liveJobs={liveJobs} selected={selected} visiblePartIds={filtersActive ? new Set(visibleParts.map((part) => part.id)) : undefined} filtersActive={filtersActive} activePartId={activePartId} playingKey={playingKey} playerPlaying={playerPlaying} previewPlayingPartId={previewPlayingPartId} directory={directory} onSelected={onSelected} onClearFilters={() => setFilters(EMPTY_SEQUENCE_FILTERS)} onInsert={(kind: InsertKind, beforePartId) => onTool(kind, beforePartId)} onRetryJob={onRetryJob} onConfirmJob={onConfirmJob} onReplaceAsset={onReplaceAsset} actions={sequenceActions} /> : timing}
   </main>
 

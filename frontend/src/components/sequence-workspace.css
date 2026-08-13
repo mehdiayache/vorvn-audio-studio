@@ -70,6 +70,8 @@
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   align-items: start;
+  content-visibility: auto;
+  contain-intrinsic-block-size: auto 190px;
 }
 .sequence-row.speech { display: block; }
 .sequence-row.speech .sequence-node-column { display: none; }

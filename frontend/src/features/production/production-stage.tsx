@@ -1,6 +1,7 @@
-import type { ReactNode } from "react"
+import { useEffect, useId, useRef, type ReactNode } from "react"
+import { ArrowLeft } from "lucide-react"
 
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 import { ProductionFloatingTransport } from "@/features/production/production-floating-transport"
 
 export type ProductionStageMode =
@@ -22,18 +23,23 @@ export function ProductionStage({ mode, title, description, onClose, children, c
   onRefreshPreview?: () => void
   onOpenCaptionContext?: (partId: number) => void
 }) {
+  const titleId = useId()
+  const backRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (mode) window.requestAnimationFrame(() => backRef.current?.focus())
+  }, [mode])
+
   return <section className="production-workstation">
-    <div className="production-canvas">{canvas}</div>
-    <Dialog open={Boolean(mode)} onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent className="production-stage" data-mode={mode} showCloseButton>
-        <DialogHeader className="production-stage-header">
-          <span className="eyebrow">Production</span>
-          <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
-        </DialogHeader>
-        <div className="production-stage-body">{children}</div>
-      </DialogContent>
-    </Dialog>
+    <div className="production-canvas" aria-hidden={Boolean(mode)} inert={mode ? true : undefined}>{canvas}</div>
+    {mode && <section className="production-stage" data-mode={mode} aria-labelledby={titleId}>
+      <header className="production-stage-header">
+        <div className="production-stage-header-inner">
+          <Button ref={backRef} variant="ghost" size="icon" onClick={onClose} aria-label="Back to Production sequence"><ArrowLeft /></Button>
+          <div><span className="eyebrow">Production</span><h2 id={titleId}>{title}</h2>{description && <p>{description}</p>}</div>
+        </div>
+      </header>
+      <div className="production-stage-body"><div className="production-stage-frame">{children}</div></div>
+    </section>}
     <ProductionFloatingTransport previewStale={previewStale} onRefreshPreview={onRefreshPreview} onOpenCaptionContext={onOpenCaptionContext} />
   </section>
 }

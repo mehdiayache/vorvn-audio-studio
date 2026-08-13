@@ -35,9 +35,10 @@ describe("productionHealth", () => {
       "Speech not recorded",
       "Missing media",
       "Take outdated",
-      "Captions stale",
+      "Captions need review",
       "Review required",
     ])
+    expect(issues.map((issue) => issue.severity)).toEqual(["blocking", "blocking", "review", "review", "blocking"])
   })
 
   it("does not report non-speech Parts as unrecorded", () => {
