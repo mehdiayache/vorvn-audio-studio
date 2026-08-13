@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Copy, FileAudio, MoreHorizontal, Pause, Play, Replace, Trash2 } from "lucide-react"
+import { ChevronDown, ChevronUp, Copy, FileAudio, FolderOpen, MoreHorizontal, Pause, Play, Replace, Trash2 } from "lucide-react"
 
 import type { SequenceActions } from "@/components/sequence-actions"
 import { Button } from "@/components/ui/button"
@@ -32,6 +32,7 @@ export function AssetPartCard({ part, index, count, selected, playing, onSelect,
     <div className="sequence-card-actions">
       {part.filename && <Button variant="outline" size="icon" onClick={() => actions.play({ key: `part:${part.id}`, url: audioUrl(part.filename!), title, subtitle: "Venture asset", kind: "asset" })} aria-label={playing ? `Pause ${title}` : `Play ${title}`}>{playing ? <Pause /> : <Play />}</Button>}
       <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Asset actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={onReplace}><FolderOpen /> Open source in Asset Explorer</DropdownMenuItem>
         <DropdownMenuItem onSelect={onReplace}><Replace /> Replace from library</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => actions.duplicate(part)}><Copy /> Duplicate</DropdownMenuItem>
         <DropdownMenuItem disabled={index === 0} onSelect={() => actions.move(part, -1)}><ChevronUp /> Move earlier</DropdownMenuItem>

@@ -1,26 +1,21 @@
 import { LoaderCircle, Pause, Play } from "lucide-react"
 
-import { MusicBed } from "@/components/music-bed"
 import { ProductionTimeline } from "@/components/production-timeline"
 import { Button } from "@/components/ui/button"
 import { formatDuration, partDurationMs } from "@/lib/format"
-import type { MusicBed as MusicBedType, PlayerSource, ProductionPart } from "@/types/domain"
+import type { MusicBed as MusicBedType, ProductionPart } from "@/types/domain"
 
-export function TimingOverview({ parts, music, previewing, playingKey, playing, productionPlaying, productionCurrentTime, productionLoaded, onPreview, onLocate, onSeekProduction, onPlay, onMusicChange, onChooseMusic }: {
+export function TimingOverview({ parts, music, previewing, playingKey, productionPlaying, productionCurrentTime, productionLoaded, onPreview, onLocate, onSeekProduction }: {
   parts: ProductionPart[]
   music: MusicBedType
   previewing: boolean
   playingKey?: string
-  playing: boolean
   productionPlaying: boolean
   productionCurrentTime: number
   productionLoaded: boolean
   onPreview: () => void
   onLocate: (id: number) => void
   onSeekProduction: (seconds: number) => void
-  onPlay: (source: PlayerSource) => void
-  onMusicChange: (changes: Partial<MusicBedType>) => Promise<void>
-  onChooseMusic: () => void
 }) {
   const sourceParts = parts.filter((part) => part.kind !== "stitch")
   const total = sourceParts.reduce((sum, part) => sum + partDurationMs(part), 0)
@@ -39,10 +34,6 @@ export function TimingOverview({ parts, music, previewing, playingKey, playing, 
       </header>
 
       <ProductionTimeline parts={parts} music={music} playingKey={playingKey} currentTime={productionCurrentTime} productionLoaded={productionLoaded} onLocate={onLocate} onSeek={onSeekProduction} />
-
-      <div className="production-music-controls">
-        <MusicBed music={music} playingKey={playingKey} playing={playing} onPlay={onPlay} onChange={onMusicChange} onChoose={onChooseMusic} />
-      </div>
     </section>
   )
 }

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
-import type { ComponentProps } from "react"
+import type { ComponentProps, ReactNode } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 const api = vi.hoisted(() => ({ productionCast: vi.fn() }))
@@ -16,8 +16,12 @@ vi.mock("@/hooks/use-production-actions", () => ({ useProductionActions: () => (
 }) }))
 vi.mock("@/features/production/production-selection-bar", () => ({ ProductionSelectionBar: () => null }))
 vi.mock("@/features/production/move-part-position-dialog", () => ({ MovePartPositionDialog: () => null }))
+vi.mock("@/features/production/cast-manager-sheet", () => ({
+  CastManagerSheet: () => null,
+  CastManagerContent: ({ onChanged }: { onChanged: () => Promise<void> }) => <button onClick={() => void onChanged().catch(() => undefined)}>Refresh Cast</button>,
+}))
 vi.mock("@/features/production/production-editor-canvas", () => ({
-  ProductionEditorCanvas: ({ cast, onCastChanged }: { cast: Array<{ name: string }>; onCastChanged: () => Promise<void> }) => <div><span data-testid="cast-names">{cast.map((item) => item.name).join(",")}</span><button onClick={() => void onCastChanged().catch(() => undefined)}>Refresh Cast</button></div>,
+  ProductionEditorCanvas: ({ cast, onCastOpen, workbenchContent }: { cast: Array<{ name: string }>; onCastOpen: (open: boolean) => void; workbenchContent: ReactNode }) => <div><span data-testid="cast-names">{cast.map((item) => item.name).join(",")}</span><button onClick={() => onCastOpen(true)}>Open Cast</button>{workbenchContent}</div>,
 }))
 
 import { ProductionPage } from "./production-page"
@@ -34,6 +38,7 @@ describe("ProductionPage partial Cast failure", () => {
     } as unknown as ComponentProps<typeof ProductionPage>
     render(<ProductionPage {...props} />)
     await waitFor(() => expect(screen.getByTestId("cast-names").textContent).toBe("Narrator"))
+    fireEvent.click(screen.getByRole("button", { name: "Open Cast" }))
 
     api.productionCast.mockRejectedValueOnce(new Error("cast offline"))
     fireEvent.click(screen.getByRole("button", { name: "Refresh Cast" }))

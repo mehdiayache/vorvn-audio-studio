@@ -8,7 +8,7 @@ Baseline: `e8609d8f216e7f09bc1293ea718a52bd0c1b299f`
 - [x] Scope 2 — Composer spatial system
 - [x] Scope 3 — Part Workbench
 - [x] Scope 4 — Captions + Floating Transport
-- [ ] Scope 5 — Cast + Music + Asset spatial integration
+- [x] Scope 5 — Cast + Music + Asset spatial integration
 - [ ] Scope 6 — Long-production manipulation/productivity
 - [ ] Scope 7 — Mix/Export + final convergence
 
@@ -30,6 +30,12 @@ are ordinary Part Workbench work backed by durable Jobs and one current caption
 set; the one global Player now renders a compact Canvas-centered Production
 transport with CC languages, current cue context, playing-Part location, and
 explicit stale-preview refresh.
+
+Scope 5 implementation checkpoint: `codex/production-v2-scopes-2-7` — optional
+Cast now uses a compact role/Voice reel and desktop Workbench with explicit
+future-only recast truth; Music is one parallel compact lane plus Workbench;
+the large Asset Explorer separates audition, selection, upload, and the final
+Insert/Use-as-Bed action; Silence remains a compact inline timing object.
 
 Current authorized scope: **SCOPES 3–7 — founder authorized the remaining
 desktop Production v2 program in one continuous implementation run.**
