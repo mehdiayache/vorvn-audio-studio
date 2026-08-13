@@ -1,4 +1,4 @@
-import { Captions, ChevronDown, ChevronUp, CircleAlert, Copy, LoaderCircle, Mic2, MoreHorizontal, Pause, Pencil, Play, RefreshCw, Trash2 } from "lucide-react"
+import { Captions, ChevronDown, ChevronUp, CircleAlert, Copy, Mic2, MoreHorizontal, Pause, Pencil, Play, Trash2 } from "lucide-react"
 
 import type { SequenceActions } from "@/components/sequence-actions"
 import { VoiceIdentity } from "@/components/voice-identity"
@@ -6,6 +6,7 @@ import { SpeechRouteLabel } from "@/components/speech-route-label"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { OperationState } from "@/components/operation-state"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { audioUrl } from "@/lib/api"
@@ -20,22 +21,10 @@ function SpeechOperation({ job, onRetry, onConfirm }: {
   onConfirm: () => void
 }) {
   if (!job || ["ok", "warning"].includes(job.status)) return null
-  const working = ["queued", "running", "retrying"].includes(job.status)
-  const blocked = job.status === "blocked"
-  const confirmation = blocked && Boolean(job.result?.needs_confirmation) && !Boolean(job.result?.requires_review || job.result?.ambiguous)
-  const ambiguous = Boolean(job.result?.ambiguous)
   const failed = ["failed", "lost", "cancelled"].includes(job.status)
-  const title = working ? "Generating audio…"
-    : confirmation ? "Cost confirmation needed"
-      : ambiguous ? "Ambiguous result — review before retry"
-        : blocked ? "Provider review required"
-          : "Generation failed"
-  return <div className={cn("part-operation-state", working && "working", (blocked || failed) && "attention")} role="status" aria-live="polite">
-    {working ? <LoaderCircle className="spin" /> : <CircleAlert />}
-    <span><b>{title}</b><small>{job.error || job.detail || (working ? "You can close the Composer or leave this page." : "Open Activity for the complete operation record.")}</small></span>
-    {failed && <Button variant="outline" size="sm" onClick={onRetry}><RefreshCw /> Retry</Button>}
-    {confirmation && <Button size="sm" onClick={onConfirm}>Confirm ${Number(job.result?.estimate || job.result?.estimated_cost || 0).toFixed(4)}</Button>}
-  </div>
+  const review = job.status === "blocked" && Boolean(job.result?.requires_review || job.result?.ambiguous)
+  const confirmation = job.status === "blocked" && Boolean(job.result?.needs_confirmation) && !review
+  return <OperationState job={job} title="Speech generation" onRetry={failed && job.status !== "cancelled" ? onRetry : undefined} onConfirm={confirmation ? onConfirm : undefined} />
 }
 
 export function SpeechPartCard({ part, job, index, count, selected, playing, directory, onSelect, onRetryJob, onConfirmJob, actions }: {

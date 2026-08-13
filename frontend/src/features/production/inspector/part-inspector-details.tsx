@@ -10,7 +10,8 @@ function Fact({ label, value, mono = false }: { label: string; value?: string | 
 
 export function PartInspectorDetails({ part, directory }: { part: ProductionPart; directory: VoiceDirectory }) {
   const diagnostics = { fidelity: part.fidelity, delivery: part.take_delivery, usage: part.take_usage, segmentation: part.take_segmentation }
-  const recorded = ["audio", "speech", "draft"].includes(part.kind)
+  const recorded = ["audio", "speech"].includes(part.kind)
+  const draft = part.kind === "draft"
   return <div className="inspector-panel">
     {recorded && <section>
       <div className="inspector-section-heading"><div><span className="eyebrow">Exact result</span><h3>Recording route</h3></div>{part.binding_resolution_status === "unresolved" && <Badge variant="destructive">Historical route unresolved</Badge>}</div>
@@ -39,7 +40,7 @@ export function PartInspectorDetails({ part, directory }: { part: ProductionPart
         <Fact label="Part revision" value={part.revision || 1} />
       </dl>
     </section>}
-    {!recorded && <section><div className="inspector-section-heading"><div><span className="eyebrow">Part details</span><h3>{part.kind === "silence" ? "Editorial timing" : "Linked Venture asset"}</h3></div></div><dl className="inspector-facts"><Fact label="Part ID" value={part.public_id || part.id} mono /><Fact label="Type" value={part.kind} /><Fact label="Position" value={(part.position ?? 0) + 1} /><Fact label="Duration" value={`${Number(part.duration_ms || 0) / 1000} seconds`} />{part.kind === "asset" && <><Fact label="Source" value={part.title} /><Fact label="File" value={part.filename} mono /></>}</dl></section>}
+    {!recorded && <section><div className="inspector-section-heading"><div><span className="eyebrow">Part details</span><h3>{draft ? "Draft speech" : part.kind === "silence" ? "Editorial timing" : "Linked Venture asset"}</h3></div></div><dl className="inspector-facts"><Fact label="Part ID" value={part.public_id || part.id} mono /><Fact label="Type" value={part.kind} /><Fact label="Position" value={(part.position ?? 0) + 1} />{draft ? <><Fact label="Revision" value={part.revision || 1} /><Fact label="Cast Role" value={part.cast_role_id} mono /><Fact label="Editorial state" value={part.editorial_status || "Draft"} /></> : <Fact label="Duration" value={`${Number(part.duration_ms || 0) / 1000} seconds`} />}{part.kind === "asset" && <><Fact label="Source" value={part.title} /><Fact label="File" value={part.filename} mono /></>}</dl></section>}
     {recorded && <section>
       <div className="inspector-section-heading"><div><span className="eyebrow">Accounting</span><h3>Usage and cost</h3></div></div>
       <dl className="inspector-facts"><Fact label="Generated cost" value={formatMoney(part.cost)} /><Fact label="Historical Part spend" value={formatMoney(part.spent ?? part.cost)} /><Fact label="Cost basis" value={part.cost_basis} /><Fact label="Size" value={part.size_bytes ? `${Math.round(part.size_bytes / 1024)} KB` : null} /></dl>

@@ -22,7 +22,10 @@ export function useComposerDraftRecovery(input: {
   const chainRef = useRef<Promise<unknown>>(Promise.resolve())
   const loadRef = useRef<Promise<unknown>>(Promise.resolve())
   const timerRef = useRef<number | null>(null)
-  const latestDraftRef = useRef(draft)
+  // Each context owns its own mutable snapshot object. On a direct context
+  // switch, the old effect cleanup therefore cannot accidentally persist the
+  // new context's draft through the old context's API closure.
+  const latestDraftRef = useMemo(() => ({ current: draft }), [contextId])
   const suppressFlushRef = useRef(false)
   const [status, setStatus] = useState<RecoveryStatus>("loading")
   restoreRef.current = input.onRestore

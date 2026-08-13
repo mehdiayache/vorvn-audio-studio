@@ -4,8 +4,9 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 import type { ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
 import { ComposerSurface } from "@/features/composer/composer-surface"
+import { studioApi } from "@/lib/api"
 
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
 const directory = {
   config: null, cloned: [], meta: {}, catalog: [], identities: [], usage: {},
@@ -66,5 +67,25 @@ describe("shared Composer contract", () => {
     fireEvent.click(screen.getByRole("button", { name: "Generate alternative only" }))
     await waitFor(() => expect(onGenerate).toHaveBeenCalledWith(expect.objectContaining({ select_result: false })))
     expect(onUpdateEditorial).not.toHaveBeenCalled()
+  })
+
+  it("clears the recoverable Speak draft after a successful generation", async () => {
+    vi.spyOn(studioApi, "composerDraft").mockResolvedValue(null)
+    vi.spyOn(studioApi, "deleteComposerDraft").mockResolvedValue({ deleted: true })
+    const saveDraft = vi.spyOn(studioApi, "saveComposerDraft").mockResolvedValue({ id: "draft-1", state: {} as never, version: 1, updatedAt: "now" })
+    const onGenerate = vi.fn().mockResolvedValue({ id: "job-1" })
+    render(<ComposerSurface {...common} sessionId="session-clear" onGenerate={onGenerate} />)
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Choose a voice" })).toBeTruthy())
+    fireEvent.click(screen.getByRole("button", { name: "Choose a voice" }))
+    fireEvent.click(screen.getByRole("button", { name: /Binding Sarah.*1 capability/ }))
+    fireEvent.click(await screen.findByRole("button", { name: /Expressive \+ tags/ }))
+    fireEvent.click(screen.getByRole("button", { name: /Words:/ }))
+    fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "A recoverable recording" } })
+    await waitFor(() => expect(saveDraft).toHaveBeenCalled())
+    fireEvent.click(screen.getByRole("button", { name: "Generate audio" }))
+
+    await waitFor(() => expect(onGenerate).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(studioApi.deleteComposerDraft).toHaveBeenCalledWith(expect.anything(), 1))
   })
 })

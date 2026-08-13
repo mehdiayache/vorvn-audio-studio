@@ -24,9 +24,9 @@ export function VoiceLanguageSupport({ route, language, customVoice, compact = f
               ? `${language} is not documented for this model`
               : "Language is set to Auto"}</b>
         <p>{status === "documented"
-          ? `Alibaba lists ${language} for this exact model binding.`
+          ? `The provider lists ${language} for this exact model binding.`
           : status === "unavailable"
-              ? "You can still generate. Alibaba may reject it or return an unreliable result."
+              ? "You can still generate. The provider may reject it or return an unreliable result."
               : "Choose a language beside the script only when you want to be explicit."}</p>
       </div>
     </div>
@@ -34,7 +34,7 @@ export function VoiceLanguageSupport({ route, language, customVoice, compact = f
       <summary><Languages /> {officialCoverageLabel(route)}</summary>
       {route.languages.length
         ? <div className="voice-language-list">{route.languages.map((item) => <span className={explicitLanguage && item.toLocaleLowerCase() === language.toLocaleLowerCase() ? "current" : ""} key={item}>{item}</span>)}</div>
-        : <p>Alibaba has not published a language list for this binding.</p>}
+        : <p>The provider has not published a language list for this binding.</p>}
     </details>
   </section>
 }

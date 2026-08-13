@@ -12,6 +12,7 @@ import { useJobExecution } from "@/hooks/use-job-execution"
 import { useVoiceDirectory } from "@/hooks/use-voice-directory"
 import { studioApi } from "@/lib/api"
 import { playableGenerateResult } from "@/lib/generated-audio"
+import { operationStatusLabel } from "@/lib/operation-language"
 import { resolveRequestRoute, resolveRequestVoice } from "@/lib/voice"
 import type { DurableJob, GeneratePayload, GenerateResult, RecordingAttempt, RecordingSession, ResolvedGeneratePayload, VoiceDirectory } from "@/types/domain"
 import { belongsToRecordingSession, recordingAttemptStatus, recoverSpeakExecutions, type SpeakExecution } from "./speak-execution"
@@ -54,6 +55,7 @@ function PendingSpeakExecution({ execution, directory, onTerminal }: {
     model: route?.tier,
     modelId: route?.model_id,
     script: execution.payload.text,
+    statusLabel: job ? operationStatusLabel(job.status, job.result) : "Queued",
     message: job?.error || job?.detail,
   }} directory={directory} />
 }
@@ -159,6 +161,7 @@ export function SpeakPage() {
       audioUrl: attempt.audio_url,
       message: attempt.error || attempt.warning,
       script: attempt.request.text,
+      statusLabel: operationStatusLabel(attempt.status, attempt),
     }
   }
 

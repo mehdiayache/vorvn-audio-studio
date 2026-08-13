@@ -14,6 +14,14 @@ import { PartInspectorTakes } from "./part-inspector-takes"
 
 import "@/features/production/production-inspector.css"
 
+export type PartInspectorTab = "script" | "takes" | "captions" | "details"
+
+export function partInspectorTabs(part: ProductionPart | null): PartInspectorTab[] {
+  return part && ["audio", "speech"].includes(part.kind)
+    ? ["script", "takes", "captions", "details"]
+    : ["script", "details"]
+}
+
 export function PartInspector({ productionId, part, directory, playingKey, playerPlaying, onClose, onDuplicate, onDelete, onNewTake, onPlay, onChanged }: {
   productionId: number
   part: ProductionPart | null
@@ -27,16 +35,22 @@ export function PartInspector({ productionId, part, directory, playingKey, playe
   onPlay: (source: PlayerSource) => void
   onChanged: () => Promise<void>
 }) {
-  const [tab, setTab] = useState("script")
+  const [tab, setTab] = useState<PartInspectorTab>("script")
   const data = usePartDetailData(productionId, part, onChanged)
   const recorded = Boolean(part && ["audio", "speech"].includes(part.kind))
   const title = part?.kind === "silence" ? "Silence" : part?.kind === "asset" ? "Venture audio" : part?.kind === "draft" ? "Draft speech" : "Speech Part"
-  useEffect(() => { setTab("script") }, [part?.id])
+  useEffect(() => {
+    const available = new Set(partInspectorTabs(part))
+    if (!available.has(tab)) setTab("script")
+    else if (part) setTab("script")
+  // Part identity and type jointly own the valid tab set.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [part?.id, part?.kind])
   return <Sheet open={Boolean(part)} onOpenChange={(open) => { if (!open) onClose() }}>
     <SheetContent className="part-inspector">
       {part && <>
         <SheetHeader><SheetTitle>{title}</SheetTitle><SheetDescription>Part {(part.position ?? 0) + 1} · revision {part.revision || 1}</SheetDescription></SheetHeader>
-        <Tabs value={tab} onValueChange={setTab} className="part-inspector-tabs">
+        <Tabs value={tab} onValueChange={(value) => setTab(value as PartInspectorTab)} className="part-inspector-tabs">
           <TabsList><TabsTrigger value="script">Script</TabsTrigger>{recorded && <TabsTrigger value="takes">Takes {data.takes.length + 1}</TabsTrigger>}{recorded && <TabsTrigger value="captions">Captions {data.captions.length}</TabsTrigger>}<TabsTrigger value="details">Details</TabsTrigger></TabsList>
           <ScrollArea className="part-inspector-scroll">
             <TabsContent value="script"><PartInspectorScript part={part} directory={directory} currentPlaying={playerPlaying && playingKey === `part:${part.id}`} onPlay={onPlay} onNewTake={onNewTake} onDuplicate={onDuplicate} onDelete={onDelete} /></TabsContent>

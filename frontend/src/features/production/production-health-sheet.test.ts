@@ -36,7 +36,7 @@ describe("productionHealth", () => {
       "Missing media",
       "Take outdated",
       "Captions stale",
-      "Operation needs review",
+      "Review required",
     ])
   })
 

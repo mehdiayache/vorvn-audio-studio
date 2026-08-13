@@ -19,8 +19,8 @@ describe("OperationState", () => {
 
   it("offers confirmation for a blocked cost guard", () => {
     const confirm = vi.fn()
-    render(<OperationState job={job({ status: "blocked", result: { needs_confirmation: true } })} onConfirm={confirm} />)
-    fireEvent.click(screen.getByRole("button", { name: "Confirm and continue" }))
+    render(<OperationState job={job({ status: "blocked", result: { needs_confirmation: true, estimate: .0123 } })} onConfirm={confirm} />)
+    fireEvent.click(screen.getByRole("button", { name: "Confirm $0.0123 and continue" }))
     expect(confirm).toHaveBeenCalledOnce()
   })
 

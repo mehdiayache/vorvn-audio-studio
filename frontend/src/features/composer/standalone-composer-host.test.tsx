@@ -1,8 +1,16 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { StandaloneComposerHost } from "./standalone-composer-host"
+
+const player = vi.hoisted(() => ({
+  source: { key: "take:1", url: "/audio/test.mp3", title: "Current recording", kind: "standalone" as const },
+  state: "paused", currentTime: 2, duration: 8, volume: 1, speed: 1,
+  toggle: vi.fn(), seek: vi.fn(), setVolume: vi.fn(), setSpeed: vi.fn(), close: vi.fn(),
+  transportHost: "composer" as const, claimTransport: vi.fn(() => vi.fn()),
+}))
+vi.mock("@/components/global-player-provider", () => ({ useGlobalPlayer: () => player }))
 
 afterEach(() => {
   cleanup()
@@ -10,6 +18,7 @@ afterEach(() => {
 })
 
 function viewport(matches: boolean) {
+  vi.stubGlobal("ResizeObserver", class { observe() {}; unobserve() {}; disconnect() {} })
   vi.stubGlobal("matchMedia", vi.fn().mockImplementation(() => ({
     matches,
     addEventListener: vi.fn(),
@@ -33,12 +42,17 @@ describe("StandaloneComposerHost", () => {
     expect(screen.queryByRole("dialog")).toBeNull()
   })
 
-  it("opens the shared Composer in a mobile Sheet", () => {
+  it("opens the shared Composer with accessible shared transport and contained focus in a mobile Sheet", async () => {
     viewport(true)
     render(<StandaloneComposerHost {...props} />)
     expect(screen.queryByRole("dialog")).toBeNull()
     fireEvent.click(screen.getByRole("button", { name: "Open Composer" }))
-    expect(screen.getByRole("dialog")).toBeTruthy()
+    const dialog = screen.getByRole("dialog")
+    expect(dialog).toBeTruthy()
     expect(screen.getByLabelText("Composer sections")).toBeTruthy()
+    expect(screen.getByRole("region", { name: "Audio player" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Play Current recording" })).toBeTruthy()
+    expect(player.claimTransport).toHaveBeenCalledWith("composer")
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true))
   })
 })

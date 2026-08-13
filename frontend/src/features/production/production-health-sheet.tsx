@@ -3,6 +3,7 @@ import { CheckCircle2, CircleAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { clipText } from "@/lib/format"
+import { operationStatusLabel } from "@/lib/operation-language"
 import type { ProductionPart } from "@/types/domain"
 
 export type ProductionHealthIssue = { part: ProductionPart; title: string; detail: string }
@@ -15,7 +16,7 @@ export function productionHealth(parts: ProductionPart[]) {
     if (part.outdated) issues.push({ part, title: "Take outdated", detail: "The Part changed after this Take was generated." })
     if (part.subtitles_stale) issues.push({ part, title: "Captions stale", detail: "Refresh captions after the latest selected Take." })
     if (part.fidelity && part.fidelity.status !== "pass") issues.push({ part, title: "Wording review", detail: part.fidelity.message || "The provider result differs from the script." })
-    if (part.speech_job && ["blocked", "failed", "lost", "cancelled"].includes(part.speech_job.status)) issues.push({ part, title: part.speech_job.status === "blocked" ? "Operation needs review" : "Generation failed", detail: part.speech_job.error || part.speech_job.detail || "Review the durable operation." })
+    if (part.speech_job && ["blocked", "failed", "lost", "cancelled"].includes(part.speech_job.status)) issues.push({ part, title: operationStatusLabel(part.speech_job.status, part.speech_job.result), detail: part.speech_job.error || part.speech_job.detail || "Review the durable operation." })
     return issues
   })
 }

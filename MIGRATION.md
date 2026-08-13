@@ -1178,3 +1178,50 @@ restarted API and worker report the same ready runtime ID.
 Verification is provider-free: the production web build, 150 React tests, 321
 Python tests and all 11 live database domain invariants pass. No render or paid
 provider operation was invoked.
+
+### Closure checkpoint — lossless workspaces and durable operation truth
+
+- Route query changes no longer remount the active Outlet or its error boundary.
+  Batch and Subtitles retain their selected file, parsed workspace and other
+  local state while durable Job query parameters change; both paths have direct
+  regression coverage.
+- Composer recovery now flushes the latest meaningful edit on close,
+  navigation, context switch and desktop collapse, even inside the 700 ms
+  debounce window. Each composition context owns its own snapshot, so a late
+  cleanup cannot write context B into context A. Successful Generate and Save
+  Draft clear recovery in both Production and Speak without later resurrection.
+- Embedded Part transcription and translation use the durable Job query and
+  observer already shared by the application. The exact blocked Job owns cost
+  confirmation; Inspector close/reload does not own the operation; ambiguous or
+  review-required work remains review-only and is never offered as a retry.
+- Mobile Composer renders the existing TransportStrip inside its Sheet and
+  merely claims presentation from the same GlobalPlayerProvider. It creates no
+  second player or audio state, leaves one accessible Transport visible, and
+  keeps focus inside the modal surface.
+- Part Inspector validates its tab against both Part identity and type. Speech,
+  Draft, Asset and Silence expose type-appropriate panels, and request guards
+  prevent a late Part A response from populating Part B.
+- Queued, Running, Retrying, Cost confirmation needed, Review required, Failed,
+  Completed, Completed with warning and Cancelled now come from one operator
+  language helper across Production Parts, Production Health, Speak, Activity
+  and embedded captions. PostgreSQL/provider diagnostics remain secondary.
+- Production tree, music, Cast, assets and Voice resources preserve last-known
+  good data on partial refresh failure and expose scoped error/retry state.
+  Catalogue-backed Cast Roles expose only the exact assigned catalogue route;
+  owned identities continue to expose their own valid bindings.
+- Durable Jobs have no invented 30-minute terminal state. Re-observation keeps
+  polling non-terminal work. Timing/waveform content mounts only when expanded,
+  arbitrary capability mode IDs survive Composer state, and the remaining
+  provider-specific generic copy, Sequence semantics, Speak terminology and
+  Project archive navigation have converged on the shared product grammar.
+
+Final verification used a clean isolated PostgreSQL database with all 28
+migrations applied and a second migration run applying zero files. OpenAPI and
+the generated TypeScript client were regenerated; TypeScript, the production
+Vite build, 58 React files / 176 tests, 319 Python tests (5 skipped), and all
+11 domain invariants pass. Targeted browser interactions verify desktop Part
+Inspector tabs/captions, lazy Timing expansion, Player continuity across
+Production → Speak navigation, and at 390 px exactly one Transport inside the
+mobile Composer Sheet with focus inside that Sheet. The browser console is
+clean. No Generate, clone, transcription, translation, render or other paid
+provider operation was invoked.

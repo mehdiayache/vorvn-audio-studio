@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { useMediaQuery } from "@/hooks/use-media-query"
 import type { ComposerSurfaceProps } from "./composer-controller"
 import { ComposerSurface } from "./composer-surface"
+import { MobileComposerTransport } from "./mobile-composer-transport"
 
 export function StandaloneComposerHost(props: ComposerSurfaceProps) {
   const mobile = useMediaQuery("(max-width: 48rem)")
@@ -24,6 +25,7 @@ export function StandaloneComposerHost(props: ComposerSurfaceProps) {
         <SheetDescription>Standalone recording. Closing this sheet does not cancel a running Job.</SheetDescription>
       </SheetHeader>
       <ComposerSurface {...props} />
+      <MobileComposerTransport active={open} />
     </SheetContent>
   </Sheet>
 }

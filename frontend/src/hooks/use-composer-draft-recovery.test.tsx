@@ -110,6 +110,50 @@ describe("useComposerDraftRecovery", () => {
     expect(api.saveComposerDraft).toHaveBeenCalledWith(context, draft, null)
   })
 
+  it("restores the exact quick edit after close and reopen", async () => {
+    vi.useFakeTimers()
+    let stored: RecoverableCompositionDraft | null = null
+    api.composerDraft.mockImplementation(async () => stored ? { id: "draft-fast", state: stored, version: 1, updatedAt: "now" } : null)
+    api.saveComposerDraft.mockImplementation(async (_context, next) => {
+      stored = next
+      return { id: "draft-fast", state: next, version: 1, updatedAt: "now" }
+    })
+    const context = { kind: "standalone" as const, sessionId: "11111111-1111-4111-8111-111111111111" }
+    let draft = emptyDraft()
+    const first = renderHook(() => useComposerDraftRecovery({ context, draft, onRestore: vi.fn() }))
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    draft = { ...draft, text: { ...draft.text, raw: "Last keystroke before close" } }
+    first.rerender(); first.unmount()
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+
+    const restore = vi.fn()
+    renderHook(() => useComposerDraftRecovery({ context, draft: emptyDraft(), onRestore: restore }))
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    expect(restore).toHaveBeenCalledWith(expect.objectContaining({ text: expect.objectContaining({ raw: "Last keystroke before close" }) }))
+  })
+
+  it("flushes the old Draft to the old owner during an immediate context switch", async () => {
+    vi.useFakeTimers()
+    api.composerDraft.mockResolvedValue(null)
+    api.saveComposerDraft.mockImplementation(async (_context, next) => ({ id: "draft", state: next, version: 1, updatedAt: "now" }))
+    const firstContext = { kind: "standalone" as const, sessionId: "11111111-1111-4111-8111-111111111111" }
+    const secondContext = { kind: "standalone" as const, sessionId: "22222222-2222-4222-8222-222222222222" }
+    let context = firstContext
+    let draft = emptyDraft()
+    const { rerender } = renderHook(() => useComposerDraftRecovery({ context, draft, onRestore: vi.fn() }))
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    const firstDraft = { ...draft, text: { ...draft.text, raw: "Belongs only to session A" } }
+    draft = firstDraft
+    rerender()
+    context = secondContext
+    draft = { ...emptyDraft(), text: { ...emptyDraft().text, raw: "Session B" } }
+    rerender()
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+
+    expect(api.saveComposerDraft).toHaveBeenCalledWith(firstContext, firstDraft, null)
+    expect(api.saveComposerDraft).not.toHaveBeenCalledWith(firstContext, expect.objectContaining({ text: expect.objectContaining({ raw: "Session B" }) }), expect.anything())
+  })
+
   it("does not resurrect a deliberately cleared draft during unmount", async () => {
     api.composerDraft.mockResolvedValue({ id: "draft-old", state: emptyDraft(), version: 3, updatedAt: "now" })
     api.deleteComposerDraft.mockResolvedValue({ deleted: true })

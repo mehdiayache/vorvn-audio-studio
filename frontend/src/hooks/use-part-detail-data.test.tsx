@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from "@testing-library/react"
-import { MemoryRouter } from "react-router-dom"
+import { MemoryRouter, useLocation } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import type { ProductionPart } from "@/types/domain"
+import type { DurableJob, ProductionPart } from "@/types/domain"
+import { jobObserver } from "@/lib/job-observer"
 
 const api = vi.hoisted(() => ({
-  takes: vi.fn(), captions: vi.fn(), transcript: vi.fn(), job: vi.fn(),
+  takes: vi.fn(), captions: vi.fn(), transcript: vi.fn(), job: vi.fn(), enqueueTranscribePart: vi.fn(), enqueueTranscriptTranslation: vi.fn(), confirmJob: vi.fn(),
 }))
 vi.mock("@/lib/api", () => ({ studioApi: api }))
 
@@ -21,7 +22,7 @@ function deferred<T>() {
 const part = (id: number): ProductionPart => ({ id, kind: "speech", text: `Part ${id}`, cost: 0, created_at: "", position: id })
 const wrapper = ({ children }: { children: React.ReactNode }) => <MemoryRouter>{children}</MemoryRouter>
 
-afterEach(() => vi.clearAllMocks())
+afterEach(() => { vi.clearAllMocks(); jobObserver.reset() })
 
 describe("usePartDetailData", () => {
   it("never lets a late Part A response overwrite the open Part B", async () => {
@@ -36,5 +37,39 @@ describe("usePartDetailData", () => {
     await waitFor(() => expect(result.current.takes.map((take) => take.id)).toEqual([202]))
     await act(async () => { takesA.resolve({ takes: [{ id: 101 }] }); captionsA.resolve({ transcripts: [] }); await Promise.resolve() })
     expect(result.current.takes.map((take) => take.id)).toEqual([202])
+  })
+
+  it("exposes the durable caption Job immediately and keeps its identity in the route", async () => {
+    api.takes.mockResolvedValue({ takes: [] }); api.captions.mockResolvedValue({ transcripts: [] })
+    const queued = { id: "caption-1", type: "transcribe", status: "queued", progress: 0, detail: "Queued", retries: 0, context: { part_id: 1 }, result: {} } as DurableJob
+    api.enqueueTranscribePart.mockImplementation(async () => {
+      jobObserver.register(queued, vi.fn().mockResolvedValue({ ...queued, status: "running" }))
+      return queued
+    })
+    const activePart = part(1)
+    const onChanged = vi.fn().mockResolvedValue(undefined)
+    const { result } = renderHook(() => {
+      const detail = usePartDetailData(7, activePart, onChanged)
+      return { detail, search: useLocation().search }
+    }, { wrapper })
+    await waitFor(() => expect(result.current.detail.loading).toBe(false))
+    await act(async () => { await result.current.detail.makeCaptions() })
+    await waitFor(() => expect(result.current.detail.captionJob).toMatchObject({ id: "caption-1", status: "queued" }))
+    expect(result.current.search).toContain("part-caption-job=caption-1")
+  })
+
+  it("recovers exact cost confirmation and confirms that same durable Job", async () => {
+    api.takes.mockResolvedValue({ takes: [] }); api.captions.mockResolvedValue({ transcripts: [] })
+    const blocked = { id: "caption-confirm", type: "transcribe", status: "blocked", progress: 0, detail: "Confirm", retries: 0, context: { part_id: 1 }, result: { part_id: 1, needs_confirmation: true, estimate: 0.0312 } } as DurableJob
+    jobObserver.register(blocked, vi.fn())
+    const continued = { ...blocked, status: "queued", result: {} }
+    api.confirmJob.mockResolvedValue(continued)
+    const recoverWrapper = ({ children }: { children: React.ReactNode }) => <MemoryRouter initialEntries={["/production?part-caption-job=caption-confirm"]}>{children}</MemoryRouter>
+    const activePart = part(1)
+    const onChanged = vi.fn().mockResolvedValue(undefined)
+    const { result } = renderHook(() => usePartDetailData(7, activePart, onChanged), { wrapper: recoverWrapper })
+    await waitFor(() => expect(result.current.captionConfirmation).toEqual({ kind: "transcribe", estimate: 0.0312, target: undefined }))
+    await act(async () => { await result.current.confirmCaptionAction() })
+    expect(api.confirmJob).toHaveBeenCalledWith("caption-confirm")
   })
 })

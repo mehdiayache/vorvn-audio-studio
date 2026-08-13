@@ -48,7 +48,7 @@ export function PartCaptionPanel({ captions, transcript, languages, sourceLangua
   const body = transcript ? transcript[format] : ""
 
   return <div className="detail-body caption-detail">
-    {job && <OperationState job={job} title={job.type === "translate" ? "Subtitle translation" : "Create subtitles"} onRetry={job.status === "failed" ? () => void onRetryJob() : undefined} onDismiss={!busy && !confirmation ? onDismissJob : undefined} />}
+    {job && <OperationState job={job} title={job.type === "translate" ? "Subtitle translation" : "Create subtitles"} onConfirm={confirmation ? () => void onConfirm() : undefined} onRetry={job.status === "failed" ? () => void onRetryJob() : undefined} onDismiss={!busy && !confirmation ? onDismissJob : undefined} />}
     <section>
       <div className="detail-section-head caption-actions">
         <div><h3>Subtitles</h3><p>Create timed text from the current take, then translate it when needed.</p></div>

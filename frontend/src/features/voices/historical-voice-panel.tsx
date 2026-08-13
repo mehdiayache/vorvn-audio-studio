@@ -34,7 +34,7 @@ export function HistoricalVoicePanel({ profiles, onLinked, onPreview }: {
     const identityId = targets[item.provider_voice_id]
     const target = active.find((profile) => profile.id === identityId)
     if (!target) return
-    const confirmed = window.confirm(`Link ${item.uses} existing recording${item.uses === 1 ? "" : "s"} to “${target.name}”?\n\nThis changes their voice label only. It does not regenerate audio or alter the Alibaba provider voice.`)
+    const confirmed = window.confirm(`Link ${item.uses} existing recording${item.uses === 1 ? "" : "s"} to “${target.name}”?\n\nThis changes their voice label only. It does not regenerate audio or alter the provider voice.`)
     if (!confirmed) return
     setWorking(item.provider_voice_id)
     try {

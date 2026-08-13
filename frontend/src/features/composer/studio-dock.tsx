@@ -1,22 +1,16 @@
 import { ChevronDown, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
-import { useGlobalPlayer } from "@/components/global-player-provider"
-import { TransportStrip } from "@/components/transport-strip"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import type { ComposerSurfaceProps } from "./composer-controller"
 import { ComposerSurface } from "./composer-surface"
+import { MobileComposerTransport } from "./mobile-composer-transport"
 
 export function StudioDock({ title, description, onClose, ...composerProps }: ComposerSurfaceProps & { title: string; description: string; onClose: () => void }) {
   const [collapsed, setCollapsed] = useState(false)
   const mobile = useMediaQuery("(max-width: 48rem)")
-  const player = useGlobalPlayer()
-  useEffect(() => {
-    if (!mobile) return
-    return player.claimTransport("composer")
-  }, [mobile, player.claimTransport])
 
   if (mobile) return <Sheet open onOpenChange={(open) => { if (!open) onClose() }}>
     <SheetContent side="bottom" className="composer-mobile-sheet" showCloseButton>
@@ -25,12 +19,12 @@ export function StudioDock({ title, description, onClose, ...composerProps }: Co
         <SheetDescription>{description} Closing this sheet does not cancel a running Job.</SheetDescription>
       </SheetHeader>
       <ComposerSurface {...composerProps} />
-      <div className="composer-mobile-transport"><TransportStrip host="composer" /></div>
+      <MobileComposerTransport active />
     </SheetContent>
   </Sheet>
 
   return <section className={`studio-dock${collapsed ? " is-collapsed" : ""}`} aria-label="Speech Composer" aria-expanded={!collapsed}>
     <header className="studio-dock-header"><div><span className="eyebrow">Composer</span><h2>{title}</h2>{!collapsed && <p>{description}</p>}</div><div><Button variant="ghost" size="icon" aria-label={collapsed ? "Expand Composer" : "Collapse Composer"} onClick={() => setCollapsed((value) => !value)}><ChevronDown /></Button><Button variant="ghost" size="icon" aria-label="Close Composer" onClick={onClose}><X /></Button></div></header>
-    <div hidden={collapsed}><ComposerSurface {...composerProps} /></div>
+    <div hidden={collapsed}><ComposerSurface {...composerProps} visible={!collapsed} /></div>
   </section>
 }

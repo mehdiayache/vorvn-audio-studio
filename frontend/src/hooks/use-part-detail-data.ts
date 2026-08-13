@@ -48,7 +48,7 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
     setLoading(true); setTranscript(null); setMessage(""); setCaptionConfirmation(null); setTakeConfirmation(null)
     reload(part).catch((error) => { if (active) setMessage(error instanceof Error ? error.message : "Details could not be loaded.") }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [part?.id, reload])
+  }, [part?.id, part?.kind, reload])
 
   const selectTranscript = useCallback(async (item: TranscriptSummary) => {
     const request = ++transcriptRequestRef.current

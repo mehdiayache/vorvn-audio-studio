@@ -40,6 +40,13 @@ export type ComposerSurfaceProps = {
   onUpdateEditorial?: (values: { expected_revision: number; script?: string; cast_role_id?: string | null }) => Promise<void>
   onGenerate: (payload: GeneratePayload) => Promise<DurableJob<GenerateResult>>
   onPlay: (source: PlayerSource) => void
+  /** Visual hosts may hide the Composer without unmounting it. */
+  visible?: boolean
+}
+
+export function routesAllowedForCastRole(routes: VoiceChoice[], role?: ProductionCastRole) {
+  if (role?.voice_source_kind !== "catalogue" || !role.catalogue_voice_id) return routes
+  return routes.filter((route) => route.catalogueVoiceId === role.catalogue_voice_id)
 }
 
 type PendingGeneration = {
@@ -48,7 +55,7 @@ type PendingGeneration = {
   updateEditorial: boolean
 }
 
-export function useComposerController({ productionId, sessionId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, cast = [], playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay }: ComposerSurfaceProps) {
+export function useComposerController({ productionId, sessionId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, cast = [], playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, visible = true }: ComposerSurfaceProps) {
   const [route, setRoute] = useState(routeSelectionFromPersistedDraft(part))
   const [identityId, setIdentityId] = useState(part?.voice_identity_id || "")
   const [castRoleId, setCastRoleId] = useState(part?.cast_role_id || "")
@@ -94,8 +101,7 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
   const selectedCastRole = cast.find((item) => item.id === castRoleId)
   const compatibleRoutes = useMemo(() => {
     const routes = routesForIdentity(selectedIdentity, language)
-    if (selectedCastRole?.voice_source_kind !== "catalogue" || !selectedCastRole.catalogue_voice_id) return routes
-    return routes.filter((item) => item.catalogueVoiceId === selectedCastRole.catalogue_voice_id)
+    return routesAllowedForCastRole(routes, selectedCastRole)
   }, [language, selectedCastRole?.catalogue_voice_id, selectedCastRole?.voice_source_kind, selectedIdentity])
   const visibleRoutes = selectedCastRole?.voice_source_kind === "catalogue" ? compatibleRoutes : selectedIdentity?.routes || []
   const selectedRoute = selectedIdentity?.routes.find((item) => item.id === routeSelectionId(route))
@@ -213,6 +219,18 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
     latestRecoverableDraftRef.current = next
     await recovery.saveNow(next)
   }
+  const previousVisibleRef = useRef(visible)
+  useEffect(() => {
+    if (previousVisibleRef.current && !visible) {
+      // Collapsing keeps the Composer mounted, so the unmount flush cannot
+      // protect the last sub-700ms edit. Persist the exact latest snapshot.
+      void recovery.saveNow(latestRecoverableDraftRef.current).catch(() => undefined)
+    }
+    previousVisibleRef.current = visible
+  // Visibility is the only trigger. recovery.saveNow intentionally reads the
+  // latest snapshot from the ref rather than restarting this effect per edit.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible])
 
   function command(confirmed = false) {
     return buildSpeechCommand({ context, draft, confirmed })
@@ -232,7 +250,7 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
         await onUpdateEditorial({ expected_revision: baseline.revision, ...next.editorialPatch })
       }
       await onGenerate({ ...payload(next), select_result: selectResult })
-      if (context.kind === "production") await recovery.clear()
+      await recovery.clear()
     } finally {
       setBusy(null)
     }

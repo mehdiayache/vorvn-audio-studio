@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { PartInspectorDetails } from "./part-inspector-details"
 import { PartInspectorScript } from "./part-inspector-script"
+import { partInspectorTabs } from "./part-inspector"
 import type { ProductionPart, VoiceDirectory } from "@/types/domain"
 
 afterEach(cleanup)
@@ -51,5 +52,20 @@ describe("Part Inspector panels", () => {
     expect(screen.getByText("Linked Venture asset")).toBeTruthy()
     expect(screen.getByText("Evening intro")).toBeTruthy()
     expect(screen.queryByText("Recording route")).toBeNull()
+  })
+
+  it("limits tabs by the current Part type", () => {
+    expect(partInspectorTabs(part)).toEqual(["script", "takes", "captions", "details"])
+    expect(partInspectorTabs({ ...part, kind: "draft" })).toEqual(["script", "details"])
+    expect(partInspectorTabs({ ...part, kind: "asset" })).toEqual(["script", "details"])
+    expect(partInspectorTabs({ ...part, kind: "silence" })).toEqual(["script", "details"])
+  })
+
+  it("shows Draft editorial facts without pretending a Take route exists", () => {
+    render(<PartInspectorDetails part={{ ...part, kind: "draft", selected_take_id: null, cast_role_id: "role-1" }} directory={directory} />)
+    expect(screen.getByText("Draft speech")).toBeTruthy()
+    expect(screen.getByText("role-1")).toBeTruthy()
+    expect(screen.queryByText("Recording route")).toBeNull()
+    expect(screen.queryByText("Immutable evidence")).toBeNull()
   })
 })

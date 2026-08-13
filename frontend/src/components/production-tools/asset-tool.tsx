@@ -49,7 +49,7 @@ export function AssetTool({ assets, mode, chooseLabel, playingKey, playerPlaying
           {asset.filename && <Button variant="ghost" onClick={() => onPlay({ key: sourceKey, url: audioUrl(asset.filename), title: asset.title || asset.text || "Library asset", subtitle: "Source audition", kind: "asset" })}>{active ? <Pause /> : <Play />}{active ? "Pause" : "Play"}</Button>}
           <Button variant="outline" onClick={() => void onChoose(asset)}>{mode === "music" ? "Use as bed" : chooseLabel || "Insert"}</Button>
         </article>
-      }) : <div className="asset-empty"><Upload /><b>No matching {folder} audio</b><p>Drop a reusable file above. Uploading never calls Alibaba.</p></div>}
+      }) : <div className="asset-empty"><Upload /><b>No matching {folder} audio</b><p>Drop a reusable file above. Uploading does not call a speech provider.</p></div>}
     </ScrollArea>
     {dragging && <div className="asset-drop-overlay"><Upload /><b>Drop into {folder}</b><span>This stays in the Venture library.</span></div>}
   </div>

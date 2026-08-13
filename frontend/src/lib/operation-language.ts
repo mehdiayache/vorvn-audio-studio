@@ -15,6 +15,6 @@ export function operatorErrorMessage(value?: string | null) {
 
 export function operationStatusLabel(status: string, result?: { requires_review?: boolean; ambiguous?: boolean; needs_confirmation?: boolean } | null) {
   if (status === "blocked" && (result?.requires_review || result?.ambiguous)) return "Review required"
-  if (status === "blocked" && result?.needs_confirmation) return "Confirmation required"
-  return ({ queued: "Queued", running: "Running", retrying: "Retrying", ok: "Completed", warning: "Completed with warnings", failed: "Failed", lost: "Interrupted", cancelled: "Cancelled", blocked: "Blocked" } as Record<string, string>)[status] || status
+  if (status === "blocked" && result?.needs_confirmation) return "Cost confirmation needed"
+  return ({ queued: "Queued", running: "Running", retrying: "Retrying", ok: "Completed", warning: "Completed with warning", failed: "Failed", lost: "Failed", cancelled: "Cancelled", blocked: "Review required" } as Record<string, string>)[status] || status
 }
