@@ -119,6 +119,65 @@ Avoid:
 - visual density that changes wildly across states;
 - generic AI-generated admin layouts.
 
+### Color grammar — mandatory
+
+Color is product grammar, not decoration. Every color must have one stable,
+explainable job, and the same meaning must remain consistent across screens and
+states.
+
+Use this hierarchy:
+
+- neutral canvas, surfaces, borders, and text carry structure and hierarchy;
+- the default interactive accent is near-black with a white foreground;
+- green means success, healthy, ready, online, or completed;
+- amber means warning, attention, stale, confirmation, or review needed;
+- red means error, failure, destructive action, missing critical data, or a
+  critical state;
+- blue/info means neutral information that requires notice but is neither
+  success nor failure;
+- Cast, chart, media, avatar, swatch, and other categorical colors use their
+  dedicated component/data roles and never borrow semantic status colors.
+
+Accent and status are separate systems. Accent profiles may affect primary
+interactive actions and their foreground, but must never redefine success,
+warning, danger, or information. Ordinary menu, tab, navigation, row, and card
+selection should remain neutral unless a specific semantic state requires
+color.
+
+Implementation rules:
+
+- consume semantic VORVN or existing application tokens only;
+- never introduce raw hex, RGB, HSL, OKLCH, arbitrary Tailwind color values, or
+  component-local palette variables in product UI;
+- if a needed role does not exist, add one at the owned token/foundation layer
+  after validating that it represents a reusable semantic role;
+- do not use color as the only state signal; pair it with clear text, icon,
+  shape, or position as appropriate;
+- do not tint a whole card merely because one nested fact has a state;
+- do not make the quiet Ready state green by default; reserve strong semantic
+  color for information the operator must notice;
+- use small, controlled semantic accents before large colored surfaces;
+- use typography, spacing, and contrast for hierarchy before adding hue;
+- Cast identity color should behave as a restrained identity marker, not as a
+  competing status or a full-card theme;
+- data-series colors must remain distinguishable from success, warning, and
+  danger;
+- hover, active, selected, disabled, focus, and destructive states must remain
+  visually distinct without changing the meaning of their semantic color;
+- verify foreground/background contrast and visible keyboard focus in the real
+  rendered state, including dimmed, selected, disabled, and Workbench-narrowed
+  compositions.
+
+During visual review, explicitly ask:
+
+- What does each non-neutral color mean?
+- Is that meaning reused consistently elsewhere?
+- Did accent color accidentally become status color?
+- Is the interface understandable without relying on color alone?
+- Can any colored region return to neutral without losing meaning?
+
+If a non-neutral color has no precise semantic answer, remove it.
+
 ### Information hierarchy rule
 
 Before building a component, explicitly identify:
@@ -165,6 +224,44 @@ Do not blindly copy shadcn demos. Use shadcn as a high-quality interaction and
 component vocabulary, composed for Audio Studio. Inspect existing local
 primitives first, query shadcn before creating or recreating a generic
 primitive, and use the shadcn audit checklist after adding component code.
+
+### Native OpenAI Codex Skills rule
+
+Use the native OpenAI Codex Skills already available in the active session by
+default whenever the task matches their declared purpose. Skills are execution
+contracts, not optional inspiration.
+
+Before beginning a substantial task:
+
+1. Inspect the Skills available to the current Codex session.
+2. Select the smallest relevant set whose trigger and description match the
+   task.
+3. Read each selected `SKILL.md` completely before taking task actions.
+4. Follow its workflow, required references, capture steps, verification, and
+   handoff rules faithfully.
+5. State which Skill is being used and why.
+
+For UI and product-interface work in this repository:
+
+- use the available Product Design Skill to route significant design,
+  implementation, critique, or audit work;
+- use its audit workflow for visual/interaction quality reviews rather than
+  substituting a source-only code review;
+- use the Browser Skill to inspect and interact with the real served
+  application, capture rendered states, and verify the primary workflow;
+- use image-to-code when a selected screenshot or mockup is the actual visual
+  target;
+- use ImageGen when a required visual asset is missing and an original generated
+  asset is appropriate;
+- use specialized document, PDF, spreadsheet, presentation, GitHub, or other
+  available Skills when the requested artifact or workflow matches them.
+
+Do not manually approximate a matching Skill's workflow, silently skip it, or
+claim it is unavailable without checking the active Skill list. Do not invoke
+unrelated Skills merely because they exist. A Skill does not broaden the active
+product scope, override repository/domain truth, or authorize deployment,
+external writes, paid calls, or destructive actions that the user did not
+request.
 
 ### UI VORVN grounding
 
