@@ -653,40 +653,6 @@ export interface paths {
         patch: operations["updateProductionSilence"];
         trace?: never;
     };
-    "/api/v1/productions/{production_id}/parts/{part_id}/takes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Takes */
-        get: operations["listProductionPartTakes"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/parts/{part_id}/takes/{take_id}/promote": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Promote Take */
-        post: operations["promoteProductionTake"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/productions/{resource_id}": {
         parameters: {
             query?: never;
@@ -785,6 +751,23 @@ export interface paths {
         };
         /** Get Project Overview */
         get: operations["getProjectOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recordings/{recording_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Recording */
+        get: operations["downloadRecording"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1116,23 +1099,6 @@ export interface paths {
         };
         /** Health */
         get: operations["getSystemHealth"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/takes/{take_id}/download": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Download Take */
-        get: operations["downloadTake"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2767,8 +2733,6 @@ export interface components {
             seed?: number | null;
             /** Selected Take Id */
             selected_take_id?: number | null;
-            /** Selected Take Number */
-            selected_take_number?: number | null;
             /** Selected Take Text State */
             selected_take_text_state?: string | null;
             /** Size Bytes */
@@ -2808,11 +2772,6 @@ export interface components {
             take_usage?: {
                 [key: string]: unknown;
             };
-            /**
-             * Takes
-             * @default 0
-             */
-            takes: number;
             /** Text */
             text: string;
             /** Text Raw */
@@ -2995,16 +2954,6 @@ export interface components {
             type: "project";
             /** Updated At */
             updated_at?: string | null;
-        };
-        /** PromoteBody */
-        PromoteBody: {
-            /**
-             * Confirm Outdated
-             * @default false
-             */
-            confirm_outdated: boolean;
-            /** Expected Revision */
-            expected_revision: number;
         };
         /** PronunciationListEnvelope */
         PronunciationListEnvelope: {
@@ -3433,11 +3382,6 @@ export interface components {
              * @default 0
              */
             seed: number;
-            /**
-             * Select Result
-             * @default true
-             */
-            select_result: boolean;
             /** Session Id */
             session_id?: string | null;
             /**
@@ -3846,95 +3790,6 @@ export interface components {
             /** Version */
             version: string;
             worker: components["schemas"]["WorkerStatusResponse"];
-        };
-        /** TakeListEnvelope */
-        TakeListEnvelope: {
-            /** Data */
-            data: components["schemas"]["TakeResponse"][];
-        };
-        /** TakeResponse */
-        TakeResponse: {
-            /** Binding Id */
-            binding_id?: string | null;
-            /** Binding Resolution Status */
-            binding_resolution_status?: string | null;
-            /** Capability Id */
-            capability_id?: string | null;
-            /** Catalogue Voice Id */
-            catalogue_voice_id?: string | null;
-            /** Cost */
-            cost: number;
-            /** Cost Basis */
-            cost_basis?: string | null;
-            /** Duration Ms */
-            duration_ms?: number | null;
-            /** Engine */
-            engine: string;
-            fidelity?: components["schemas"]["FidelityResponse"] | null;
-            /** Filename */
-            filename: string;
-            /** Id */
-            id: number;
-            /** Instruction */
-            instruction?: string | null;
-            /** Language */
-            language?: string | null;
-            /** Model */
-            model: string;
-            /** Outdated */
-            outdated: boolean;
-            /** Pitch */
-            pitch: number;
-            /** Provider */
-            provider?: string | null;
-            /** Provider Attempt Id */
-            provider_attempt_id?: string | null;
-            /** Provider Attempt Status */
-            provider_attempt_status?: string | null;
-            /** Provider Region */
-            provider_region?: string | null;
-            /** Public Id */
-            public_id: string;
-            /** Rate */
-            rate: number;
-            /** Raw Text */
-            raw_text?: string | null;
-            /** Reference Id */
-            reference_id?: string | null;
-            /** Seed */
-            seed: number;
-            /** Segmentation */
-            segmentation?: {
-                [key: string]: unknown;
-            };
-            /** Size Bytes */
-            size_bytes: number;
-            /** Source Part Revision */
-            source_part_revision: number;
-            /** Source Script Hash */
-            source_script_hash: string;
-            /** Tagged Text */
-            tagged_text?: string | null;
-            /** Text */
-            text: string;
-            /** Text State */
-            text_state?: string | null;
-            /** Tier */
-            tier?: string | null;
-            /** Usage */
-            usage?: {
-                [key: string]: unknown;
-            };
-            /** Voice */
-            voice: string;
-            /** Voice Identity Id */
-            voice_identity_id?: string | null;
-            /** Voice Name */
-            voice_name?: string | null;
-            /** When */
-            when: string;
-        } & {
-            [key: string]: unknown;
         };
         /** TextBody */
         TextBody: {
@@ -6404,75 +6259,6 @@ export interface operations {
             };
         };
     };
-    listProductionPartTakes: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-                part_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TakeListEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    promoteProductionTake: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-                part_id: number;
-                take_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PromoteBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     getProduction: {
         parameters: {
             query?: never;
@@ -6787,6 +6573,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProjectOverviewEnvelope"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    downloadRecording: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recording_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -7492,35 +7307,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SystemHealthEnvelope"];
-                };
-            };
-        };
-    };
-    downloadTake: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                take_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

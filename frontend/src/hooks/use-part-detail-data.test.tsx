@@ -7,7 +7,7 @@ import type { DurableJob, ProductionPart } from "@/types/domain"
 import { jobObserver } from "@/lib/job-observer"
 
 const api = vi.hoisted(() => ({
-  takes: vi.fn(), captions: vi.fn(), transcript: vi.fn(), job: vi.fn(), enqueueTranscribePart: vi.fn(), enqueueTranscriptTranslation: vi.fn(), confirmJob: vi.fn(),
+  captions: vi.fn(), transcript: vi.fn(), job: vi.fn(), enqueueTranscribePart: vi.fn(), enqueueTranscriptTranslation: vi.fn(), confirmJob: vi.fn(),
 }))
 vi.mock("@/lib/api", () => ({ studioApi: api }))
 
@@ -26,21 +26,19 @@ afterEach(() => { vi.clearAllMocks(); jobObserver.reset() })
 
 describe("usePartDetailData", () => {
   it("never lets a late Part A response overwrite the open Part B", async () => {
-    const takesA = deferred<{ takes: Array<{ id: number }> }>()
-    const captionsA = deferred<{ transcripts: never[] }>()
-    api.takes.mockImplementation((_production: number, id: number) => id === 1 ? takesA.promise : Promise.resolve({ takes: [{ id: 202 }] }))
-    api.captions.mockImplementation((_production: number, id: number) => id === 1 ? captionsA.promise : Promise.resolve({ transcripts: [] }))
+    const captionsA = deferred<{ transcripts: Array<{ id: number }> }>()
+    api.captions.mockImplementation((_production: number, id: number) => id === 1 ? captionsA.promise : Promise.resolve({ transcripts: [{ id: 202 }] }))
     let activePart: ProductionPart | null = part(1)
     const { result, rerender } = renderHook(() => usePartDetailData(7, activePart, vi.fn().mockResolvedValue(undefined)), { wrapper })
     activePart = part(2)
     rerender()
-    await waitFor(() => expect(result.current.takes.map((take) => take.id)).toEqual([202]))
-    await act(async () => { takesA.resolve({ takes: [{ id: 101 }] }); captionsA.resolve({ transcripts: [] }); await Promise.resolve() })
-    expect(result.current.takes.map((take) => take.id)).toEqual([202])
+    await waitFor(() => expect(result.current.captions.map((caption) => caption.id)).toEqual([202]))
+    await act(async () => { captionsA.resolve({ transcripts: [{ id: 101 }] }); await Promise.resolve() })
+    expect(result.current.captions.map((caption) => caption.id)).toEqual([202])
   })
 
   it("exposes the durable caption Job immediately and keeps its identity in the route", async () => {
-    api.takes.mockResolvedValue({ takes: [] }); api.captions.mockResolvedValue({ transcripts: [] })
+    api.captions.mockResolvedValue({ transcripts: [] })
     const queued = { id: "caption-1", type: "transcribe", status: "queued", progress: 0, detail: "Queued", retries: 0, context: { part_id: 1 }, result: {} } as DurableJob
     api.enqueueTranscribePart.mockImplementation(async () => {
       jobObserver.register(queued, vi.fn().mockResolvedValue({ ...queued, status: "running" }))
@@ -59,7 +57,7 @@ describe("usePartDetailData", () => {
   })
 
   it("recovers exact cost confirmation and confirms that same durable Job", async () => {
-    api.takes.mockResolvedValue({ takes: [] }); api.captions.mockResolvedValue({ transcripts: [] })
+    api.captions.mockResolvedValue({ transcripts: [] })
     const blocked = { id: "caption-confirm", type: "transcribe", status: "blocked", progress: 0, detail: "Confirm", retries: 0, context: { part_id: 1 }, result: { part_id: 1, needs_confirmation: true, estimate: 0.0312 } } as DurableJob
     jobObserver.register(blocked, vi.fn())
     const continued = { ...blocked, status: "queued", result: {} }

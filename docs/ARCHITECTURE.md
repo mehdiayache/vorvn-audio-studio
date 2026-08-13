@@ -53,7 +53,7 @@ The shell has one canonical route for every tool:
 
 Canonical resources keep both a public UUID and a compatibility integer ID during migration. External integrations should use public IDs once each resource router exposes them consistently. Display names are never identifiers.
 
-Historical spend is immutable. Removing a Part, Take or audio file changes the current Production cost but never erases what was already billed. Jobs record requested/resolved routes, provider usage, price basis, outputs and failure state.
+Historical spend is immutable. Removing a Part, active recording or audio file changes the current Production cost but never erases what was already billed. Jobs record requested/resolved routes, provider usage, price basis, outputs and failure state.
 
 ## Compatibility removal rule
 

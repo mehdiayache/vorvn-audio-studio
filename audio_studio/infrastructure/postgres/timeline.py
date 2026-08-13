@@ -79,16 +79,6 @@ class PostgresTimelineRecords:
         return self.documents.move(
             source_production_id, ids, destination_production_id)
 
-    def takes(self, production_id: int, part_id: int) -> list[dict] | None:
-        return self.documents.takes(production_id, part_id)
-
-    def promote(self, production_id: int, part_id: int, take_id: int,
-                expected_revision: int,
-                confirm_outdated: bool = False) -> dict | None:
-        return self.documents.promote(
-            production_id, part_id, take_id, expected_revision,
-            confirm_outdated)
-
     def save_script(self, production_id: int, part_id: int, script: str,
                     values: dict | None = None) -> bool:
         return self.documents.save_script(

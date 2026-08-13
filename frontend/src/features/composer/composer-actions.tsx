@@ -7,7 +7,7 @@ function primaryLabel(composer: ReturnType<typeof useComposer>) {
   if (composer.busy === "generate") return "Generating…"
   if (!composer.productionId) return "Generate audio"
   if (composer.part?.kind === "draft") return `Record Part ${(composer.part.position ?? 0) + 1}`
-  if (composer.part) return `Generate alternative · Part ${(composer.part.position ?? 0) + 1}`
+  if (composer.part) return `Replace recording · Part ${(composer.part.position ?? 0) + 1}`
   return `Generate and add Part ${composer.insertAt === null ? composer.nextPartNumber : composer.insertAt + 1}`
 }
 

@@ -142,7 +142,7 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(response.headers["x-frame-options"], "DENY")
         self.assertTrue(response.headers["x-request-id"].startswith("req_"))
 
-    def test_export_and_take_download_use_canonical_identity(self):
+    def test_export_and_recording_download_use_canonical_identity(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "final.mp3").write_bytes(b"export audio")
@@ -159,7 +159,7 @@ class NativeHttpTests(unittest.TestCase):
             )
             with patch.object(media_router, "media_service", service):
                 exported = self.client.get("/api/v1/exports/91/download")
-                generated = self.client.get("/api/v1/takes/150/download")
+                generated = self.client.get("/api/v1/recordings/150/download")
         self.assertEqual(exported.content, b"export audio")
         self.assertEqual(generated.content, b"generation audio")
         self.assertIn("final.mp3", exported.headers["content-disposition"])

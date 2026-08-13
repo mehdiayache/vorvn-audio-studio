@@ -54,7 +54,7 @@ Venture (brand and reusable media)
     │   └── Production (editable audio document)
     └── Production
         └── Part (speech, silence or linked media)
-            └── Take
+            └── Active recording (speech only)
 ```
 
 Voices and tools belong to Audio Studio, not to one Venture. A Venture owns its identity and reusable Intros, Outros, Music and Stingers. A Production may use any compatible application voice and linked Venture media.

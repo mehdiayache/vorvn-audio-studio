@@ -3974,17 +3974,6 @@
             ],
             "title": "Selected Take Id"
           },
-          "selected_take_number": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Selected Take Number"
-          },
           "selected_take_text_state": {
             "anyOf": [
               {
@@ -4107,11 +4096,6 @@
             "additionalProperties": true,
             "title": "Take Usage",
             "type": "object"
-          },
-          "takes": {
-            "default": 0,
-            "title": "Takes",
-            "type": "integer"
           },
           "text": {
             "title": "Text",
@@ -4662,26 +4646,6 @@
           "metrics"
         ],
         "title": "ProjectSummaryResponse",
-        "type": "object"
-      },
-      "PromoteBody": {
-        "additionalProperties": false,
-        "properties": {
-          "confirm_outdated": {
-            "default": false,
-            "title": "Confirm Outdated",
-            "type": "boolean"
-          },
-          "expected_revision": {
-            "minimum": 1.0,
-            "title": "Expected Revision",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "expected_revision"
-        ],
-        "title": "PromoteBody",
         "type": "object"
       },
       "PronunciationListEnvelope": {
@@ -5911,11 +5875,6 @@
             "title": "Seed",
             "type": "integer"
           },
-          "select_result": {
-            "default": true,
-            "title": "Select Result",
-            "type": "boolean"
-          },
           "session_id": {
             "anyOf": [
               {
@@ -7035,340 +6994,6 @@
           "worker"
         ],
         "title": "SystemHealthResponse",
-        "type": "object"
-      },
-      "TakeListEnvelope": {
-        "properties": {
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/TakeResponse"
-            },
-            "title": "Data",
-            "type": "array"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "TakeListEnvelope",
-        "type": "object"
-      },
-      "TakeResponse": {
-        "additionalProperties": true,
-        "properties": {
-          "binding_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Binding Id"
-          },
-          "binding_resolution_status": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Binding Resolution Status"
-          },
-          "capability_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Capability Id"
-          },
-          "catalogue_voice_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Catalogue Voice Id"
-          },
-          "cost": {
-            "title": "Cost",
-            "type": "number"
-          },
-          "cost_basis": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cost Basis"
-          },
-          "duration_ms": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Duration Ms"
-          },
-          "engine": {
-            "title": "Engine",
-            "type": "string"
-          },
-          "fidelity": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/FidelityResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "filename": {
-            "title": "Filename",
-            "type": "string"
-          },
-          "id": {
-            "title": "Id",
-            "type": "integer"
-          },
-          "instruction": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Instruction"
-          },
-          "language": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Language"
-          },
-          "model": {
-            "title": "Model",
-            "type": "string"
-          },
-          "outdated": {
-            "title": "Outdated",
-            "type": "boolean"
-          },
-          "pitch": {
-            "title": "Pitch",
-            "type": "number"
-          },
-          "provider": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider"
-          },
-          "provider_attempt_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Attempt Id"
-          },
-          "provider_attempt_status": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Attempt Status"
-          },
-          "provider_region": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Region"
-          },
-          "public_id": {
-            "title": "Public Id",
-            "type": "string"
-          },
-          "rate": {
-            "title": "Rate",
-            "type": "number"
-          },
-          "raw_text": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Raw Text"
-          },
-          "reference_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reference Id"
-          },
-          "seed": {
-            "title": "Seed",
-            "type": "integer"
-          },
-          "segmentation": {
-            "additionalProperties": true,
-            "title": "Segmentation",
-            "type": "object"
-          },
-          "size_bytes": {
-            "title": "Size Bytes",
-            "type": "integer"
-          },
-          "source_part_revision": {
-            "title": "Source Part Revision",
-            "type": "integer"
-          },
-          "source_script_hash": {
-            "title": "Source Script Hash",
-            "type": "string"
-          },
-          "tagged_text": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tagged Text"
-          },
-          "text": {
-            "title": "Text",
-            "type": "string"
-          },
-          "text_state": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Text State"
-          },
-          "tier": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tier"
-          },
-          "usage": {
-            "additionalProperties": true,
-            "title": "Usage",
-            "type": "object"
-          },
-          "voice": {
-            "title": "Voice",
-            "type": "string"
-          },
-          "voice_identity_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Voice Identity Id"
-          },
-          "voice_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Voice Name"
-          },
-          "when": {
-            "title": "When",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "when",
-          "voice",
-          "public_id",
-          "engine",
-          "model",
-          "rate",
-          "pitch",
-          "seed",
-          "filename",
-          "size_bytes",
-          "cost",
-          "text",
-          "source_part_revision",
-          "source_script_hash",
-          "outdated"
-        ],
-        "title": "TakeResponse",
         "type": "object"
       },
       "TextBody": {
@@ -12818,127 +12443,6 @@
         ]
       }
     },
-    "/api/v1/productions/{production_id}/parts/{part_id}/takes": {
-      "get": {
-        "operationId": "listProductionPartTakes",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "production_id",
-            "required": true,
-            "schema": {
-              "title": "Production Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "path",
-            "name": "part_id",
-            "required": true,
-            "schema": {
-              "title": "Part Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TakeListEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "List Takes",
-        "tags": [
-          "timeline"
-        ]
-      }
-    },
-    "/api/v1/productions/{production_id}/parts/{part_id}/takes/{take_id}/promote": {
-      "post": {
-        "operationId": "promoteProductionTake",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "production_id",
-            "required": true,
-            "schema": {
-              "title": "Production Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "path",
-            "name": "part_id",
-            "required": true,
-            "schema": {
-              "title": "Part Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "path",
-            "name": "take_id",
-            "required": true,
-            "schema": {
-              "title": "Take Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PromoteBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Promote Take",
-        "tags": [
-          "timeline"
-        ]
-      }
-    },
     "/api/v1/productions/{resource_id}": {
       "delete": {
         "operationId": "deleteProduction",
@@ -13389,6 +12893,41 @@
         "summary": "Get Project Overview",
         "tags": [
           "work"
+        ]
+      }
+    },
+    "/api/v1/recordings/{recording_id}/download": {
+      "get": {
+        "operationId": "downloadRecording",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recording_id",
+            "required": true,
+            "schema": {
+              "title": "Recording Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Recording",
+        "tags": [
+          "media"
         ]
       }
     },
@@ -14310,41 +13849,6 @@
         "summary": "Health",
         "tags": [
           "system"
-        ]
-      }
-    },
-    "/api/v1/takes/{take_id}/download": {
-      "get": {
-        "operationId": "downloadTake",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "take_id",
-            "required": true,
-            "schema": {
-              "title": "Take Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Download Take",
-        "tags": [
-          "media"
         ]
       }
     },

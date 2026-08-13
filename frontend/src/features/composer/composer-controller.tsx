@@ -49,7 +49,6 @@ export function routesAllowedForCastRole(routes: VoiceChoice[], role?: Productio
 
 type PendingGeneration = {
   command: SpeechGenerationCommand
-  selectResult: boolean
   updateEditorial: boolean
 }
 
@@ -171,7 +170,7 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
   const destination = !productionId
     ? "Standalone recording"
     : part
-      ? part.kind === "draft" ? `Record draft · Part ${(part.position ?? 0) + 1}` : `New Take · Part ${(part.position ?? 0) + 1}`
+      ? part.kind === "draft" ? `Record draft · Part ${(part.position ?? 0) + 1}` : `Replace recording · Part ${(part.position ?? 0) + 1}`
       : insertAt === null ? `New speech · Part ${nextPartNumber}` : `New speech · before Part ${insertAt + 1}`
   const context = useMemo(() => compositionContext({ productionId, part, insertAt, insertBeforePartId, sessionId }), [insertAt, insertBeforePartId, part, productionId, sessionId])
   const baseline = useMemo(() => editorialBaseline(part), [part])
@@ -239,13 +238,13 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
     return toGeneratePayload(nextCommand)
   }
 
-  async function executeGeneration(next: SpeechGenerationCommand, selectResult: boolean, updateEditorial: boolean) {
+  async function executeGeneration(next: SpeechGenerationCommand, updateEditorial: boolean) {
     setBusy("generate")
     try {
       if (updateEditorial && baseline && onUpdateEditorial) {
         await onUpdateEditorial({ expected_revision: baseline.revision, ...next.editorialPatch })
       }
-      await onGenerate({ ...payload(next), select_result: selectResult })
+      await onGenerate(payload(next))
       await recovery.clear()
     } finally {
       setBusy(null)
@@ -263,14 +262,14 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
     }
   }
 
-  function continueGeneration(next: SpeechGenerationCommand, selectResult: boolean, updateEditorial: boolean) {
+  function continueGeneration(next: SpeechGenerationCommand, updateEditorial: boolean) {
     const warnAbove = Number(config?.prefs?.warn_above || 0)
     if (!next.confirmed && warnAbove > 0 && estimate > warnAbove) {
-      setPendingCommand({ command: next, selectResult, updateEditorial })
+      setPendingCommand({ command: next, updateEditorial })
       setConfirmationEstimate(estimate)
       return
     }
-    void executeGeneration(next, selectResult, updateEditorial).catch(() => undefined)
+    void executeGeneration(next, updateEditorial).catch(() => undefined)
   }
 
   function generate(next = command()) {
@@ -278,7 +277,7 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
       setEditorialCommand(next)
       return
     }
-    continueGeneration(next, !part?.selected_take_id, false)
+    continueGeneration(next, false)
   }
 
   const performancePresets = selectedCapability

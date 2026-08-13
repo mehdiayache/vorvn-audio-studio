@@ -25,7 +25,7 @@ describe("RecordingTakeCard", () => {
     expect(screen.getByText("Qwen Audio 3.0 TTS · Flash")).toBeTruthy()
     expect(screen.getByText("qwen-audio-3.0-tts-flash")).toBeTruthy()
     expect(screen.getByText("مرحبا")).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Play take" }))
+    fireEvent.click(screen.getByRole("button", { name: "Play recording" }))
     fireEvent.click(screen.getByRole("button", { name: /Another take/ }))
     expect(play).toHaveBeenCalledOnce()
     expect(retry).toHaveBeenCalledOnce()
@@ -34,7 +34,7 @@ describe("RecordingTakeCard", () => {
   it("shows a pending attempt without a false playback action", () => {
     render(<RecordingTakeCard take={{ id: "pending", status: "pending", voice: "voice-3zzi", script: "Working" }} directory={directory} />)
     expect(screen.getByText("Generating")).toBeTruthy()
-    expect(screen.queryByRole("button", { name: /Play take/ })).toBeNull()
+    expect(screen.queryByRole("button", { name: /Play recording/ })).toBeNull()
   })
 
   it("shows an ambiguous attempt as review-required without retry", () => {

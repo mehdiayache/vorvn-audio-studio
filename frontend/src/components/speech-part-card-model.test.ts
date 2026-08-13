@@ -20,11 +20,11 @@ function part(values: Partial<ProductionPart> = {}): ProductionPart {
   return {
     id: 12, created_at: "2026-08-13T10:00:00Z", position: 2, kind: "speech",
     text: "Selected immutable script", selected_take_id: 93,
-    selected_take_number: 3, selected_take_text_state: "shaped",
+    selected_take_text_state: "shaped",
     voice_identity_id: "voice-maya", voice_name: "Maya",
     engine: "audio", tier: "flash", model: "qwen-audio-3.0-tts-flash",
     capability_name: "Expressive + tags", language: "English",
-    duration_ms: 12420, takes: 3, spent: .0312, cost: .01,
+    duration_ms: 12420, spent: .0312, cost: .01,
     cast_role_id: "role-paul", cast_role_name: "Paul",
     filename: "part-12.mp3", caption_source_language: "English",
     subtitled: true, languages: ["French"],
@@ -40,13 +40,13 @@ const castRole = {
 } satisfies ProductionCastRole
 
 describe("speechPartCardFacts", () => {
-  it("describes the immutable selected Take while separating future Cast voice", () => {
+  it("describes the active recording while separating future Cast voice", () => {
     const facts = speechPartCardFacts({ part: part(), speechJob: null, directory, castRole })
     expect(facts.selectedVoiceName).toBe("Maya")
     expect(facts.futureVoiceName).toBe("Eve")
     expect(facts.methodLine).toBe("Qwen Audio · Flash · Expressive + tags · EN")
     expect(facts.technicalDetail).toContain("Language: English")
-    expect(facts.takeSummary).toBe("Take 3 selected · 0:12.4 · 4 Takes · Spoken input")
+    expect(facts.recordingSummary).toBe("Active recording · 0:12.4 · Spoken input")
     expect(facts.captionSummary).toBe("EN + FR captions")
   })
 
@@ -54,49 +54,39 @@ describe("speechPartCardFacts", () => {
     const historical = part({ selected_take_text_state: null, take_tagged_text: "<happy>Tagged</happy>" })
     const facts = speechPartCardFacts({ part: historical, speechJob: null, directory })
     expect(facts.inputLabel).toBeNull()
-    expect(facts.takeSummary).toContain("Input unknown")
+    expect(facts.recordingSummary).toContain("Input unknown")
     expect(selectedTakeInputLabel("unexpected")).toBeNull()
   })
 
   it("keeps orthogonal warnings and one shared durable operation interpretation", () => {
-    const job: DurableJob<GenerateResult> & { request: { select_result: boolean } } = {
+    const job: DurableJob<GenerateResult> = {
       id: "speech-1", type: "speech", status: "blocked", progress: 0,
       detail: "Provider may have completed", retries: 1,
-      result: { ambiguous: true, requires_review: true }, request: { select_result: false },
+      result: { ambiguous: true, requires_review: true },
     }
     const facts = speechPartCardFacts({
       part: part({ outdated: true, missing: true, fidelity: { status: "warning", score: null, coverage: null, requested_words: 10, returned_words: 9, message: "Check wording" }, binding_resolution_status: "unresolved" }),
       speechJob: job, directory,
     })
     expect(facts.alerts.map((item) => item.key)).toEqual(["outdated", "missing", "fidelity", "route"])
-    expect(facts.operation).toMatchObject({ kind: "review", label: "TAKE 5 · REVIEW REQUIRED", canRetry: false })
+    expect(facts.operation).toMatchObject({ kind: "review", label: "RECORDING · REVIEW REQUIRED", canRetry: false })
     expect(facts.methodLine).toContain("Expressive + tags")
   })
 
-  it("shows a completed alternative without silently changing the selected Take", () => {
-    const job: DurableJob<GenerateResult> & { request: { select_result: boolean } } = {
-      id: "speech-2", type: "speech", status: "ok", progress: 1,
-      detail: "Complete", retries: 0, result: { take_id: 99 }, request: { select_result: false },
-    }
-    const facts = speechPartCardFacts({ part: part(), speechJob: job, directory })
-    expect(facts.operation).toMatchObject({ kind: "ready", label: "TAKE 4 READY", canReviewTake: true })
-    expect(facts.takeSummary).toContain("Take 3 selected")
-  })
-
   it.each([
-    ["queued", 0, {}, "active", "TAKE 5 · QUEUED", false, false],
-    ["running", 43, {}, "active", "TAKE 5 · GENERATING 43%", false, false],
-    ["retrying", 27, {}, "active", "TAKE 5 · RETRYING", false, false],
-    ["blocked", 0, { needs_confirmation: true }, "confirmation", "TAKE 5 · WAITING FOR CONFIRMATION", false, true],
-    ["blocked", 0, { requires_review: true }, "review", "TAKE 5 · REVIEW REQUIRED", false, false],
-    ["failed", 0, {}, "failed", "TAKE 5 · FAILED", true, false],
-    ["lost", 0, {}, "failed", "TAKE 5 · FAILED", true, false],
-    ["cancelled", 0, {}, "failed", "TAKE 5 · CANCELLED", false, false],
+    ["queued", 0, {}, "active", "RECORDING · QUEUED", false, false],
+    ["running", 43, {}, "active", "RECORDING · GENERATING 43%", false, false],
+    ["retrying", 27, {}, "active", "RECORDING · RETRYING", false, false],
+    ["blocked", 0, { needs_confirmation: true }, "confirmation", "RECORDING · WAITING FOR CONFIRMATION", false, true],
+    ["blocked", 0, { requires_review: true }, "review", "RECORDING · REVIEW REQUIRED", false, false],
+    ["failed", 0, {}, "failed", "RECORDING · FAILED", true, false],
+    ["lost", 0, {}, "failed", "RECORDING · FAILED", true, false],
+    ["cancelled", 0, {}, "failed", "RECORDING · CANCELLED", false, false],
   ] as const)("maps durable %s truth into the conditional operation presentation", (status, progress, result, kind, label, canRetry, canConfirm) => {
     const job = {
       id: `speech-${status}`, type: "speech", status, progress,
-      detail: `${status} detail`, retries: 0, result, request: { select_result: false },
-    } as DurableJob<GenerateResult> & { request: { select_result: boolean } }
+      detail: `${status} detail`, retries: 0, result,
+    } as DurableJob<GenerateResult>
 
     const operation = speechPartCardFacts({ part: part(), speechJob: job, directory }).operation
 

@@ -1,4 +1,4 @@
-"""Native speech generation use case for create, Take, and Draft operations."""
+"""Native speech generation for standalone, Part and Draft recordings."""
 
 from __future__ import annotations
 
@@ -80,8 +80,8 @@ def _truncation_warning(prepared: PreparedSpeech,
     detail = f"{duration_ms / 1000:.1f}s of audio for {len(compared)} characters"
     if prepared.language:
         return (f"This voice may not support {prepared.language} — {detail}. "
-                "Listen before using this Take or choose another voice.")
-    return f"The model may have stopped early — {detail}. Listen before using this Take."
+                "Listen before using this recording or choose another voice.")
+    return f"The model may have stopped early — {detail}. Listen before using this recording."
 
 
 def _fidelity_warning(result: SynthesizedSpeech) -> str | None:
@@ -175,7 +175,7 @@ class SpeechGenerationService:
                     part.get("selected_take_id") is not None):
                 raise ValueError("That pending speech Part has already been recorded.")
             if operation == "regenerate" and part.get("kind") not in {"audio", "speech"}:
-                raise ValueError("Only recorded speech can receive another Take.")
+                raise ValueError("Only recorded speech can replace its recording.")
             inherited = {key: part.get(key) for key in _SETTING_FIELDS}
             inherited["title"] = part.get("title")
             overrides = {key: value for key, value in values.items()
@@ -353,10 +353,6 @@ class SpeechGenerationService:
         row = _record(prepared, made, saved, effective)
         row["provider_attempt_id"] = int(attempt_id) if attempt_id else None
         row["_source_script_hash"] = values.get("_source_script_hash")
-        # Selection is an operation command, not a provider setting. Preserve
-        # the explicit caller contract across the provider/persistence seam so
-        # Generate Alternative can create a Take without silently promoting it.
-        row["select_result"] = bool(values.get("select_result", True))
         mutation: dict[str, int] = {}
         try:
             if operation == "create":
@@ -381,7 +377,7 @@ class SpeechGenerationService:
         except Exception as exc:
             raise JobFailed(
                 "The provider completed and the audio was saved, but Audio "
-                "Studio could not create its Take. The saved provider result "
+                "Studio could not attach its recording. The saved provider result "
                 "must be recovered instead of synthesized again.",
                 {"provider_attempt_id": attempt_id,
                  "provider_succeeded": True,
@@ -402,14 +398,13 @@ class SpeechGenerationService:
             on_progress(max(1, prepared.request_count),
                         max(1, prepared.request_count), "Speech ready")
 
-        warning = ("Alternative Take created without changing or selecting the Part."
-                   if mutation.get("selected") == 0
-                   and not bool(values.get("select_result", True)) else
-                   "The Part changed while this Take was generating. The "
-                   "historical Take was kept but not selected."
+        warning = ("The Part changed while this recording was generating. "
+                   "The paid provider result remains in Activity evidence but "
+                   "was not attached to the Part."
                    if mutation.get("selected") == 0 else
-                   "The Cast changed while this Take was generating. The "
-                   "historical Take was kept but not selected."
+                   "The Cast changed while this recording was generating. "
+                   "The paid provider result remains in Activity evidence but "
+                   "was not attached to the Part."
                    if mutation.get("cast_changed") else
                    _fidelity_warning(made) or _truncation_warning(
                        prepared, saved.duration_ms))

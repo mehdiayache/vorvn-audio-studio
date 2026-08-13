@@ -10,7 +10,6 @@ import type {
   GeneratePayload,
   GenerateResult,
   RecordingSession,
-  Take,
   Transcript,
   TranscriptSummary,
   TextPassResult,
@@ -314,8 +313,6 @@ export const studioApi = {
     request<TimelineOkEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/draft`, { method: "PATCH", body: JSON.stringify(states) }).then((response) => response.data),
   savePartEditorial: (productionId: number, id: number, values: { expected_revision: number; script?: string; cast_role_id?: string | null }) =>
     request<TimelineOkEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/editorial`, { method: "PATCH", body: JSON.stringify(values) }).then((response) => response.data),
-  takes: (productionId: number, id: number) => v1<Take[]>(`/api/v1/productions/${productionId}/parts/${id}/takes`).then((takes) => ({ takes })),
-  promoteTake: (productionId: number, partId: number, takeId: number, values: { expected_revision: number; confirm_outdated?: boolean }) => postV1<{ ok: boolean; subtitles_stale?: number; needs_confirmation?: boolean; outdated?: boolean; revision?: number }>(`/api/v1/productions/${productionId}/parts/${partId}/takes/${takeId}/promote`, values),
   captions: (productionId: number, id: number) => v1<TranscriptSummary[]>(`/api/v1/productions/${productionId}/parts/${id}/captions`).then((transcripts) => ({ transcripts })),
   transcript: (id: number) => v1<Transcript>(`/api/v1/subtitles/${id}`),
   enqueueTranscribePart: async (productionId: number, part: ProductionPart, confirmed = false) => {

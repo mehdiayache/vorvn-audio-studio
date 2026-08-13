@@ -13,7 +13,7 @@ const directory = { config: null, cloned: [], meta: {}, catalog: [], identities:
 const part = {
   id: 4, public_id: "part-public", created_at: "2026-08-12T00:00:00Z", position: 0,
   kind: "speech", text: "Canonical words", revision: 4, selected_take_id: 8,
-  selected_take_number: 1, selected_take_text_state: "raw",
+  selected_take_text_state: "raw",
   take_public_id: "take-public", take_raw_text: "Canonical words",
   take_spoken_text: "Provider wording", provider_text: "Provider wording",
   voice: "provider-voice", voice_name: "Sarah", cost: 0.04, spent: 0.08,
@@ -23,8 +23,8 @@ const part = {
 } as ProductionPart
 
 describe("Part Inspector panels", () => {
-  it("separates canonical Part script from selected Take wording", () => {
-    render(<PartInspectorScript part={part} directory={directory} currentPlaying={false} onPlay={vi.fn()} onNewTake={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
+  it("separates canonical Part script from active recording wording", () => {
+    render(<PartInspectorScript part={part} directory={directory} currentPlaying={false} onPlay={vi.fn()} onRecordPart={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
     expect(screen.getByText("Canonical Part script")).toBeTruthy()
     expect(screen.getAllByText("Canonical words")).toHaveLength(2)
     expect(screen.getByText("Provider returned wording")).toBeTruthy()
@@ -42,9 +42,9 @@ describe("Part Inspector panels", () => {
 
   it("does not project speech route concepts onto Silence Parts", () => {
     const silence = { ...part, id: 5, kind: "silence", text: "", duration_ms: 2500, selected_take_id: null } as ProductionPart
-    render(<PartInspectorScript part={silence} directory={directory} currentPlaying={false} onPlay={vi.fn()} onNewTake={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
+    render(<PartInspectorScript part={silence} directory={directory} currentPlaying={false} onPlay={vi.fn()} onRecordPart={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
     expect(screen.getByText("Intentional silence")).toBeTruthy()
-    expect(screen.getByText(/no Voice, Take, provider operation, captions, or generation spend/i)).toBeTruthy()
+    expect(screen.getByText(/no Voice, recording, provider operation, captions, or generation spend/i)).toBeTruthy()
     expect(screen.queryByText("Canonical Part script")).toBeNull()
   })
 
@@ -57,13 +57,13 @@ describe("Part Inspector panels", () => {
   })
 
   it("limits tabs by the current Part type", () => {
-    expect(partInspectorTabs(part)).toEqual(["script", "takes", "captions", "details"])
-    expect(partInspectorTabs({ ...part, kind: "draft" })).toEqual(["script", "details"])
-    expect(partInspectorTabs({ ...part, kind: "asset" })).toEqual(["script", "details"])
-    expect(partInspectorTabs({ ...part, kind: "silence" })).toEqual(["script", "details"])
+    expect(partInspectorTabs(part)).toEqual(["script", "captions", "details"])
+    expect(partInspectorTabs({ ...part, kind: "draft", selected_take_id: null })).toEqual(["script", "details"])
+    expect(partInspectorTabs({ ...part, kind: "asset", selected_take_id: null })).toEqual(["script", "details"])
+    expect(partInspectorTabs({ ...part, kind: "silence", selected_take_id: null })).toEqual(["script", "details"])
   })
 
-  it("shows Draft editorial facts without pretending a Take route exists", () => {
+  it("shows Draft editorial facts without pretending a recording route exists", () => {
     render(<PartInspectorDetails part={{ ...part, kind: "draft", selected_take_id: null, cast_role_id: "role-1" }} directory={directory} />)
     expect(screen.getByText("Draft speech")).toBeTruthy()
     expect(screen.getByText("role-1")).toBeTruthy()
@@ -71,15 +71,15 @@ describe("Part Inspector panels", () => {
     expect(screen.queryByText("Immutable evidence")).toBeNull()
   })
 
-  it("does not guess the selected Take input state from populated fields", () => {
+  it("does not guess the recording input state from populated fields", () => {
     expect(selectedTakeWording({ ...part, selected_take_text_state: null, take_raw_text: "Present", take_spoken_text: "Also present" })).toEqual({ state: null, label: "Unknown", value: "" })
   })
 
-  it("compares canonical editorial truth with only the active selected-Take wording", () => {
-    render(<PartInspectorScript part={part} directory={directory} currentPlaying={false} onPlay={vi.fn()} onNewTake={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
+  it("compares canonical editorial truth with the active recording wording", () => {
+    render(<PartInspectorScript part={part} directory={directory} currentPlaying={false} onPlay={vi.fn()} onRecordPart={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
     fireEvent.click(screen.getByRole("button", { name: "Compare" }))
-    expect(screen.getByRole("dialog", { name: "Compare Part and selected Take" })).toBeTruthy()
-    expect(screen.getByText("Current editorial truth beside the immutable wording used to create Take 1.")).toBeTruthy()
+    expect(screen.getByRole("dialog", { name: "Compare Part and active recording" })).toBeTruthy()
+    expect(screen.getByText("Current editorial truth beside the wording used to create the active recording.")).toBeTruthy()
     expect(screen.getAllByText("Original · used").length).toBeGreaterThan(0)
   })
 })

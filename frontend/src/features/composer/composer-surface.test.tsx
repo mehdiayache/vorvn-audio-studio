@@ -63,7 +63,7 @@ describe("shared Composer contract", () => {
     render(<ComposerSurface {...common} productionId={3} part={part} />)
     await waitFor(() => expect(screen.getAllByText("Sarah").length).toBeGreaterThan(0))
     expect(screen.getByText("Choose one exact route. Audio Studio never picks, replaces or falls back for you.")).toBeTruthy()
-    expect(screen.getByRole("button", { name: /Generate alternative/ }).hasAttribute("disabled")).toBe(true)
+    expect(screen.getByRole("button", { name: /Replace recording/ }).hasAttribute("disabled")).toBe(true)
   })
 
   it("compares immutable Original words with the prepared Spoken version", async () => {
@@ -99,24 +99,24 @@ describe("shared Composer contract", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: /Record Part/ }).hasAttribute("disabled")).toBe(false))
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "Revised words" } })
     fireEvent.click(screen.getByRole("button", { name: /Record Part/ }))
-    expect(screen.getByText("The Part has unsaved editorial changes")).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Generate alternative only" }))
-    await waitFor(() => expect(onGenerate).toHaveBeenCalledWith(expect.objectContaining({ select_result: false })))
-    expect(onUpdateEditorial).not.toHaveBeenCalled()
+    expect(screen.getByText("Update this Part before recording?")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Update Part and record" }))
+    await waitFor(() => expect(onUpdateEditorial).toHaveBeenCalledWith(expect.objectContaining({ expected_revision: 3, script: "Revised words" })))
+    expect(onGenerate).toHaveBeenCalledWith(expect.not.objectContaining({ select_result: expect.anything() }))
   })
 
-  it("submits an unchanged recorded Part alternative as intentionally non-selected", async () => {
+  it("replaces an unchanged recorded Part through the single-recording command", async () => {
     const onGenerate = vi.fn().mockResolvedValue({ id: "job-1" })
     const part = { id: 9, kind: "speech", text: "Existing words", text_raw: "Existing words", revision: 2, selected_take_id: 44, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
     render(<ComposerSurface {...common} productionId={3} part={part} onGenerate={onGenerate} />)
 
     fireEvent.click(await screen.findByRole("button", { name: /Expressive \+ tags/ }))
-    fireEvent.click(screen.getByRole("button", { name: /Generate alternative/ }))
+    fireEvent.click(screen.getByRole("button", { name: /Replace recording/ }))
 
-    await waitFor(() => expect(onGenerate).toHaveBeenCalledWith(expect.objectContaining({ select_result: false })))
+    await waitFor(() => expect(onGenerate).toHaveBeenCalledWith(expect.not.objectContaining({ select_result: expect.anything() })))
   })
 
-  it("preserves explicit selection when updating a Part and generating", async () => {
+  it("updates editorial truth before replacing the recording", async () => {
     const onGenerate = vi.fn().mockResolvedValue({ id: "job-1" })
     const onUpdateEditorial = vi.fn().mockResolvedValue(undefined)
     const part = { id: 10, kind: "speech", text: "Original words", text_raw: "Original words", revision: 4, selected_take_id: 45, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
@@ -124,11 +124,11 @@ describe("shared Composer contract", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /Expressive \+ tags/ }))
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "Revised words" } })
-    fireEvent.click(screen.getByRole("button", { name: /Generate alternative/ }))
-    fireEvent.click(screen.getByRole("button", { name: "Update Part and generate" }))
+    fireEvent.click(screen.getByRole("button", { name: /Replace recording/ }))
+    fireEvent.click(screen.getByRole("button", { name: "Update Part and record" }))
 
     await waitFor(() => expect(onUpdateEditorial).toHaveBeenCalledWith(expect.objectContaining({ expected_revision: 4, script: "Revised words" })))
-    expect(onGenerate).toHaveBeenCalledWith(expect.objectContaining({ select_result: true }))
+    expect(onGenerate).toHaveBeenCalledWith(expect.not.objectContaining({ select_result: expect.anything() }))
   })
 
   it("clears the recoverable Speak draft after a successful generation", async () => {

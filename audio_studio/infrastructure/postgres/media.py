@@ -1,4 +1,4 @@
-"""Minimal PostgreSQL lookup for immutable Take media."""
+"""Minimal PostgreSQL lookup for active recording media."""
 
 from __future__ import annotations
 

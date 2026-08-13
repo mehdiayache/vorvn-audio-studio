@@ -74,22 +74,6 @@ class Records:
         return True
 
     @staticmethod
-    def takes(_production_id, _part_id):
-        return [{"id": 12}]
-
-    @staticmethod
-    def promote(_production_id, _part_id, take_id, expected_revision,
-                confirm_outdated=False):
-        if take_id != 12:
-            return None
-        if expected_revision != 3:
-            return {"status": "conflict", "revision": 3}
-        if not confirm_outdated:
-            return {"status": "confirmation_required", "revision": 3,
-                    "outdated": True}
-        return {"status": "ok", "revision": 3, "outdated": True}
-
-    @staticmethod
     def save_script(_production_id, _part_id, _script, _values=None):
         return True
 
@@ -203,16 +187,7 @@ class TimelineServiceTests(unittest.TestCase):
             self.service.duplicate(6, 7)
         self.assertEqual(self.workspace.discarded, ["part-copy.mp3"])
 
-    def test_take_promotion_and_captions_share_injected_transcript_state(self):
-        review = self.service.promote(6, 7, 12, 3)
-        self.assertEqual(review, {"ok": False, "needs_confirmation": True,
-                                 "outdated": True, "revision": 3})
-        self.assertEqual(self.transcripts.stale, [])
-        promoted = self.service.promote(6, 7, 12, 3, True)
-        self.assertEqual(promoted, {
-            "ok": True, "needs_confirmation": False, "outdated": True,
-            "revision": 3, "subtitles_stale": 2})
-        self.assertEqual(self.transcripts.stale, [7])
+    def test_captions_share_injected_transcript_state(self):
         self.assertEqual(self.service.captions(6, 7), [{"part_id": 7}])
 
     def test_editorial_update_is_revision_guarded(self):

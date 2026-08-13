@@ -34,7 +34,7 @@ describe("productionHealth", () => {
     expect(issues.map((issue) => issue.title)).toEqual([
       "Speech not recorded",
       "Missing media",
-      "Take outdated",
+      "Recording outdated",
       "Captions need review",
       "Review required",
     ])

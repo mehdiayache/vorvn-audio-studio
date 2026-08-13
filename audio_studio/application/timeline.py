@@ -36,10 +36,6 @@ class TimelineRecords(Protocol):
         self, source_production_id: int, ids: list[int],
         destination_production_id: int,
     ) -> bool: ...
-    def takes(self, production_id: int, part_id: int) -> list[dict] | None: ...
-    def promote(self, production_id: int, part_id: int, take_id: int,
-                expected_revision: int,
-                confirm_outdated: bool = False) -> dict | None: ...
     def save_script(self, production_id: int, part_id: int,
                     script: str, values: dict | None = None) -> bool: ...
     def save_editorial(self, production_id: int, part_id: int,
@@ -257,32 +253,6 @@ class TimelineService:
                 source_production_id, selected, destination_production_id):
             raise TimelineError("Those Parts could not be moved.")
         return {"moved": len(selected)}
-
-    def takes(self, production_id: int, part_id: int) -> list[dict[str, Any]]:
-        self._part(production_id, part_id)
-        return self.records.takes(production_id, part_id) or []
-
-    def promote(
-        self, production_id: int, part_id: int, take_id: int,
-        expected_revision: int, confirm_outdated: bool = False,
-    ) -> dict[str, Any]:
-        self._part(production_id, part_id)
-        result = self.records.promote(
-            production_id, part_id, take_id, expected_revision,
-            confirm_outdated)
-        if not result:
-            raise TimelineError("That Take no longer belongs to this Part.")
-        if result["status"] == "conflict":
-            raise TimelineConflict(
-                "This Part changed in another view. Reload it before choosing a Take.",
-                current_revision=int(result["revision"]))
-        if result["status"] == "confirmation_required":
-            return {"ok": False, "needs_confirmation": True,
-                    "outdated": True, "revision": result["revision"]}
-        return {"ok": True, "needs_confirmation": False,
-                "outdated": bool(result["outdated"]),
-                "revision": result["revision"],
-                "subtitles_stale": self.transcripts.mark_stale(part_id)}
 
     def save_draft(
         self, production_id: int, part_id: int, values: dict[str, Any],

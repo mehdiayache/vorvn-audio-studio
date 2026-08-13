@@ -1,4 +1,4 @@
-"""Production accounting over immutable Jobs and Takes."""
+"""Production accounting over durable Jobs and active recording snapshots."""
 
 from __future__ import annotations
 

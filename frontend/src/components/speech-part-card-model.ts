@@ -17,7 +17,6 @@ export type SpeechPartOperationFact = {
   progress: number | null
   canRetry: boolean
   canConfirm: boolean
-  canReviewTake: boolean
 }
 
 export type SpeechPartCardFacts = {
@@ -33,12 +32,9 @@ export type SpeechPartCardFacts = {
   exactModel: string
   technicalDetail: string
   script: string
-  takeSummary: string
+  recordingSummary: string
   durationLabel: string
-  selectedTakeLabel: string
-  takeCountLabel: string
   inputLabel: "Original" | "Spoken" | "Tagged" | null
-  totalTakes: number
   captionSummary: string
   captionTone: "neutral" | "ready" | "active" | "warning" | "danger"
   spendSummary: string
@@ -133,32 +129,25 @@ function captionFacts(part: ProductionPart, job: DurableJob<unknown> | null) {
   }
 }
 
-function operationFacts(part: ProductionPart, job: (DurableJob<GenerateResult> & { request?: { select_result?: boolean } }) | null, totalTakes: number): SpeechPartOperationFact {
-  const idle: SpeechPartOperationFact = { kind: "idle", label: "", detail: "", progress: null, canRetry: false, canConfirm: false, canReviewTake: false }
+function operationFacts(job: DurableJob<GenerateResult> | null): SpeechPartOperationFact {
+  const idle: SpeechPartOperationFact = { kind: "idle", label: "", detail: "", progress: null, canRetry: false, canConfirm: false }
   if (!job) return idle
   const truth = durableOperationTruth(job as DurableJob<unknown>)
-  const requestedAlternative = job.request?.select_result === false
-  const returnedAlternative = requestedAlternative && Boolean(job.result?.take_id) && job.result.take_id !== part.selected_take_id
-  const takeNumber = Math.max(1, totalTakes)
-  if (["ok", "warning"].includes(job.status)) {
-    return returnedAlternative
-      ? { ...idle, kind: "ready", label: `TAKE ${takeNumber} READY`, detail: "A new alternative is available. The selected Take did not change.", canReviewTake: true }
-      : idle
-  }
-  if (truth.confirmation) return { ...idle, kind: "confirmation", label: `TAKE ${takeNumber} · WAITING FOR CONFIRMATION`, detail: truth.detail, canConfirm: true }
-  if (truth.review) return { ...idle, kind: "review", label: `TAKE ${takeNumber} · REVIEW REQUIRED`, detail: truth.detail }
-  if (truth.failed) return { ...idle, kind: "failed", label: `TAKE ${takeNumber} · ${truth.label.toUpperCase()}`, detail: truth.detail, canRetry: job.status !== "cancelled" }
+  if (["ok", "warning"].includes(job.status)) return idle
+  if (truth.confirmation) return { ...idle, kind: "confirmation", label: "RECORDING · WAITING FOR CONFIRMATION", detail: truth.detail, canConfirm: true }
+  if (truth.review) return { ...idle, kind: "review", label: "RECORDING · REVIEW REQUIRED", detail: truth.detail }
+  if (truth.failed) return { ...idle, kind: "failed", label: `RECORDING · ${truth.label.toUpperCase()}`, detail: truth.detail, canRetry: job.status !== "cancelled" }
   if (truth.active) {
     const progress = Math.max(0, Math.min(100, Math.round(Number(job.progress || 0))))
     const state = job.status === "queued" ? "QUEUED" : job.status === "retrying" ? "RETRYING" : `GENERATING ${progress}%`
-    return { ...idle, kind: "active", label: `TAKE ${takeNumber} · ${state}`, detail: truth.detail, progress }
+    return { ...idle, kind: "active", label: `RECORDING · ${state}`, detail: truth.detail, progress }
   }
   return idle
 }
 
 export function speechPartCardFacts({ part, speechJob, captionJob, directory, castRole }: {
   part: ProductionPart
-  speechJob: (DurableJob<GenerateResult> & { request?: { select_result?: boolean } }) | null
+  speechJob: DurableJob<GenerateResult> | null
   captionJob?: DurableJob<unknown> | null
   directory: VoiceDirectory
   castRole?: ProductionCastRole
@@ -171,22 +160,16 @@ export function speechPartCardFacts({ part, speechJob, captionJob, directory, ca
   const family = FAMILY_LABELS[String(model.engine || "")] || model.product
   const methodLine = [family, model.tierName, capability, languageCode(part.language)].filter(Boolean).join(" · ")
   const technicalDetail = [model.modelId, part.provider, part.provider_region, part.language ? `Language: ${part.language}` : ""].filter(Boolean).join(" · ")
-  const alternatives = Math.max(0, Number(part.takes || 0))
-  const totalTakes = alternatives + (recorded ? 1 : 0)
   const inputLabel = selectedTakeInputLabel(part.selected_take_text_state)
   const duration = partDurationMs(part)
   const durationLabel = compactDuration(duration)
-  const selectedTakeLabel = recorded
-    ? [`Take ${part.selected_take_number || "—"}`, inputLabel || "Unknown input"].join(" · ")
-    : "Not recorded"
-  const takeCountLabel = `${totalTakes} ${totalTakes === 1 ? "Take" : "Takes"}`
-  const takeSummary = recorded
-    ? [`Take ${part.selected_take_number || "—"} selected`, durationLabel, takeCountLabel, inputLabel ? `${inputLabel} input` : "Input unknown"].join(" · ")
+  const recordingSummary = recorded
+    ? ["Active recording", durationLabel, inputLabel ? `${inputLabel} input` : "Input unknown"].join(" · ")
     : "Not recorded · 0:00"
   const captions = captionFacts(part, captionJob || null)
   const alerts: SpeechPartAlert[] = []
   if (!recorded) alerts.push({ key: "draft", label: "Not recorded", tone: "neutral" })
-  if (part.outdated) alerts.push({ key: "outdated", label: "Take outdated", tone: "warning" })
+  if (part.outdated) alerts.push({ key: "outdated", label: "Recording outdated", tone: "warning" })
   if (part.missing) alerts.push({ key: "missing", label: "Missing audio", tone: "danger" })
   if (part.fidelity && part.fidelity.status !== "pass") alerts.push({ key: "fidelity", label: "Check wording", tone: "warning" })
   if (part.binding_resolution_status === "unresolved") alerts.push({ key: "route", label: "Historical route unavailable", tone: "warning" })
@@ -204,17 +187,14 @@ export function speechPartCardFacts({ part, speechJob, captionJob, directory, ca
     exactModel: model.modelId,
     technicalDetail,
     script: part.text || "Untitled speech",
-    takeSummary,
+    recordingSummary,
     durationLabel,
-    selectedTakeLabel,
-    takeCountLabel,
     inputLabel,
-    totalTakes,
     captionSummary: captions.summary,
     captionTone: captions.tone,
     spendSummary: Number(part.spent || 0) > 0 ? `${formatMoney(Number(part.spent))} spent` : "No generation spend",
     spendValue: Number(part.spent || 0) > 0 ? formatMoney(Number(part.spent)) : "—",
     alerts,
-    operation: operationFacts(part, speechJob, totalTakes + (speechJob && !["ok", "warning"].includes(speechJob.status) ? 1 : 0)),
+    operation: operationFacts(speechJob),
   }
 }

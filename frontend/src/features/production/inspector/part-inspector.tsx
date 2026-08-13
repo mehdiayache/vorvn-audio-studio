@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react"
 
 import { PartCaptionPanel } from "@/components/part-caption-panel"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -11,15 +9,14 @@ import type { PlayerSource, ProductionPart, VoiceDirectory } from "@/types/domai
 import type { PartDetailTab } from "@/components/sequence-actions"
 import { PartInspectorDetails } from "./part-inspector-details"
 import { PartInspectorScript } from "./part-inspector-script"
-import { PartInspectorTakes } from "./part-inspector-takes"
 
 import "@/features/production/production-inspector.css"
 
 export type PartInspectorTab = PartDetailTab
 
 export function partInspectorTabs(part: ProductionPart | null): PartInspectorTab[] {
-  return part && ["audio", "speech"].includes(part.kind)
-    ? ["script", "takes", "captions", "details"]
+  return part?.selected_take_id
+    ? ["script", "captions", "details"]
     : ["script", "details"]
 }
 
@@ -32,7 +29,7 @@ export type PartInspectorProps = {
   onClose: () => void
   onDuplicate: (part: ProductionPart) => void
   onDelete: (part: ProductionPart) => void
-  onNewTake: (part: ProductionPart) => void
+  onRecordPart: (part: ProductionPart) => void
   onPlay: (source: PlayerSource) => void
   onChanged: () => Promise<void>
   initialTab?: PartInspectorTab
@@ -49,10 +46,10 @@ function firstTabLabel(part: ProductionPart) {
   return part.kind === "silence" ? "Timing" : part.kind === "asset" ? "Asset" : "Text"
 }
 
-export function PartInspectorContent({ productionId, part, directory, playingKey, playerPlaying, onDuplicate, onDelete, onNewTake, onPlay, onChanged, initialTab = "script", onTabChange }: PartInspectorProps) {
+export function PartInspectorContent({ productionId, part, directory, playingKey, playerPlaying, onDuplicate, onDelete, onRecordPart, onPlay, onChanged, initialTab = "script", onTabChange }: PartInspectorProps) {
   const [tab, setTab] = useState<PartInspectorTab>(initialTab)
   const data = usePartDetailData(productionId, part, onChanged)
-  const recorded = Boolean(part && ["audio", "speech"].includes(part.kind))
+  const recorded = Boolean(part?.selected_take_id)
   useEffect(() => {
     const available = new Set(partInspectorTabs(part))
     setTab(available.has(initialTab) ? initialTab : "script")
@@ -63,16 +60,14 @@ export function PartInspectorContent({ productionId, part, directory, playingKey
   const changeTab = (value: string) => { const next = value as PartInspectorTab; setTab(next); onTabChange?.(next) }
   return <div className="part-inspector-content" data-part-kind={part.kind}>
         <Tabs value={tab} onValueChange={changeTab} className="part-inspector-tabs">
-          <TabsList variant="line"><TabsTrigger value="script">{firstTabLabel(part)}</TabsTrigger>{recorded && <TabsTrigger value="takes">Takes <span>{data.takes.length + 1}</span></TabsTrigger>}{recorded && <TabsTrigger value="captions">Captions <span>{data.captions.length}</span></TabsTrigger>}<TabsTrigger value="details">Details</TabsTrigger></TabsList>
+          <TabsList variant="line"><TabsTrigger value="script">{firstTabLabel(part)}</TabsTrigger>{recorded && <TabsTrigger value="captions">Captions <span>{data.captions.length}</span></TabsTrigger>}<TabsTrigger value="details">Details</TabsTrigger></TabsList>
           <ScrollArea className="part-inspector-scroll">
-            <TabsContent value="script"><PartInspectorScript part={part} directory={directory} currentPlaying={playerPlaying && playingKey === `part:${part.id}`} onPlay={onPlay} onNewTake={onNewTake} onDuplicate={onDuplicate} onDelete={onDelete} /></TabsContent>
-            {recorded && <TabsContent value="takes"><PartInspectorTakes part={part} takes={data.takes} loading={data.loading} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onNewTake={onNewTake} onPromote={(take) => void data.promote(take)} /></TabsContent>}
+            <TabsContent value="script"><PartInspectorScript part={part} directory={directory} currentPlaying={playerPlaying && playingKey === `part:${part.id}`} onPlay={onPlay} onRecordPart={onRecordPart} onDuplicate={onDuplicate} onDelete={onDelete} /></TabsContent>
             {recorded && <TabsContent value="captions"><PartCaptionPanel captions={data.captions} transcript={data.transcript} languages={directory.config?.languages || []} sourceLanguage={part.language} loading={data.loading} busy={data.captionBusy} confirmation={data.captionConfirmation} job={data.captionJob} onSelect={data.selectTranscript} onCreate={data.makeCaptions} onTranslate={data.translate} onConfirm={data.confirmCaptionAction} onCancel={data.cancelCaptionAction} onRetryJob={data.retryCaptionJob} onDismissJob={data.dismissCaptionJob} /></TabsContent>}
             <TabsContent value="details"><PartInspectorDetails part={part} directory={directory} /></TabsContent>
           </ScrollArea>
         </Tabs>
         {data.message && <div className="part-inspector-message" role="status" aria-live="polite">{data.message}</div>}
-        <Dialog open={Boolean(data.takeConfirmation)} onOpenChange={(open) => { if (!open) data.cancelTakeConfirmation() }}><DialogContent><DialogHeader><DialogTitle>Use this outdated Take?</DialogTitle><DialogDescription>This audio was made before the Part’s script or Cast changed. It remains historical and visibly outdated if you select it.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={data.cancelTakeConfirmation}>Cancel</Button><Button onClick={() => void data.confirmTake()}>Use outdated Take</Button></DialogFooter></DialogContent></Dialog>
   </div>
 }
 

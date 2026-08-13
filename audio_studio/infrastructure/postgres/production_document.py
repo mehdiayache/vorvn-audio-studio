@@ -1,7 +1,7 @@
 """Canonical PostgreSQL persistence for an editable Production document.
 
-Parts own editorial intent. Takes own generated performance. Provider settings
-are exposed from the selected Take only as a temporary response compatibility
+Parts own editorial intent. The internal recording snapshot owns generated
+performance facts. Provider settings are exposed from that active snapshot
 shape; they are never written back onto the Part.
 """
 
@@ -29,7 +29,7 @@ def _float(value, default: float = 0) -> float:
 
 
 class ProductionDocumentRepository:
-    """Own stable Parts, immutable Takes and background-music state."""
+    """Own stable Parts, one recording snapshot and background-music state."""
 
     @staticmethod
     def _legacy_id(cursor, production_id: int, *, lock: bool = False) -> int | None:
@@ -147,7 +147,7 @@ class ProductionDocumentRepository:
         }
 
     def parts(self, production_id: int) -> list[dict[str, Any]]:
-        """Return Parts plus a read-only projection of the selected Take."""
+        """Return Parts plus a read-only projection of the active recording."""
         with read_only() as cursor:
             cursor.execute("""
                 SELECT part.id, part.public_id, part.created_at, part.position,
@@ -208,7 +208,21 @@ class ProductionDocumentRepository:
                   LEFT JOIN asset_collections collection ON collection.id = asset.collection_id
                   LEFT JOIN LATERAL (
                     SELECT count(*) AS take_count,
-                           coalesce(sum(cost), 0) AS spend,
+                           coalesce((
+                             SELECT sum(CASE
+                               WHEN attempt.status = 'ambiguous'
+                                 THEN greatest(attempt.estimated_cost,
+                                               coalesce(attempt.cost, 0))
+                               ELSE coalesce(attempt.cost, 0)
+                             END)
+                               FROM provider_attempts attempt
+                               JOIN jobs job ON job.id = attempt.job_id
+                              WHERE job.part_id = part.id
+                                AND job.kind = 'speech'
+                           ), 0)
+                           + coalesce(sum(item.cost) FILTER (
+                               WHERE item.provider_attempt_id IS NULL), 0)
+                             AS spend,
                            count(*) FILTER (
                              WHERE take.id IS NOT NULL
                                AND (item.created_at < take.created_at
@@ -276,7 +290,6 @@ class ProductionDocumentRepository:
                 "cast_role_id": str(row[7]) if row[7] else None,
                 "cast_role_name": row[8], "editorial_status": row[9],
                 "revision": row[10], "selected_take_id": row[11],
-                "selected_take_number": int(row[70]) if row[70] else None,
                 "selected_take_text_state": (
                     snapshot.get("text_state") if has_selected_take else None),
                 "outdated": bool(row[11] and (
@@ -339,7 +352,6 @@ class ProductionDocumentRepository:
                                job_payload.get("binding_id")),
                 "catalogue_voice_id": (row[40] if has_selected_take else
                                        job_payload.get("catalogue_voice_id")),
-                "takes": max(0, int(row[32] or 0) - (1 if row[11] else 0)),
                 "subtitled": bool(row[36]), "subtitles_stale": bool(row[37]),
                 "languages": sorted(set(row[38] or [])),
                 "caption_source_language": row[83],
@@ -808,91 +820,3 @@ class ProductionDocumentRepository:
                   FROM ranked WHERE part.id=ranked.id
             """, (source_production_id,))
             return True
-
-    def takes(self, production_id: int, part_id: int) -> list[dict[str, Any]] | None:
-        with read_only() as cursor:
-            part = self._part_row(cursor, production_id, part_id)
-            if not part:
-                return None
-            cursor.execute("""
-                SELECT take.id, take.created_at, take.provider_voice_id,
-                       take.voice_identity_id, take.model_id, take.tier,
-                       take.filename, take.size_bytes, take.cost,
-                       take.spoken_text, take.duration_ms, take.delivery,
-                       take.language, take.diagnostics,
-                       take.source_part_revision, take.source_script_hash,
-                       take.binding_id, take.capability_id, take.snapshot,
-                       take.voice_name_snapshot, take.public_id,
-                       take.reference_id, take.catalogue_voice_id,
-                       take.provider, take.provider_region, take.tier,
-                       take.raw_text, take.tagged_text, take.usage,
-                       take.segmentation, take.cost_basis,
-                       take.binding_resolution_status,
-                       attempt.public_id, attempt.status
-                  FROM takes take
-                  LEFT JOIN provider_attempts attempt
-                    ON attempt.id = take.provider_attempt_id
-                 WHERE take.part_id=%s AND take.id IS DISTINCT FROM %s
-                 ORDER BY take.created_at DESC
-            """, (part_id, part[10]))
-            rows = cursor.fetchall()
-        return [{
-            "id": row[0], "when": row[1].isoformat(), "voice": row[2] or "",
-            "voice_name": row[19] or (row[18] or {}).get("voice_name") or "",
-            "public_id": str(row[20]), "reference_id": row[21],
-            "catalogue_voice_id": row[22], "provider": row[23],
-            "provider_region": row[24], "tier": row[25],
-            "raw_text": row[26], "tagged_text": row[27],
-            "usage": row[28] or {}, "segmentation": row[29] or {},
-            "cost_basis": row[30], "binding_resolution_status": row[31],
-            "provider_attempt_id": str(row[32]) if row[32] else None,
-            "provider_attempt_status": row[33],
-            "voice_identity_id": row[3], "engine": (row[18] or {}).get("engine", ""),
-            "text_state": (row[18] or {}).get("text_state"),
-            "model": row[4] or "", "rate": _float((row[11] or {}).get("rate"), 1),
-            "pitch": _float((row[11] or {}).get("pitch"), 1),
-            "seed": int((row[11] or {}).get("seed", 0) or 0),
-            "filename": row[6], "size_bytes": int(row[7] or 0),
-            "cost": _float(row[8]), "text": row[9] or "",
-            "duration_ms": row[10], "instruction": (row[11] or {}).get("instruction"),
-            "language": row[12], "fidelity": (row[13] or {}).get("fidelity") or None,
-            "source_part_revision": row[14],
-            "outdated": (row[14] != part[9]
-                         or row[15] != script_hash(str(part[5] or ""))),
-            "source_script_hash": row[15],
-            "binding_id": str(row[16]) if row[16] else None,
-            "capability_id": row[17],
-        } for row in rows]
-
-    def promote(self, production_id: int, part_id: int, take_id: int,
-                expected_revision: int,
-                confirm_outdated: bool = False) -> dict[str, Any] | None:
-        with transaction() as cursor:
-            row = self._part_row(cursor, production_id, part_id, lock=True)
-            if not row:
-                return None
-            current_revision = int(row[9])
-            if current_revision != int(expected_revision):
-                return {"status": "conflict", "revision": current_revision}
-            cursor.execute("SELECT source_part_revision, source_script_hash FROM takes WHERE id=%s AND part_id=%s",
-                           (take_id, part_id))
-            take = cursor.fetchone()
-            if not take:
-                return None
-            outdated = (int(take[0]) != current_revision
-                        or str(take[1]) != script_hash(str(row[5] or "")))
-            if outdated and not confirm_outdated:
-                return {"status": "confirmation_required",
-                        "revision": current_revision, "outdated": True}
-            cursor.execute("UPDATE production_parts SET selected_take_id=%s, updated_at=now() WHERE id=%s",
-                           (take_id, part_id))
-            cursor.execute("""
-                INSERT INTO audit_records
-                    (action, resource_type, resource_id, detail)
-                VALUES ('take.selected','production_part',%s,%s::jsonb)
-            """, (str(row[1]), json.dumps({
-                "take_id": take_id, "part_revision": current_revision,
-                "take_revision": int(take[0]), "outdated": outdated,
-            })))
-            return {"status": "ok", "revision": current_revision,
-                    "outdated": outdated}

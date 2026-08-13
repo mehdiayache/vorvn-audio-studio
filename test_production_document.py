@@ -103,7 +103,7 @@ class ProductionDocumentTests(unittest.TestCase):
                                (self.legacy_rows,))
             database.commit()
 
-    def test_part_take_music_move_and_delete_flow(self):
+    def test_part_recording_music_move_and_delete_flow(self):
         first_id, second_id = int(self.first["id"]), int(self.second["id"])
         collections = self.asset_repository.collections_for_venture(
             int(self.venture["id"]))
@@ -180,22 +180,20 @@ class ProductionDocumentTests(unittest.TestCase):
                 """, (f"retained-{self.marker}.mp3",
                       f"/durable/retained-{self.marker}.mp3", draft["id"]))
                 take_id = int(cursor.fetchone()[0])
+                cursor.execute("""
+                    UPDATE production_parts
+                       SET selected_take_id=%s, kind='speech'
+                     WHERE id=%s
+                """, (take_id, draft["id"]))
             database.commit()
-        archived_take = self.timeline.takes(first_id, draft["id"])[0]
-        self.assertEqual(archived_take["id"], take_id)
-        self.assertEqual(archived_take["engine"], "omni")
-        self.assertEqual(archived_take["model"], "qwen3.5-omni-plus")
-        self.assertEqual(archived_take["tier"], "plus")
-        self.assertEqual(archived_take["text_state"], "raw")
-        self.assertIsNone(archived_take["fidelity"])
-        current_draft = self.repository.part(first_id, draft["id"])
-        review = self.timeline.promote(
-            first_id, draft["id"], take_id, current_draft["revision"])
-        self.assertTrue(review["needs_confirmation"])
-        promoted = self.timeline.promote(
-            first_id, draft["id"], take_id, current_draft["revision"], True)
-        self.assertTrue(promoted["ok"])
-        self.assertEqual(self.transcripts.stale, [draft["id"]])
+        recording = next(item for item in self.repository.parts(first_id)
+                         if item["id"] == draft["id"])
+        self.assertEqual(recording["selected_take_id"], take_id)
+        self.assertEqual(recording["engine"], "omni")
+        self.assertEqual(recording["model"], "qwen3.5-omni-plus")
+        self.assertEqual(recording["tier"], "plus")
+        self.assertEqual(recording["selected_take_text_state"], "raw")
+        self.assertIsNone(recording["fidelity"])
         self.assertEqual(self.repository.generation(draft["id"])["text"],
                          "A quiet opening")
 
@@ -225,7 +223,8 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual(len(editor["parts"]), 3)
 
         self.assertEqual(next(item for item in editor["parts"]
-                              if item["id"] == draft["id"])["takes"], 0)
+                              if item["id"] == draft["id"])["selected_take_id"],
+                         take_id)
         ProductionEditorEnvelope.model_validate({"data": editor})
 
         accounting = ProductionAccountingRepository()
@@ -278,7 +277,7 @@ class ProductionDocumentTests(unittest.TestCase):
             [third["id"], first["id"], second["id"]],
         )
 
-    def test_editorial_revision_and_outdated_take_require_human_confirmation(self):
+    def test_editorial_revision_marks_the_active_recording_outdated(self):
         production_id = int(self.first["id"])
         draft = self.timeline.add_draft(production_id, {
             "text": "Original words", "insert_at": 0,
@@ -299,19 +298,17 @@ class ProductionDocumentTests(unittest.TestCase):
                     RETURNING id
                 """, (draft["id"], part["revision"]))
                 take_id = int(cursor.fetchone()[0])
+                cursor.execute("""
+                    UPDATE production_parts
+                       SET selected_take_id=%s, kind='speech'
+                     WHERE id=%s
+                """, (take_id, draft["id"]))
             database.commit()
 
         changed = self.timeline.save_editorial(
             production_id, draft["id"], part["revision"],
             {"script": "Revised words"})
-        self.assertEqual((changed["revision"], changed["outdated"]), (2, False))
-        review = self.timeline.promote(
-            production_id, draft["id"], take_id, changed["revision"])
-        self.assertTrue(review["needs_confirmation"])
-        self.assertEqual(self.transcripts.stale, [])
-        selected = self.timeline.promote(
-            production_id, draft["id"], take_id, changed["revision"], True)
-        self.assertTrue(selected["outdated"])
+        self.assertEqual((changed["revision"], changed["outdated"]), (2, True))
         current = self.repository.part(production_id, draft["id"])
         self.assertEqual((current["revision"], current["selected_take_id"]),
                          (2, take_id))
@@ -321,72 +318,58 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual((unchanged["changed"], unchanged["outdated"]),
                          (False, True))
 
-    def test_selected_take_projection_is_stable_immutable_and_caption_relevant(self):
+    def test_active_recording_projection_is_immutable_and_caption_relevant(self):
         production_id = int(self.first["id"])
         draft = self.timeline.add_draft(production_id, {
             "text": "The selected performance stays true", "insert_at": 0,
             "voice": "future-eve", "engine": "audio", "model": "flash",
         })
         part = self.repository.part(production_id, draft["id"])
-        take_ids: list[int] = []
-        filenames = [f"ordinal-{index}-{self.marker}.mp3" for index in range(1, 4)]
-        snapshots = [
-            {"engine": "omni", "model": "qwen3.5-omni-plus",
-             "voice_name": "Maya", "text_state": "raw", "language": "English",
-             "capability_id": "expressive-tags"},
-            {"engine": "omni", "model": "qwen3.5-omni-plus",
-             "voice_name": "Maya", "text_state": "shaped", "language": "English",
-             "capability_id": "expressive-tags"},
-            {"engine": "audio", "model": "qwen3-tts-flash",
-             "voice_name": "Eve", "text_state": "tagged", "language": "French",
-             "capability_id": "expressive-tags"},
-        ]
+        filename = f"recording-{self.marker}.mp3"
+        snapshot = {
+            "engine": "omni", "model": "qwen3.5-omni-plus",
+            "voice_name": "Maya", "text_state": "shaped",
+            "language": "English", "capability_id": "expressive-tags",
+        }
         with psycopg.connect(settings.database_url) as database:
             with database.cursor() as cursor:
-                for index, (filename, snapshot) in enumerate(zip(filenames, snapshots)):
-                    cursor.execute("""
-                        INSERT INTO takes
-                            (part_id, source_part_revision, source_script_hash,
-                             provider, provider_region, provider_voice_id,
-                             model_id, tier, language,
-                             raw_text, spoken_text, tagged_text, filename, path,
-                             cost, cost_basis, snapshot, voice_name_snapshot,
-                             created_at)
-                        VALUES (%s,%s,encode(digest(%s,'sha256'),'hex'),
-                                'alibaba','intl',%s,%s,%s,%s,
-                                %s,%s,%s,%s,%s,0.01,'actual_usage',%s::jsonb,%s,
-                                TIMESTAMPTZ '2026-08-13 10:00:00+00'
-                                  + make_interval(secs => %s))
-                        RETURNING id
-                    """, (
-                        draft["id"], part["revision"],
-                        "The selected performance stays true",
-                        f"provider-{index}", snapshot["model"],
-                        "plus" if index < 2 else "flash", snapshot["language"],
-                        "Raw words", "Spoken words",
-                        "<happy>Tagged words</happy>", filename,
-                        f"/durable/{filename}", json.dumps(snapshot),
-                        snapshot["voice_name"], 0 if index < 2 else 1,
-                    ))
-                    take_ids.append(int(cursor.fetchone()[0]))
+                cursor.execute("""
+                    INSERT INTO takes
+                        (part_id, source_part_revision, source_script_hash,
+                         provider, provider_region, provider_voice_id,
+                         model_id, tier, language, raw_text, spoken_text,
+                         tagged_text, filename, path, cost, cost_basis,
+                         snapshot, voice_name_snapshot)
+                    VALUES (%s,%s,encode(digest(%s,'sha256'),'hex'),
+                            'alibaba','intl','provider-current',%s,'plus',%s,
+                            'Raw words','Spoken words','<happy>Tagged words</happy>',
+                            %s,%s,0.01,'actual_usage',%s::jsonb,%s)
+                    RETURNING id
+                """, (
+                    draft["id"], part["revision"],
+                    "The selected performance stays true", snapshot["model"],
+                    snapshot["language"], filename, f"/durable/{filename}",
+                    json.dumps(snapshot), snapshot["voice_name"],
+                ))
+                recording_id = int(cursor.fetchone()[0])
                 cursor.execute("""
                     UPDATE production_parts
                        SET selected_take_id=%s, kind='speech'
                      WHERE id=%s
-                """, (take_ids[1], draft["id"]))
+                """, (recording_id, draft["id"]))
             database.commit()
 
         jobs = JobRepository()
         selected_caption, _ = jobs.enqueue(
             "transcribe", {
                 "part_id": draft["id"], "production_id": production_id,
-                "file": filenames[1],
+                "file": filename,
             }, idempotency_key=f"selected-caption-{self.marker}",
             production_id=production_id, part_id=draft["id"])
         obsolete_caption, _ = jobs.enqueue(
             "transcribe", {
                 "part_id": draft["id"], "production_id": production_id,
-                "file": filenames[0],
+                "file": f"obsolete-{self.marker}.mp3",
             }, idempotency_key=f"obsolete-caption-{self.marker}",
             production_id=production_id, part_id=draft["id"])
         with psycopg.connect(settings.database_url) as database:
@@ -400,15 +383,13 @@ class ProductionDocumentTests(unittest.TestCase):
                            error='Obsolete take failed', finished_at=now()
                      WHERE id=%s
                 """, (
-                    json.dumps({"take_id": take_ids[0]}),
+                    json.dumps({"take_id": 999999999}),
                     obsolete_caption.id,
                 ))
             database.commit()
 
         projected = self.repository.parts(production_id)[0]
-        self.assertEqual(projected["selected_take_number"], 2)
         self.assertEqual(projected["selected_take_text_state"], "shaped")
-        self.assertEqual(projected["takes"], 2)
         self.assertEqual(projected["voice_name"], "Maya")
         self.assertEqual(projected["model"], "qwen3.5-omni-plus")
         self.assertEqual(projected["language"], "English")
@@ -421,7 +402,7 @@ class ProductionDocumentTests(unittest.TestCase):
                 cursor.execute("""
                     UPDATE takes SET snapshot = snapshot - 'text_state'
                      WHERE id=%s
-                """, (take_ids[1],))
+                """, (recording_id,))
             database.commit()
         historical = self.repository.parts(production_id)[0]
         self.assertIsNone(historical["selected_take_text_state"])

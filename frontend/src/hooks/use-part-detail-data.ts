@@ -3,19 +3,17 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { studioApi } from "@/lib/api"
 import { useJobExecution } from "@/hooks/use-job-execution"
 import { useJobQuery } from "@/hooks/use-job-query"
-import type { CaptionMutationResult, ProductionPart, Take, Transcript, TranscriptSummary } from "@/types/domain"
+import type { CaptionMutationResult, ProductionPart, Transcript, TranscriptSummary } from "@/types/domain"
 
 export type CaptionConfirmation = { kind: "transcribe" | "translate"; estimate: number; target?: string }
 
 export function usePartDetailData(productionId: number, part: ProductionPart | null, onChanged: () => Promise<void>) {
-  const [takes, setTakes] = useState<Take[]>([])
   const [captions, setCaptions] = useState<TranscriptSummary[]>([])
   const [transcript, setTranscript] = useState<Transcript | null>(null)
   const [loading, setLoading] = useState(false)
   const [captionBusy, setCaptionBusy] = useState<"transcribe" | "translate" | null>(null)
   const [captionConfirmation, setCaptionConfirmation] = useState<CaptionConfirmation | null>(null)
   const [message, setMessage] = useState("")
-  const [takeConfirmation, setTakeConfirmation] = useState<Take | null>(null)
   const [captionJobId, setCaptionJobId] = useJobQuery("part-caption-job")
   const captionJob = useJobExecution<CaptionMutationResult>(captionJobId)
   const requestRef = useRef(0)
@@ -28,9 +26,8 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
 
   const reload = useCallback(async (activePart: ProductionPart, preferId?: number) => {
     const request = ++requestRef.current
-    const [takeResult, captionResult] = await Promise.all([studioApi.takes(productionId, activePart.id), studioApi.captions(productionId, activePart.id)])
+    const captionResult = await studioApi.captions(productionId, activePart.id)
     if (request !== requestRef.current) return
-    setTakes(takeResult.takes || [])
     const nextCaptions = captionResult.transcripts || []
     setCaptions(nextCaptions)
     const preferred = nextCaptions.find((item) => item.id === preferId)
@@ -46,9 +43,9 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
   useEffect(() => {
     requestRef.current += 1
     transcriptRequestRef.current += 1
-    if (!part || !["audio", "speech"].includes(part.kind)) { setTakes([]); setCaptions([]); setTranscript(null); return }
+    if (!part || !["audio", "speech"].includes(part.kind)) { setCaptions([]); setTranscript(null); return }
     let active = true
-    setLoading(true); setTranscript(null); setMessage(""); setCaptionConfirmation(null); setTakeConfirmation(null)
+    setLoading(true); setTranscript(null); setMessage(""); setCaptionConfirmation(null)
     reload(part).catch((error) => { if (active) setMessage(error instanceof Error ? error.message : "Details could not be loaded.") }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [part?.id, part?.kind, reload])
@@ -59,19 +56,6 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
     try { const next = await studioApi.transcript(item.id); if (request === transcriptRequestRef.current) { setTranscript(next); setMessage("") } }
     catch (error) { if (request === transcriptRequestRef.current) setMessage(error instanceof Error ? error.message : "Captions could not be opened.") }
   }, [])
-
-  const promote = useCallback(async (take: Take, confirmed = false) => {
-    if (!part) return
-    setMessage("Switching takes…")
-    try {
-      const result = await studioApi.promoteTake(productionId, part.id, take.id, { expected_revision: part.revision || 1, confirm_outdated: confirmed })
-      if (result.needs_confirmation) { setTakeConfirmation(take); setMessage(""); return }
-      setTakeConfirmation(null)
-      setMessage(result.outdated ? "Older Take selected. It remains marked outdated because the Part has changed." : "Take selected. Existing captions are marked for review.")
-      await onChanged(); await reload(part)
-    }
-    catch (error) { setMessage(error instanceof Error ? error.message : "The take could not be promoted.") }
-  }, [onChanged, part, productionId, reload])
 
   const makeCaptions = useCallback(async () => {
     if (!part) return
@@ -131,5 +115,5 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
     else await makeCaptions()
   }, [captionJobForPart?.context?.target, captionJobForPart?.type, makeCaptions, translate])
 
-  return { takes, captions, transcript, loading, captionBusy, captionConfirmation, captionJob: captionJobForPart, takeConfirmation, message, selectTranscript, promote, confirmTake: () => takeConfirmation ? promote(takeConfirmation, true) : Promise.resolve(), cancelTakeConfirmation: () => setTakeConfirmation(null), makeCaptions, translate, confirmCaptionAction, cancelCaptionAction: () => setCaptionConfirmation(null), retryCaptionJob, dismissCaptionJob: () => setCaptionJobId(null) }
+  return { captions, transcript, loading, captionBusy, captionConfirmation, captionJob: captionJobForPart, message, selectTranscript, makeCaptions, translate, confirmCaptionAction, cancelCaptionAction: () => setCaptionConfirmation(null), retryCaptionJob, dismissCaptionJob: () => setCaptionJobId(null) }
 }

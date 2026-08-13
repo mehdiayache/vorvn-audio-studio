@@ -42,13 +42,13 @@ class MediaServiceTests(unittest.TestCase):
             [("audio", "take.mp3", None, None)],
         )
 
-    def test_export_and_take_ids_resolve_persisted_names(self):
+    def test_export_and_recording_ids_resolve_persisted_names(self):
         exported = self.service.export_file(91)
-        generated = self.service.take_file(150)
+        generated = self.service.recording_file(150)
         self.assertEqual(exported.download_name, "final.mp3")
         self.assertEqual(generated.download_name, "take.mp3")
         self.assertIsNone(self.service.export_file(404))
-        self.assertIsNone(self.service.take_file(404))
+        self.assertIsNone(self.service.recording_file(404))
 
 
 if __name__ == "__main__":

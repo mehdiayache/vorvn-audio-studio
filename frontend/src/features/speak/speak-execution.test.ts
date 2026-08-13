@@ -28,7 +28,7 @@ describe("Speak execution ownership", () => {
     expect(recoverSpeakExecutions(recovered, session)).toBe(recovered)
   })
 
-  it("keeps ambiguous work separate from ordinary failures and successful Takes", () => {
+  it("keeps ambiguous work separate from ordinary failures and successful recordings", () => {
     expect(recordingAttemptStatus({ status: "blocked" })).toBe("review")
     expect(recordingAttemptStatus({ status: "failed" })).toBe("failed")
     expect(recordingAttemptStatus({ status: "running" })).toBe("pending")

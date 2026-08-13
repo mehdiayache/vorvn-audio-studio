@@ -90,7 +90,6 @@ export type ProductionPart = {
   cast_role_name?: string | null
   revision?: number
   selected_take_id?: number | null
-  selected_take_number?: number | null
   selected_take_text_state?: "raw" | "shaped" | "tagged" | string | null
   editorial_status?: string | null
   speech_job?: (DurableJob<GenerateResult> & { request: GeneratePayload }) | null
@@ -120,7 +119,6 @@ export type ProductionPart = {
   cost_basis?: string
   provider_text?: string | null
   fidelity?: FidelityResult
-  takes?: number
   subtitled?: boolean
   subtitles_stale?: boolean
   caption_source_language?: string | null
@@ -364,47 +362,6 @@ export type VoiceDirectory = {
   usage?: Record<string, { uses: number; folders: number; spend: number; last_used?: string | null; latest_preview?: string | null }>
 }
 
-export type Take = {
-  id: number
-  public_id: string
-  when: string
-  voice: string
-  voice_name?: string
-  voice_identity_id?: string | null
-  engine: string
-  model: string
-  rate: number
-  pitch: number
-  seed: number
-  filename: string
-  size_bytes: number
-  cost: number
-  text: string
-  duration_ms?: number | null
-  instruction?: string
-  language?: string
-  fidelity?: FidelityResult
-  source_part_revision: number
-  source_script_hash: string
-  outdated: boolean
-  binding_id?: string | null
-  catalogue_voice_id?: string | null
-  capability_id?: string | null
-  reference_id?: string | null
-  provider?: string | null
-  provider_region?: string | null
-  tier?: string | null
-  raw_text?: string | null
-  tagged_text?: string | null
-  text_state?: "raw" | "shaped" | "tagged" | string | null
-  usage?: Record<string, unknown>
-  segmentation?: Record<string, unknown>
-  cost_basis?: string | null
-  binding_resolution_status?: string | null
-  provider_attempt_id?: string | null
-  provider_attempt_status?: string | null
-}
-
 export type HistoricalVoiceReference = components["schemas"]["HistoricalVoiceResponse"]
 
 export type TranscriptSummary = {
@@ -463,10 +420,10 @@ type SpeechJobCreateRequest = components["schemas"]["SpeechJobCreate"]
 
 export type GeneratePayload = Omit<
   SpeechJobCreateRequest,
-  "operation" | "part_id" | "confirmed" | "select_result" | "text_state"
+  "operation" | "part_id" | "confirmed" | "text_state"
 > & Partial<Pick<
   SpeechJobCreateRequest,
-  "confirmed" | "select_result" | "text_state"
+  "confirmed" | "text_state"
 >> & {
   /** The API permits omission, but the shared Composer always owns this value. */
   insert_at: number | null

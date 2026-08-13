@@ -7,7 +7,7 @@ import type { CaptionMutationResult, DurableJob, ProductionPart } from "@/types/
 afterEach(() => { jobObserver.reset(); vi.restoreAllMocks() })
 
 describe("Part caption Job API", () => {
-  it("sends the selected Take output language as transcription context", async () => {
+  it("sends the active recording output language as transcription context", async () => {
     const queued: DurableJob<CaptionMutationResult> = { id: "caption-job", type: "transcribe", status: "queued", progress: 0, detail: "Queued", retries: 0, result: {} as CaptionMutationResult, part_id: 12 }
     const fetch = vi.fn().mockResolvedValue({ ok: true, status: 202, json: async () => ({ data: queued }) })
     vi.stubGlobal("fetch", fetch)

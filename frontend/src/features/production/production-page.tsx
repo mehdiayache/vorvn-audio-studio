@@ -26,8 +26,8 @@ import type { AssetCollection, DurableJob, GeneratePayload, GenerateResult, Hier
 
 const ProductionOverlays = lazy(() => import("@/features/production/production-overlays"))
 
-const PART_SECTION_TO_TAB: Record<string, PartDetailTab> = { text: "script", takes: "takes", captions: "captions", details: "details" }
-const PART_TAB_TO_SECTION: Record<PartDetailTab, string> = { script: "text", takes: "takes", captions: "captions", details: "details" }
+const PART_SECTION_TO_TAB: Record<string, PartDetailTab> = { text: "script", captions: "captions", details: "details" }
+const PART_TAB_TO_SECTION: Record<PartDetailTab, string> = { script: "text", captions: "captions", details: "details" }
 
 type ActiveProductionStage =
   | { mode: "part"; part: ProductionPart; tab: PartDetailTab }
@@ -47,7 +47,7 @@ function initialPartStage(production: Production): ActiveProductionStage | null 
   if (!part) return null
   const requested = PART_SECTION_TO_TAB[params.get("section") || ""] || "script"
   const recorded = ["audio", "speech"].includes(part.kind)
-  const tab = !recorded && ["takes", "captions"].includes(requested) ? "script" : requested
+  const tab = !recorded && requested === "captions" ? "script" : requested
   return { mode: "part", part, tab }
 }
 
@@ -177,7 +177,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const openAssetReplacement = useCallback((part: ProductionPart) => {
     rememberStageOrigin(); setActiveStage(null); setInsertBeforePartId(null); setComposerPart(null); setReplacingAsset(part); setTool("asset")
   }, [rememberStageOrigin])
-  const openNewTake = useCallback((part: ProductionPart) => {
+  const openRecordingComposer = useCallback((part: ProductionPart) => {
     setActiveStage(null); setInsertBeforePartId(null); setComposerPart(part); setTool("speech")
   }, [])
   const openPart = useCallback((part: ProductionPart, tab: PartDetailTab = "script") => {
@@ -232,11 +232,11 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
 
   const stageMode: ProductionStageMode | null = mobile ? null : tool === "speech" ? "composer" : activeStage?.mode || null
   const composerInsertAt = insertBeforePartId ? Math.max(0, sourceParts.findIndex((part) => part.public_id === insertBeforePartId)) : null
-  const composerTitle = composerPart ? composerPart.kind === "draft" ? `Record draft · Part ${(composerPart.position ?? 0) + 1}` : `Generate alternative · Part ${(composerPart.position ?? 0) + 1}` : insertBeforePartId ? "Add speech at insertion" : "Add speech"
-  const composerDescription = composerPart?.kind === "draft" ? "Turn this saved script into its first recording." : composerPart ? "Create another performance without replacing the selected Take." : insertBeforePartId ? "Insert at the selected Sequence position." : `Add as Part ${sourceParts.length + 1}.`
+  const composerTitle = composerPart ? composerPart.kind === "draft" ? `Record draft · Part ${(composerPart.position ?? 0) + 1}` : `Replace recording · Part ${(composerPart.position ?? 0) + 1}` : insertBeforePartId ? "Add speech at insertion" : "Add speech"
+  const composerDescription = composerPart?.kind === "draft" ? "Turn this saved script into its first recording." : composerPart ? "Generate a new result and replace this Part’s active recording." : insertBeforePartId ? "Insert at the selected Sequence position." : `Add as Part ${sourceParts.length + 1}.`
   const healthIssues = useMemo(() => productionHealth(production.parts), [production.parts])
   const stageTitle = stageMode === "composer" ? composerTitle : stageMode === "part" ? partInspectorTitle(activeDetail) : stageMode === "cast" ? "Production Cast" : stageMode === "music" ? "Music Bed" : stageMode === "health" ? "Production health" : stageMode === "mix-export" ? "Mix & Export" : "Production"
-  const stageDescription = stageMode === "composer" ? composerDescription : stageMode === "part" && activeDetail ? `Revision ${activeDetail.revision || 1}${activeDetail.selected_take_number ? ` · Take ${activeDetail.selected_take_number} selected` : ""}` : stageMode === "cast" ? `${cast.length} role${cast.length === 1 ? "" : "s"} · future recording assignments` : stageMode === "music" ? music.filename ? "Parallel mix lane · reusable Venture source" : "Narration only · no Music Bed" : stageMode === "health" ? `${healthIssues.length} current issue${healthIssues.length === 1 ? "" : "s"} · release evidence` : stageMode === "mix-export" ? "Preview the current mix and create immutable output." : undefined
+  const stageDescription = stageMode === "composer" ? composerDescription : stageMode === "part" && activeDetail ? `Revision ${activeDetail.revision || 1}${activeDetail.selected_take_id ? " · active recording" : ""}` : stageMode === "cast" ? `${cast.length} role${cast.length === 1 ? "" : "s"} · future recording assignments` : stageMode === "music" ? music.filename ? "Parallel mix lane · reusable Venture source" : "Narration only · no Music Bed" : stageMode === "health" ? `${healthIssues.length} current issue${healthIssues.length === 1 ? "" : "s"} · release evidence` : stageMode === "mix-export" ? "Preview the current mix and create immutable output." : undefined
   const previewPlayingPartId = useMemo(() => {
     if (!actions.productionPlaying) return null
     const position = player.currentTime * 1000
@@ -270,10 +270,10 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     onDuplicate={(part) => void actions.duplicatePart(part)}
     onDelete={(part) => setConfirmAction({
       title: "Delete this part?",
-      description: "The Part leaves the active Sequence. Its Takes, provider evidence, generated audio and recorded spend remain recoverable history.",
+      description: "The Part leaves the active Sequence. Its provider evidence, generated audio and recorded spend remain recoverable history.",
       action: () => { setActiveStage(null); void actions.deletePart(part) },
     })}
-    onNewTake={openNewTake}
+    onRecordPart={openRecordingComposer}
     initialTab={detailTab}
     onTabChange={(tab) => setActiveStage((current) => current?.mode === "part" ? { ...current, tab } : current)}
   /> : stageMode === "cast" ? <CastManagerContent production={production} cast={cast} directory={directory} onChanged={async () => { await Promise.all([refreshCast(), refresh()]) }} /> : stageMode === "music" ? <MusicWorkbench music={music} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)} onChange={actions.setMusic} onChoose={() => openTool("music")} onRemove={() => setConfirmAction({ title: "Remove this Music Bed?", description: "The reusable Venture asset remains available. Only its parallel placement in this Production is removed.", action: () => { void actions.setMusic({ music_of: null }).then(() => setActiveStage(null)) } })} /> : stageMode === "health" ? <ProductionHealthContent issues={healthIssues} onLocate={(id) => { setActiveStage(null); locate(id) }} /> : stageMode === "mix-export" ? <MixExportWorkspace production={production} music={music} previewing={actions.previewing} productionPlaying={actions.productionPlaying} previewReady={actions.productionLoaded} previewStale={Boolean(player.source?.kind === "production" && !actions.productionLoaded)} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={() => void actions.exportMp3()} onLocatePart={(id) => { setActiveStage(null); locate(id) }} onOpenHealth={() => openHealthStage(true)} exporting={actions.exporting} /> : null
@@ -286,8 +286,8 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     moveToPosition: setMovePositionPart,
     editSilence: (part, seconds) => void actions.editSilence(part, seconds),
     openPart,
-    newTake: openNewTake,
-  }), [actions, openNewTake, openPart, playSource])
+    recordPart: openRecordingComposer,
+  }), [actions, openPart, openRecordingComposer, playSource])
 
   return <>
     {castError && <InlineResourceError message={`Production Cast unavailable: ${castError}`} retry={() => void refreshCast().catch(() => undefined)} />}
@@ -366,7 +366,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       onMove={() => setMoveOpen(true)}
       onDelete={() => setConfirmAction({
         title: `Delete ${selected.size} parts?`,
-        description: "The selected Parts leave the active Sequence. Their Takes, provider evidence and recorded spend remain in history.",
+        description: "The selected Parts leave the active Sequence. Their provider evidence and recorded spend remain in history.",
         action: () => void actions.deleteParts([...selected]).then(() => setSelected(new Set())),
       })}
       onClear={() => setSelected(new Set())}
@@ -424,10 +424,10 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
         onDuplicate={(part) => void actions.duplicatePart(part)}
         onDeleteDetail={(part) => setConfirmAction({
           title: "Delete this part?",
-          description: "The Part leaves the active Sequence. Its Takes, provider evidence, generated audio and recorded spend remain recoverable history.",
+          description: "The Part leaves the active Sequence. Its provider evidence, generated audio and recorded spend remain recoverable history.",
           action: () => { setActiveStage(null); void actions.deletePart(part) },
         })}
-        onNewTake={openNewTake}
+        onRecordPart={openRecordingComposer}
         onMoveOpen={setMoveOpen}
         onMoveSelected={(targetId, targetName) => void actions.moveParts([...selected], targetId, targetName).then(() => {
           setSelected(new Set())

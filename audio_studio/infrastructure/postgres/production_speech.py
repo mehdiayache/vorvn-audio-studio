@@ -54,10 +54,7 @@ class ProductionSpeechCommandRepository:
                 "part_id": part_id,
                 "_source_part_revision": source_revision,
                 "_source_script_hash": hashlib.sha256(
-                    (str(request_payload.get("text_raw")
-                         or request_payload.get("text") or source_script)
-                     if not bool(request_payload.get("select_result", True))
-                     else source_script).encode("utf-8")).hexdigest(),
+                    source_script.encode("utf-8")).hexdigest(),
             }
             runtime_payload.pop("insert_before_part_id", None)
             cursor.execute("""
@@ -139,8 +136,7 @@ class ProductionSpeechCommandRepository:
             raise LookupError("That Part no longer belongs to this Production.")
         requested_script = str(
             payload.get("text_raw") or payload.get("text") or "")
-        if (bool(payload.get("select_result", True))
-                and requested_script.strip() != str(part[1] or "").strip()):
+        if requested_script.strip() != str(part[1] or "").strip():
             raise ValueError(
-                "Update the Part explicitly before selecting audio made from different words.")
+                "Update the Part explicitly before replacing its recording with different words.")
         return part_id, int(part[0]), str(part[1] or "")

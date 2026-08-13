@@ -1,6 +1,6 @@
 import type { PlayerSource, ProductionPart } from "@/types/domain"
 
-export type PartDetailTab = "script" | "takes" | "captions" | "details"
+export type PartDetailTab = "script" | "captions" | "details"
 
 export type SequenceActions = {
   play: (source: PlayerSource) => void
@@ -10,7 +10,7 @@ export type SequenceActions = {
   moveToPosition: (part: ProductionPart) => void
   editSilence: (part: ProductionPart, seconds: number) => void
   openPart: (part: ProductionPart, tab?: PartDetailTab) => void
-  newTake?: (part: ProductionPart) => void
+  recordPart?: (part: ProductionPart) => void
 }
 
 export type InsertKind = "speech" | "asset" | "silence"

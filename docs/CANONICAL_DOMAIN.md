@@ -7,7 +7,7 @@ Venture
     │   └── Production
     └── Production
         └── ProductionPart
-            └── Take
+            └── Active recording (speech only)
 ```
 
 ## Responsibilities
@@ -17,7 +17,9 @@ Venture
 - **Series** is an optional editorial grouping. It owns defaults, never Parts.
 - **Production** is the editable audio document. It owns sequence, mix and exports.
 - **ProductionPart** is an ordered speech, silence or linked-asset source.
-- **Take** is a paid or recorded version of one Part.
+- **Active recording** is the one playable provider snapshot owned by a Speech
+  Part. Recording again replaces that snapshot; durable Jobs and
+  ProviderAttempts retain operation and spend evidence.
 
 A Production can live directly in a Project. A Production assigned to a Series
 must belong to the same Project as that Series.

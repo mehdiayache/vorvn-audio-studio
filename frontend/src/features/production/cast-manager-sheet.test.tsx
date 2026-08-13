@@ -13,7 +13,7 @@ describe("CastManagerContent", () => {
       onChanged={vi.fn()}
     />)
     expect(screen.getByText("Recast is future-only")).toBeTruthy()
-    expect(screen.getByText("Future recordings use the new voice. Existing Takes remain unchanged.")).toBeTruthy()
+    expect(screen.getByText("The active recording remains unchanged until you explicitly replace it.")).toBeTruthy()
     expect(screen.getByText("Narrator")).toBeTruthy()
     expect(screen.getByText(/4 Parts/)).toBeTruthy()
     expect(screen.getAllByRole("button", { name: /Use role color/ }).length).toBeGreaterThan(1)

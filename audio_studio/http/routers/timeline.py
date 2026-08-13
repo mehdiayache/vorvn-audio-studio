@@ -16,7 +16,6 @@ from audio_studio.http.timeline_contracts import (
     MusicBedEnvelope,
     OkEnvelope,
     PartCreatedEnvelope,
-    TakeListEnvelope,
     TranscriptSummaryListEnvelope,
 )
 
@@ -103,12 +102,6 @@ class EditorialBody(BaseModel):
     expected_revision: int = Field(ge=1)
     script: str | None = None
     cast_role_id: str | None = None
-
-
-class PromoteBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    expected_revision: int = Field(ge=1)
-    confirm_outdated: bool = False
 
 
 def _run(operation):
@@ -205,21 +198,6 @@ def delete_parts(production_id: int, payload: DeleteBody) -> dict:
 def move_parts(production_id: int, payload: MoveBody) -> dict:
     return _run(lambda: timeline_service.move_parts(
         production_id, payload.ids, payload.destination_production_id))
-
-
-@router.get("/parts/{part_id}/takes", operation_id="listProductionPartTakes",
-            response_model=TakeListEnvelope)
-def list_takes(production_id: int, part_id: int) -> dict:
-    return _run(lambda: timeline_service.takes(production_id, part_id))
-
-
-@router.post("/parts/{part_id}/takes/{take_id}/promote", operation_id="promoteProductionTake",
-             response_model=OkEnvelope)
-def promote_take(production_id: int, part_id: int, take_id: int,
-                 payload: PromoteBody) -> dict:
-    return _run(lambda: timeline_service.promote(
-        production_id, part_id, take_id, payload.expected_revision,
-        payload.confirm_outdated))
 
 
 @router.patch("/parts/{part_id}/draft", operation_id="updateProductionPartDraft",

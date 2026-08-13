@@ -252,34 +252,33 @@ class SpeechRepository:
                     kind != "speech" or current[3] is not None):
                 raise ValueError("That pending speech Part has already been recorded.")
             if operation == "regenerate" and kind not in {"audio", "speech"}:
-                raise ValueError("Only recorded speech can receive another Take.")
+                raise ValueError("Only recorded speech can replace its recording.")
+            if current_revision != int(expected_revision):
+                return {"subtitles_stale": 0, "selected": 0}
+            if current[3] is not None:
+                cursor.execute("DELETE FROM takes WHERE id=%s AND part_id=%s",
+                               (current[3], part_id))
             take_id = self._insert_take(
                 cursor, part_id, int(expected_revision), values,
                 canonical_script=str(current[2] or ""),
                 source_script_hash=values.get("_source_script_hash"))
-            selected = (current_revision == int(expected_revision)
-                        and bool(values.get("select_result", True)))
-            if selected:
-                cursor.execute("""
-                    UPDATE production_parts
-                       SET selected_take_id = %s, kind = 'speech',
-                           editorial_status = 'ready', updated_at = now()
-                     WHERE id = %s
-                """, (take_id, part_id))
-                cursor.execute("DELETE FROM composition_drafts WHERE part_id = %s",
-                               (part_id,))
+            cursor.execute("""
+                UPDATE production_parts
+                   SET selected_take_id = %s, kind = 'speech',
+                       editorial_status = 'ready', updated_at = now()
+                 WHERE id = %s
+            """, (take_id, part_id))
+            cursor.execute("DELETE FROM composition_drafts WHERE part_id = %s",
+                           (part_id,))
             stale = 0
-            if operation == "regenerate" and selected:
+            if operation == "regenerate":
                 cursor.execute("""
                     UPDATE transcripts SET stale = true
                      WHERE part_id = %s AND stale = false
                 """, (part_id,))
                 stale = cursor.rowcount
-            cursor.execute("SELECT count(*) FROM takes WHERE part_id = %s",
-                           (part_id,))
-            takes = int(cursor.fetchone()[0] or 0)
-            return {"takes": takes, "subtitles_stale": stale,
-                    "selected": int(selected), "take_id": take_id}
+            return {"subtitles_stale": stale, "selected": 1,
+                    "take_id": take_id}
 
     @staticmethod
     def _insert_take(cursor, part_id: int, source_revision: int,

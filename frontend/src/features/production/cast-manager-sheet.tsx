@@ -94,7 +94,7 @@ export function CastManagerContent({ production, cast, directory, onChanged }: {
   }
 
   return <div className="cast-manager-body cast-workbench-content">
-      <div className="cast-future-rule"><ArrowRight /><span><b>Recast is future-only</b><p>Future recordings use the new voice. Existing Takes remain unchanged.</p></span></div>
+      <div className="cast-future-rule"><ArrowRight /><span><b>Recast is future-only</b><p>The active recording remains unchanged until you explicitly replace it.</p></span></div>
       <section><div className="cast-manager-section-title"><span><Users /><b>Roles in this Production</b></span><small>{cast.length}</small></div>
         {cast.length ? <div className="cast-manager-roles">{cast.map((role) => <article key={role.id}><i style={{ backgroundColor: role.color || "var(--primary)" }} /><div><b>{role.name}</b><small>{role.persona_name || "Ad-hoc role"} · {role.part_count || 0} Parts</small>{role.voice_identity_id && <VoiceIdentity voice="" identityId={role.voice_identity_id} directory={directory} compact showEditorialFlag={false} />}</div><Select disabled={busy} value={assignmentValue(role)} onValueChange={(value) => void recast(role, value)}><SelectTrigger aria-label={`Recast ${role.name}`}><SelectValue /></SelectTrigger><SelectContent>{assignments.map((option) => <SelectItem key={`${option.kind}:${option.id}`} value={`${option.kind}:${option.id}`}>{option.label} · {option.detail}</SelectItem>)}</SelectContent></Select></article>)}</div> : <div className="cast-manager-empty"><Users /><b>No roles yet</b><p>Create the narrator or characters used by this Production.</p></div>}
       </section>

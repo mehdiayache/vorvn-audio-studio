@@ -9,7 +9,7 @@ function Fact({ label, value, mono = false }: { label: string; value?: string | 
 }
 
 export function PartInspectorDetails({ part, directory }: { part: ProductionPart; directory: VoiceDirectory }) {
-  const recorded = ["audio", "speech"].includes(part.kind)
+  const recorded = Boolean(part.selected_take_id)
   const draft = part.kind === "draft"
   const silence = part.kind === "silence"
   const asset = part.kind === "asset"
@@ -18,7 +18,7 @@ export function PartInspectorDetails({ part, directory }: { part: ProductionPart
   return <div className="inspector-panel inspector-details-panel">
     {recorded && <>
       <section>
-        <div className="inspector-section-heading"><div><span className="eyebrow">Selected immutable Take</span><h3>Recording route</h3></div>{part.binding_resolution_status === "unresolved" && <Badge variant="destructive">Historical route unresolved</Badge>}</div>
+        <div className="inspector-section-heading"><div><span className="eyebrow">Active recording</span><h3>Recording route</h3></div>{part.binding_resolution_status === "unresolved" && <Badge variant="destructive">Historical route unresolved</Badge>}</div>
         <SpeechModelIdentity engine={part.engine} model={part.model} config={directory.config} />
         <dl className="inspector-facts">
           <Fact label="Provider" value={part.provider} />
@@ -34,8 +34,7 @@ export function PartInspectorDetails({ part, directory }: { part: ProductionPart
       <section>
         <div className="inspector-section-heading"><div><span className="eyebrow">Snapshot provenance</span><h3>Identity and source</h3></div><Badge variant="outline">Part revision {part.revision || 1}</Badge></div>
         <dl className="inspector-facts">
-          <Fact label="Take" value={part.selected_take_number ? `Take ${part.selected_take_number}` : "Unknown ordinal"} />
-          <Fact label="Take ID" value={part.take_public_id} mono />
+          <Fact label="Recording ID" value={part.take_public_id} mono />
           <Fact label="Voice Identity" value={part.voice_identity_id} mono />
           <Fact label="Binding ID" value={part.binding_id} mono />
           <Fact label="Catalogue Voice ID" value={part.catalogue_voice_id} mono />
@@ -44,14 +43,14 @@ export function PartInspectorDetails({ part, directory }: { part: ProductionPart
       </section>
       <section>
         <div className="inspector-section-heading"><div><span className="eyebrow">Accounting</span><h3>Usage and cost</h3></div></div>
-        <dl className="inspector-facts"><Fact label="Selected Take cost" value={formatMoney(part.cost)} /><Fact label="Historical Part spend" value={formatMoney(part.spent ?? part.cost)} /><Fact label="Cost basis" value={part.cost_basis} /><Fact label="Audio size" value={part.size_bytes ? `${Math.round(part.size_bytes / 1024)} KB` : null} /></dl>
+        <dl className="inspector-facts"><Fact label="Active recording cost" value={formatMoney(part.cost)} /><Fact label="Historical Part spend" value={formatMoney(part.spent ?? part.cost)} /><Fact label="Cost basis" value={part.cost_basis} /><Fact label="Audio size" value={part.size_bytes ? `${Math.round(part.size_bytes / 1024)} KB` : null} /></dl>
       </section>
       <details className="inspector-diagnostics"><summary><span><b>Technical evidence</b><small>Provider attempt, raw usage and diagnostics</small></span></summary><pre>{JSON.stringify(diagnostics, null, 2)}</pre></details>
     </>}
 
-    {draft && <section><div className="inspector-section-heading"><div><span className="eyebrow">Editorial object</span><h3>Draft speech</h3></div><Badge variant="outline">Revision {part.revision || 1}</Badge></div><dl className="inspector-facts"><Fact label="Part ID" value={part.public_id || part.id} mono /><Fact label="Position" value={(part.position ?? 0) + 1} /><Fact label="Cast Role" value={part.cast_role_name || part.cast_role_id} /><Fact label="Editorial state" value={part.editorial_status || "Draft"} /></dl><p className="inspector-truth-note">A Draft has editorial text and future recording context. It has no immutable Take or provider attempt yet.</p></section>}
+    {draft && <section><div className="inspector-section-heading"><div><span className="eyebrow">Editorial object</span><h3>Draft speech</h3></div><Badge variant="outline">Revision {part.revision || 1}</Badge></div><dl className="inspector-facts"><Fact label="Part ID" value={part.public_id || part.id} mono /><Fact label="Position" value={(part.position ?? 0) + 1} /><Fact label="Cast Role" value={part.cast_role_name || part.cast_role_id} /><Fact label="Editorial state" value={part.editorial_status || "Draft"} /></dl><p className="inspector-truth-note">A Draft has editorial text and future recording context. It has no active recording or provider attempt yet.</p></section>}
 
-    {silence && <section><div className="inspector-section-heading"><div><span className="eyebrow">Editorial timing</span><h3>Silence Part</h3></div></div><dl className="inspector-facts"><Fact label="Part ID" value={part.public_id || part.id} mono /><Fact label="Position" value={(part.position ?? 0) + 1} /><Fact label="Exact duration" value={formatExactDurationMs(Number(part.duration_ms || 0))} /><Fact label="Duration (ms)" value={part.duration_ms || 0} /></dl><p className="inspector-truth-note">Silence has no Voice, Take, captions, provider, or generation spend.</p></section>}
+    {silence && <section><div className="inspector-section-heading"><div><span className="eyebrow">Editorial timing</span><h3>Silence Part</h3></div></div><dl className="inspector-facts"><Fact label="Part ID" value={part.public_id || part.id} mono /><Fact label="Position" value={(part.position ?? 0) + 1} /><Fact label="Exact duration" value={formatExactDurationMs(Number(part.duration_ms || 0))} /><Fact label="Duration (ms)" value={part.duration_ms || 0} /></dl><p className="inspector-truth-note">Silence has no Voice, recording, captions, provider, or generation spend.</p></section>}
 
     {asset && <section><div className="inspector-section-heading"><div><span className="eyebrow">Linked Venture audio</span><h3>{part.title || "Audio asset"}</h3></div></div><dl className="inspector-facts"><Fact label="Part ID" value={part.public_id || part.id} mono /><Fact label="Position" value={(part.position ?? 0) + 1} /><Fact label="Asset kind" value={part.asset_kind} /><Fact label="Collection" value={part.asset_collection} /><Fact label="Asset ID" value={part.asset_id} mono /><Fact label="Version ID" value={part.asset_version_id} mono /><Fact label="Duration" value={formatDuration(Number(part.duration_ms || 0) / 1000)} /><Fact label="Linked file" value={part.filename} mono /></dl><p className="inspector-truth-note">This Part links a reusable Venture asset. Editing Sequence placement does not mutate the source asset.</p></section>}
   </div>

@@ -15,9 +15,9 @@ const production = {
 } as unknown as Production
 
 describe("MixExportWorkspace", () => {
-  it("shows the current mix, selected Takes and canonical Export history", () => {
+  it("shows the current mix, recorded Parts and canonical Export history", () => {
     render(<MixExportWorkspace production={production} music={{}} previewing={false} productionPlaying={false} previewReady previewStale={false} exportJob={null} onPreview={vi.fn()} onExport={vi.fn()} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting={false} />)
-    expect(screen.getByText("1 of 1 selected Takes")).toBeTruthy()
+    expect(screen.getByText("1 of 1 recorded")).toBeTruthy()
     expect(screen.getByText("evening-reset.mp3")).toBeTruthy()
     expect(screen.getByRole("link", { name: /Download/ }).getAttribute("href")).toBe("/api/v1/exports/91/download")
     expect(screen.getByText(/does not call a speech provider/)).toBeTruthy()

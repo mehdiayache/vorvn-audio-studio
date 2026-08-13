@@ -46,3 +46,9 @@ Workbench work; and the persistent Living QA Production now proves the real
 
 Current authorized scope: **SCOPES 3–7 — founder authorized the remaining
 desktop Production v2 program in one continuous implementation run.**
+
+Founder simplification amendment (2026-08-14): the product now has one active
+recording per Speech Part and no Batch workspace. Multi-Take/selection/promotion
+requirements in the frozen package are superseded by
+`DECISION_AMENDMENTS.md`. Parts 15–101 were removed from the persistent Living
+QA Production, leaving the intentional 14-Part corpus.

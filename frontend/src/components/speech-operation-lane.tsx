@@ -4,11 +4,10 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import type { SpeechPartOperationFact } from "@/components/speech-part-card-model"
 
-export function SpeechOperationLane({ operation, onRetry, onConfirm, onReviewTake }: {
+export function SpeechOperationLane({ operation, onRetry, onConfirm }: {
   operation: SpeechPartOperationFact
   onRetry: () => void
   onConfirm: () => void
-  onReviewTake: () => void
 }) {
   if (operation.kind === "idle") return null
   const Icon = operation.kind === "active" ? LoaderCircle
@@ -25,7 +24,6 @@ export function SpeechOperationLane({ operation, onRetry, onConfirm, onReviewTak
     <div className="speech-operation-actions">
       {operation.canConfirm && <Button size="sm" onClick={onConfirm}>Confirm and continue</Button>}
       {operation.canRetry && <Button size="sm" variant="outline" onClick={onRetry}><RotateCw /> Retry</Button>}
-      {operation.canReviewTake && <Button size="sm" variant="outline" onClick={onReviewTake}>Review Take</Button>}
     </div>
   </section>
 }

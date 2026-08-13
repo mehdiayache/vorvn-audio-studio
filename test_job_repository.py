@@ -193,24 +193,13 @@ class JobRepositoryTests(unittest.TestCase):
                 self.assertTrue(retry_created)
                 self.assertNotEqual(retry.id, job.id)
                 self.assertEqual(retry.part_id, job.part_id)
-                alternative_text = "Alternative words"
-                alternative, alternative_created = repository.enqueue(
-                    {**request, "operation": "record_part",
-                     "part_id": job.part_id, "text_raw": alternative_text,
-                     "select_result": False},
-                    idempotency_key=f"production-speech-alternative-{uuid4()}",
-                    production_id=production_id)
-                self.assertTrue(alternative_created)
-                self.assertEqual(
-                    alternative.payload["_source_script_hash"],
-                    hashlib.sha256(alternative_text.encode()).hexdigest())
+                changed_text = "Changed words"
                 with self.assertRaisesRegex(
                         ValueError, "Update the Part explicitly"):
                     repository.enqueue(
                         {**request, "operation": "record_part",
                          "part_id": job.part_id,
-                         "text_raw": alternative_text,
-                         "select_result": True},
+                         "text_raw": changed_text},
                         idempotency_key=f"production-speech-invalid-{uuid4()}",
                         production_id=production_id)
                 cursor.execute("""

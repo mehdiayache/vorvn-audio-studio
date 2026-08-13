@@ -119,22 +119,21 @@ POST   /productions/{production_id}/parts/move
 PATCH  /productions/{production_id}/parts/{part_id}/silence
 PATCH  /productions/{production_id}/parts/{part_id}/text
 POST   /productions/{production_id}/parts/{part_id}/duplicate
-GET    /productions/{production_id}/parts/{part_id}/takes
-POST   /productions/{production_id}/parts/{part_id}/takes/{take_id}/promote
 GET    /productions/{production_id}/parts/{part_id}/captions
 ```
 
-Creating a generated take returns a Job. A Part keeps raw, spoken and tagged
-text versions; `text_state` says which version the requested take used.
+Creating or replacing a recording returns a Job. A Part keeps raw, spoken and
+tagged text versions; `text_state` says which version the active recording
+used. There is no alternatives list or promotion endpoint.
 
 Speech uses one `POST /jobs/speech` contract for standalone recording, new
-Production Parts, another Take and recording a Draft. Canonical clients send
+Production Parts, replacement recordings and recording a Draft. Canonical clients send
 `production_id`; the API temporarily accepts `project_id` as an input alias but
 never emits it as the canonical field. Replacement operations require both
 `production_id` and `part_id`. The worker validates ownership and Part kind
-before contacting Alibaba, saves immutable audio, then commits the Part/Take
-mutation transactionally. Completed Jobs link directly to the generated Part
-and retain provider usage, cost basis, route and fidelity state.
+before contacting Alibaba, saves immutable audio, then replaces the Part's
+active recording transactionally. Completed Jobs link directly to the Part and
+retain provider usage, cost basis, route and fidelity state.
 
 ### Jobs
 

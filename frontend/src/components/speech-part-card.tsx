@@ -43,9 +43,9 @@ function useRenderedScriptOverflow(text: string, expanded: boolean) {
   return { ref, overflowing }
 }
 
-export function SpeechPartCard({ part, job, captionJob, castRole, index, count, selected, playing, playingPreview = false, directory, onSelect, onRetryJob, onConfirmJob, onOpenCaptions, onOpenTakes, onNewTake, actions }: {
+export function SpeechPartCard({ part, job, captionJob, castRole, index, count, selected, playing, playingPreview = false, directory, onSelect, onRetryJob, onConfirmJob, onOpenCaptions, actions }: {
   part: ProductionPart
-  job: (DurableJob<GenerateResult> & { request?: { select_result?: boolean } }) | null
+  job: DurableJob<GenerateResult> | null
   captionJob?: DurableJob<unknown> | null
   castRole?: ProductionCastRole
   index: number
@@ -58,8 +58,6 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
   onRetryJob: () => void
   onConfirmJob: () => void
   onOpenCaptions?: () => void
-  onOpenTakes?: () => void
-  onNewTake?: () => void
   actions: SequenceActions
 }) {
   const [expanded, setExpanded] = useState(false)
@@ -67,8 +65,7 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
   const { ref: scriptRef, overflowing } = useRenderedScriptOverflow(facts.script, expanded)
   const openPart = () => actions.openPart(part)
   const openCaptions = () => onOpenCaptions ? onOpenCaptions() : actions.openPart(part, "captions")
-  const openTakes = () => onOpenTakes ? onOpenTakes() : actions.openPart(part, "takes")
-  const startNewTake = () => onNewTake ? onNewTake() : actions.newTake ? actions.newTake(part) : openPart()
+  const recordPart = () => actions.recordPart ? actions.recordPart(part) : openPart()
   const castStyle = facts.castColor ? { "--speech-identity-color": facts.castColor } as CSSProperties : undefined
   const visibleAlerts = facts.alerts.filter((alert) => alert.key !== "draft")
   const identityKey = part.voice_identity_id || part.catalogue_voice_id || part.voice || part.public_id || String(part.id)
@@ -103,7 +100,7 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
               {facts.futureVoiceName && <span className="speech-part-future-voice">Future recordings · {facts.futureVoiceName}</span>}
             </span>
           </button></TooltipTrigger>
-          <TooltipContent>{facts.technicalDetail || "Selected Take recording method"}</TooltipContent>
+          <TooltipContent>{facts.technicalDetail || "Active recording method"}</TooltipContent>
         </Tooltip>
     </header>
 
@@ -119,7 +116,7 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
           <Button variant="outline" size="sm" className="speech-part-edit" onClick={openPart} aria-label={`Edit part ${index + 1}`}><Pencil /> Edit</Button>
           <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Part actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={openPart}><Pencil />Open details</DropdownMenuItem>
-            {facts.recorded && <DropdownMenuItem onSelect={startNewTake}><Plus />Generate alternative</DropdownMenuItem>}
+            {facts.recorded && <DropdownMenuItem onSelect={recordPart}><Plus />Replace recording</DropdownMenuItem>}
             <DropdownMenuItem onSelect={() => actions.duplicate(part)}><Copy />Duplicate</DropdownMenuItem>
             <DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}><Trash2 />Delete part</DropdownMenuItem>
           </DropdownMenuContent></DropdownMenu>
@@ -136,22 +133,21 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
       <footer className="speech-part-result">
         {facts.recorded ? <>
           <div className="speech-part-playback">
-            {facts.playable && <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="speech-part-play" onClick={() => actions.play({ key: `part:${part.id}`, url: audioUrl(part.filename!), title: `Part ${index + 1}`, subtitle: facts.selectedVoiceName, kind: "take" })} aria-label={playing ? "Pause part" : "Play part"}>{playing ? <Pause /> : <Play />}</Button></TooltipTrigger><TooltipContent>{playing ? "Pause selected Take" : "Play selected Take"}</TooltipContent></Tooltip>}
+            {facts.playable && <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="speech-part-play" onClick={() => actions.play({ key: `part:${part.id}`, url: audioUrl(part.filename!), title: `Part ${index + 1}`, subtitle: facts.selectedVoiceName, kind: "take" })} aria-label={playing ? "Pause part" : "Play part"}>{playing ? <Pause /> : <Play />}</Button></TooltipTrigger><TooltipContent>{playing ? "Pause recording" : "Play recording"}</TooltipContent></Tooltip>}
             {(playing || facts.operation.kind === "active") && <span className="speech-part-waveform"><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={34} /></span>}
             <span>{facts.durationLabel}</span>
           </div>
-          <button onClick={openTakes} className="speech-part-take-summary" title={facts.takeSummary} aria-label={facts.takeSummary}>
-            <span>Take {part.selected_take_number || "—"}</span>
+          <div className="speech-part-take-summary" title={facts.recordingSummary} aria-label={facts.recordingSummary}>
+            <span>Recording</span>
             <span className={cn("speech-part-input-state", facts.inputLabel && `is-${facts.inputLabel.toLowerCase()}`)}>{facts.inputLabel || "Unknown input"}</span>
-            {facts.totalTakes > 1 && <span className="speech-part-take-count">{facts.takeCountLabel}</span>}
-          </button>
+          </div>
           <button onClick={openCaptions} className={`speech-part-caption is-${facts.captionTone}`} aria-label={`Captions: ${facts.captionSummary}`}><Captions />{facts.captionSummary}</button>
         </> : <span className="speech-part-not-recorded">Not recorded</span>}
 
-        <SpeechOperationLane operation={facts.operation} onRetry={onRetryJob} onConfirm={onConfirmJob} onReviewTake={openTakes} />
+        <SpeechOperationLane operation={facts.operation} onRetry={onRetryJob} onConfirm={onConfirmJob} />
         {facts.recorded && <span className="speech-part-spend" title={facts.spendSummary}>{facts.spendValue}</span>}
         <div className="speech-part-actions">
-          {!facts.recorded && <><Button variant="outline" size="sm" onClick={openPart}>Edit draft</Button><Button size="sm" onClick={startNewTake}>Record</Button></>}
+          {!facts.recorded && <><Button variant="outline" size="sm" onClick={openPart}>Edit draft</Button><Button size="sm" onClick={recordPart}>Record</Button></>}
         </div>
       </footer>
     </div>

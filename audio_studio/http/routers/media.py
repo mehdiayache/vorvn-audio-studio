@@ -49,7 +49,7 @@ def download_export(export_id: int) -> FileResponse:
     return _response(media_service.export_file(export_id))
 
 
-@router.get("/api/v1/takes/{take_id}/download",
-            operation_id="downloadTake", response_class=FileResponse)
-def download_take(take_id: int) -> FileResponse:
-    return _response(media_service.take_file(take_id))
+@router.get("/api/v1/recordings/{recording_id}/download",
+            operation_id="downloadRecording", response_class=FileResponse)
+def download_recording(recording_id: int) -> FileResponse:
+    return _response(media_service.recording_file(recording_id))

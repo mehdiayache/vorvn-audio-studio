@@ -337,7 +337,6 @@ class ProductionPartResponse(BaseModel):
     cast_role_name: str | None = None
     revision: int = 1
     selected_take_id: int | None = None
-    selected_take_number: int | None = None
     selected_take_text_state: str | None = None
     editorial_status: str | None = None
     speech_job: PartSpeechJobResponse | None = None
@@ -367,7 +366,6 @@ class ProductionPartResponse(BaseModel):
     cost_basis: str | None = None
     provider_text: str | None = None
     fidelity: FidelityResponse | None = None
-    takes: int = 0
     subtitled: bool = False
     subtitles_stale: bool = False
     caption_source_language: str | None = None

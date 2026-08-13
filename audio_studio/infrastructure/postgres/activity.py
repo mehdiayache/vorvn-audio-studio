@@ -8,7 +8,7 @@ from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 
 KIND_LABELS = {
-    "speech": "Speech", "batch": "Batch", "transcribe": "Subtitles",
+    "speech": "Speech", "batch": "Legacy bulk operation", "transcribe": "Subtitles",
     "translate": "Translation", "rewrite": "Text preparation",
     "render": "Production render", "clone": "Voice cloning",
 }

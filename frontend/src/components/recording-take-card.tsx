@@ -32,7 +32,7 @@ export type RecordingTakeView = {
   selected?: boolean
 }
 
-export function RecordingTakeCard({ take, directory, active = false, onPlay, onSecondaryAction, secondaryLabel = "Another take" }: {
+export function RecordingTakeCard({ take, directory, active = false, onPlay, onSecondaryAction, secondaryLabel = "Record again" }: {
   take: RecordingTakeView
   directory: VoiceDirectory
   active?: boolean
@@ -45,11 +45,11 @@ export function RecordingTakeCard({ take, directory, active = false, onPlay, onS
   const review = take.status === "review"
   const outdated = take.status === "outdated"
   const StatusIcon = working ? LoaderCircle : failed || outdated || review ? AlertCircle : CheckCircle2
-  const statusLabel = take.statusLabel || (working ? "Generating" : failed ? "Generation failed" : review ? "Review required" : take.status === "continued" ? "Cost confirmed · continued" : outdated ? "Outdated" : take.status === "warning" ? "Ready · review wording" : take.status === "current" ? "Current take" : "Ready")
+  const statusLabel = take.statusLabel || (working ? "Generating" : failed ? "Generation failed" : review ? "Review required" : take.status === "continued" ? "Cost confirmed · continued" : outdated ? "Outdated" : take.status === "warning" ? "Ready · review wording" : take.status === "current" ? "Current recording" : "Ready")
   const created = take.createdAt ? new Date(take.createdAt).toLocaleString() : ""
 
   return <article className={cn("recording-take-card", `is-${outdated || review ? "warning" : take.status}`)}>
-    <div className="recording-take-status"><StatusIcon className={working ? "spin" : ""} /><span>{statusLabel}</span>{take.ordinal && <b>Take {take.ordinal}</b>}{take.inputState && <em>{take.inputState}{take.selected ? " · used" : " input"}</em>}</div>
+    <div className="recording-take-status"><StatusIcon className={working ? "spin" : ""} /><span>{statusLabel}</span>{take.inputState && <em>{take.inputState}{take.selected ? " · used" : " input"}</em>}</div>
     <VoiceIdentity voice={take.voice} identityId={take.voiceIdentityId} directory={directory} compact showDetail={false} />
     <div className="recording-take-summary">
       <b>{[take.method, take.language].filter(Boolean).join(" · ")}</b>
@@ -63,7 +63,7 @@ export function RecordingTakeCard({ take, directory, active = false, onPlay, onS
       {take.script && <p className="recording-take-script" dir="auto">{take.script}</p>}
     </div>
     <div className="recording-take-actions">
-      {take.audioUrl && onPlay && <Button variant="outline" size="icon" aria-label={active ? "Pause take" : "Play take"} onClick={onPlay}>{active ? <Pause /> : <Play />}</Button>}
+      {take.audioUrl && onPlay && <Button variant="outline" size="icon" aria-label={active ? "Pause recording" : "Play recording"} onClick={onPlay}>{active ? <Pause /> : <Play />}</Button>}
       {onSecondaryAction && <Button variant="outline" onClick={onSecondaryAction}><RotateCw /> {secondaryLabel}</Button>}
     </div>
   </article>
