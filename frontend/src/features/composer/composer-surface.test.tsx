@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
 import { ComposerSurface } from "@/features/composer/composer-surface"
 import { studioApi } from "@/lib/api"
 
-afterEach(() => { cleanup(); vi.restoreAllMocks() })
+beforeEach(() => { vi.stubGlobal("ResizeObserver", class { observe() {}; unobserve() {}; disconnect() {} }) })
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
 const directory = {
   config: null, cloned: [], meta: {}, catalog: [], identities: [], usage: {},
@@ -38,11 +39,22 @@ const common = {
 }
 
 describe("shared Composer contract", () => {
+  it("keeps the full Composer contract available in compact inline presentation with a 20k script", async () => {
+    const script = "A deliberate long-form narration sentence with performance detail. ".repeat(350).slice(0, 20_000)
+    const part = { id: 6, kind: "draft", text: script, text_raw: script, revision: 1, cost: 0, created_at: "", position: 4, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
+    render(<ComposerSurface {...common} presentation="inline" productionId={3} part={part} />)
+    const editor = await screen.findByRole("textbox", { name: "Original script" }) as HTMLTextAreaElement
+    expect(editor.value).toHaveLength(20_000)
+    expect(screen.getAllByText("Performance").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Output").length).toBeGreaterThan(0)
+    expect(screen.getByRole("button", { name: /Record Part/ }).closest("footer")?.classList.contains("composer-footer")).toBe(true)
+  })
+
   it("does not silently select the first identity or exact route in fresh Speak", async () => {
     render(<ComposerSurface {...common} />)
     await waitFor(() => expect(screen.getByText("Choose a voice to see its exact routes.")).toBeTruthy())
     expect(screen.getByRole("button", { name: "Choose a voice" })).toBeTruthy()
-    expect(screen.getByText("No route selected")).toBeTruthy()
+    expect(screen.getAllByText("Exact recording method required").length).toBeGreaterThan(0)
     expect(screen.getByRole("button", { name: "Generate audio" }).hasAttribute("disabled")).toBe(true)
   })
 
@@ -54,13 +66,37 @@ describe("shared Composer contract", () => {
     expect(screen.getByRole("button", { name: /Generate alternative/ }).hasAttribute("disabled")).toBe(true)
   })
 
+  it("compares immutable Original words with the prepared Spoken version", async () => {
+    const part = {
+      id: 71,
+      kind: "draft",
+      text: "The signal is live.",
+      text_raw: "The signal is live.",
+      text_shaped: "The signal is live…",
+      text_state: "shaped",
+      revision: 1,
+      cost: 0,
+      created_at: "",
+      position: 0,
+      voice_identity_id: "identity-sarah",
+      binding_id: "binding-sarah",
+    } as ProductionPart
+    render(<ComposerSurface {...common} productionId={3} part={part} />)
+
+    expect((await screen.findByRole("textbox", { name: "Spoken script" }) as HTMLTextAreaElement).value).toBe("The signal is live…")
+    fireEvent.click(screen.getByRole("button", { name: "Compare" }))
+
+    expect(screen.getByRole("dialog", { name: "Compare script versions" })).toBeTruthy()
+    expect(screen.getByText("The signal is live.")).toBeTruthy()
+    expect(screen.getAllByText("The signal is live…").length).toBeGreaterThan(1)
+  })
+
   it("requires an explicit editorial decision before generating changed Part words", async () => {
     const onGenerate = vi.fn().mockResolvedValue({ id: "job-1" })
     const onUpdateEditorial = vi.fn().mockResolvedValue(undefined)
     const part = { id: 8, kind: "draft", text: "Original words", text_raw: "Original words", revision: 3, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
     render(<ComposerSurface {...common} productionId={3} part={part} onGenerate={onGenerate} onUpdateEditorial={onUpdateEditorial} />)
     await waitFor(() => expect(screen.getByRole("button", { name: /Record Part/ }).hasAttribute("disabled")).toBe(false))
-    fireEvent.click(screen.getByRole("button", { name: /Words:/ }))
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "Revised words" } })
     fireEvent.click(screen.getByRole("button", { name: /Record Part/ }))
     expect(screen.getByText("The Part has unsaved editorial changes")).toBeTruthy()
@@ -87,7 +123,6 @@ describe("shared Composer contract", () => {
     render(<ComposerSurface {...common} productionId={3} part={part} onGenerate={onGenerate} onUpdateEditorial={onUpdateEditorial} />)
 
     fireEvent.click(await screen.findByRole("button", { name: /Expressive \+ tags/ }))
-    fireEvent.click(screen.getByRole("button", { name: /Words:/ }))
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "Revised words" } })
     fireEvent.click(screen.getByRole("button", { name: /Generate alternative/ }))
     fireEvent.click(screen.getByRole("button", { name: "Update Part and generate" }))
@@ -107,7 +142,6 @@ describe("shared Composer contract", () => {
     fireEvent.click(screen.getByRole("button", { name: "Choose a voice" }))
     fireEvent.click(screen.getByRole("button", { name: /Binding Sarah.*1 capability/ }))
     fireEvent.click(await screen.findByRole("button", { name: /Expressive \+ tags/ }))
-    fireEvent.click(screen.getByRole("button", { name: /Words:/ }))
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "A recoverable recording" } })
     await waitFor(() => expect(saveDraft).toHaveBeenCalled())
     fireEvent.click(screen.getByRole("button", { name: "Generate audio" }))

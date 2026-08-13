@@ -40,6 +40,21 @@
 }
 .sequence-ledger-summary span { display: inline-flex; align-items: baseline; gap: var(--vrn-space-2); }
 .sequence-ledger-summary b { color: var(--foreground); font-size: var(--vrn-type-label-size); font-weight: var(--vrn-weight-title); font-variant-numeric: tabular-nums; }
+.sequence-composer-anchor {
+  position: relative;
+  z-index: 3;
+  scroll-margin-top: 58px;
+  border-block: var(--vrn-stroke-hairline) solid color-mix(in oklab, var(--vrn-data-series2) 34%, var(--vrn-border));
+  background: color-mix(in oklab, var(--vrn-data-series2-soft) 34%, var(--surface-raised));
+}
+.sequence-composer-anchor.is-inline { display: block; }
+.sequence-composer-inline-host { min-width: 0; background: var(--surface-raised); }
+.sequence-composer-anchor.is-expanded { min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: var(--vrn-space-4); padding: var(--vrn-space-3) var(--vrn-space-4); }
+.sequence-composer-anchor.is-expanded > span { display: grid; gap: 2px; }
+.sequence-composer-anchor.is-expanded b { font-size: var(--vrn-type-label-size); }
+.sequence-composer-anchor.is-expanded small { color: var(--vrn-content-secondary); font-size: var(--vrn-type-metadata-size); }
+.sequence-composer-anchor.is-expanded button { display: inline-flex; align-items: center; gap: var(--vrn-space-2); border: 0; background: transparent; color: var(--vrn-data-series2); font-size: var(--vrn-type-metadata-size); font-weight: var(--vrn-weight-label); }
+.sequence-composer-anchor.is-expanded button svg { width: 14px; }
 
 .sequence-workspace-title {
   display: flex;
@@ -174,21 +189,21 @@
 
 .sequence-insert {
   position: relative;
-  z-index: 3;
+  z-index: 8;
   display: block;
-  height: 0;
-  align-items: center;
+  height: 12px;
+  margin: -6px 0;
 }
-.sequence-insert-line { position: absolute; inset: 0; border-top: 1px solid transparent; transition: border-color .15s; }
+.sequence-insert-line { position: absolute; inset: 50% 0 auto; border-top: 1px solid transparent; transition: border-color .15s; }
 .sequence-insert-trigger {
   position: absolute;
-  z-index: 4;
+  z-index: 9;
   left: 50%;
-  top: 0;
+  top: 50%;
   width: auto;
   height: 26px;
   padding: 0 9px;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   border-radius: 99px;
   opacity: 0;
   pointer-events: none;
@@ -200,7 +215,8 @@
 .sequence-insert-trigger svg { width: 15px; flex: 0 0 auto; }
 .sequence-insert:hover .sequence-insert-line, .sequence-insert:focus-within .sequence-insert-line { border-color: color-mix(in oklab, var(--primary) 34%, var(--border)); }
 .sequence-insert:hover .sequence-insert-trigger, .sequence-insert:focus-within .sequence-insert-trigger { opacity: 1; pointer-events: auto; box-shadow: 0 2px 8px hsl(var(--shadow-color) / .08); }
-.sequence-insert.last { height: 0; }
+.sequence-insert.last { height: 48px; margin: 0; }
+.sequence-insert.last .sequence-insert-trigger { top: 18px; opacity: 1; pointer-events: auto; background: var(--surface-raised); color: var(--foreground); border-color: var(--vrn-border); }
 .sequence-insert-menu { width: 290px; padding: 7px; }
 .sequence-menu-label { display: block; padding: 6px 9px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .sequence-insert-menu > [role="menuitem"] { height: auto; justify-content: flex-start; gap: 10px; padding: 9px; text-align: left; }

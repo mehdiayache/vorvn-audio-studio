@@ -1,10 +1,23 @@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import type { ComposerSurfaceProps } from "./composer-controller"
-import { ComposerSurface } from "./composer-surface"
+import { createPortal } from "react-dom"
+
+import { type ComposerSurfaceProps, useComposerController } from "./composer-controller"
+import { ComposerSurface, ControlledComposerSurface, type ComposerPresentation } from "./composer-surface"
 import { MobileComposerTransport } from "./mobile-composer-transport"
 
 export function ProductionComposerWorkbench(props: ComposerSurfaceProps) {
-  return <div className="production-composer-workbench"><ComposerSurface {...props} visible /></div>
+  return <div className="production-composer-workbench"><ComposerSurface {...props} presentation="workbench" visible /></div>
+}
+
+export function ProductionComposerSession({ target, presentation, onExpand, onClose, ...props }: ComposerSurfaceProps & {
+  target: HTMLElement | null
+  presentation: Extract<ComposerPresentation, "inline" | "workbench">
+  onExpand: () => void
+  onClose: () => void
+}) {
+  const composer = useComposerController({ ...props, visible: true })
+  if (!target) return null
+  return createPortal(<ControlledComposerSurface composer={composer} presentation={presentation} onExpand={onExpand} onClose={presentation === "inline" ? onClose : undefined} />, target)
 }
 
 export function MobileProductionComposerSheet({ title, description, onClose, ...composerProps }: ComposerSurfaceProps & { title: string; description: string; onClose: () => void }) {

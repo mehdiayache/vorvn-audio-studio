@@ -16,6 +16,6 @@ describe("SequenceInsertControl", () => {
   it("uses a distinct final action", () => {
     render(<SequenceInsertControl at={6} beforePartId={null} last onInsert={vi.fn()} />)
     expect(screen.getByRole("button", { name: "Add part at position 7" })).toBeTruthy()
-    expect(screen.getByText("Add part")).toBeTruthy()
+    expect(screen.getByText("Add another Part")).toBeTruthy()
   })
 })

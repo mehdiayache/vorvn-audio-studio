@@ -16,7 +16,7 @@ export function SequenceInsertControl({ at, beforePartId, last = false, onInsert
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button className="sequence-insert-trigger" size="sm" aria-label={`Add part at position ${at + 1}`}>
-            <Plus /> <span>Add part</span>
+            <Plus /> <span>{last ? "Add another Part" : "Add part"}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="sequence-insert-menu" align="start">

@@ -22,8 +22,6 @@ import { outputLanguageOptions } from "@/lib/voice-capabilities"
 import { getVoiceIdentities, routesForIdentity, type VoiceChoice, type VoiceIdentityChoice } from "@/lib/voice-options"
 import type { DurableJob, GeneratePayload, GenerateResult, PlayerSource, ProductionCastRole, ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
 
-export type ComposerSection = "who" | "words" | "performance" | "output"
-
 export type ComposerSurfaceProps = {
   productionId?: number
   sessionId?: string
@@ -66,7 +64,6 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
   const [rate, setRate] = useState(part?.rate ?? 1)
   const [pitch, setPitch] = useState(part?.pitch ?? 1)
   const [volume, setVolume] = useState(part?.volume ?? 50)
-  const [section, setSection] = useState<ComposerSection>("who")
   const [busy, setBusy] = useState<"draft" | "generate" | null>(null)
   const [confirmationEstimate, setConfirmationEstimate] = useState<number | null>(null)
   const [pendingCommand, setPendingCommand] = useState<PendingGeneration | null>(null)
@@ -75,7 +72,6 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
   const persistTextPreparationRef = useRef<(reference: TextReviewReference | null, text?: ComposerText) => Promise<void>>(async () => undefined)
 
   useEffect(() => {
-    setSection("who")
     setBusy(null)
     setConfirmationEstimate(null)
     setPendingCommand(null)
@@ -175,8 +171,8 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
   const destination = !productionId
     ? "Standalone recording"
     : part
-      ? part.kind === "draft" ? `Record Part ${(part.position ?? 0) + 1}` : `New take for Part ${(part.position ?? 0) + 1}`
-      : insertAt === null ? `New Part ${nextPartNumber}` : `Insert as Part ${insertAt + 1}`
+      ? part.kind === "draft" ? `Record draft · Part ${(part.position ?? 0) + 1}` : `New Take · Part ${(part.position ?? 0) + 1}`
+      : insertAt === null ? `New speech · Part ${nextPartNumber}` : `New speech · before Part ${insertAt + 1}`
   const context = useMemo(() => compositionContext({ productionId, part, insertAt, insertBeforePartId, sessionId }), [insertAt, insertBeforePartId, part, productionId, sessionId])
   const baseline = useMemo(() => editorialBaseline(part), [part])
   const draft: CompositionDraft = {
@@ -293,11 +289,11 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
   return {
     productionId, sessionId, nextPartNumber, insertAt, insertBeforePartId, part, config, directory, cast, playingKey, playerPlaying, onSave, onPlay,
     route, identityId, castRoleId, language, format, deliveryModeRequest, instruction, rate, pitch, volume,
-    section, busy, confirmationEstimate, pendingCommand, editorialCommand, textReviewReference,
+    busy, confirmationEstimate, pendingCommand, editorialCommand, textReviewReference,
     identities, selectedIdentity, selectedCastRole, compatibleRoutes, visibleRoutes, currentRoute, selectedCapability, capabilityControls, deliveryMode,
     textSession, languageOptions, taggedIncompatible, hasInlineDeliveryTag, estimate, textPassEstimate, destination,
     recovery, performancePresets, methodLabel,
-    setSection, setLanguage, setFormat, setDeliveryModeRequest, setInstruction, setRate, setPitch, setVolume,
+    setLanguage, setFormat, setDeliveryModeRequest, setInstruction, setRate, setPitch, setVolume,
     setConfirmationEstimate, setPendingCommand, setEditorialCommand,
     applyRoute, selectIdentity, selectCastRole, removeInlineTags, payload, saveDraft, executeGeneration, continueGeneration, generate,
   }

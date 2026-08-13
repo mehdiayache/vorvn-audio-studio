@@ -27,6 +27,11 @@ export function ComposerWho() {
         <VoicePicker identities={composer.identities} value={composer.identityId} directory={composer.directory} playingKey={composer.playingKey} playerPlaying={composer.playerPlaying} onPlay={composer.onPlay} onChange={composer.selectIdentity} />
         {composer.selectedIdentity?.editorialLanguage && <small className="voice-source-note">The flag is a team casting tag. It never limits this voice.</small>}
       </label>
+      <label className="wide">
+        <span>Output language</span>
+        <Select value={composer.language} onValueChange={composer.setLanguage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{composer.languageOptions.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select>
+        <small>Language changes the requested output only. It never changes or silently reroutes the Voice.</small>
+      </label>
     </div>
     <div className="method-heading"><b>Exact recording method</b><span>Choose one exact route. Audio Studio never picks, replaces or falls back for you.</span></div>
     {composer.visibleRoutes.length

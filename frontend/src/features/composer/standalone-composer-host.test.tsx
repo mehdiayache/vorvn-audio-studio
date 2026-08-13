@@ -38,7 +38,8 @@ describe("StandaloneComposerHost", () => {
   it("keeps Speak inline on desktop", () => {
     viewport(false)
     render(<StandaloneComposerHost {...props} />)
-    expect(screen.getByLabelText("Composer sections")).toBeTruthy()
+    expect(screen.getByRole("region", { name: "Script workspace" })).toBeTruthy()
+    expect(screen.getByText("Standalone recording")).toBeTruthy()
     expect(screen.queryByRole("dialog")).toBeNull()
   })
 
@@ -49,7 +50,7 @@ describe("StandaloneComposerHost", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open Composer" }))
     const dialog = screen.getByRole("dialog")
     expect(dialog).toBeTruthy()
-    expect(screen.getByLabelText("Composer sections")).toBeTruthy()
+    expect(screen.getByRole("region", { name: "Script workspace" })).toBeTruthy()
     expect(screen.getByRole("region", { name: "Audio player" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Play Current recording" })).toBeTruthy()
     expect(player.claimTransport).toHaveBeenCalledWith("composer")
