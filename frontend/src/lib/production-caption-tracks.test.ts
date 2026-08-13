@@ -28,4 +28,11 @@ describe("Production caption tracks", () => {
     expect(tracks[0]?.cues.map((cue) => cue.startMs)).toEqual([100, 2600])
     expect(tracks[0]?.cues.map((cue) => cue.partId)).toEqual([4, 5])
   })
+
+  it("uses honest original-caption wording instead of inventing an unknown language", async () => {
+    vi.mocked(studioApi.captions).mockResolvedValue({ transcripts: [{ id: 8, name: "part-4", duration_ms: 2500, is_translation: false, stale: false }] })
+    vi.mocked(studioApi.transcript).mockResolvedValue({ ...transcript, language: null } as Transcript)
+    const [track] = await loadPartCaptionTracks(2, { ...part, language: undefined } as ProductionPart)
+    expect(track).toMatchObject({ language: "Original captions", label: "Original captions" })
+  })
 })

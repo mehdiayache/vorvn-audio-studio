@@ -98,6 +98,10 @@
 .caption-translate-bar { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(10rem, 13rem) auto; align-items: center; gap: var(--vrn-space-3); padding: var(--vrn-space-3); border-radius: var(--vrn-radius-md); background: var(--vrn-surface-subtle); }
 .caption-translate-bar > svg { width: 18px; color: var(--vrn-info-solid); }
 .caption-translate-bar > span { font-weight: var(--vrn-weight-label); }
+.caption-source-bar { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(10rem, 13rem) auto; align-items: center; gap: var(--vrn-space-3); padding: var(--vrn-space-3); border: var(--vrn-stroke-hairline) solid var(--vrn-border); border-radius: var(--vrn-radius-md); background: var(--surface-raised); }
+.caption-source-bar > svg { width: 18px; color: var(--vrn-data-series-2); }
+.caption-source-bar > span { display: grid; gap: 2px; }
+.caption-source-bar small { color: var(--vrn-content-secondary); font-size: var(--vrn-type-metadata-size); }
 .caption-workspace { min-height: 28rem; display: grid; grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr); overflow: hidden; border: var(--vrn-stroke-hairline) solid var(--vrn-border); border-radius: var(--vrn-radius-lg); background: var(--surface-raised); }
 .caption-files { min-width: 0; padding: var(--vrn-space-3); border-right: var(--vrn-stroke-hairline) solid var(--vrn-border); background: var(--vrn-surface-subtle); }
 .caption-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--vrn-space-3); width: 100%; padding: var(--vrn-space-3); border: var(--vrn-stroke-hairline) solid transparent; border-bottom-color: var(--vrn-border); color: inherit; background: transparent; text-align: left; cursor: pointer; }
@@ -131,6 +135,8 @@
   .inspector-summary-actions { grid-column: 1 / -1; width: 100%; }
   .inspector-summary-actions > button:not([data-size="icon"]) { flex: 1; }
   .inspector-section-heading, .inspector-take-intro { align-items: flex-start; flex-direction: column; }
+  .caption-source-bar, .caption-translate-bar { grid-template-columns: auto minmax(0, 1fr); }
+  .caption-source-bar [data-slot="select-trigger"], .caption-translate-bar [data-slot="select-trigger"], .caption-source-bar > button, .caption-translate-bar > button { grid-column: 1 / -1; width: 100%; }
   .inspector-heading-actions { justify-content: flex-start; flex-wrap: wrap; }
   .inspector-facts, .inspector-compare-grid { grid-template-columns: 1fr; }
   .inspector-compare-grid section + section { border-left: 0; border-top: var(--vrn-stroke-hairline) solid var(--vrn-border); }

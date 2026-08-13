@@ -48,7 +48,7 @@ export function TransportStripView({ source, state, currentTime, duration, volum
   if (!source) return null
   const playLabel = state === "playing" ? `Pause ${source.title}` : `Play ${source.title}`
   return <section className={`transport-strip is-${variant}${currentCaptionCue ? " has-caption-cue" : ""}${previewStale ? " is-stale" : ""}`} aria-label="Audio player" data-source-kind={source.kind}>
-    {currentCaptionCue && <button className="transport-caption-cue" onClick={() => currentCaptionCue.partId && onOpenCaptionContext?.(currentCaptionCue.partId)} disabled={!currentCaptionCue.partId || !onOpenCaptionContext} dir="auto"><span>{captionTrack?.language}</span>{currentCaptionCue.text}</button>}
+    {currentCaptionCue && <button className="transport-caption-cue" onClick={() => currentCaptionCue.partId && onOpenCaptionContext?.(currentCaptionCue.partId)} disabled={!currentCaptionCue.partId || !onOpenCaptionContext} dir="auto"><span className="transport-caption-label"><Captions />{captionTrack?.language || "Captions"}</span><span className="transport-caption-text">{currentCaptionCue.text}</span></button>}
     {previewStale && <div className="transport-preview-stale" role="status"><span>Preview out of date</span><Button variant="ghost" size="sm" onClick={onRefreshPreview}><RefreshCw /> Refresh</Button></div>}
     <span className="transport-strip-art" aria-hidden="true">{source.artwork ? <img src={source.artwork} alt="" /> : <AudioLines />}</span>
     <div className="transport-strip-copy"><small>{sourceLabels[source.kind]}</small><b title={source.title}>{source.title}</b>{source.subtitle && <span title={source.subtitle}>{source.subtitle}</span>}</div>

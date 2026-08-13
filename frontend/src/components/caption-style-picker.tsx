@@ -3,10 +3,12 @@ import { AlignJustify, Captions, Type } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { CaptionLayout, CaptionProfile } from "@/types/domain"
 
+import "./caption-style-picker.css"
+
 const options: Array<{ key: CaptionProfile; label: string; detail: string; icon: typeof Captions }> = [
   { key: "standard", label: "Standard", detail: "Readable · up to 2 lines", icon: AlignJustify },
   { key: "short", label: "Short", detail: "Roughly 2–5 words", icon: Captions },
-  { key: "words", label: "Word by word", detail: "Precise timing export", icon: Type },
+  { key: "words", label: "Word by word", detail: "One timed word per cue", icon: Type },
 ]
 
 export function CaptionStylePicker({ value, layout, busy, onChange }: {

@@ -51,8 +51,9 @@ describe("usePartDetailData", () => {
       return { detail, search: useLocation().search }
     }, { wrapper })
     await waitFor(() => expect(result.current.detail.loading).toBe(false))
-    await act(async () => { await result.current.detail.makeCaptions() })
+    await act(async () => { await result.current.detail.makeCaptions("English") })
     await waitFor(() => expect(result.current.detail.captionJob).toMatchObject({ id: "caption-1", status: "queued" }))
+    expect(api.enqueueTranscribePart).toHaveBeenCalledWith(7, activePart, false, "English")
     expect(result.current.search).toContain("part-caption-job=caption-1")
   })
 

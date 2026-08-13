@@ -57,11 +57,11 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
     catch (error) { if (request === transcriptRequestRef.current) setMessage(error instanceof Error ? error.message : "Captions could not be opened.") }
   }, [])
 
-  const makeCaptions = useCallback(async () => {
+  const makeCaptions = useCallback(async (language?: string) => {
     if (!part) return
     setCaptionBusy("transcribe"); setMessage("Listening to the current take…")
     try {
-      const job = await studioApi.enqueueTranscribePart(productionId, part)
+      const job = await studioApi.enqueueTranscribePart(productionId, part, false, language)
       handledJobRef.current = null
       setCaptionJobId(job.id)
     } catch (error) { setMessage(error instanceof Error ? error.message : "Subtitles could not be created.") }
@@ -112,8 +112,8 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
 
   const retryCaptionJob = useCallback(async () => {
     if (captionJobForPart?.type === "translate" && captionJobForPart.context?.target) await translate(captionJobForPart.context.target)
-    else await makeCaptions()
-  }, [captionJobForPart?.context?.target, captionJobForPart?.type, makeCaptions, translate])
+    else await makeCaptions(captionJobForPart?.context?.language)
+  }, [captionJobForPart?.context?.language, captionJobForPart?.context?.target, captionJobForPart?.type, makeCaptions, translate])
 
   return { captions, transcript, loading, captionBusy, captionConfirmation, captionJob: captionJobForPart, message, selectTranscript, makeCaptions, translate, confirmCaptionAction, cancelCaptionAction: () => setCaptionConfirmation(null), retryCaptionJob, dismissCaptionJob: () => setCaptionJobId(null) }
 }

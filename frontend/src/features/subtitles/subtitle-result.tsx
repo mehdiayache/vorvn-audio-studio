@@ -1,14 +1,13 @@
 import { CircleAlert, Copy, Download, Languages, LoaderCircle, Play } from "lucide-react"
 import { toast } from "sonner"
 
+import { CaptionStylePicker } from "@/components/caption-style-picker"
 import type { GlobalPlayerValue } from "@/components/global-player-provider"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatDuration, formatMoney } from "@/lib/format"
 import type { CaptionLayout, CaptionProfile, Transcript } from "@/types/domain"
-
-import { CaptionStylePicker } from "./caption-style-picker"
 
 function downloadText(name: string, body: string) {
   const link = document.createElement("a")

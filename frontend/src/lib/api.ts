@@ -315,16 +315,16 @@ export const studioApi = {
     request<TimelineOkEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/editorial`, { method: "PATCH", body: JSON.stringify(values) }).then((response) => response.data),
   captions: (productionId: number, id: number) => v1<TranscriptSummary[]>(`/api/v1/productions/${productionId}/parts/${id}/captions`).then((transcripts) => ({ transcripts })),
   transcript: (id: number) => v1<Transcript>(`/api/v1/subtitles/${id}`),
-  enqueueTranscribePart: async (productionId: number, part: ProductionPart, confirmed = false) => {
+  enqueueTranscribePart: async (productionId: number, part: ProductionPart, confirmed = false, language?: string) => {
     const response = await request<{ data: DurableJob<CaptionMutationResult> }>("/api/v1/jobs/transcription", {
       method: "POST",
       headers: { "Idempotency-Key": `transcribe-part-${part.id}-${crypto.randomUUID()}` },
-      body: JSON.stringify({ file: part.filename, part_id: part.id, production_id: productionId, language: part.language || undefined, confirmed }),
+      body: JSON.stringify({ file: part.filename, part_id: part.id, production_id: productionId, language: language || part.language || undefined, confirmed }),
     })
     return registerJob(response.data)
   },
-  transcribePart: async (productionId: number, part: ProductionPart, confirmed = false) => {
-    const job = await studioApi.enqueueTranscribePart(productionId, part, confirmed)
+  transcribePart: async (productionId: number, part: ProductionPart, confirmed = false, language?: string) => {
+    const job = await studioApi.enqueueTranscribePart(productionId, part, confirmed, language)
     return jobObserver.completion<CaptionMutationResult>(job.id)
   },
   enqueueTranscriptTranslation: async (id: number, target: string, confirmed = false) => {

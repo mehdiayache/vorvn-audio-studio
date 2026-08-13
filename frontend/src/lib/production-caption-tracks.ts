@@ -3,15 +3,15 @@ import { partDurationMs } from "@/lib/format"
 import type { PlayerCaptionTrack, ProductionPart, Transcript, TranscriptSummary } from "@/types/domain"
 
 function languageLabel(value?: string | null) {
-  const language = String(value || "Unknown language").trim()
-  return language || "Unknown language"
+  return String(value || "").trim()
 }
 
-function transcriptTrack(summary: TranscriptSummary, transcript: Transcript, partId: number, offsetMs = 0): PlayerCaptionTrack {
+function transcriptTrack(summary: TranscriptSummary, transcript: Transcript, partId: number, offsetMs = 0, sourceLanguage?: string | null): PlayerCaptionTrack {
+  const language = languageLabel(summary.language || transcript.language || sourceLanguage) || "Original captions"
   return {
     id: String(summary.id),
-    language: languageLabel(summary.language || transcript.language),
-    label: summary.is_translation ? languageLabel(summary.language) : `${languageLabel(summary.language || transcript.language)} · Original`,
+    language,
+    label: summary.is_translation ? languageLabel(summary.language) || "Translation" : language === "Original captions" ? language : `${language} · Original`,
     stale: Boolean(summary.stale),
     cues: (transcript.sentences || []).map((cue, index, cues) => ({
       startMs: offsetMs + Number(cue.start || 0),
@@ -24,7 +24,7 @@ function transcriptTrack(summary: TranscriptSummary, transcript: Transcript, par
 
 export async function loadPartCaptionTracks(productionId: number, part: ProductionPart): Promise<PlayerCaptionTrack[]> {
   const { transcripts } = await studioApi.captions(productionId, part.id)
-  return Promise.all(transcripts.map(async (summary) => transcriptTrack(summary, await studioApi.transcript(summary.id), part.id)))
+  return Promise.all(transcripts.map(async (summary) => transcriptTrack(summary, await studioApi.transcript(summary.id), part.id, 0, part.language)))
 }
 
 export async function loadProductionCaptionTracks(productionId: number, parts: ProductionPart[]): Promise<PlayerCaptionTrack[]> {
@@ -45,6 +45,7 @@ export async function loadProductionCaptionTracks(productionId: number, parts: P
         await studioApi.transcript(summary.id),
         part.id,
         offsets.get(part.id) || 0,
+        part.language,
       )))
     }))
 
