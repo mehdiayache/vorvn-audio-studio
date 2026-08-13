@@ -114,7 +114,7 @@
 .speech-part-alert.is-warning { color: var(--warning); }
 .speech-part-alert.is-danger { color: var(--destructive); }
 
-.speech-part-script { margin-top: var(--vrn-space-2); }
+.speech-part-script { margin-top: 6px; }
 .speech-part-script-copy {
   display: -webkit-box;
   overflow: hidden;
@@ -126,13 +126,13 @@
   white-space: pre-wrap;
   unicode-bidi: plaintext;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
 }
 .speech-part-script-copy.is-expanded { display: block; overflow: visible; }
 .speech-part-script-copy[dir="rtl"] { font-family: var(--vrn-font-arabic); text-align: right; }
 .speech-part-script-toggle {
-  height: var(--vrn-control-xs);
-  margin: 2px 0 0 -8px;
+  height: 20px;
+  margin: 0 0 0 -8px;
   padding-inline: var(--vrn-space-2);
   color: var(--muted-foreground);
   font-size: var(--vrn-type-metadata-size);
