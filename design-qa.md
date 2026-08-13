@@ -1,46 +1,65 @@
-# Composer capability selector — design QA
+# Design QA — Scope 1 Canonical Speech Part
 
-- Source visual truth: `/Users/berberos/.codex/generated_images/019fcbdc-bc46-7f03-a02e-db45e8c852cc/exec-a2bbc3a8-84f5-4442-8aa3-07b60f27a625.png`
-- Implementation screenshot: `/Users/berberos/VORVN-DEV/vorvn-os/projects/text-to-voice/.codex-audits/06-compact-selector-rows.png`
-- Combined comparison: `/Users/berberos/VORVN-DEV/vorvn-os/projects/text-to-voice/.codex-audits/04-reference-vs-implementation.png`
-- Desktop viewport: 1280 × 720 CSS px, browser DPR 2; browser screenshots normalized to CSS-pixel dimensions by the capture surface.
-- Source pixels: 1640 × 1024. Implementation focused screenshot: 1280 × 720.
-- State: Eve Serenity selected, output language unset, Expressive speech + tags selected, Details collapsed.
+## Acceptance target
 
-## Full-view comparison evidence
+- Selected direction: founder-approved option 2.
+- Reference: `/Users/berberos/.codex/generated_images/019ff8c8-3403-7413-94e1-31a32c58ed73/exec-1339c1bf-ab0f-4981-b7ec-4e02d5948863.png` (1487 × 1058).
+- Implemented capture: `/tmp/audio-studio-option2-implementation-final.png`.
+- Side-by-side review: `/tmp/audio-studio-option2-comparison-final.png`.
+- Real workspace: `test production of conversation` (`05e19cd3-c2f6-4fa0-90c6-0159d11e3556`).
 
-The implementation preserves the selected direction's single grouped surface, three compact rows, restrained blue selected state, human purpose first, exact model at the right, readiness, documented language count, and collapsed Details disclosure. It correctly uses the application's existing shell, spacing tokens, typography, borders, and responsive Composer rather than reproducing the mock as an isolated panel.
+## Pass 1 — structural comparison
 
-The mock's inaccurate placeholder model names and `17 languages` values were intentionally replaced with live catalogue truth: Qwen Audio Flash / 13, Qwen3 Voice Clone / 10, and Qwen 3.5 Omni Flash + Plus / 29.
+The first rendered comparison found two material fidelity defects:
 
-## Focused region evidence
+1. the generic `.sequence-card` rule overrode the Speech Part grid, collapsing the intended order / identity / content columns;
+2. the Production canvas remained capped at 1040 px, making the ledger visibly narrower and denser than the approved 1200 px direction.
 
-`06-compact-selector-rows.png` confirms that all three rows fit the live 900px Composer stage, model labels remain visible, the selected state is clear, and readiness and language counts align consistently. The Details control remains immediately below the group.
+The card rule now has explicit Speech-Part specificity and the Production canvas is capped at 1200 px. The sequence workspace owns the full available width, and the footer exposes visible-part duration and spend totals like the reference.
 
-## Required fidelity surfaces
+## Pass 2 — visual result
 
-- Fonts and typography: existing Audio Studio type tokens retained; hierarchy and weights match the source direction. Long purpose text truncates intentionally at the compact row boundary.
-- Spacing and layout rhythm: one 12px-radius grouped surface, 12px row padding, consistent dividers, and no nested model cards.
-- Colors and visual tokens: existing surface, border, primary-soft, primary, success, foreground, and muted-foreground tokens only; no invented gradient or palette.
-- Image quality and assets: no raster assets are needed in this selector. Radio, status, lock, and disclosure icons come from the existing Lucide dependency.
-- Copy and content: capability names and purposes come from the provider catalogue; model names, IDs, readiness, and language counts are live data rather than hard-coded display facts.
+At 1440 × 1024 the implementation and reference now share the same dominant composition:
 
-## Interaction and responsive verification
+- 1200 px centered Production ledger;
+- stable 48 px order, 190 px identity, and flexible script/result columns;
+- one continuous bordered sequence rather than floating black cards;
+- compact script rows with persistent Voice/method and Take/caption/spend facts;
+- edit and reorder affordances visible without opening overflow;
+- contextual generation action kept subordinate to the everyday playback/result lane;
+- semantic state color: identity accent, blue active/generating, violet playing, green ready/captions, amber review, and red failure.
 
-- Exact long reading selection: passed.
-- Natural performance selection: passed.
-- Conditional Plus/Flash quality control: visible after selecting Natural performance.
-- Details disclosure and exact Omni model IDs: passed.
-- Batch shared compact mode: three rows rendered, no console warnings or errors.
-- Mobile 390 × 844: document width remained 390px; all three rows measured 330px with no internal overflow.
-- Speak console: no warnings or errors.
+The implementation deliberately uses real Audio Studio data, existing Lucide icons, shared `VoiceIdentity`, `AudioWaveform`, and local shadcn primitives. No fake UI assets or catalog HTML/CSS were copied.
 
-## Comparison history
+## Real operator QA
 
-Initial comparison found no actionable P0, P1, or P2 mismatch. No post-comparison visual fix loop was required.
+The Living QA Production was used as a persistent corpus. Manual checks covered:
 
-## Follow-up polish
+- opening a Part in the Workbench through the visible edit affordance;
+- reordering affordances (`Move earlier`, `Move later`, `Move to position`);
+- playing a real selected Take and observing both the inline waveform and global player;
+- bulk-selecting a Part and verifying the independent selected treatment;
+- generating alternatives through the real provider route and observing the active blue operation state;
+- reviewing multiple Takes and explicitly reselecting an older Take;
+- navigating away, returning, and confirming persisted selection/state;
+- maintaining surrounding Parts with Original and Tagged immutable Take states.
 
-- P3: At narrower desktop widths, the one-line purpose text uses ellipsis. This is the intended compact behavior; the full purpose remains in the button's accessible name and the Details disclosure carries the technical explanation.
+That exploratory pass found a real pipeline defect: the application service filtered out explicit `select_result=false` before persistence, so a Generate Alternative could silently promote its result despite the correct UI payload. The service now preserves the command and a Python regression test covers the complete service/repository boundary. The Living QA Production keeps a newer unselected Take as useful future test state.
 
-final result: passed
+Rare provider failures were not manufactured with paid calls. Deterministic component fixtures remain the correct coverage for failure, lost, ambiguous, retrying, and confirmation states.
+
+## Geometry and responsive checks
+
+Measured document width equaled viewport width with no horizontal page overflow at 1280, 1440, 1600, and 1920 px. The ledger stayed 1200 px and centered at each desktop width.
+
+At 767 px the ledger contracted to 704 px and retained the three-column grammar. At 640 px the responsive card switched to its compact two-column mobile composition without document overflow. Mobile was verified for safety only; it was not redesigned by Scope 1.
+
+## Intentional differences / later scope
+
+- The approved reference illustrates generating, caption-review, and generation-failure rows simultaneously. The persistent Production reflects its current real data: a ready unselected alternative and several Tagged Takes. The same state grammar was verified interactively for generation and deterministically for rare failures.
+- Music Bed sound/overflow controls and the toolbar split-button affordance remain owned by later Production scopes. Scope 1 did not expand into those controls.
+- The header's historical aggregate provider spend and the ledger footer's visible-Part spend answer different questions; the footer is intentionally calculated from the Parts currently in this sequence.
+
+## Outcome
+
+Scope 1 matches the founder-selected ledger direction closely while preserving immutable Take truth, durable Job truth, current Audio Studio architecture, and the verified Scope 0 shell.

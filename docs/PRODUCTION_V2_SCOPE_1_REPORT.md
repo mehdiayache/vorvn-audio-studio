@@ -1,114 +1,145 @@
-# Scope completion report
+# Scope 1 completion report
 
 ## Scope
 
 `Scope 1 — Canonical Speech Part`
 
-## Review status
+## Status
 
-`REOPENED — FOUNDER VISUAL REVIEW REJECTED THE PRESENTATION.`
+`COMPLETE ON codex/production-v2-scope-1 — OPTION 2 IMPLEMENTED AND VERIFIED.`
 
-The data/state architecture, selected-Take truth, Job interpretation, and
-interaction contracts remain valid. The rendered design is not accepted as
-Scope 1 completion. The founder review identified reversed action priority,
-insufficient affordance for opening/editing and reordering, excessive emphasis
-on New Take, over-muted Take/caption/spend facts, an almost entirely black and
-grey visual language, and inadequate visible state grammar.
+The founder-selected option 2 is now the binding presentation: one light,
+continuous production ledger with stable order, Voice/method, and
+script/result columns. Scope 1 is complete on its branch and is not merged by
+this report. Scope 2 remains unauthorized and unstarted.
 
-The previous human-QA claim was also insufficient: the review used **Test
-production only made by admin**, not the designated Living QA Production **Test
-Production of Conversation**. Its ten neighboring Parts were overwhelmingly
-Ready, one-Take, uncaptioned `CC —` examples and did not exercise the combined
-state system as a real operator corpus. Automated fixtures proved state logic,
-not product quality. Scope 2 remains blocked while Scope 1 presentation is
-reopened.
+## Tested checkpoints
 
-## Commits
+- `7664b00` — redesign Speech Parts as the Production ledger.
+- `3fe78a6` — preserve explicit alternative-Take non-selection through the
+  application service and repository boundary.
+- Final layout, totals, design-QA evidence, and this report are included in the
+  final branch checkpoint following this report.
 
-- Canonical selected-Take and Job truth projection: `c9324d5`
-- Initial canonical Speech Part presentation: `5860e36`
-- Production actions, explicit Take intent, and caption Job observation: `ab82521`
-- Permanent UI/UX quality gate: `64dedb7`
-- Semantic color grammar and native Codex Skills rule: `8b3b238`
-- Founder-review presentation rebuild: `65c9f97`
-- Measured desktop-density refinement: `370bd0d`
+## Final product result
 
-## Implemented result under review
+The Speech Part is now the dominant repeated Production object rather than a
+stack of generic dark cards. At desktop widths, the sequence uses a centered
+1200 px ledger with a 48 px order column, 190 px Voice/method column, and a
+flexible script/result column. The anatomy remains stable while independent
+states combine:
 
-Speech Part is now the stable repeated object of Production and its Ready state is a compact editorial row, not a large form. The hierarchy is deliberate: selected-Take Voice or Cast role first; complete model family, tier, neutral capability and output language second; authored script third; then one result footer containing playback and duration, selected Take and immutable input state, captions, historical spend, New Take, and overflow actions.
+- visible reorder grip and edit affordance;
+- selected immutable Take Voice, exact model/tier, capability, and language;
+- authored script with measured long-text expansion;
+- playback, actual waveform, duration, stable Take ordinal, immutable input
+  state, captions, and historical Part spend;
+- contextual alternatives and Take review without making New Take the primary
+  everyday action;
+- compact durable-operation truth without replacing the card anatomy;
+- distinct identity, active/generating, playing, ready/caption, review/warning,
+  failure, Workbench-active, and bulk-selection grammar.
 
-Normal Ready state is visually quiet. Direct-Voice chrome, repeated editorial flags/personality metadata, the script-side action rail, and the permanently empty operation lane are gone. Durable generation, confirmation, review, failure, and warning presentation appears below the result footer only when exceptional truth exists. The existing Job interpretation remains the sole state machine underneath that conditional presentation.
+The bottom summary exposes the duration and spend of the Parts visible in the
+sequence. Music Bed and later Production controls were not redesigned.
 
-The final implementation translates the established UI VORVN foundation into React using Audio Studio's semantic tokens and local shadcn primitives. Neutral surfaces carry ordinary state; primary color remains focused on active interaction; warning and destructive colors are reserved for actual warnings and failures. It does not copy catalog HTML/CSS, introduce Origins shell integration, revert founder styling, or start Scope 2.
+## Design system and component discipline
 
-## Approved precision corrections
+The implementation translates the established UI VORVN foundation into React
+and continues to use Audio Studio's semantic tokens and local shadcn
+primitives. Existing Button, Checkbox, Dropdown Menu, Progress, Tabs, and
+Tooltip ownership was reused; no duplicate primitive or dependency was added.
 
-1. `GenerateResult` was not reimplemented. The specialized OpenAPI/frontend response type documents the runtime's existing `part_id`, `take_id`, and `duration_ms`; no duplicate generation result behavior or backend field production was added for the card.
-2. The existing explicit `select_result` contract remains authoritative. The recorded-Part New Take / Generate Alternative path submits `false`; a fresh or first recording may select; and the explicit **Update Part and generate** workflow still submits `true`.
-3. `selected_take_number` is projected as a stable Part-local creation ordinal ordered by `(created_at, Take ID)` ascending. It is not derived from UI order.
-4. Selected input state comes only from the immutable selected Take snapshot: `raw → Original`, `shaped → Spoken`, `tagged → Tagged`. Unknown historical truth remains unknown; populated text variants are never used to guess.
-5. Recorded-card Voice, provider route, model/tier, capability, and language come from the immutable selected Take. A newer mutable Cast assignment is shown separately as a future-recording Voice only when it differs.
-6. The projected caption Job must match the selected Take and current Part context. Obsolete Take caption failures/runs are excluded before they reach the card.
-7. `durableOperationTruth` is the single Job interpretation helper used by both the conditional Speech operation presentation and the shared generic operation presentation. No second Job-status state machine was created.
+Ordinary state uses neutral raised surfaces. Identity uses stable semantic data
+series. Blue means active/generating, violet means playing, green means ready
+or caption-complete, amber means review/warning, and red is reserved for true
+failure. Facts such as Original, Spoken, Tagged, captions, and spend remain
+legible instead of being globally muted.
 
-## Final user behavior
+The visual target, two-pass comparison, responsive measurements, intentional
+differences, and real-QA record are documented in `design-qa.md`.
 
-An operator can scan nine or many more Speech Parts as a production sequence instead of reading nine independent forms. Every recorded row keeps the selected recording's Voice, exact creative method, authored words, selected Take truth, duration, captions, and spend in stable places. Short scripts remain compact; long scripts show a two-line reading preview and expose **Show more** only when rendered text actually overflows. Expansion keeps the full script in the DOM and changes only that Part.
+## Approved precision corrections preserved
 
-The Take summary and **Review Take** open the existing Takes tab. CC opens the existing Captions tab. **New Take** opens the shared Composer as **Generate alternative** and never silently promotes the result. Explicit editorial replacement remains available only through the existing **Update Part and generate** decision. Play, bulk selection, overflow actions, Workbench state, Cast color, and exceptional Job truth remain independent and combinable.
+1. `GenerateResult` was not reimplemented. Frontend/OpenAPI typing aligns with
+   the runtime's existing `part_id`, `take_id`, and `duration_ms` result.
+2. The explicit `select_result` contract remains authoritative. Generate
+   Alternative submits non-selection intentionally; explicit replacement
+   workflows may still select.
+3. `selected_take_number` is a stable Part-local creation ordinal ordered by
+   `(created_at, Take ID)` ascending, never a UI list index.
+4. Selected input state comes only from immutable Take `text_state`:
+   `raw → Original`, `shaped → Spoken`, `tagged → Tagged`; unknown history is
+   not guessed.
+5. A recorded Part's always-visible Voice/method facts describe the selected
+   immutable Take. A different future Cast assignment remains separate.
+6. Caption operation truth is limited to the selected Take/current context;
+   obsolete Take Jobs cannot masquerade as the current caption state.
+7. `durableOperationTruth` remains the sole durable Job interpretation helper
+   beneath the compact Speech operation presentation.
 
-## Component ownership
+## Real human product QA
 
-- `speech-part-card-model.ts` owns pure domain-to-card fact projection.
-- `SpeechPartCard` owns the stable React anatomy and rendered-overflow observation, not domain interpretation.
-- `SpeechOperationLane` owns only the conditional Speech operation presentation and returns no UI for idle state.
-- `speech-part-card.css` owns the row's appearance using semantic Audio Studio/VORVN tokens.
-- Reused local shadcn primitives: Button, Checkbox, Collapsible, Dropdown Menu, Progress, Tabs, and Tooltip. `VoiceIdentity` remains the shared portrait resolver and can suppress repeated copy/editorial flags in dense contexts.
-- `ProductionPage` remains the sole interaction-state owner; the existing Part inspector, Composer controller, Job observer, Player, caption flow, and Production actions remain the owners of their established responsibilities.
+QA used the designated persistent Production `test production of conversation`
+(`05e19cd3-c2f6-4fa0-90c6-0159d11e3556`) rather than a disposable fixture.
+The operator pass exercised visible editing and reorder affordances, real audio
+playback, the global Player, bulk selection, Workbench state, the real provider
+generation flow, multiple-Take review and selection, navigation away/return,
+and neighboring Original and Tagged Takes.
 
-## Replaced paths made unreachable
+Two deliberate paid generation requests were made, well below the approved
+USD 5 QA-pass budget. No uncontrolled loop or paid failure manufacture was
+used. The persistent Production retains a newer ready, unselected alternative
+Take as useful future QA state.
 
-- The card-local `SpeechOperation` wrapper and competing card-local Job interpretation are gone.
-- The 220-character `clipText` and generic two-line `.sequence-card-open > p` Speech paths are gone; complete authored text remains in the DOM.
-- The old Ready-card action rail beside the script is gone. Playback, New Take, and overflow now live in the result footer.
-- The `Direct voice` chip and repeated identity flag/personality line are not rendered in the dense Production row.
-- Idle operations render nothing; the former permanently empty 44 px operation lane no longer exists.
-- The generic Speech meta row and card-level route pill were replaced by canonical selected-Take facts and the complete method hierarchy.
+The real pass found a pipeline defect that automation and DOM measurement alone
+had missed: the frontend correctly submitted `select_result=false`, but the
+application service filtered that command before persistence. The service now
+preserves the explicit command. A regression test proves non-selection across
+the application-service/repository boundary, and the existing explicit
+selection behavior remains intact.
 
-## Domain/API impact
+## Visual and interaction QA
 
-The Production read model and generated API typing gained selected-Take ordinal, immutable input state, capability name, caption source language, and selected-Take-relevant Job projection. The OpenAPI Generate result response describes fields already returned by the existing runtime. Caption Job persistence retains its existing Part/Take destination so the read model can reject obsolete operations. No provider request, adapter, speech generation pipeline, Take selection default, voice-language policy, identity model, or paid execution behavior was duplicated or broadened by the presentation rebuild.
+- Reference: founder-selected option 2, 1487 × 1058.
+- Final comparison: 1440 × 1024 implementation against the reference.
+- Desktop: no horizontal document overflow at 1280, 1440, 1600, or 1920 px;
+  the 1200 px ledger remains centered.
+- Narrow safety: at 767 px the ledger contracts to 704 px; at 640 px Speech
+  Parts switch to the compact responsive composition without page overflow.
+- Runtime: no mature-state console warnings or errors.
+- Interaction: edit, reorder menu, play/stop, bulk selection, generation,
+  Takes review/selection, Workbench, navigate away, and reopen all verified.
+- Exceptional states: real generating and ready-unselected states were used;
+  deterministic fixtures cover failure, lost, ambiguous, retrying, and paid
+  confirmation without wasting provider calls.
 
-## Compatibility retained
+## Architecture and ownership
 
-Production ordering, Part and Take IDs, Composer draft recovery, provider-neutral route selection, explicit paid confirmation, existing Take promotion, inspector panels, Caption actions, Cast assignment, Music, Assets, Mix/Export, global Player, normal Audio Studio tools, embedded presentation, and mobile presentation remain intact. Scope 0 workstation geometry and the verified founder styling baseline remain the host.
+- `speech-part-card-model.ts` owns domain-to-card fact projection.
+- `SpeechPartCard` owns stable React anatomy and rendered overflow observation.
+- `SpeechOperationLane` owns compact conditional operation presentation only.
+- `durableOperationTruth` remains the shared Job human-state interpreter.
+- `speech-part-card.css` owns semantic ledger-row appearance.
+- `SequenceWorkspace` owns sequence composition and visible-Part totals.
+- `ProductionPage` retains Composer, inspector, Player, selection, and Job
+  observation state ownership.
 
-## Tests
+No new legacy `server.py`/`db.py` dependency, parallel Job state machine,
+provider adapter path, or Origins shell integration was introduced.
+
+## Verification
 
 - React: 60 files, 203 tests passed.
-- Python: 322 tests passed.
+- Python: 323 tests passed.
 - Provider contracts: 31/31 passed.
-- Render/destination contracts: 15/15 passed; voice package and exact voice routing contracts passed.
-- Domain: 11/11 checks passed.
-- Build: OpenAPI export/generation, TypeScript project build, and Vite production build passed.
-- shadcn audit: local primitive imports/dependencies, TypeScript/build health, and rendered-browser verification completed.
-- Desktop browser: the rebuilt branch was served against **Test production only made by admin** and inspected at 1280, 1440, 1600, and 1920 px. Geometry and runtime logs were clean, but this did not satisfy real human product QA or representative state coverage.
-
-## Adversarial and visual checks
-
-- Data truth: deterministic same-timestamp Take ordering; immutable selected-Take Voice/method despite newer mutable assignment; unknown historical input without guessing; stale caption Job exclusion.
-- Automated/component card-state coverage: draft, recorded/ready, long and short text, expanded text, playing, Workbench-active, bulk-selected, direct Voice, Cast-backed selected Take with differing future Voice, outdated, fidelity warning, missing audio, historical route unavailable, no caption, translated captions, stale captions, current caption generation, and caption failure. This coverage did not replace manual operator use of those states in the Living QA Production.
-- Durable operations: queued, running with progress, retrying, cost confirmation, review/ambiguous, failed, lost, cancelled, and completed unselected alternative. The ready anatomy stays mounted during exceptional operations; idle state adds no empty UI.
-- Real rendered sequence: all 9 Parts mounted; 7 overflowing Ready rows measured 182 px and 2 short Ready rows 138 px. The previous accepted-but-rejected presentation's roughly 302 px Ready cards, script-side action rail, Direct-Voice chip, repeated flags, and empty lower lane are absent.
-- Rendered overflow: 7 genuinely overflowing scripts exposed **Show more**; 2 fitting scripts did not. Expanding the first row changed only that row from 182 px to 274 px, changed the control to **Show less**, and exposed the full script.
-- Responsive desktop: at 1280/1440/1600/1920 px, all cards remained 792 px in the full Canvas, document/card/method horizontal overflow was 0, and footer controls did not wrap at 1280 px.
-- Workbench active: at 1440 px the active card remained 777 px wide and 182 px high with 0 horizontal overflow. The active treatment did not suppress the Cast rail (`opacity: 1`).
-- No paid provider action was invoked.
-
-## Remaining items
-
-Only Scopes 2–7 from the locked Production v2 program. None is authorized or started by this report. Music Bed remains intentionally unchanged for its later scope. Mobile was not redesigned.
+- Render/destination contracts: 15/15 passed.
+- Voice package and exact voice routing contracts passed.
+- Domain integrity: 11/11 passed.
+- OpenAPI export/generation, TypeScript build, and Vite production build passed.
+- shadcn audit checklist completed: imports/dependencies, TypeScript/build, and
+  real browser verification are clean.
 
 ## Stop
 
-`SCOPE 1 REOPENED. SCOPE 2 IS NOT AUTHORIZED.`
+`SCOPE 1 COMPLETE ON ITS BRANCH. SCOPE 2 IS NOT AUTHORIZED OR STARTED.`

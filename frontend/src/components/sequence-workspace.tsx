@@ -6,6 +6,7 @@ import { SequenceInsertControl } from "@/components/sequence-insert-control"
 import { SequenceSilenceCard } from "@/components/sequence-silence-card"
 import { SpeechPartCard } from "@/components/speech-part-card"
 import { EmptySequence } from "@/components/state-panel"
+import { formatDuration, formatMicroMoney, partDurationMs } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { DurableJob, GenerateResult, ProductionCastRole, ProductionPart, VoiceDirectory } from "@/types/domain"
 
@@ -28,6 +29,8 @@ export function SequenceWorkspace({ parts, cast, liveJobs, selected, activePartI
   actions: SequenceActions
 }) {
   const sourceParts = parts.filter((part) => part.kind !== "stitch")
+  const totalDuration = sourceParts.reduce((sum, part) => sum + partDurationMs(part), 0) / 1000
+  const totalSpend = sourceParts.reduce((sum, part) => sum + Number(part.spent || 0), 0)
   const [anchor, setAnchor] = useState<number | null>(null)
 
   function select(index: number, checked: boolean, shift: boolean) {
@@ -65,6 +68,7 @@ export function SequenceWorkspace({ parts, cast, liveJobs, selected, activePartI
       </Fragment>)}
         </div>
       </div>
+      <footer className="sequence-ledger-summary"><span>Total duration <b>{formatDuration(totalDuration)}</b></span><span>Total spend <b>{formatMicroMoney(totalSpend)}</b></span></footer>
     </section>
   )
 }

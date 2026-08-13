@@ -28,7 +28,7 @@
 
 .production-workstation { min-width: 0; background: var(--surface-subtle); }
 .production-canvas { min-width: 0; background: var(--surface-subtle); }
-.production-page .production-main { display: grid; gap: var(--vrn-space-3); width: min(1040px, calc(100% - 48px)); margin: var(--vrn-space-3) auto 126px; }
+.production-page .production-main { display: grid; gap: var(--vrn-space-3); width: min(1200px, calc(100% - 48px)); margin: var(--vrn-space-3) auto 126px; }
 
 .production-sequence-toolbar { position: sticky; z-index: 2; top: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: var(--vrn-space-3); min-height: 44px; padding: var(--vrn-space-1) var(--vrn-space-2); border: var(--vrn-stroke-hairline) solid var(--border); border-radius: var(--vrn-radius-md); background: color-mix(in oklch, var(--surface-raised) 97%, transparent); box-shadow: var(--vrn-shadow-subtle); backdrop-filter: blur(16px); }
 .production-view-switch { display: flex; align-items: center; gap: 3px; }
@@ -57,7 +57,7 @@
   .production-workbench-header h2 { overflow: hidden; font-size: var(--vrn-type-panel-size); line-height: var(--vrn-type-panel-line); font-weight: var(--vrn-weight-title); text-overflow: ellipsis; white-space: nowrap; }
   .production-workbench-header p { grid-column: 1 / -1; overflow: hidden; color: var(--muted-foreground); font-size: var(--vrn-type-metadata-size); line-height: var(--vrn-type-metadata-line); text-overflow: ellipsis; white-space: nowrap; }
   .production-workbench-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
-  .production-page .production-workstation.has-workbench .production-main { width: min(100% - 32px, 1040px); }
+  .production-page .production-workstation.has-workbench .production-main { width: min(100% - 32px, 1200px); }
 }
 
 .production-controls { width: 100%; margin: 0 auto 28px; overflow: hidden; border: 1px solid var(--border); border-radius: 16px; background: color-mix(in oklch, var(--card) 90%, transparent); box-shadow: 0 6px 24px hsl(var(--shadow-color) / .055); }
