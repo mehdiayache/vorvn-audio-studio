@@ -44,11 +44,15 @@
   padding-inline: var(--vrn-space-4);
   pointer-events: none;
 }
-.production-workstation.has-workbench { --production-workbench-occupied: calc(var(--production-workbench-width) + 10px); }
+.production-workstation.has-workbench { --production-workbench-occupied: calc(var(--production-workbench-width) + 8px); }
 .transport-strip.is-production {
   position: static;
-  width: min(42rem, calc(100% - 2 * var(--vrn-space-4)));
+  width: min(40rem, calc(100% - 2 * var(--vrn-space-4)));
+  min-height: 3.5rem;
   margin: 0;
+  border-radius: var(--vrn-radius-md);
+  background: color-mix(in oklch, var(--surface-raised) 98%, transparent);
+  box-shadow: var(--vrn-shadow-raised);
   pointer-events: auto;
 }
 @media (max-width: 64rem) {

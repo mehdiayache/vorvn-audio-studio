@@ -54,7 +54,7 @@ export function PartInspectorContent({ productionId, part, directory, playingKey
   if (!part) return null
   return <div className="part-inspector-content">
         <Tabs value={tab} onValueChange={(value) => setTab(value as PartInspectorTab)} className="part-inspector-tabs">
-          <TabsList><TabsTrigger value="script">Script</TabsTrigger>{recorded && <TabsTrigger value="takes">Takes {data.takes.length + 1}</TabsTrigger>}{recorded && <TabsTrigger value="captions">Captions {data.captions.length}</TabsTrigger>}<TabsTrigger value="details">Details</TabsTrigger></TabsList>
+          <TabsList variant="line"><TabsTrigger value="script">Script</TabsTrigger>{recorded && <TabsTrigger value="takes">Takes {data.takes.length + 1}</TabsTrigger>}{recorded && <TabsTrigger value="captions">Captions {data.captions.length}</TabsTrigger>}<TabsTrigger value="details">Details</TabsTrigger></TabsList>
           <ScrollArea className="part-inspector-scroll">
             <TabsContent value="script"><PartInspectorScript part={part} directory={directory} currentPlaying={playerPlaying && playingKey === `part:${part.id}`} onPlay={onPlay} onNewTake={onNewTake} onDuplicate={onDuplicate} onDelete={onDelete} /></TabsContent>
             {recorded && <TabsContent value="takes"><PartInspectorTakes part={part} takes={data.takes} loading={data.loading} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onNewTake={onNewTake} onPromote={(take) => void data.promote(take)} /></TabsContent>}
