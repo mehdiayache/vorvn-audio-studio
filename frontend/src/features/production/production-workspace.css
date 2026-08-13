@@ -39,6 +39,8 @@
 
 @media (min-width: 48.001rem) {
   .production-workstation { --production-workbench-width: 560px; display: grid; grid-template-columns: minmax(0, 1fr) 0; height: calc(100dvh - var(--studio-standalone-header-height) - var(--studio-local-chrome-height) - 56px); min-height: 32rem; overflow: hidden; background: var(--background); }
+  .studio-app-shell[data-presentation="production-focus"] .production-header-compact { top: 0; }
+  .studio-app-shell[data-presentation="production-focus"] .production-workstation { height: calc(100dvh - 56px); }
   .production-workstation.has-workbench { grid-template-columns: minmax(0, 1fr) 10px var(--production-workbench-width); }
   .production-canvas { overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
   .production-workbench-resizer { z-index: 3; display: grid; place-items: center; width: 10px; height: 100%; color: var(--muted-foreground); border-inline: 1px solid transparent; background: var(--surface-subtle); cursor: col-resize; touch-action: none; }
