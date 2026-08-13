@@ -21,5 +21,7 @@ describe("ProductionStage", () => {
     expect(screen.getByText("Composer")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Back to Production sequence" }))
     expect(onClose).toHaveBeenCalledTimes(1)
+    fireEvent.keyDown(window, { key: "Escape" })
+    expect(onClose).toHaveBeenCalledTimes(2)
   })
 })

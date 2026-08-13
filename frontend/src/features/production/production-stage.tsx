@@ -26,8 +26,19 @@ export function ProductionStage({ mode, title, description, onClose, children, c
   const titleId = useId()
   const backRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
-    if (mode) window.requestAnimationFrame(() => backRef.current?.focus())
-  }, [mode])
+    if (!mode) return
+    const frame = window.requestAnimationFrame(() => backRef.current?.focus())
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return
+      event.preventDefault()
+      onClose()
+    }
+    window.addEventListener("keydown", closeOnEscape)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener("keydown", closeOnEscape)
+    }
+  }, [mode, onClose])
 
   return <section className="production-workstation">
     <div className="production-canvas" aria-hidden={Boolean(mode)} inert={mode ? true : undefined}>{canvas}</div>

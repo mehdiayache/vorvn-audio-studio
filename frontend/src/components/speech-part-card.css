@@ -115,7 +115,7 @@
 .speech-part-take-count { color: var(--vrn-content-secondary); font-weight: var(--vrn-weight-body); }
 .speech-part-caption svg { width: 15px; height: 15px; }
 .speech-part-caption.is-neutral { color: var(--vrn-content-secondary); }
-.speech-part-caption.is-ready svg { color: var(--success); }
+.speech-part-caption.is-ready { color: var(--success); }
 .speech-part-caption.is-active { color: var(--vrn-info-solid); }
 .speech-part-caption.is-warning { color: var(--warning); }
 .speech-part-caption.is-danger { color: var(--destructive); }
