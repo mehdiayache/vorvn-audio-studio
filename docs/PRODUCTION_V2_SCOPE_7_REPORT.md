@@ -2,12 +2,18 @@
 
 ## Status
 
-`COMPLETE ON codex/production-v2-scopes-2-7 — READY FOR FOUNDER REVIEW.`
+`DIRECTION 2 IMPLEMENTED ON codex/production-v2-scopes-2-7 — READY FOR FOUNDER REVIEW.`
 
 The frozen Production v2 package remains authoritative for domain behavior.
 The founder's later UI direction is recorded in
 `docs/production-v2/DECISION_AMENDMENTS.md`: desktop editing now uses a
 dedicated full-workstation Stage instead of the rejected Workbench sidebar.
+
+The founder selected visual direction 2 on 2026-08-13. The implementation is
+grounded in that exact reference: a light editorial ledger, compact Production
+header, parallel Music row, Sequence/Timing toolbar, stable Cast & Voice
+column, dominant script column, and an operational result row with semantic
+state color.
 
 ## Product result
 
@@ -16,10 +22,10 @@ dedicated full-workstation Stage instead of the rejected Workbench sidebar.
 - Composer, Part inspection, captions, Cast, Music, Health, and Mix & Export
   open as explicit Stage surfaces with one Back to Production action. No
   everyday desktop Composer modal or Part Sheet is used.
-- Speech Parts are airy repeated product objects rather than generic cards.
-  Move, exact position, Edit, Cast/Voice, exact method, script, selected Take,
-  immutable input state, captions, operation truth, duration, and spend remain
-  visible. Generate Alternative stays secondary.
+- Speech Parts now form one calm editorial ledger rather than a stack of
+  disconnected cards. Move, exact position, Edit, Cast/Voice, exact method,
+  script, selected Take, immutable input state, captions, operation truth,
+  duration, and spend remain visible. Generate Alternative stays secondary.
 - Semantic color is grammatical: blue for active/selected, green for
   ready/current, amber for Draft/review/stale, red for failure/destructive, and
   identity colors only for Cast/Voice identity.
@@ -38,6 +44,10 @@ dedicated full-workstation Stage instead of the rejected Workbench sidebar.
   one-row filtered Canvas.
 - Sequence cards use deferred rendering hints without adding a second virtual
   list or eager waveform decode path.
+- Production Stage ownership is one discriminated state instead of five
+  competing booleans. Composer, Part, Cast, Music, Health, and Mix & Export are
+  mutually exclusive by construction, and stale Workbench presentation naming
+  has been removed from the Composer path.
 
 ## Real product QA
 
@@ -49,7 +59,7 @@ Parts, paid provider calls, or destructive cleanup were performed.
 Proven in the served desktop application:
 
 - Part 100 can be found from Search/Jump; the full 101-Part sequence returns
-  and Part 100 lands inside the viewport.
+  and Part 100 lands centered inside the viewport after deferred layout settles.
 - Sequence Fit timing renders all 101 ordered clips with no document overflow.
 - Part 1 opens in the dedicated Stage; Text, Takes, Captions, and Details remain
   available while the Canvas is inert.
@@ -57,17 +67,20 @@ Proven in the served desktop application:
   scroll inside the Part surface rather than escaping it.
 - Two selected Parts expose the complete bulk action bar; selection was cleared
   without a data mutation.
-- Cast, Music, Health, and Mix & Export all open in the same Stage geography and
-  remain horizontally contained.
+- Cast, Music, Health, and Mix & Export all open in the same Stage geography;
+  exactly one Stage exists at a time and the underlying Canvas is inert.
 - The Production player is one row, its seek control is visible, volume is
   intentionally absent, and no horizontal overflow occurs.
 - Escape closes the Stage. Browser diagnostic logs were empty.
 
-The current Stage and player were exercised at 1280, the smallest required
-desktop width. The underlying Canvas had already passed 1280, 1440, 1600, and
-1920 browser geometry before this convergence; the new Stage uses bounded
-`min()` frames and passed the smallest width without overflow. Mobile was not
-redesigned or tested.
+Direction 2 was exercised at 1280, 1440, 1600, and 1920 desktop widths. The
+ledger remains centered, the 1280 layout keeps 24 px gutters, and no document
+overflow occurs. The 1440 viewport exposes six representative Parts while
+preserving readable script measure. Mobile was not redesigned or tested.
+
+This pass did not create Parts, generate paid audio, mutate provider state, or
+repeat screenshot archaeology. It used the existing Living QA corpus and real
+DOM interaction in the served application.
 
 ## Verification
 
@@ -87,6 +100,8 @@ redesigned or tested.
   finish 100+ navigation, Health grouping, Composer geometry, and player layout.
 - `f4511c5` — finish semantic ready feedback, Escape behavior, and record the
   founder's authoritative spatial amendment.
+- `c89ecd2` — apply founder-selected direction 2, simplify Production Stage
+  ownership, and harden 100+ Part navigation.
 
 ## Boundary
 
