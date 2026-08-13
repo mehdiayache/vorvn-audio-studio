@@ -4,6 +4,25 @@
 
 `Scope 1 — Canonical Speech Part`
 
+## Review status
+
+`REOPENED — FOUNDER VISUAL REVIEW REJECTED THE PRESENTATION.`
+
+The data/state architecture, selected-Take truth, Job interpretation, and
+interaction contracts remain valid. The rendered design is not accepted as
+Scope 1 completion. The founder review identified reversed action priority,
+insufficient affordance for opening/editing and reordering, excessive emphasis
+on New Take, over-muted Take/caption/spend facts, an almost entirely black and
+grey visual language, and inadequate visible state grammar.
+
+The previous human-QA claim was also insufficient: the review used **Test
+production only made by admin**, not the designated Living QA Production **Test
+Production of Conversation**. Its ten neighboring Parts were overwhelmingly
+Ready, one-Take, uncaptioned `CC —` examples and did not exercise the combined
+state system as a real operator corpus. Automated fixtures proved state logic,
+not product quality. Scope 2 remains blocked while Scope 1 presentation is
+reopened.
+
 ## Commits
 
 - Canonical selected-Take and Job truth projection: `c9324d5`
@@ -14,7 +33,7 @@
 - Founder-review presentation rebuild: `65c9f97`
 - Measured desktop-density refinement: `370bd0d`
 
-## Final result
+## Implemented result under review
 
 Speech Part is now the stable repeated object of Production and its Ready state is a compact editorial row, not a large form. The hierarchy is deliberate: selected-Take Voice or Cast role first; complete model family, tier, neutral capability and output language second; authored script third; then one result footer containing playback and duration, selected Take and immutable input state, captions, historical spend, New Take, and overflow actions.
 
@@ -73,12 +92,12 @@ Production ordering, Part and Take IDs, Composer draft recovery, provider-neutra
 - Domain: 11/11 checks passed.
 - Build: OpenAPI export/generation, TypeScript project build, and Vite production build passed.
 - shadcn audit: local primitive imports/dependencies, TypeScript/build health, and rendered-browser verification completed.
-- Desktop browser: the rebuilt branch was served against the real nine-Part Production and visually inspected at 1280, 1440, 1600, and 1920 px. Browser runtime logs were empty.
+- Desktop browser: the rebuilt branch was served against **Test production only made by admin** and inspected at 1280, 1440, 1600, and 1920 px. Geometry and runtime logs were clean, but this did not satisfy real human product QA or representative state coverage.
 
 ## Adversarial and visual checks
 
 - Data truth: deterministic same-timestamp Take ordering; immutable selected-Take Voice/method despite newer mutable assignment; unknown historical input without guessing; stale caption Job exclusion.
-- Card states: draft, recorded/ready, long and short text, expanded text, playing, Workbench-active, bulk-selected, direct Voice, Cast-backed selected Take with differing future Voice, outdated, fidelity warning, missing audio, historical route unavailable, no caption, translated captions, stale captions, current caption generation, and caption failure.
+- Automated/component card-state coverage: draft, recorded/ready, long and short text, expanded text, playing, Workbench-active, bulk-selected, direct Voice, Cast-backed selected Take with differing future Voice, outdated, fidelity warning, missing audio, historical route unavailable, no caption, translated captions, stale captions, current caption generation, and caption failure. This coverage did not replace manual operator use of those states in the Living QA Production.
 - Durable operations: queued, running with progress, retrying, cost confirmation, review/ambiguous, failed, lost, cancelled, and completed unselected alternative. The ready anatomy stays mounted during exceptional operations; idle state adds no empty UI.
 - Real rendered sequence: all 9 Parts mounted; 7 overflowing Ready rows measured 182 px and 2 short Ready rows 138 px. The previous accepted-but-rejected presentation's roughly 302 px Ready cards, script-side action rail, Direct-Voice chip, repeated flags, and empty lower lane are absent.
 - Rendered overflow: 7 genuinely overflowing scripts exposed **Show more**; 2 fitting scripts did not. Expanding the first row changed only that row from 182 px to 274 px, changed the control to **Show less**, and exposed the full script.
@@ -92,4 +111,4 @@ Only Scopes 2–7 from the locked Production v2 program. None is authorized or s
 
 ## Stop
 
-`STOPPED. Waiting for approval for next scope.`
+`SCOPE 1 REOPENED. SCOPE 2 IS NOT AUTHORIZED.`

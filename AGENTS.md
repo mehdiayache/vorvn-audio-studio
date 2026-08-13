@@ -260,8 +260,9 @@ Do not manually approximate a matching Skill's workflow, silently skip it, or
 claim it is unavailable without checking the active Skill list. Do not invoke
 unrelated Skills merely because they exist. A Skill does not broaden the active
 product scope, override repository/domain truth, or authorize deployment,
-external writes, paid calls, or destructive actions that the user did not
-request.
+external writes, paid calls, or destructive actions except where the active
+task or the permanent Real Human Product QA permission below explicitly grants
+that authority.
 
 ### UI VORVN grounding
 
@@ -317,6 +318,96 @@ layout, or visual-composition problems after completion.
 
 The agent's own visual QA must catch these first. Founder review should evaluate
 product direction and final quality, not perform the first design critique.
+
+### Real Human Product QA — permanent permission
+
+For Audio Studio product and UI work, automated tests, source inspection, DOM
+snapshots, screenshots, console cleanliness, and geometry measurements are not
+sufficient acceptance evidence. Agents are explicitly authorized and required
+to perform real exploratory human QA against the served application.
+
+#### Living QA Production
+
+Use the existing Production named **Test Production of Conversation** as the
+primary persistent product-testing workspace.
+
+Do not recreate a fresh empty Production for every UI scope unless a specific
+clean-state test requires it. Build this Production into a useful long-lived QA
+corpus over time. Reuse realistic state that already exercises the scenario.
+
+Agents may create and retain representative test state there, including:
+
+- short Speech Parts;
+- long Speech Parts and very long multi-paragraph narration;
+- Original, Spoken, and Tagged text variants;
+- expressive scripts using many route-supported delivery tags;
+- multiple Takes;
+- different existing Voice Identities and exact provider routes;
+- Direct Voice Parts;
+- Cast Roles and natural multi-character dialogue;
+- captions, transcriptions, and caption translations;
+- Silence;
+- linked Venture audio;
+- Music Bed;
+- preview and export state.
+
+Do not automatically clean representative state after QA. Persistent realistic
+state is a product-testing asset because future scopes must be judged against a
+mature Production, not only empty fixtures.
+
+Human QA authority is unrestricted only inside designated QA/test resources.
+Do not mutate real business Productions. Never delete the Living QA Production.
+Do not mass-create Voice Identities or provider clones unless the feature under
+test specifically requires them. Clearly identify QA-only Venture assets,
+Personas, or other reusable resources created for testing.
+
+#### Paid provider QA
+
+Real provider calls are explicitly permitted when they materially improve
+product verification. An agent may spend up to USD $5 equivalent per deliberate
+QA pass without requesting additional approval. Existing product Spend Guard
+protections remain authoritative.
+
+Never write or run an uncontrolled loop that can repeatedly issue paid calls.
+Before a multi-call paid QA operation, determine approximately how many provider
+requests will be made. If more than the QA budget appears necessary, stop and
+explain why before proceeding.
+
+Use real paid calls for normal provider workflows and their actual resulting
+artifacts. Do not waste paid calls trying to manufacture rare infrastructure
+failures such as ambiguous responses, lost workers, or storage failures. Use
+existing deterministic fixtures or failure injection for those states.
+
+#### Real content, not placeholder QA
+
+Test content must intentionally exercise the product. Do not use `Hello world`,
+Lorem Ipsum, or meaningless repeated text to validate creative workflows.
+
+- Long narration should resemble real narration and use realistic structure.
+- Dialogue should contain multiple characters and natural exchanges.
+- Tagged testing should use a script that genuinely benefits from supported
+  delivery tags.
+- Spoken preparation should include conversational punctuation, numbers, and
+  difficult phrasing.
+- Long-form testing should include multiple realistic paragraphs.
+- Use only tags and capabilities actually supported by the selected route.
+
+#### Mandatory operator workflow
+
+When a UI scope is complete in code, the agent must:
+
+1. open the real served application;
+2. use the affected workflow manually like an operator;
+3. create, edit, play, generate, and reopen the actual objects involved where
+   relevant;
+4. navigate away and return where state persistence matters;
+5. test both common and awkward realistic content;
+6. leave useful representative QA state behind;
+7. visually critique the result beside several real neighboring objects;
+8. exercise relevant state combinations rather than validating only Ready;
+9. iterate before declaring the scope complete.
+
+Founder review must never be the first time a new UI is used as a real product.
 
 ### Component architecture remains mandatory
 
