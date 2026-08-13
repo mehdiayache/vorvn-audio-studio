@@ -7,6 +7,11 @@ export function formatDuration(seconds: number) {
   return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}` : `${minutes}:${String(remainder).padStart(2, "0")}`
 }
 
+export function formatExactDurationMs(milliseconds: number) {
+  const seconds = Math.max(0, Number(milliseconds || 0) / 1000)
+  return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 }).format(seconds)} ${seconds === 1 ? "second" : "seconds"}`
+}
+
 export function formatMoney(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: value < 0.01 ? 4 : 2 }).format(value || 0)
 }

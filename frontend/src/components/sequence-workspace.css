@@ -44,8 +44,8 @@
   position: relative;
   z-index: 3;
   scroll-margin-top: 58px;
-  border-block: var(--vrn-stroke-hairline) solid color-mix(in oklab, var(--vrn-data-series2) 34%, var(--vrn-border));
-  background: color-mix(in oklab, var(--vrn-data-series2-soft) 34%, var(--surface-raised));
+  border-block: var(--vrn-stroke-hairline) solid color-mix(in oklab, var(--vrn-data-series-2) 34%, var(--vrn-border));
+  background: color-mix(in oklab, var(--vrn-data-series-2) 7%, var(--surface-raised));
 }
 .sequence-composer-anchor.is-inline { display: block; }
 .sequence-composer-inline-host { min-width: 0; background: var(--surface-raised); }
@@ -53,7 +53,7 @@
 .sequence-composer-anchor.is-expanded > span { display: grid; gap: 2px; }
 .sequence-composer-anchor.is-expanded b { font-size: var(--vrn-type-label-size); }
 .sequence-composer-anchor.is-expanded small { color: var(--vrn-content-secondary); font-size: var(--vrn-type-metadata-size); }
-.sequence-composer-anchor.is-expanded button { display: inline-flex; align-items: center; gap: var(--vrn-space-2); border: 0; background: transparent; color: var(--vrn-data-series2); font-size: var(--vrn-type-metadata-size); font-weight: var(--vrn-weight-label); }
+.sequence-composer-anchor.is-expanded button { display: inline-flex; align-items: center; gap: var(--vrn-space-2); border: 0; background: transparent; color: var(--vrn-data-series-2); font-size: var(--vrn-type-metadata-size); font-weight: var(--vrn-weight-label); }
 .sequence-composer-anchor.is-expanded button svg { width: 14px; }
 
 .sequence-workspace-title {
@@ -178,7 +178,8 @@
   font-size: var(--type-small);
 }
 .sequence-silence-card.selected { border-color: var(--primary); background: var(--primary-soft); }
-.sequence-silence-card > b { color: var(--foreground); font-size: var(--type-small); }
+.silence-open { width: auto !important; display: inline-flex; align-items: center; gap: 7px; padding: 0 2px 0 0; border: 0; color: var(--foreground); background: transparent; font-size: var(--type-small); }
+.silence-open:hover b { text-decoration: underline; text-underline-offset: 3px; }
 .silence-icon { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px; background: var(--muted); }
 .silence-icon svg { width: 14px; }
 .silence-duration { display: flex; align-items: center; gap: 5px; }

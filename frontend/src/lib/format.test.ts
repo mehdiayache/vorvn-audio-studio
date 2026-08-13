@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { clipText, formatDuration, formatMoney, partDurationMs, textDirection } from "@/lib/format"
+import { clipText, formatDuration, formatExactDurationMs, formatMoney, partDurationMs, textDirection } from "@/lib/format"
 
 describe("Production formatting contracts", () => {
   it("uses the explicit duration for recorded audio", () => {
@@ -13,6 +13,10 @@ describe("Production formatting contracts", () => {
 
   it("formats long production duration on one clock", () => {
     expect(formatDuration(3671)).toBe("1:01:11")
+  })
+
+  it("keeps exact fractional Silence duration", () => {
+    expect(formatExactDurationMs(1400)).toBe("1.4 seconds")
   })
 
   it("does not damage Arabic while shortening display copy", () => {

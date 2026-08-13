@@ -4088,6 +4088,8 @@ export interface components {
             tagged_text?: string | null;
             /** Text */
             text: string;
+            /** Text State */
+            text_state?: string | null;
             /** Tier */
             tier?: string | null;
             /** Usage */

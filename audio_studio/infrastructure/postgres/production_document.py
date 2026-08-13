@@ -845,6 +845,7 @@ class ProductionDocumentRepository:
             "provider_attempt_id": str(row[32]) if row[32] else None,
             "provider_attempt_status": row[33],
             "voice_identity_id": row[3], "engine": (row[18] or {}).get("engine", ""),
+            "text_state": (row[18] or {}).get("text_state"),
             "model": row[4] or "", "rate": _float((row[11] or {}).get("rate"), 1),
             "pitch": _float((row[11] or {}).get("pitch"), 1),
             "seed": int((row[11] or {}).get("seed", 0) or 0),

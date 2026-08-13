@@ -174,7 +174,7 @@ class ProductionDocumentTests(unittest.TestCase):
                            'alibaba','intl','Tina','qwen3.5-omni-plus','plus',
                            'Archived opening','Archived opening',%s,%s,
                            0.123,'actual_usage',
-                           '{"engine":"omni","format":"mp3"}'::jsonb
+                           '{"engine":"omni","format":"mp3","text_state":"raw"}'::jsonb
                       FROM production_parts WHERE id=%s
                     RETURNING id
                 """, (f"retained-{self.marker}.mp3",
@@ -186,6 +186,7 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual(archived_take["engine"], "omni")
         self.assertEqual(archived_take["model"], "qwen3.5-omni-plus")
         self.assertEqual(archived_take["tier"], "plus")
+        self.assertEqual(archived_take["text_state"], "raw")
         self.assertIsNone(archived_take["fidelity"])
         current_draft = self.repository.part(first_id, draft["id"])
         review = self.timeline.promote(

@@ -7646,6 +7646,17 @@
             "title": "Text",
             "type": "string"
           },
+          "text_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text State"
+          },
           "tier": {
             "anyOf": [
               {

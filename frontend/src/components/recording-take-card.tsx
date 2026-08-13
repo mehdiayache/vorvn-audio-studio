@@ -27,6 +27,9 @@ export type RecordingTakeView = {
   message?: string
   script?: string
   statusLabel?: string
+  ordinal?: number | null
+  inputState?: string | null
+  selected?: boolean
 }
 
 export function RecordingTakeCard({ take, directory, active = false, onPlay, onSecondaryAction, secondaryLabel = "Another take" }: {
@@ -46,7 +49,7 @@ export function RecordingTakeCard({ take, directory, active = false, onPlay, onS
   const created = take.createdAt ? new Date(take.createdAt).toLocaleString() : ""
 
   return <article className={cn("recording-take-card", `is-${outdated || review ? "warning" : take.status}`)}>
-    <div className="recording-take-status"><StatusIcon className={working ? "spin" : ""} /><span>{statusLabel}</span></div>
+    <div className="recording-take-status"><StatusIcon className={working ? "spin" : ""} /><span>{statusLabel}</span>{take.ordinal && <b>Take {take.ordinal}</b>}{take.inputState && <em>{take.inputState}{take.selected ? " · used" : " input"}</em>}</div>
     <VoiceIdentity voice={take.voice} identityId={take.voiceIdentityId} directory={directory} compact showDetail={false} />
     <div className="recording-take-summary">
       <b>{[take.method, take.language].filter(Boolean).join(" · ")}</b>

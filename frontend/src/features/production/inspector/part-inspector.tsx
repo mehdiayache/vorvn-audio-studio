@@ -36,13 +36,20 @@ export type PartInspectorProps = {
   onPlay: (source: PlayerSource) => void
   onChanged: () => Promise<void>
   initialTab?: PartInspectorTab
+  onTabChange?: (tab: PartInspectorTab) => void
 }
 
 export function partInspectorTitle(part: ProductionPart | null) {
-  return part?.kind === "silence" ? "Silence" : part?.kind === "asset" ? "Venture audio" : part?.kind === "draft" ? "Draft speech" : "Speech Part"
+  if (!part) return "Part"
+  const kind = part.kind === "silence" ? "Silence" : part.kind === "asset" ? "Venture audio" : part.kind === "draft" ? "Draft speech" : "Speech"
+  return `Part ${String((part.position ?? 0) + 1).padStart(2, "0")} · ${kind}`
 }
 
-export function PartInspectorContent({ productionId, part, directory, playingKey, playerPlaying, onDuplicate, onDelete, onNewTake, onPlay, onChanged, initialTab = "script" }: PartInspectorProps) {
+function firstTabLabel(part: ProductionPart) {
+  return part.kind === "silence" ? "Timing" : part.kind === "asset" ? "Asset" : "Text"
+}
+
+export function PartInspectorContent({ productionId, part, directory, playingKey, playerPlaying, onDuplicate, onDelete, onNewTake, onPlay, onChanged, initialTab = "script", onTabChange }: PartInspectorProps) {
   const [tab, setTab] = useState<PartInspectorTab>(initialTab)
   const data = usePartDetailData(productionId, part, onChanged)
   const recorded = Boolean(part && ["audio", "speech"].includes(part.kind))
@@ -53,9 +60,10 @@ export function PartInspectorContent({ productionId, part, directory, playingKey
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [part?.id, part?.kind, initialTab])
   if (!part) return null
-  return <div className="part-inspector-content">
-        <Tabs value={tab} onValueChange={(value) => setTab(value as PartInspectorTab)} className="part-inspector-tabs">
-          <TabsList variant="line"><TabsTrigger value="script">Script</TabsTrigger>{recorded && <TabsTrigger value="takes">Takes {data.takes.length + 1}</TabsTrigger>}{recorded && <TabsTrigger value="captions">Captions {data.captions.length}</TabsTrigger>}<TabsTrigger value="details">Details</TabsTrigger></TabsList>
+  const changeTab = (value: string) => { const next = value as PartInspectorTab; setTab(next); onTabChange?.(next) }
+  return <div className="part-inspector-content" data-part-kind={part.kind}>
+        <Tabs value={tab} onValueChange={changeTab} className="part-inspector-tabs">
+          <TabsList variant="line"><TabsTrigger value="script">{firstTabLabel(part)}</TabsTrigger>{recorded && <TabsTrigger value="takes">Takes <span>{data.takes.length + 1}</span></TabsTrigger>}{recorded && <TabsTrigger value="captions">Captions <span>{data.captions.length}</span></TabsTrigger>}<TabsTrigger value="details">Details</TabsTrigger></TabsList>
           <ScrollArea className="part-inspector-scroll">
             <TabsContent value="script"><PartInspectorScript part={part} directory={directory} currentPlaying={playerPlaying && playingKey === `part:${part.id}`} onPlay={onPlay} onNewTake={onNewTake} onDuplicate={onDuplicate} onDelete={onDelete} /></TabsContent>
             {recorded && <TabsContent value="takes"><PartInspectorTakes part={part} takes={data.takes} loading={data.loading} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onNewTake={onNewTake} onPromote={(take) => void data.promote(take)} /></TabsContent>}

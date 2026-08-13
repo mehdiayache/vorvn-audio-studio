@@ -21,6 +21,20 @@ import type { AssetCollection, DurableJob, GeneratePayload, GenerateResult, Hier
 
 const ProductionOverlays = lazy(() => import("@/features/production/production-overlays"))
 
+const PART_SECTION_TO_TAB: Record<string, PartDetailTab> = { text: "script", takes: "takes", captions: "captions", details: "details" }
+const PART_TAB_TO_SECTION: Record<PartDetailTab, string> = { script: "text", takes: "takes", captions: "captions", details: "details" }
+
+function initialPartWorkbench(production: Production) {
+  if (typeof window === "undefined") return { part: null, tab: "script" as PartDetailTab }
+  const params = new URL(window.location.href).searchParams
+  const key = params.get("part")
+  const part = key ? production.parts.find((item) => item.public_id === key || String(item.id) === key) || null : null
+  const requested = PART_SECTION_TO_TAB[params.get("section") || ""] || "script"
+  const recorded = Boolean(part && ["audio", "speech"].includes(part.kind))
+  const tab = !recorded && ["takes", "captions"].includes(requested) ? "script" : requested
+  return { part, tab }
+}
+
 export function ProductionPage({ production, tree, music, assets, assetCollections, config, directory, refresh, refreshAssets }: {
   production: Production
   tree: HierarchyNode[] | null
@@ -32,6 +46,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   refresh: () => Promise<void>
   refreshAssets: () => Promise<void>
 }) {
+  const initialWorkbench = initialPartWorkbench(production)
   const [releaseOpen, setReleaseOpen] = useState(false)
   const [explorerOpen, setExplorerOpen] = useState(false)
   const [castOpen, setCastOpen] = useState(false)
@@ -45,8 +60,8 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const [workbenchComposerHost, setWorkbenchComposerHost] = useState<HTMLDivElement | null>(null)
   const [replacingAsset, setReplacingAsset] = useState<ProductionPart | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
-  const [detail, setDetail] = useState<ProductionPart | null>(null)
-  const [detailTab, setDetailTab] = useState<PartDetailTab>("script")
+  const [detail, setDetail] = useState<ProductionPart | null>(initialWorkbench.part)
+  const [detailTab, setDetailTab] = useState<PartDetailTab>(initialWorkbench.tab)
   const [moveOpen, setMoveOpen] = useState(false)
   const [movePositionPart, setMovePositionPart] = useState<ProductionPart | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
@@ -92,6 +107,18 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const modalTool = mobile ? tool : tool === "speech" ? null : tool
   const modalDetail = mobile ? activeDetail : null
   const overlaysOpen = Boolean(modalTool || modalDetail || moveOpen || confirmAction)
+
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (activeDetail) {
+      url.searchParams.set("part", activeDetail.public_id || String(activeDetail.id))
+      url.searchParams.set("section", PART_TAB_TO_SECTION[detailTab])
+    } else {
+      url.searchParams.delete("part")
+      url.searchParams.delete("section")
+    }
+    window.history.replaceState(window.history.state, "", url)
+  }, [activeDetail, detailTab])
 
   const rememberWorkbenchOrigin = useCallback(() => {
     workbenchOrigin.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -153,7 +180,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const composerTitle = composerPart ? composerPart.kind === "draft" ? `Record draft · Part ${(composerPart.position ?? 0) + 1}` : `Generate alternative · Part ${(composerPart.position ?? 0) + 1}` : insertBeforePartId ? "Add speech at insertion" : "Add speech"
   const composerDescription = composerPart?.kind === "draft" ? "Turn this saved script into its first recording." : composerPart ? "Create another performance without replacing the selected Take." : insertBeforePartId ? "Insert at the selected Sequence position." : `Add as Part ${sourceParts.length + 1}.`
   const workbenchTitle = workbenchMode === "composer" ? composerTitle : workbenchMode === "part" ? partInspectorTitle(activeDetail) : workbenchMode === "mix-export" ? "Mix & Export" : "Production Workbench"
-  const workbenchDescription = workbenchMode === "composer" ? composerDescription : workbenchMode === "part" && activeDetail ? `Part ${(activeDetail.position ?? 0) + 1} · revision ${activeDetail.revision || 1}` : workbenchMode === "mix-export" ? "Preview the current mix and create immutable output." : undefined
+  const workbenchDescription = workbenchMode === "composer" ? composerDescription : workbenchMode === "part" && activeDetail ? `Revision ${activeDetail.revision || 1}${activeDetail.selected_take_number ? ` · Take ${activeDetail.selected_take_number} selected` : ""}` : workbenchMode === "mix-export" ? "Preview the current mix and create immutable output." : undefined
   useLayoutEffect(() => {
     const canvas = document.querySelector<HTMLElement>(".production-canvas")
     if (canvas && canvasScrollPosition.current !== null) canvas.scrollTop = canvasScrollPosition.current
@@ -198,6 +225,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     })}
     onNewTake={openNewTake}
     initialTab={detailTab}
+    onTabChange={setDetailTab}
   /> : workbenchMode === "mix-export" ? <MixExportWorkspace production={production} music={music} previewing={actions.previewing} productionPlaying={actions.productionPlaying} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={() => void actions.exportMp3()} exporting={actions.exporting} /> : null
 
   const sequenceActions: SequenceActions = useMemo(() => ({

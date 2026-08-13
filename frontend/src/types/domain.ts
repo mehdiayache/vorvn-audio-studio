@@ -392,6 +392,7 @@ export type Take = {
   tier?: string | null
   raw_text?: string | null
   tagged_text?: string | null
+  text_state?: "raw" | "shaped" | "tagged" | string | null
   usage?: Record<string, unknown>
   segmentation?: Record<string, unknown>
   cost_basis?: string | null

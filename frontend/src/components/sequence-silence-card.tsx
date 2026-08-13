@@ -28,13 +28,12 @@ export function SequenceSilenceCard({ part, index, count, selected, onSelect, ac
   return (
     <article id={`part-${part.id}`} className={cn("sequence-silence-card", selected && "selected")}>
       <Checkbox checked={selected} onClick={(event) => onSelect(!selected, event.shiftKey)} aria-label={`Select silence ${index + 1}`} />
-      <span className="silence-icon"><Clock3 /></span>
-      <b>Silence</b>
+      <button className="silence-open" onClick={() => actions.openPart(part)} aria-label={`Open details for silence ${index + 1}`}><span className="silence-icon"><Clock3 /></span><b>Silence</b></button>
       <SilenceDuration part={part} onSave={(seconds) => actions.editSilence(part, seconds)} />
       <span className="silence-cost">Free</span>
       <DropdownMenu>
         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Silence actions"><MoreHorizontal /></Button></DropdownMenuTrigger>
-        <DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => actions.duplicate(part)}><Copy /> Duplicate</DropdownMenuItem><DropdownMenuItem disabled={index === 0} onSelect={() => actions.move(part, -1)}><ChevronUp /> Move earlier</DropdownMenuItem><DropdownMenuItem disabled={index === count - 1} onSelect={() => actions.move(part, 1)}><ChevronDown /> Move later</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.moveToPosition(part)}>Move to position…</DropdownMenuItem><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}><Trash2 /> Delete silence</DropdownMenuItem></DropdownMenuContent>
+        <DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => actions.openPart(part)}><Clock3 /> Open details</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.duplicate(part)}><Copy /> Duplicate</DropdownMenuItem><DropdownMenuItem disabled={index === 0} onSelect={() => actions.move(part, -1)}><ChevronUp /> Move earlier</DropdownMenuItem><DropdownMenuItem disabled={index === count - 1} onSelect={() => actions.move(part, 1)}><ChevronDown /> Move later</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.moveToPosition(part)}>Move to position…</DropdownMenuItem><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}><Trash2 /> Delete silence</DropdownMenuItem></DropdownMenuContent>
       </DropdownMenu>
     </article>
   )

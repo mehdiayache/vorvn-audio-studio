@@ -97,6 +97,7 @@ class TakeResponse(BaseModel):
     tier: str | None = None
     raw_text: str | None = None
     tagged_text: str | None = None
+    text_state: str | None = None
     usage: dict = Field(default_factory=dict)
     segmentation: dict = Field(default_factory=dict)
     cost_basis: str | None = None

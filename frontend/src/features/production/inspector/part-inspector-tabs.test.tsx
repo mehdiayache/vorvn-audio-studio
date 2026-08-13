@@ -38,7 +38,7 @@ describe("PartInspector tab ownership", () => {
 
     render(<PartInspectorContent {...props} />)
 
-    await waitFor(() => expect(screen.getByRole("tab", { name: "Script" }).getAttribute("data-state")).toBe("active"))
+    await waitFor(() => expect(screen.getByRole("tab", { name: "Text" }).getAttribute("data-state")).toBe("active"))
     expect(screen.queryByRole("tab", { name: /Captions/i })).toBeNull()
   })
 
@@ -56,6 +56,6 @@ describe("PartInspector tab ownership", () => {
 
     view.rerender(<PartInspectorContent {...silenceProps} />)
     await waitFor(() => expect(screen.queryByRole("tab", { name: /Takes/i })).toBeNull())
-    expect(screen.getByRole("tab", { name: "Script" }).getAttribute("data-state")).toBe("active")
+    expect(screen.getByRole("tab", { name: "Timing" }).getAttribute("data-state")).toBe("active")
   })
 })
