@@ -9,7 +9,7 @@ Baseline: `e8609d8f216e7f09bc1293ea718a52bd0c1b299f`
 - [x] Scope 3 — Part Workbench
 - [x] Scope 4 — Captions + Floating Transport
 - [x] Scope 5 — Cast + Music + Asset spatial integration
-- [ ] Scope 6 — Long-production manipulation/productivity
+- [x] Scope 6 — Long-production manipulation/productivity
 - [ ] Scope 7 — Mix/Export + final convergence
 
 Scope 0 completion correction: `48221b8` — standalone desktop Production now uses the Production Focus presentation; normal tools, mobile Production, and embedded-host behavior retain their existing chrome.
@@ -36,6 +36,13 @@ Cast now uses a compact role/Voice reel and desktop Workbench with explicit
 future-only recast truth; Music is one parallel compact lane plus Workbench;
 the large Asset Explorer separates audition, selection, upload, and the final
 Insert/Use-as-Bed action; Silence remains a compact inline timing object.
+
+Scope 6 implementation checkpoint: `codex/production-v2-scopes-2-7` — the
+sticky Sequence toolbar now owns Search/Jump, filters, issue focus, and Add;
+visible ranges and exact-position block movement preserve stable order; the
+small command surface works without loaded audio; desktop health is ordinary
+Workbench work; and the persistent Living QA Production now proves the real
+50-Part lower-bound workflow against the approved Direction 2 hierarchy.
 
 Current authorized scope: **SCOPES 3–7 — founder authorized the remaining
 desktop Production v2 program in one continuous implementation run.**

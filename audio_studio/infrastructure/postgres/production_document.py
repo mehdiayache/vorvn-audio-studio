@@ -134,7 +134,8 @@ class ProductionDocumentRepository:
         return {
             "id": row[0], "public_id": str(row[1]),
             "production_id": row[2], "position": row[3], "kind": row[4],
-            "text": row[5], "title": row[6], "cast_role_id": row[7],
+            "text": row[5], "title": row[6],
+            "cast_role_id": str(row[7]) if row[7] else None,
             "editorial_status": row[8], "revision": row[9],
             "selected_take_id": row[10], "asset_id": row[11],
             "asset_version_id": row[12], "duration_ms": row[13],
@@ -271,7 +272,8 @@ class ProductionDocumentRepository:
                 "id": row[0], "public_id": str(row[1]),
                 "created_at": row[2].isoformat(), "position": row[3],
                 "kind": row[4], "title": row[5] or None,
-                "text": row[6], "cast_role_id": row[7],
+                "text": row[6],
+                "cast_role_id": str(row[7]) if row[7] else None,
                 "cast_role_name": row[8], "editorial_status": row[9],
                 "revision": row[10], "selected_take_id": row[11],
                 "selected_take_number": int(row[70]) if row[70] else None,
@@ -583,8 +585,9 @@ class ProductionDocumentRepository:
         with transaction() as cursor:
             cursor.execute("""
                 SELECT id FROM production_parts
-                 WHERE production_id = %s AND archived_at IS NULL FOR UPDATE
+                 WHERE production_id = %s AND archived_at IS NULL
                  ORDER BY position NULLS LAST, created_at, id
+                 FOR UPDATE
             """, (production_id,))
             current = [int(row[0]) for row in cursor.fetchall()]
             if any(item not in set(current) for item in ordered_ids):

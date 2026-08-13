@@ -149,6 +149,7 @@ class TimelineService:
             "binding_id": values.get("binding_id"),
             "catalogue_voice_id": values.get("catalogue_voice_id"),
             "capability_id": values.get("capability_id"),
+            "cast_role_id": values.get("cast_role_id"),
             "format": values.get("format") or "mp3",
             "language": values.get("language") or "Auto",
             "instruction": values.get("instruction") or "",

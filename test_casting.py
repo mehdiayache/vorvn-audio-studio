@@ -57,6 +57,10 @@ class CastingTests(unittest.TestCase):
                         VALUES(%s,1,'hash-v1',%s,'Paul',%s,'Sarah','','')
                     """, (part_id, internal_role, identity_a))
                 database.commit()
+            projected_draft = next(
+                part for part in documents.parts(int(production["id"]))
+                if part["id"] == part_id)
+            self.assertEqual(projected_draft["cast_role_id"], role["id"])
             changed = casting.recast(role["id"], {
                 "voice_source_kind": "identity", "voice_identity_id": identity_b,
                 "catalogue_voice_id": None})

@@ -4,6 +4,7 @@ import { toast } from "sonner"
 import type { usePlayer } from "@/hooks/use-player"
 import { useJobExecution } from "@/hooks/use-job-execution"
 import { studioApi } from "@/lib/api"
+import { moveSelectionToPosition } from "@/lib/production-order"
 import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, PlayerSource, Production, ProductionPart, VentureAsset } from "@/types/domain"
 
 type Player = ReturnType<typeof usePlayer>
@@ -164,6 +165,15 @@ export function useProductionActions({ production, music, player, refresh, refre
     await mutate(() => studioApi.reorder(production.id, order), `Part moved to position ${to + 1}`)
   }, [mutate, production.id, production.parts])
 
+  const movePartsToPosition = useCallback(async (ids: number[], requestedPosition: number) => {
+    const order = production.parts.filter((item) => item.kind !== "stitch").map((item) => item.id)
+    const selectedCount = order.filter((id) => ids.includes(id)).length
+    const position = Math.max(1, Math.min(order.length - selectedCount + 1, Math.round(requestedPosition)))
+    const next = moveSelectionToPosition(order, ids, position)
+    if (next.every((id, index) => id === order[index])) return
+    await mutate(() => studioApi.reorder(production.id, next), `${selectedCount} Part${selectedCount === 1 ? "" : "s"} moved to position ${position}`)
+  }, [mutate, production.id, production.parts])
+
   const setMusic = useCallback((changes: Partial<MusicBed>) => mutate(() => studioApi.setMusic(production.id, changes), "Music settings saved"), [mutate, production.id])
   const duplicatePart = useCallback((part: ProductionPart) => mutate(() => studioApi.duplicatePart(production.id, part.id), "Part duplicated"), [mutate, production.id])
   const deletePart = useCallback((part: ProductionPart) => mutate(() => studioApi.deletePart(production.id, part.id), "Part deleted"), [mutate, production.id])
@@ -181,5 +191,5 @@ export function useProductionActions({ production, music, player, refresh, refre
     toast.success(`${file.name} uploaded to ${folder}`)
   }, [refreshAssets])
 
-  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, regeneratePart, renderDraft, updatePartEditorial, movePart, movePartToPosition, setMusic, duplicatePart, deletePart, editSilence, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, moveParts, uploadAsset }
+  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, regeneratePart, renderDraft, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, setMusic, duplicatePart, deletePart, editSilence, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, moveParts, uploadAsset }
 }

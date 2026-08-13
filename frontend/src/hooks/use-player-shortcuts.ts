@@ -7,11 +7,16 @@ export type PlayerShortcutControls = {
   seek: (seconds: number) => void
 }
 
-export function usePlayerShortcuts(controls: PlayerShortcutControls, closeTransientUi: () => void) {
+export function usePlayerShortcuts(controls: PlayerShortcutControls, closeTransientUi: () => void, openCommands?: () => void) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      const target = event.target as HTMLElement | null
-      const editing = target?.matches("input, textarea, select, [contenteditable='true']")
+      const target = event.target
+      const editing = target instanceof Element && target.matches("input, textarea, select, [contenteditable='true']")
+      if ((event.metaKey || event.ctrlKey) && event.key.toLocaleLowerCase() === "k") {
+        event.preventDefault()
+        openCommands?.()
+        return
+      }
       if (event.key === "Escape" && !editing) {
         closeTransientUi()
         return
@@ -23,5 +28,5 @@ export function usePlayerShortcuts(controls: PlayerShortcutControls, closeTransi
     }
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [controls, closeTransientUi])
+  }, [controls, closeTransientUi, openCommands])
 }

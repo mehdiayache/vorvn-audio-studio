@@ -40,6 +40,10 @@
 }
 .sequence-ledger-summary span { display: inline-flex; align-items: baseline; gap: var(--vrn-space-2); }
 .sequence-ledger-summary b { color: var(--foreground); font-size: var(--vrn-type-label-size); font-weight: var(--vrn-weight-title); font-variant-numeric: tabular-nums; }
+.sequence-filter-empty { min-height: 220px; display: grid; place-items: center; align-content: center; gap: var(--vrn-space-2); padding: var(--vrn-space-6); border: var(--vrn-stroke-hairline) dashed var(--vrn-border-strong); border-radius: var(--vrn-radius-lg); background: var(--surface-raised); text-align: center; }
+.sequence-filter-empty b { font-size: var(--vrn-type-panel-size); }
+.sequence-filter-empty p { max-width: 420px; color: var(--vrn-content-secondary); font-size: var(--vrn-type-metadata-size); line-height: var(--vrn-type-metadata-line); }
+.sequence-filter-empty button { margin-top: var(--vrn-space-2); }
 .sequence-composer-anchor {
   position: relative;
   z-index: 3;

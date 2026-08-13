@@ -223,6 +223,7 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertIsNone(self.repository.generation(duplicate["id"]))
         editor = work.production_editor(first_id)
         self.assertEqual(len(editor["parts"]), 3)
+
         self.assertEqual(next(item for item in editor["parts"]
                               if item["id"] == draft["id"])["takes"], 0)
         ProductionEditorEnvelope.model_validate({"data": editor})
@@ -264,6 +265,18 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual(active[0]["id"], replacement["id"])
         self.assertEqual([part["position"] for part in active],
                          list(range(len(active))))
+
+    def test_reorder_locks_the_active_sequence_and_persists_exact_order(self):
+        production_id = int(self.first["id"])
+        first = self.timeline.add_silence(production_id, 1, None)
+        second = self.timeline.add_silence(production_id, 2, None)
+        third = self.timeline.add_silence(production_id, 3, None)
+        self.assertTrue(self.timeline.reorder(
+            production_id, [third["id"], first["id"], second["id"]]))
+        self.assertEqual(
+            [item["id"] for item in self.repository.parts(production_id)],
+            [third["id"], first["id"], second["id"]],
+        )
 
     def test_editorial_revision_and_outdated_take_require_human_confirmation(self):
         production_id = int(self.first["id"])

@@ -28,6 +28,10 @@ export function ProductionHealthSheet({ open, issues, onOpenChange, onLocate }: 
   onLocate: (id: number) => void
 }) {
   return <Sheet open={open} onOpenChange={onOpenChange}><SheetContent className="production-health-sheet"><SheetHeader><SheetTitle>Production health</SheetTitle><SheetDescription>Editorial and operation states that need attention before release.</SheetDescription></SheetHeader>
-    <div className="production-health-list">{issues.length ? issues.map((issue, index) => <Button variant="ghost" key={`${issue.part.id}:${issue.title}:${index}`} onClick={() => { onOpenChange(false); onLocate(issue.part.id) }}><CircleAlert /><span><b>{issue.title}</b><small>Part · {clipText(issue.part.text || issue.part.title || "Untitled", 80)}</small><small>{issue.detail}</small></span></Button>) : <div className="production-health-clear"><CheckCircle2 /><b>No current Production issues</b><p>All visible Parts have usable current results.</p></div>}</div>
+    <ProductionHealthContent issues={issues} onLocate={(id) => { onOpenChange(false); onLocate(id) }} />
   </SheetContent></Sheet>
+}
+
+export function ProductionHealthContent({ issues, onLocate }: { issues: ProductionHealthIssue[]; onLocate: (id: number) => void }) {
+  return <div className="production-health-list">{issues.length ? issues.map((issue, index) => <Button variant="ghost" key={`${issue.part.id}:${issue.title}:${index}`} onClick={() => onLocate(issue.part.id)}><CircleAlert /><span><b>{issue.title}</b><small>Part · {clipText(issue.part.text || issue.part.title || "Untitled", 80)}</small><small>{issue.detail}</small></span></Button>) : <div className="production-health-clear"><CheckCircle2 /><b>No current Production issues</b><p>All visible Parts have usable current results.</p></div>}</div>
 }
