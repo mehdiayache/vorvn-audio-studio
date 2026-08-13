@@ -27,12 +27,7 @@ class MediaService:
     def resolve(
         self, kind: str, name: str, folder: str | None = None,
     ) -> MediaFile | None:
-        download_name = (
-            f"{folder}.zip" if kind == "batch-audio" and folder
-            and name.casefold().endswith(".zip") else None
-        )
-        return self.workspace.resolve(
-            kind, name, folder, download_name=download_name)
+        return self.workspace.resolve(kind, name, folder)
 
     def export_file(self, export_id: int) -> MediaFile | None:
         item = self.records.export(export_id)

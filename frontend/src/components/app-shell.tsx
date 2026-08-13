@@ -19,7 +19,6 @@ export const audioStudioNavigation: StudioNavigationItem[] = [
   { id: "work", label: "Work", iconRole: "work", href: "/audio-studio/" },
   { id: "speak", label: "Speak", iconRole: "speak", href: "/audio-studio/speak" },
   { id: "voices", label: "Voices", iconRole: "voices", href: "/audio-studio/voices" },
-  { id: "batch", label: "Batch", iconRole: "batch", href: "/audio-studio/batch" },
   { id: "subtitles", label: "Subtitles", iconRole: "subtitles", href: "/audio-studio/subtitles" },
   { id: "activity", label: "Activity", iconRole: "activity", href: "/audio-studio/activity" },
   { id: "settings", label: "Settings", iconRole: "settings", href: "/audio-studio/settings" },

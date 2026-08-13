@@ -19,7 +19,6 @@ import type {
   ActivitySnapshot,
   ExternalAudioUpload,
   CaptionProfile,
-  BatchResult,
   DurableJob,
   VentureAssetLibrary,
 } from "@/types/domain"
@@ -33,7 +32,6 @@ type GeneratedJob = paths["/api/v1/jobs/{job_id}"]["get"]["responses"][200]["con
 type UploadedImage = paths["/api/v1/project-covers/upload"]["post"]["responses"][200]["content"]["application/json"]["data"]
 type UploadedVoiceReference = paths["/api/v1/voice-references/upload"]["post"]["responses"][200]["content"]["application/json"]["data"]
 type UploadedAsset = paths["/api/v1/asset-collections/{collection_id}/assets/upload"]["post"]["responses"][201]["content"]["application/json"]["data"]
-type BatchPreviewEnvelope = paths["/api/v1/batches/preview"]["post"]["responses"][200]["content"]["application/json"]
 type SubtitleListEnvelope = paths["/api/v1/subtitles"]["get"]["responses"][200]["content"]["application/json"]
 type SubtitleEnvelope = paths["/api/v1/subtitles/{transcript_id}"]["get"]["responses"][200]["content"]["application/json"]
 type SubtitleDeletedEnvelope = paths["/api/v1/subtitles/{transcript_id}"]["delete"]["responses"][200]["content"]["application/json"]
@@ -175,20 +173,6 @@ export const studioApi = {
   transcribeExternal: async (payload: { url: string; name: string; playable: string; size_bytes: number; duration_ms: number; language?: string; enable_itn?: boolean; confirmed?: boolean }) => {
     const job = await studioApi.enqueueExternalTranscription(payload)
     return jobObserver.completion<CaptionMutationResult>(job.id)
-  },
-  previewBatch: (file: File) => uploadFile<BatchPreviewEnvelope>("/api/v1/batches/preview", file).then((response) => response.data),
-  validateBatchVoiceColumn: (token: string, voiceColumn: number | null) =>
-    postV1<{ unknown: Array<{ voice: string; first_row: number }>; checked: number }>("/api/v1/batches/validate-voice-column", {
-      token,
-      voice_column: voiceColumn,
-    }),
-  enqueueBatch: async (payload: Record<string, unknown>) => {
-    const response = await request<{ data: DurableJob<BatchResult> }>("/api/v1/jobs/batch", { method: "POST", headers: { "Idempotency-Key": `batch-${crypto.randomUUID()}` }, body: JSON.stringify(payload) })
-    return registerJob(response.data)
-  },
-  runBatch: async (payload: Record<string, unknown>) => {
-    const job = await studioApi.enqueueBatch(payload)
-    return jobObserver.completion<BatchResult>(job.id)
   },
   voiceRegistry: () => request<VoiceRegistryEnvelope>("/api/v1/voice-registry").then((response) => response.data),
   voiceMeta: () => request<VoiceMetadataEnvelope>("/api/v1/voice-meta").then((response) => ({ voices: response.data })),

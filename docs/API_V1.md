@@ -143,7 +143,6 @@ GET    /jobs/{job_id}
 GET    /jobs/{job_id}/events
 POST   /jobs/{job_id}/cancel
 POST   /jobs/speech
-POST   /jobs/batch
 POST   /jobs/transcription
 POST   /jobs/translation
 POST   /jobs/text
@@ -166,12 +165,6 @@ Example accepted response:
 
 `events` may use Server-Sent Events for progress, but the durable Job is the
 source of truth. Disconnecting a browser does not lose the operation.
-
-Batch uses a two-step contract: `/batches/preview` parses and stores the sheet
-without contacting a provider, then `/jobs/batch` validates the selected
-columns and every mapped voice before synthesis. One failed row does not erase
-successful rows. The parent Job records aggregate spend and usage while its
-result keeps the resolved model, voice, cost basis and error for each row.
 
 ## Migration boundary
 
@@ -206,6 +199,6 @@ the same resource contract without sharing DOM code.
 
 Every successful JSON operation now names an explicit Pydantic response
 envelope in OpenAPI. `pnpm check` regenerates the TypeScript contract consumed
-directly by Settings, Work overviews, Timeline commands, Voice, Batch and
+directly by Settings, Work overviews, Timeline commands, Voice and
 Subtitle paths; CI rejects a new successful JSON route that falls back to an
 unknown object. UI-only normalized view models remain separate where needed.

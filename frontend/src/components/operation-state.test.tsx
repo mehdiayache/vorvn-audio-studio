@@ -7,13 +7,13 @@ import type { DurableJob } from "@/types/domain"
 import { OperationState } from "./operation-state"
 
 function job(values: Partial<DurableJob> = {}): DurableJob {
-  return { id: "job-123", type: "batch", status: "running", progress: 42, detail: "Speaking row 4", error: null, retries: 0, result: {}, ...values }
+  return { id: "job-123", type: "speech", status: "running", progress: 42, detail: "Recording speech", error: null, retries: 0, result: {}, ...values }
 }
 
 describe("OperationState", () => {
   it("announces durable progress", () => {
-    render(<OperationState job={job()} title="Batch generation" />)
-    expect(screen.getByText("Batch generation")).toBeTruthy()
+    render(<OperationState job={job()} title="Speech generation" />)
+    expect(screen.getByText("Speech generation")).toBeTruthy()
     expect(screen.getByRole("progressbar").getAttribute("aria-label")).toContain("42%")
   })
 

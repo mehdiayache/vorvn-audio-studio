@@ -22,7 +22,6 @@ const ActivityPage = lazy(() => import("@/features/activity/activity-page").then
 const SettingsPage = lazy(() => import("@/features/settings/settings-page").then((module) => ({ default: module.SettingsPage })))
 const SpeakPage = lazy(() => import("@/features/speak/speak-page").then((module) => ({ default: module.SpeakPage })))
 const SubtitlesPage = lazy(() => import("@/features/subtitles/subtitles-page").then((module) => ({ default: module.SubtitlesPage })))
-const BatchPage = lazy(() => import("@/features/batch/batch-page").then((module) => ({ default: module.BatchPage })))
 const ProductionPage = lazy(() => import("@/features/production/production-page").then((module) => ({ default: module.ProductionPage })))
 const ProjectPage = lazy(() => import("@/features/work/project-page").then((module) => ({ default: module.ProjectPage })))
 const SeriesPage = lazy(() => import("@/features/work/series-page").then((module) => ({ default: module.SeriesPage })))
@@ -109,7 +108,6 @@ function AudioStudioRoutes({ mode }: { mode: AudioStudioMountMode }) {
         <Route index element={<WorkIndexRedirect />} />
         <Route path="speak" element={<LazyRoute label="Loading Speak"><SpeakPage /></LazyRoute>} />
         <Route path="voices" element={<LazyRoute label="Loading voices"><VoicesPage /></LazyRoute>} />
-        <Route path="batch" element={<LazyRoute label="Loading Batch"><BatchPage /></LazyRoute>} />
         <Route path="subtitles" element={<LazyRoute label="Loading Subtitles"><SubtitlesPage /></LazyRoute>} />
         <Route path="activity" element={<LazyRoute label="Loading activity"><ActivityPage /></LazyRoute>} />
         <Route path="settings" element={<LazyRoute label="Loading settings"><SettingsPage /></LazyRoute>} />

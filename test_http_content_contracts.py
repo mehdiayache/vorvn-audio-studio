@@ -1,4 +1,4 @@
-"""OpenAPI contracts for Batch preview and the saved Subtitle catalogue."""
+"""OpenAPI contracts for the saved Subtitle catalogue."""
 
 import unittest
 
@@ -16,7 +16,6 @@ class ContentContractTests(unittest.TestCase):
 
     def test_operations_reference_explicit_envelopes(self):
         expected = {
-            ("/api/v1/batches/preview", "post"): "BatchPreviewEnvelope",
             ("/api/v1/subtitles", "get"): "SubtitleListEnvelope",
             ("/api/v1/subtitles/{transcript_id}", "get"): "SubtitleEnvelope",
             ("/api/v1/subtitles/{transcript_id}", "delete"):
@@ -33,7 +32,6 @@ class ContentContractTests(unittest.TestCase):
 
     def test_generated_shapes_expose_nested_runtime_fields(self):
         components = self.schema["components"]["schemas"]
-        self.assertIn("preview", components["BatchPreviewResponse"]["required"])
         self.assertIn("sentences", components["SubtitleResponse"]["required"])
         self.assertIn("timing_quality",
                       components["CaptionLayoutResponse"]["required"])

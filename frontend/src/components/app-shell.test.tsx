@@ -50,7 +50,7 @@ function renderShell(mode: "standalone" | "embedded", path = "/audio-studio/", d
   )
 }
 
-function QueryWorkspace({ queryKey }: { queryKey: "batch-job" | "subtitle-job" }) {
+function QueryWorkspace({ queryKey }: { queryKey: "subtitle-job" }) {
   const navigate = useNavigate()
   const [value, setValue] = useState("")
   return <section>
@@ -59,13 +59,13 @@ function QueryWorkspace({ queryKey }: { queryKey: "batch-job" | "subtitle-job" }
   </section>
 }
 
-function renderQueryWorkspace(path: string, queryKey: "batch-job" | "subtitle-job") {
+function renderQueryWorkspace(path: string, queryKey: "subtitle-job") {
   vi.mocked(studioApi.config).mockResolvedValue(configured)
   return render(
     <MemoryRouter initialEntries={[path]}>
       <ProductReadinessProvider><GlobalPlayerProvider><Routes>
         <Route path="/audio-studio" element={<AppShell />}>
-          <Route path={queryKey === "batch-job" ? "batch" : "subtitles"} element={<QueryWorkspace queryKey={queryKey} />} />
+          <Route path="subtitles" element={<QueryWorkspace queryKey={queryKey} />} />
         </Route>
       </Routes></GlobalPlayerProvider></ProductReadinessProvider>
     </MemoryRouter>,
@@ -117,11 +117,9 @@ describe("Audio Studio shell", () => {
     await waitFor(() => expect(studioApi.config).toHaveBeenCalledTimes(1))
   })
 
-  it.each([
-    ["Batch", "/audio-studio/batch", "batch-job"],
-    ["Subtitles", "/audio-studio/subtitles", "subtitle-job"],
-  ] as const)("keeps the %s workspace mounted when its durable Job query changes", (_name, path, queryKey) => {
-    renderQueryWorkspace(path, queryKey)
+  it("keeps the Subtitles workspace mounted when its durable Job query changes", () => {
+    const queryKey = "subtitle-job" as const
+    renderQueryWorkspace("/audio-studio/subtitles", queryKey)
     const input = screen.getByRole("textbox", { name: `${queryKey} workspace value` })
     fireEvent.change(input, { target: { value: "operator state" } })
     fireEvent.click(screen.getByRole("button", { name: "Persist Job in URL" }))

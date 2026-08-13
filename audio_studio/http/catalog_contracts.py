@@ -53,7 +53,6 @@ class StudioConfigResponse(BaseModel):
     instruction_max: int
     text_preparation: dict[str, Any]
     rates: dict[str, float]
-    batch_max_rows: int
     synth_flags: dict[str, Any]
     segmentation: dict[str, dict[str, Any]]
     has_key: bool

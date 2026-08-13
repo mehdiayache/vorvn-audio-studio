@@ -43,12 +43,6 @@ def get_sample(name: str) -> FileResponse:
     return _response(media_service.resolve("samples", name))
 
 
-@router.api_route("/batch-audio/{folder}/{name}", methods=["GET", "HEAD"],
-                  include_in_schema=False)
-def get_batch_media(folder: str, name: str) -> FileResponse:
-    return _response(media_service.resolve("batch-audio", name, folder))
-
-
 @router.get("/api/v1/exports/{export_id}/download", operation_id="downloadExport",
             response_class=FileResponse)
 def download_export(export_id: int) -> FileResponse:

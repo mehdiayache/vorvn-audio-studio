@@ -8,10 +8,6 @@ import os
 import threading
 
 from audio_studio import __version__
-from audio_studio.application.batches import (
-    BatchGenerationService,
-    BatchJobHandler,
-)
 from audio_studio.application.speech import (
     SpeechGenerationService,
     SpeechJobHandler,
@@ -46,7 +42,6 @@ from audio_studio.infrastructure.enrollment_provider_registry import (
 from audio_studio.infrastructure.speech_provider_registry import (
     ExactSpeechProviderRegistry,
 )
-from audio_studio.infrastructure.batch_workspace import FilesystemBatchWorkspace
 from audio_studio.infrastructure.postgres.text_preparation import (
     PostgresTextPreparationRepository,
 )
@@ -81,10 +76,6 @@ def main() -> int:
     service.register("speech", SpeechJobHandler(SpeechGenerationService(
         speech, speech_provider, AudioWorkspace(), load_preferences,
         provider_operations,
-    )))
-    service.register("batch", BatchJobHandler(BatchGenerationService(
-        FilesystemBatchWorkspace(), speech, speech_provider,
-        load_preferences, provider_operations,
     )))
     transcripts = TranscriptRepository()
     service.register("transcribe", TranscriptionJobHandler(

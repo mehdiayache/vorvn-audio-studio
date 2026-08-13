@@ -18,7 +18,6 @@ const sourceLabels: Record<PlayerSource["kind"], string> = {
   asset: "Venture audio",
   music: "Music",
   subtitle: "Subtitle source",
-  batch: "Batch result",
   standalone: "Standalone recording",
 }
 

@@ -8,13 +8,13 @@ import { describe, expect, it } from "vitest"
 import { useJobQuery } from "./use-job-query"
 
 function wrapper({ children }: { children: ReactNode }) {
-  return <MemoryRouter initialEntries={["/audio-studio/batch?keep=yes"]}>{children}</MemoryRouter>
+  return <MemoryRouter initialEntries={["/audio-studio/subtitles?keep=yes"]}>{children}</MemoryRouter>
 }
 
 describe("useJobQuery", () => {
   it("persists and clears a Job without deleting other route state", () => {
     const { result } = renderHook(() => {
-      const job = useJobQuery("batch-job")
+      const job = useJobQuery("subtitle-job")
       const location = useLocation()
       return { job, search: location.search }
     }, { wrapper })

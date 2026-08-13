@@ -142,39 +142,6 @@ class SpeechJobCreate(BaseModel):
         return self
 
 
-class BatchColumns(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    text: int = Field(ge=0)
-    name: int | None = Field(default=None, ge=0)
-    voice: int | None = Field(default=None, ge=0)
-    language: int | None = Field(default=None, ge=0)
-
-
-class BatchJobCreate(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    token: str = Field(pattern=r"^[A-Za-z0-9-]{1,120}$")
-    columns: BatchColumns
-    voice_identity_id: str | None = Field(default=None, max_length=120)
-    binding_id: UUID | None = None
-    catalogue_voice_id: str | None = Field(default=None, max_length=700)
-    capability_id: str | None = Field(default=None, max_length=120)
-
-    @model_validator(mode="after")
-    def exact_route_is_present(self):
-        if bool(self.binding_id) == bool(self.catalogue_voice_id):
-            raise ValueError("Choose exactly one cloned binding or catalogue voice.")
-        return self
-    format: Literal["mp3", "mp3-24k", "wav", "opus"] = "mp3"
-    language: str = Field(default="", max_length=80)
-    instruction: str = Field(default="", max_length=100)
-    rate: float = Field(default=1, ge=.5, le=2)
-    pitch: float = Field(default=1, ge=.5, le=2)
-    volume: int = Field(default=50, ge=0, le=100)
-    confirmed: bool = False
-
-
 class TranscriptionJobCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -293,18 +260,6 @@ def create_speech_job(payload: SpeechJobCreate,
         job, created = job_service.enqueue(
             "speech", values, idempotency_key=key,
             source_tool="speak", operation_label=labels[payload.operation])
-    return {"data": _payload(job), "meta": {"created": created}}
-
-
-@router.post("/batch", operation_id="createBatchJob", status_code=202,
-             response_model=JobCreatedEnvelope)
-def create_batch_job(payload: BatchJobCreate,
-                     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
-    job, created = job_service.enqueue(
-        "batch", payload.model_dump(exclude_none=True),
-        idempotency_key=(idempotency_key or f"batch-{uuid4()}")[:200],
-        source_tool="batch", operation_label="Generate batch",
-    )
     return {"data": _payload(job), "meta": {"created": created}}
 
 

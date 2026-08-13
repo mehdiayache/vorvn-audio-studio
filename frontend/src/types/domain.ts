@@ -430,40 +430,6 @@ export type ExternalTranscriptSummary = components["schemas"]["SubtitleSummaryRe
 
 export type ExternalAudioUpload = components["schemas"]["UploadedTranscriptionSourceResponse"]
 
-export type BatchPreview = components["schemas"]["BatchPreviewResponse"]
-
-export type BatchResult = {
-  results: Array<{
-    row: number
-    name?: string
-    text: string
-    url?: string
-    cost?: number
-    cost_basis?: string
-    error?: string
-    warning?: string
-    model?: string
-    engine?: string
-    voice?: string
-    voice_identity_id?: string | null
-    binding_id?: string | null
-    catalogue_voice_id?: string | null
-    capability_id?: string | null
-    language?: string
-  }>
-  cost: number
-  estimated_cost?: number
-  cost_basis?: string
-  folder: string
-  zip?: string | null
-  made: number
-  failed: number
-  needs_confirmation?: boolean
-  requires_review?: boolean
-  estimate?: number
-  failures?: Array<{ row: number; error: string }>
-}
-
 export type DurableJob<T = Record<string, unknown>> = {
   id: string
   type: string
@@ -622,7 +588,7 @@ export type PlayerSource = {
   title: string
   subtitle?: string
   artwork?: string
-  kind: "take" | "production" | "voice" | "asset" | "music" | "subtitle" | "batch" | "standalone"
+  kind: "take" | "production" | "voice" | "asset" | "music" | "subtitle" | "standalone"
   captionTracks?: PlayerCaptionTrack[]
 }
 

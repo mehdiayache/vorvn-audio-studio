@@ -37,18 +37,13 @@ class LocalMediaWorkspace:
         self, kind: str, name: str, folder: str | None = None,
         *, download_name: str | None = None,
     ) -> MediaFile | None:
-        if kind == "batch-audio":
-            if folder is None:
-                return None
-            path = contained_file(self.output, folder, name)
-        else:
-            roots = {
-                "audio": self.output,
-                "icon": self.root / ".icons",
-                "inbox": self.root / ".inbox",
-                "block-audio": self.root / ".blocks",
-                "samples": self.voice_samples,
-            }
-            root = roots.get(kind)
-            path = contained_file(root, name) if root else None
+        roots = {
+            "audio": self.output,
+            "icon": self.root / ".icons",
+            "inbox": self.root / ".inbox",
+            "block-audio": self.root / ".blocks",
+            "samples": self.voice_samples,
+        }
+        root = roots.get(kind)
+        path = contained_file(root, name) if root else None
         return MediaFile(path, download_name) if path else None

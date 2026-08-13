@@ -6,7 +6,6 @@ from typing import Callable, Protocol
 
 from audio_studio.config import alibaba_environment
 from audio_studio.domain import (
-    batch,
     delivery_tags,
     naming,
     provider_catalog,
@@ -113,7 +112,6 @@ class CatalogService:
             },
             "rates": provider_catalog.CAPABILITIES[
                 "audio"]["rates_per_million_chars"],
-            "batch_max_rows": batch.MAX_ROWS,
             "synth_flags": speech_text.SYNTH_FLAGS,
             "segmentation": provider_catalog.SEGMENTATION,
             "has_key": environment.api_key_configured,

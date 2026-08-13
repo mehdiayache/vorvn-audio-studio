@@ -12,7 +12,7 @@ describe("Studio routes", () => {
   it("keeps Settings inside Audio Studio", () => expect(studioRouteFromLocation("/audio-studio/settings", "")).toEqual({ type: "settings", id: null }))
   it("keeps standalone Speak inside Audio Studio", () => expect(studioRouteFromLocation("/audio-studio/speak", "")).toEqual({ type: "speak", id: null }))
   it("keeps Subtitles inside Audio Studio", () => expect(studioRouteFromLocation("/audio-studio/subtitles", "")).toEqual({ type: "subtitles", id: null }))
-  it("keeps Batch inside Audio Studio", () => expect(studioRouteFromLocation("/audio-studio/batch", "")).toEqual({ type: "batch", id: null }))
+  it("does not recognize the removed Batch workspace", () => expect(studioRouteFromLocation("/audio-studio/batch", "")).toEqual({ type: "home", id: null }))
   it("keeps legacy links compatible", () => expect(productionIdFromLocation("/studio/", "?tab=projects&project=6")).toBe(6))
   it("offers a clean replacement for legacy links", () => expect(normalizeStudioLocation("/studio/", "?tab=projects&project=6")).toBe("/audio-studio/productions/6"))
 })

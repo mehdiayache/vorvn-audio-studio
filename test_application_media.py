@@ -34,15 +34,12 @@ class MediaServiceTests(unittest.TestCase):
         self.workspace = FakeWorkspace()
         self.service = MediaService(self.workspace, FakeRecords())
 
-    def test_named_media_and_batch_archives_use_one_workspace(self):
+    def test_named_media_uses_one_workspace(self):
         audio = self.service.resolve("audio", "take.mp3")
-        archive = self.service.resolve("batch-audio", "result.zip", "batch-1")
         self.assertEqual(audio.download_name, None)
-        self.assertEqual(archive.download_name, "batch-1.zip")
         self.assertEqual(
             self.workspace.lookups,
-            [("audio", "take.mp3", None, None),
-             ("batch-audio", "result.zip", "batch-1", "batch-1.zip")],
+            [("audio", "take.mp3", None, None)],
         )
 
     def test_export_and_take_ids_resolve_persisted_names(self):

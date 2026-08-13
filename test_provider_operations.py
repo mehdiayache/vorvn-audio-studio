@@ -145,12 +145,12 @@ class ProviderOperationTests(unittest.TestCase):
                 "SELECT count(*) FROM provider_attempts").fetchone()[0]
         self.assertEqual(after, before)
 
-    def test_active_batch_reservation_keeps_its_full_budget_after_one_row(self):
-        """A cheap completed row must not release the rest of a live Batch."""
+    def test_active_multi_attempt_reservation_keeps_its_full_budget(self):
+        """A cheap first attempt must not release a live operation's remainder."""
         cap = today_provider_spend() + 10
         first_job = self.job()
         reservation = self.service.authorize(
-            first_job, "batch_speech", 8,
+            first_job, "multi_attempt_speech", 8,
             {"daily_cap": cap, "warn_above": 0}, True)
         attempt = self.records.begin_attempt(
             first_job, "speech",
@@ -167,11 +167,11 @@ class ProviderOperationTests(unittest.TestCase):
                 second_job, "speech", 8,
                 {"daily_cap": cap, "warn_above": 0}, True)
 
-    def test_batch_attempt_keeps_row_estimate_while_full_budget_stays_protected(self):
+    def test_child_attempt_keeps_estimate_while_full_budget_stays_protected(self):
         baseline = today_provider_spend()
         job_id = self.job()
         reservation = self.service.authorize(
-            job_id, "batch_speech", 8,
+            job_id, "multi_attempt_speech", 8,
             {"daily_cap": baseline + 10, "warn_above": 0}, True)
         attempt = self.records.begin_attempt(
             job_id, "speech",

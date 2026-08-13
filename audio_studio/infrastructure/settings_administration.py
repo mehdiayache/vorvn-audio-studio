@@ -119,7 +119,6 @@ class FilesystemMaintenance:
 
     def snapshot(self) -> dict[str, Any]:
         scratch_paths = {
-            ".batches": (self.root / ".batches", "parsed spreadsheets"),
             ".blocks": (self.root / ".blocks", "per-block script audio"),
             ".inbox": (self.root / ".inbox", "subtitle source audio"),
             ".incoming": (self.root / ".incoming", "interrupted uploads"),
@@ -156,7 +155,7 @@ class FilesystemMaintenance:
             raise ValueError("Retention days cannot be negative.")
         cutoff = time.time() - days * 86400
         removed = freed = 0
-        for folder in (".batches", ".blocks", ".inbox", ".incoming", ".tagged"):
+        for folder in (".blocks", ".inbox", ".incoming", ".tagged"):
             root = self.root / folder
             if not root.exists():
                 continue

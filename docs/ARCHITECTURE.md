@@ -43,7 +43,6 @@ The shell has one canonical route for every tool:
 ```text
 /audio-studio/                 Ventures and Projects
 /audio-studio/speak            standalone generation
-/audio-studio/batch            spreadsheet generation
 /audio-studio/voices           voice identities and bindings
 /audio-studio/activity         immutable operational ledger
 /audio-studio/subtitles        external transcription
@@ -72,7 +71,7 @@ complete only when:
 ## Paid-operation invariant
 
 The React client never invokes Alibaba-backed routes directly. New speech,
-replacement takes, draft rendering, batch generation, transcription,
+replacement recordings, draft rendering, transcription,
 translation and AI text shaping/tagging all create a durable `/api/v1/jobs/*`
 resource. Voice creation uses its durable package-capability records and one
 Activity attempt per provider call. The worker is the only process allowed to
@@ -81,8 +80,8 @@ recorded as failed or interrupted and is never retried automatically.
 
 ## Native media invariant
 
-FastAPI serves generated audio, voice samples, imports, blocks and batch
-results from explicit roots. Voice previews live in `.voice-samples`, outside
+FastAPI serves generated audio, voice samples, imports and blocks from explicit
+roots. Voice previews live in `.voice-samples`, outside
 frontend source. Every URL segment must be a basename, so media routes cannot
 browse arbitrary local files. Starlette handles byte ranges for seeking and
 pause/resume behavior.

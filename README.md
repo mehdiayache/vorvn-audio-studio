@@ -1,6 +1,6 @@
 # VORVN Audio Studio
 
-Audio Studio turns scripts and reusable media into spoken Productions. The same tools also work independently: Speak creates one recording, Batch creates many, Subtitles transcribes external audio, and Voices manages application-owned voice identities across Alibaba model bindings.
+Audio Studio turns scripts and reusable media into spoken Productions. The same tools also work independently: Speak creates one recording, Subtitles transcribes external audio, and Voices manages application-owned voice identities across Alibaba model bindings.
 
 ## Run locally
 
@@ -36,7 +36,7 @@ On macOS, `restart.command` performs the database startup, process restart, heal
 FastAPI is the only HTTP process and is exposed on port 7860. The legacy HTTP
 server and UI have been removed; there is no compatibility port or hidden
 fallback. Text preparation, subtitle Translation,
-Transcription, Batch, Speech generation and Voice package execution run through
+Transcription, Speech generation and Voice package execution run through
 native application services. Canonical Work hierarchy/lifecycle, the Production
 document/Timeline, rendering/Exports, media delivery and Venture Asset
 libraries/uploads all use focused PostgreSQL repositories. The ordered

@@ -38,40 +38,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/batches/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Preview Batch */
-        post: operations["previewBatch"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/batches/validate-voice-column": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Validate Batch Voice Column */
-        post: operations["validateBatchVoiceColumn"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/cast-roles/{role_id}/assignment": {
         parameters: {
             query?: never;
@@ -254,23 +220,6 @@ export interface paths {
         get: operations["listHierarchy"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/jobs/batch": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create Batch Job */
-        post: operations["createBatchJob"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1766,126 +1715,6 @@ export interface components {
             duration_ms: number;
             /** Total */
             total: number;
-        };
-        /** BatchColumnGuessResponse */
-        BatchColumnGuessResponse: {
-            /** Language */
-            language?: number | null;
-            /** Name */
-            name?: number | null;
-            /** Text */
-            text: number;
-            /** Voice */
-            voice?: number | null;
-        };
-        /** BatchColumns */
-        BatchColumns: {
-            /** Language */
-            language?: number | null;
-            /** Name */
-            name?: number | null;
-            /** Text */
-            text: number;
-            /** Voice */
-            voice?: number | null;
-        };
-        /** BatchJobCreate */
-        BatchJobCreate: {
-            /** Binding Id */
-            binding_id?: string | null;
-            /** Capability Id */
-            capability_id?: string | null;
-            /** Catalogue Voice Id */
-            catalogue_voice_id?: string | null;
-            columns: components["schemas"]["BatchColumns"];
-            /**
-             * Confirmed
-             * @default false
-             */
-            confirmed: boolean;
-            /**
-             * Format
-             * @default mp3
-             * @enum {string}
-             */
-            format: "mp3" | "mp3-24k" | "wav" | "opus";
-            /**
-             * Instruction
-             * @default
-             */
-            instruction: string;
-            /**
-             * Language
-             * @default
-             */
-            language: string;
-            /**
-             * Pitch
-             * @default 1
-             */
-            pitch: number;
-            /**
-             * Rate
-             * @default 1
-             */
-            rate: number;
-            /** Token */
-            token: string;
-            /** Voice Identity Id */
-            voice_identity_id?: string | null;
-            /**
-             * Volume
-             * @default 50
-             */
-            volume: number;
-        };
-        /** BatchPreviewEnvelope */
-        BatchPreviewEnvelope: {
-            data: components["schemas"]["BatchPreviewResponse"];
-        };
-        /** BatchPreviewResponse */
-        BatchPreviewResponse: {
-            guess: components["schemas"]["BatchColumnGuessResponse"];
-            /** Headers */
-            headers: string[];
-            /** Max Rows */
-            max_rows: number;
-            /** Name */
-            name: string;
-            /** Preview */
-            preview: string[][];
-            /** Rows */
-            rows: number;
-            /** Token */
-            token: string;
-            /** Truncated */
-            truncated: boolean;
-            voices: components["schemas"]["BatchVoiceCheckResponse"];
-        };
-        /** BatchUnknownVoiceResponse */
-        BatchUnknownVoiceResponse: {
-            /** First Row */
-            first_row: number;
-            /** Voice */
-            voice: string;
-        };
-        /** BatchVoiceCheckResponse */
-        BatchVoiceCheckResponse: {
-            /** Checked */
-            checked: number;
-            /** Unknown */
-            unknown: components["schemas"]["BatchUnknownVoiceResponse"][];
-        };
-        /** BatchVoiceValidationEnvelope */
-        BatchVoiceValidationEnvelope: {
-            data: components["schemas"]["BatchVoiceCheckResponse"];
-        };
-        /** BatchVoiceValidationRequest */
-        BatchVoiceValidationRequest: {
-            /** Token */
-            token: string;
-            /** Voice Column */
-            voice_column?: number | null;
         };
         /** BulkEnrollmentEnvelope */
         BulkEnrollmentEnvelope: {
@@ -3804,8 +3633,6 @@ export interface components {
         };
         /** StudioConfigResponse */
         StudioConfigResponse: {
-            /** Batch Max Rows */
-            batch_max_rows: number;
             /** Capabilities */
             capabilities: {
                 [key: string]: {
@@ -5286,70 +5113,6 @@ export interface operations {
             };
         };
     };
-    previewBatch: {
-        parameters: {
-            query?: never;
-            header?: {
-                "x-filename"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BatchPreviewEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    validateBatchVoiceColumn: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BatchVoiceValidationRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BatchVoiceValidationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     recast_api_v1_cast_roles__role_id__assignment_patch: {
         parameters: {
             query?: never;
@@ -5715,41 +5478,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HierarchyPageEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    createBatchJob: {
-        parameters: {
-            query?: never;
-            header?: {
-                "Idempotency-Key"?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BatchJobCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobCreatedEnvelope"];
                 };
             };
             /** @description Validation Error */

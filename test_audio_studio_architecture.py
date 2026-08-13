@@ -26,7 +26,6 @@ class AudioStudioArchitectureTests(unittest.TestCase):
             "/api/v1/jobs/translation",
             "/api/v1/jobs/text",
             "/api/v1/jobs/render",
-            "/api/v1/batches/preview",
             "/api/v1/subtitles/uploads",
             "/api/v1/subtitles/{transcript_id}/layouts/{profile}",
             "/api/v1/asset-collections/{collection_id}/assets/upload",
@@ -63,7 +62,6 @@ class AudioStudioArchitectureTests(unittest.TestCase):
         paths = app.openapi()["paths"]
         routes = (
             ("/api/v1/jobs/speech", "post", "202"),
-            ("/api/v1/jobs/batch", "post", "202"),
             ("/api/v1/jobs/render", "post", "202"),
             ("/api/v1/jobs/transcription", "post", "202"),
             ("/api/v1/jobs/translation", "post", "202"),
@@ -144,8 +142,7 @@ class AudioStudioArchitectureTests(unittest.TestCase):
                      'post<GenerateResult>("/api/part/regenerate"',
                      'post<CaptionMutationResult>("/api/transcribe"',
                      'post<CaptionMutationResult>("/api/translate/subtitles"',
-                     'post<TextPassResult>(`/api/text/',
-                     'post<BatchResult>("/api/batch/run"')
+                     'post<TextPassResult>(`/api/text/')
         self.assertFalse([route for route in forbidden if route in client])
 
     def test_compatibility_boundary_is_explicit_and_has_no_escape_hatch(self):
