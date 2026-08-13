@@ -353,6 +353,10 @@ class SpeechGenerationService:
         row = _record(prepared, made, saved, effective)
         row["provider_attempt_id"] = int(attempt_id) if attempt_id else None
         row["_source_script_hash"] = values.get("_source_script_hash")
+        # Selection is an operation command, not a provider setting. Preserve
+        # the explicit caller contract across the provider/persistence seam so
+        # Generate Alternative can create a Take without silently promoting it.
+        row["select_result"] = bool(values.get("select_result", True))
         mutation: dict[str, int] = {}
         try:
             if operation == "create":

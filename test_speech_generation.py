@@ -347,6 +347,17 @@ class SpeechGenerationTests(unittest.TestCase):
         self.assertEqual(result["id"], 45)
         self.assertEqual(repository.replaced[0][4], "render_draft")
 
+    def test_regenerate_preserves_explicit_non_selection_through_service(self):
+        repository = FakeRepository(part=existing("audio"))
+        service, _, _, _ = self.service(repository=repository)
+
+        service.run(payload(
+            operation="regenerate", production_id=12, part_id=44,
+            text="A deliberate alternative", select_result=False))
+
+        persisted = repository.replaced[0][3]
+        self.assertIs(persisted["select_result"], False)
+
     def test_record_part_uses_the_enqueue_revision_and_script_snapshot(self):
         repository = FakeRepository(part={
             **existing("speech"),
