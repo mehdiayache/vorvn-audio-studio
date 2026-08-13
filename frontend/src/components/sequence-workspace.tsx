@@ -48,11 +48,12 @@ export function SequenceWorkspace({ parts, cast, liveJobs, selected, activePartI
   if (!sourceParts.length) return <EmptySequence onAdd={() => onInsert("speech", null)} />
   return (
     <section className="sequence-workspace" aria-label="Production sequence">
-      <div className="sequence-spine" aria-hidden="true" />
+      <div className="sequence-ledger">
+        <div className="sequence-ledger-header" aria-hidden="true"><span>#</span><span>Cast &amp; Voice</span><span>Script &amp; Results</span></div>
+        <div className="sequence-part-list" role="list" aria-label={`${sourceParts.length} ordered Production Parts`}>
       <SequenceInsertControl at={0} beforePartId={sourceParts[0]?.public_id || null} onInsert={onInsert} />
-      <div className="sequence-part-list" role="list" aria-label={`${sourceParts.length} ordered Production Parts`}>
       {sourceParts.map((part, index) => <Fragment key={part.id}>
-        <div className={cn("sequence-row", part.kind === "silence" && "silence", activePartId === part.id && "is-workbench-active")} data-workbench-active={activePartId === part.id || undefined} role="listitem" aria-posinset={index + 1} aria-setsize={sourceParts.length}>
+        <div className={cn("sequence-row", part.kind === "silence" && "silence", !["silence", "asset"].includes(part.kind) && "speech", activePartId === part.id && "is-workbench-active")} data-workbench-active={activePartId === part.id || undefined} role="listitem" aria-posinset={index + 1} aria-setsize={sourceParts.length}>
           <div className="sequence-node-column"><span className={cn("sequence-row-node", part.kind === "asset" && "asset", part.kind === "draft" && "draft", part.missing && "issue")}>{part.kind === "silence" ? "" : String(index + 1).padStart(2, "0")}</span></div>
           {part.kind === "silence"
             ? <SequenceSilenceCard part={part} index={index} count={sourceParts.length} selected={selected.has(part.id)} onSelect={(checked, shift) => select(index, checked, shift)} actions={actions} />
@@ -62,6 +63,7 @@ export function SequenceWorkspace({ parts, cast, liveJobs, selected, activePartI
         </div>
         <SequenceInsertControl at={index + 1} beforePartId={index === sourceParts.length - 1 ? null : sourceParts[index + 1]?.public_id || null} last={index === sourceParts.length - 1} onInsert={onInsert} />
       </Fragment>)}
+        </div>
       </div>
     </section>
   )

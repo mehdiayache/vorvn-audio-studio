@@ -83,11 +83,13 @@ describe("SpeechPartCard", () => {
     expect(screen.getByText("TAKE 3 · GENERATING 68%")).toBeTruthy()
   })
 
-  it("keeps ready-state actions in the result footer without idle operation chrome", () => {
+  it("keeps the result lane focused and moves alternative generation into the contextual menu", () => {
     const { container } = renderCard(<SpeechPartCard part={part()} job={null} index={0} count={1} selected={false} playing={false} directory={directory} onSelect={vi.fn()} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={{ ...actions(), newTake: vi.fn() }} />)
     const footer = container.querySelector(".speech-part-result")
     expect(footer?.contains(screen.getByRole("button", { name: /play part/i }))).toBe(true)
-    expect(footer?.contains(screen.getByRole("button", { name: /New Take/i }))).toBe(true)
+    expect(screen.queryByRole("button", { name: /New Take/i })).toBeNull()
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Part actions" }), { button: 0, ctrlKey: false })
+    expect(screen.getByRole("menuitem", { name: /Generate alternative/i })).toBeTruthy()
     expect(container.querySelector(".speech-operation-lane")).toBeNull()
     expect(screen.queryByText("Direct voice")).toBeNull()
   })
@@ -102,14 +104,15 @@ describe("SpeechPartCard", () => {
     expect(screen.queryByRole("button", { name: /play part/i })).toBeNull()
   })
 
-  it("routes Take, caption and New Take actions to their explicit Production targets", () => {
+  it("routes Take, caption and contextual alternative actions to their explicit Production targets", () => {
     const actionSet = { ...actions(), newTake: vi.fn() }
     const sourcePart = part()
     renderCard(<SpeechPartCard part={sourcePart} job={null} index={0} count={1} selected={false} playing={false} directory={directory} onSelect={vi.fn()} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
 
     fireEvent.click(screen.getByRole("button", { name: /Take 2 selected/ }))
     fireEvent.click(screen.getByRole("button", { name: /CC —/ }))
-    fireEvent.click(screen.getByRole("button", { name: /New Take/ }))
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Part actions" }), { button: 0, ctrlKey: false })
+    fireEvent.click(screen.getByRole("menuitem", { name: /Generate alternative/ }))
 
     expect(actionSet.openPart).toHaveBeenNthCalledWith(1, sourcePart, "takes")
     expect(actionSet.openPart).toHaveBeenNthCalledWith(2, sourcePart, "captions")

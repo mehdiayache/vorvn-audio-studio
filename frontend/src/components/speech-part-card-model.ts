@@ -40,7 +40,7 @@ export type SpeechPartCardFacts = {
   inputLabel: "Original" | "Spoken" | "Tagged" | null
   totalTakes: number
   captionSummary: string
-  captionTone: "neutral" | "active" | "warning" | "danger"
+  captionTone: "neutral" | "ready" | "active" | "warning" | "danger"
   spendSummary: string
   spendValue: string
   alerts: SpeechPartAlert[]
@@ -129,7 +129,7 @@ function captionFacts(part: ProductionPart, job: DurableJob<unknown> | null) {
   const summary = languages.length ? `CC ${Array.from(new Set(languages)).join(" + ")}` : "CC Ready"
   return {
     summary: `${summary}${part.subtitles_stale ? " stale" : ""}`,
-    tone: part.subtitles_stale ? "warning" as const : "neutral" as const,
+    tone: part.subtitles_stale ? "warning" as const : "ready" as const,
   }
 }
 

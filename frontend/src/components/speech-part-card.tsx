@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react"
-import { Captions, ChevronDown, ChevronUp, CircleAlert, Copy, Mic2, MoreHorizontal, Pause, Pencil, Play, Plus, Trash2 } from "lucide-react"
+import { Captions, ChevronDown, ChevronUp, CircleAlert, Copy, GripVertical, Mic2, MoreHorizontal, Pause, Pencil, Play, Plus, Trash2 } from "lucide-react"
 
+import { AudioWaveform } from "@/components/audio-waveform"
 import type { SequenceActions } from "@/components/sequence-actions"
 import { SpeechOperationLane } from "@/components/speech-operation-lane"
 import { speechPartCardFacts } from "@/components/speech-part-card-model"
@@ -67,15 +68,29 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
   const openCaptions = () => onOpenCaptions ? onOpenCaptions() : actions.openPart(part, "captions")
   const openTakes = () => onOpenTakes ? onOpenTakes() : actions.openPart(part, "takes")
   const startNewTake = () => onNewTake ? onNewTake() : actions.newTake ? actions.newTake(part) : openPart()
-  const castStyle = facts.castColor ? { "--speech-cast-color": facts.castColor } as CSSProperties : undefined
+  const castStyle = facts.castColor ? { "--speech-identity-color": facts.castColor } as CSSProperties : undefined
   const visibleAlerts = facts.alerts.filter((alert) => alert.key !== "draft")
+  const identityKey = part.voice_identity_id || part.catalogue_voice_id || part.voice || part.public_id || String(part.id)
+  const identityTone = Array.from(String(identityKey)).reduce((sum, character) => sum + character.charCodeAt(0), 0) % 4 + 2
+  const operationTone = facts.operation.kind === "idle" ? null : facts.operation.kind
+  const warning = facts.captionTone === "warning" || visibleAlerts.some((alert) => alert.tone === "warning")
+  const danger = facts.captionTone === "danger" || visibleAlerts.some((alert) => alert.tone === "danger") || facts.operation.kind === "failed"
 
-  return <article id={`part-${part.id}`} style={castStyle} className={cn("sequence-card speech-part-card", !facts.recorded && "draft", selected && "selected", playing && "playing", part.missing && "missing", facts.castName && "has-cast", facts.operation.kind !== "idle" && "has-operation")}>
-    <span className={cn("speech-part-cast-rail", facts.castName && "has-cast")} aria-hidden="true" />
-    <div className="sequence-card-select"><Checkbox checked={selected} onClick={(event) => onSelect(!selected, event.shiftKey)} aria-label={`Select part ${index + 1}`} /></div>
+  return <article id={`part-${part.id}`} style={castStyle} data-operation={operationTone || undefined} className={cn("sequence-card speech-part-card", `identity-tone-${identityTone}`, `input-${facts.inputLabel?.toLowerCase() || "unknown"}`, !facts.recorded && "draft", selected && "selected", playing && "playing", warning && "has-warning", danger && "has-danger", part.missing && "missing", facts.castName && "has-cast", facts.operation.kind !== "idle" && "has-operation")}>
+    <span className="speech-part-identity-rail" aria-hidden="true" />
+    <div className="speech-part-order">
+      <div className="speech-part-number">
+        <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+        <Checkbox checked={selected} onClick={(event) => onSelect(!selected, event.shiftKey)} aria-label={`Select part ${index + 1}`} />
+      </div>
+      <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="speech-part-reorder" aria-label={`Reorder part ${index + 1}`}><GripVertical /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
+        <DropdownMenuItem disabled={index === 0} onSelect={() => actions.move(part, -1)}><ChevronUp />Move earlier</DropdownMenuItem>
+        <DropdownMenuItem disabled={index === count - 1} onSelect={() => actions.move(part, 1)}><ChevronDown />Move later</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => actions.moveToPosition(part)}>Move to position…</DropdownMenuItem>
+      </DropdownMenuContent></DropdownMenu>
+    </div>
 
-    <div className="speech-part-body">
-      <header className="speech-part-header">
+    <header className="speech-part-identity">
         <Tooltip>
           <TooltipTrigger asChild><button className="speech-part-heading" onClick={openPart} aria-label={`Open details for part ${index + 1}`}>
             <VoiceIdentity voice={part.voice_name || part.voice} identityId={part.voice_identity_id} directory={directory} compact showCopy={false} showEditorialFlag={false} />
@@ -89,9 +104,22 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
           </button></TooltipTrigger>
           <TooltipContent>{facts.technicalDetail || "Selected Take recording method"}</TooltipContent>
         </Tooltip>
+    </header>
+
+    <div className="speech-part-body">
+      <header className="speech-part-script-header">
         {visibleAlerts.length > 0 && <div className="speech-part-alerts" aria-label="Part states">
           {visibleAlerts.map((alert) => <span key={alert.key} className={`speech-part-alert is-${alert.tone}`}><CircleAlert />{alert.label}</span>)}
         </div>}
+        <div className="speech-part-top-actions">
+          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="speech-part-edit" onClick={openPart} aria-label={`Edit part ${index + 1}`}><Pencil /></Button></TooltipTrigger><TooltipContent>Open script and details</TooltipContent></Tooltip>
+          <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Part actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={openPart}><Pencil />Open details</DropdownMenuItem>
+            {facts.recorded && <DropdownMenuItem onSelect={startNewTake}><Plus />Generate alternative</DropdownMenuItem>}
+            <DropdownMenuItem onSelect={() => actions.duplicate(part)}><Copy />Duplicate</DropdownMenuItem>
+            <DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}><Trash2 />Delete part</DropdownMenuItem>
+          </DropdownMenuContent></DropdownMenu>
+        </div>
       </header>
 
       <Collapsible open={expanded} onOpenChange={setExpanded} className="speech-part-script">
@@ -105,28 +133,23 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
         {facts.recorded ? <>
           <div className="speech-part-playback">
             {facts.playable && <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="speech-part-play" onClick={() => actions.play({ key: `part:${part.id}`, url: audioUrl(part.filename!), title: `Part ${index + 1}`, subtitle: facts.selectedVoiceName, kind: "take" })} aria-label={playing ? "Pause part" : "Play part"}>{playing ? <Pause /> : <Play />}</Button></TooltipTrigger><TooltipContent>{playing ? "Pause selected Take" : "Play selected Take"}</TooltipContent></Tooltip>}
+            {(playing || facts.operation.kind === "active") && <span className="speech-part-waveform"><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={34} /></span>}
             <span>{facts.durationLabel}</span>
           </div>
-          <button onClick={openTakes} className="speech-part-take-summary" title={facts.takeSummary} aria-label={facts.takeSummary}>{facts.selectedTakeLabel}</button>
+          <button onClick={openTakes} className="speech-part-take-summary" title={facts.takeSummary} aria-label={facts.takeSummary}>
+            <span>Take {part.selected_take_number || "—"}</span>
+            <span className={cn("speech-part-input-state", facts.inputLabel && `is-${facts.inputLabel.toLowerCase()}`)}>{facts.inputLabel || "Unknown input"}</span>
+            {facts.totalTakes > 1 && <span className="speech-part-take-count">{facts.takeCountLabel}</span>}
+          </button>
           <button onClick={openCaptions} className={`speech-part-caption is-${facts.captionTone}`}><Captions />{facts.captionSummary}</button>
-          <span className="speech-part-spend" title={facts.spendSummary}>{facts.spendValue}</span>
         </> : <span className="speech-part-not-recorded">Not recorded</span>}
 
+        <SpeechOperationLane operation={facts.operation} onRetry={onRetryJob} onConfirm={onConfirmJob} onReviewTake={openTakes} />
+        {facts.recorded && <span className="speech-part-spend" title={facts.spendSummary}>{facts.spendValue}</span>}
         <div className="speech-part-actions">
           {!facts.recorded && <><Button variant="ghost" size="sm" onClick={openPart}>Continue writing</Button><Button size="sm" onClick={openPart}><Mic2 />Record</Button></>}
-          {facts.recorded && <Button variant="ghost" size="sm" onClick={startNewTake}><Plus />New Take</Button>}
-          <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Part actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={openPart}><Pencil />Open details</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => actions.duplicate(part)}><Copy />Duplicate</DropdownMenuItem>
-            <DropdownMenuItem disabled={index === 0} onSelect={() => actions.move(part, -1)}><ChevronUp />Move earlier</DropdownMenuItem>
-            <DropdownMenuItem disabled={index === count - 1} onSelect={() => actions.move(part, 1)}><ChevronDown />Move later</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => actions.moveToPosition(part)}>Move to position…</DropdownMenuItem>
-            <DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}><Trash2 />Delete part</DropdownMenuItem>
-          </DropdownMenuContent></DropdownMenu>
         </div>
       </footer>
-
-      <SpeechOperationLane operation={facts.operation} onRetry={onRetryJob} onConfirm={onConfirmJob} onReviewTake={openTakes} />
     </div>
   </article>
 }

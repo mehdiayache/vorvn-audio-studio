@@ -1,10 +1,33 @@
 .sequence-workspace {
   position: relative;
-  width: min(840px, 100%);
+  width: min(1180px, calc(100% - var(--vrn-space-8)));
   margin: 0 auto;
-  padding: var(--vrn-space-1) 0 var(--vrn-space-2);
+  padding: var(--vrn-space-3) 0 var(--vrn-space-6);
 }
-.sequence-part-list { display: contents; }
+.sequence-ledger {
+  overflow: clip;
+  border: var(--vrn-stroke-hairline) solid var(--vrn-border);
+  border-radius: var(--vrn-radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--vrn-shadow-subtle);
+}
+.sequence-ledger-header {
+  height: 38px;
+  display: grid;
+  grid-template-columns: 48px 190px minmax(0, 1fr);
+  align-items: center;
+  border-bottom: var(--vrn-stroke-hairline) solid var(--vrn-border);
+  background: var(--vrn-surface-subtle);
+  color: var(--vrn-content-secondary);
+  font-size: var(--vrn-type-metadata-size);
+  font-weight: var(--vrn-weight-label);
+  line-height: var(--vrn-type-metadata-line);
+  letter-spacing: .02em;
+}
+.sequence-ledger-header span { padding-inline: var(--vrn-space-3); }
+.sequence-ledger-header span:first-child { text-align: center; }
+.sequence-ledger-header span:nth-child(2) { padding-left: var(--vrn-space-4); border-right: var(--vrn-stroke-hairline) solid var(--vrn-border); }
+.sequence-part-list { display: block; }
 
 .sequence-workspace-title {
   display: flex;
@@ -31,16 +54,6 @@
   text-align: right;
 }
 
-.sequence-spine {
-  position: absolute;
-  z-index: 0;
-  left: 23px;
-  top: 68px;
-  bottom: 38px;
-  width: var(--vrn-stroke-hairline);
-  border-radius: 99px;
-  background: var(--border);
-}
 .sequence-row {
   position: relative;
   z-index: 1;
@@ -48,6 +61,9 @@
   grid-template-columns: 48px minmax(0, 1fr);
   align-items: start;
 }
+.sequence-row.speech { display: block; }
+.sequence-row.speech .sequence-node-column { display: none; }
+.sequence-row:last-of-type .speech-part-card { border-bottom: 0; }
 .sequence-node-column { min-height: 100%; padding-top: 16px; }
 .sequence-row-node {
   position: relative;
@@ -147,15 +163,16 @@
 .sequence-insert {
   position: relative;
   z-index: 3;
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  height: 14px;
+  display: block;
+  height: 0;
   align-items: center;
 }
-.sequence-insert-line { grid-column: 2; border-top: 1px solid transparent; transition: border-color .15s; }
+.sequence-insert-line { position: absolute; inset: 0; border-top: 1px solid transparent; transition: border-color .15s; }
 .sequence-insert-trigger {
   position: absolute;
-  left: calc(50% + 24px);
+  z-index: 4;
+  left: 50%;
+  top: 0;
   width: auto;
   height: 26px;
   padding: 0 9px;
@@ -171,8 +188,7 @@
 .sequence-insert-trigger svg { width: 15px; flex: 0 0 auto; }
 .sequence-insert:hover .sequence-insert-line, .sequence-insert:focus-within .sequence-insert-line { border-color: color-mix(in oklab, var(--primary) 34%, var(--border)); }
 .sequence-insert:hover .sequence-insert-trigger, .sequence-insert:focus-within .sequence-insert-trigger { opacity: 1; pointer-events: auto; box-shadow: 0 2px 8px hsl(var(--shadow-color) / .08); }
-.sequence-insert.last { height: 36px; }
-.sequence-insert.last .sequence-insert-trigger { opacity: 1; pointer-events: auto; }
+.sequence-insert.last { height: 0; }
 .sequence-insert-menu { width: 290px; padding: 7px; }
 .sequence-menu-label { display: block; padding: 6px 9px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .sequence-insert-menu > [role="menuitem"] { height: auto; justify-content: flex-start; gap: 10px; padding: 9px; text-align: left; }
@@ -182,19 +198,21 @@
 .sequence-insert-menu small { margin-top: 2px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: 400; }
 
 @media (max-width: 700px) {
+  .sequence-workspace { width: calc(100% - var(--vrn-space-4)); }
+  .sequence-ledger-header { display: none; }
   .sequence-workspace-title { align-items: flex-start; flex-direction: column; gap: 5px; margin-left: 40px; }
   .sequence-workspace-title p { text-align: left; }
   .sequence-row, .sequence-insert { grid-template-columns: 40px minmax(0, 1fr); }
-  .sequence-spine { left: 19px; }
   .sequence-row-node { margin-left: 6px; }
   .sequence-row.silence .sequence-row-node { margin-left: 12px; }
   .sequence-insert-line { border-color: color-mix(in oklab, var(--primary) 20%, var(--border)); }
   .sequence-insert-trigger {
-    left: 48px;
+    left: 50%;
+    top: -14px;
     width: 28px;
     height: 28px;
     padding: 0;
-    transform: none;
+    transform: translateX(-50%);
     opacity: 1;
     pointer-events: auto;
   }
