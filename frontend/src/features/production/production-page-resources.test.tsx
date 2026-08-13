@@ -21,7 +21,7 @@ vi.mock("@/features/production/cast-manager-sheet", () => ({
   CastManagerContent: ({ onChanged }: { onChanged: () => Promise<void> }) => <button onClick={() => void onChanged().catch(() => undefined)}>Refresh Cast</button>,
 }))
 vi.mock("@/features/production/production-editor-canvas", () => ({
-  ProductionEditorCanvas: ({ cast, onCastOpen, workbenchContent }: { cast: Array<{ name: string }>; onCastOpen: (open: boolean) => void; workbenchContent: ReactNode }) => <div><span data-testid="cast-names">{cast.map((item) => item.name).join(",")}</span><button onClick={() => onCastOpen(true)}>Open Cast</button>{workbenchContent}</div>,
+  ProductionEditorCanvas: ({ cast, onCastOpen, stageContent }: { cast: Array<{ name: string }>; onCastOpen: (open: boolean) => void; stageContent: ReactNode }) => <div><span data-testid="cast-names">{cast.map((item) => item.name).join(",")}</span><button onClick={() => onCastOpen(true)}>Open Cast</button>{stageContent}</div>,
 }))
 
 import { ProductionPage } from "./production-page"

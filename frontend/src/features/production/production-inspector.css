@@ -85,7 +85,7 @@
 .inspector-diagnostics pre { max-height: 320px; overflow: auto; margin: 0; padding: var(--vrn-space-4); border-top: var(--vrn-stroke-hairline) solid var(--vrn-border); background: var(--vrn-surface-subtle); white-space: pre-wrap; font: var(--vrn-type-metadata-size)/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
 
 .part-inspector-message { position: absolute; left: 18px; right: 18px; bottom: max(14px, var(--safe-bottom)); z-index: 2; padding: 9px 11px; color: var(--primary-foreground); background: var(--primary); border-radius: var(--vrn-radius-sm); box-shadow: var(--vrn-shadow-popover); font-size: var(--vrn-type-metadata-size); }
-.part-inspector-content .caption-detail { padding: var(--vrn-space-4) var(--vrn-space-4) var(--vrn-space-8); }
+.part-inspector-content .caption-detail { padding: var(--vrn-space-5) var(--vrn-space-5) var(--vrn-space-8); }
 .caption-detail { display: grid; gap: var(--vrn-space-5); }
 .caption-detail > section { display: grid; gap: var(--vrn-space-3); }
 .caption-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--vrn-space-4); padding-bottom: var(--vrn-space-4); border-bottom: var(--vrn-stroke-hairline) solid var(--vrn-border); }
@@ -98,7 +98,8 @@
 .caption-translate-bar { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(10rem, 13rem) auto; align-items: center; gap: var(--vrn-space-3); padding: var(--vrn-space-3); border-radius: var(--vrn-radius-md); background: var(--vrn-surface-subtle); }
 .caption-translate-bar > svg { width: 18px; color: var(--vrn-info-solid); }
 .caption-translate-bar > span { font-weight: var(--vrn-weight-label); }
-.caption-files { min-width: 0; }
+.caption-workspace { min-height: 28rem; display: grid; grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr); overflow: hidden; border: var(--vrn-stroke-hairline) solid var(--vrn-border); border-radius: var(--vrn-radius-lg); background: var(--surface-raised); }
+.caption-files { min-width: 0; padding: var(--vrn-space-3); border-right: var(--vrn-stroke-hairline) solid var(--vrn-border); background: var(--vrn-surface-subtle); }
 .caption-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--vrn-space-3); width: 100%; padding: var(--vrn-space-3); border: var(--vrn-stroke-hairline) solid transparent; border-bottom-color: var(--vrn-border); color: inherit; background: transparent; text-align: left; cursor: pointer; }
 .caption-row:hover { background: var(--vrn-surface-subtle); }
 .caption-row.is-selected { border-color: var(--vrn-info-border); background: var(--vrn-info-soft); }
@@ -107,12 +108,17 @@
 .caption-stale-badge { border-color: var(--warning-border); color: var(--warning); background: var(--warning-soft); }
 .caption-row > span { min-width: 0; display: grid; gap: 2px; }
 .caption-row small { color: var(--vrn-content-secondary); }
-.caption-preview { overflow: hidden; border: var(--vrn-stroke-hairline) solid var(--vrn-border); border-radius: var(--vrn-radius-md); background: var(--surface-raised); }
+.caption-preview { min-width: 0; overflow: hidden; background: var(--surface-raised); }
 .caption-preview-title { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--vrn-space-3); padding: var(--vrn-space-4); }
 .caption-preview-title > span { color: var(--vrn-content-secondary); font-size: var(--vrn-type-metadata-size); }
 .caption-preview-head { display: flex; align-items: center; justify-content: space-between; gap: var(--vrn-space-3); padding: var(--vrn-space-2) var(--vrn-space-3); border-block: var(--vrn-stroke-hairline) solid var(--vrn-border); background: var(--vrn-surface-subtle); }
 .caption-preview-head [data-slot="tabs-trigger"] svg { width: 14px; }
-.caption-preview pre { max-height: 390px; overflow: auto; margin: 0; padding: var(--vrn-space-4); color: var(--foreground); background: var(--surface-raised); font: var(--vrn-type-metadata-size)/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.caption-preview pre { max-height: 30rem; overflow: auto; margin: 0; padding: var(--vrn-space-5); color: var(--foreground); background: var(--surface-raised); white-space: pre-wrap; }
+.caption-preview pre.is-readable { font: var(--vrn-type-body-size)/1.75 var(--font-sans); }
+.caption-preview pre.is-code { font: var(--vrn-type-metadata-size)/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.caption-preview-empty { min-height: 28rem; display: grid; place-items: center; align-content: center; gap: var(--vrn-space-2); padding: var(--vrn-space-6); color: var(--vrn-content-secondary); text-align: center; }
+.caption-preview-empty > svg { width: 28px; color: var(--vrn-info-solid); }
+.caption-preview-empty b { color: var(--foreground); }
 
 /* Existing mobile Sheet safety only. Production v2 does not redesign mobile. */
 @media (max-width: 600px) {

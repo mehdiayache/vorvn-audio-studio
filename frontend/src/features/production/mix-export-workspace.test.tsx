@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { MixExportWorkspace } from "@/features/production/mix-export-workspace"
+import { MixExportWorkspace, productionMixReadiness } from "@/features/production/mix-export-workspace"
 import type { Production } from "@/types/domain"
 
 afterEach(cleanup)
@@ -16,15 +16,50 @@ const production = {
 
 describe("MixExportWorkspace", () => {
   it("shows the current mix, selected Takes and canonical Export history", () => {
-    render(<MixExportWorkspace production={production} music={{}} previewing={false} productionPlaying={false} exportJob={null} onPreview={vi.fn()} onExport={vi.fn()} exporting={false} />)
-    expect(screen.getByText("1 selected Takes")).toBeTruthy()
+    render(<MixExportWorkspace production={production} music={{}} previewing={false} productionPlaying={false} previewReady previewStale={false} exportJob={null} onPreview={vi.fn()} onExport={vi.fn()} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting={false} />)
+    expect(screen.getByText("1 of 1 selected Takes")).toBeTruthy()
     expect(screen.getByText("evening-reset.mp3")).toBeTruthy()
     expect(screen.getByRole("link", { name: /Download/ }).getAttribute("href")).toBe("/api/v1/exports/91/download")
+    expect(screen.getByText(/does not call a speech provider/)).toBeTruthy()
   })
 
   it("keeps durable Export progress visible", () => {
-    render(<MixExportWorkspace production={production} music={{}} previewing={false} productionPlaying={false} exportJob={{ id: "job-1", type: "render", status: "running", progress: 0.4, detail: "Mixing audio", error: null, retries: 0, result: {} }} onPreview={vi.fn()} onExport={vi.fn()} exporting />)
+    render(<MixExportWorkspace production={production} music={{}} previewing={false} productionPlaying={false} previewReady={false} previewStale={false} exportJob={{ id: "job-1", type: "render", status: "running", progress: 0.4, detail: "Mixing audio", error: null, retries: 0, result: {} }} onPreview={vi.fn()} onExport={vi.fn()} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting />)
     expect(screen.getByText("Export in progress")).toBeTruthy()
     expect(screen.getByText("Mixing audio")).toBeTruthy()
+    expect(screen.getByRole("progressbar", { name: "Export 40% complete" })).toBeTruthy()
+  })
+
+  it("does not describe a completed Export as zero-percent complete", () => {
+    render(<MixExportWorkspace production={production} music={{}} previewing={false} productionPlaying={false} previewReady previewStale={false} exportJob={{ id: "job-2", type: "render", status: "ok", progress: 0, detail: "", error: null, retries: 0, result: { url: "/audio/final.mp3" } }} onPreview={vi.fn()} onExport={vi.fn()} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting={false} />)
+    expect(screen.getByText("Finished and recorded as an immutable Production output.")).toBeTruthy()
+    expect(screen.queryByText("0% complete")).toBeNull()
+  })
+
+  it("locates exact blockers and distinguishes a stale preview", () => {
+    const onLocatePart = vi.fn()
+    const blocked = { ...production, parts: [{ ...production.parts[0], kind: "draft", selected_take_id: null, filename: undefined }] } as Production
+    render(<MixExportWorkspace production={blocked} music={{}} previewing={false} productionPlaying={false} previewReady={false} previewStale exportJob={null} onPreview={vi.fn()} onExport={vi.fn()} onLocatePart={onLocatePart} onOpenHealth={vi.fn()} exporting={false} />)
+    expect(screen.getByRole("button", { name: /Refresh preview/ })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: /Part 1 · Speech not recorded/ }))
+    expect(onLocatePart).toHaveBeenCalledWith(12)
+    expect(screen.getByRole("button", { name: /Make MP3/ }).hasAttribute("disabled")).toBe(true)
+  })
+})
+
+describe("productionMixReadiness", () => {
+  it("allows a real silence-only output and reports no invented provider requirement", () => {
+    const result = productionMixReadiness({ ...production, parts: [{ id: 41, created_at: "2026-08-09T08:00:00", position: 0, kind: "silence", title: "2.5", text: "", duration_ms: 2500 }] } as Production)
+    expect(result.ready).toBe(true)
+    expect(result.blocking).toEqual([])
+  })
+
+  it("keeps stable Part numbers on every blocking issue", () => {
+    const result = productionMixReadiness({ ...production, parts: [
+      { ...production.parts[0], kind: "draft", selected_take_id: null, filename: undefined },
+      { ...production.parts[0], id: 13, position: 1, kind: "asset", missing: true },
+    ] } as Production)
+    expect(result.ready).toBe(false)
+    expect(result.blocking.map((issue) => [issue.number, issue.title])).toEqual([[1, "Speech not recorded"], [2, "Linked media missing"]])
   })
 })

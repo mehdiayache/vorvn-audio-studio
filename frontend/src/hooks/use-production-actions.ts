@@ -65,9 +65,11 @@ export function useProductionActions({ production, music, player, refresh, refre
     try {
       const result = await studioApi.preview(production.id)
       if (!result.url) throw new Error("The preview did not return an audio file.")
-      const source: PlayerSource = { key: previewKey, url: result.url, title: production.name, subtitle: music.filename ? "Exact sequence preview with music" : "Exact sequence preview", kind: "production" }
+      const skippedDrafts = Number(result.skipped_drafts || 0)
+      const mixLabel = music.filename ? "with Music Bed" : "narration only"
+      const source: PlayerSource = { key: previewKey, url: result.url, title: production.name, subtitle: skippedDrafts ? `Recorded mix · ${skippedDrafts} Draft${skippedDrafts === 1 ? "" : "s"} omitted · ${mixLabel}` : `Exact current mix · ${mixLabel}`, kind: "production" }
       await player.toggleSource(preparePlayerSource ? await preparePlayerSource(source) : source)
-      toast.success(result.cached ? "Current preview loaded" : "Current preview prepared")
+      toast.success(skippedDrafts ? `Recorded preview loaded · ${skippedDrafts} Draft${skippedDrafts === 1 ? "" : "s"} omitted` : result.cached ? "Current preview loaded" : "Current preview prepared")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Preview failed.")
     } finally {

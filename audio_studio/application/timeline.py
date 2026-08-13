@@ -159,7 +159,8 @@ class TimelineService:
             "filename": "", "path": "", "size_bytes": 0, "duration_ms": 0,
             "chars": len(text), "requests": 0, "cost": 0, "kind": "draft",
             "usage": {}, "cost_basis": "not billed", "failures": [],
-        }, insert_at=values.get("insert_at"))
+        }, insert_at=values.get("insert_at"),
+           before_part_public_id=values.get("insert_before_part_id"))
         if not new_id:
             raise TimelineError("The Draft could not be saved.")
         return {"id": new_id}

@@ -1780,6 +1780,17 @@
             ],
             "title": "Insert At"
           },
+          "insert_before_part_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Insert Before Part Id"
+          },
           "instruction": {
             "default": "",
             "title": "Instruction",

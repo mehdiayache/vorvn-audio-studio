@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, renderHook } from "@testing-library/react"
+import { act, renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { studioApi } from "@/lib/api"
@@ -9,7 +9,7 @@ import { useProductionActions } from "./use-production-actions"
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }))
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>()
-  return { ...actual, studioApi: { ...actual.studioApi, enqueueRecordPart: vi.fn(), enqueueRegenerate: vi.fn(), savePartEditorial: vi.fn() } }
+  return { ...actual, studioApi: { ...actual.studioApi, preview: vi.fn(), enqueueRecordPart: vi.fn(), enqueueRegenerate: vi.fn(), savePartEditorial: vi.fn() } }
 })
 
 const payload: GeneratePayload = {
@@ -114,5 +114,23 @@ describe("useProductionActions durable commands", () => {
     rerender()
     await act(async () => { await Promise.resolve() })
     expect(result.current.productionLoaded).toBe(false)
+  })
+
+  it("states exactly when a recorded preview omits Draft Parts", async () => {
+    vi.mocked(studioApi.preview).mockResolvedValue({ url: "/audio/current.mp3", skipped_drafts: 43, cached: false })
+    const toggleSource = vi.fn().mockResolvedValue(undefined)
+    const player = {
+      source: null, state: "idle", currentTime: 0, duration: 0, volume: 1, speed: 1,
+      toggleSource, toggle: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      setVolume: vi.fn(), setSpeed: vi.fn(), close: vi.fn(),
+    }
+    const { result } = renderHook(() => useProductionActions({
+      production, music, player: player as never,
+      refresh: vi.fn(), refreshAssets: vi.fn(),
+    }))
+
+    act(() => result.current.toggleProduction())
+    await waitFor(() => expect(toggleSource).toHaveBeenCalledTimes(1))
+    expect(toggleSource.mock.calls[0]?.[0].subtitle).toBe("Recorded mix · 43 Drafts omitted · narration only")
   })
 })

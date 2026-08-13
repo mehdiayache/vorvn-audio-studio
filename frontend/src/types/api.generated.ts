@@ -2149,6 +2149,8 @@ export interface components {
             format: string;
             /** Insert At */
             insert_at?: number | null;
+            /** Insert Before Part Id */
+            insert_before_part_id?: string | null;
             /**
              * Instruction
              * @default

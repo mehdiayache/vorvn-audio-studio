@@ -119,16 +119,16 @@ function futureVoice(part: ProductionPart, castRole: ProductionCastRole | undefi
 function captionFacts(part: ProductionPart, job: DurableJob<unknown> | null) {
   if (job) {
     const truth = durableOperationTruth(job)
-    if (truth.active) return { summary: "CC Creating…", tone: "active" as const }
-    if (truth.failed) return { summary: "CC Failed", tone: "danger" as const }
-    if (truth.review || truth.confirmation) return { summary: `CC ${truth.label}`, tone: "warning" as const }
+    if (truth.active) return { summary: "Creating captions…", tone: "active" as const }
+    if (truth.failed) return { summary: "Captions failed", tone: "danger" as const }
+    if (truth.review || truth.confirmation) return { summary: `Captions · ${truth.label}`, tone: "warning" as const }
   }
-  if (!part.subtitled) return { summary: "CC —", tone: "neutral" as const }
+  if (!part.subtitled) return { summary: "No captions", tone: "neutral" as const }
   const languages = [part.caption_source_language, ...(part.languages || [])]
     .map(languageCode).filter(Boolean)
-  const summary = languages.length ? `CC ${Array.from(new Set(languages)).join(" + ")}` : "CC Ready"
+  const summary = languages.length ? `${Array.from(new Set(languages)).join(" + ")} captions` : "Captions ready"
   return {
-    summary: `${summary}${part.subtitles_stale ? " stale" : ""}`,
+    summary: `${summary}${part.subtitles_stale ? " need review" : ""}`,
     tone: part.subtitles_stale ? "warning" as const : "ready" as const,
   }
 }

@@ -2,22 +2,17 @@
   position: relative;
   width: 100%;
   margin: 0;
-  padding: var(--vrn-space-3) 0 var(--vrn-space-6);
+  padding: var(--vrn-space-2) 0 var(--vrn-space-8);
 }
 .sequence-ledger {
-  overflow: clip;
-  border: var(--vrn-stroke-hairline) solid var(--vrn-border);
-  border-radius: var(--vrn-radius-lg);
-  background: var(--surface-raised);
-  box-shadow: var(--vrn-shadow-subtle);
+  overflow: visible;
+  background: transparent;
 }
 .sequence-ledger-header {
-  height: 38px;
+  height: 34px;
   display: grid;
-  grid-template-columns: 48px 190px minmax(0, 1fr);
+  grid-template-columns: 72px 220px minmax(0, 1fr);
   align-items: center;
-  border-bottom: var(--vrn-stroke-hairline) solid var(--vrn-border);
-  background: var(--vrn-surface-subtle);
   color: var(--vrn-content-secondary);
   font-size: var(--vrn-type-metadata-size);
   font-weight: var(--vrn-weight-label);
@@ -26,8 +21,8 @@
 }
 .sequence-ledger-header span { padding-inline: var(--vrn-space-3); }
 .sequence-ledger-header span:first-child { text-align: center; }
-.sequence-ledger-header span:nth-child(2) { padding-left: var(--vrn-space-4); border-right: var(--vrn-stroke-hairline) solid var(--vrn-border); }
-.sequence-part-list { display: block; }
+.sequence-ledger-header span:nth-child(2) { padding-left: var(--vrn-space-4); }
+.sequence-part-list { display: grid; gap: var(--vrn-space-3); }
 .sequence-ledger-summary {
   display: flex;
   align-items: center;
@@ -44,22 +39,6 @@
 .sequence-filter-empty b { font-size: var(--vrn-type-panel-size); }
 .sequence-filter-empty p { max-width: 420px; color: var(--vrn-content-secondary); font-size: var(--vrn-type-metadata-size); line-height: var(--vrn-type-metadata-line); }
 .sequence-filter-empty button { margin-top: var(--vrn-space-2); }
-.sequence-composer-anchor {
-  position: relative;
-  z-index: 3;
-  scroll-margin-top: 58px;
-  border-block: var(--vrn-stroke-hairline) solid color-mix(in oklab, var(--vrn-data-series-2) 34%, var(--vrn-border));
-  background: color-mix(in oklab, var(--vrn-data-series-2) 7%, var(--surface-raised));
-}
-.sequence-composer-anchor.is-inline { display: block; }
-.sequence-composer-inline-host { min-width: 0; background: var(--surface-raised); }
-.sequence-composer-anchor.is-expanded { min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: var(--vrn-space-4); padding: var(--vrn-space-3) var(--vrn-space-4); }
-.sequence-composer-anchor.is-expanded > span { display: grid; gap: 2px; }
-.sequence-composer-anchor.is-expanded b { font-size: var(--vrn-type-label-size); }
-.sequence-composer-anchor.is-expanded small { color: var(--vrn-content-secondary); font-size: var(--vrn-type-metadata-size); }
-.sequence-composer-anchor.is-expanded button { display: inline-flex; align-items: center; gap: var(--vrn-space-2); border: 0; background: transparent; color: var(--vrn-data-series-2); font-size: var(--vrn-type-metadata-size); font-weight: var(--vrn-weight-label); }
-.sequence-composer-anchor.is-expanded button svg { width: 14px; }
-
 .sequence-workspace-title {
   display: flex;
   align-items: flex-end;
@@ -94,7 +73,6 @@
 }
 .sequence-row.speech { display: block; }
 .sequence-row.speech .sequence-node-column { display: none; }
-.sequence-row:last-of-type .speech-part-card { border-bottom: 0; }
 .sequence-node-column { min-height: 100%; padding-top: 16px; }
 .sequence-row-node {
   position: relative;
@@ -112,7 +90,7 @@
   font-size: var(--vrn-type-metadata-size);
   font-weight: var(--vrn-weight-label);
 }
-.sequence-row.is-workbench-active .sequence-row-node { color: var(--primary-foreground); border-color: var(--primary); background: var(--primary); box-shadow: 0 0 0 3px var(--surface-subtle); }
+.sequence-row.is-stage-active .sequence-row-node { color: var(--primary-foreground); border-color: var(--primary); background: var(--primary); box-shadow: 0 0 0 3px var(--surface-subtle); }
 .sequence-row.is-preview-playing .sequence-row-node { color: var(--vrn-info-solid); border-color: var(--vrn-info-border); background: var(--vrn-info-soft); }
 .sequence-row-node.asset { color: var(--asset); border-color: color-mix(in oklab, var(--asset) 38%, var(--border)); background: var(--asset-soft); }
 .sequence-row-node.draft { color: var(--warning); border-color: color-mix(in oklab, var(--warning) 38%, var(--border)); background: var(--warning-soft); }
@@ -144,9 +122,9 @@
 }
 .sequence-card:hover { border-color: var(--border-strong); box-shadow: var(--vrn-shadow-raised); }
 .sequence-card.selected { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
-.sequence-row.is-workbench-active .sequence-card { border-color: var(--border-strong); background: var(--surface-raised); box-shadow: inset 3px 0 var(--primary), var(--vrn-shadow-subtle); }
+.sequence-row.is-stage-active .sequence-card { border-color: var(--border-strong); background: var(--surface-raised); box-shadow: inset 3px 0 var(--primary), var(--vrn-shadow-subtle); }
 .sequence-row.is-preview-playing .sequence-card { box-shadow: inset 3px 0 var(--vrn-info-solid); }
-.sequence-row.is-workbench-active .sequence-card.selected { box-shadow: inset 3px 0 var(--primary), 0 0 0 3px var(--primary-soft); }
+.sequence-row.is-stage-active .sequence-card.selected { box-shadow: inset 3px 0 var(--primary), 0 0 0 3px var(--primary-soft); }
 .sequence-card.playing { box-shadow: inset 3px 0 var(--primary), var(--vrn-shadow-raised); }
 .sequence-card.asset { background: color-mix(in oklab, var(--asset-soft) 58%, white); border-color: color-mix(in oklab, var(--asset) 24%, var(--border)); box-shadow: inset 3px 0 var(--asset); }
 .sequence-card.draft { background: color-mix(in oklab, var(--warning-soft) 48%, white); border-color: color-mix(in oklab, var(--warning) 22%, var(--border)); box-shadow: inset 3px 0 var(--warning); }
@@ -198,8 +176,8 @@
   position: relative;
   z-index: 8;
   display: block;
-  height: 12px;
-  margin: -6px 0;
+  height: 8px;
+  margin: calc(var(--vrn-space-3) * -1) 0;
 }
 .sequence-insert-line { position: absolute; inset: 50% 0 auto; border-top: 1px solid transparent; transition: border-color .15s; }
 .sequence-insert-trigger {

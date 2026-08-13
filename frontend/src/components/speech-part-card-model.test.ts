@@ -47,7 +47,7 @@ describe("speechPartCardFacts", () => {
     expect(facts.methodLine).toBe("Qwen Audio · Flash · Expressive + tags · EN")
     expect(facts.technicalDetail).toContain("Language: English")
     expect(facts.takeSummary).toBe("Take 3 selected · 0:12.4 · 4 Takes · Spoken input")
-    expect(facts.captionSummary).toBe("CC EN + FR")
+    expect(facts.captionSummary).toBe("EN + FR captions")
   })
 
   it("never infers selected input truth from populated text variants", () => {
@@ -106,7 +106,7 @@ describe("speechPartCardFacts", () => {
   it("uses only the current caption Job supplied by the read model", () => {
     const caption: DurableJob = { id: "caption-current", type: "transcribe", status: "running", progress: .4, detail: "Listening", retries: 0, result: {} }
     const facts = speechPartCardFacts({ part: part({ subtitled: false, languages: [] }), speechJob: null, captionJob: caption, directory })
-    expect(facts.captionSummary).toBe("CC Creating…")
+    expect(facts.captionSummary).toBe("Creating captions…")
     expect(facts.captionTone).toBe("active")
   })
 
@@ -115,7 +115,7 @@ describe("speechPartCardFacts", () => {
     const failed = speechPartCardFacts({ part: part({ subtitled: false, languages: [] }), speechJob: null, captionJob: failedCaption, directory })
     const stale = speechPartCardFacts({ part: part({ subtitles_stale: true }), speechJob: null, directory })
 
-    expect(failed).toMatchObject({ captionSummary: "CC Failed", captionTone: "danger" })
-    expect(stale).toMatchObject({ captionSummary: "CC EN + FR stale", captionTone: "warning" })
+    expect(failed).toMatchObject({ captionSummary: "Captions failed", captionTone: "danger" })
+    expect(stale).toMatchObject({ captionSummary: "EN + FR captions need review", captionTone: "warning" })
   })
 })

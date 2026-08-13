@@ -52,6 +52,7 @@ class DraftBody(BaseModel):
     text_tagged: str | None = None
     text_state: str = "raw"
     insert_at: int | None = None
+    insert_before_part_id: str | None = None
     voice_identity_id: str | None = None
     binding_id: str | None = None
     catalogue_voice_id: str | None = None

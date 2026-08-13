@@ -202,12 +202,9 @@
 
 .production-composer-workbench { width: 100%; height: 100%; min-height: 0; }
 .production-composer-workbench .composer-surface { min-height: 100%; border: 0; border-radius: 0; box-shadow: none; }
-.production-composer-workbench .composer-stage { padding: var(--vrn-space-3); }
-.production-composer-workbench .composer-recording-summary { grid-template-columns: auto minmax(0, 1fr) auto; }
-.production-composer-workbench .composer-recording-facts { display: none; }
-.production-composer-workbench .composer-disclosure-grid { grid-template-columns: 1fr; }
-.production-composer-workbench .composer-footer { align-items: stretch; flex-direction: column; gap: var(--vrn-space-2); }
-.production-composer-workbench .composer-actions > button { flex: 1 1 auto; }
+.production-composer-workbench .composer-context-bar { display: none; }
+.production-composer-workbench .composer-stage { padding: var(--vrn-space-4) var(--vrn-space-5); }
+.production-composer-workbench .composer-footer { min-height: 76px; padding-inline: var(--vrn-space-5); }
 
 .speak-page .composer-surface { height: min(54rem, calc(100dvh - 14rem)); min-height: 38rem; }
 

@@ -263,6 +263,21 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(silence.json()["data"], {"id": 101, "seconds": 2.5})
 
         with patch.object(
+                timeline_router.timeline_service, "add_draft",
+                return_value={"id": 102}) as add_draft:
+            draft = self.client.post(
+                "/api/v1/productions/7/parts/drafts",
+                json={
+                    "text": "A deliberate insertion-point Draft.",
+                    "insert_before_part_id": "part-before",
+                })
+        self.assertEqual(draft.status_code, 200)
+        add_draft.assert_called_once()
+        self.assertEqual(
+            add_draft.call_args.args[1]["insert_before_part_id"],
+            "part-before")
+
+        with patch.object(
                 timeline_router.timeline_service, "insert_asset",
                 side_effect=TimelineError(
                     "Music is a background bed. Choose it in the Music controls.")):

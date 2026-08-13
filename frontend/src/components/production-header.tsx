@@ -32,7 +32,7 @@ export function ProductionHeader({ production, duration, mixExportOpen, producti
           </div>
         </div>
         <div className="production-context-actions">
-          {issueCount > 0 && <Button className="production-health-summary" variant="outline" size="sm" onClick={onHealth}><CircleAlert /> {issueCount} issue{issueCount === 1 ? "" : "s"}</Button>}
+          {issueCount > 0 && <Button className="production-health-summary" variant="outline" size="sm" aria-label={`${issueCount} Production issue${issueCount === 1 ? "" : "s"}`} onClick={onHealth}><CircleAlert /> <b>{issueCount}</b><span className="production-health-label">issue{issueCount === 1 ? "" : "s"}</span></Button>}
             <Button variant="ghost" size="sm" onClick={onCast}><Users /> Cast</Button>
             <Button variant="outline" size="sm" onClick={onPreview}>{productionPlaying ? <Pause /> : <Play />} {productionPlaying ? "Pause" : "Preview"}</Button>
             <Button className="mix-export-action" variant={mixExportOpen ? "secondary" : "outline"} size="sm" aria-pressed={mixExportOpen} onClick={onRelease}><SlidersHorizontal /> Mix & Export</Button>

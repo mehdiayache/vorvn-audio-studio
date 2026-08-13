@@ -78,7 +78,7 @@ describe("SpeechPartCard", () => {
     expect(screen.getByText("Maya")).toBeTruthy()
     expect(screen.getByText("Qwen Audio · Flash · Expressive + tags · EN")).toBeTruthy()
     expect(screen.getByRole("button", { name: /Take 2 selected · 0:05.1 · 2 Takes · Tagged input/ })).toBeTruthy()
-    expect(screen.getByRole("button", { name: /CC Creating/ })).toBeTruthy()
+    expect(screen.getByRole("button", { name: /Captions: Creating captions/ })).toBeTruthy()
     expect(screen.getByText("$0.02")).toBeTruthy()
     expect(screen.getByText("TAKE 3 · GENERATING 68%")).toBeTruthy()
   })
@@ -98,7 +98,7 @@ describe("SpeechPartCard", () => {
     const actionSet = actions()
     renderCard(<SpeechPartCard part={part({ kind: "draft", selected_take_id: null, filename: "", duration_ms: 9000, takes: 0 })} job={null} index={0} count={1} selected={false} playing={false} directory={directory} onSelect={vi.fn()} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
     expect(screen.getByText("Not recorded")).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Continue writing" }))
+    fireEvent.click(screen.getByRole("button", { name: "Edit draft" }))
     fireEvent.click(screen.getByRole("button", { name: "Record" }))
     expect(actionSet.openPart).toHaveBeenCalledTimes(2)
     expect(screen.queryByRole("button", { name: /play part/i })).toBeNull()
@@ -110,7 +110,7 @@ describe("SpeechPartCard", () => {
     renderCard(<SpeechPartCard part={sourcePart} job={null} index={0} count={1} selected={false} playing={false} directory={directory} onSelect={vi.fn()} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
 
     fireEvent.click(screen.getByRole("button", { name: /Take 2 selected/ }))
-    fireEvent.click(screen.getByRole("button", { name: /CC —/ }))
+    fireEvent.click(screen.getByRole("button", { name: /Captions: No captions/ }))
     fireEvent.pointerDown(screen.getByRole("button", { name: "Part actions" }), { button: 0, ctrlKey: false })
     fireEvent.click(screen.getByRole("menuitem", { name: /Generate alternative/ }))
 

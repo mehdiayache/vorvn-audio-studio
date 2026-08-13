@@ -224,8 +224,12 @@ export type VentureAssetLibrary = { venture: WorkResource; collections: AssetCol
 
 export type PreviewResult = {
   url?: string
+  name?: string
   filename?: string
   duration_ms?: number
+  parts?: number
+  music?: boolean
+  skipped_drafts?: number
   cached?: boolean
   error?: string
 }

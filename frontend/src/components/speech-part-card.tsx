@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react"
-import { AudioLines, Captions, ChevronDown, ChevronUp, CircleAlert, Copy, GripVertical, Mic2, MoreHorizontal, Pause, Pencil, Play, Plus, Trash2 } from "lucide-react"
+import { AudioLines, Captions, ChevronDown, ChevronUp, CircleAlert, Copy, MoreHorizontal, Pause, Pencil, Play, Plus, Trash2 } from "lucide-react"
 
 import { AudioWaveform } from "@/components/audio-waveform"
 import type { SequenceActions } from "@/components/sequence-actions"
@@ -81,14 +81,14 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
     <span className="speech-part-identity-rail" aria-hidden="true" />
     <div className="speech-part-order">
       <div className="speech-part-number">
-        <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+        <span>{String(index + 1).padStart(2, "0")}</span>
         <Checkbox checked={selected} onClick={(event) => onSelect(!selected, event.shiftKey)} aria-label={`Select part ${index + 1}`} />
       </div>
-      <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="speech-part-reorder" aria-label={`Reorder part ${index + 1}`}><GripVertical /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
-        <DropdownMenuItem disabled={index === 0} onSelect={() => actions.move(part, -1)}><ChevronUp />Move earlier</DropdownMenuItem>
-        <DropdownMenuItem disabled={index === count - 1} onSelect={() => actions.move(part, 1)}><ChevronDown />Move later</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => actions.moveToPosition(part)}>Move to position…</DropdownMenuItem>
-      </DropdownMenuContent></DropdownMenu>
+      <div className="speech-part-move-controls" aria-label={`Move part ${index + 1}`}>
+        <Button variant="ghost" size="icon-sm" disabled={index === 0} onClick={() => actions.move(part, -1)} aria-label="Move earlier"><ChevronUp /></Button>
+        <Button variant="ghost" size="icon-sm" disabled={index === count - 1} onClick={() => actions.move(part, 1)} aria-label="Move later"><ChevronDown /></Button>
+      </div>
+      <button className="speech-part-move-position" onClick={() => actions.moveToPosition(part)}>Move</button>
     </div>
 
     <header className="speech-part-identity">
@@ -108,13 +108,15 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
     </header>
 
     <div className="speech-part-body">
-      <header className="speech-part-script-header">
-        {playingPreview && <span className="speech-part-preview-playing"><AudioLines /> Playing in Production preview</span>}
-        {visibleAlerts.length > 0 && <div className="speech-part-alerts" aria-label="Part states">
-          {visibleAlerts.map((alert) => <span key={alert.key} className={`speech-part-alert is-${alert.tone}`}><CircleAlert />{alert.label}</span>)}
-        </div>}
+      <header className="speech-part-main-header">
+        <div className="speech-part-main-state">
+          {playingPreview && <span className="speech-part-preview-playing"><AudioLines /> Playing in Production preview</span>}
+          {visibleAlerts.length > 0 && <div className="speech-part-alerts" aria-label="Part states">
+            {visibleAlerts.map((alert) => <span key={alert.key} className={`speech-part-alert is-${alert.tone}`}><CircleAlert />{alert.label}</span>)}
+          </div>}
+        </div>
         <div className="speech-part-top-actions">
-          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="speech-part-edit" onClick={openPart} aria-label={`Edit part ${index + 1}`}><Pencil /></Button></TooltipTrigger><TooltipContent>Open script and details</TooltipContent></Tooltip>
+          <Button variant="outline" size="sm" className="speech-part-edit" onClick={openPart} aria-label={`Edit part ${index + 1}`}><Pencil /> Edit</Button>
           <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Part actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={openPart}><Pencil />Open details</DropdownMenuItem>
             {facts.recorded && <DropdownMenuItem onSelect={startNewTake}><Plus />Generate alternative</DropdownMenuItem>}
@@ -143,13 +145,13 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
             <span className={cn("speech-part-input-state", facts.inputLabel && `is-${facts.inputLabel.toLowerCase()}`)}>{facts.inputLabel || "Unknown input"}</span>
             {facts.totalTakes > 1 && <span className="speech-part-take-count">{facts.takeCountLabel}</span>}
           </button>
-          <button onClick={openCaptions} className={`speech-part-caption is-${facts.captionTone}`}><Captions />{facts.captionSummary}</button>
+          <button onClick={openCaptions} className={`speech-part-caption is-${facts.captionTone}`} aria-label={`Captions: ${facts.captionSummary}`}><Captions />{facts.captionSummary}</button>
         </> : <span className="speech-part-not-recorded">Not recorded</span>}
 
         <SpeechOperationLane operation={facts.operation} onRetry={onRetryJob} onConfirm={onConfirmJob} onReviewTake={openTakes} />
         {facts.recorded && <span className="speech-part-spend" title={facts.spendSummary}>{facts.spendValue}</span>}
         <div className="speech-part-actions">
-          {!facts.recorded && <><Button variant="ghost" size="sm" onClick={openPart}>Continue writing</Button><Button size="sm" onClick={openPart}><Mic2 />Record</Button></>}
+          {!facts.recorded && <><Button variant="outline" size="sm" onClick={openPart}>Edit draft</Button><Button size="sm" onClick={startNewTake}>Record</Button></>}
         </div>
       </footer>
     </div>

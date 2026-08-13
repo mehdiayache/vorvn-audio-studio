@@ -12,7 +12,7 @@ vi.mock("@/features/production/cast-manager-sheet", () => ({ CastManagerSheet: (
 vi.mock("@/features/production/production-command-menu", () => ({ ProductionCommandMenu: () => null }))
 vi.mock("@/features/production/production-explorer-sheet", () => ({ ProductionExplorerSheet: () => null }))
 vi.mock("@/features/production/production-health-sheet", () => ({ productionHealth: () => [], ProductionHealthSheet: () => null }))
-vi.mock("@/features/production/production-workbench", () => ({ ProductionWorkbench: ({ canvas, children }: { canvas: ReactNode; children: ReactNode }) => <>{canvas}{children}</> }))
+vi.mock("@/features/production/production-stage", () => ({ ProductionStage: ({ canvas, children }: { canvas: ReactNode; children: ReactNode }) => <>{canvas}{children}</> }))
 
 import { ProductionEditorCanvas } from "./production-editor-canvas"
 
@@ -21,12 +21,12 @@ describe("ProductionEditorCanvas timing", () => {
     const props = {
       production: { id: 7, key: "production", title: "Production", parts: [] },
       tree: null, music: {}, directory: {}, cast: [], liveJobs: {}, duration: 0,
-      workbenchMode: null, workbenchTitle: "Production Workbench", workbenchContent: null,
+      stageMode: null, stageTitle: "Production", stageContent: null,
       explorerOpen: false,
       healthOpen: false, commandsOpen: false, selected: new Set(), playerPlaying: false,
       previewing: false, productionPlaying: false, productionLoaded: false,
       productionCurrentTime: 0,
-      onOpenMixExport: vi.fn(), onCloseWorkbench: vi.fn(), onExplorerOpen: vi.fn(), onCastOpen: vi.fn(),
+      onOpenMixExport: vi.fn(), onCloseStage: vi.fn(), onExplorerOpen: vi.fn(), onCastOpen: vi.fn(),
       onHealthOpen: vi.fn(), onCommandsOpen: vi.fn(), onMusicOpen: vi.fn(),
       onTool: vi.fn(), onSelected: vi.fn(), onPreview: vi.fn(), onLocate: vi.fn(),
       onSeekProduction: vi.fn(), onPlay: vi.fn(),
