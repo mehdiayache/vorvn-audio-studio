@@ -5,13 +5,13 @@ import { type ComposerSurfaceProps, useComposerController } from "./composer-con
 import { ComposerSurface, ControlledComposerSurface, type ComposerPresentation } from "./composer-surface"
 import { MobileComposerTransport } from "./mobile-composer-transport"
 
-export function ProductionComposerWorkbench(props: ComposerSurfaceProps) {
-  return <div className="production-composer-workbench"><ComposerSurface {...props} presentation="workbench" visible /></div>
+export function ProductionComposerStage(props: ComposerSurfaceProps) {
+  return <div className="production-composer-stage"><ComposerSurface {...props} presentation="stage" visible /></div>
 }
 
 export function ProductionComposerSession({ target, presentation, onExpand, onClose, ...props }: ComposerSurfaceProps & {
   target: HTMLElement | null
-  presentation: Extract<ComposerPresentation, "inline" | "workbench">
+  presentation: Extract<ComposerPresentation, "inline" | "stage">
   onExpand: () => void
   onClose: () => void
 }) {

@@ -10,12 +10,12 @@ vi.mock("@/components/global-player-provider", () => ({
   useGlobalPlayer: () => ({ transportHost: "shell", claimTransport: vi.fn(() => vi.fn()) }),
 }))
 
-import { ProductionComposerWorkbench } from "./production-composer-host"
+import { ProductionComposerStage } from "./production-composer-host"
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); vi.unstubAllGlobals() })
 
 describe("Production Composer recovery", () => {
-  it("flushes a quick edit when the Workbench closes and restores it when reopened", async () => {
+  it("flushes a quick edit when the Stage closes and restores it when reopened", async () => {
     let stored: unknown = null
     api.composerDraft.mockImplementation(async () => stored ? { id: "draft-1", state: stored, version: 1, updatedAt: "now" } : null)
     api.saveComposerDraft.mockImplementation(async (_context, draft) => {
@@ -23,13 +23,13 @@ describe("Production Composer recovery", () => {
       return { id: "draft-1", state: draft, version: 1, updatedAt: "now" }
     })
     const props = { productionId: 7, config: null, directory: { config: null, cloned: [], meta: {}, catalog: [], identities: [], registry: null }, playerPlaying: false, onGenerate: vi.fn(), onPlay: vi.fn() }
-    const view = render(<ProductionComposerWorkbench {...props} />)
+    const view = render(<ProductionComposerStage {...props} />)
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "Fast collapse edit" } })
     view.unmount()
     await waitFor(() => expect(api.saveComposerDraft).toHaveBeenCalled())
     expect(stored).toMatchObject({ text: { raw: "Fast collapse edit" } })
-    render(<ProductionComposerWorkbench {...props} />)
+    render(<ProductionComposerStage {...props} />)
     await waitFor(() => expect((screen.getByPlaceholderText("Type or paste what should be said…") as HTMLTextAreaElement).value).toBe("Fast collapse edit"))
     expect((screen.getByPlaceholderText("Type or paste what should be said…") as HTMLTextAreaElement).value).toBe("Fast collapse edit")
   })

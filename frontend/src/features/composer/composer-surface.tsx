@@ -13,7 +13,7 @@ import { ComposerWords } from "./composer-words"
 
 import "./composer.css"
 
-export type ComposerPresentation = "inline" | "workbench" | "mega"
+export type ComposerPresentation = "inline" | "stage" | "mega"
 
 export function ControlledComposerSurface({ composer, presentation = "mega", onExpand, onClose }: {
   composer: ComposerController

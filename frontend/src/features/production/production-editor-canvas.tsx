@@ -4,7 +4,6 @@ import type { ReactNode } from "react"
 import { ProductionHeader } from "@/components/production-header"
 import { SequenceWorkspace } from "@/components/sequence-workspace"
 import { TimingOverview } from "@/components/timing-overview"
-import { ProductionCastStrip } from "@/features/production/production-cast-strip"
 import { ProductionCommandMenu } from "@/features/production/production-command-menu"
 import { ProductionExplorerSheet } from "@/features/production/production-explorer-sheet"
 import { productionHealth, ProductionHealthSheet } from "@/features/production/production-health-sheet"
@@ -92,11 +91,8 @@ export function ProductionEditorCanvas({ production, tree, music, directory, cas
 
   const timing = <TimingOverview parts={production.parts} music={music} playingKey={playingKey} productionLoaded={productionLoaded} productionCurrentTime={productionCurrentTime} onLocate={onLocate} onSeekProduction={onSeekProduction} />
   const canvas = <main className="production-main">
-    <div className="production-setup-strip">
-      <ProductionCastStrip cast={cast} directory={directory} onManage={() => onCastOpen(true)} />
-      {view === "sequence" && <ProductionMusicLane music={music} playingKey={playingKey} playing={playerPlaying} previewReady={productionLoaded} onPlay={onPlay} onAdd={onChooseMusic} onEdit={onMusicOpen} />}
-    </div>
-    <ProductionSequenceToolbar view={view} partCount={sourceParts.length} visiblePartCount={filtersActive ? visibleParts.length : undefined} duration={duration} navigator={<ProductionSequenceSearch parts={production.parts} cast={cast} issuePartIds={issuePartIds} value={filters} onChange={setFilters} onLocate={revealPart} />} onViewChange={setView} />
+    {view === "sequence" && <ProductionMusicLane music={music} playingKey={playingKey} playing={playerPlaying} previewReady={productionLoaded} onPlay={onPlay} onAdd={onChooseMusic} onEdit={onMusicOpen} />}
+    <ProductionSequenceToolbar view={view} partCount={sourceParts.length} visiblePartCount={filtersActive ? visibleParts.length : undefined} duration={duration} navigator={<ProductionSequenceSearch parts={production.parts} cast={cast} issuePartIds={issuePartIds} value={filters} onChange={setFilters} onLocate={revealPart} />} onViewChange={setView} onAdd={(kind) => onTool(kind)} />
     {view === "sequence" ? <SequenceWorkspace parts={production.parts} cast={cast} liveJobs={liveJobs} selected={selected} visiblePartIds={filtersActive ? new Set(visibleParts.map((part) => part.id)) : undefined} filtersActive={filtersActive} activePartId={activePartId} playingKey={playingKey} playerPlaying={playerPlaying} previewPlayingPartId={previewPlayingPartId} directory={directory} onSelected={onSelected} onClearFilters={() => setFilters(EMPTY_SEQUENCE_FILTERS)} onInsert={(kind: InsertKind, beforePartId) => onTool(kind, beforePartId)} onRetryJob={onRetryJob} onConfirmJob={onConfirmJob} onReplaceAsset={onReplaceAsset} actions={sequenceActions} /> : timing}
   </main>
 

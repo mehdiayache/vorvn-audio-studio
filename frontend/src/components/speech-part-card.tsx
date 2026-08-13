@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react"
-import { AudioLines, Captions, ChevronDown, ChevronUp, CircleAlert, Copy, MoreHorizontal, Pause, Pencil, Play, Plus, Trash2 } from "lucide-react"
+import { AudioLines, Captions, ChevronDown, ChevronUp, CircleAlert, Copy, GripVertical, MoreHorizontal, Pause, Pencil, Play, Plus, Trash2 } from "lucide-react"
 
 import { AudioWaveform } from "@/components/audio-waveform"
 import type { SequenceActions } from "@/components/sequence-actions"
@@ -84,11 +84,11 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
         <span>{String(index + 1).padStart(2, "0")}</span>
         <Checkbox checked={selected} onClick={(event) => onSelect(!selected, event.shiftKey)} aria-label={`Select part ${index + 1}`} />
       </div>
+      <Button className="speech-part-grip" variant="ghost" size="icon-sm" onClick={() => actions.moveToPosition(part)} aria-label={`Move part ${index + 1} to position`}><GripVertical /></Button>
       <div className="speech-part-move-controls" aria-label={`Move part ${index + 1}`}>
         <Button variant="ghost" size="icon-sm" disabled={index === 0} onClick={() => actions.move(part, -1)} aria-label="Move earlier"><ChevronUp /></Button>
         <Button variant="ghost" size="icon-sm" disabled={index === count - 1} onClick={() => actions.move(part, 1)} aria-label="Move later"><ChevronDown /></Button>
       </div>
-      <button className="speech-part-move-position" onClick={() => actions.moveToPosition(part)}>Move</button>
     </div>
 
     <header className="speech-part-identity">

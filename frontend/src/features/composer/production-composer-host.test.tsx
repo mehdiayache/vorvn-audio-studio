@@ -14,10 +14,10 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); document.body.replaceChildren() })
 
 describe("ProductionComposerSession", () => {
-  it("moves the same live Draft from its sequence seam into the Workbench", async () => {
+  it("moves the same live Draft from its sequence seam into the Production Stage", async () => {
     const inline = document.createElement("div")
-    const workbench = document.createElement("div")
-    document.body.append(inline, workbench)
+    const stage = document.createElement("div")
+    document.body.append(inline, stage)
     const props = {
       productionId: 7,
       config: null,
@@ -32,10 +32,10 @@ describe("ProductionComposerSession", () => {
     await waitFor(() => expect(screen.getByRole("textbox", { name: "Original script" })).toBeTruthy())
     fireEvent.change(screen.getByRole("textbox", { name: "Original script" }), { target: { value: "The same live Production Draft" } })
 
-    view.rerender(<ProductionComposerSession {...props} target={workbench} presentation="workbench" />)
+    view.rerender(<ProductionComposerSession {...props} target={stage} presentation="stage" />)
 
     expect((screen.getByRole("textbox", { name: "Original script" }) as HTMLTextAreaElement).value).toBe("The same live Production Draft")
     expect(inline.querySelector("textarea")).toBeNull()
-    expect(workbench.querySelector("textarea")).toBeTruthy()
+    expect(stage.querySelector("textarea")).toBeTruthy()
   })
 })
