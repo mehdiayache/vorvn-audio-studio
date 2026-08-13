@@ -619,4 +619,20 @@ export type PlayerSource = {
   subtitle?: string
   artwork?: string
   kind: "take" | "production" | "voice" | "asset" | "music" | "subtitle" | "batch" | "standalone"
+  captionTracks?: PlayerCaptionTrack[]
+}
+
+export type PlayerCaptionCue = {
+  startMs: number
+  endMs: number
+  text: string
+  partId?: number
+}
+
+export type PlayerCaptionTrack = {
+  id: string
+  language: string
+  label: string
+  stale: boolean
+  cues: PlayerCaptionCue[]
 }

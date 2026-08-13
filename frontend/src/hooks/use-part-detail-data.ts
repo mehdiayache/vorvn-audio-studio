@@ -34,10 +34,13 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
     const nextCaptions = captionResult.transcripts || []
     setCaptions(nextCaptions)
     const preferred = nextCaptions.find((item) => item.id === preferId)
+      || nextCaptions.find((item) => !item.is_translation && !item.stale)
+      || nextCaptions.find((item) => !item.is_translation)
+      || nextCaptions[0]
     if (preferred) {
       const nextTranscript = await studioApi.transcript(preferred.id)
       if (request === requestRef.current) setTranscript(nextTranscript)
-    }
+    } else if (request === requestRef.current) setTranscript(null)
   }, [productionId])
 
   useEffect(() => {

@@ -31,13 +31,16 @@ function savedWidth() {
   return clampProductionWorkbenchWidth(Number.isFinite(stored) ? stored : DEFAULT_WIDTH)
 }
 
-export function ProductionWorkbench({ mode, title, description, onClose, children, canvas }: {
+export function ProductionWorkbench({ mode, title, description, onClose, children, canvas, previewStale, onRefreshPreview, onOpenCaptionContext }: {
   mode: ProductionWorkbenchMode | null
   title: string
   description?: string
   onClose: () => void
   children: ReactNode
   canvas: ReactNode
+  previewStale?: boolean
+  onRefreshPreview?: () => void
+  onOpenCaptionContext?: (partId: number) => void
 }) {
   const [width, setWidth] = useState(savedWidth)
   const drag = useRef<{ startX: number; startWidth: number } | null>(null)
@@ -117,6 +120,6 @@ export function ProductionWorkbench({ mode, title, description, onClose, childre
         <div className="production-workbench-body">{children}</div>
       </aside>
     </>}
-    <ProductionFloatingTransport />
+    <ProductionFloatingTransport previewStale={previewStale} onRefreshPreview={onRefreshPreview} onOpenCaptionContext={onOpenCaptionContext} />
   </section>
 }

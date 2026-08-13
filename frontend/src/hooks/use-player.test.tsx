@@ -117,6 +117,23 @@ describe("usePlayer", () => {
     expect(element.playbackRate).toBe(1.5)
   })
 
+  it("keeps caption language and the current cue in the one global player", async () => {
+    const { result } = renderHook(() => usePlayer())
+    await act(async () => result.current.toggleSource({
+      key: "part:4", url: "/audio/part.mp3", title: "Part 4", kind: "take",
+      captionTracks: [
+        { id: "en", language: "English", label: "English · Original", stale: false, cues: [{ startMs: 0, endMs: 2000, text: "Open the old wooden door.", partId: 4 }] },
+        { id: "fr", language: "French", label: "French", stale: false, cues: [{ startMs: 0, endMs: 2000, text: "Ouvre la vieille porte en bois.", partId: 4 }] },
+      ],
+    }))
+    act(() => result.current.setCaptionTrack("fr"))
+    expect(result.current.captionsEnabled).toBe(true)
+    expect(result.current.captionTrack?.language).toBe("French")
+    expect(result.current.currentCaptionCue?.text).toContain("vieille porte")
+    act(() => result.current.toggleCaptions())
+    expect(result.current.currentCaptionCue).toBeNull()
+  })
+
   it("keeps playback errors observable until the operator closes the source", async () => {
     const { result } = renderHook(() => usePlayer())
     await act(async () => result.current.toggleSource({ key: "subtitle:4", url: "/audio/missing.mp3", title: "Missing source", kind: "subtitle" }))

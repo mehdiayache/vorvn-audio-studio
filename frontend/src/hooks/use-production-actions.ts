@@ -4,16 +4,17 @@ import { toast } from "sonner"
 import type { usePlayer } from "@/hooks/use-player"
 import { useJobExecution } from "@/hooks/use-job-execution"
 import { studioApi } from "@/lib/api"
-import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, Production, ProductionPart, VentureAsset } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, PlayerSource, Production, ProductionPart, VentureAsset } from "@/types/domain"
 
 type Player = ReturnType<typeof usePlayer>
 
-export function useProductionActions({ production, music, player, refresh, refreshAssets }: {
+export function useProductionActions({ production, music, player, refresh, refreshAssets, preparePlayerSource }: {
   production: Production
   music: MusicBed
   player: Player
   refresh: () => Promise<void>
   refreshAssets: () => Promise<void>
+  preparePlayerSource?: (source: PlayerSource) => Promise<PlayerSource>
 }) {
   const [previewing, setPreviewing] = useState(false)
   const [previewRevision, setPreviewRevision] = useState(0)
@@ -21,12 +22,24 @@ export function useProductionActions({ production, music, player, refresh, refre
   const observedExportJob = useJobExecution<{ url?: string; name?: string; error?: string }>(exportJobId)
   const exportJob = observedExportJob || production.export_job || null
   const reportedExportJob = useRef<string | null>(null)
+  const productionFingerprint = JSON.stringify({
+    updatedAt: production.updated_at,
+    parts: production.parts.filter((part) => part.kind !== "stitch").map((part) => [part.id, part.position, part.revision, part.selected_take_id, part.duration_ms, part.filename, part.missing]),
+    music: [music.filename, music.music_of, music.volume, music.start, music.duck, music.fade_in, music.fade_out],
+  })
+  const previousFingerprint = useRef(productionFingerprint)
   const previewKey = `preview:${production.id}:${previewRevision}`
   const playerPlaying = player.state === "playing"
   const productionLoaded = player.source?.key === previewKey
   const productionPlaying = playerPlaying && productionLoaded
 
   const invalidatePreview = useCallback(() => setPreviewRevision((value) => value + 1), [])
+
+  useEffect(() => {
+    if (previousFingerprint.current === productionFingerprint) return
+    previousFingerprint.current = productionFingerprint
+    if (player.source?.kind === "production") invalidatePreview()
+  }, [invalidatePreview, player.source?.kind, productionFingerprint])
 
   useEffect(() => {
     setExportJobId(production.export_job?.id || null)
@@ -51,14 +64,15 @@ export function useProductionActions({ production, music, player, refresh, refre
     try {
       const result = await studioApi.preview(production.id)
       if (!result.url) throw new Error("The preview did not return an audio file.")
-      await player.toggleSource({ key: previewKey, url: result.url, title: production.name, subtitle: music.filename ? "Exact sequence preview with music" : "Exact sequence preview", kind: "production" })
+      const source: PlayerSource = { key: previewKey, url: result.url, title: production.name, subtitle: music.filename ? "Exact sequence preview with music" : "Exact sequence preview", kind: "production" }
+      await player.toggleSource(preparePlayerSource ? await preparePlayerSource(source) : source)
       toast.success(result.cached ? "Current preview loaded" : "Current preview prepared")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Preview failed.")
     } finally {
       setPreviewing(false)
     }
-  }, [music.filename, player, previewKey, production])
+  }, [music.filename, player, preparePlayerSource, previewKey, production])
 
   const toggleProduction = useCallback(() => {
     if (previewing) return

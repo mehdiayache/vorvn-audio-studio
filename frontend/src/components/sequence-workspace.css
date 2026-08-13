@@ -109,6 +109,7 @@
   font-weight: var(--vrn-weight-label);
 }
 .sequence-row.is-workbench-active .sequence-row-node { color: var(--primary-foreground); border-color: var(--primary); background: var(--primary); box-shadow: 0 0 0 3px var(--surface-subtle); }
+.sequence-row.is-preview-playing .sequence-row-node { color: var(--vrn-info-solid); border-color: var(--vrn-info-border); background: var(--vrn-info-soft); }
 .sequence-row-node.asset { color: var(--asset); border-color: color-mix(in oklab, var(--asset) 38%, var(--border)); background: var(--asset-soft); }
 .sequence-row-node.draft { color: var(--warning); border-color: color-mix(in oklab, var(--warning) 38%, var(--border)); background: var(--warning-soft); }
 .sequence-row-node.issue { color: var(--destructive); border-color: var(--danger-border); background: var(--danger-soft); }
@@ -140,6 +141,7 @@
 .sequence-card:hover { border-color: var(--border-strong); box-shadow: var(--vrn-shadow-raised); }
 .sequence-card.selected { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
 .sequence-row.is-workbench-active .sequence-card { border-color: var(--border-strong); background: var(--surface-raised); box-shadow: inset 3px 0 var(--primary), var(--vrn-shadow-subtle); }
+.sequence-row.is-preview-playing .sequence-card { box-shadow: inset 3px 0 var(--vrn-info-solid); }
 .sequence-row.is-workbench-active .sequence-card.selected { box-shadow: inset 3px 0 var(--primary), 0 0 0 3px var(--primary-soft); }
 .sequence-card.playing { box-shadow: inset 3px 0 var(--primary), var(--vrn-shadow-raised); }
 .sequence-card.asset { background: color-mix(in oklab, var(--asset-soft) 58%, white); border-color: color-mix(in oklab, var(--asset) 24%, var(--border)); box-shadow: inset 3px 0 var(--asset); }

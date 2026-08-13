@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
-import type { PlayerSource } from "@/types/domain"
+import type { PlayerCaptionTrack, PlayerSource } from "@/types/domain"
 
 export type PlayerState = "idle" | "loading" | "playing" | "paused" | "error"
 
@@ -13,6 +13,9 @@ export function usePlayer() {
   const [duration, setDuration] = useState(0)
   const [volume, setVolumeState] = useState(0.85)
   const [speed, setSpeedState] = useState(1)
+  const [captionsEnabled, setCaptionsEnabled] = useState(false)
+  const [captionTrackId, setCaptionTrackIdState] = useState<string | null>(null)
+  const captionTrackIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     const element = new Audio()
@@ -54,6 +57,12 @@ export function usePlayer() {
     if (sourceRef.current?.key === next.key && sourceRef.current.url === next.url) {
       sourceRef.current = next
       setSource(next)
+      const tracks = next.captionTracks || []
+      if (!tracks.some((track) => track.id === captionTrackIdRef.current)) {
+        const nextTrack = tracks.find((track) => !track.stale) || tracks[0] || null
+        captionTrackIdRef.current = nextTrack?.id || null
+        setCaptionTrackIdState(nextTrack?.id || null)
+      }
       if (element.paused) {
         if (element.ended || (Number.isFinite(element.duration) && element.currentTime >= element.duration - 0.05)) element.currentTime = 0
         setState("loading")
@@ -69,6 +78,9 @@ export function usePlayer() {
     element.volume = volume
     element.playbackRate = speed
     sourceRef.current = next
+    const nextTrack = next.captionTracks?.find((track) => !track.stale) || next.captionTracks?.[0] || null
+    captionTrackIdRef.current = nextTrack?.id || null
+    setCaptionTrackIdState(nextTrack?.id || null)
     setCurrentTime(0)
     setDuration(0)
     setSource(next)
@@ -124,7 +136,28 @@ export function usePlayer() {
     setState("idle")
     setCurrentTime(0)
     setDuration(0)
+    setCaptionsEnabled(false)
+    captionTrackIdRef.current = null
+    setCaptionTrackIdState(null)
   }, [])
 
-  return { source, state, currentTime, duration, volume, speed, toggleSource, toggle, pause, seek, setVolume, setSpeed, close }
+  const setCaptionTrack = useCallback((trackId: string | null) => {
+    captionTrackIdRef.current = trackId
+    setCaptionTrackIdState(trackId)
+    setCaptionsEnabled(Boolean(trackId))
+  }, [])
+
+  const toggleCaptions = useCallback(() => {
+    if (!sourceRef.current?.captionTracks?.length) return
+    setCaptionsEnabled((current) => !current)
+  }, [])
+
+  const captionTracks = source?.captionTracks || []
+  const captionTrack: PlayerCaptionTrack | null = captionTracks.find((track) => track.id === captionTrackId) || captionTracks[0] || null
+  const positionMs = currentTime * 1000
+  const currentCaptionCue = captionsEnabled && captionTrack
+    ? captionTrack.cues.find((cue) => positionMs >= cue.startMs && positionMs < Math.max(cue.startMs + 1, cue.endMs)) || null
+    : null
+
+  return { source, state, currentTime, duration, volume, speed, captionTracks, captionTrack, captionsEnabled, currentCaptionCue, toggleSource, toggle, pause, seek, setVolume, setSpeed, close, setCaptionTrack, toggleCaptions }
 }

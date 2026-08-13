@@ -20,7 +20,7 @@ import type { DurableJob, GenerateResult, HierarchyNode, MusicBed, PlayerSource,
 
 import "@/features/production/production-workspace.css"
 
-export function ProductionEditorCanvas({ production, tree, music, directory, cast, liveJobs, duration, workbenchMode, workbenchTitle, workbenchDescription, workbenchContent, composerAnchor, explorerOpen, castOpen, healthOpen, commandsOpen, selected, activePartId, playingKey, playerPlaying, previewing, productionPlaying, productionLoaded, productionCurrentTime, onExplorerOpen, onCastOpen, onHealthOpen, onCommandsOpen, onCastChanged, onTool, onSelected, onPreview, onOpenMixExport, onCloseWorkbench, onLocate, onSeekProduction, onPlay, onMusicChange, onChooseMusic, onRetryJob, onConfirmJob, onReplaceAsset, sequenceActions }: {
+export function ProductionEditorCanvas({ production, tree, music, directory, cast, liveJobs, duration, workbenchMode, workbenchTitle, workbenchDescription, workbenchContent, composerAnchor, explorerOpen, castOpen, healthOpen, commandsOpen, selected, activePartId, playingKey, playerPlaying, previewing, productionPlaying, productionLoaded, productionCurrentTime, previewPlayingPartId, onExplorerOpen, onCastOpen, onHealthOpen, onCommandsOpen, onCastChanged, onTool, onSelected, onPreview, onOpenMixExport, onCloseWorkbench, onLocate, onSeekProduction, onPlay, onMusicChange, onChooseMusic, onRetryJob, onConfirmJob, onReplaceAsset, onOpenCaptionContext, sequenceActions }: {
   production: Production
   tree: HierarchyNode[] | null
   music: MusicBed
@@ -45,6 +45,7 @@ export function ProductionEditorCanvas({ production, tree, music, directory, cas
   productionPlaying: boolean
   productionLoaded: boolean
   productionCurrentTime: number
+  previewPlayingPartId?: number | null
   onExplorerOpen: (open: boolean) => void
   onCastOpen: (open: boolean) => void
   onHealthOpen: (open: boolean) => void
@@ -63,6 +64,7 @@ export function ProductionEditorCanvas({ production, tree, music, directory, cas
   onRetryJob: (part: ProductionPart, job: DurableJob<GenerateResult>) => void
   onConfirmJob: (part: ProductionPart, job: DurableJob<GenerateResult>) => void
   onReplaceAsset: (part: ProductionPart) => void
+  onOpenCaptionContext: (partId: number) => void
   sequenceActions: SequenceActions
 }) {
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -75,13 +77,13 @@ export function ProductionEditorCanvas({ production, tree, music, directory, cas
     <ProductionCastStrip cast={cast} directory={directory} onManage={() => onCastOpen(true)} />
     {view === "sequence" && <details className="production-preview-section production-music-lane" open={previewOpen} onToggle={(event) => setPreviewOpen(event.currentTarget.open)}><summary><span><b>Music Bed</b><small>{music.filename || "None"}</small></span><span>{productionLoaded ? "Preview ready" : music.filename ? "Music attached" : "Narration only"}</span></summary>{previewOpen && timing}</details>}
     <ProductionSequenceToolbar view={view} partCount={sourceParts.length} duration={duration} onViewChange={setView} onAdd={() => onTool("speech")} />
-    {view === "sequence" ? <SequenceWorkspace parts={production.parts} cast={cast} liveJobs={liveJobs} selected={selected} activePartId={activePartId} playingKey={playingKey} playerPlaying={playerPlaying} directory={directory} composerAnchor={composerAnchor} onSelected={onSelected} onInsert={(kind: InsertKind, beforePartId) => onTool(kind, beforePartId)} onRetryJob={onRetryJob} onConfirmJob={onConfirmJob} onReplaceAsset={onReplaceAsset} actions={sequenceActions} /> : timing}
+    {view === "sequence" ? <SequenceWorkspace parts={production.parts} cast={cast} liveJobs={liveJobs} selected={selected} activePartId={activePartId} playingKey={playingKey} playerPlaying={playerPlaying} previewPlayingPartId={previewPlayingPartId} directory={directory} composerAnchor={composerAnchor} onSelected={onSelected} onInsert={(kind: InsertKind, beforePartId) => onTool(kind, beforePartId)} onRetryJob={onRetryJob} onConfirmJob={onConfirmJob} onReplaceAsset={onReplaceAsset} actions={sequenceActions} /> : timing}
   </main>
 
   return (
     <div className="production-page">
       <ProductionHeader production={production} duration={duration} mixExportOpen={workbenchMode === "mix-export"} productionPlaying={productionPlaying} issueCount={issues.length} onExplorer={() => onExplorerOpen(true)} onCast={() => onCastOpen(true)} onCommands={() => onCommandsOpen(true)} onHealth={() => onHealthOpen(true)} onPreview={onPreview} onAdd={(kind) => onTool(kind)} onRelease={onOpenMixExport} />
-      <ProductionWorkbench mode={workbenchMode} title={workbenchTitle} description={workbenchDescription} onClose={onCloseWorkbench} canvas={canvas}>{workbenchContent}</ProductionWorkbench>
+      <ProductionWorkbench mode={workbenchMode} title={workbenchTitle} description={workbenchDescription} onClose={onCloseWorkbench} canvas={canvas} previewStale={Boolean(playingKey?.startsWith("preview:") && !productionLoaded)} onRefreshPreview={onPreview} onOpenCaptionContext={onOpenCaptionContext}>{workbenchContent}</ProductionWorkbench>
       {tree && <ProductionExplorerSheet open={explorerOpen} nodes={tree} activeKey={production.key} onOpenChange={onExplorerOpen} />}
       <CastManagerSheet open={castOpen} production={production} cast={cast} directory={directory} onOpenChange={onCastOpen} onChanged={onCastChanged} />
       <ProductionHealthSheet open={healthOpen} issues={issues} onOpenChange={onHealthOpen} onLocate={onLocate} />

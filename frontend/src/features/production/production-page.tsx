@@ -17,7 +17,8 @@ import { InlineResourceError } from "@/components/state-panel"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { partDurationMs } from "@/lib/format"
 import { studioApi } from "@/lib/api"
-import type { AssetCollection, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, MusicBed, Production, ProductionCastRole, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
+import { loadPartCaptionTracks, loadProductionCaptionTracks } from "@/lib/production-caption-tracks"
+import type { AssetCollection, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, MusicBed, PlayerCaptionTrack, PlayerSource, Production, ProductionCastRole, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
 
 const ProductionOverlays = lazy(() => import("@/features/production/production-overlays"))
 
@@ -71,9 +72,39 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const canvasScrollPosition = useRef<number | null>(null)
   const mobile = useMediaQuery("(max-width: 48rem)")
   const player = useGlobalPlayer()
-  const closeTool = useCallback(() => { setTool(null); setComposerPart(null); setReplacingAsset(null); setComposerExpanded(false); setInlineComposerHost(null); setWorkbenchComposerHost(null) }, [])
-  const actions = useProductionActions({ production, music, player, refresh, refreshAssets })
   const sourceParts = useMemo(() => production.parts.filter((part) => part.kind !== "stitch"), [production.parts])
+  const captionTrackCache = useRef(new Map<string, Promise<PlayerCaptionTrack[]>>())
+  useEffect(() => { captionTrackCache.current.clear() }, [production.id, production.parts])
+  const preparePlayerSource = useCallback(async (source: PlayerSource): Promise<PlayerSource> => {
+    if (source.captionTracks?.length) return source
+    let cacheKey = ""
+    let load: (() => Promise<PlayerCaptionTrack[]>) | null = null
+    if (source.kind === "production") {
+      cacheKey = `production:${production.id}`
+      load = () => loadProductionCaptionTracks(production.id, sourceParts)
+    } else if (source.kind === "take" && source.key.startsWith("part:")) {
+      const part = sourceParts.find((item) => item.id === Number(source.key.slice(5)))
+      if (part) {
+        cacheKey = `part:${part.id}`
+        load = () => loadPartCaptionTracks(production.id, part)
+      }
+    }
+    if (!load) return source
+    try {
+      const existing = captionTrackCache.current.get(cacheKey)
+      const request = existing || load()
+      captionTrackCache.current.set(cacheKey, request)
+      return { ...source, captionTracks: await request }
+    } catch {
+      captionTrackCache.current.delete(cacheKey)
+      return source
+    }
+  }, [production.id, sourceParts])
+  const playSource = useCallback(async (source: PlayerSource) => {
+    await player.toggleSource(await preparePlayerSource(source))
+  }, [player, preparePlayerSource])
+  const closeTool = useCallback(() => { setTool(null); setComposerPart(null); setReplacingAsset(null); setComposerExpanded(false); setInlineComposerHost(null); setWorkbenchComposerHost(null) }, [])
+  const actions = useProductionActions({ production, music, player, refresh, refreshAssets, preparePlayerSource })
   const refreshCast = useCallback(async () => {
     try {
       const items = await studioApi.productionCast(production.public_id)
@@ -144,6 +175,12 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const openPart = useCallback((part: ProductionPart, tab: PartDetailTab = "script") => {
     rememberWorkbenchOrigin(); setReleaseOpen(false); closeTool(); setDetailTab(tab); setDetail(part)
   }, [closeTool, rememberWorkbenchOrigin])
+  const openCaptionContext = useCallback((partId: number) => {
+    const part = production.parts.find((item) => item.id === partId)
+    if (!part || !["audio", "speech"].includes(part.kind)) return
+    document.getElementById(`part-${part.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })
+    openPart(part, "captions")
+  }, [openPart, production.parts])
   const openMixExport = useCallback(() => {
     rememberWorkbenchOrigin(); setDetail(null); closeTool(); setReleaseOpen(true)
   }, [closeTool, rememberWorkbenchOrigin])
@@ -181,6 +218,16 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const composerDescription = composerPart?.kind === "draft" ? "Turn this saved script into its first recording." : composerPart ? "Create another performance without replacing the selected Take." : insertBeforePartId ? "Insert at the selected Sequence position." : `Add as Part ${sourceParts.length + 1}.`
   const workbenchTitle = workbenchMode === "composer" ? composerTitle : workbenchMode === "part" ? partInspectorTitle(activeDetail) : workbenchMode === "mix-export" ? "Mix & Export" : "Production Workbench"
   const workbenchDescription = workbenchMode === "composer" ? composerDescription : workbenchMode === "part" && activeDetail ? `Revision ${activeDetail.revision || 1}${activeDetail.selected_take_number ? ` · Take ${activeDetail.selected_take_number} selected` : ""}` : workbenchMode === "mix-export" ? "Preview the current mix and create immutable output." : undefined
+  const previewPlayingPartId = useMemo(() => {
+    if (!actions.productionPlaying) return null
+    const position = player.currentTime * 1000
+    let elapsed = 0
+    for (const part of sourceParts) {
+      elapsed += partDurationMs(part)
+      if (position < elapsed) return part.id
+    }
+    return sourceParts.at(-1)?.id || null
+  }, [actions.productionPlaying, player.currentTime, sourceParts])
   useLayoutEffect(() => {
     const canvas = document.querySelector<HTMLElement>(".production-canvas")
     if (canvas && canvasScrollPosition.current !== null) canvas.scrollTop = canvasScrollPosition.current
@@ -211,7 +258,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     playingKey={player.source?.key}
     playerPlaying={actions.playerPlaying}
     onClose={() => setDetail(null)}
-    onPlay={(source) => void player.toggleSource(source)}
+    onPlay={(source) => void playSource(source)}
     onChanged={async () => {
       if (activeDetail && player.source?.key === `part:${activeDetail.id}`) player.pause()
       actions.invalidatePreview()
@@ -229,7 +276,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   /> : workbenchMode === "mix-export" ? <MixExportWorkspace production={production} music={music} previewing={actions.previewing} productionPlaying={actions.productionPlaying} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={() => void actions.exportMp3()} exporting={actions.exporting} /> : null
 
   const sequenceActions: SequenceActions = useMemo(() => ({
-    play: (source) => void player.toggleSource(source),
+    play: (source) => void playSource(source),
     duplicate: (part) => void actions.duplicatePart(part),
     remove: (part) => setConfirmAction({ title: "Delete this part?", description: "It will be removed from this Production. The reusable Venture source, if any, is not deleted.", action: () => void actions.deletePart(part) }),
     move: actions.movePart,
@@ -237,7 +284,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     editSilence: (part, seconds) => void actions.editSilence(part, seconds),
     openPart,
     newTake: openNewTake,
-  }), [actions, openNewTake, openPart, player])
+  }), [actions, openNewTake, openPart, playSource])
 
   return <>
     {castError && <InlineResourceError message={`Production Cast unavailable: ${castError}`} retry={() => void refreshCast().catch(() => undefined)} />}
@@ -273,6 +320,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       productionPlaying={actions.productionPlaying}
       productionLoaded={actions.productionLoaded}
       productionCurrentTime={actions.productionLoaded ? player.currentTime : 0}
+      previewPlayingPartId={previewPlayingPartId}
       onExplorerOpen={setExplorerOpen}
       onCastOpen={setCastOpen}
       onHealthOpen={setHealthOpen}
@@ -285,12 +333,13 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       onCloseWorkbench={closeWorkbench}
       onLocate={locate}
       onSeekProduction={player.seek}
-      onPlay={(source) => void player.toggleSource(source)}
+      onPlay={(source) => void playSource(source)}
       onMusicChange={actions.setMusic}
       onChooseMusic={() => openTool("music")}
       onRetryJob={(part, job) => void retryJob(part, job)}
       onConfirmJob={(part, job) => void confirmJob(part, job)}
       onReplaceAsset={openAssetReplacement}
+      onOpenCaptionContext={openCaptionContext}
       sequenceActions={sequenceActions}
     />
     {!mobile && tool === "speech" && <ProductionComposerSession
@@ -314,7 +363,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
         await actions.updatePartEditorial(composerPart, values)
       }}
       onGenerate={queueRender}
-      onPlay={(source) => void player.toggleSource(source)}
+      onPlay={(source) => void playSource(source)}
     />}
     <ProductionSelectionBar
       count={selected.size}
@@ -368,7 +417,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
           if (!collectionId) throw new Error(`${folder} library is unavailable.`)
           await actions.uploadAsset(collectionId, folder, file)
         }}
-        onPlay={(source) => void player.toggleSource(source)}
+        onPlay={(source) => void playSource(source)}
         onCloseDetail={() => setDetail(null)}
         onDetailChanged={async () => {
           if (activeDetail && player.source?.key === `part:${activeDetail.id}`) player.pause()

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react"
-import { Captions, ChevronDown, ChevronUp, CircleAlert, Copy, GripVertical, Mic2, MoreHorizontal, Pause, Pencil, Play, Plus, Trash2 } from "lucide-react"
+import { AudioLines, Captions, ChevronDown, ChevronUp, CircleAlert, Copy, GripVertical, Mic2, MoreHorizontal, Pause, Pencil, Play, Plus, Trash2 } from "lucide-react"
 
 import { AudioWaveform } from "@/components/audio-waveform"
 import type { SequenceActions } from "@/components/sequence-actions"
@@ -43,7 +43,7 @@ function useRenderedScriptOverflow(text: string, expanded: boolean) {
   return { ref, overflowing }
 }
 
-export function SpeechPartCard({ part, job, captionJob, castRole, index, count, selected, playing, directory, onSelect, onRetryJob, onConfirmJob, onOpenCaptions, onOpenTakes, onNewTake, actions }: {
+export function SpeechPartCard({ part, job, captionJob, castRole, index, count, selected, playing, playingPreview = false, directory, onSelect, onRetryJob, onConfirmJob, onOpenCaptions, onOpenTakes, onNewTake, actions }: {
   part: ProductionPart
   job: (DurableJob<GenerateResult> & { request?: { select_result?: boolean } }) | null
   captionJob?: DurableJob<unknown> | null
@@ -52,6 +52,7 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
   count: number
   selected: boolean
   playing: boolean
+  playingPreview?: boolean
   directory: VoiceDirectory
   onSelect: (checked: boolean, shift: boolean) => void
   onRetryJob: () => void
@@ -76,7 +77,7 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
   const warning = facts.captionTone === "warning" || visibleAlerts.some((alert) => alert.tone === "warning")
   const danger = facts.captionTone === "danger" || visibleAlerts.some((alert) => alert.tone === "danger") || facts.operation.kind === "failed"
 
-  return <article id={`part-${part.id}`} style={castStyle} data-operation={operationTone || undefined} className={cn("sequence-card speech-part-card", `identity-tone-${identityTone}`, `input-${facts.inputLabel?.toLowerCase() || "unknown"}`, !facts.recorded && "draft", selected && "selected", playing && "playing", warning && "has-warning", danger && "has-danger", part.missing && "missing", facts.castName && "has-cast", facts.operation.kind !== "idle" && "has-operation")}>
+  return <article id={`part-${part.id}`} style={castStyle} data-operation={operationTone || undefined} className={cn("sequence-card speech-part-card", `identity-tone-${identityTone}`, `input-${facts.inputLabel?.toLowerCase() || "unknown"}`, !facts.recorded && "draft", selected && "selected", playing && "playing", playingPreview && "playing-preview", warning && "has-warning", danger && "has-danger", part.missing && "missing", facts.castName && "has-cast", facts.operation.kind !== "idle" && "has-operation")}>
     <span className="speech-part-identity-rail" aria-hidden="true" />
     <div className="speech-part-order">
       <div className="speech-part-number">
@@ -108,6 +109,7 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
 
     <div className="speech-part-body">
       <header className="speech-part-script-header">
+        {playingPreview && <span className="speech-part-preview-playing"><AudioLines /> Playing in Production preview</span>}
         {visibleAlerts.length > 0 && <div className="speech-part-alerts" aria-label="Part states">
           {visibleAlerts.map((alert) => <span key={alert.key} className={`speech-part-alert is-${alert.tone}`}><CircleAlert />{alert.label}</span>)}
         </div>}

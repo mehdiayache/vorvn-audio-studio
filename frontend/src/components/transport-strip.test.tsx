@@ -66,4 +66,30 @@ describe("TransportStrip", () => {
     render(<TransportStripView {...props} state="error" />)
     expect(screen.getByRole("alert").textContent).toContain("This audio could not be played")
   })
+
+  it("selects CC languages and opens the current cue context", async () => {
+    const onCaptionTrack = vi.fn()
+    const onOpenCaptionContext = vi.fn()
+    render(<TransportStripView {...props}
+      captionTracks={[{ id: "en", language: "English", label: "English · Original", stale: false, cues: [] }]}
+      captionTrack={{ id: "en", language: "English", label: "English · Original", stale: false, cues: [] }}
+      captionsEnabled
+      currentCaptionCue={{ startMs: 0, endMs: 2000, text: "The light changes before the rain.", partId: 12 }}
+      onCaptionTrack={onCaptionTrack}
+      onOpenCaptionContext={onOpenCaptionContext}
+    />)
+    fireEvent.click(screen.getByRole("button", { name: /The light changes/ }))
+    expect(onOpenCaptionContext).toHaveBeenCalledWith(12)
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Captions on · English" }), { button: 0, ctrlKey: false })
+    fireEvent.click(await screen.findByRole("menuitemradio", { name: "Off" }))
+    expect(onCaptionTrack).toHaveBeenCalledWith(null)
+  })
+
+  it("marks an old Production preview and offers an explicit refresh", () => {
+    const onRefreshPreview = vi.fn()
+    render(<TransportStripView {...props} source={{ ...source, kind: "production" }} previewStale onRefreshPreview={onRefreshPreview} />)
+    expect(screen.getByText("Preview out of date")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
+    expect(onRefreshPreview).toHaveBeenCalledOnce()
+  })
 })

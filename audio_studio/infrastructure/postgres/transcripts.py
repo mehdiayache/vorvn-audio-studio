@@ -133,11 +133,11 @@ class TranscriptRepository:
 
     def finish_part(self, part_id: int, take_id: int | None,
                     duration_ms: int, transcript_id: int) -> None:
-        """Replace stale captions without rewriting the immutable source Take."""
+        """Make one caption set current without rewriting the immutable Take."""
         with transaction() as cursor:
             cursor.execute("""
                 DELETE FROM transcripts
-                 WHERE part_id = %s AND stale = true AND id <> %s
+                 WHERE part_id = %s AND id <> %s
             """, (part_id, transcript_id))
             cursor.execute("UPDATE transcripts SET stale = false WHERE id = %s",
                            (transcript_id,))
