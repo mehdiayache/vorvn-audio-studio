@@ -70,4 +70,18 @@ describe("SpeechPartCard", () => {
     expect(actionSet.openPart).toHaveBeenCalledTimes(2)
     expect(screen.queryByRole("button", { name: /play part/i })).toBeNull()
   })
+
+  it("routes Take, caption and New Take actions to their explicit Production targets", () => {
+    const actionSet = { ...actions(), newTake: vi.fn() }
+    const sourcePart = part()
+    renderCard(<SpeechPartCard part={sourcePart} job={null} index={0} count={1} selected={false} playing={false} directory={directory} onSelect={vi.fn()} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
+
+    fireEvent.click(screen.getByRole("button", { name: /Take 2 selected/ }))
+    fireEvent.click(screen.getByRole("button", { name: /CC —/ }))
+    fireEvent.click(screen.getByRole("button", { name: /New Take/ }))
+
+    expect(actionSet.openPart).toHaveBeenNthCalledWith(1, sourcePart, "takes")
+    expect(actionSet.openPart).toHaveBeenNthCalledWith(2, sourcePart, "captions")
+    expect(actionSet.newTake).toHaveBeenCalledWith(sourcePart)
+  })
 })

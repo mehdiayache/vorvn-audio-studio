@@ -282,7 +282,7 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
       setEditorialCommand(next)
       return
     }
-    continueGeneration(next, true, false)
+    continueGeneration(next, !part?.selected_take_id, false)
   }
 
   const performancePresets = selectedCapability

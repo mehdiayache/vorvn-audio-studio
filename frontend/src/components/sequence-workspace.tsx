@@ -14,7 +14,7 @@ import "@/components/sequence-workspace.css"
 export function SequenceWorkspace({ parts, cast, liveJobs, selected, activePartId, playingKey, playerPlaying, directory, onSelected, onInsert, onRetryJob, onConfirmJob, onReplaceAsset, actions }: {
   parts: ProductionPart[]
   cast?: ProductionCastRole[]
-  liveJobs: Record<string, DurableJob<GenerateResult>>
+  liveJobs: Record<string, DurableJob<unknown>>
   selected: Set<number>
   activePartId?: number | null
   playingKey?: string
@@ -58,7 +58,7 @@ export function SequenceWorkspace({ parts, cast, liveJobs, selected, activePartI
             ? <SequenceSilenceCard part={part} index={index} count={sourceParts.length} selected={selected.has(part.id)} onSelect={(checked, shift) => select(index, checked, shift)} actions={actions} />
             : part.kind === "asset"
               ? <AssetPartCard part={part} index={index} count={sourceParts.length} selected={selected.has(part.id)} playing={playerPlaying && playingKey === `part:${part.id}`} onSelect={(checked, shift) => select(index, checked, shift)} onReplace={() => onReplaceAsset(part)} actions={actions} />
-              : <SpeechPartCard part={part} job={part.speech_job ? liveJobs[part.speech_job.id] || part.speech_job : null} captionJob={part.caption_job ? liveJobs[part.caption_job.id] || part.caption_job : null} castRole={cast?.find((role) => role.id === part.cast_role_id)} index={index} count={sourceParts.length} selected={selected.has(part.id)} playing={playerPlaying && playingKey === `part:${part.id}`} directory={directory} onSelect={(checked, shift) => select(index, checked, shift)} onRetryJob={() => { const job = part.speech_job ? liveJobs[part.speech_job.id] || part.speech_job : null; if (job) onRetryJob(part, job) }} onConfirmJob={() => { const job = part.speech_job ? liveJobs[part.speech_job.id] || part.speech_job : null; if (job) onConfirmJob(part, job) }} actions={actions} />}
+              : <SpeechPartCard part={part} job={part.speech_job ? (liveJobs[part.speech_job.id] as DurableJob<GenerateResult> | undefined) || part.speech_job : null} captionJob={part.caption_job ? (liveJobs[part.caption_job.id] as typeof part.caption_job | undefined) || part.caption_job : null} castRole={cast?.find((role) => role.id === part.cast_role_id)} index={index} count={sourceParts.length} selected={selected.has(part.id)} playing={playerPlaying && playingKey === `part:${part.id}`} directory={directory} onSelect={(checked, shift) => select(index, checked, shift)} onRetryJob={() => { const job = part.speech_job ? (liveJobs[part.speech_job.id] as DurableJob<GenerateResult> | undefined) || part.speech_job : null; if (job) onRetryJob(part, job) }} onConfirmJob={() => { const job = part.speech_job ? (liveJobs[part.speech_job.id] as DurableJob<GenerateResult> | undefined) || part.speech_job : null; if (job) onConfirmJob(part, job) }} actions={actions} />}
         </div>
         <SequenceInsertControl at={index + 1} beforePartId={index === sourceParts.length - 1 ? null : sourceParts[index + 1]?.public_id || null} last={index === sourceParts.length - 1} onInsert={onInsert} />
       </Fragment>)}

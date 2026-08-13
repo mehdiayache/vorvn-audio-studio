@@ -8,13 +8,14 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { usePartDetailData } from "@/hooks/use-part-detail-data"
 import type { PlayerSource, ProductionPart, VoiceDirectory } from "@/types/domain"
+import type { PartDetailTab } from "@/components/sequence-actions"
 import { PartInspectorDetails } from "./part-inspector-details"
 import { PartInspectorScript } from "./part-inspector-script"
 import { PartInspectorTakes } from "./part-inspector-takes"
 
 import "@/features/production/production-inspector.css"
 
-export type PartInspectorTab = "script" | "takes" | "captions" | "details"
+export type PartInspectorTab = PartDetailTab
 
 export function partInspectorTabs(part: ProductionPart | null): PartInspectorTab[] {
   return part && ["audio", "speech"].includes(part.kind)
@@ -34,23 +35,23 @@ export type PartInspectorProps = {
   onNewTake: (part: ProductionPart) => void
   onPlay: (source: PlayerSource) => void
   onChanged: () => Promise<void>
+  initialTab?: PartInspectorTab
 }
 
 export function partInspectorTitle(part: ProductionPart | null) {
   return part?.kind === "silence" ? "Silence" : part?.kind === "asset" ? "Venture audio" : part?.kind === "draft" ? "Draft speech" : "Speech Part"
 }
 
-export function PartInspectorContent({ productionId, part, directory, playingKey, playerPlaying, onDuplicate, onDelete, onNewTake, onPlay, onChanged }: PartInspectorProps) {
-  const [tab, setTab] = useState<PartInspectorTab>("script")
+export function PartInspectorContent({ productionId, part, directory, playingKey, playerPlaying, onDuplicate, onDelete, onNewTake, onPlay, onChanged, initialTab = "script" }: PartInspectorProps) {
+  const [tab, setTab] = useState<PartInspectorTab>(initialTab)
   const data = usePartDetailData(productionId, part, onChanged)
   const recorded = Boolean(part && ["audio", "speech"].includes(part.kind))
   useEffect(() => {
     const available = new Set(partInspectorTabs(part))
-    if (!available.has(tab)) setTab("script")
-    else if (part) setTab("script")
+    setTab(available.has(initialTab) ? initialTab : "script")
   // Part identity and type jointly own the valid tab set.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [part?.id, part?.kind])
+  }, [part?.id, part?.kind, initialTab])
   if (!part) return null
   return <div className="part-inspector-content">
         <Tabs value={tab} onValueChange={(value) => setTab(value as PartInspectorTab)} className="part-inspector-tabs">

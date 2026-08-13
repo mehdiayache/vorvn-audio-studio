@@ -41,6 +41,9 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
   const facts = speechPartCardFacts({ part, speechJob: job, captionJob, directory, castRole })
   const expandable = facts.script.length > 260 || facts.script.split(/\r?\n/).length > 4
   const openPart = () => actions.openPart(part)
+  const openCaptions = () => onOpenCaptions ? onOpenCaptions() : actions.openPart(part, "captions")
+  const openTakes = () => onOpenTakes ? onOpenTakes() : actions.openPart(part, "takes")
+  const startNewTake = () => onNewTake ? onNewTake() : actions.newTake ? actions.newTake(part) : openPart()
   const castStyle = facts.castColor ? { "--speech-cast-color": facts.castColor } as CSSProperties : undefined
   return <article id={`part-${part.id}`} style={castStyle} className={cn("sequence-card speech-part-card", !facts.recorded && "draft", selected && "selected", playing && "playing", part.missing && "missing")}>
     <span className={cn("speech-part-cast-rail", facts.castName && "has-cast")} aria-hidden="true" />
@@ -76,9 +79,9 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
       </Collapsible>
 
       <div className="speech-part-truth-row">
-        <button onClick={onOpenTakes || openPart} className="speech-part-take-summary">{facts.takeSummary}</button>
+        <button onClick={openTakes} className="speech-part-take-summary">{facts.takeSummary}</button>
         <Separator orientation="vertical" />
-        <button onClick={onOpenCaptions || openPart} className={`speech-part-caption is-${facts.captionTone}`}><Captions /> {facts.captionSummary}</button>
+        <button onClick={openCaptions} className={`speech-part-caption is-${facts.captionTone}`}><Captions /> {facts.captionSummary}</button>
         <Separator orientation="vertical" />
         <span className="speech-part-spend">{facts.spendSummary}</span>
       </div>
@@ -87,7 +90,7 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
     <div className="sequence-card-actions speech-part-actions">
       {facts.playable && <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" onClick={() => actions.play({ key: `part:${part.id}`, url: audioUrl(part.filename!), title: `Part ${index + 1}`, subtitle: facts.selectedVoiceName, kind: "take" })} aria-label={playing ? "Pause part" : "Play part"}>{playing ? <Pause /> : <Play />}</Button></TooltipTrigger><TooltipContent>{playing ? "Pause this part" : "Play selected Take"}</TooltipContent></Tooltip>}
       {!facts.recorded && <><Button variant="ghost" size="sm" onClick={openPart}>Continue writing</Button><Button size="sm" onClick={openPart}><Mic2 /> Record</Button></>}
-      {facts.recorded && <Button variant="outline" size="sm" onClick={onNewTake || openPart}><Plus /> New Take</Button>}
+      {facts.recorded && <Button variant="outline" size="sm" onClick={startNewTake}><Plus /> New Take</Button>}
       <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Part actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={openPart}><Pencil /> Open details</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => actions.duplicate(part)}><Copy /> Duplicate</DropdownMenuItem>
@@ -98,6 +101,6 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
       </DropdownMenuContent></DropdownMenu>
     </div>
 
-    <SpeechOperationLane operation={facts.operation} onRetry={onRetryJob} onConfirm={onConfirmJob} onReviewTake={onOpenTakes || openPart} />
+    <SpeechOperationLane operation={facts.operation} onRetry={onRetryJob} onConfirm={onConfirmJob} onReviewTake={openTakes} />
   </article>
 }

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import type { ToolKind } from "@/components/production-tools"
-import type { SequenceActions } from "@/components/sequence-actions"
+import type { PartDetailTab, SequenceActions } from "@/components/sequence-actions"
 import { ProductionEditorCanvas } from "@/features/production/production-editor-canvas"
 import { ProductionSelectionBar } from "@/features/production/production-selection-bar"
 import { MovePartPositionDialog } from "@/features/production/move-part-position-dialog"
@@ -43,6 +43,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const [replacingAsset, setReplacingAsset] = useState<ProductionPart | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [detail, setDetail] = useState<ProductionPart | null>(null)
+  const [detailTab, setDetailTab] = useState<PartDetailTab>("script")
   const [moveOpen, setMoveOpen] = useState(false)
   const [movePositionPart, setMovePositionPart] = useState<ProductionPart | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
@@ -109,8 +110,8 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const openNewTake = useCallback((part: ProductionPart) => {
     setReleaseOpen(false); setDetail(null); setInsertBeforePartId(null); setComposerPart(part); setTool("speech")
   }, [])
-  const openPart = useCallback((part: ProductionPart) => {
-    rememberWorkbenchOrigin(); setReleaseOpen(false); closeTool(); setDetail(part)
+  const openPart = useCallback((part: ProductionPart, tab: PartDetailTab = "script") => {
+    rememberWorkbenchOrigin(); setReleaseOpen(false); closeTool(); setDetailTab(tab); setDetail(part)
   }, [closeTool, rememberWorkbenchOrigin])
   const openMixExport = useCallback(() => {
     rememberWorkbenchOrigin(); setDetail(null); closeTool(); setReleaseOpen(true)
@@ -199,6 +200,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       action: () => { setDetail(null); void actions.deletePart(part) },
     })}
     onNewTake={openNewTake}
+    initialTab={detailTab}
   /> : workbenchMode === "mix-export" ? <MixExportWorkspace production={production} music={music} previewing={actions.previewing} productionPlaying={actions.productionPlaying} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={() => void actions.exportMp3()} exporting={actions.exporting} /> : null
 
   const sequenceActions: SequenceActions = useMemo(() => ({
@@ -209,7 +211,8 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     moveToPosition: setMovePositionPart,
     editSilence: (part, seconds) => void actions.editSilence(part, seconds),
     openPart,
-  }), [actions, openPart, player])
+    newTake: openNewTake,
+  }), [actions, openNewTake, openPart, player])
 
   return <>
     {castError && <InlineResourceError message={`Production Cast unavailable: ${castError}`} retry={() => void refreshCast().catch(() => undefined)} />}

@@ -25,7 +25,7 @@ export function ProductionEditorCanvas({ production, tree, music, directory, cas
   music: MusicBed
   directory: VoiceDirectory
   cast: ProductionCastRole[]
-  liveJobs: Record<string, DurableJob<GenerateResult>>
+  liveJobs: Record<string, DurableJob<unknown>>
   duration: number
   workbenchMode: ProductionWorkbenchMode | null
   workbenchTitle: string

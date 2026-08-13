@@ -69,6 +69,33 @@ describe("shared Composer contract", () => {
     expect(onUpdateEditorial).not.toHaveBeenCalled()
   })
 
+  it("submits an unchanged recorded Part alternative as intentionally non-selected", async () => {
+    const onGenerate = vi.fn().mockResolvedValue({ id: "job-1" })
+    const part = { id: 9, kind: "speech", text: "Existing words", text_raw: "Existing words", revision: 2, selected_take_id: 44, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
+    render(<ComposerSurface {...common} productionId={3} part={part} onGenerate={onGenerate} />)
+
+    fireEvent.click(await screen.findByRole("button", { name: /Expressive \+ tags/ }))
+    fireEvent.click(screen.getByRole("button", { name: /Generate alternative/ }))
+
+    await waitFor(() => expect(onGenerate).toHaveBeenCalledWith(expect.objectContaining({ select_result: false })))
+  })
+
+  it("preserves explicit selection when updating a Part and generating", async () => {
+    const onGenerate = vi.fn().mockResolvedValue({ id: "job-1" })
+    const onUpdateEditorial = vi.fn().mockResolvedValue(undefined)
+    const part = { id: 10, kind: "speech", text: "Original words", text_raw: "Original words", revision: 4, selected_take_id: 45, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
+    render(<ComposerSurface {...common} productionId={3} part={part} onGenerate={onGenerate} onUpdateEditorial={onUpdateEditorial} />)
+
+    fireEvent.click(await screen.findByRole("button", { name: /Expressive \+ tags/ }))
+    fireEvent.click(screen.getByRole("button", { name: /Words:/ }))
+    fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "Revised words" } })
+    fireEvent.click(screen.getByRole("button", { name: /Generate alternative/ }))
+    fireEvent.click(screen.getByRole("button", { name: "Update Part and generate" }))
+
+    await waitFor(() => expect(onUpdateEditorial).toHaveBeenCalledWith(expect.objectContaining({ expected_revision: 4, script: "Revised words" })))
+    expect(onGenerate).toHaveBeenCalledWith(expect.objectContaining({ select_result: true }))
+  })
+
   it("clears the recoverable Speak draft after a successful generation", async () => {
     vi.spyOn(studioApi, "composerDraft").mockResolvedValue(null)
     vi.spyOn(studioApi, "deleteComposerDraft").mockResolvedValue({ deleted: true })
