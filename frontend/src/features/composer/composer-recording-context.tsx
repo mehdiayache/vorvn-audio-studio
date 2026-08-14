@@ -1,5 +1,5 @@
 import { CheckCircle2, ChevronDown, CircleAlert, Mic2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { cn } from "@/lib/utils"
 import type { ComposerPresentation } from "./composer-surface"
@@ -9,10 +9,21 @@ import { ComposerWho } from "./composer-who"
 export function ComposerRecordingContext({ presentation }: { presentation: ComposerPresentation }) {
   const composer = useComposer()
   const incomplete = !composer.selectedIdentity || !composer.currentRoute
-  const [open, setOpen] = useState(incomplete)
-  useEffect(() => { if (incomplete) setOpen(true) }, [incomplete])
+  const [open, setOpen] = useState(false)
+  const wasIncomplete = useRef(incomplete)
+  const contextRef = useRef<HTMLDetailsElement>(null)
+  useEffect(() => {
+    if (presentation === "mega" && wasIncomplete.current && !incomplete) {
+      setOpen(false)
+      window.requestAnimationFrame(() => {
+        const workspace = contextRef.current?.closest<HTMLElement>(".composer-mega-primary")
+        if (workspace) workspace.scrollTop = 0
+      })
+    }
+    wasIncomplete.current = incomplete
+  }, [incomplete, presentation])
 
-  return <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)} className={cn("composer-recording-context", incomplete && "is-incomplete")}>
+  return <details ref={contextRef} open={open} onToggle={(event) => setOpen(event.currentTarget.open)} className={cn("composer-recording-context", incomplete && "is-incomplete")}>
     <summary className="composer-recording-summary">
       <span className="composer-recording-status" aria-hidden="true">{incomplete ? <CircleAlert /> : <CheckCircle2 />}</span>
       <div className="composer-recording-primary">
@@ -20,7 +31,7 @@ export function ComposerRecordingContext({ presentation }: { presentation: Compo
         <small>{composer.currentRoute ? `${composer.methodLabel} · ${composer.currentRoute.modelId}` : "Exact recording method required"}</small>
       </div>
       <div className="composer-recording-facts"><span>{composer.language}</span><span>{composer.format.toUpperCase()}</span><span>{presentation === "inline" ? "Inline" : presentation === "stage" ? "Production" : "Speak"}</span></div>
-      <span className="composer-recording-trigger">{open ? "Hide setup" : incomplete ? "Complete setup" : "Change setup"}<ChevronDown className={cn(open && "is-open")} /></span>
+      <span className="composer-recording-trigger">{open ? "Collapse" : incomplete ? "Complete setup" : "Edit setup"}<ChevronDown className={cn(open && "is-open")} /></span>
     </summary>
     <div className="composer-recording-content"><ComposerWho /></div>
   </details>

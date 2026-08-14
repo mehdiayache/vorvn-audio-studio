@@ -21,16 +21,26 @@ export function ControlledComposerSurface({ composer, presentation = "mega", onE
   onExpand?: () => void
   onClose?: () => void
 }) {
+  const standalone = presentation === "mega"
   return <ComposerProvider value={composer}>
     <div className={cn("speech-composer composer-surface", `is-${presentation}`)}>
       <header className="composer-context-bar">
-        <div><span className="eyebrow">Recording context</span><b>{composer.destination}</b></div>
+        <div><span className="eyebrow">{standalone ? "Speak" : "Recording context"}</span><b>{standalone ? "Create a reusable recording" : composer.destination}</b></div>
         <div className="composer-context-actions">
           {presentation === "inline" && onExpand && <Button variant="outline" size="sm" onClick={onExpand}><Expand /> Expand</Button>}
           {onClose && <Button variant="ghost" size="icon-sm" aria-label="Close Composer" onClick={onClose}><X /></Button>}
         </div>
       </header>
-      <div className="composer-stage">
+      {standalone ? <div className="composer-stage composer-mega-stage">
+        <div className="composer-mega-primary">
+          <ComposerRecordingContext presentation={presentation} />
+          <ComposerWords />
+        </div>
+        <aside className="composer-mega-secondary" aria-label="Recording controls">
+          <div className="composer-mega-panel"><ComposerPerformance /></div>
+          <div className="composer-mega-panel"><ComposerOutput /></div>
+        </aside>
+      </div> : <div className="composer-stage">
         <ComposerRecordingContext presentation={presentation} />
         <ComposerWords />
         <div className="composer-disclosure-grid">
@@ -43,7 +53,7 @@ export function ControlledComposerSurface({ composer, presentation = "mega", onE
             <ComposerOutput />
           </details>
         </div>
-      </div>
+      </div>}
       <ComposerActions />
       <ComposerDialogs />
     </div>

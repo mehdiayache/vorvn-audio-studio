@@ -24,7 +24,6 @@ import type { DurableJob, GeneratePayload, GenerateResult, PlayerSource, Product
 
 export type ComposerSurfaceProps = {
   productionId?: number
-  sessionId?: string
   nextPartNumber?: number
   insertAt?: number | null
   insertBeforePartId?: string | null
@@ -52,7 +51,7 @@ type PendingGeneration = {
   updateEditorial: boolean
 }
 
-export function useComposerController({ productionId, sessionId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, cast = [], playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, visible = true }: ComposerSurfaceProps) {
+export function useComposerController({ productionId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, cast = [], playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, visible = true }: ComposerSurfaceProps) {
   const [route, setRoute] = useState(routeSelectionFromPersistedDraft(part))
   const [identityId, setIdentityId] = useState(part?.voice_identity_id || "")
   const [castRoleId, setCastRoleId] = useState(part?.cast_role_id || "")
@@ -168,11 +167,11 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
   const estimate = textSession.text.length * Number(currentRoute?.estimateRatePerMillionCharacters || 0) / 1_000_000
   const textPassEstimate = textSession.text.length * Number(config?.text_preparation?.estimated_price_per_million_characters || 0) / 1_000_000
   const destination = !productionId
-    ? "Standalone recording"
+    ? "Reusable recording"
     : part
       ? part.kind === "draft" ? `Record draft · Part ${(part.position ?? 0) + 1}` : `Replace recording · Part ${(part.position ?? 0) + 1}`
       : insertAt === null ? `New speech · Part ${nextPartNumber}` : `New speech · before Part ${insertAt + 1}`
-  const context = useMemo(() => compositionContext({ productionId, part, insertAt, insertBeforePartId, sessionId }), [insertAt, insertBeforePartId, part, productionId, sessionId])
+  const context = useMemo(() => compositionContext({ productionId, part, insertAt, insertBeforePartId }), [insertAt, insertBeforePartId, part, productionId])
   const baseline = useMemo(() => editorialBaseline(part), [part])
   const draft: CompositionDraft = {
     voiceIdentityId: selectedIdentity?.source === "owned" ? selectedIdentity.identityId : null,
@@ -206,7 +205,7 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
       setFormat(saved.output.format)
       setLanguage(saved.output.language)
     },
-    enabled: context.kind === "production" || Boolean(context.sessionId),
+    enabled: true,
   })
   persistTextPreparationRef.current = async (reference, nextText) => {
     const current = latestRecoverableDraftRef.current
@@ -286,7 +285,7 @@ export function useComposerController({ productionId, sessionId, nextPartNumber 
   const methodLabel = selectedCapability?.name || "Choose a route first"
 
   return {
-    productionId, sessionId, nextPartNumber, insertAt, insertBeforePartId, part, config, directory, cast, playingKey, playerPlaying, onSave, onPlay,
+    productionId, nextPartNumber, insertAt, insertBeforePartId, part, config, directory, cast, playingKey, playerPlaying, onSave, onPlay,
     route, identityId, castRoleId, language, format, deliveryModeRequest, instruction, rate, pitch, volume,
     busy, confirmationEstimate, pendingCommand, editorialCommand, textReviewReference,
     identities, selectedIdentity, selectedCastRole, compatibleRoutes, visibleRoutes, currentRoute, selectedCapability, capabilityControls, deliveryMode,

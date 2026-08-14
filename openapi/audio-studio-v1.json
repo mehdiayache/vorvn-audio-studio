@@ -4857,167 +4857,26 @@
         "title": "ProviderUpdate",
         "type": "object"
       },
-      "RecordingAttemptResponse": {
-        "properties": {
-          "audio_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Audio Url"
-          },
-          "continued_by_job_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Continued By Job Id"
-          },
-          "cost": {
-            "title": "Cost",
-            "type": "number"
-          },
-          "cost_basis": {
-            "title": "Cost Basis",
-            "type": "string"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "duration_ms": {
-            "title": "Duration Ms",
-            "type": "integer"
-          },
-          "error": {
-            "title": "Error",
-            "type": "string"
-          },
-          "estimate": {
-            "default": 0,
-            "title": "Estimate",
-            "type": "number"
-          },
-          "fidelity": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Fidelity"
-          },
-          "finished_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finished At"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "needs_confirmation": {
-            "default": false,
-            "title": "Needs Confirmation",
-            "type": "boolean"
-          },
-          "request": {
-            "additionalProperties": true,
-            "title": "Request",
-            "type": "object"
-          },
-          "requires_review": {
-            "default": false,
-            "title": "Requires Review",
-            "type": "boolean"
-          },
-          "size_bytes": {
-            "title": "Size Bytes",
-            "type": "integer"
-          },
-          "started_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Started At"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          },
-          "warning": {
-            "title": "Warning",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "status",
-          "created_at",
-          "started_at",
-          "finished_at",
-          "request",
-          "error",
-          "warning",
-          "cost",
-          "cost_basis",
-          "duration_ms",
-          "size_bytes",
-          "audio_url",
-          "fidelity"
-        ],
-        "title": "RecordingAttemptResponse",
-        "type": "object"
-      },
-      "RecordingSessionEnvelope": {
+      "RecordingHistoryEnvelope": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/RecordingSessionResponse"
+            "$ref": "#/components/schemas/RecordingHistoryResponse"
           }
         },
         "required": [
           "data"
         ],
-        "title": "RecordingSessionEnvelope",
+        "title": "RecordingHistoryEnvelope",
         "type": "object"
       },
-      "RecordingSessionResponse": {
+      "RecordingHistoryResponse": {
         "properties": {
-          "attempts": {
+          "recordings": {
             "items": {
-              "$ref": "#/components/schemas/RecordingAttemptResponse"
+              "$ref": "#/components/schemas/StandaloneRecordingResponse"
             },
-            "title": "Attempts",
+            "title": "Recordings",
             "type": "array"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
           },
           "total_cost": {
             "title": "Total Cost",
@@ -5025,11 +4884,10 @@
           }
         },
         "required": [
-          "id",
-          "attempts",
+          "recordings",
           "total_cost"
         ],
-        "title": "RecordingSessionResponse",
+        "title": "RecordingHistoryResponse",
         "type": "object"
       },
       "RenderJobCreate": {
@@ -5875,18 +5733,6 @@
             "title": "Seed",
             "type": "integer"
           },
-          "session_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Session Id"
-          },
           "speech_mode": {
             "default": "exact",
             "maxLength": 120,
@@ -6177,18 +6023,149 @@
             "const": "standalone",
             "title": "Kind",
             "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "StandaloneContext",
+        "type": "object"
+      },
+      "StandaloneRecordingResponse": {
+        "properties": {
+          "audio_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Url"
           },
-          "session_id": {
-            "format": "uuid",
-            "title": "Session Id",
+          "continued_by_job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Continued By Job Id"
+          },
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "cost_basis": {
+            "title": "Cost Basis",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "estimate": {
+            "default": 0,
+            "title": "Estimate",
+            "type": "number"
+          },
+          "fidelity": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fidelity"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "needs_confirmation": {
+            "default": false,
+            "title": "Needs Confirmation",
+            "type": "boolean"
+          },
+          "request": {
+            "additionalProperties": true,
+            "title": "Request",
+            "type": "object"
+          },
+          "requires_review": {
+            "default": false,
+            "title": "Requires Review",
+            "type": "boolean"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "warning": {
+            "title": "Warning",
             "type": "string"
           }
         },
         "required": [
-          "kind",
-          "session_id"
+          "id",
+          "status",
+          "created_at",
+          "started_at",
+          "finished_at",
+          "request",
+          "error",
+          "warning",
+          "cost",
+          "cost_basis",
+          "duration_ms",
+          "size_bytes",
+          "audio_url",
+          "fidelity"
         ],
-        "title": "StandaloneContext",
+        "title": "StandaloneRecordingResponse",
         "type": "object"
       },
       "StorageSettingsResponse": {
@@ -13563,44 +13540,22 @@
         ]
       }
     },
-    "/api/v1/speak/sessions/{session_id}": {
+    "/api/v1/speak/recordings": {
       "get": {
-        "operationId": "getRecordingSession",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "session_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Session Id",
-              "type": "string"
-            }
-          }
-        ],
+        "operationId": "getStandaloneRecordingHistory",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordingSessionEnvelope"
+                  "$ref": "#/components/schemas/RecordingHistoryEnvelope"
                 }
               }
             },
             "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
         },
-        "summary": "Get Recording Session",
+        "summary": "Get Recording History",
         "tags": [
           "speak"
         ]

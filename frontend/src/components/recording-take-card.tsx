@@ -49,7 +49,7 @@ export function RecordingTakeCard({ take, directory, active = false, onPlay, onS
   const created = take.createdAt ? new Date(take.createdAt).toLocaleString() : ""
 
   return <article className={cn("recording-take-card", `is-${outdated || review ? "warning" : take.status}`)}>
-    <div className="recording-take-status"><StatusIcon className={working ? "spin" : ""} /><span>{statusLabel}</span>{take.inputState && <em>{take.inputState}{take.selected ? " · used" : " input"}</em>}</div>
+    <div className="recording-take-status"><b>Recording</b><StatusIcon className={working ? "spin" : ""} /><span>{statusLabel}</span>{take.inputState && <em>Rendered from {take.inputState}</em>}</div>
     <VoiceIdentity voice={take.voice} identityId={take.voiceIdentityId} directory={directory} compact showDetail={false} />
     <div className="recording-take-summary">
       <b>{[take.method, take.language].filter(Boolean).join(" · ")}</b>

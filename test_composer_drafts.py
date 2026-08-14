@@ -64,10 +64,7 @@ def state():
 
 class ComposerDraftTests(unittest.TestCase):
     def test_context_keys_are_stable_and_insertion_specific(self):
-        session = uuid4()
-        self.assertEqual(context_key({"kind": "standalone",
-                                     "session_id": str(session)}),
-                         f"standalone:{session}")
+        self.assertEqual(context_key({"kind": "standalone"}), "standalone")
         self.assertNotEqual(
             context_key({"kind": "production", "production_id": 4,
                          "operation": "new_part",
@@ -89,7 +86,7 @@ class ComposerDraftTests(unittest.TestCase):
     def test_service_round_trip_is_optimistic_and_deletable(self):
         store = Store()
         service = ComposerDraftService(store)
-        context = {"kind": "standalone", "session_id": str(uuid4())}
+        context = {"kind": "standalone"}
         written = service.put(context, state())
         self.assertEqual(service.get(context), written)
         with self.assertRaises(ComposerDraftConflict):
@@ -100,7 +97,7 @@ class ComposerDraftTests(unittest.TestCase):
 
     def test_write_contract_contains_only_recoverable_state(self):
         payload = DraftWrite(
-            context={"kind": "standalone", "session_id": uuid4()},
+            context={"kind": "standalone"},
             state=state())
         dumped = payload.model_dump()
         self.assertNotIn("editorial_patch", dumped["state"])
@@ -116,7 +113,7 @@ class ComposerDraftTests(unittest.TestCase):
                 "job_id": review_job_id, "kind": "tag"},
         }
         payload = DraftWrite(
-            context={"kind": "standalone", "session_id": uuid4()},
+            context={"kind": "standalone"},
             state=pending)
         serialized = _state(payload)
         prepared = serialized["text_preparation"]
@@ -148,9 +145,7 @@ class ComposerDraftRepositoryTests(unittest.TestCase):
 
     def setUp(self):
         self.repository = ComposerDraftRepository()
-        self.session_id = uuid4()
-        self.context = {"kind": "standalone",
-                        "session_id": str(self.session_id)}
+        self.context = {"kind": "standalone"}
         self.key = context_key(self.context)
 
     def tearDown(self):

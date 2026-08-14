@@ -55,7 +55,7 @@ describe("shared Composer contract", () => {
     await waitFor(() => expect(screen.getByText("Choose a voice to see its exact routes.")).toBeTruthy())
     expect(screen.getByRole("button", { name: "Choose a voice" })).toBeTruthy()
     expect(screen.getAllByText("Exact recording method required").length).toBeGreaterThan(0)
-    expect(screen.getByRole("button", { name: "Generate audio" }).hasAttribute("disabled")).toBe(true)
+    expect(screen.getByRole("button", { name: "Create recording" }).hasAttribute("disabled")).toBe(true)
   })
 
   it("restores explicit Part identity context without inventing a route", async () => {
@@ -136,7 +136,7 @@ describe("shared Composer contract", () => {
     vi.spyOn(studioApi, "deleteComposerDraft").mockResolvedValue({ deleted: true })
     const saveDraft = vi.spyOn(studioApi, "saveComposerDraft").mockResolvedValue({ id: "draft-1", state: {} as never, version: 1, updatedAt: "now" })
     const onGenerate = vi.fn().mockResolvedValue({ id: "job-1" })
-    render(<ComposerSurface {...common} sessionId="session-clear" onGenerate={onGenerate} />)
+    render(<ComposerSurface {...common} onGenerate={onGenerate} />)
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Choose a voice" })).toBeTruthy())
     fireEvent.click(screen.getByRole("button", { name: "Choose a voice" }))
@@ -144,7 +144,7 @@ describe("shared Composer contract", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Expressive \+ tags/ }))
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "A recoverable recording" } })
     await waitFor(() => expect(saveDraft).toHaveBeenCalled())
-    fireEvent.click(screen.getByRole("button", { name: "Generate audio" }))
+    fireEvent.click(screen.getByRole("button", { name: "Create recording" }))
 
     await waitFor(() => expect(onGenerate).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(studioApi.deleteComposerDraft).toHaveBeenCalledWith(expect.anything(), 1))

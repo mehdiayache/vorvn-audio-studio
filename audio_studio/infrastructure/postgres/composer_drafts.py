@@ -9,6 +9,9 @@ from audio_studio.domain.composer import ComposerDraftConflict
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 
+_STANDALONE_STORAGE_OWNER = "00000000-0000-0000-0000-000000000001"
+
+
 def _result(row) -> dict[str, Any]:
     return {
         "id": str(row[0]), "state": row[1] or {}, "version": int(row[2]),
@@ -86,8 +89,11 @@ class ComposerDraftRepository:
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s::jsonb)
                     RETURNING public_id, state, version, updated_at
                 """, (
-                    context_key, context["kind"], context.get("session_id"),
-                    context.get("production_id"), context.get("part_id"),
+                    context_key, context["kind"],
+                    (_STANDALONE_STORAGE_OWNER
+                     if context["kind"] == "standalone" else None),
+                    context.get("production_id"),
+                    context.get("part_id"),
                     context.get("operation"),
                     context.get("insert_before_part_id"), json.dumps(state),
                 ))

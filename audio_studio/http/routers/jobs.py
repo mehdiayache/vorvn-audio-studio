@@ -119,7 +119,6 @@ class SpeechJobCreate(BaseModel):
         "create", "record_part", "regenerate", "render_draft"
     ] = "create"
     part_id: int | None = Field(default=None, gt=0)
-    session_id: UUID | None = None
 
     @model_validator(mode="after")
     def part_is_present_for_replacement(self):
@@ -134,10 +133,6 @@ class SpeechJobCreate(BaseModel):
             raise ValueError("Choose one insertion anchor, not two.")
         if self.production_id is None and self.insert_at is not None:
             raise ValueError("A sequence position requires a Production.")
-        if self.session_id and self.production_id is not None:
-            raise ValueError("A Speak recording session cannot belong to a Production.")
-        if self.session_id and self.operation != "create":
-            raise ValueError("Speak recording sessions only contain standalone recordings.")
         return self
 
 

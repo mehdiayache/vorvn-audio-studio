@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
-import type { GeneratePayload, RecordingSession } from "@/types/domain"
-import { belongsToRecordingSession, recordingAttemptStatus, recoverSpeakExecutions } from "./speak-execution"
+import type { GeneratePayload, RecordingHistory } from "@/types/domain"
+import { recordingAttemptStatus, recoverSpeakExecutions } from "./speak-execution"
 
 const request: GeneratePayload = {
   text: "Hello", insert_at: null, voice_identity_id: "identity", binding_id: "binding",
@@ -9,23 +9,18 @@ const request: GeneratePayload = {
   speech_mode: "exact", rate: 1, pitch: 1, volume: 50, seed: 0,
 }
 
-describe("Speak execution ownership", () => {
-  it("rejects a completion from session A after the operator starts session B", () => {
-    expect(belongsToRecordingSession("session-a", "session-b")).toBe(false)
-    expect(belongsToRecordingSession("session-b", "session-b")).toBe(true)
-  })
-
+describe("Speak execution history", () => {
   it("recovers active durable attempts after a reload without duplicating local Jobs", () => {
-    const session = {
-      id: "session-a", total_cost: 0,
-      attempts: [
+    const history = {
+      total_cost: 0,
+      recordings: [
         { id: "running-job", status: "running", request },
         { id: "finished-job", status: "ok", request },
       ],
-    } as RecordingSession
-    const recovered = recoverSpeakExecutions([], session)
-    expect(recovered).toEqual([{ jobId: "running-job", sessionId: "session-a", payload: request }])
-    expect(recoverSpeakExecutions(recovered, session)).toBe(recovered)
+    } as RecordingHistory
+    const recovered = recoverSpeakExecutions([], history)
+    expect(recovered).toEqual([{ jobId: "running-job", payload: request }])
+    expect(recoverSpeakExecutions(recovered, history)).toBe(recovered)
   })
 
   it("keeps ambiguous work separate from ordinary failures and successful recordings", () => {

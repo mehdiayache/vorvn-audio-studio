@@ -2,7 +2,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import type { RecoverableCompositionDraft } from "@/lib/composer-contract"
+import type { CompositionContext, RecoverableCompositionDraft } from "@/lib/composer-contract"
 
 const api = vi.hoisted(() => ({
   composerDraft: vi.fn(),
@@ -30,12 +30,12 @@ describe("useComposerDraftRecovery", () => {
     vi.clearAllMocks()
   })
 
-  it("restores a saved session before enabling generation", async () => {
+  it("restores the saved standalone draft before enabling generation", async () => {
     const restored = { ...emptyDraft(), text: { raw: "Recovered", shaped: "", tagged: "", active: "raw" as const } }
     api.composerDraft.mockResolvedValue({ id: "draft-1", state: restored, version: 2, updatedAt: "now" })
     const onRestore = vi.fn()
     const { result } = renderHook(() => useComposerDraftRecovery({
-      context: { kind: "standalone", sessionId: "11111111-1111-4111-8111-111111111111" },
+      context: { kind: "standalone" },
       draft: emptyDraft(), onRestore,
     }))
     expect(result.current.status).toBe("loading")
@@ -49,7 +49,7 @@ describe("useComposerDraftRecovery", () => {
     api.saveComposerDraft.mockResolvedValue({ id: "draft-1", state: emptyDraft(), version: 1, updatedAt: "now" })
     api.deleteComposerDraft.mockResolvedValue({ deleted: true })
     let draft = emptyDraft()
-    const context = { kind: "standalone" as const, sessionId: "11111111-1111-4111-8111-111111111111" }
+    const context = { kind: "standalone" as const }
     const { result, rerender } = renderHook(() => useComposerDraftRecovery({ context, draft, onRestore: vi.fn() }))
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
     draft = { ...draft, text: { ...draft.text, raw: "Save me" } }
@@ -63,7 +63,7 @@ describe("useComposerDraftRecovery", () => {
   it("saves a paid-review pointer immediately instead of waiting for debounce", async () => {
     api.composerDraft.mockResolvedValue(null)
     api.saveComposerDraft.mockResolvedValue({ id: "draft-1", state: emptyDraft(), version: 1, updatedAt: "now" })
-    const context = { kind: "standalone" as const, sessionId: "11111111-1111-4111-8111-111111111111" }
+    const context = { kind: "standalone" as const }
     const { result } = renderHook(() => useComposerDraftRecovery({ context, draft: emptyDraft(), onRestore: vi.fn() }))
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
     const next = { ...emptyDraft(), textPreparation: { tagDensity: "normal" as const, pendingReview: { jobId: "22222222-2222-4222-8222-222222222222", kind: "shape" as const } } }
@@ -80,7 +80,7 @@ describe("useComposerDraftRecovery", () => {
         state: { ...emptyDraft(), text: { raw: "Server words", shaped: "", tagged: "", active: "raw" } },
       })
     api.saveComposerDraft.mockRejectedValue(Object.assign(new Error("Draft conflict"), { status: 409 }))
-    const context = { kind: "standalone" as const, sessionId: "11111111-1111-4111-8111-111111111111" }
+    const context = { kind: "standalone" as const }
     const local = { ...emptyDraft(), text: { raw: "Local words", shaped: "", tagged: "", active: "raw" as const } }
     const onRestore = vi.fn()
     const { result } = renderHook(() => useComposerDraftRecovery({ context, draft: local, onRestore }))
@@ -99,7 +99,7 @@ describe("useComposerDraftRecovery", () => {
     vi.useFakeTimers()
     api.composerDraft.mockResolvedValue(null)
     api.saveComposerDraft.mockResolvedValue({ id: "draft-quick", state: emptyDraft(), version: 1, updatedAt: "now" })
-    const context = { kind: "standalone" as const, sessionId: "11111111-1111-4111-8111-111111111111" }
+    const context = { kind: "standalone" as const }
     let draft = emptyDraft()
     const { rerender, unmount } = renderHook(() => useComposerDraftRecovery({ context, draft, onRestore: vi.fn() }))
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
@@ -118,7 +118,7 @@ describe("useComposerDraftRecovery", () => {
       stored = next
       return { id: "draft-fast", state: next, version: 1, updatedAt: "now" }
     })
-    const context = { kind: "standalone" as const, sessionId: "11111111-1111-4111-8111-111111111111" }
+    const context = { kind: "standalone" as const }
     let draft = emptyDraft()
     const first = renderHook(() => useComposerDraftRecovery({ context, draft, onRestore: vi.fn() }))
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
@@ -132,32 +132,32 @@ describe("useComposerDraftRecovery", () => {
     expect(restore).toHaveBeenCalledWith(expect.objectContaining({ text: expect.objectContaining({ raw: "Last keystroke before close" }) }))
   })
 
-  it("flushes the old Draft to the old owner during an immediate context switch", async () => {
+  it("flushes the standalone Draft before switching to a Production owner", async () => {
     vi.useFakeTimers()
     api.composerDraft.mockResolvedValue(null)
     api.saveComposerDraft.mockImplementation(async (_context, next) => ({ id: "draft", state: next, version: 1, updatedAt: "now" }))
-    const firstContext = { kind: "standalone" as const, sessionId: "11111111-1111-4111-8111-111111111111" }
-    const secondContext = { kind: "standalone" as const, sessionId: "22222222-2222-4222-8222-222222222222" }
-    let context = firstContext
+    const firstContext = { kind: "standalone" as const }
+    const secondContext = { kind: "production" as const, productionId: 7, operation: "new_part" as const, insertion: null }
+    let context: CompositionContext = firstContext
     let draft = emptyDraft()
     const { rerender } = renderHook(() => useComposerDraftRecovery({ context, draft, onRestore: vi.fn() }))
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
-    const firstDraft = { ...draft, text: { ...draft.text, raw: "Belongs only to session A" } }
+    const firstDraft = { ...draft, text: { ...draft.text, raw: "Belongs only to Speak" } }
     draft = firstDraft
     rerender()
     context = secondContext
-    draft = { ...emptyDraft(), text: { ...emptyDraft().text, raw: "Session B" } }
+    draft = { ...emptyDraft(), text: { ...emptyDraft().text, raw: "Production draft" } }
     rerender()
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
 
     expect(api.saveComposerDraft).toHaveBeenCalledWith(firstContext, firstDraft, null)
-    expect(api.saveComposerDraft).not.toHaveBeenCalledWith(firstContext, expect.objectContaining({ text: expect.objectContaining({ raw: "Session B" }) }), expect.anything())
+    expect(api.saveComposerDraft).not.toHaveBeenCalledWith(firstContext, expect.objectContaining({ text: expect.objectContaining({ raw: "Production draft" }) }), expect.anything())
   })
 
   it("does not resurrect a deliberately cleared draft during unmount", async () => {
     api.composerDraft.mockResolvedValue({ id: "draft-old", state: emptyDraft(), version: 3, updatedAt: "now" })
     api.deleteComposerDraft.mockResolvedValue({ deleted: true })
-    const context = { kind: "standalone" as const, sessionId: "11111111-1111-4111-8111-111111111111" }
+    const context = { kind: "standalone" as const }
     const draft = { ...emptyDraft(), text: { ...emptyDraft().text, raw: "Generated words" } }
     const { result, unmount } = renderHook(() => useComposerDraftRecovery({ context, draft, onRestore: vi.fn() }))
     await waitFor(() => expect(result.current.status).toBe("saved"))

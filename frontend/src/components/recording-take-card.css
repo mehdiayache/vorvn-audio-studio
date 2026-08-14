@@ -1,12 +1,13 @@
-.recording-take-card { display: grid; grid-template-columns: minmax(150px, .7fr) minmax(240px, 1fr) auto; gap: 14px; align-items: center; padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--card); }
+.recording-take-card { display: grid; grid-template-columns: minmax(210px, .72fr) minmax(320px, 1.45fr) auto; gap: 16px; align-items: center; padding: 16px 18px; border: 1px solid var(--border); border-radius: var(--vrn-radius-md); background: var(--card); box-shadow: var(--vrn-shadow-subtle); }
 .recording-take-card + .recording-take-card { margin-top: 9px; }
 .recording-take-card.is-pending { border-color: color-mix(in oklch, var(--primary) 42%, var(--border)); background: var(--primary-soft); }
 .recording-take-card.is-failed { border-color: var(--danger-border); background: var(--danger-soft); }
 .recording-take-card.is-warning { border-color: color-mix(in oklch, var(--warning) 34%, var(--border)); background: var(--warning-soft); }
-.recording-take-status { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: 680; }
+.recording-take-status { grid-column: 1 / -1; display: flex; align-items: center; gap: 7px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: 680; }
 .recording-take-status svg { width: 17px; height: 17px; }
-.recording-take-status b, .recording-take-status em { margin-left: auto; padding: 2px 7px; border-radius: var(--vrn-radius-round); background: var(--surface-muted); color: var(--foreground); font-size: var(--vrn-type-metadata-size); font-style: normal; }
-.recording-take-status em { margin-left: 0; background: color-mix(in oklab, var(--vrn-data-series-2) 10%, var(--surface-raised)); color: var(--vrn-data-series-2); }
+.recording-take-status b, .recording-take-status em { padding: 2px 7px; border-radius: var(--vrn-radius-round); background: var(--surface-muted); color: var(--foreground); font-size: var(--vrn-type-metadata-size); font-style: normal; }
+.recording-take-status b { margin-right: 2px; }
+.recording-take-status em { margin-left: auto; background: color-mix(in oklab, var(--vrn-data-series-2) 10%, var(--surface-raised)); color: var(--vrn-data-series-2); }
 .recording-take-summary { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .recording-take-summary .speech-model-identity { margin: 2px 0; }
 .recording-take-summary > b, .recording-take-summary > small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

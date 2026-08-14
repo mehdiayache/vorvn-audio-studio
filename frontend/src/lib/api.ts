@@ -9,7 +9,7 @@ import type {
   StudioConfig,
   GeneratePayload,
   GenerateResult,
-  RecordingSession,
+  RecordingHistory,
   Transcript,
   TranscriptSummary,
   TextPassResult,
@@ -290,7 +290,7 @@ export const studioApi = {
     const result = await jobObserver.completion<GenerateResult>(job.id)
     return { ...result, job_id: job.id }
   },
-  recordingSession: (id: string) => v1<RecordingSession>(`/api/v1/speak/sessions/${encodeURIComponent(id)}`),
+  recordingHistory: () => v1<RecordingHistory>("/api/v1/speak/recordings"),
   composerDraft: (context: CompositionContext) => postV1<ComposerDraftWireRecord | null>("/api/v1/composer-drafts/resolve", { context: contextWire(context) }).then((record) => record ? draftFromWire(record) : null),
   saveComposerDraft: (context: CompositionContext, state: RecoverableCompositionDraft, expectedVersion: number | null) =>
     request<{ data: ComposerDraftWireRecord }>("/api/v1/composer-drafts", { method: "PUT", body: JSON.stringify({ context: contextWire(context), state: draftWire(state), expected_version: expectedVersion }) }).then((response) => draftFromWire(response.data) as ComposerDraftRecord),

@@ -1001,15 +1001,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/speak/sessions/{session_id}": {
+    "/api/v1/speak/recordings": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Recording Session */
-        get: operations["getRecordingSession"];
+        /** Get Recording History */
+        get: operations["getStandaloneRecordingHistory"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3052,71 +3052,14 @@ export interface components {
              */
             workspace_id: string;
         };
-        /** RecordingAttemptResponse */
-        RecordingAttemptResponse: {
-            /** Audio Url */
-            audio_url: string | null;
-            /** Continued By Job Id */
-            continued_by_job_id?: string | null;
-            /** Cost */
-            cost: number;
-            /** Cost Basis */
-            cost_basis: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Duration Ms */
-            duration_ms: number;
-            /** Error */
-            error: string;
-            /**
-             * Estimate
-             * @default 0
-             */
-            estimate: number;
-            /** Fidelity */
-            fidelity: {
-                [key: string]: unknown;
-            } | null;
-            /** Finished At */
-            finished_at: string | null;
-            /** Id */
-            id: string;
-            /**
-             * Needs Confirmation
-             * @default false
-             */
-            needs_confirmation: boolean;
-            /** Request */
-            request: {
-                [key: string]: unknown;
-            };
-            /**
-             * Requires Review
-             * @default false
-             */
-            requires_review: boolean;
-            /** Size Bytes */
-            size_bytes: number;
-            /** Started At */
-            started_at: string | null;
-            /** Status */
-            status: string;
-            /** Warning */
-            warning: string;
+        /** RecordingHistoryEnvelope */
+        RecordingHistoryEnvelope: {
+            data: components["schemas"]["RecordingHistoryResponse"];
         };
-        /** RecordingSessionEnvelope */
-        RecordingSessionEnvelope: {
-            data: components["schemas"]["RecordingSessionResponse"];
-        };
-        /** RecordingSessionResponse */
-        RecordingSessionResponse: {
-            /** Attempts */
-            attempts: components["schemas"]["RecordingAttemptResponse"][];
-            /** Id */
-            id: string;
+        /** RecordingHistoryResponse */
+        RecordingHistoryResponse: {
+            /** Recordings */
+            recordings: components["schemas"]["StandaloneRecordingResponse"][];
             /** Total Cost */
             total_cost: number;
         };
@@ -3382,8 +3325,6 @@ export interface components {
              * @default 0
              */
             seed: number;
-            /** Session Id */
-            session_id?: string | null;
             /**
              * Speech Mode
              * @default exact
@@ -3485,11 +3426,61 @@ export interface components {
              * @enum {string}
              */
             kind: "standalone";
+        };
+        /** StandaloneRecordingResponse */
+        StandaloneRecordingResponse: {
+            /** Audio Url */
+            audio_url: string | null;
+            /** Continued By Job Id */
+            continued_by_job_id?: string | null;
+            /** Cost */
+            cost: number;
+            /** Cost Basis */
+            cost_basis: string;
             /**
-             * Session Id
-             * Format: uuid
+             * Created At
+             * Format: date-time
              */
-            session_id: string;
+            created_at: string;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Error */
+            error: string;
+            /**
+             * Estimate
+             * @default 0
+             */
+            estimate: number;
+            /** Fidelity */
+            fidelity: {
+                [key: string]: unknown;
+            } | null;
+            /** Finished At */
+            finished_at: string | null;
+            /** Id */
+            id: string;
+            /**
+             * Needs Confirmation
+             * @default false
+             */
+            needs_confirmation: boolean;
+            /** Request */
+            request: {
+                [key: string]: unknown;
+            };
+            /**
+             * Requires Review
+             * @default false
+             */
+            requires_review: boolean;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Started At */
+            started_at: string | null;
+            /** Status */
+            status: string;
+            /** Warning */
+            warning: string;
         };
         /** StorageSettingsResponse */
         StorageSettingsResponse: {
@@ -7104,13 +7095,11 @@ export interface operations {
             };
         };
     };
-    getRecordingSession: {
+    getStandaloneRecordingHistory: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                session_id: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -7121,16 +7110,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecordingSessionEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["RecordingHistoryEnvelope"];
                 };
             };
         };

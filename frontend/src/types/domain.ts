@@ -489,9 +489,8 @@ export type RecordingAttempt = {
   continued_by_job_id?: string | null
 }
 
-export type RecordingSession = {
-  id: string
-  attempts: RecordingAttempt[]
+export type RecordingHistory = {
+  recordings: RecordingAttempt[]
   total_cost: number
 }
 

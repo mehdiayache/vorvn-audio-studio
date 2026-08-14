@@ -4,7 +4,7 @@ import type { VoiceChoice } from "@/lib/voice-options"
 export type TextState = "raw" | "shaped" | "tagged"
 
 export type CompositionContext =
-  | { kind: "standalone"; sessionId?: string }
+  | { kind: "standalone" }
   | {
       kind: "production"
       productionId: number
@@ -99,9 +99,8 @@ export function compositionContext(input: {
   part?: ProductionPart | null
   insertAt?: number | null
   insertBeforePartId?: string | null
-  sessionId?: string
 }): CompositionContext {
-  if (!input.productionId) return { kind: "standalone", sessionId: input.sessionId }
+  if (!input.productionId) return { kind: "standalone" }
   const operation = input.part
     ? input.part.kind === "draft" ? "render_draft" : "new_take"
     : "new_part"

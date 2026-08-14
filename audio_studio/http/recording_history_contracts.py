@@ -1,4 +1,4 @@
-"""Typed contracts for standalone Speak recording sessions."""
+"""Typed contracts for reusable standalone Speak recordings."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Any
 from pydantic import BaseModel
 
 
-class RecordingAttemptResponse(BaseModel):
+class StandaloneRecordingResponse(BaseModel):
     id: str
     status: str
     created_at: datetime
@@ -29,11 +29,10 @@ class RecordingAttemptResponse(BaseModel):
     continued_by_job_id: str | None = None
 
 
-class RecordingSessionResponse(BaseModel):
-    id: str
-    attempts: list[RecordingAttemptResponse]
+class RecordingHistoryResponse(BaseModel):
+    recordings: list[StandaloneRecordingResponse]
     total_cost: float
 
 
-class RecordingSessionEnvelope(BaseModel):
-    data: RecordingSessionResponse
+class RecordingHistoryEnvelope(BaseModel):
+    data: RecordingHistoryResponse

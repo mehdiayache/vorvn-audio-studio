@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from typing import Any, Protocol
-from uuid import UUID
 
 from audio_studio.domain.composer import ComposerDraftConflict
 
@@ -21,7 +20,7 @@ class ComposerDraftStore(Protocol):
 def context_key(context: dict[str, Any]) -> str:
     """Build one deterministic owner key from an already validated context."""
     if context["kind"] == "standalone":
-        return f"standalone:{UUID(str(context['session_id']))}"
+        return "standalone"
     production_id = int(context["production_id"])
     operation = str(context["operation"])
     if operation == "new_part":

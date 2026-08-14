@@ -1,9 +1,8 @@
-"""PostgreSQL read model for standalone recording sessions."""
+"""PostgreSQL read model for reusable standalone Speak recordings."""
 
 from __future__ import annotations
 
 from typing import Any
-from uuid import UUID
 from urllib.parse import quote
 
 from audio_studio.infrastructure.postgres.session import read_only
@@ -25,15 +24,14 @@ def _safe_request(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-class RecordingSessionRepository:
-    def attempts(self, session_id: UUID) -> list[dict]:
+class RecordingHistoryRepository:
+    def recordings(self) -> list[dict]:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT job.public_id, job.status, job.created_at,
                        job.started_at, job.finished_at, job.payload,
                        job.error, job.cost, job.cost_basis, job.result,
-                       take.filename, take.duration_ms,
-                       take.size_bytes,
+                       take.filename, take.duration_ms, take.size_bytes,
                        continuation.public_id
                   FROM jobs job
                   LEFT JOIN takes take ON take.id = job.take_id
@@ -45,16 +43,15 @@ class RecordingSessionRepository:
                  WHERE job.kind = 'speech'
                    AND job.source_tool = 'speak'
                    AND job.production_id IS NULL
-                   AND job.payload->>'session_id' = %s
                  ORDER BY job.created_at DESC, job.id DESC
-            """, (str(session_id),))
+            """)
             rows = cursor.fetchall()
 
-        attempts = []
+        recordings = []
         for row in rows:
             result = row[9] or {}
             filename = row[10] or result.get("name")
-            attempts.append({
+            recordings.append({
                 "id": str(row[0]),
                 "status": row[1],
                 "created_at": row[2].isoformat(),
@@ -76,4 +73,4 @@ class RecordingSessionRepository:
                                   or result.get("estimated_cost") or 0),
                 "continued_by_job_id": str(row[13]) if row[13] else None,
             })
-        return attempts
+        return recordings

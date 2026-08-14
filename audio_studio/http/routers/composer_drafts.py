@@ -20,7 +20,6 @@ router = APIRouter(prefix="/api/v1/composer-drafts", tags=["composer"])
 class StandaloneContext(BaseModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["standalone"]
-    session_id: UUID
 
 
 class ProductionContext(BaseModel):

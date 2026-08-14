@@ -24,8 +24,7 @@ export type ComposerDraftWireRecord = {
 
 export function contextWire(context: CompositionContext) {
   if (context.kind === "standalone") {
-    if (!context.sessionId) throw new Error("A standalone Composer Draft needs its recording session ID.")
-    return { kind: "standalone" as const, session_id: context.sessionId }
+    return { kind: "standalone" as const }
   }
   return {
     kind: "production" as const,
