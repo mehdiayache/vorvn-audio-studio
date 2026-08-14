@@ -49,7 +49,7 @@ class Store:
 
 def state():
     return {
-        "voice_identity_id": "voice-1", "cast_role_id": None,
+        "voice_identity_id": "voice-1",
         "route": {"kind": "owned", "binding_id": "binding-1",
                   "catalogue_voice_id": None, "capability_id": None},
         "text": {"raw": "Hello", "shaped": "", "tagged": "",

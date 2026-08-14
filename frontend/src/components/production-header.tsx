@@ -1,4 +1,4 @@
-import { ArrowLeft, CircleAlert, Command, Folder, MoreHorizontal, Pause, Play, Plus, SlidersHorizontal, Users } from "lucide-react"
+import { ArrowLeft, CircleAlert, Command, Folder, MoreHorizontal, Pause, Play, Plus, SlidersHorizontal } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
@@ -7,14 +7,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { formatDuration, formatMoney } from "@/lib/format"
 import type { Production } from "@/types/domain"
 
-export function ProductionHeader({ production, duration, mixExportOpen, productionPlaying, issueCount, onExplorer, onCast, onCommands, onHealth, onPreview, onAdd, onRelease }: {
+export function ProductionHeader({ production, duration, mixExportOpen, productionPlaying, issueCount, onExplorer, onCommands, onHealth, onPreview, onAdd, onRelease }: {
   production: Production
   duration: number
   mixExportOpen: boolean
   productionPlaying: boolean
   issueCount: number
   onExplorer: () => void
-  onCast: () => void
   onCommands: () => void
   onHealth: () => void
   onPreview: () => void
@@ -31,7 +30,6 @@ export function ProductionHeader({ production, duration, mixExportOpen, producti
         </div>
         <div className="production-context-actions">
           {issueCount > 0 && <Button className="production-health-summary" variant="outline" size="sm" aria-label={`${issueCount} Production issue${issueCount === 1 ? "" : "s"}`} onClick={onHealth}><CircleAlert /> <b>{issueCount}</b><span className="production-health-label">issue{issueCount === 1 ? "" : "s"}</span></Button>}
-            <Button variant="ghost" size="sm" onClick={onCast}><Users /> Cast</Button>
             <Button variant="outline" size="sm" onClick={onPreview}>{productionPlaying ? <Pause /> : <Play />} {productionPlaying ? "Pause" : "Preview"}</Button>
             <Button className="mix-export-action" variant={mixExportOpen ? "secondary" : "outline"} size="sm" aria-pressed={mixExportOpen} onClick={onRelease}><SlidersHorizontal /> Mix & Export</Button>
             <DropdownMenu>
@@ -44,7 +42,6 @@ export function ProductionHeader({ production, duration, mixExportOpen, producti
             </DropdownMenu>
             <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="More Production actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
               <DropdownMenuItem onSelect={onExplorer}><Folder /> Open Explorer</DropdownMenuItem>
-              <DropdownMenuItem onSelect={onCast}><Users /> Manage Cast</DropdownMenuItem>
               <DropdownMenuItem onSelect={onCommands}><Command /> Command menu</DropdownMenuItem>
               <DropdownMenuItem onSelect={onHealth}><CircleAlert /> Production health{issueCount ? ` · ${issueCount}` : ""}</DropdownMenuItem>
             </DropdownMenuContent></DropdownMenu>

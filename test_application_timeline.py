@@ -155,14 +155,14 @@ class TimelineServiceTests(unittest.TestCase):
         self.service.add_draft(6, {
             "text": "  Rest now  ", "voice": "custom:serenity",
             "voice_identity_id": "voice-1", "engine": "omni",
-            "model": "plus", "cast_role_id": "role-1", "insert_at": 2,
+            "model": "plus", "insert_at": 2,
             "insert_before_part_id": "part-before",
         })
         _, values, insert_at, before_part_id = self.records.created[0]
         self.assertEqual((values["text"], values["voice_identity_id"],
-                          values["cast_role_id"], values["kind"], insert_at,
+                          values["kind"], insert_at,
                           before_part_id),
-                         ("Rest now", "voice-1", "role-1", "draft", 2,
+                         ("Rest now", "voice-1", "draft", 2,
                           "part-before"))
 
     def test_music_and_clip_enforce_venture_library_semantics(self):

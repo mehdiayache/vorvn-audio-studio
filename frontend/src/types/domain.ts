@@ -87,8 +87,6 @@ export type ProductionPart = {
   take_delivery?: Record<string, unknown>
   take_usage?: Record<string, unknown>
   take_segmentation?: Record<string, unknown>
-  cast_role_id?: string | null
-  cast_role_name?: string | null
   revision?: number
   selected_take_id?: number | null
   selected_take_text_state?: "raw" | "shaped" | "tagged" | string | null
@@ -136,31 +134,6 @@ export type ProductionExport = {
   duration_ms: number | null
   size_bytes: number
   created_at: string
-}
-
-export type ProductionCastRole = {
-  id: string
-  name: string
-  color: string
-  position: number | null
-  persona_id: string | null
-  persona_name: string | null
-  voice_source_kind: "identity" | "catalogue"
-  voice_identity_id: string | null
-  catalogue_voice_id: string | null
-  assignment_revision: number
-  part_count?: number
-}
-
-export type ProductionPersona = {
-  id: string
-  name: string
-  image: string
-  description: string
-  aliases: string[]
-  notes: string
-  presentation: Record<string, unknown>
-  metadata: Record<string, unknown>
 }
 
 export type Production = {

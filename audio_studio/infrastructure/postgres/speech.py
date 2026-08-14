@@ -116,11 +116,10 @@ class SpeechRepository:
                        take.tier, take.language, take.delivery,
                        take.raw_text, take.spoken_text, take.tagged_text,
                        take.binding_id, take.catalogue_voice_id,
-                       take.capability_id, take.snapshot, role.public_id
+                       take.capability_id, take.snapshot
                   FROM production_parts part
              LEFT JOIN composition_drafts draft ON draft.part_id = part.id
              LEFT JOIN takes take ON take.id = part.selected_take_id
-             LEFT JOIN production_cast_roles role ON role.id=part.cast_role_id
                  WHERE part.id = %s AND part.production_id = %s
                    AND part.archived_at IS NULL
             """, (part_id, production_id))
@@ -153,34 +152,6 @@ class SpeechRepository:
             "binding_id": str(row[18]) if row[18] else draft.get("binding_id"),
             "catalogue_voice_id": row[19] or draft.get("catalogue_voice_id"),
             "capability_id": row[20] or draft.get("capability_id"),
-            "cast_role_id": str(row[22]) if row[22] else None,
-        }
-
-    def cast_assignment(self, production_id: int, role_id: str, *,
-                        voice_identity_id: str | None,
-                        catalogue_voice_id: str | None) -> dict:
-        with read_only() as cursor:
-            cursor.execute("""
-                SELECT role.assignment_revision, role.name,
-                       persona.id, persona.name, role.voice_source_kind,
-                       role.voice_identity_id, role.catalogue_voice_id
-                  FROM production_cast_roles role
-             LEFT JOIN personas persona ON persona.id=role.persona_id
-                 WHERE role.public_id=%s AND role.production_id=%s
-            """, (role_id, production_id))
-            row = cursor.fetchone()
-        if not row:
-            raise ValueError("That Cast Role does not belong to this Production.")
-        if row[4] == "identity" and row[5] != voice_identity_id:
-            raise ValueError(
-                "The exact binding does not belong to this Cast Role's voice.")
-        if row[4] == "catalogue" and row[6] != catalogue_voice_id:
-            raise ValueError(
-                "The exact catalogue voice does not match this Cast Role.")
-        return {
-            "assignment_revision": int(row[0] or 1),
-            "cast_role_name": row[1] or "",
-            "persona_id": row[2], "persona_name": row[3] or "",
         }
 
     def create_part(self, production_id: int | None, insert_at: int | None,
@@ -206,21 +177,11 @@ class SpeechRepository:
             cursor.execute("""
                 INSERT INTO production_parts
                     (production_id, position, kind, script, title,
-                     cast_role_id, editorial_status, revision)
-                SELECT %s, %s, 'speech', %s, %s, role.id, 'ready',
-                       CASE WHEN coalesce(role.assignment_revision,0)=%s
-                            THEN 1 ELSE 2 END
-                  FROM (SELECT %s::uuid AS public_id) wanted
-             LEFT JOIN production_cast_roles role
-                    ON role.public_id=wanted.public_id
-                   AND role.production_id=%s
+                     editorial_status, revision)
+                VALUES (%s, %s, 'speech', %s, %s, 'ready', 1)
                 RETURNING id
             """, (production_id, position, canonical_script,
-                  values.get("title") or "",
-                  int((values.get("_cast_snapshot") or {}).get(
-                      "assignment_revision") or 0),
-                  values.get("cast_role_id"),
-                  production_id))
+                  values.get("title") or ""))
             part_id = int(cursor.fetchone()[0])
             take_id = self._insert_take(
                 cursor, part_id, 1, values,
@@ -288,16 +249,6 @@ class SpeechRepository:
         spoken_script = str(values.get("text") or "")
         canonical_script = (spoken_script if canonical_script is None
                             else canonical_script)
-        cursor.execute("""
-            SELECT role.id, role.name, role.assignment_revision,
-                   persona.id, persona.name
-              FROM production_parts part
-         LEFT JOIN production_cast_roles role ON role.id=part.cast_role_id
-         LEFT JOIN personas persona ON persona.id=role.persona_id
-             WHERE part.id=%s
-        """, (part_id,))
-        cast = cursor.fetchone() or (None, None, 0, None, None)
-        expected_cast = values.get("_cast_snapshot") or {}
         snapshot = {
             "engine": values.get("engine"), "format": values.get("format"),
             "voice": values.get("provider_voice_id") or values.get("voice"),
@@ -306,8 +257,6 @@ class SpeechRepository:
         cursor.execute("""
             INSERT INTO takes
                 (part_id, source_part_revision, source_script_hash,
-                 cast_assignment_revision, persona_id, persona_name_snapshot,
-                 cast_role_id, cast_role_name_snapshot,
                  voice_identity_id, voice_name_snapshot, reference_id,
                  binding_id, catalogue_voice_id, binding_resolution_status,
                  capability_id, capability_name_snapshot, provider,
@@ -318,7 +267,7 @@ class SpeechRepository:
             VALUES
                 (%s, %s, %s, %s, %s, %s, %s, %s,
                  %s, %s, %s, %s, %s, %s, %s, %s,
-                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb,
+                 %s, %s, %s, %s, %s::jsonb,
                  %s::jsonb, %s::jsonb, %s, %s, %s::jsonb, %s, %s, %s, %s,
                  %s::jsonb, %s)
             RETURNING id
@@ -326,10 +275,6 @@ class SpeechRepository:
             part_id, source_revision,
             source_script_hash or hashlib.sha256(
                 canonical_script.encode("utf-8")).hexdigest(),
-            int(expected_cast.get("assignment_revision", cast[2] or 0)),
-            expected_cast.get("persona_id", cast[3]),
-            expected_cast.get("persona_name", cast[4]), cast[0],
-            expected_cast.get("cast_role_name", cast[1]),
             values.get("voice_identity_id"), values.get("voice_name") or values.get("voice"),
             values.get("reference_id"), values.get("binding_id"),
             values.get("catalogue_voice_id"),

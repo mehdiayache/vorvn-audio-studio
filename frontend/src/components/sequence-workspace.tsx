@@ -9,13 +9,12 @@ import { EmptySequence } from "@/components/state-panel"
 import { Button } from "@/components/ui/button"
 import { formatDuration, formatMicroMoney, partDurationMs } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import type { DurableJob, GenerateResult, ProductionCastRole, ProductionPart, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GenerateResult, ProductionPart, VoiceDirectory } from "@/types/domain"
 
 import "@/components/sequence-workspace.css"
 
-export function SequenceWorkspace({ parts, cast, liveJobs, visiblePartIds, filtersActive = false, activePartId, playingKey, playerPlaying, previewPlayingPartId, directory, onClearFilters, onInsert, onRetryJob, onConfirmJob, onReplaceAsset, actions }: {
+export function SequenceWorkspace({ parts, liveJobs, visiblePartIds, filtersActive = false, activePartId, playingKey, playerPlaying, previewPlayingPartId, directory, onClearFilters, onInsert, onRetryJob, onConfirmJob, onReplaceAsset, actions }: {
   parts: ProductionPart[]
-  cast?: ProductionCastRole[]
   liveJobs: Record<string, DurableJob<unknown>>
   visiblePartIds?: Set<number>
   filtersActive?: boolean
@@ -40,7 +39,7 @@ export function SequenceWorkspace({ parts, cast, liveJobs, visiblePartIds, filte
   return (
     <section className="sequence-workspace" aria-label="Production sequence">
       <div className="sequence-ledger">
-        <div className="sequence-ledger-header" aria-hidden="true"><span>#</span><span>Cast &amp; Voice</span><span>Script &amp; Results</span></div>
+        <div className="sequence-ledger-header" aria-hidden="true"><span>#</span><span>Voice</span><span>Script &amp; Recording</span></div>
         <div className="sequence-part-list" role="list" aria-label={filtersActive ? `${visibleParts.length} of ${sourceParts.length} ordered Production Parts` : `${sourceParts.length} ordered Production Parts`}>
       {!filtersActive && <SequenceInsertControl at={0} beforePartId={sourceParts[0]?.public_id || null} onInsert={onInsert} />}
       {visibleParts.map((part) => {
@@ -52,7 +51,7 @@ export function SequenceWorkspace({ parts, cast, liveJobs, visiblePartIds, filte
             ? <SequenceSilenceCard part={part} index={index} count={sourceParts.length} actions={actions} />
             : part.kind === "asset"
               ? <AssetPartCard part={part} index={index} count={sourceParts.length} playing={playerPlaying && playingKey === `part:${part.id}`} onReplace={() => onReplaceAsset(part)} actions={actions} />
-              : <SpeechPartCard part={part} job={part.speech_job ? (liveJobs[part.speech_job.id] as DurableJob<GenerateResult> | undefined) || part.speech_job : null} captionJob={part.caption_job ? (liveJobs[part.caption_job.id] as typeof part.caption_job | undefined) || part.caption_job : null} castRole={cast?.find((role) => role.id === part.cast_role_id)} index={index} count={sourceParts.length} playing={playerPlaying && playingKey === `part:${part.id}`} playingPreview={playerPlaying && previewPlayingPartId === part.id} directory={directory} onRetryJob={() => { const job = part.speech_job ? (liveJobs[part.speech_job.id] as DurableJob<GenerateResult> | undefined) || part.speech_job : null; if (job) onRetryJob(part, job) }} onConfirmJob={() => { const job = part.speech_job ? (liveJobs[part.speech_job.id] as DurableJob<GenerateResult> | undefined) || part.speech_job : null; if (job) onConfirmJob(part, job) }} actions={actions} />}
+              : <SpeechPartCard part={part} job={part.speech_job ? (liveJobs[part.speech_job.id] as DurableJob<GenerateResult> | undefined) || part.speech_job : null} captionJob={part.caption_job ? (liveJobs[part.caption_job.id] as typeof part.caption_job | undefined) || part.caption_job : null} index={index} count={sourceParts.length} playing={playerPlaying && playingKey === `part:${part.id}`} playingPreview={playerPlaying && previewPlayingPartId === part.id} directory={directory} onRetryJob={() => { const job = part.speech_job ? (liveJobs[part.speech_job.id] as DurableJob<GenerateResult> | undefined) || part.speech_job : null; if (job) onRetryJob(part, job) }} onConfirmJob={() => { const job = part.speech_job ? (liveJobs[part.speech_job.id] as DurableJob<GenerateResult> | undefined) || part.speech_job : null; if (job) onConfirmJob(part, job) }} actions={actions} />}
         </div>
         {!filtersActive && <SequenceInsertControl at={index + 1} beforePartId={index === sourceParts.length - 1 ? null : sourceParts[index + 1]?.public_id || null} last={index === sourceParts.length - 1} onInsert={onInsert} />}
       </Fragment>})}

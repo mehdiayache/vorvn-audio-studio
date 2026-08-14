@@ -53,6 +53,8 @@ class MigrationTests(unittest.TestCase):
                     "026_reconcile_archived_part_positions.sql",
                     "027_one_recording_per_part.sql",
                     "028_part_enabled_state.sql",
+                    "029_remove_casting.sql",
+                    "030_remove_cast_draft_state.sql",
         ])
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:

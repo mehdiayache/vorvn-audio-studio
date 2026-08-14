@@ -65,14 +65,10 @@
 .speech-part-caption:focus-visible { border-radius: var(--vrn-radius-sm); outline: var(--vrn-focus-width-strong) solid var(--vrn-focus-ring-soft); outline-offset: var(--vrn-focus-offset); }
 .speech-part-heading .voice-portrait { border-color: color-mix(in oklab, var(--speech-identity-color) 36%, var(--vrn-border)); background: color-mix(in oklab, var(--speech-identity-color) 8%, var(--surface-raised)); color: var(--speech-identity-color); }
 .speech-part-heading-copy { min-width: 0; display: grid; gap: 2px; }
-.speech-part-voice-name,
-.speech-part-role-name { overflow: hidden; color: var(--foreground); font-size: var(--vrn-type-panel-size); font-weight: var(--vrn-weight-title); line-height: var(--vrn-type-panel-line); text-overflow: ellipsis; white-space: nowrap; }
-.speech-part-role-name { letter-spacing: .02em; }
+.speech-part-voice-name { overflow: hidden; color: var(--foreground); font-size: var(--vrn-type-panel-size); font-weight: var(--vrn-weight-title); line-height: var(--vrn-type-panel-line); text-overflow: ellipsis; white-space: nowrap; }
 .speech-part-selected-voice { color: var(--foreground); font-size: var(--vrn-type-label-size); font-weight: var(--vrn-weight-label); }
-.speech-part-method,
-.speech-part-future-voice { color: var(--vrn-content-secondary); font-size: var(--vrn-type-metadata-size); line-height: 1.45; }
+.speech-part-method { color: var(--vrn-content-secondary); font-size: var(--vrn-type-metadata-size); line-height: 1.45; }
 .speech-part-method { margin-top: 2px; }
-.speech-part-future-voice { color: var(--warning); }
 
 .speech-part-body { min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
 .speech-part-main-header { min-height: 38px; display: flex; align-items: center; justify-content: space-between; gap: var(--vrn-space-3); padding: 5px 10px 0 16px; }

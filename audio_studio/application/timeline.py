@@ -157,7 +157,6 @@ class TimelineService:
             "binding_id": values.get("binding_id"),
             "catalogue_voice_id": values.get("catalogue_voice_id"),
             "capability_id": values.get("capability_id"),
-            "cast_role_id": values.get("cast_role_id"),
             "format": values.get("format") or "mp3",
             "language": values.get("language") or "Auto",
             "instruction": values.get("instruction") or "",
@@ -296,8 +295,6 @@ class TimelineService:
             if part.get("kind") in {"speech", "audio", "draft"} and not canonical:
                 raise TimelineError("A speech Part needs a script.")
             changes["script"] = canonical
-        if "cast_role_id" in values:
-            changes["cast_role_id"] = values["cast_role_id"]
         if not changes:
             raise TimelineError("Choose a Part change before saving.")
         try:

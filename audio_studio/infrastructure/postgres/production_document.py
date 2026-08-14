@@ -45,7 +45,7 @@ class ProductionDocumentRepository:
     def _part_row(cursor, production_id: int, part_id: int, *, lock=False):
         cursor.execute("""
             SELECT id, public_id, production_id, position, kind, script, title,
-                   cast_role_id, editorial_status, revision, selected_take_id,
+                   NULL::bigint, editorial_status, revision, selected_take_id,
                    asset_id, asset_version_id, duration_ms, created_at, updated_at,
                    enabled
               FROM production_parts
@@ -136,7 +136,6 @@ class ProductionDocumentRepository:
             "id": row[0], "public_id": str(row[1]),
             "production_id": row[2], "position": row[3], "kind": row[4],
             "text": row[5], "title": row[6],
-            "cast_role_id": str(row[7]) if row[7] else None,
             "editorial_status": row[8], "revision": row[9],
             "selected_take_id": row[10], "asset_id": row[11],
             "asset_version_id": row[12], "duration_ms": row[13],
@@ -153,8 +152,8 @@ class ProductionDocumentRepository:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT part.id, part.public_id, part.created_at, part.position,
-                       part.kind, part.title, part.script, role.public_id,
-                       role.name, part.editorial_status, part.revision,
+                       part.kind, part.title, part.script, NULL::uuid,
+                       NULL::text, part.editorial_status, part.revision,
                        part.selected_take_id, part.asset_id,
                        part.asset_version_id, part.duration_ms,
                        draft.state,
@@ -200,7 +199,6 @@ class ProductionDocumentRepository:
                        caption_job.result, take.capability_name_snapshot,
                        captions.source_language, part.enabled
                   FROM production_parts part
-                  LEFT JOIN production_cast_roles role ON role.id = part.cast_role_id
                   LEFT JOIN composition_drafts draft ON draft.part_id = part.id
                   LEFT JOIN takes take ON take.id = part.selected_take_id
                   LEFT JOIN provider_attempts attempt
@@ -289,8 +287,7 @@ class ProductionDocumentRepository:
                 "created_at": row[2].isoformat(), "position": row[3],
                 "kind": row[4], "title": row[5] or None,
                 "text": row[6],
-                "cast_role_id": str(row[7]) if row[7] else None,
-                "cast_role_name": row[8], "editorial_status": row[9],
+                "editorial_status": row[9],
                 "revision": row[10], "selected_take_id": row[11],
                 "selected_take_text_state": (
                     snapshot.get("text_state") if has_selected_take else None),
@@ -656,26 +653,9 @@ class ProductionDocumentRepository:
                 return {"status": "conflict", "revision": current_revision}
             next_script = (str(values["script"]) if "script" in values
                            else str(row[5] or ""))
-            next_role_id = row[7]
-            if "cast_role_id" in values:
-                role_public_id = values.get("cast_role_id")
-                if role_public_id:
-                    cursor.execute("""
-                        SELECT id FROM production_cast_roles
-                         WHERE public_id=%s AND production_id=%s
-                    """, (role_public_id, production_id))
-                    role = cursor.fetchone()
-                    if not role:
-                        raise ValueError(
-                            "That Cast Role does not belong to this Production.")
-                    next_role_id = int(role[0])
-                else:
-                    next_role_id = None
             changed_fields = []
             if next_script != str(row[5] or ""):
                 changed_fields.append("script")
-            if next_role_id != row[7]:
-                changed_fields.append("cast_role_id")
             if not changed_fields:
                 selected_outdated = False
                 if row[10]:
@@ -694,9 +674,9 @@ class ProductionDocumentRepository:
             next_revision = current_revision + 1
             cursor.execute("""
                 UPDATE production_parts
-                   SET script=%s, cast_role_id=%s, revision=%s, updated_at=now()
+                   SET script=%s, revision=%s, updated_at=now()
                  WHERE id=%s
-            """, (next_script, next_role_id, next_revision, part_id))
+            """, (next_script, next_revision, part_id))
             cursor.execute("""
                 INSERT INTO audit_records
                     (action, resource_type, resource_id, detail)
@@ -738,19 +718,17 @@ class ProductionDocumentRepository:
             """, (production_id, position))
             cursor.execute("""
                 INSERT INTO production_parts
-                    (production_id, position, kind, script, title, cast_role_id,
+                    (production_id, position, kind, script, title,
                      editorial_status, asset_id, asset_version_id, duration_ms)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
-            """, (production_id, position, row[4], row[5], row[6], row[7],
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
+            """, (production_id, position, row[4], row[5], row[6],
                   row[8], row[11], row[12], row[13]))
             new_id = int(cursor.fetchone()[0])
             if row[10]:
                 cursor.execute("""
                     INSERT INTO takes
                         (part_id, source_part_revision, source_script_hash,
-                         cast_assignment_revision, persona_id,
-                         persona_name_snapshot, cast_role_id,
-                         cast_role_name_snapshot, voice_identity_id,
+                         voice_identity_id,
                          voice_name_snapshot, reference_id, binding_id,
                          catalogue_voice_id, binding_resolution_status,
                          capability_id, capability_name_snapshot, provider,
@@ -758,9 +736,7 @@ class ProductionDocumentRepository:
                          language, raw_text, spoken_text, tagged_text, delivery,
                          segmentation, usage, cost, cost_basis, diagnostics,
                          filename, path, size_bytes, duration_ms, snapshot)
-                    SELECT %s, 1, %s, cast_assignment_revision, persona_id,
-                           persona_name_snapshot, cast_role_id,
-                           cast_role_name_snapshot, voice_identity_id,
+                    SELECT %s, 1, %s, voice_identity_id,
                            voice_name_snapshot, reference_id, binding_id,
                            catalogue_voice_id, binding_resolution_status,
                            capability_id, capability_name_snapshot, provider,

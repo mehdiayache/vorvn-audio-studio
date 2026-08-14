@@ -2,7 +2,7 @@ import { durableOperationTruth } from "@/lib/operation-language"
 import { resolveSpeechModel } from "@/components/speech-model-identity"
 import { formatMoney, partDurationMs } from "@/lib/format"
 import { resolveVoice, type ResolvedVoice } from "@/lib/voice"
-import type { DurableJob, GenerateResult, ProductionCastRole, ProductionPart, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GenerateResult, ProductionPart, VoiceDirectory } from "@/types/domain"
 
 export type SpeechPartAlert = {
   key: "draft" | "outdated" | "missing" | "fidelity" | "route"
@@ -24,10 +24,6 @@ export type SpeechPartCardFacts = {
   playable: boolean
   voice: ResolvedVoice
   selectedVoiceName: string
-  castName: string | null
-  castColor: string | null
-  directVoice: boolean
-  futureVoiceName: string | null
   methodLine: string
   exactModel: string
   technicalDetail: string
@@ -94,24 +90,6 @@ function selectedCapability(part: ProductionPart, directory: VoiceDirectory) {
   return configured?.operator_title || configured?.label || humanize(part.capability_id)
 }
 
-function currentCastVoice(castRole: ProductionCastRole | undefined, directory: VoiceDirectory) {
-  if (!castRole) return null
-  if (castRole.voice_source_kind === "identity" && castRole.voice_identity_id) {
-    return resolveVoice(undefined, directory, castRole.voice_identity_id)
-  }
-  if (castRole.catalogue_voice_id) return resolveVoice(castRole.catalogue_voice_id, directory)
-  return null
-}
-
-function futureVoice(part: ProductionPart, castRole: ProductionCastRole | undefined, selected: ResolvedVoice, directory: VoiceDirectory) {
-  const current = currentCastVoice(castRole, directory)
-  if (!current || !part.selected_take_id) return null
-  const sameIdentity = Boolean(part.voice_identity_id && castRole?.voice_identity_id === part.voice_identity_id)
-  const sameCatalogue = Boolean(part.catalogue_voice_id && castRole?.catalogue_voice_id === part.catalogue_voice_id)
-  if (sameIdentity || sameCatalogue || current.name === selected.name) return null
-  return current.name
-}
-
 function captionFacts(part: ProductionPart, job: DurableJob<unknown> | null) {
   if (job) {
     const truth = durableOperationTruth(job)
@@ -145,12 +123,11 @@ function operationFacts(job: DurableJob<GenerateResult> | null): SpeechPartOpera
   return idle
 }
 
-export function speechPartCardFacts({ part, speechJob, captionJob, directory, castRole }: {
+export function speechPartCardFacts({ part, speechJob, captionJob, directory }: {
   part: ProductionPart
   speechJob: DurableJob<GenerateResult> | null
   captionJob?: DurableJob<unknown> | null
   directory: VoiceDirectory
-  castRole?: ProductionCastRole
 }): SpeechPartCardFacts {
   const recorded = Boolean(part.selected_take_id)
   const displayVoice = part.voice_name || part.voice
@@ -173,16 +150,11 @@ export function speechPartCardFacts({ part, speechJob, captionJob, directory, ca
   if (part.missing) alerts.push({ key: "missing", label: "Missing audio", tone: "danger" })
   if (part.fidelity && part.fidelity.status !== "pass") alerts.push({ key: "fidelity", label: "Check wording", tone: "warning" })
   if (part.binding_resolution_status === "unresolved") alerts.push({ key: "route", label: "Historical route unavailable", tone: "warning" })
-  const currentFutureVoice = futureVoice(part, castRole, voice, directory)
   return {
     recorded,
     playable: recorded && Boolean(part.filename) && !part.missing,
     voice,
     selectedVoiceName: voice.name,
-    castName: part.cast_role_name || castRole?.name || null,
-    castColor: castRole?.color || null,
-    directVoice: !part.cast_role_id,
-    futureVoiceName: currentFutureVoice,
     methodLine: methodLine || "Recording method unknown",
     exactModel: model.modelId,
     technicalDetail,

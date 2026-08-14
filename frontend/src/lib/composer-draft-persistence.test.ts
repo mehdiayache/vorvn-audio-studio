@@ -5,7 +5,7 @@ import type { RecoverableCompositionDraft } from "./composer-contract"
 
 function draft(): RecoverableCompositionDraft {
   return {
-    voiceIdentityId: "voice-1", castRoleId: null,
+    voiceIdentityId: "voice-1",
     route: { kind: "owned", bindingId: "binding-1", capabilityId: null },
     text: { raw: "Hello", shaped: "", tagged: "", active: "raw" },
     textPreparation: { tagDensity: "normal", pendingReview: null },

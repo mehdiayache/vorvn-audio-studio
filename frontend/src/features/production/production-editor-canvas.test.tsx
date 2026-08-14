@@ -7,8 +7,6 @@ const timing = vi.hoisted(() => vi.fn(() => <div>Timing mounted</div>))
 vi.mock("@/components/timing-overview", () => ({ TimingOverview: timing }))
 vi.mock("@/components/production-header", () => ({ ProductionHeader: () => null }))
 vi.mock("@/components/sequence-workspace", () => ({ SequenceWorkspace: () => null }))
-vi.mock("@/features/production/production-cast-strip", () => ({ ProductionCastStrip: () => null }))
-vi.mock("@/features/production/cast-manager-sheet", () => ({ CastManagerSheet: () => null }))
 vi.mock("@/features/production/production-command-menu", () => ({ ProductionCommandMenu: () => null }))
 vi.mock("@/features/production/production-explorer-sheet", () => ({ ProductionExplorerSheet: () => null }))
 vi.mock("@/features/production/production-health-sheet", () => ({ productionHealth: () => [], ProductionHealthSheet: () => null }))
@@ -22,13 +20,13 @@ describe("ProductionEditorCanvas timing", () => {
   it("does not mount or decode the timing surface while its section is collapsed", () => {
     const props = {
       production: { id: 7, key: "production", title: "Production", parts: [] },
-      tree: null, music: {}, directory: {}, cast: [], liveJobs: {}, duration: 0,
+      tree: null, music: {}, directory: {}, liveJobs: {}, duration: 0,
       stageMode: null, stageTitle: "Production", stageContent: null,
       explorerOpen: false,
       healthOpen: false, commandsOpen: false, selected: new Set(), playerPlaying: false,
       previewing: false, productionPlaying: false, productionLoaded: false,
       productionCurrentTime: 0,
-      onOpenMixExport: vi.fn(), onCloseStage: vi.fn(), onExplorerOpen: vi.fn(), onCastOpen: vi.fn(),
+      onOpenMixExport: vi.fn(), onCloseStage: vi.fn(), onExplorerOpen: vi.fn(),
       onHealthOpen: vi.fn(), onCommandsOpen: vi.fn(), onMusicOpen: vi.fn(),
       onTool: vi.fn(), onSelected: vi.fn(), onPreview: vi.fn(), onLocate: vi.fn(),
       onSeekProduction: vi.fn(), onPlay: vi.fn(),
@@ -46,11 +44,11 @@ describe("ProductionEditorCanvas timing", () => {
     const onLocate = vi.fn()
     const props = {
       production: { id: 7, key: "production", title: "Production", parts: [{ id: 17, kind: "draft", text: "Harbor ending" }] },
-      tree: null, music: {}, directory: {}, cast: [], liveJobs: {}, duration: 0,
+      tree: null, music: {}, directory: {}, liveJobs: {}, duration: 0,
       stageMode: null, stageTitle: "Production", stageContent: null,
       explorerOpen: false, healthOpen: false, commandsOpen: false, selected: new Set(), playerPlaying: false,
       previewing: false, productionPlaying: false, productionLoaded: false, productionCurrentTime: 0,
-      onOpenMixExport: vi.fn(), onCloseStage: vi.fn(), onExplorerOpen: vi.fn(), onCastOpen: vi.fn(),
+      onOpenMixExport: vi.fn(), onCloseStage: vi.fn(), onExplorerOpen: vi.fn(),
       onHealthOpen: vi.fn(), onCommandsOpen: vi.fn(), onMusicOpen: vi.fn(),
       onTool: vi.fn(), onSelected: vi.fn(), onPreview: vi.fn(), onLocate,
       onSeekProduction: vi.fn(), onPlay: vi.fn(), onChooseMusic: vi.fn(), onRetryJob: vi.fn(),
@@ -59,7 +57,7 @@ describe("ProductionEditorCanvas timing", () => {
 
     render(<ProductionEditorCanvas {...props} />)
     fireEvent.click(screen.getByRole("button", { name: "Search / Jump" }))
-    fireEvent.change(screen.getByPlaceholderText("Script, Cast Role, Voice, or Part number"), { target: { value: "harbor" } })
+    fireEvent.change(screen.getByPlaceholderText("Script, Voice, or Part number"), { target: { value: "harbor" } })
     fireEvent.click(screen.getByRole("option", { name: /Harbor ending/ }))
 
     await waitFor(() => expect(onLocate).toHaveBeenCalledWith(17))

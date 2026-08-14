@@ -102,7 +102,6 @@ class OutputState(BaseModel):
 class ComposerState(BaseModel):
     model_config = ConfigDict(extra="forbid")
     voice_identity_id: str | None = None
-    cast_role_id: str | None = None
     route: RouteState | None = None
     text: TextState
     text_preparation: TextPreparationState = Field(

@@ -333,8 +333,6 @@ class ProductionPartResponse(BaseModel):
     take_delivery: dict[str, Any] = Field(default_factory=dict)
     take_usage: dict[str, Any] = Field(default_factory=dict)
     take_segmentation: dict[str, Any] = Field(default_factory=dict)
-    cast_role_id: str | None = None
-    cast_role_name: str | None = None
     revision: int = 1
     selected_take_id: int | None = None
     selected_take_text_state: str | None = None

@@ -10,16 +10,14 @@ import { useProductionActions } from "@/hooks/use-production-actions"
 import { useProductionSpeechJobs } from "@/features/production/use-production-speech-jobs"
 import { MixExportWorkspace } from "@/features/production/mix-export-workspace"
 import { MusicWorkbench } from "@/features/production/music-workbench"
-import { CastManagerContent, CastManagerSheet } from "@/features/production/cast-manager-sheet"
 import { PartInspectorContent, partInspectorTitle } from "@/features/production/inspector/part-inspector"
 import { productionHealth, ProductionHealthContent } from "@/features/production/production-health-sheet"
 import type { ProductionStageMode } from "@/features/production/production-stage"
-import { InlineResourceError } from "@/components/state-panel"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { partDurationMs } from "@/lib/format"
 import { studioApi } from "@/lib/api"
 import { loadPartCaptionTracks, loadProductionCaptionTracks } from "@/lib/production-caption-tracks"
-import type { AssetCollection, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, MusicBed, PlayerCaptionTrack, PlayerSource, Production, ProductionCastRole, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
+import type { AssetCollection, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, MusicBed, PlayerCaptionTrack, PlayerSource, Production, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
 
 const ProductionOverlays = lazy(() => import("@/features/production/production-overlays"))
 
@@ -28,7 +26,7 @@ const PART_TAB_TO_SECTION: Record<PartDetailTab, string> = { script: "text", cap
 
 type ActiveProductionStage =
   | { mode: "part"; part: ProductionPart; tab: PartDetailTab }
-  | { mode: "cast" | "music" | "health" | "mix-export" }
+  | { mode: "music" | "health" | "mix-export" }
 
 function scrollPartIntoView(id: number) {
   const reveal = () => document.getElementById(`part-${id}`)?.scrollIntoView({ block: "center" })
@@ -68,8 +66,6 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const [replacingAsset, setReplacingAsset] = useState<ProductionPart | null>(null)
   const [movePositionPart, setMovePositionPart] = useState<ProductionPart | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
-  const [cast, setCast] = useState<ProductionCastRole[]>([])
-  const [castError, setCastError] = useState("")
   const stageOrigin = useRef<HTMLElement | null>(null)
   const mobile = useMediaQuery("(max-width: 48rem)")
   const player = useGlobalPlayer()
@@ -107,17 +103,6 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   }, [player, preparePlayerSource])
   const closeTool = useCallback(() => { setTool(null); setComposerPart(null); setReplacingAsset(null) }, [])
   const actions = useProductionActions({ production, music, player, refresh, refreshAssets, preparePlayerSource })
-  const refreshCast = useCallback(async () => {
-    try {
-      const items = await studioApi.productionCast(production.public_id)
-      setCast(items); setCastError("")
-    } catch (reason) {
-      setCastError(reason instanceof Error ? reason.message : "Production Cast is unavailable.")
-      throw reason
-    }
-  }, [production.public_id])
-  useEffect(() => { let active = true; void studioApi.productionCast(production.public_id).then((items) => { if (active) { setCast(items); setCastError("") } }).catch((reason) => { if (active) setCastError(reason instanceof Error ? reason.message : "Production Cast is unavailable.") }); return () => { active = false } }, [production.public_id])
-
   const liveJobs = useProductionSpeechJobs(production.parts, refresh)
 
   const queueRender = useCallback((payload: GeneratePayload) => {
@@ -136,7 +121,6 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const duration = useMemo(() => activeSourceParts.reduce((total, part) => total + partDurationMs(part), 0) / 1000, [activeSourceParts])
   const activeDetail = activeStage?.mode === "part" ? production.parts.find((part) => part.id === activeStage.part.id) || activeStage.part : null
   const detailTab = activeStage?.mode === "part" ? activeStage.tab : "script"
-  const castOpen = activeStage?.mode === "cast"
   const healthOpen = activeStage?.mode === "health"
   const assetCollectionIds = Object.fromEntries(assetCollections.map((collection) => [collection.name, collection.id]))
   const modalTool = tool
@@ -186,10 +170,6 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const openMixExport = useCallback(() => {
     rememberStageOrigin(); closeTool(); setActiveStage({ mode: "mix-export" })
   }, [closeTool, rememberStageOrigin])
-  const openCastStage = useCallback((open = true) => {
-    if (!open) { setActiveStage((current) => current?.mode === "cast" ? null : current); return }
-    rememberStageOrigin(); closeTool(); setActiveStage({ mode: "cast" })
-  }, [closeTool, rememberStageOrigin])
   const openMusicStage = useCallback(() => {
     rememberStageOrigin(); closeTool(); setActiveStage({ mode: "music" })
   }, [closeTool, rememberStageOrigin])
@@ -224,8 +204,8 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const stageMode: ProductionStageMode | null = mobile ? null : activeStage?.mode || null
   const composerInsertAt = insertBeforePartId ? Math.max(0, sourceParts.findIndex((part) => part.public_id === insertBeforePartId)) : null
   const healthIssues = useMemo(() => productionHealth(production.parts), [production.parts])
-  const stageTitle = stageMode === "part" ? partInspectorTitle(activeDetail) : stageMode === "cast" ? "Production Cast" : stageMode === "music" ? "Music Bed" : stageMode === "health" ? "Production health" : stageMode === "mix-export" ? "Mix & Export" : "Production"
-  const stageDescription = stageMode === "part" && activeDetail ? `Revision ${activeDetail.revision || 1}${activeDetail.selected_take_id ? " · active recording" : ""}` : stageMode === "cast" ? `${cast.length} role${cast.length === 1 ? "" : "s"} · future recording assignments` : stageMode === "music" ? music.filename ? "Parallel mix lane · reusable Venture source" : "Narration only · no Music Bed" : stageMode === "health" ? `${healthIssues.length} current issue${healthIssues.length === 1 ? "" : "s"} · release evidence` : stageMode === "mix-export" ? "Preview the current mix and create immutable output." : undefined
+  const stageTitle = stageMode === "part" ? partInspectorTitle(activeDetail) : stageMode === "music" ? "Music Bed" : stageMode === "health" ? "Production health" : stageMode === "mix-export" ? "Mix & Export" : "Production"
+  const stageDescription = stageMode === "part" && activeDetail ? `Revision ${activeDetail.revision || 1}${activeDetail.selected_take_id ? " · active recording" : ""}` : stageMode === "music" ? music.filename ? "Parallel mix lane · reusable Venture source" : "Narration only · no Music Bed" : stageMode === "health" ? `${healthIssues.length} current issue${healthIssues.length === 1 ? "" : "s"} · release evidence` : stageMode === "mix-export" ? "Preview the current mix and create immutable output." : undefined
   const previewPlayingPartId = useMemo(() => {
     if (!actions.productionPlaying) return null
     const position = player.currentTime * 1000
@@ -264,7 +244,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     onRecordPart={openRecordingComposer}
     initialTab={detailTab}
     onTabChange={(tab) => setActiveStage((current) => current?.mode === "part" ? { ...current, tab } : current)}
-  /> : stageMode === "cast" ? <CastManagerContent production={production} cast={cast} directory={directory} onChanged={async () => { await Promise.all([refreshCast(), refresh()]) }} /> : stageMode === "music" ? <MusicWorkbench music={music} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)} onChange={actions.setMusic} onChoose={() => openTool("music")} onRemove={() => setConfirmAction({ title: "Remove this Music Bed?", description: "The reusable Venture asset remains available. Only its parallel placement in this Production is removed.", action: () => { void actions.setMusic({ music_of: null }).then(() => setActiveStage(null)) } })} /> : stageMode === "health" ? <ProductionHealthContent issues={healthIssues} onLocate={(id) => { setActiveStage(null); locate(id) }} /> : stageMode === "mix-export" ? <MixExportWorkspace production={production} music={music} previewing={actions.previewing} productionPlaying={actions.productionPlaying} previewReady={actions.productionLoaded} previewStale={Boolean(player.source?.kind === "production" && !actions.productionLoaded)} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={() => void actions.exportMp3()} onLocatePart={(id) => { setActiveStage(null); locate(id) }} onOpenHealth={() => openHealthStage(true)} exporting={actions.exporting} /> : null
+  /> : stageMode === "music" ? <MusicWorkbench music={music} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)} onChange={actions.setMusic} onChoose={() => openTool("music")} onRemove={() => setConfirmAction({ title: "Remove this Music Bed?", description: "The reusable Venture asset remains available. Only its parallel placement in this Production is removed.", action: () => { void actions.setMusic({ music_of: null }).then(() => setActiveStage(null)) } })} /> : stageMode === "health" ? <ProductionHealthContent issues={healthIssues} onLocate={(id) => { setActiveStage(null); locate(id) }} /> : stageMode === "mix-export" ? <MixExportWorkspace production={production} music={music} previewing={actions.previewing} productionPlaying={actions.productionPlaying} previewReady={actions.productionLoaded} previewStale={Boolean(player.source?.kind === "production" && !actions.productionLoaded)} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={() => void actions.exportMp3()} onLocatePart={(id) => { setActiveStage(null); locate(id) }} onOpenHealth={() => openHealthStage(true)} exporting={actions.exporting} /> : null
 
   const sequenceActions: SequenceActions = useMemo(() => ({
     play: (source) => void playSource(source),
@@ -279,13 +259,11 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   }), [actions, openPart, openRecordingComposer, playSource])
 
   return <>
-    {castError && <InlineResourceError message={`Production Cast unavailable: ${castError}`} retry={() => void refreshCast().catch(() => undefined)} />}
     <ProductionEditorCanvas
       production={production}
       tree={tree}
       music={music}
       directory={directory}
-      cast={cast}
       liveJobs={liveJobs}
       duration={duration}
       stageMode={stageMode}
@@ -304,7 +282,6 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       productionCurrentTime={actions.productionLoaded ? player.currentTime : 0}
       previewPlayingPartId={previewPlayingPartId}
       onExplorerOpen={setExplorerOpen}
-      onCastOpen={openCastStage}
       onMusicOpen={openMusicStage}
       onHealthOpen={openHealthStage}
       onCommandsOpen={setCommandsOpen}
@@ -322,7 +299,6 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       onOpenCaptionContext={openCaptionContext}
       sequenceActions={sequenceActions}
     />
-    {mobile && <CastManagerSheet open={castOpen} production={production} cast={cast} directory={directory} onOpenChange={openCastStage} onChanged={async () => { await Promise.all([refreshCast(), refresh()]) }} />}
     <MovePartPositionDialog part={movePositionPart} count={sourceParts.length} onClose={() => setMovePositionPart(null)} onMove={actions.movePartToPosition} />
     {overlaysOpen && <Suspense fallback={null}>
       <ProductionOverlays
@@ -336,7 +312,6 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
         initialMusicAssetId={music.music_of}
         config={config}
         directory={directory}
-        cast={cast}
         assets={assets}
         assetCollectionIds={assetCollectionIds}
         playingKey={player.source?.key}

@@ -7,7 +7,6 @@ import { ProductionFloatingTransport } from "@/features/production/production-fl
 export type ProductionStageMode =
   | "composer"
   | "part"
-  | "cast"
   | "music"
   | "health"
   | "mix-export"

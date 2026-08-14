@@ -214,11 +214,6 @@ export const studioApi = {
   projectOverview: (id: number) => request<ProjectOverviewEnvelope>(`/api/v1/projects/${id}/overview`).then((response) => response.data),
   seriesOverview: (id: number) => request<SeriesOverviewEnvelope>(`/api/v1/series/${id}/overview`).then((response) => response.data),
   production: (id: number) => v1<Production>(`/api/v1/productions/${id}/editor`),
-  productionCast: (publicId: string) => request<{ data: import("@/types/domain").ProductionCastRole[] }>(`/api/v1/productions/${encodeURIComponent(publicId)}/cast`).then((response) => response.data),
-  venturePersonas: (publicId: string) => request<{ data: import("@/types/domain").ProductionPersona[] }>(`/api/v1/ventures/${encodeURIComponent(publicId)}/personas`).then((response) => response.data),
-  createPersona: (venturePublicId: string, values: { name: string; description?: string }) => request<{ data: import("@/types/domain").ProductionPersona }>(`/api/v1/ventures/${encodeURIComponent(venturePublicId)}/personas`, { method: "POST", body: JSON.stringify(values) }).then((response) => response.data),
-  createCastRole: (productionPublicId: string, values: { name: string; persona_id?: string | null; color?: string; position?: number | null; voice_source_kind: "identity" | "catalogue"; voice_identity_id?: string | null; catalogue_voice_id?: string | null }) => request<{ data: import("@/types/domain").ProductionCastRole }>(`/api/v1/productions/${encodeURIComponent(productionPublicId)}/cast`, { method: "POST", body: JSON.stringify(values) }).then((response) => response.data),
-  recastRole: (rolePublicId: string, values: { voice_source_kind: "identity" | "catalogue"; voice_identity_id?: string | null; catalogue_voice_id?: string | null }) => request<{ data: import("@/types/domain").ProductionCastRole }>(`/api/v1/cast-roles/${encodeURIComponent(rolePublicId)}/assignment`, { method: "PATCH", body: JSON.stringify(values) }).then((response) => response.data),
   createVenture: (name: string, description = "") => postV1<HierarchyNode>("/api/v1/ventures", { name, description }),
   createProject: (ventureId: number, name: string, description = "") => postV1<HierarchyNode>(`/api/v1/ventures/${ventureId}/projects`, { name, description }),
   createSeries: (projectId: number, name: string, description = "") => postV1<HierarchyNode>(`/api/v1/projects/${projectId}/series`, { name, description }),
@@ -313,7 +308,7 @@ export const studioApi = {
   textPassResult: (jobId: string) => waitForJob<TextPassResult>(jobId),
   saveTextStates: (productionId: number, id: number, states: { text: string; text_raw: string | null; text_shaped: string | null; text_tagged: string | null; text_state: string }) =>
     request<TimelineOkEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/draft`, { method: "PATCH", body: JSON.stringify(states) }).then((response) => response.data),
-  savePartEditorial: (productionId: number, id: number, values: { expected_revision: number; script?: string; cast_role_id?: string | null }) =>
+  savePartEditorial: (productionId: number, id: number, values: { expected_revision: number; script?: string }) =>
     request<TimelineOkEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/editorial`, { method: "PATCH", body: JSON.stringify(values) }).then((response) => response.data),
   captions: (productionId: number, id: number) => v1<TranscriptSummary[]>(`/api/v1/productions/${productionId}/parts/${id}/captions`).then((transcripts) => ({ transcripts })),
   transcript: (id: number) => v1<Transcript>(`/api/v1/subtitles/${id}`),

@@ -100,26 +100,15 @@ class ProductionSpeechCommandRepository:
             UPDATE production_parts SET position=position+1, updated_at=now()
              WHERE production_id=%s AND archived_at IS NULL AND position >= %s
         """, (production_id, position))
-        role_id = None
-        if payload.get("cast_role_id"):
-            cursor.execute("""
-                SELECT id FROM production_cast_roles
-                 WHERE public_id=%s AND production_id=%s
-            """, (payload["cast_role_id"], production_id))
-            role = cursor.fetchone()
-            if not role:
-                raise ValueError(
-                    "That Cast Role does not belong to this Production.")
-            role_id = int(role[0])
         canonical_script = str(payload.get("text_raw") or payload.get("text") or "")
         cursor.execute("""
             INSERT INTO production_parts
                 (production_id, position, kind, script, title,
-                 cast_role_id, editorial_status, revision)
-            VALUES (%s, %s, 'speech', %s, %s, %s, 'draft', 1)
+                 editorial_status, revision)
+            VALUES (%s, %s, 'speech', %s, %s, 'draft', 1)
             RETURNING id
         """, (production_id, position, canonical_script,
-              payload.get("title") or "", role_id))
+              payload.get("title") or ""))
         return int(cursor.fetchone()[0]), 1, canonical_script
 
     @staticmethod

@@ -20,7 +20,7 @@ import {
 import { composerCapabilityControls, resolvedDeliveryMode, selectedRouteCapability } from "@/lib/composer-capability"
 import { outputLanguageOptions } from "@/lib/voice-capabilities"
 import { getVoiceIdentities, routesForIdentity, type VoiceChoice, type VoiceIdentityChoice } from "@/lib/voice-options"
-import type { DurableJob, GeneratePayload, GenerateResult, PlayerSource, ProductionCastRole, ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, PlayerSource, ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
 
 export type ComposerSurfaceProps = {
   productionId?: number
@@ -30,20 +30,14 @@ export type ComposerSurfaceProps = {
   part?: ProductionPart | null
   config: StudioConfig | null
   directory: VoiceDirectory
-  cast?: ProductionCastRole[]
   playingKey?: string
   playerPlaying: boolean
   onSave?: (payload: Omit<GeneratePayload, "confirmed">) => Promise<void>
-  onUpdateEditorial?: (values: { expected_revision: number; script?: string; cast_role_id?: string | null }) => Promise<void>
+  onUpdateEditorial?: (values: { expected_revision: number; script?: string }) => Promise<void>
   onGenerate: (payload: GeneratePayload) => Promise<DurableJob<GenerateResult>>
   onPlay: (source: PlayerSource) => void
   /** Visual hosts may hide the Composer without unmounting it. */
   visible?: boolean
-}
-
-export function routesAllowedForCastRole(routes: VoiceChoice[], role?: ProductionCastRole) {
-  if (role?.voice_source_kind !== "catalogue" || !role.catalogue_voice_id) return routes
-  return routes.filter((route) => route.catalogueVoiceId === role.catalogue_voice_id)
 }
 
 type PendingGeneration = {
@@ -51,10 +45,9 @@ type PendingGeneration = {
   updateEditorial: boolean
 }
 
-export function useComposerController({ productionId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, cast = [], playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, visible = true }: ComposerSurfaceProps) {
+export function useComposerController({ productionId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, visible = true }: ComposerSurfaceProps) {
   const [route, setRoute] = useState(routeSelectionFromPersistedDraft(part))
   const [identityId, setIdentityId] = useState(part?.voice_identity_id || "")
-  const [castRoleId, setCastRoleId] = useState(part?.cast_role_id || "")
   const [language, setLanguage] = useState(part?.language || "Auto")
   const [format, setFormat] = useState<GeneratePayload["format"]>((part?.format as GeneratePayload["format"]) || "mp3")
   const [deliveryModeRequest, setDeliveryModeRequest] = useState<string>(part?.speech_mode || "exact")
@@ -77,7 +70,6 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     setTextReviewReference(null)
     setRoute(routeSelectionFromPersistedDraft(part))
     setIdentityId(part?.voice_identity_id || "")
-    setCastRoleId(part?.cast_role_id || "")
     setLanguage(part?.language || "Auto")
     setFormat((part?.format as GeneratePayload["format"]) || "mp3")
     setDeliveryModeRequest(part?.speech_mode || "exact")
@@ -92,12 +84,10 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     [directory.identities, directory.registry],
   )
   const selectedIdentity = identities.find((identity) => identity.identityId === identityId)
-  const selectedCastRole = cast.find((item) => item.id === castRoleId)
   const compatibleRoutes = useMemo(() => {
-    const routes = routesForIdentity(selectedIdentity, language)
-    return routesAllowedForCastRole(routes, selectedCastRole)
-  }, [language, selectedCastRole?.catalogue_voice_id, selectedCastRole?.voice_source_kind, selectedIdentity])
-  const visibleRoutes = selectedCastRole?.voice_source_kind === "catalogue" ? compatibleRoutes : selectedIdentity?.routes || []
+    return routesForIdentity(selectedIdentity, language)
+  }, [language, selectedIdentity])
+  const visibleRoutes = selectedIdentity?.routes || []
   const selectedRoute = selectedIdentity?.routes.find((item) => item.id === routeSelectionId(route))
   const currentRoute = resolveSelectedRoute(route, compatibleRoutes)
   const selectedCapability = selectedRouteCapability(currentRoute, route?.capabilityId)
@@ -119,28 +109,6 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   function selectIdentity(identity: VoiceIdentityChoice) {
     setIdentityId(identity.identityId)
     setRoute(null)
-    const role = cast.find((item) => item.id === castRoleId)
-    const matchesIdentity = role?.voice_identity_id === identity.identityId
-    const matchesCatalogue = Boolean(role?.catalogue_voice_id && identity.routes.some((item) => item.catalogueVoiceId === role.catalogue_voice_id))
-    if (role && !matchesIdentity && !matchesCatalogue) setCastRoleId("")
-  }
-
-  function selectCastRole(roleId: string) {
-    setCastRoleId(roleId === "none" ? "" : roleId)
-    const role = cast.find((item) => item.id === roleId)
-    if (!role) return
-    if (role.voice_identity_id) {
-      setIdentityId(role.voice_identity_id)
-      setRoute(null)
-      return
-    }
-    if (role.catalogue_voice_id) {
-      const identity = identities.find((item) => item.routes.some((candidate) => candidate.catalogueVoiceId === role.catalogue_voice_id))
-      if (identity) {
-        setIdentityId(identity.identityId)
-        setRoute(null)
-      }
-    }
   }
 
   useEffect(() => {
@@ -175,7 +143,6 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   const baseline = useMemo(() => editorialBaseline(part), [part])
   const draft: CompositionDraft = {
     voiceIdentityId: selectedIdentity?.source === "owned" ? selectedIdentity.identityId : null,
-    castRoleId: castRoleId || null,
     route,
     text: { raw: textSession.states.raw, shaped: textSession.states.shaped, tagged: textSession.states.tagged, active: textSession.view },
     textPreparation: { tagDensity: textSession.density, pendingReview: textReviewReference },
@@ -183,7 +150,6 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     output: { format, language: language || "Auto" },
     editorialPatch: {
       ...(baseline && textSession.states.raw !== baseline.script ? { script: textSession.states.raw } : {}),
-      ...(baseline && (castRoleId || null) !== baseline.castRoleId ? { castRoleId: castRoleId || null } : {}),
     },
   }
   const latestRecoverableDraftRef = useRef(recoverableDraft(draft))
@@ -193,7 +159,6 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     draft: recoverableDraft(draft),
     onRestore: (saved) => {
       setIdentityId(saved.voiceIdentityId || "")
-      setCastRoleId(saved.castRoleId || "")
       setRoute(saved.route)
       setTextReviewReference(saved.textPreparation.pendingReview)
       textSession.restore(saved.text, saved.textPreparation.tagDensity)
@@ -285,15 +250,15 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   const methodLabel = selectedCapability?.name || "Choose a route first"
 
   return {
-    productionId, nextPartNumber, insertAt, insertBeforePartId, part, config, directory, cast, playingKey, playerPlaying, onSave, onPlay,
-    route, identityId, castRoleId, language, format, deliveryModeRequest, instruction, rate, pitch, volume,
+    productionId, nextPartNumber, insertAt, insertBeforePartId, part, config, directory, playingKey, playerPlaying, onSave, onPlay,
+    route, identityId, language, format, deliveryModeRequest, instruction, rate, pitch, volume,
     busy, confirmationEstimate, pendingCommand, editorialCommand, textReviewReference,
-    identities, selectedIdentity, selectedCastRole, compatibleRoutes, visibleRoutes, currentRoute, selectedCapability, capabilityControls, deliveryMode,
+    identities, selectedIdentity, compatibleRoutes, visibleRoutes, currentRoute, selectedCapability, capabilityControls, deliveryMode,
     textSession, languageOptions, taggedIncompatible, hasInlineDeliveryTag, estimate, textPassEstimate, destination,
     recovery, performancePresets, methodLabel,
     setLanguage, setFormat, setDeliveryModeRequest, setInstruction, setRate, setPitch, setVolume,
     setConfirmationEstimate, setPendingCommand, setEditorialCommand,
-    applyRoute, selectIdentity, selectCastRole, removeInlineTags, payload, saveDraft, executeGeneration, continueGeneration, generate,
+    applyRoute, selectIdentity, removeInlineTags, payload, saveDraft, executeGeneration, continueGeneration, generate,
   }
 }
 

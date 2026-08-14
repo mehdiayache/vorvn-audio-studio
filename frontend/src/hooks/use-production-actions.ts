@@ -140,7 +140,7 @@ export function useProductionActions({ production, music, player, refresh, refre
     }
   }, [production.id])
 
-  const updatePartEditorial = useCallback(async (part: ProductionPart, values: { expected_revision: number; script?: string; cast_role_id?: string | null }) => {
+  const updatePartEditorial = useCallback(async (part: ProductionPart, values: { expected_revision: number; script?: string }) => {
     try {
       await studioApi.savePartEditorial(production.id, part.id, values)
     } catch (error) {

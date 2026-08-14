@@ -5,10 +5,8 @@ from uuid import uuid4
 
 import psycopg
 
-from audio_studio.composition.work import work_service
 from audio_studio.config import settings
 from audio_studio.domain import provider_catalog, voice_registry
-from audio_studio.infrastructure.postgres.casting import CastRepository
 from audio_studio.infrastructure.postgres.provider_catalogue import (
     ProviderCatalogueRepository,
 )
@@ -100,37 +98,6 @@ class ProviderCatalogueTests(unittest.TestCase):
             with psycopg.connect(settings.database_url) as database:
                 database.execute("DELETE FROM provider_models WHERE id=%s",
                                  (provider_model_id,))
-                database.commit()
-
-    def test_catalogue_cast_accepts_only_a_persisted_exact_route(self):
-        repository = ProviderCatalogueRepository()
-        repository.refresh_documented_snapshot()
-        route = repository.bindings()[0]
-        marker = uuid4().hex[:10]
-        venture = work_service.create("ventures", None, f"Catalogue {marker}")
-        project = work_service.create("projects", venture["id"], f"Project {marker}")
-        production = work_service.create(
-            "productions", project["id"], f"Episode {marker}")
-        casting = CastRepository()
-        try:
-            role = casting.create_role(str(production["public_id"]), {
-                "name": "Narrator", "voice_source_kind": "catalogue",
-                "voice_identity_id": None,
-                "catalogue_voice_id": route["catalogue_voice_id"],
-            })
-            self.assertEqual(
-                role["catalogue_voice_id"], route["catalogue_voice_id"])
-            with self.assertRaisesRegex(ValueError, "unavailable"):
-                casting.create_role(str(production["public_id"]), {
-                    "name": "Invalid", "voice_source_kind": "catalogue",
-                    "voice_identity_id": None,
-                    "catalogue_voice_id": "alibaba:intl:missing:missing",
-                })
-        finally:
-            with psycopg.connect(settings.database_url) as database:
-                database.execute("DELETE FROM ventures WHERE id=%s", (venture["id"],))
-                database.execute("DELETE FROM projects WHERE id IN (%s,%s,%s)",
-                                 (venture["id"], project["id"], production["id"]))
                 database.commit()
 
 

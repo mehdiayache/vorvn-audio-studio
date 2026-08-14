@@ -61,7 +61,6 @@ class DraftBody(BaseModel):
     binding_id: str | None = None
     catalogue_voice_id: str | None = None
     capability_id: str | None = None
-    cast_role_id: str | None = None
     format: str = "mp3"
     language: str = "Auto"
     instruction: str = ""
@@ -106,7 +105,6 @@ class EditorialBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     expected_revision: int = Field(ge=1)
     script: str | None = None
-    cast_role_id: str | None = None
 
 
 def _run(operation):

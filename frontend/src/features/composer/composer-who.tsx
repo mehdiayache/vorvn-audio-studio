@@ -11,17 +11,6 @@ export function ComposerWho() {
   return <section className="composer-section voice-capability-section">
     <header><div><span className="eyebrow">Who</span><h3>Choose who speaks and the exact recording method</h3></div></header>
     <div className="composer-route-grid voice-first-grid">
-      {composer.productionId && composer.cast.length > 0 && <label className="wide">
-        <span>Cast role</span>
-        <Select value={composer.castRoleId || "none"} onValueChange={composer.selectCastRole}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">No Cast Role</SelectItem>
-            {composer.cast.map((role) => <SelectItem key={role.id} value={role.id}>{role.name}{role.persona_name ? ` · ${role.persona_name}` : ""}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <small>{composer.selectedCastRole?.voice_source_kind === "catalogue" ? "This catalogue role is restricted to its exact assigned provider voice. You still choose its recording method explicitly." : "An owned-voice role applies its Voice Identity, never a provider route."}</small>
-      </label>}
       <label className="wide">
         <span>Voice</span>
         <VoicePicker identities={composer.identities} value={composer.identityId} directory={composer.directory} playingKey={composer.playingKey} playerPlaying={composer.playerPlaying} onPlay={composer.onPlay} onChange={composer.selectIdentity} />

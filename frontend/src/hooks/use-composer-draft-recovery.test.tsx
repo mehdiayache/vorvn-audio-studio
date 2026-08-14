@@ -16,7 +16,7 @@ import { useComposerDraftRecovery } from "./use-composer-draft-recovery"
 
 function emptyDraft(): RecoverableCompositionDraft {
   return {
-    voiceIdentityId: null, castRoleId: null, route: null,
+    voiceIdentityId: null, route: null,
     text: { raw: "", shaped: "", tagged: "", active: "raw" },
     textPreparation: { tagDensity: "normal", pendingReview: null },
     delivery: { modeId: null, instruction: "", rate: 1, pitch: 1, volume: 50, seed: 0 },

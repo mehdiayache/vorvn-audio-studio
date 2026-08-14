@@ -8,7 +8,7 @@ export type CompositionContext =
   | {
       kind: "production"
       productionId: number
-      operation: "new_part" | "render_draft" | "new_take"
+      operation: "new_part" | "render_draft"
       partId?: number
       insertion: { kind: "before_part"; partId: string | null } | null
     }
@@ -21,13 +21,11 @@ export type EditorialBaseline = {
   partId: number
   revision: number
   script: string
-  castRoleId: string | null
   selectedTakeId: number | null
 }
 
 export type EditorialPatch = {
   script?: string
-  castRoleId?: string | null
 }
 
 export type ComposerText = {
@@ -60,7 +58,6 @@ export type ComposerTextPreparation = {
 
 export type CompositionDraft = {
   voiceIdentityId: string | null
-  castRoleId: string | null
   route: RouteSelection | null
   text: ComposerText
   textPreparation: ComposerTextPreparation
@@ -86,7 +83,6 @@ export type SpeechGenerationCommand = {
   context: CompositionContext
   route: RouteSelection
   voiceIdentityId: string | null
-  castRoleId: string | null
   text: ComposerText
   delivery: ComposerDelivery
   output: ComposerOutput
@@ -101,9 +97,7 @@ export function compositionContext(input: {
   insertBeforePartId?: string | null
 }): CompositionContext {
   if (!input.productionId) return { kind: "standalone" }
-  const operation = input.part
-    ? input.part.kind === "draft" ? "render_draft" : "new_take"
-    : "new_part"
+  const operation = input.part ? "render_draft" : "new_part"
   return {
     kind: "production",
     productionId: input.productionId,
@@ -121,7 +115,6 @@ export function editorialBaseline(part?: ProductionPart | null): EditorialBaseli
     partId: part.id,
     revision: part.revision ?? 1,
     script: part.text_raw || part.text || "",
-    castRoleId: part.cast_role_id || null,
     selectedTakeId: part.selected_take_id ?? null,
   }
 }
@@ -166,7 +159,6 @@ export function buildSpeechCommand(input: {
     context: input.context,
     route: input.draft.route,
     voiceIdentityId: input.draft.voiceIdentityId,
-    castRoleId: input.draft.castRoleId,
     text: input.draft.text,
     delivery: input.draft.delivery,
     output: input.draft.output,
@@ -192,7 +184,6 @@ export function toGeneratePayload(command: SpeechGenerationCommand): GeneratePay
     catalogue_voice_id: command.route.kind === "catalogue" ? command.route.catalogueVoiceId : null,
     capability_id: command.route.capabilityId || null,
     voice_identity_id: command.route.kind === "owned" ? command.voiceIdentityId : null,
-    cast_role_id: command.castRoleId,
     format: command.output.format,
     language: command.output.language || "Auto",
     instruction: command.delivery.instruction,

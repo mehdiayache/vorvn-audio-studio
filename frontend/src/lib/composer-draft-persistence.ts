@@ -11,7 +11,6 @@ export type ComposerDraftWireRecord = {
   id: string
   state: {
     voice_identity_id: string | null
-    cast_role_id: string | null
     route: { kind: "owned" | "catalogue"; binding_id: string | null; catalogue_voice_id: string | null; capability_id: string | null } | null
     text: RecoverableCompositionDraft["text"]
     text_preparation: { tag_density: RecoverableCompositionDraft["textPreparation"]["tagDensity"]; pending_review: { job_id: string; kind: "shape" | "tag" } | null }
@@ -55,7 +54,6 @@ function routeFromWire(route: ComposerDraftWireRecord["state"]["route"]): RouteS
 export function draftWire(draft: RecoverableCompositionDraft): ComposerDraftWireRecord["state"] {
   return {
     voice_identity_id: draft.voiceIdentityId,
-    cast_role_id: draft.castRoleId,
     route: routeWire(draft.route),
     text: draft.text,
     text_preparation: {
@@ -83,7 +81,6 @@ export function draftFromWire(record: ComposerDraftWireRecord): ComposerDraftRec
     updatedAt: record.updated_at,
     state: {
       voiceIdentityId: record.state.voice_identity_id,
-      castRoleId: record.state.cast_role_id,
       route: routeFromWire(record.state.route),
       text: record.state.text,
       textPreparation: {
@@ -107,7 +104,7 @@ export function draftFromWire(record: ComposerDraftWireRecord): ComposerDraftRec
 
 export function meaningfulDraft(draft: RecoverableCompositionDraft) {
   return Boolean(
-    draft.voiceIdentityId || draft.castRoleId || draft.route
+    draft.voiceIdentityId || draft.route
     || draft.text.raw || draft.text.shaped || draft.text.tagged
     || draft.textPreparation.pendingReview || draft.textPreparation.tagDensity !== "normal"
     || draft.delivery.instruction || draft.delivery.modeId

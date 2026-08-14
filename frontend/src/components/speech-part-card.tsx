@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
 import { AudioLines, Captions, ChevronDown, ChevronUp, CircleAlert, Copy, GripVertical, MoreHorizontal, Pause, Pencil, Play, Trash2, Volume2, VolumeX } from "lucide-react"
 
 import { AudioWaveform } from "@/components/audio-waveform"
@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { audioUrl } from "@/lib/api"
 import { textDirection } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import type { DurableJob, GenerateResult, ProductionCastRole, ProductionPart, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GenerateResult, ProductionPart, VoiceDirectory } from "@/types/domain"
 
 import "./speech-part-card.css"
 
@@ -42,11 +42,10 @@ function useRenderedScriptOverflow(text: string, expanded: boolean) {
   return { ref, overflowing }
 }
 
-export function SpeechPartCard({ part, job, captionJob, castRole, index, count, playing, playingPreview = false, directory, onRetryJob, onConfirmJob, onOpenCaptions, actions }: {
+export function SpeechPartCard({ part, job, captionJob, index, count, playing, playingPreview = false, directory, onRetryJob, onConfirmJob, onOpenCaptions, actions }: {
   part: ProductionPart
   job: DurableJob<GenerateResult> | null
   captionJob?: DurableJob<unknown> | null
-  castRole?: ProductionCastRole
   index: number
   count: number
   playing: boolean
@@ -58,12 +57,11 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
   actions: SequenceActions
 }) {
   const [expanded, setExpanded] = useState(false)
-  const facts = speechPartCardFacts({ part, speechJob: job, captionJob, directory, castRole })
+  const facts = speechPartCardFacts({ part, speechJob: job, captionJob, directory })
   const { ref: scriptRef, overflowing } = useRenderedScriptOverflow(facts.script, expanded)
   const openPart = () => actions.openPart(part)
   const openCaptions = () => onOpenCaptions ? onOpenCaptions() : actions.openPart(part, "captions")
   const recordPart = () => actions.recordPart ? actions.recordPart(part) : openPart()
-  const castStyle = facts.castColor ? { "--speech-identity-color": facts.castColor } as CSSProperties : undefined
   const visibleAlerts = facts.alerts.filter((alert) => alert.key !== "draft")
   const identityKey = part.voice_identity_id || part.catalogue_voice_id || part.voice || part.public_id || String(part.id)
   const identityTone = Array.from(String(identityKey)).reduce((sum, character) => sum + character.charCodeAt(0), 0) % 4 + 2
@@ -72,7 +70,7 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
   const danger = facts.captionTone === "danger" || visibleAlerts.some((alert) => alert.tone === "danger") || facts.operation.kind === "failed"
   const enabled = part.enabled !== false
 
-  return <article id={`part-${part.id}`} style={castStyle} data-operation={operationTone || undefined} className={cn("sequence-card speech-part-card", `identity-tone-${identityTone}`, `input-${facts.inputLabel?.toLowerCase() || "unknown"}`, !facts.recorded && "draft", !enabled && "is-disabled", playing && "playing", playingPreview && "playing-preview", warning && "has-warning", danger && "has-danger", part.missing && "missing", facts.castName && "has-cast", facts.operation.kind !== "idle" && "has-operation")}>
+  return <article id={`part-${part.id}`} data-operation={operationTone || undefined} className={cn("sequence-card speech-part-card", `identity-tone-${identityTone}`, `input-${facts.inputLabel?.toLowerCase() || "unknown"}`, !facts.recorded && "draft", !enabled && "is-disabled", playing && "playing", playingPreview && "playing-preview", warning && "has-warning", danger && "has-danger", part.missing && "missing", facts.operation.kind !== "idle" && "has-operation")}>
     <span className="speech-part-identity-rail" aria-hidden="true" />
     <div className="speech-part-order">
       <div className="speech-part-number">
@@ -90,11 +88,8 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
           <TooltipTrigger asChild><button className="speech-part-heading" onClick={openPart} aria-label={`Open details for part ${index + 1}`}>
             <VoiceIdentity voice={part.voice_name || part.voice} identityId={part.voice_identity_id} directory={directory} compact showCopy={false} showEditorialFlag={false} />
             <span className="speech-part-heading-copy">
-              {facts.castName
-                ? <><b className="speech-part-role-name">{facts.castName}</b><span className="speech-part-selected-voice">{facts.selectedVoiceName}</span></>
-                : <b className="speech-part-voice-name">{facts.selectedVoiceName}</b>}
+              <b className="speech-part-voice-name">{facts.selectedVoiceName}</b>
               <span className="speech-part-method">{facts.methodLine}</span>
-              {facts.futureVoiceName && <span className="speech-part-future-voice">Future recordings · {facts.futureVoiceName}</span>}
             </span>
           </button></TooltipTrigger>
           <TooltipContent>{facts.technicalDetail || "Active recording method"}</TooltipContent>

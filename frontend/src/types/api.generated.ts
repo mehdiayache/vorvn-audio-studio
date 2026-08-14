@@ -38,23 +38,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/cast-roles/{role_id}/assignment": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Recast */
-        patch: operations["recast_api_v1_cast_roles__role_id__assignment_patch"];
-        trace?: never;
-    };
     "/api/v1/composer-drafts": {
         parameters: {
             query?: never;
@@ -390,24 +373,6 @@ export interface paths {
         get: operations["listProductionAssets"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/cast": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Production Cast */
-        get: operations["production_cast_api_v1_productions__production_id__cast_get"];
-        put?: never;
-        /** Create Cast Role */
-        post: operations["create_cast_role_api_v1_productions__production_id__cast_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1212,24 +1177,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/ventures/{venture_id}/personas": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Personas */
-        get: operations["list_personas_api_v1_ventures__venture_id__personas_get"];
-        put?: never;
-        /** Create Persona */
-        post: operations["create_persona_api_v1_ventures__venture_id__personas_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/ventures/{venture_id}/projects": {
         parameters: {
             query?: never;
@@ -1798,29 +1745,6 @@ export interface components {
             /** Text */
             text: string;
         };
-        /** CastRoleCreate */
-        CastRoleCreate: {
-            /** Catalogue Voice Id */
-            catalogue_voice_id?: string | null;
-            /**
-             * Color
-             * @default
-             */
-            color: string;
-            /** Name */
-            name: string;
-            /** Persona Id */
-            persona_id?: string | null;
-            /** Position */
-            position?: number | null;
-            /** Voice Identity Id */
-            voice_identity_id?: string | null;
-            /**
-             * Voice Source Kind
-             * @enum {string}
-             */
-            voice_source_kind: "identity" | "catalogue";
-        };
         /** CollectionMetaResponse */
         CollectionMetaResponse: {
             /** Count */
@@ -1832,8 +1756,6 @@ export interface components {
         };
         /** ComposerState */
         ComposerState: {
-            /** Cast Role Id */
-            cast_role_id?: string | null;
             delivery: components["schemas"]["DeliveryState"];
             output: components["schemas"]["OutputState"];
             route?: components["schemas"]["RouteState"] | null;
@@ -1945,8 +1867,6 @@ export interface components {
             binding_id?: string | null;
             /** Capability Id */
             capability_id?: string | null;
-            /** Cast Role Id */
-            cast_role_id?: string | null;
             /** Catalogue Voice Id */
             catalogue_voice_id?: string | null;
             /**
@@ -2065,8 +1985,6 @@ export interface components {
         };
         /** EditorialBody */
         EditorialBody: {
-            /** Cast Role Id */
-            cast_role_id?: string | null;
             /** Expected Revision */
             expected_revision: number;
             /** Script */
@@ -2177,13 +2095,6 @@ export interface components {
             /** Provider Voice Id */
             provider_voice_id: string;
         };
-        /** ItemEnvelope */
-        ItemEnvelope: {
-            /** Data */
-            data: {
-                [key: string]: unknown;
-            };
-        };
         /** JobCreatedEnvelope */
         JobCreatedEnvelope: {
             data: components["schemas"]["JobResponse"];
@@ -2259,13 +2170,6 @@ export interface components {
             status: string;
             /** Type */
             type: string;
-        };
-        /** ListEnvelope */
-        ListEnvelope: {
-            /** Data */
-            data: {
-                [key: string]: unknown;
-            }[];
         };
         /** MoveBody */
         MoveBody: {
@@ -2511,36 +2415,6 @@ export interface components {
             /** Name */
             name: string;
         };
-        /** PersonaCreate */
-        PersonaCreate: {
-            /** Aliases */
-            aliases?: string[];
-            /**
-             * Description
-             * @default
-             */
-            description: string;
-            /**
-             * Image
-             * @default
-             */
-            image: string;
-            /** Metadata */
-            metadata?: {
-                [key: string]: unknown;
-            };
-            /** Name */
-            name: string;
-            /**
-             * Notes
-             * @default
-             */
-            notes: string;
-            /** Presentation */
-            presentation?: {
-                [key: string]: unknown;
-            };
-        };
         /** ProductionAccountingResponse */
         ProductionAccountingResponse: {
             /** Current Sequence Cost */
@@ -2682,10 +2556,6 @@ export interface components {
             caption_job?: components["schemas"]["PartCaptionJobResponse"] | null;
             /** Caption Source Language */
             caption_source_language?: string | null;
-            /** Cast Role Id */
-            cast_role_id?: string | null;
-            /** Cast Role Name */
-            cast_role_name?: string | null;
             /** Catalogue Voice Id */
             catalogue_voice_id?: string | null;
             /** Chars */
@@ -3293,8 +3163,6 @@ export interface components {
             binding_id?: string | null;
             /** Capability Id */
             capability_id?: string | null;
-            /** Cast Role Id */
-            cast_role_id?: string | null;
             /** Catalogue Voice Id */
             catalogue_voice_id?: string | null;
             /**
@@ -4149,18 +4017,6 @@ export interface components {
             /** Trail */
             trail: components["schemas"]["TrailItemResponse"][];
         };
-        /** VoiceAssignment */
-        VoiceAssignment: {
-            /** Catalogue Voice Id */
-            catalogue_voice_id?: string | null;
-            /** Voice Identity Id */
-            voice_identity_id?: string | null;
-            /**
-             * Voice Source Kind
-             * @enum {string}
-             */
-            voice_source_kind: "identity" | "catalogue";
-        };
         /** VoiceBindingResponse */
         VoiceBindingResponse: {
             /** Accent */
@@ -4981,41 +4837,6 @@ export interface operations {
             };
         };
     };
-    recast_api_v1_cast_roles__role_id__assignment_patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                role_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VoiceAssignment"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ItemEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     saveComposerDraft: {
         parameters: {
             query?: never;
@@ -5678,72 +5499,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VentureAssetLibraryEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    production_cast_api_v1_productions__production_id__cast_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ListEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_cast_role_api_v1_productions__production_id__cast_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CastRoleCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ItemEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -7591,72 +7346,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VentureOverviewEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_personas_api_v1_ventures__venture_id__personas_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                venture_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ListEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_persona_api_v1_ventures__venture_id__personas_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                venture_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PersonaCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ItemEnvelope"];
                 };
             };
             /** @description Validation Error */

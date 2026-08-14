@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { selectedTakeInputLabel, speechPartCardFacts } from "./speech-part-card-model"
-import type { DurableJob, GenerateResult, ProductionCastRole, ProductionPart, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GenerateResult, ProductionPart, VoiceDirectory } from "@/types/domain"
 
 const directory = {
   config: {
@@ -25,25 +25,16 @@ function part(values: Partial<ProductionPart> = {}): ProductionPart {
     engine: "audio", tier: "flash", model: "qwen-audio-3.0-tts-flash",
     capability_name: "Expressive + tags", language: "English",
     duration_ms: 12420, spent: .0312, cost: .01,
-    cast_role_id: "role-paul", cast_role_name: "Paul",
     filename: "part-12.mp3", caption_source_language: "English",
     subtitled: true, languages: ["French"],
     ...values,
   }
 }
 
-const castRole = {
-  id: "role-paul", name: "Paul", color: "#7567d8", position: 0,
-  persona_id: null, persona_name: null, voice_source_kind: "identity",
-  voice_identity_id: "voice-eve", catalogue_voice_id: null,
-  assignment_revision: 2,
-} satisfies ProductionCastRole
-
 describe("speechPartCardFacts", () => {
-  it("describes the active recording while separating future Cast voice", () => {
-    const facts = speechPartCardFacts({ part: part(), speechJob: null, directory, castRole })
+  it("describes the selected immutable recording voice", () => {
+    const facts = speechPartCardFacts({ part: part(), speechJob: null, directory })
     expect(facts.selectedVoiceName).toBe("Maya")
-    expect(facts.futureVoiceName).toBe("Eve")
     expect(facts.methodLine).toBe("Qwen Audio · Flash · Expressive + tags · EN")
     expect(facts.technicalDetail).toContain("Language: English")
     expect(facts.recordingSummary).toBe("Active recording · 0:12.4 · Spoken input")

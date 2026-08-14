@@ -105,7 +105,6 @@ class SpeechJobCreate(BaseModel):
     binding_id: UUID | None = None
     catalogue_voice_id: str | None = Field(default=None, max_length=700)
     capability_id: str | None = Field(default=None, max_length=120)
-    cast_role_id: UUID | None = None
     format: Literal["mp3", "mp3-24k", "wav", "opus"] = "mp3"
     language: str = Field(default="Auto", max_length=80)
     instruction: str = Field(default="", max_length=100)

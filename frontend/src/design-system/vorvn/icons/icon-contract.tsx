@@ -9,7 +9,7 @@ import type { LucideIcon } from "lucide-react"
 export type StudioIconRole =
   | "studio" | "work" | "venture" | "project" | "series" | "production"
   | "speak" | "voices" | "subtitles" | "activity" | "settings"
-  | "cast" | "speech" | "music" | "play" | "pause" | "volume"
+  | "speech" | "music" | "play" | "pause" | "volume"
   | "search" | "menu" | "close" | "success" | "warning" | "retry"
   | "expand" | "cost" | "sparkles"
 
@@ -25,7 +25,6 @@ export const studioIcons: Record<StudioIconRole, LucideIcon> = {
   subtitles: Captions,
   activity: Activity,
   settings: Settings2,
-  cast: UsersRound,
   speech: WandSparkles,
   music: Music2,
   play: Play,

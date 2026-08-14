@@ -20,7 +20,7 @@ PLAUSIBLE_CHARACTERS_PER_SECOND = 25
 _SETTING_FIELDS = (
     "text", "text_raw", "text_shaped", "text_tagged", "text_state",
     "voice", "voice_identity_id", "binding_id", "catalogue_voice_id",
-    "capability_id", "cast_role_id", "engine", "model", "format", "language",
+    "capability_id", "engine", "model", "format", "language",
     "instruction", "speech_mode", "rate", "pitch", "volume", "seed",
 )
 
@@ -32,9 +32,6 @@ class SpeechRepository(Protocol):
     def today_spend(self) -> float: ...
     def production(self, production_id: int) -> dict | None: ...
     def part(self, part_id: int, production_id: int) -> dict | None: ...
-    def cast_assignment(self, production_id: int, role_id: str,
-                        *, voice_identity_id: str | None,
-                        catalogue_voice_id: str | None) -> dict: ...
     def create_part(self, production_id: int | None, insert_at: int | None,
                     values: dict[str, Any]) -> int | None: ...
     def replace_part(self, part_id: int, production_id: int,
@@ -61,7 +58,7 @@ def _defaults(values: dict) -> dict:
         "text": "", "text_raw": None, "text_shaped": None,
         "text_tagged": None, "text_state": "raw", "voice": "",
         "voice_identity_id": None, "binding_id": None,
-        "catalogue_voice_id": None, "capability_id": None, "cast_role_id": None,
+        "catalogue_voice_id": None, "capability_id": None,
         "engine": "audio", "model": "plus",
         "format": "mp3", "language": "Auto", "instruction": "",
         "speech_mode": "exact", "rate": 1, "pitch": 1, "volume": 50,
@@ -127,8 +124,6 @@ def _record(prepared: PreparedSpeech, result: SynthesizedSpeech,
         "model_id": prepared.model_id,
         "tier": prepared.tier,
         "segmentation": {"requests": prepared.request_count},
-        "cast_role_id": values.get("cast_role_id"),
-        "_cast_snapshot": values.get("_cast_snapshot") or {},
         "diagnostics": {"provider": result.diagnostics,
                         "request_ids": result.request_ids,
                         "fidelity": result.fidelity,
@@ -199,13 +194,6 @@ class SpeechGenerationService:
             pronunciations=self.repository.pronunciations(),
             preferences=preferences,
         )
-        cast_role_id = str(effective.get("cast_role_id") or "").strip()
-        if production_id is not None and cast_role_id:
-            effective["_cast_snapshot"] = self.repository.cast_assignment(
-                production_id, cast_role_id,
-                voice_identity_id=prepared.voice_identity_id,
-                catalogue_voice_id=prepared.catalogue_voice_id)
-
         estimate = prepared.estimated_cost
         job_id = int(values.get("_job_id") or 0)
         reservation_id = None
@@ -363,8 +351,6 @@ class SpeechGenerationService:
                         created_part_id, production_id)
                     if created_part and created_part.get("selected_take_id"):
                         mutation["take_id"] = int(created_part["selected_take_id"])
-                    elif created_part and cast_role_id:
-                        mutation["cast_changed"] = 1
             else:
                 assert (part is not None and part_id is not None
                         and production_id is not None)
@@ -402,10 +388,6 @@ class SpeechGenerationService:
                    "The paid provider result remains in Activity evidence but "
                    "was not attached to the Part."
                    if mutation.get("selected") == 0 else
-                   "The Cast changed while this recording was generating. "
-                   "The paid provider result remains in Activity evidence but "
-                   "was not attached to the Part."
-                   if mutation.get("cast_changed") else
                    _fidelity_warning(made) or _truncation_warning(
                        prepared, saved.duration_ms))
         request_ids = list(made.request_ids)

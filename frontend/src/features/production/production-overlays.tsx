@@ -3,11 +3,11 @@ import { ProductionToolDialog, type ToolKind } from "@/components/production-too
 import { ProductionComposerDialog } from "@/features/composer/production-composer-host"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import type { DurableJob, GeneratePayload, GenerateResult, PlayerSource, ProductionCastRole, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, PlayerSource, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
 
 export type ConfirmAction = { title: string; description: string; action: () => void }
 
-export default function ProductionOverlays({ tool, productionId, nextPartNumber, insertAt, insertBeforePartId, composerPart, replacingAssetId, initialMusicAssetId, config, directory, cast, assets, assetCollectionIds, playingKey, playerPlaying, activeDetail, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertAsset, onSetMusic, onUploadAsset, onPlay, onCloseDetail, onDetailChanged, onDuplicate, onDeleteDetail, onRecordPart, onConfirmAction }: {
+export default function ProductionOverlays({ tool, productionId, nextPartNumber, insertAt, insertBeforePartId, composerPart, replacingAssetId, initialMusicAssetId, config, directory, assets, assetCollectionIds, playingKey, playerPlaying, activeDetail, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertAsset, onSetMusic, onUploadAsset, onPlay, onCloseDetail, onDetailChanged, onDuplicate, onDeleteDetail, onRecordPart, onConfirmAction }: {
   tool: ToolKind
   productionId: number
   nextPartNumber: number
@@ -18,7 +18,6 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
   initialMusicAssetId?: number | null
   config: StudioConfig | null
   directory: VoiceDirectory
-  cast: ProductionCastRole[]
   assets: VentureAsset[]
   assetCollectionIds: Record<string, number>
   playingKey?: string
@@ -27,7 +26,7 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
   confirmAction: ConfirmAction | null
   onCloseTool: () => void
   onSaveDraft: (payload: Omit<GeneratePayload, "confirmed">) => Promise<void>
-  onUpdateEditorial: (values: { expected_revision: number; script?: string; cast_role_id?: string | null }) => Promise<void>
+  onUpdateEditorial: (values: { expected_revision: number; script?: string }) => Promise<void>
   onGenerate: (payload: GeneratePayload) => Promise<DurableJob<GenerateResult>>
   onAddSilence: (seconds: number) => Promise<void>
   onInsertAsset: (asset: VentureAsset) => Promise<void>
@@ -52,7 +51,6 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
       part={composerPart}
       config={config}
       directory={directory}
-      cast={cast}
       playingKey={playingKey}
       playerPlaying={playerPlaying}
       onClose={onCloseTool}

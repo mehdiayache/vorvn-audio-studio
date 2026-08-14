@@ -64,9 +64,8 @@ describe("Part Inspector panels", () => {
   })
 
   it("shows Draft editorial facts without pretending a recording route exists", () => {
-    render(<PartInspectorDetails part={{ ...part, kind: "draft", selected_take_id: null, cast_role_id: "role-1" }} directory={directory} />)
+    render(<PartInspectorDetails part={{ ...part, kind: "draft", selected_take_id: null }} directory={directory} />)
     expect(screen.getByText("Draft speech")).toBeTruthy()
-    expect(screen.getByText("role-1")).toBeTruthy()
     expect(screen.queryByText("Recording route")).toBeNull()
     expect(screen.queryByText("Immutable evidence")).toBeNull()
   })

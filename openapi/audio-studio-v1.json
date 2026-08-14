@@ -950,84 +950,6 @@
         "title": "CaptionWordResponse",
         "type": "object"
       },
-      "CastRoleCreate": {
-        "additionalProperties": false,
-        "properties": {
-          "catalogue_voice_id": {
-            "anyOf": [
-              {
-                "maxLength": 700,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Catalogue Voice Id"
-          },
-          "color": {
-            "default": "",
-            "maxLength": 40,
-            "title": "Color",
-            "type": "string"
-          },
-          "name": {
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Name",
-            "type": "string"
-          },
-          "persona_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Persona Id"
-          },
-          "position": {
-            "anyOf": [
-              {
-                "minimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Position"
-          },
-          "voice_identity_id": {
-            "anyOf": [
-              {
-                "maxLength": 200,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Voice Identity Id"
-          },
-          "voice_source_kind": {
-            "enum": [
-              "identity",
-              "catalogue"
-            ],
-            "title": "Voice Source Kind",
-            "type": "string"
-          }
-        },
-        "required": [
-          "voice_source_kind",
-          "name"
-        ],
-        "title": "CastRoleCreate",
-        "type": "object"
-      },
       "CollectionMetaResponse": {
         "properties": {
           "count": {
@@ -1061,17 +983,6 @@
       "ComposerState": {
         "additionalProperties": false,
         "properties": {
-          "cast_role_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cast Role Id"
-          },
           "delivery": {
             "$ref": "#/components/schemas/DeliveryState"
           },
@@ -1376,17 +1287,6 @@
               }
             ],
             "title": "Capability Id"
-          },
-          "cast_role_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cast Role Id"
           },
           "catalogue_voice_id": {
             "anyOf": [
@@ -1715,17 +1615,6 @@
       "EditorialBody": {
         "additionalProperties": false,
         "properties": {
-          "cast_role_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cast Role Id"
-          },
           "expected_revision": {
             "minimum": 1.0,
             "title": "Expected Revision",
@@ -2074,20 +1963,6 @@
         "title": "HistoryLink",
         "type": "object"
       },
-      "ItemEnvelope": {
-        "properties": {
-          "data": {
-            "additionalProperties": true,
-            "title": "Data",
-            "type": "object"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "ItemEnvelope",
-        "type": "object"
-      },
       "JobCreatedEnvelope": {
         "properties": {
           "data": {
@@ -2308,23 +2183,6 @@
           "result"
         ],
         "title": "JobResponse",
-        "type": "object"
-      },
-      "ListEnvelope": {
-        "properties": {
-          "data": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "title": "Data",
-            "type": "array"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "ListEnvelope",
         "type": "object"
       },
       "MoveBody": {
@@ -3113,58 +2971,6 @@
         "title": "PerformancePresetResponse",
         "type": "object"
       },
-      "PersonaCreate": {
-        "additionalProperties": false,
-        "properties": {
-          "aliases": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 100,
-            "title": "Aliases",
-            "type": "array"
-          },
-          "description": {
-            "default": "",
-            "maxLength": 5000,
-            "title": "Description",
-            "type": "string"
-          },
-          "image": {
-            "default": "",
-            "maxLength": 1000,
-            "title": "Image",
-            "type": "string"
-          },
-          "metadata": {
-            "additionalProperties": true,
-            "title": "Metadata",
-            "type": "object"
-          },
-          "name": {
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Name",
-            "type": "string"
-          },
-          "notes": {
-            "default": "",
-            "maxLength": 20000,
-            "title": "Notes",
-            "type": "string"
-          },
-          "presentation": {
-            "additionalProperties": true,
-            "title": "Presentation",
-            "type": "object"
-          }
-        },
-        "required": [
-          "name"
-        ],
-        "title": "PersonaCreate",
-        "type": "object"
-      },
       "ProductionAccountingResponse": {
         "properties": {
           "current_sequence_cost": {
@@ -3665,28 +3471,6 @@
               }
             ],
             "title": "Caption Source Language"
-          },
-          "cast_role_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cast Role Id"
-          },
-          "cast_role_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cast Role Name"
           },
           "catalogue_voice_id": {
             "anyOf": [
@@ -5614,18 +5398,6 @@
               }
             ],
             "title": "Capability Id"
-          },
-          "cast_role_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cast Role Id"
           },
           "catalogue_voice_id": {
             "anyOf": [
@@ -7912,48 +7684,6 @@
           "recent_productions"
         ],
         "title": "VentureOverviewResponse",
-        "type": "object"
-      },
-      "VoiceAssignment": {
-        "additionalProperties": false,
-        "properties": {
-          "catalogue_voice_id": {
-            "anyOf": [
-              {
-                "maxLength": 700,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Catalogue Voice Id"
-          },
-          "voice_identity_id": {
-            "anyOf": [
-              {
-                "maxLength": 200,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Voice Identity Id"
-          },
-          "voice_source_kind": {
-            "enum": [
-              "identity",
-              "catalogue"
-            ],
-            "title": "Voice Source Kind",
-            "type": "string"
-          }
-        },
-        "required": [
-          "voice_source_kind"
-        ],
-        "title": "VoiceAssignment",
         "type": "object"
       },
       "VoiceBindingResponse": {
@@ -10517,58 +10247,6 @@
         ]
       }
     },
-    "/api/v1/cast-roles/{role_id}/assignment": {
-      "patch": {
-        "operationId": "recast_api_v1_cast_roles__role_id__assignment_patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "role_id",
-            "required": true,
-            "schema": {
-              "title": "Role Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VoiceAssignment"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ItemEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Recast",
-        "tags": [
-          "casting"
-        ]
-      }
-    },
     "/api/v1/composer-drafts": {
       "delete": {
         "operationId": "deleteComposerDraft",
@@ -11547,98 +11225,6 @@
         "summary": "List Production Assets",
         "tags": [
           "work"
-        ]
-      }
-    },
-    "/api/v1/productions/{production_id}/cast": {
-      "get": {
-        "operationId": "production_cast_api_v1_productions__production_id__cast_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "production_id",
-            "required": true,
-            "schema": {
-              "title": "Production Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ListEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Production Cast",
-        "tags": [
-          "casting"
-        ]
-      },
-      "post": {
-        "operationId": "create_cast_role_api_v1_productions__production_id__cast_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "production_id",
-            "required": true,
-            "schema": {
-              "title": "Production Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CastRoleCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ItemEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Create Cast Role",
-        "tags": [
-          "casting"
         ]
       }
     },
@@ -14238,98 +13824,6 @@
         "summary": "Get Venture Overview",
         "tags": [
           "work"
-        ]
-      }
-    },
-    "/api/v1/ventures/{venture_id}/personas": {
-      "get": {
-        "operationId": "list_personas_api_v1_ventures__venture_id__personas_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "venture_id",
-            "required": true,
-            "schema": {
-              "title": "Venture Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ListEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "List Personas",
-        "tags": [
-          "casting"
-        ]
-      },
-      "post": {
-        "operationId": "create_persona_api_v1_ventures__venture_id__personas_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "venture_id",
-            "required": true,
-            "schema": {
-              "title": "Venture Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PersonaCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ItemEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Create Persona",
-        "tags": [
-          "casting"
         ]
       }
     },

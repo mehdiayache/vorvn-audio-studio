@@ -27,7 +27,7 @@ export function ComposerRecordingContext({ presentation }: { presentation: Compo
     <summary className="composer-recording-summary">
       <span className="composer-recording-status" aria-hidden="true">{incomplete ? <CircleAlert /> : <CheckCircle2 />}</span>
       <div className="composer-recording-primary">
-        <span><Mic2 /><b>{composer.selectedIdentity?.name || "Choose a Voice"}</b>{composer.selectedCastRole && <em>{composer.selectedCastRole.name}</em>}</span>
+        <span><Mic2 /><b>{composer.selectedIdentity?.name || "Choose a Voice"}</b></span>
         <small>{composer.currentRoute ? `${composer.methodLabel} · ${composer.currentRoute.modelId}` : "Exact recording method required"}</small>
       </div>
       <div className="composer-recording-facts"><span>{composer.language}</span><span>{composer.format.toUpperCase()}</span><span>{presentation === "mega" ? "Speak" : "Production"}</span></div>

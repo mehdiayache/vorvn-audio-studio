@@ -36,7 +36,6 @@ const ownedRoute: VoiceChoice = {
 function draft(route: CompositionDraft["route"]): CompositionDraft {
   return {
     voiceIdentityId: "identity-1",
-    castRoleId: null,
     route,
     text: { raw: "Hello", shaped: "", tagged: "", active: "raw" },
     textPreparation: { tagDensity: "normal", pendingReview: null },
@@ -106,8 +105,8 @@ describe("provider-neutral Composer contract", () => {
   })
 
   it("keeps existing Part truth as a read-only editorial baseline", () => {
-    const part = { id: 9, revision: 4, text: "Current script", cast_role_id: "role-1", selected_take_id: 12 } as ProductionPart
-    expect(editorialBaseline(part)).toEqual({ partId: 9, revision: 4, script: "Current script", castRoleId: "role-1", selectedTakeId: 12 })
+    const part = { id: 9, revision: 4, text: "Current script", selected_take_id: 12 } as ProductionPart
+    expect(editorialBaseline(part)).toEqual({ partId: 9, revision: 4, script: "Current script", selectedTakeId: 12 })
   })
 
   it("restores exact routes only from an explicitly saved Draft, never a recorded Part", () => {
