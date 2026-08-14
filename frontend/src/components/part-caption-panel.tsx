@@ -9,9 +9,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { CaptionConfirmation } from "@/hooks/use-part-detail-data"
+import { useCaptionPresentation } from "@/lib/caption-presentation"
 import { formatDuration } from "@/lib/format"
 import { studioApi } from "@/lib/api"
-import type { CaptionLayout, CaptionMutationResult, CaptionProfile, DurableJob, Transcript, TranscriptSummary } from "@/types/domain"
+import type { CaptionLayout, CaptionMutationResult, DurableJob, Transcript, TranscriptSummary } from "@/types/domain"
 
 function downloadText(filename: string, body: string) {
   const link = document.createElement("a")
@@ -44,7 +45,7 @@ export function PartCaptionPanel({ captions, transcript, languages, sourceLangua
   onDismissJob: () => void
 }) {
   const [format, setFormat] = useState<"text" | "srt" | "vtt" | "json">("text")
-  const [profile, setProfile] = useState<CaptionProfile>("standard")
+  const [profile, setProfile] = useCaptionPresentation()
   const [layout, setLayout] = useState<CaptionLayout | null>(null)
   const [layoutBusy, setLayoutBusy] = useState(false)
   const original = captions.find((item) => !item.is_translation)

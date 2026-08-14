@@ -3,6 +3,7 @@ import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { usePlayer } from "@/hooks/use-player"
+import { setCaptionPresentation } from "@/lib/caption-presentation"
 
 class FakeAudio extends EventTarget {
   preload = ""
@@ -40,6 +41,8 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  setCaptionPresentation("standard")
+  window.localStorage.clear()
   cleanup()
   vi.unstubAllGlobals()
 })
@@ -132,6 +135,27 @@ describe("usePlayer", () => {
     expect(result.current.currentCaptionCue?.text).toContain("vieille porte")
     act(() => result.current.toggleCaptions())
     expect(result.current.currentCaptionCue).toBeNull()
+  })
+
+  it("switches the current cue between reusable caption presentations", async () => {
+    const { result } = renderHook(() => usePlayer())
+    await act(async () => result.current.toggleSource({
+      key: "part:9", url: "/audio/part.mp3", title: "Part 9", kind: "take",
+      captionTracks: [{
+        id: "en", language: "English", label: "English · Original", stale: false,
+        cues: [{ startMs: 0, endMs: 2000, text: "The complete sentence.", partId: 9 }],
+        presentations: {
+          standard: [{ startMs: 0, endMs: 2000, text: "The complete sentence.", partId: 9 }],
+          short: [{ startMs: 0, endMs: 2000, text: "Complete sentence", partId: 9 }],
+          words: [{ startMs: 0, endMs: 2000, text: "Complete", partId: 9 }],
+        },
+      }],
+    }))
+    act(() => result.current.setCaptionTrack("en"))
+    expect(result.current.currentCaptionCue?.text).toBe("The complete sentence.")
+    act(() => result.current.setCaptionProfile("words"))
+    expect(result.current.captionProfile).toBe("words")
+    expect(result.current.currentCaptionCue?.text).toBe("Complete")
   })
 
   it("keeps playback errors observable until the operator closes the source", async () => {

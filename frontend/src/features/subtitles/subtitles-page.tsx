@@ -13,6 +13,7 @@ import { ToolPageHeader } from "@/design-system/vorvn"
 import { useJobExecution } from "@/hooks/use-job-execution"
 import { useJobQuery } from "@/hooks/use-job-query"
 import { studioApi } from "@/lib/api"
+import { buildCaptionPlayerTrack, useCaptionPresentation } from "@/lib/caption-presentation"
 import type { CaptionLayout, CaptionMutationResult, CaptionProfile, ExternalAudioUpload, ExternalTranscriptSummary, Transcript } from "@/types/domain"
 
 import { SubtitleHistory } from "./subtitle-history"
@@ -47,7 +48,7 @@ export function SubtitlesPage() {
   const [error, setError] = useState("")
   const [transcript, setTranscript] = useState<Transcript | null>(null)
   const [translationLanguage, setTranslationLanguage] = useState("Arabic")
-  const [profile, setProfile] = useState<CaptionProfile>("standard")
+  const [profile, setProfile] = useCaptionPresentation()
   const [layout, setLayout] = useState<CaptionLayout | null>(null)
   const [layoutBusy, setLayoutBusy] = useState(false)
   const active = Boolean(job && ["queued", "running", "retrying"].includes(job.status))
@@ -118,7 +119,11 @@ export function SubtitlesPage() {
   async function playAt(seconds = 0) {
     if (!transcript?.url) return
     const key = `subtitle:${transcript.id}`
-    if (player.source?.key !== key) await player.toggleSource({ key, url: transcript.url, title: transcript.file, subtitle: "Subtitle source", kind: "subtitle" })
+    if (player.source?.key !== key) {
+      const languageLabel = String(transcript.language || "").trim() || "Original captions"
+      const captionTrack = await buildCaptionPlayerTrack({ transcript, language: languageLabel, label: languageLabel })
+      await player.toggleSource({ key, url: transcript.url, title: transcript.file, subtitle: "Subtitle source", kind: "subtitle", captionTracks: [captionTrack] })
+    }
     else if (player.state !== "playing") await player.toggle()
     player.seek(seconds)
   }

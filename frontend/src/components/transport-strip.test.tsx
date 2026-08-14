@@ -69,6 +69,7 @@ describe("TransportStrip", () => {
 
   it("selects CC languages and opens the current cue context", async () => {
     const onCaptionTrack = vi.fn()
+    const onCaptionProfile = vi.fn()
     const onOpenCaptionContext = vi.fn()
     render(<TransportStripView {...props}
       captionTracks={[{ id: "en", language: "English", label: "English · Original", stale: false, cues: [] }]}
@@ -76,6 +77,7 @@ describe("TransportStrip", () => {
       captionsEnabled
       currentCaptionCue={{ startMs: 0, endMs: 2000, text: "The light changes before the rain.", partId: 12 }}
       onCaptionTrack={onCaptionTrack}
+      onCaptionProfile={onCaptionProfile}
       onOpenCaptionContext={onOpenCaptionContext}
     />)
     fireEvent.click(screen.getByRole("button", { name: /The light changes/ }))
@@ -83,6 +85,21 @@ describe("TransportStrip", () => {
     fireEvent.pointerDown(screen.getByRole("button", { name: "Captions on · English" }), { button: 0, ctrlKey: false })
     fireEvent.click(await screen.findByRole("menuitemradio", { name: "Off" }))
     expect(onCaptionTrack).toHaveBeenCalledWith(null)
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Captions on · English" }), { button: 0, ctrlKey: false })
+    fireEvent.click(await screen.findByRole("menuitemradio", { name: "Word by word" }))
+    expect(onCaptionProfile).toHaveBeenCalledWith("words")
+  })
+
+  it("identifies the active reusable display mode on the caption reader", () => {
+    render(<TransportStripView {...props}
+      captionProfile="short"
+      captionTracks={[{ id: "en", language: "English", label: "English · Original", stale: false, cues: [] }]}
+      captionTrack={{ id: "en", language: "English", label: "English · Original", stale: false, cues: [] }}
+      captionsEnabled
+      currentCaptionCue={{ startMs: 0, endMs: 2000, text: "Before the rain." }}
+    />)
+    expect(screen.getByRole("region", { name: "Audio player" }).getAttribute("data-caption-profile")).toBe("short")
+    expect(screen.getByText("Short")).toBeTruthy()
   })
 
   it("marks an old Production preview and offers an explicit refresh", () => {

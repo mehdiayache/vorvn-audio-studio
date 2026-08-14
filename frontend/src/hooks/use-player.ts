@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
+import { useCaptionPresentation } from "@/lib/caption-presentation"
 import type { PlayerCaptionTrack, PlayerSource } from "@/types/domain"
 
 export type PlayerState = "idle" | "loading" | "playing" | "paused" | "error"
@@ -16,6 +17,7 @@ export function usePlayer() {
   const [captionsEnabled, setCaptionsEnabled] = useState(false)
   const [captionTrackId, setCaptionTrackIdState] = useState<string | null>(null)
   const captionTrackIdRef = useRef<string | null>(null)
+  const [captionProfile, setCaptionProfile] = useCaptionPresentation()
 
   useEffect(() => {
     const element = new Audio()
@@ -154,10 +156,11 @@ export function usePlayer() {
 
   const captionTracks = source?.captionTracks || []
   const captionTrack: PlayerCaptionTrack | null = captionTracks.find((track) => track.id === captionTrackId) || captionTracks[0] || null
+  const captionCues = captionTrack?.presentations?.[captionProfile] || captionTrack?.cues || []
   const positionMs = currentTime * 1000
   const currentCaptionCue = captionsEnabled && captionTrack
-    ? captionTrack.cues.find((cue) => positionMs >= cue.startMs && positionMs < Math.max(cue.startMs + 1, cue.endMs)) || null
+    ? captionCues.find((cue) => positionMs >= cue.startMs && positionMs < Math.max(cue.startMs + 1, cue.endMs)) || null
     : null
 
-  return { source, state, currentTime, duration, volume, speed, captionTracks, captionTrack, captionsEnabled, currentCaptionCue, toggleSource, toggle, pause, seek, setVolume, setSpeed, close, setCaptionTrack, toggleCaptions }
+  return { source, state, currentTime, duration, volume, speed, captionTracks, captionTrack, captionProfile, captionsEnabled, currentCaptionCue, toggleSource, toggle, pause, seek, setVolume, setSpeed, close, setCaptionTrack, setCaptionProfile, toggleCaptions }
 }

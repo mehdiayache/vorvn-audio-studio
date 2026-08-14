@@ -535,4 +535,5 @@ export type PlayerCaptionTrack = {
   label: string
   stale: boolean
   cues: PlayerCaptionCue[]
+  presentations?: Record<CaptionProfile, PlayerCaptionCue[]>
 }

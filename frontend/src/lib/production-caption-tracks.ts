@@ -1,4 +1,5 @@
 import { studioApi } from "@/lib/api"
+import { buildCaptionPlayerTrack, CAPTION_PRESENTATION_MODES } from "@/lib/caption-presentation"
 import { partDurationMs } from "@/lib/format"
 import type { PlayerCaptionTrack, ProductionPart, Transcript, TranscriptSummary } from "@/types/domain"
 
@@ -6,20 +7,26 @@ function languageLabel(value?: string | null) {
   return String(value || "").trim()
 }
 
-function transcriptTrack(summary: TranscriptSummary, transcript: Transcript, partId: number, offsetMs = 0, sourceLanguage?: string | null): PlayerCaptionTrack {
+function clonePresentations(track: PlayerCaptionTrack) {
+  if (!track.presentations) return undefined
+  return Object.fromEntries(CAPTION_PRESENTATION_MODES.map(({ key }) => [key, [...track.presentations![key]]])) as PlayerCaptionTrack["presentations"]
+}
+
+function sortPresentations(track: PlayerCaptionTrack) {
+  if (!track.presentations) return undefined
+  return Object.fromEntries(CAPTION_PRESENTATION_MODES.map(({ key }) => [key, track.presentations![key].sort((a, b) => a.startMs - b.startMs)])) as PlayerCaptionTrack["presentations"]
+}
+
+async function transcriptTrack(summary: TranscriptSummary, transcript: Transcript, partId: number, offsetMs = 0, sourceLanguage?: string | null): Promise<PlayerCaptionTrack> {
   const language = languageLabel(summary.language || transcript.language || sourceLanguage) || "Original captions"
-  return {
-    id: String(summary.id),
+  return buildCaptionPlayerTrack({
+    transcript,
     language,
     label: summary.is_translation ? languageLabel(summary.language) || "Translation" : language === "Original captions" ? language : `${language} · Original`,
     stale: Boolean(summary.stale),
-    cues: (transcript.sentences || []).map((cue, index, cues) => ({
-      startMs: offsetMs + Number(cue.start || 0),
-      endMs: offsetMs + Number(cue.end ?? cues[index + 1]?.start ?? transcript.duration_ms ?? cue.start),
-      text: cue.text,
-      partId,
-    })),
-  }
+    partId,
+    offsetMs,
+  })
 }
 
 export async function loadPartCaptionTracks(productionId: number, part: ProductionPart): Promise<PlayerCaptionTrack[]> {
@@ -54,11 +61,26 @@ export async function loadProductionCaptionTracks(productionId: number, parts: P
     const key = track.language.toLocaleLowerCase()
     const current = grouped.get(key)
     if (!current) {
-      grouped.set(key, { ...track, id: `production:${key}`, label: track.language, cues: [...track.cues] })
+      grouped.set(key, {
+        ...track,
+        id: `production:${key}`,
+        label: track.language,
+        cues: [...track.cues],
+        presentations: clonePresentations(track),
+      })
       continue
     }
     current.stale ||= track.stale
     current.cues.push(...track.cues)
+    if (current.presentations && track.presentations) {
+      for (const { key: profile } of CAPTION_PRESENTATION_MODES) {
+        current.presentations[profile].push(...track.presentations[profile])
+      }
+    }
   }
-  return [...grouped.values()].map((track) => ({ ...track, cues: track.cues.sort((a, b) => a.startMs - b.startMs) }))
+  return [...grouped.values()].map((track) => ({
+    ...track,
+    cues: track.cues.sort((a, b) => a.startMs - b.startMs),
+    presentations: sortPresentations(track),
+  }))
 }

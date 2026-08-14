@@ -83,7 +83,13 @@
 .transport-caption-cue:not(:disabled):hover { border-color: var(--vrn-info-border); background: var(--vrn-info-soft); }
 .transport-caption-label { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px; border-radius: 999px; color: var(--vrn-info-solid); background: var(--vrn-info-soft); font-size: var(--vrn-type-metadata-size); font-weight: var(--vrn-weight-label); }
 .transport-caption-label svg { width: 14px; }
+.transport-caption-label > span { padding-left: 5px; border-left: var(--vrn-stroke-hairline) solid var(--vrn-info-border); color: var(--foreground); }
 .transport-caption-text { min-width: 0; color: var(--foreground); font-size: var(--vrn-type-body-size); }
+.transport-strip[data-caption-profile="short"] .transport-caption-cue,
+.transport-strip[data-caption-profile="words"] .transport-caption-cue { right: auto; left: 50%; width: max-content; max-width: calc(100% - 2 * var(--vrn-space-4)); transform: translateX(-50%); }
+.transport-strip[data-caption-profile="short"] .transport-caption-text { font-weight: var(--vrn-weight-label); }
+.transport-strip[data-caption-profile="words"] .transport-caption-cue { border-color: var(--vrn-info-border); background: color-mix(in oklab, var(--surface-raised) 88%, var(--vrn-info-soft)); }
+.transport-strip[data-caption-profile="words"] .transport-caption-text { color: var(--vrn-info-solid); font-size: var(--vrn-type-context-size); font-weight: var(--vrn-weight-title); letter-spacing: -.01em; }
 .transport-preview-stale {
   position: absolute;
   right: var(--vrn-space-3);
