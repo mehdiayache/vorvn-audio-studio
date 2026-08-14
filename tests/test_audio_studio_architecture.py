@@ -115,8 +115,8 @@ class AudioStudioArchitectureTests(unittest.TestCase):
                             operation="render_draft")
 
     def test_transcription_accepts_library_or_uploaded_audio_only(self):
-        TranscriptionJobCreate(file="take.mp3", part_id=7)
-        TranscriptionJobCreate(url="https://storage.example/audio", name="take.mp3")
+        TranscriptionJobCreate(file="clip.mp3", part_id=7)
+        TranscriptionJobCreate(url="https://storage.example/audio", name="clip.mp3")
         with self.assertRaises(ValueError):
             TranscriptionJobCreate()
 

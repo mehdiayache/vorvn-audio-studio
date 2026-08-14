@@ -34,7 +34,7 @@ class AudioSourceResolver(Protocol):
 
 class TranscriptPersistence(Protocol):
     def save(self, values: dict) -> int: ...
-    def finish_part(self, part_id: int, take_id: int | None,
+    def finish_part(self, part_id: int, clip_id: int | None,
                     duration_ms: int, transcript_id: int) -> None: ...
     def today_spend(self) -> float: ...
 
@@ -92,7 +92,7 @@ class TranscriptionService:
             attempt_id = self.operations.repository.begin_attempt(
                 source_job_id, "transcription", {
                     "provider": "alibaba", "region": region, "model": model,
-                }, {"part_id": source.part_id, "take_id": source.take_id,
+                }, {"part_id": source.part_id, "clip_id": source.clip_id,
                     "duration_ms": source.duration_ms, "language": language},
                 reservation_id)
         if on_progress:
@@ -135,7 +135,7 @@ class TranscriptionService:
             "audio_url": source.playable, "language": resolved_language,
             "duration_ms": result.duration_ms, "text": result.text,
             "srt": srt, "vtt": vtt, "sentences": result.sentences,
-            "part_id": source.part_id, "take_id": source.take_id,
+            "part_id": source.part_id, "clip_id": source.clip_id,
             "translated_from": None, "source_job_id": source_job_id,
             "model": cost.model, "provider_region": cost.provider_region,
             "price_version": cost.price_version,
@@ -145,13 +145,13 @@ class TranscriptionService:
         })
         if source.part_id:
             self.repository.finish_part(
-                source.part_id, source.take_id, result.duration_ms, transcript_id)
+                source.part_id, source.clip_id, result.duration_ms, transcript_id)
         if on_progress:
             on_progress(1, 1)
         return {
             **cost.as_dict(),
             "id": transcript_id, "file": source.name,
-            "part_id": source.part_id, "take_id": source.take_id,
+            "part_id": source.part_id, "clip_id": source.clip_id,
             "url": source.playable,
             "language": resolved_language, "text": result.text,
             "sentences": result.sentences,

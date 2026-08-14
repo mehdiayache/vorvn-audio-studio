@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Accounting regression over canonical Jobs/Parts/Takes; always rolled back."""
+"""Accounting regression over canonical Jobs/Parts/Clips; always rolled back."""
 
 import psycopg
 
@@ -27,7 +27,7 @@ def main() -> int:
         assert values["retained_generation_cost"] >= 0
         assert values["historical_spend"] >= values["tracked_spend"]
         print("PASS  historical spend is owned by durable Jobs")
-        print("PASS  current sequence cost is derived from selected immutable Takes")
+        print("PASS  current sequence cost is derived from selected immutable Clips")
         print("PASS  archived Parts do not change historical spend")
         return 0
     finally:

@@ -15,7 +15,7 @@ export function productionMixReadiness(production: Production) {
   const sequence = production.parts.filter((part) => part.kind !== "stitch" && part.enabled !== false)
   const issues = sequence.flatMap<MixReadinessIssue>((part, index) => {
     const found: MixReadinessIssue[] = []
-    if (part.kind === "draft" || (part.kind === "speech" && !part.selected_take_id)) found.push({ part, number: index + 1, title: "Speech not recorded", detail: "Record this Speech Part before export.", blocking: true })
+    if (part.kind === "draft" || (part.kind === "speech" && !part.clip_id)) found.push({ part, number: index + 1, title: "Speech not recorded", detail: "Record this Speech Part before export.", blocking: true })
     if (part.missing) found.push({ part, number: index + 1, title: "Linked media missing", detail: "Restore or replace the exact linked source before export.", blocking: true })
     if (part.outdated) found.push({ part, number: index + 1, title: "Recording is outdated", detail: "Replace the recording so it matches the current Part wording.", blocking: false })
     if (part.subtitles_stale) found.push({ part, number: index + 1, title: "Captions are stale", detail: "Refresh captions if they should accompany the next output.", blocking: false })
@@ -54,11 +54,11 @@ export function MixExportWorkspace({ production, music, previewing, productionPl
 }) {
   const readiness = productionMixReadiness(production)
   const { sequence, blocking, review, ready } = readiness
-  const recordedParts = sequence.filter((part) => part.selected_take_id).length
+  const recordedParts = sequence.filter((part) => part.clip_id).length
   const speechParts = sequence.filter((part) => part.kind === "speech" || part.kind === "draft").length
   const linkedMedia = sequence.filter((part) => part.kind === "asset").length
   const captioned = sequence.filter((part) => part.subtitled).length
-  const draftCount = sequence.filter((part) => part.kind === "draft" || (part.kind === "speech" && !part.selected_take_id)).length
+  const draftCount = sequence.filter((part) => part.kind === "draft" || (part.kind === "speech" && !part.clip_id)).length
   const duration = sequence.reduce((total, part) => total + partDurationMs(part), 0)
   const progress = Math.round(Number(exportJob?.progress || 0) * 100)
   const exportComplete = Boolean(exportJob && ["ok", "warning"].includes(exportJob.status))

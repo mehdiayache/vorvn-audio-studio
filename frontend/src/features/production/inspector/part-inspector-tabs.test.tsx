@@ -21,7 +21,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 describe("PartInspector tab ownership", () => {
   it("opens the requested recorded-Part tab directly", async () => {
     vi.stubGlobal("ResizeObserver", class { observe() {}; unobserve() {}; disconnect() {} })
-    const part = { id: 5, public_id: "part-5", position: 0, created_at: "", text: "Words", kind: "speech", selected_take_id: 25 }
+    const part = { id: 5, public_id: "part-5", position: 0, created_at: "", text: "Words", kind: "speech", clip_id: 25 }
     const props = { productionId: 7, part, directory: { config: null }, playerPlaying: false, onClose: vi.fn(), onDuplicate: vi.fn(), onDelete: vi.fn(), onRecordPart: vi.fn(), onPlay: vi.fn(), onChanged: vi.fn(), initialTab: "captions" } as unknown as ComponentProps<typeof PartInspectorContent>
 
     render(<PartInspectorContent {...props} />)
@@ -45,7 +45,7 @@ describe("PartInspector tab ownership", () => {
     vi.stubGlobal("ResizeObserver", class { observe() {}; unobserve() {}; disconnect() {} })
     const base = { id: 4, public_id: "part-4", position: 0, created_at: "", text: "Words" }
     const props = { productionId: 7, directory: { config: null }, playerPlaying: false, onClose: vi.fn(), onDuplicate: vi.fn(), onDelete: vi.fn(), onRecordPart: vi.fn(), onPlay: vi.fn(), onChanged: vi.fn() }
-    const speechProps = { ...props, part: { ...base, kind: "speech", selected_take_id: 24 } } as unknown as ComponentProps<typeof PartInspectorContent>
+    const speechProps = { ...props, part: { ...base, kind: "speech", clip_id: 24 } } as unknown as ComponentProps<typeof PartInspectorContent>
     const silenceProps = { ...props, part: { ...base, kind: "silence", text: "" } } as unknown as ComponentProps<typeof PartInspectorContent>
     const view = render(<PartInspectorContent {...speechProps} />)
     const captionsTab = screen.getByRole("tab", { name: /Captions/i })

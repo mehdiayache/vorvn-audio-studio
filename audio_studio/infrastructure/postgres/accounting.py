@@ -46,15 +46,15 @@ class ProductionAccountingRepository:
                     FROM effective_jobs WHERE production_id = ANY(%s)
                    GROUP BY production_id
                 ), retained AS (
-                  SELECT part.production_id, coalesce(sum(take.cost), 0) AS retained_cost
-                    FROM takes take
-                    JOIN production_parts part ON part.id=take.part_id
+                  SELECT part.production_id, coalesce(sum(clip.cost), 0) AS retained_cost
+                    FROM clips clip
+                    JOIN production_parts part ON part.id=clip.part_id
                    WHERE part.production_id = ANY(%s)
                    GROUP BY part.production_id
                 ), current_sequence AS (
-                  SELECT pp.production_id, coalesce(sum(take.cost), 0) AS current_cost
+                  SELECT pp.production_id, coalesce(sum(clip.cost), 0) AS current_cost
                     FROM production_parts pp
-                    JOIN takes take ON take.id = pp.selected_take_id
+                    JOIN clips clip ON clip.part_id = pp.id
                    WHERE pp.production_id = ANY(%s)
                      AND pp.archived_at IS NULL
                    GROUP BY pp.production_id

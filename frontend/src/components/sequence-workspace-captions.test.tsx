@@ -13,7 +13,7 @@ afterEach(cleanup)
 
 describe("SequenceWorkspace caption target", () => {
   it("keeps caption opening separate from the full Part inspector", () => {
-    const part = { id: 12, public_id: "part-12", created_at: "2026-08-14", position: 0, kind: "speech", text: "A real recorded line.", selected_take_id: 20, cost: 0 } as ProductionPart
+    const part = { id: 12, public_id: "part-12", created_at: "2026-08-14", position: 0, kind: "speech", text: "A real recorded line.", clip_id: 20, cost: 0 } as ProductionPart
     const onOpenCaptions = vi.fn()
 
     render(<SequenceWorkspace

@@ -48,7 +48,7 @@ class ProviderOperationTests(unittest.TestCase):
         self.job_ids.append(job.id)
         return job.id
 
-    def test_ambiguous_attempt_persists_without_take_and_links_human_retry(self):
+    def test_ambiguous_attempt_persists_without_clip_and_links_human_retry(self):
         first_job = self.job()
         reservation = self.service.authorize(
             first_job, "speech", .0123,
@@ -82,15 +82,15 @@ class ProviderOperationTests(unittest.TestCase):
             reservation_row = database.execute("""
                 SELECT status, actual_cost FROM budget_reservations WHERE id=%s
             """, (int(reservation),)).fetchone()
-            take_count = database.execute(
-                "SELECT count(*) FROM takes WHERE provider_attempt_id=%s",
+            clip_count = database.execute(
+                "SELECT count(*) FROM clips WHERE provider_attempt_id=%s",
                 (int(first),)).fetchone()[0]
         self.assertEqual(first_row[0], "ambiguous")
         self.assertAlmostEqual(float(first_row[1]), .0123)
         self.assertEqual(second_row, ("not_sent", int(first)))
         self.assertEqual(reservation_row[0], "ambiguous")
         self.assertAlmostEqual(float(reservation_row[1]), .0123)
-        self.assertEqual(take_count, 0)
+        self.assertEqual(clip_count, 0)
 
     def test_lost_sent_attempt_becomes_ambiguous_with_budget_evidence(self):
         job_id = self.job()

@@ -2449,6 +2449,28 @@ export interface components {
             catalogue_voice_id?: string | null;
             /** Chars */
             chars?: number | null;
+            /** Clip Delivery */
+            clip_delivery?: {
+                [key: string]: unknown;
+            };
+            /** Clip Id */
+            clip_id?: number | null;
+            /** Clip Public Id */
+            clip_public_id?: string | null;
+            /** Clip Raw Text */
+            clip_raw_text?: string | null;
+            /** Clip Segmentation */
+            clip_segmentation?: {
+                [key: string]: unknown;
+            };
+            /** Clip Spoken Text */
+            clip_spoken_text?: string | null;
+            /** Clip Tagged Text */
+            clip_tagged_text?: string | null;
+            /** Clip Usage */
+            clip_usage?: {
+                [key: string]: unknown;
+            };
             /** Cost */
             cost: number;
             /** Cost Basis */
@@ -2503,6 +2525,8 @@ export interface components {
             public_id: string;
             /** Rate */
             rate?: number | null;
+            /** Recording Text State */
+            recording_text_state?: string | null;
             /** Reference Id */
             reference_id?: string | null;
             /**
@@ -2512,10 +2536,6 @@ export interface components {
             revision: number;
             /** Seed */
             seed?: number | null;
-            /** Selected Take Id */
-            selected_take_id?: number | null;
-            /** Selected Take Text State */
-            selected_take_text_state?: string | null;
             /** Size Bytes */
             size_bytes?: number | null;
             speech_job?: components["schemas"]["PartSpeechJobResponse"] | null;
@@ -2533,26 +2553,6 @@ export interface components {
              * @default false
              */
             subtitles_stale: boolean;
-            /** Take Delivery */
-            take_delivery?: {
-                [key: string]: unknown;
-            };
-            /** Take Public Id */
-            take_public_id?: string | null;
-            /** Take Raw Text */
-            take_raw_text?: string | null;
-            /** Take Segmentation */
-            take_segmentation?: {
-                [key: string]: unknown;
-            };
-            /** Take Spoken Text */
-            take_spoken_text?: string | null;
-            /** Take Tagged Text */
-            take_tagged_text?: string | null;
-            /** Take Usage */
-            take_usage?: {
-                [key: string]: unknown;
-            };
             /** Text */
             text: string;
             /** Text Raw */
@@ -3032,12 +3032,12 @@ export interface components {
          * @description Documented speech result facts already produced by the runtime.
          */
         SpeechGenerateResultResponse: {
+            /** Clip Id */
+            clip_id?: number | null;
             /** Duration Ms */
             duration_ms?: number | null;
             /** Part Id */
             part_id?: number | null;
-            /** Take Id */
-            take_id?: number | null;
         } & {
             [key: string]: unknown;
         };

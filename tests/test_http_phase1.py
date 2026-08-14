@@ -146,12 +146,12 @@ class NativeHttpTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "final.mp3").write_bytes(b"export audio")
-            (root / "take.mp3").write_bytes(b"generation audio")
+            (root / "clip.mp3").write_bytes(b"generation audio")
             records = Mock()
             records.export.return_value = {
                 "id": 91, "filename": "final.mp3"}
-            records.take.return_value = {
-                "id": 150, "filename": "take.mp3"}
+            records.clip.return_value = {
+                "id": 150, "filename": "clip.mp3"}
             service = MediaService(
                 LocalMediaWorkspace(
                     root=root, output=root, voice_samples=root),
@@ -163,7 +163,7 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(exported.content, b"export audio")
         self.assertEqual(generated.content, b"generation audio")
         self.assertIn("final.mp3", exported.headers["content-disposition"])
-        self.assertIn("take.mp3", generated.headers["content-disposition"])
+        self.assertIn("clip.mp3", generated.headers["content-disposition"])
 
     def test_upload_limits_fail_before_body_processing(self):
         response = self.client.post(

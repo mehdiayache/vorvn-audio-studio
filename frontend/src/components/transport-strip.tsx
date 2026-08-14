@@ -13,7 +13,7 @@ import type { CaptionProfile, PlayerCaptionCue, PlayerCaptionTrack, PlayerSource
 import "./transport-strip.css"
 
 const sourceLabels: Record<PlayerSource["kind"], string> = {
-  take: "Recording",
+  clip: "Recording",
   production: "Production preview",
   voice: "Voice preview",
   asset: "Venture audio",

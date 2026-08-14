@@ -63,7 +63,7 @@ class FakeRepository:
                 "words": [{"start": 100, "end": 900, "text": "Hello"}],
             }],
             "part_id": 9,
-            "take_id": 10,
+            "clip_id": 10,
             "translated_from": None,
         }
         self.spent = spent
@@ -140,7 +140,7 @@ class TranslationTests(unittest.TestCase):
         self.assertEqual(saved["source_job_id"], 21)
         self.assertEqual(saved["translated_from"], 4)
         self.assertEqual(saved["part_id"], 9)
-        self.assertEqual(saved["take_id"], 10)
+        self.assertEqual(saved["clip_id"], 10)
         self.assertEqual(saved["sentences"][0]["start"], 100)
         self.assertEqual(saved["sentences"][0]["end"], 1900)
         self.assertEqual(saved["sentences"][0]["words"], [])

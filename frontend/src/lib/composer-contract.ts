@@ -21,7 +21,6 @@ export type EditorialBaseline = {
   partId: number
   revision: number
   script: string
-  selectedTakeId: number | null
 }
 
 export type EditorialPatch = {
@@ -115,7 +114,6 @@ export function editorialBaseline(part?: ProductionPart | null): EditorialBaseli
     partId: part.id,
     revision: part.revision ?? 1,
     script: part.text_raw || part.text || "",
-    selectedTakeId: part.selected_take_id ?? null,
   }
 }
 

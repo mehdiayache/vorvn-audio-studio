@@ -82,7 +82,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     if (source.kind === "production") {
       cacheKey = `production:${production.id}`
       load = () => loadProductionCaptionTracks(production.id, activeSourceParts)
-    } else if (source.kind === "take" && source.key.startsWith("part:")) {
+    } else if (source.kind === "clip" && source.key.startsWith("part:")) {
       const part = sourceParts.find((item) => item.id === Number(source.key.slice(5)))
       if (part) {
         cacheKey = `part:${part.id}`
@@ -109,7 +109,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
 
   const queueRender = useCallback((payload: GeneratePayload) => {
     const target = composerPart
-    if (target?.selected_take_id) return Promise.reject(new Error("This Part already has a recording. Delete it before creating a different one."))
+    if (target?.clip_id) return Promise.reject(new Error("This Part already has a recording. Delete it before creating a different one."))
     const operation = target?.kind === "draft" ? actions.renderDraft(target, payload)
       : target ? actions.recordPendingPart(target, payload)
         : actions.generatePart(payload)
@@ -159,7 +159,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     rememberStageOrigin(); setActiveStage(null); setCaptionPart(null); setInsertBeforePartId(null); setComposerPart(null); setReplacingAsset(part); setTool("asset")
   }, [rememberStageOrigin])
   const openRecordingComposer = useCallback((part: ProductionPart) => {
-    if (part.selected_take_id) return
+    if (part.clip_id) return
     setActiveStage(null); setCaptionPart(null); setInsertBeforePartId(null); setComposerPart(part); setTool("speech")
   }, [])
   const openPart = useCallback((part: ProductionPart, tab: PartDetailTab = "script") => {
@@ -188,7 +188,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const retryJob = useCallback(async (part: ProductionPart, _job: DurableJob<GenerateResult>) => {
     const payload = { ...(part.speech_job?.request || {}), production_id: production.id } as GeneratePayload
     if (!payload.text) return
-    if (part.selected_take_id) return
+    if (part.clip_id) return
     const next = part.kind === "draft" ? actions.renderDraft(part, payload)
       : actions.recordPendingPart(part, payload)
     await next
@@ -213,7 +213,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const composerInsertAt = insertBeforePartId ? Math.max(0, sourceParts.findIndex((part) => part.public_id === insertBeforePartId)) : null
   const healthIssues = useMemo(() => productionHealth(production.parts), [production.parts])
   const stageTitle = stageMode === "part" ? partInspectorTitle(activeDetail) : stageMode === "music" ? "Music Bed" : stageMode === "health" ? "Production health" : stageMode === "mix-export" ? "Mix & Export" : "Production"
-  const stageDescription = stageMode === "part" && activeDetail ? `Revision ${activeDetail.revision || 1}${activeDetail.selected_take_id ? " · active recording" : ""}` : stageMode === "music" ? music.filename ? "Parallel mix lane · reusable Venture source" : "Narration only · no Music Bed" : stageMode === "health" ? `${healthIssues.length} current issue${healthIssues.length === 1 ? "" : "s"} · release evidence` : stageMode === "mix-export" ? "Preview the current mix and create immutable output." : undefined
+  const stageDescription = stageMode === "part" && activeDetail ? `Revision ${activeDetail.revision || 1}${activeDetail.clip_id ? " · active recording" : ""}` : stageMode === "music" ? music.filename ? "Parallel mix lane · reusable Venture source" : "Narration only · no Music Bed" : stageMode === "health" ? `${healthIssues.length} current issue${healthIssues.length === 1 ? "" : "s"} · release evidence` : stageMode === "mix-export" ? "Preview the current mix and create immutable output." : undefined
   const previewPlayingPartId = useMemo(() => {
     if (!actions.productionPlaying) return null
     const position = player.currentTime * 1000

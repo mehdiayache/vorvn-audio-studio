@@ -314,7 +314,7 @@ class ProductionPartResponse(BaseModel):
     text_state: str | None = None
     voice: str | None = None
     voice_name: str | None = None
-    take_public_id: str | None = None
+    clip_public_id: str | None = None
     voice_identity_id: str | None = None
     binding_id: str | None = None
     catalogue_voice_id: str | None = None
@@ -327,15 +327,15 @@ class ProductionPartResponse(BaseModel):
     provider_attempt_id: str | None = None
     provider_attempt_status: str | None = None
     binding_resolution_status: str | None = None
-    take_raw_text: str | None = None
-    take_spoken_text: str | None = None
-    take_tagged_text: str | None = None
-    take_delivery: dict[str, Any] = Field(default_factory=dict)
-    take_usage: dict[str, Any] = Field(default_factory=dict)
-    take_segmentation: dict[str, Any] = Field(default_factory=dict)
+    clip_raw_text: str | None = None
+    clip_spoken_text: str | None = None
+    clip_tagged_text: str | None = None
+    clip_delivery: dict[str, Any] = Field(default_factory=dict)
+    clip_usage: dict[str, Any] = Field(default_factory=dict)
+    clip_segmentation: dict[str, Any] = Field(default_factory=dict)
     revision: int = 1
-    selected_take_id: int | None = None
-    selected_take_text_state: str | None = None
+    clip_id: int | None = None
+    recording_text_state: str | None = None
     editorial_status: str | None = None
     speech_job: PartSpeechJobResponse | None = None
     caption_job: PartCaptionJobResponse | None = None

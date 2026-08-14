@@ -65,11 +65,11 @@ class ControlPlaneRepository:
                 with connection.cursor() as cursor:
                     cursor.execute("""
                         SELECT (SELECT count(*) FROM production_parts),
-                               (SELECT count(*) FROM takes)
+                               (SELECT count(*) FROM clips)
                     """)
-                    parts, takes = cursor.fetchone()
+                    parts, clips = cursor.fetchone()
             return {"connected": True, "count": parts,
-                    "parts": parts, "takes": takes}
+                    "parts": parts, "clips": clips}
         except psycopg.OperationalError as error:
             return {
                 "connected": False,

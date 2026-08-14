@@ -15,7 +15,7 @@ import "@/features/production/production-inspector.css"
 export type PartInspectorTab = PartDetailTab
 
 export function partInspectorTabs(part: ProductionPart | null): PartInspectorTab[] {
-  return part?.selected_take_id
+  return part?.clip_id
     ? ["script", "captions", "details"]
     : ["script", "details"]
 }
@@ -49,7 +49,7 @@ function firstTabLabel(part: ProductionPart) {
 export function PartInspectorContent({ productionId, part, directory, playingKey, playerPlaying, onDuplicate, onDelete, onRecordPart, onPlay, onChanged, initialTab = "script", onTabChange }: PartInspectorProps) {
   const [tab, setTab] = useState<PartInspectorTab>(initialTab)
   const data = usePartDetailData(productionId, part, onChanged)
-  const recorded = Boolean(part?.selected_take_id)
+  const recorded = Boolean(part?.clip_id)
   useEffect(() => {
     const available = new Set(partInspectorTabs(part))
     setTab(available.has(initialTab) ? initialTab : "script")

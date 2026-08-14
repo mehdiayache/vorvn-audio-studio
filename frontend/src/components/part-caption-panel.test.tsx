@@ -52,7 +52,7 @@ describe("PartCaptionPanel durable review state", () => {
     expect(await screen.findByText("A short phrase")).toBeTruthy()
   })
 
-  it("lets the operator supply a known caption language without rewriting the Take", () => {
+  it("lets the operator supply a known caption language without rewriting the Clip", () => {
     const onCreate = vi.fn()
     render(<PartCaptionPanel
       captions={[]} transcript={null} languages={["English", "Arabic"]} loading={false} busy={null} confirmation={null} job={null}

@@ -29,7 +29,7 @@ DEFAULTS = {
     "cover": True,           # use the venture's picture as the artwork
 }
 
-TOKENS = ("venture", "project", "folder", "part", "take", "voice", "date")
+TOKENS = ("venture", "project", "folder", "part", "clip", "voice", "date")
 
 
 def merged(globals_: dict, venture: dict | None) -> dict:
@@ -78,8 +78,8 @@ def download_name(context: dict, settings: dict, extension: str = "mp3") -> str:
         # A folder that grew past the chosen width keeps sorting correctly.
         width = max(digits, len(str(part)))
         pieces.append(f"part{sep}{str(part).zfill(width)}")
-    if context.get("take"):
-        pieces.append(f"take{sep}{context['take']}")
+    if context.get("clip"):
+        pieces.append(f"clip{sep}{context['clip']}")
 
     joined = sep.join(p for p in (tidy(str(p)) for p in pieces) if p)
     # A folder called "Christian prayer — falling asleep" should read as

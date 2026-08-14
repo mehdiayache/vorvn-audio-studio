@@ -26,7 +26,7 @@ export function filterProductionParts(parts: ProductionPart[], issuePartIds: Set
   return sourceParts.filter((part, index) => {
     const haystack = [`part ${index + 1}`, index + 1, part.text, part.title, part.voice_name, part.voice].filter(Boolean).join(" ").toLocaleLowerCase()
     if (query && !haystack.includes(query)) return false
-    if (filters.drafts && !(part.kind === "draft" || (part.kind === "speech" && !part.selected_take_id))) return false
+    if (filters.drafts && !(part.kind === "draft" || (part.kind === "speech" && !part.clip_id))) return false
     if (filters.issues && !issuePartIds.has(part.id)) return false
     if (filters.noCaptions && (!(part.kind === "audio" || part.kind === "speech") || Boolean(part.subtitled))) return false
     return true

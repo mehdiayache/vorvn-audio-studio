@@ -59,7 +59,7 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
 
   const makeCaptions = useCallback(async (language?: string) => {
     if (!part) return
-    setCaptionBusy("transcribe"); setMessage("Listening to the current take…")
+    setCaptionBusy("transcribe"); setMessage("Listening to the current clip…")
     try {
       const job = await studioApi.enqueueTranscribePart(productionId, part, false, language)
       handledJobRef.current = null
@@ -92,7 +92,7 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
     if (!captionJobForPart) { setCaptionBusy(null); return }
     const kind = captionJobForPart.type === "translate" ? "translate" : "transcribe"
     if (["queued", "running", "retrying"].includes(captionJobForPart.status)) {
-      setCaptionBusy(kind); setMessage(kind === "translate" ? "Translating subtitles…" : "Listening to the current take…")
+      setCaptionBusy(kind); setMessage(kind === "translate" ? "Translating subtitles…" : "Listening to the current clip…")
       return
     }
     setCaptionBusy(null)

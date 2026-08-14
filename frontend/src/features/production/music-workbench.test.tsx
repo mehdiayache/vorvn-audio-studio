@@ -38,6 +38,6 @@ describe("MusicWorkbench", () => {
   it("does not project sequential Part language onto an empty Music lane", () => {
     render(<MusicWorkbench music={{}} playing={false} onPlay={vi.fn()} onChange={vi.fn()} onChoose={vi.fn()} onRemove={vi.fn()} />)
     expect(screen.getByText(/Music remains parallel to the Sequence/)).toBeTruthy()
-    expect(screen.queryByText(/Take|Voice/)).toBeNull()
+    expect(screen.queryByText(/Clip|Voice/)).toBeNull()
   })
 })

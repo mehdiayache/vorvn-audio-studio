@@ -10,7 +10,7 @@ afterEach(cleanup)
 const production = {
   id: 6,
   name: "Evening Reset",
-  parts: [{ id: 12, created_at: "2026-08-09T08:00:00", position: 0, kind: "speech", text: "Rest", filename: "part.mp3", selected_take_id: 22, duration_ms: 2000, cost: 0 }],
+  parts: [{ id: 12, created_at: "2026-08-09T08:00:00", position: 0, kind: "speech", text: "Rest", filename: "part.mp3", clip_id: 22, duration_ms: 2000, cost: 0 }],
   exports: [{ id: 91, production_id: 6, filename: "evening-reset.mp3", manifest: {}, renderer: "ffmpeg-normalized-v1", duration_ms: 2000, size_bytes: 1000, created_at: "2026-08-09T08:10:00" }],
 } as unknown as Production
 
@@ -18,7 +18,7 @@ describe("MixExportWorkspace", () => {
   it("excludes disabled Parts from readiness and output duration", () => {
     const readiness = productionMixReadiness({ ...production, parts: [
       production.parts[0]!,
-      { ...production.parts[0]!, id: 3, kind: "draft", enabled: false, selected_take_id: null },
+      { ...production.parts[0]!, id: 3, kind: "draft", enabled: false, clip_id: null },
     ] })
     expect(readiness.ready).toBe(true)
     expect(readiness.sequence.map((part) => part.id)).toEqual([12])
@@ -48,7 +48,7 @@ describe("MixExportWorkspace", () => {
 
   it("locates exact blockers and distinguishes a stale preview", () => {
     const onLocatePart = vi.fn()
-    const blocked = { ...production, parts: [{ ...production.parts[0], kind: "draft", selected_take_id: null, filename: undefined }] } as Production
+    const blocked = { ...production, parts: [{ ...production.parts[0], kind: "draft", clip_id: null, filename: undefined }] } as Production
     render(<MixExportWorkspace production={blocked} music={{}} previewing={false} productionPlaying={false} previewReady={false} previewStale exportJob={null} onPreview={vi.fn()} onExport={vi.fn()} onLocatePart={onLocatePart} onOpenHealth={vi.fn()} exporting={false} />)
     expect(screen.getByRole("button", { name: /Refresh preview/ })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: /Part 1 · Speech not recorded/ }))
@@ -66,7 +66,7 @@ describe("productionMixReadiness", () => {
 
   it("keeps stable Part numbers on every blocking issue", () => {
     const result = productionMixReadiness({ ...production, parts: [
-      { ...production.parts[0], kind: "draft", selected_take_id: null, filename: undefined },
+      { ...production.parts[0], kind: "draft", clip_id: null, filename: undefined },
       { ...production.parts[0], id: 13, position: 1, kind: "asset", missing: true },
     ] } as Production)
     expect(result.ready).toBe(false)

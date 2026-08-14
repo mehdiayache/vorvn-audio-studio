@@ -290,7 +290,7 @@ class SubtitleTranslationService:
             "vtt": vtt,
             "sentences": translated_sentences,
             "part_id": transcript.get("part_id"),
-            "take_id": transcript.get("take_id"),
+            "clip_id": transcript.get("clip_id"),
             "translated_from": transcript["id"],
             "source_job_id": source_job_id,
             "model": model,

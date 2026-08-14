@@ -25,7 +25,7 @@ export function useProductionActions({ production, music, player, refresh, refre
   const reportedExportJob = useRef<string | null>(null)
   const productionFingerprint = JSON.stringify({
     updatedAt: production.updated_at,
-    parts: production.parts.filter((part) => part.kind !== "stitch").map((part) => [part.id, part.position, part.revision, part.selected_take_id, part.duration_ms, part.filename, part.missing]),
+    parts: production.parts.filter((part) => part.kind !== "stitch").map((part) => [part.id, part.position, part.revision, part.clip_id, part.duration_ms, part.filename, part.missing]),
     music: [music.filename, music.music_of, music.volume, music.start, music.duck, music.fade_in, music.fade_out],
   })
   const previousFingerprint = useRef(productionFingerprint)

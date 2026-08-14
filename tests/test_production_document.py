@@ -165,7 +165,7 @@ class ProductionDocumentTests(unittest.TestCase):
         with psycopg.connect(settings.database_url) as database:
             with database.cursor() as cursor:
                 cursor.execute("""
-                    INSERT INTO takes
+                    INSERT INTO clips
                         (part_id, source_part_revision, source_script_hash,
                          provider, provider_region, provider_voice_id,
                          model_id, tier, raw_text, spoken_text, filename, path,
@@ -179,20 +179,20 @@ class ProductionDocumentTests(unittest.TestCase):
                     RETURNING id
                 """, (f"retained-{self.marker}.mp3",
                       f"/durable/retained-{self.marker}.mp3", draft["id"]))
-                take_id = int(cursor.fetchone()[0])
+                clip_id = int(cursor.fetchone()[0])
                 cursor.execute("""
                     UPDATE production_parts
-                       SET selected_take_id=%s, kind='speech'
+                       SET kind='speech'
                      WHERE id=%s
-                """, (take_id, draft["id"]))
+                """, (draft["id"],))
             database.commit()
         recording = next(item for item in self.repository.parts(first_id)
                          if item["id"] == draft["id"])
-        self.assertEqual(recording["selected_take_id"], take_id)
+        self.assertEqual(recording["clip_id"], clip_id)
         self.assertEqual(recording["engine"], "omni")
         self.assertEqual(recording["model"], "qwen3.5-omni-plus")
         self.assertEqual(recording["tier"], "plus")
-        self.assertEqual(recording["selected_take_text_state"], "raw")
+        self.assertEqual(recording["recording_text_state"], "raw")
         self.assertIsNone(recording["fidelity"])
         self.assertEqual(self.repository.generation(draft["id"])["text"],
                          "A quiet opening")
@@ -223,8 +223,8 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual(len(editor["parts"]), 3)
 
         self.assertEqual(next(item for item in editor["parts"]
-                              if item["id"] == draft["id"])["selected_take_id"],
-                         take_id)
+                              if item["id"] == draft["id"])["clip_id"],
+                         clip_id)
         ProductionEditorEnvelope.model_validate({"data": editor})
 
         accounting = ProductionAccountingRepository()
@@ -241,17 +241,16 @@ class ProductionDocumentTests(unittest.TestCase):
             with database.cursor() as cursor:
                 cursor.execute("""
                     SELECT archived_at IS NOT NULL, position,
-                           archived_position, selected_take_id
+                           archived_position
                       FROM production_parts WHERE id=%s
                 """, (draft["id"],))
-                archived, position, archived_position, selected = cursor.fetchone()
+                archived, position, archived_position = cursor.fetchone()
                 self.assertTrue(archived)
                 self.assertIsNone(position)
                 self.assertIsNotNone(archived_position)
-                self.assertIsNone(selected)
                 cursor.execute("""
-                    SELECT filename, cost FROM takes WHERE id=%s
-                """, (take_id,))
+                    SELECT filename, cost FROM clips WHERE id=%s
+                """, (clip_id,))
                 retained_filename, retained_cost = cursor.fetchone()
                 self.assertEqual(retained_filename,
                                  f"retained-{self.marker}.mp3")
@@ -286,7 +285,7 @@ class ProductionDocumentTests(unittest.TestCase):
         with psycopg.connect(settings.database_url) as database:
             with database.cursor() as cursor:
                 cursor.execute("""
-                    INSERT INTO takes
+                    INSERT INTO clips
                         (part_id, source_part_revision, source_script_hash,
                          provider, provider_region, provider_voice_id,
                          model_id, tier, raw_text, spoken_text, filename, path,
@@ -297,12 +296,12 @@ class ProductionDocumentTests(unittest.TestCase):
                             '{"engine":"omni","format":"mp3"}'::jsonb)
                     RETURNING id
                 """, (draft["id"], part["revision"]))
-                take_id = int(cursor.fetchone()[0])
+                clip_id = int(cursor.fetchone()[0])
                 cursor.execute("""
                     UPDATE production_parts
-                       SET selected_take_id=%s, kind='speech'
+                       SET kind='speech'
                      WHERE id=%s
-                """, (take_id, draft["id"]))
+                """, (draft["id"],))
             database.commit()
 
         changed = self.timeline.save_editorial(
@@ -310,8 +309,8 @@ class ProductionDocumentTests(unittest.TestCase):
             {"script": "Revised words"})
         self.assertEqual((changed["revision"], changed["outdated"]), (2, True))
         current = self.repository.part(production_id, draft["id"])
-        self.assertEqual((current["revision"], current["selected_take_id"]),
-                         (2, take_id))
+        self.assertEqual((current["revision"], current["clip_id"]),
+                         (2, clip_id))
         unchanged = self.timeline.save_editorial(
             production_id, draft["id"], current["revision"],
             {"script": "Revised words"})
@@ -334,7 +333,7 @@ class ProductionDocumentTests(unittest.TestCase):
         with psycopg.connect(settings.database_url) as database:
             with database.cursor() as cursor:
                 cursor.execute("""
-                    INSERT INTO takes
+                    INSERT INTO clips
                         (part_id, source_part_revision, source_script_hash,
                          provider, provider_region, provider_voice_id,
                          model_id, tier, language, raw_text, spoken_text,
@@ -354,9 +353,9 @@ class ProductionDocumentTests(unittest.TestCase):
                 recording_id = int(cursor.fetchone()[0])
                 cursor.execute("""
                     UPDATE production_parts
-                       SET selected_take_id=%s, kind='speech'
+                       SET kind='speech'
                      WHERE id=%s
-                """, (recording_id, draft["id"]))
+                """, (draft["id"],))
             database.commit()
 
         jobs = JobRepository()
@@ -380,16 +379,16 @@ class ProductionDocumentTests(unittest.TestCase):
                 """, (selected_caption.id,))
                 cursor.execute("""
                     UPDATE jobs SET status='failed', result=%s::jsonb,
-                           error='Obsolete take failed', finished_at=now()
+                           error='Obsolete clip failed', finished_at=now()
                      WHERE id=%s
                 """, (
-                    json.dumps({"take_id": 999999999}),
+                    json.dumps({"clip_id": 999999999}),
                     obsolete_caption.id,
                 ))
             database.commit()
 
         projected = self.repository.parts(production_id)[0]
-        self.assertEqual(projected["selected_take_text_state"], "shaped")
+        self.assertEqual(projected["recording_text_state"], "shaped")
         self.assertEqual(projected["voice_name"], "Maya")
         self.assertEqual(projected["model"], "qwen3.5-omni-plus")
         self.assertEqual(projected["language"], "English")
@@ -400,12 +399,12 @@ class ProductionDocumentTests(unittest.TestCase):
         with psycopg.connect(settings.database_url) as database:
             with database.cursor() as cursor:
                 cursor.execute("""
-                    UPDATE takes SET snapshot = snapshot - 'text_state'
+                    UPDATE clips SET snapshot = snapshot - 'text_state'
                      WHERE id=%s
                 """, (recording_id,))
             database.commit()
         historical = self.repository.parts(production_id)[0]
-        self.assertIsNone(historical["selected_take_text_state"])
+        self.assertIsNone(historical["recording_text_state"])
 
 if __name__ == "__main__":
     unittest.main()

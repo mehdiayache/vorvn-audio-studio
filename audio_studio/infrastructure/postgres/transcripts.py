@@ -10,7 +10,7 @@ from audio_studio.infrastructure.postgres.spend import today_provider_spend
 
 TRANSCRIPT_FIELDS = (
     "name", "source_url", "audio_url", "language", "duration_ms", "text",
-    "srt", "vtt", "part_id", "take_id", "translated_from", "source_job_id",
+    "srt", "vtt", "part_id", "clip_id", "translated_from", "source_job_id",
     "model", "provider_region", "price_version", "catalog_rate",
     "catalog_cost", "cost_basis", "sentences",
 )
@@ -120,20 +120,20 @@ class TranscriptRepository:
                     production_id: int | None = None) -> dict | None:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT part.id, take.id, take.filename, take.path,
-                       coalesce(take.duration_ms, part.duration_ms)
+                SELECT part.id, clip.id, clip.filename, clip.path,
+                       coalesce(clip.duration_ms, part.duration_ms)
                   FROM production_parts part
-                  JOIN takes take ON take.id = part.selected_take_id
+                  JOIN clips clip ON clip.part_id = part.id
                  WHERE part.id = %s AND part.archived_at IS NULL
                    AND (%s::bigint IS NULL OR part.production_id = %s)
             """, (part_id, production_id, production_id))
             row = cursor.fetchone()
-        return (dict(zip(("id", "take_id", "filename", "path", "duration_ms"), row))
+        return (dict(zip(("id", "clip_id", "filename", "path", "duration_ms"), row))
                 if row else None)
 
-    def finish_part(self, part_id: int, take_id: int | None,
+    def finish_part(self, part_id: int, clip_id: int | None,
                     duration_ms: int, transcript_id: int) -> None:
-        """Make one caption set current without rewriting the immutable Take."""
+        """Make one caption set current without rewriting the immutable Clip."""
         with transaction() as cursor:
             cursor.execute("""
                 DELETE FROM transcripts

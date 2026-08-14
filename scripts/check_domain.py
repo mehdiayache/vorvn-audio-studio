@@ -36,15 +36,15 @@ CHECKS = {
            AND NOT EXISTS (SELECT 1 FROM generations generation
                             WHERE generation.id=part.legacy_generation_id)
     """,
-    "selected Takes belong to their canonical Part": """
-        SELECT count(*) FROM production_parts part
-        JOIN takes take ON take.id=part.selected_take_id
-        WHERE take.part_id<>part.id
+    "every recording Clip belongs to a canonical Part": """
+        SELECT count(*) FROM clips clip
+        LEFT JOIN production_parts part ON part.id=clip.part_id
+        WHERE part.id IS NULL
     """,
-    "Take revisions never come from the future": """
-        SELECT count(*) FROM takes take
-        JOIN production_parts part ON part.id=take.part_id
-        WHERE take.source_part_revision>part.revision
+    "Clip revisions never come from the future": """
+        SELECT count(*) FROM clips clip
+        JOIN production_parts part ON part.id=clip.part_id
+        WHERE clip.source_part_revision>part.revision
     """,
     "enrollment Jobs persist an exact execution adapter": """
         SELECT count(*) FROM voice_package_jobs

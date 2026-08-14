@@ -68,7 +68,7 @@ export type ProductionPart = {
   text_state?: "raw" | "shaped" | "tagged" | string
   voice?: string
   voice_name?: string
-  take_public_id?: string | null
+  clip_public_id?: string | null
   voice_identity_id?: string | null
   binding_id?: string | null
   catalogue_voice_id?: string | null
@@ -81,15 +81,15 @@ export type ProductionPart = {
   provider_attempt_id?: string | null
   provider_attempt_status?: string | null
   binding_resolution_status?: string | null
-  take_raw_text?: string | null
-  take_spoken_text?: string | null
-  take_tagged_text?: string | null
-  take_delivery?: Record<string, unknown>
-  take_usage?: Record<string, unknown>
-  take_segmentation?: Record<string, unknown>
+  clip_raw_text?: string | null
+  clip_spoken_text?: string | null
+  clip_tagged_text?: string | null
+  clip_delivery?: Record<string, unknown>
+  clip_usage?: Record<string, unknown>
+  clip_segmentation?: Record<string, unknown>
   revision?: number
-  selected_take_id?: number | null
-  selected_take_text_state?: "raw" | "shaped" | "tagged" | string | null
+  clip_id?: number | null
+  recording_text_state?: "raw" | "shaped" | "tagged" | string | null
   editorial_status?: string | null
   speech_job?: (DurableJob<GenerateResult> & { request: GeneratePayload }) | null
   caption_job?: DurableJob<CaptionMutationResult> | null
@@ -500,7 +500,7 @@ export type TextPassResult = {
 
 export type CaptionMutationResult = Transcript & {
   part_id?: number | null
-  take_id?: number | null
+  clip_id?: number | null
   needs_confirmation?: boolean
   estimate?: number
   requires_review?: boolean
@@ -518,7 +518,7 @@ export type PlayerSource = {
   title: string
   subtitle?: string
   artwork?: string
-  kind: "take" | "production" | "voice" | "asset" | "music" | "subtitle" | "standalone"
+  kind: "clip" | "production" | "voice" | "asset" | "music" | "subtitle" | "standalone"
   captionTracks?: PlayerCaptionTrack[]
 }
 

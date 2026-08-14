@@ -24,9 +24,9 @@ class FakeRecords:
         return ({"id": export_id, "filename": "final.mp3"}
                 if export_id == 91 else None)
 
-    def take(self, take_id):
-        return ({"id": take_id, "filename": "take.mp3"}
-                if take_id == 150 else None)
+    def clip(self, clip_id):
+        return ({"id": clip_id, "filename": "clip.mp3"}
+                if clip_id == 150 else None)
 
 
 class MediaServiceTests(unittest.TestCase):
@@ -35,18 +35,18 @@ class MediaServiceTests(unittest.TestCase):
         self.service = MediaService(self.workspace, FakeRecords())
 
     def test_named_media_uses_one_workspace(self):
-        audio = self.service.resolve("audio", "take.mp3")
+        audio = self.service.resolve("audio", "clip.mp3")
         self.assertEqual(audio.download_name, None)
         self.assertEqual(
             self.workspace.lookups,
-            [("audio", "take.mp3", None, None)],
+            [("audio", "clip.mp3", None, None)],
         )
 
     def test_export_and_recording_ids_resolve_persisted_names(self):
         exported = self.service.export_file(91)
         generated = self.service.recording_file(150)
         self.assertEqual(exported.download_name, "final.mp3")
-        self.assertEqual(generated.download_name, "take.mp3")
+        self.assertEqual(generated.download_name, "clip.mp3")
         self.assertIsNone(self.service.export_file(404))
         self.assertIsNone(self.service.recording_file(404))
 

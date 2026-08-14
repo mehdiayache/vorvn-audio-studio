@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { StandaloneComposerHost } from "./standalone-composer-host"
 
 const player = vi.hoisted(() => ({
-  source: { key: "take:1", url: "/audio/test.mp3", title: "Current recording", kind: "standalone" as const },
+  source: { key: "clip:1", url: "/audio/test.mp3", title: "Current recording", kind: "standalone" as const },
   state: "paused", currentTime: 2, duration: 8, volume: 1, speed: 1,
   toggle: vi.fn(), seek: vi.fn(), setVolume: vi.fn(), setSpeed: vi.fn(), close: vi.fn(),
   transportHost: "composer" as const, claimTransport: vi.fn(() => vi.fn()),

@@ -84,7 +84,7 @@ class VoiceRepositoryTests(unittest.TestCase):
                     cursor.execute("SELECT id FROM productions ORDER BY id LIMIT 1")
                     production = cursor.fetchone()
                     if not production:
-                        self.skipTest("No Production exists for canonical Take fixture")
+                        self.skipTest("No Production exists for canonical Clip fixture")
                     cursor.execute("""
                         INSERT INTO production_parts
                             (production_id, position, kind, script)
@@ -94,7 +94,7 @@ class VoiceRepositoryTests(unittest.TestCase):
                     """, (production[0], production[0]))
                     part_id = int(cursor.fetchone()[0])
                     cursor.execute("""
-                        INSERT INTO takes
+                        INSERT INTO clips
                             (part_id, source_part_revision, source_script_hash,
                              binding_id, binding_resolution_status,
                              provider_voice_id, model_id, cost, filename, path)
@@ -148,7 +148,7 @@ class VoiceRepositoryTests(unittest.TestCase):
             with psycopg.connect(settings.database_url) as database:
                 with database.cursor() as cursor:
                     cursor.execute("""
-                        SELECT voice_identity_id FROM takes WHERE part_id = %s
+                        SELECT voice_identity_id FROM clips WHERE part_id = %s
                     """, (part_id,))
                     self.assertEqual(cursor.fetchone()[0], identity_id)
                     cursor.execute("""

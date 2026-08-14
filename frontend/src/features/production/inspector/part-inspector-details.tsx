@@ -9,11 +9,11 @@ function Fact({ label, value, mono = false }: { label: string; value?: string | 
 }
 
 export function PartInspectorDetails({ part, directory }: { part: ProductionPart; directory: VoiceDirectory }) {
-  const recorded = Boolean(part.selected_take_id)
+  const recorded = Boolean(part.clip_id)
   const draft = part.kind === "draft"
   const silence = part.kind === "silence"
   const asset = part.kind === "asset"
-  const diagnostics = { provider_attempt_id: part.provider_attempt_id, provider_attempt_status: part.provider_attempt_status, fidelity: part.fidelity, delivery: part.take_delivery, usage: part.take_usage, segmentation: part.take_segmentation }
+  const diagnostics = { provider_attempt_id: part.provider_attempt_id, provider_attempt_status: part.provider_attempt_status, fidelity: part.fidelity, delivery: part.clip_delivery, usage: part.clip_usage, segmentation: part.clip_segmentation }
 
   return <div className="inspector-panel inspector-details-panel">
     {recorded && <>
@@ -34,7 +34,7 @@ export function PartInspectorDetails({ part, directory }: { part: ProductionPart
       <section>
         <div className="inspector-section-heading"><div><span className="eyebrow">Snapshot provenance</span><h3>Identity and source</h3></div><Badge variant="outline">Part revision {part.revision || 1}</Badge></div>
         <dl className="inspector-facts">
-          <Fact label="Recording ID" value={part.take_public_id} mono />
+          <Fact label="Recording ID" value={part.clip_public_id} mono />
           <Fact label="Voice Identity" value={part.voice_identity_id} mono />
           <Fact label="Binding ID" value={part.binding_id} mono />
           <Fact label="Catalogue Voice ID" value={part.catalogue_voice_id} mono />

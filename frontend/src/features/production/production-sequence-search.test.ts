@@ -4,9 +4,9 @@ import type { ProductionPart } from "@/types/domain"
 import { EMPTY_SEQUENCE_FILTERS, filterProductionParts } from "./production-sequence-search"
 
 const parts = [
-  { id: 1, kind: "speech", text: "The lighthouse keeper checks the eastern window.", voice_name: "Samira", selected_take_id: 10, subtitled: true },
+  { id: 1, kind: "speech", text: "The lighthouse keeper checks the eastern window.", voice_name: "Samira", clip_id: 10, subtitled: true },
   { id: 2, kind: "draft", text: "A storm warning arrives before midnight." },
-  { id: 3, kind: "speech", text: "Secure the boats before the tide turns.", voice_name: "Mina", selected_take_id: 12, subtitled: false },
+  { id: 3, kind: "speech", text: "Secure the boats before the tide turns.", voice_name: "Mina", clip_id: 12, subtitled: false },
 ] as ProductionPart[]
 
 describe("filterProductionParts", () => {

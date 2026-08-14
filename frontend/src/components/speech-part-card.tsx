@@ -126,11 +126,11 @@ export function SpeechPartCard({ part, job, captionJob, index, count, playing, p
       <footer className="speech-part-result">
         {facts.recorded ? <>
           <div className="speech-part-playback">
-            {facts.playable && <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="speech-part-play" onClick={() => actions.play({ key: `part:${part.id}`, url: audioUrl(part.filename!), title: `Part ${index + 1}`, subtitle: facts.selectedVoiceName, kind: "take" })} aria-label={playing ? "Pause part" : "Play part"}>{playing ? <Pause /> : <Play />}</Button></TooltipTrigger><TooltipContent>{playing ? "Pause recording" : "Play recording"}</TooltipContent></Tooltip>}
+            {facts.playable && <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="speech-part-play" onClick={() => actions.play({ key: `part:${part.id}`, url: audioUrl(part.filename!), title: `Part ${index + 1}`, subtitle: facts.selectedVoiceName, kind: "clip" })} aria-label={playing ? "Pause part" : "Play part"}>{playing ? <Pause /> : <Play />}</Button></TooltipTrigger><TooltipContent>{playing ? "Pause recording" : "Play recording"}</TooltipContent></Tooltip>}
             {(playing || facts.operation.kind === "active") && <span className="speech-part-waveform"><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={34} /></span>}
             <span>{facts.durationLabel}</span>
           </div>
-          <div className="speech-part-take-summary" title={facts.recordingSummary} aria-label={facts.recordingSummary}>
+          <div className="speech-part-clip-summary" title={facts.recordingSummary} aria-label={facts.recordingSummary}>
             <span>Recording</span>
             <span className={cn("speech-part-input-state", facts.inputLabel && `is-${facts.inputLabel.toLowerCase()}`)}>{facts.inputLabel || "Unknown input"}</span>
           </div>

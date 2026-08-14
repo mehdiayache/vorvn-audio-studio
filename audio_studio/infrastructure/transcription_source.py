@@ -46,7 +46,7 @@ class TranscriptionSourceResolver:
         return PreparedAudio(
             "", filename, f"/audio/{filename}",
             max(0, int(part.get("duration_ms") or duration_ms or 0)),
-            part_id, part.get("take_id"), str(target))
+            part_id, part.get("clip_id"), str(target))
 
     def publish(self, source: PreparedAudio) -> PreparedAudio:
         if source.url:
@@ -57,8 +57,8 @@ class TranscriptionSourceResolver:
         provider_url = storage.upload(
             source.local_path, content_type=content_type,
             kind="transcription-sources",
-            object_id=f"part_{source.part_id}_take_{source.take_id or 'none'}",
+            object_id=f"part_{source.part_id}_clip_{source.clip_id or 'none'}",
             retention="temporary")
         return PreparedAudio(
             provider_url, source.name, source.playable, source.duration_ms,
-            source.part_id, source.take_id, source.local_path)
+            source.part_id, source.clip_id, source.local_path)

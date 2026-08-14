@@ -66,11 +66,11 @@ class FakeRepository:
         self.created.append((production_id, insert_at, values))
         return 701 if production_id is not None else None
 
-    def replace_part(self, part_id, production_id, expected_revision,
-                     values, *, operation):
+    def attach_clip(self, part_id, production_id, expected_revision,
+                    values, *, operation):
         self.replaced.append((part_id, production_id, expected_revision,
                               values, operation))
-        return {"selected": 1, "take_id": 901, "subtitles_stale": 0}
+        return {"attached": 1, "clip_id": 901, "subtitles_stale": 0}
 
 
 class FakeProvider:
@@ -335,7 +335,7 @@ class SpeechGenerationTests(unittest.TestCase):
         repository = FakeRepository(part={
             **existing("speech"),
             "revision": 4,
-            "selected_take_id": None,
+            "clip_id": None,
         })
         service, _, _, _ = self.service(repository=repository)
         source_hash = hashlib.sha256(b"Canonical queued script").hexdigest()
@@ -390,10 +390,10 @@ class SpeechGenerationTests(unittest.TestCase):
                                 part_id=4))
         self.assertEqual((provider.calls, workspace.saved), ([], []))
 
-    def test_partial_provider_result_is_never_saved_as_a_take(self):
+    def test_partial_provider_result_is_never_saved_as_a_clip(self):
         provider = FakeProvider(
             failures=[{"index": 1, "text": "world", "error": "timeout"}],
-            fidelity={"status": "warning", "message": "Review this Take."})
+            fidelity={"status": "warning", "message": "Review this Clip."})
         service, repository, _, workspace = self.service(provider=provider)
         with self.assertRaisesRegex(JobFailed, "No incomplete recording") as caught:
             service.run(payload())

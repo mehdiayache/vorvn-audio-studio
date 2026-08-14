@@ -93,7 +93,7 @@ class _Options:
         self.instruction = instruction[:INSTRUCTION_MAX] or None
         # Capability mode IDs are open provider metadata, not a closed
         # exact/directed enum. Individual adapters may interpret known modes,
-        # but the chosen ID must survive unchanged into evidence and Takes.
+        # but the chosen ID must survive unchanged into evidence and Clips.
         self.speech_mode = str(values.get("speech_mode") or "exact")
         self.rate = float(values.get("rate", 1))
         self.pitch = float(values.get("pitch", 1))

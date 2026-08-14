@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
-import { RecordingTakeCard, type RecordingTakeView } from "@/components/recording-take-card"
+import { RecordingClipCard, type RecordingClipView } from "@/components/recording-clip-card"
 import { StandaloneComposerHost } from "@/features/composer/standalone-composer-host"
 import { ErrorState, InlineResourceError, PageLoading } from "@/components/state-panel"
 import { useGlobalPlayer } from "@/components/global-player-provider"
@@ -41,7 +41,7 @@ function PendingSpeakExecution({ execution, directory, onTerminal }: {
   }, [execution, job, onTerminal, terminal])
   const status = job?.status === "blocked" ? "review" : job && ["failed", "lost", "cancelled"].includes(job.status) ? "failed" : job?.status === "warning" ? "warning" : "pending"
   const route = resolveRequestRoute(execution.payload, directory)
-  return <RecordingTakeCard take={{
+  return <RecordingClipCard clip={{
     id: execution.jobId,
     status,
     voice: route?.provider_voice_id,
@@ -120,7 +120,7 @@ export function SpeakPage() {
     }
   }, [player, refreshHistory, voices.directory])
 
-  function takeView(attempt: RecordingAttempt): RecordingTakeView {
+  function clipView(attempt: RecordingAttempt): RecordingClipView {
     const status = recordingAttemptStatus(attempt)
     const route = resolveRequestRoute(attempt.request, voices.directory)
     return {
@@ -157,7 +157,7 @@ export function SpeakPage() {
       {historyLoading && !history?.recordings.length ? <p className="speak-empty">Loading recording history…</p> : history?.recordings.length ? history.recordings.filter((attempt) => !executions.some((execution) => execution.jobId === attempt.id)).map((attempt) => {
         const sourceKey = `job:${attempt.id}`
         const confirmation = attempt.status === "blocked" && attempt.needs_confirmation && !attempt.requires_review && !attempt.continued_by_job_id
-        return <RecordingTakeCard key={attempt.id} take={takeView(attempt)} directory={voices.directory} active={player.source?.key === sourceKey && player.state === "playing"} onPlay={attempt.audio_url ? () => void player.toggleSource({ key: sourceKey, url: attempt.audio_url!, title: "Generated recording", subtitle: resolveRequestVoice(attempt.request, voices.directory).name, kind: "standalone" }) : undefined} onSecondaryAction={confirmation ? () => void confirmAttempt(attempt) : attempt.status === "blocked" ? undefined : () => void generate(attempt.request)} secondaryLabel={confirmation ? `Confirm $${Number(attempt.estimate || 0).toFixed(4)}` : "Record again · same setup"} />
+        return <RecordingClipCard key={attempt.id} clip={clipView(attempt)} directory={voices.directory} active={player.source?.key === sourceKey && player.state === "playing"} onPlay={attempt.audio_url ? () => void player.toggleSource({ key: sourceKey, url: attempt.audio_url!, title: "Generated recording", subtitle: resolveRequestVoice(attempt.request, voices.directory).name, kind: "standalone" }) : undefined} onSecondaryAction={confirmation ? () => void confirmAttempt(attempt) : attempt.status === "blocked" ? undefined : () => void generate(attempt.request)} secondaryLabel={confirmation ? `Confirm $${Number(attempt.estimate || 0).toFixed(4)}` : "Record again · same setup"} />
       }) : !executions.length && <p className="speak-empty">Your first recording will appear here and remain available for reuse.</p>}
     </section>
   </main>

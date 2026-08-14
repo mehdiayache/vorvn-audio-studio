@@ -36,7 +36,7 @@ def migrate_legacy_references(repository: ReferenceRepository,
                 workspace.resolve(normalized)
         except RuntimeError as error:
             # Historical evidence must remain honest. A missing old master is
-            # unavailable for new enrollments, but it must not take the whole
+            # unavailable for new enrollments, but it must not clip the whole
             # application offline or be replaced with invented media.
             repository.mark_reference_unavailable(reference_id, str(error))
             continue

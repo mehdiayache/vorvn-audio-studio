@@ -34,9 +34,9 @@ class SpeechRepository(Protocol):
     def part(self, part_id: int, production_id: int) -> dict | None: ...
     def create_part(self, production_id: int | None, insert_at: int | None,
                     values: dict[str, Any]) -> int | None: ...
-    def replace_part(self, part_id: int, production_id: int,
-                     expected_revision: int, values: dict[str, Any], *,
-                     operation: str) -> dict[str, int]: ...
+    def attach_clip(self, part_id: int, production_id: int,
+                    expected_revision: int, values: dict[str, Any], *,
+                    operation: str) -> dict[str, int]: ...
 
 
 class SpeechProvider(Protocol):
@@ -105,6 +105,7 @@ def _record(prepared: PreparedSpeech, result: SynthesizedSpeech,
         "rate": prepared.rate, "pitch": prepared.pitch,
         "volume": prepared.volume, "seed": prepared.seed,
         "filename": saved.filename, "path": saved.path,
+        "file_url": f"/audio/{quote(saved.filename)}",
         "size_bytes": saved.size_bytes, "duration_ms": saved.duration_ms,
         "chars": len(prepared.original_text),
         "requests": len(result.diagnostics) or prepared.request_count,
@@ -167,7 +168,7 @@ class SpeechGenerationService:
                 raise ValueError("That Draft has already been recorded.")
             if operation == "record_part" and (
                     part.get("kind") != "speech" or
-                    part.get("selected_take_id") is not None):
+                    part.get("clip_id") is not None):
                 raise ValueError("That pending speech Part has already been recorded.")
             inherited = {key: part.get(key) for key in _SETTING_FIELDS}
             inherited["title"] = part.get("title")
@@ -347,13 +348,13 @@ class SpeechGenerationService:
                 if production_id is not None and created_part_id:
                     created_part = self.repository.part(
                         created_part_id, production_id)
-                    if created_part and created_part.get("selected_take_id"):
-                        mutation["take_id"] = int(created_part["selected_take_id"])
+                    if created_part and created_part.get("clip_id"):
+                        mutation["clip_id"] = int(created_part["clip_id"])
             else:
                 assert (part is not None and part_id is not None
                         and production_id is not None)
                 created_part_id = part_id
-                mutation = self.repository.replace_part(
+                mutation = self.repository.attach_clip(
                     part_id, production_id,
                     int(values.get("_source_part_revision") or part["revision"]),
                     row,
@@ -385,14 +386,14 @@ class SpeechGenerationService:
         warning = ("The Part changed while this recording was generating. "
                    "The paid provider result remains in Activity evidence but "
                    "was not attached to the Part."
-                   if mutation.get("selected") == 0 else
+                   if mutation.get("attached") == 0 else
                    _fidelity_warning(made) or _truncation_warning(
                        prepared, saved.duration_ms))
         request_ids = list(made.request_ids)
         return {
             "id": created_part_id,
             "part_id": created_part_id,
-            "take_id": mutation.get("take_id"),
+            "clip_id": mutation.get("clip_id"),
             "url": f"/audio/{quote(saved.filename)}",
             "name": saved.filename, "path": saved.path,
             "chars": len(prepared.spoken_text),

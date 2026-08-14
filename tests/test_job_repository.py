@@ -130,7 +130,8 @@ class JobRepositoryTests(unittest.TestCase):
                 self.assertIsNotNone(job.part_id)
                 cursor.execute("""
                     SELECT position, kind, script, editorial_status, revision,
-                           selected_take_id
+                           (SELECT clip.id FROM clips clip
+                             WHERE clip.part_id = production_parts.id)
                       FROM production_parts WHERE id=%s
                 """, (job.part_id,))
                 self.assertEqual(cursor.fetchone(), (

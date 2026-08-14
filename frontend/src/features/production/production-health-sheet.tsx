@@ -11,7 +11,7 @@ export type ProductionHealthIssue = { part: ProductionPart; title: string; detai
 export function productionHealth(parts: ProductionPart[]) {
   return parts.filter((part) => part.kind !== "stitch" && part.enabled !== false).flatMap<ProductionHealthIssue>((part) => {
     const issues: ProductionHealthIssue[] = []
-    if (part.kind === "draft" || (part.kind === "speech" && !part.selected_take_id)) issues.push({ part, title: "Speech not recorded", detail: "This Part has no active recording.", severity: "blocking" })
+    if (part.kind === "draft" || (part.kind === "speech" && !part.clip_id)) issues.push({ part, title: "Speech not recorded", detail: "This Part has no active recording.", severity: "blocking" })
     if (part.missing) issues.push({ part, title: "Missing media", detail: "The selected source file is unavailable.", severity: "blocking" })
     if (part.outdated) issues.push({ part, title: "Recording outdated", detail: "The Part changed after this recording was generated.", severity: "review" })
     if (part.subtitles_stale) issues.push({ part, title: "Captions need review", detail: "Refresh captions after replacing the recording.", severity: "review" })

@@ -85,8 +85,8 @@ class FakeRepository:
         self.saved.append(values)
         return 91
 
-    def finish_part(self, part_id, take_id, duration_ms, transcript_id):
-        self.finished.append((part_id, take_id, duration_ms, transcript_id))
+    def finish_part(self, part_id, clip_id, duration_ms, transcript_id):
+        self.finished.append((part_id, clip_id, duration_ms, transcript_id))
 
     def today_spend(self):
         return self.spent
@@ -134,7 +134,7 @@ class TranscriptionTests(unittest.TestCase):
         saved = repository.saved[0]
         self.assertEqual(saved["source_job_id"], 12)
         self.assertEqual(saved["part_id"], 44)
-        self.assertEqual(saved["take_id"], 45)
+        self.assertEqual(saved["clip_id"], 45)
         self.assertEqual(saved["sentences"][0]["words"][1]["text"], "world.")
         self.assertEqual(repository.finished, [(44, 45, 2100, 91)])
 

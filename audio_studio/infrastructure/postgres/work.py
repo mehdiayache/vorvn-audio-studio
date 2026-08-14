@@ -98,11 +98,11 @@ def hierarchy() -> list[dict[str, Any]]:
             UNION ALL
             SELECT 'production', p.id, p.public_id, p.project_id, p.series_id, p.name,
                    p.description, '', p.updated_at, false, NULL,
-                   count(pp.id), coalesce(sum(take.cost), 0)
+                   count(pp.id), coalesce(sum(clip.cost), 0)
               FROM productions p
               LEFT JOIN production_parts pp ON pp.production_id = p.id
                AND pp.archived_at IS NULL
-              LEFT JOIN takes take ON take.id = pp.selected_take_id
+              LEFT JOIN clips clip ON clip.part_id = pp.id
              WHERE p.archived_at IS NULL
              GROUP BY p.id
         """)
@@ -204,12 +204,12 @@ def _production_summaries(cur, where_sql: str, params: tuple = ()) -> list[Produ
         SELECT production.id, production.public_id, production.name, production.description,
                production.status, production.series_id, production.updated_at,
                count(part.id),
-               coalesce(sum(coalesce(take.duration_ms, part.duration_ms, 0)), 0),
-               coalesce(sum(take.cost), 0)
+               coalesce(sum(coalesce(clip.duration_ms, part.duration_ms, 0)), 0),
+               coalesce(sum(clip.cost), 0)
           FROM productions production
           LEFT JOIN production_parts part ON part.production_id = production.id
            AND part.archived_at IS NULL
-          LEFT JOIN takes take ON take.id = part.selected_take_id
+          LEFT JOIN clips clip ON clip.part_id = part.id
          WHERE production.archived_at IS NULL AND ({where_sql})
          GROUP BY production.id
          ORDER BY production.position NULLS LAST, production.updated_at DESC,
@@ -245,15 +245,15 @@ def venture_overview(venture_id: int) -> VentureOverview | None:
                    coalesce(nullif(project.cover_image, ''), project.icon),
                    project.updated_at, count(DISTINCT production.id),
                    count(DISTINCT part.id),
-                   coalesce(sum(coalesce(take.duration_ms, part.duration_ms, 0)), 0),
-                   coalesce(sum(take.cost), 0)
+                   coalesce(sum(coalesce(clip.duration_ms, part.duration_ms, 0)), 0),
+                   coalesce(sum(clip.cost), 0)
               FROM work_projects project
               LEFT JOIN productions production
                 ON production.project_id = project.id
                AND production.archived_at IS NULL
               LEFT JOIN production_parts part ON part.production_id = production.id
                AND part.archived_at IS NULL
-              LEFT JOIN takes take ON take.id = part.selected_take_id
+              LEFT JOIN clips clip ON clip.part_id = part.id
              WHERE project.venture_id = %s AND project.archived_at IS NULL
              GROUP BY project.id
              ORDER BY project.updated_at DESC, project.name
@@ -351,14 +351,14 @@ def project_overview(project_id: int) -> ProjectOverview | None:
             SELECT series.id, series.public_id, series.name, series.description, series.icon,
                    series.defaults, series.updated_at,
                    count(DISTINCT production.id), count(part.id),
-                   coalesce(sum(coalesce(take.duration_ms, part.duration_ms, 0)), 0),
-                   coalesce(sum(take.cost), 0)
+                   coalesce(sum(coalesce(clip.duration_ms, part.duration_ms, 0)), 0),
+                   coalesce(sum(clip.cost), 0)
               FROM series
               LEFT JOIN productions production ON production.series_id = series.id
                AND production.archived_at IS NULL
               LEFT JOIN production_parts part ON part.production_id = production.id
                AND part.archived_at IS NULL
-              LEFT JOIN takes take ON take.id = part.selected_take_id
+              LEFT JOIN clips clip ON clip.part_id = part.id
              WHERE series.project_id = %s AND series.archived_at IS NULL
              GROUP BY series.id
              ORDER BY series.position NULLS LAST, series.updated_at DESC, series.name

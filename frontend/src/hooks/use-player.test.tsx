@@ -56,7 +56,7 @@ describe("usePlayer", () => {
 
   it("plays, pauses, and resumes the same source without replacing it", async () => {
     const { result } = renderHook(() => usePlayer())
-    const source = { key: "part:12", url: "/audio/part.mp3", title: "Part 12", kind: "take" as const }
+    const source = { key: "part:12", url: "/audio/part.mp3", title: "Part 12", kind: "clip" as const }
 
     await act(async () => result.current.toggleSource(source))
     expect(result.current.state).toBe("playing")
@@ -75,7 +75,7 @@ describe("usePlayer", () => {
 
   it("stops the old source before playing a different one", async () => {
     const { result } = renderHook(() => usePlayer())
-    await act(async () => result.current.toggleSource({ key: "part:1", url: "/audio/one.mp3", title: "One", kind: "take" }))
+    await act(async () => result.current.toggleSource({ key: "part:1", url: "/audio/one.mp3", title: "One", kind: "clip" }))
     await act(async () => result.current.toggleSource({ key: "asset-source:2", url: "/audio/two.mp3", title: "Two", kind: "music" }))
 
     expect(element.pause).toHaveBeenCalledTimes(1)
@@ -85,20 +85,20 @@ describe("usePlayer", () => {
     expect(result.current.state).toBe("playing")
   })
 
-  it("loads a replacement file when a take changes behind the same part id", async () => {
+  it("loads a replacement file when a clip changes behind the same part id", async () => {
     const { result } = renderHook(() => usePlayer())
-    await act(async () => result.current.toggleSource({ key: "part:7", url: "/audio/old-take.mp3", title: "Part 7", kind: "take" }))
-    await act(async () => result.current.toggleSource({ key: "part:7", url: "/audio/promoted-take.mp3", title: "Part 7", kind: "take" }))
+    await act(async () => result.current.toggleSource({ key: "part:7", url: "/audio/old-clip.mp3", title: "Part 7", kind: "clip" }))
+    await act(async () => result.current.toggleSource({ key: "part:7", url: "/audio/promoted-clip.mp3", title: "Part 7", kind: "clip" }))
 
     expect(element.pause).toHaveBeenCalledTimes(1)
     expect(element.play).toHaveBeenCalledTimes(2)
-    expect(element.src).toContain("/audio/promoted-take.mp3")
-    expect(result.current.source?.url).toContain("/audio/promoted-take.mp3")
+    expect(element.src).toContain("/audio/promoted-clip.mp3")
+    expect(result.current.source?.url).toContain("/audio/promoted-clip.mp3")
   })
 
   it("restarts an ended source from the beginning", async () => {
     const { result } = renderHook(() => usePlayer())
-    const source = { key: "take:3", url: "/audio/take.mp3", title: "Take", kind: "take" as const }
+    const source = { key: "clip:3", url: "/audio/clip.mp3", title: "Clip", kind: "clip" as const }
     await act(async () => result.current.toggleSource(source))
     element.paused = true
     element.ended = true
@@ -123,7 +123,7 @@ describe("usePlayer", () => {
   it("keeps caption language and the current cue in the one global player", async () => {
     const { result } = renderHook(() => usePlayer())
     await act(async () => result.current.toggleSource({
-      key: "part:4", url: "/audio/part.mp3", title: "Part 4", kind: "take",
+      key: "part:4", url: "/audio/part.mp3", title: "Part 4", kind: "clip",
       captionTracks: [
         { id: "en", language: "English", label: "English · Original", stale: false, cues: [{ startMs: 0, endMs: 2000, text: "Open the old wooden door.", partId: 4 }] },
         { id: "fr", language: "French", label: "French", stale: false, cues: [{ startMs: 0, endMs: 2000, text: "Ouvre la vieille porte en bois.", partId: 4 }] },
@@ -140,7 +140,7 @@ describe("usePlayer", () => {
   it("switches the current cue between reusable caption presentations", async () => {
     const { result } = renderHook(() => usePlayer())
     await act(async () => result.current.toggleSource({
-      key: "part:9", url: "/audio/part.mp3", title: "Part 9", kind: "take",
+      key: "part:9", url: "/audio/part.mp3", title: "Part 9", kind: "clip",
       captionTracks: [{
         id: "en", language: "English", label: "English · Original", stale: false,
         cues: [{ startMs: 0, endMs: 2000, text: "The complete sentence.", partId: 9 }],

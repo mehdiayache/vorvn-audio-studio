@@ -3425,6 +3425,76 @@
             ],
             "title": "Chars"
           },
+          "clip_delivery": {
+            "additionalProperties": true,
+            "title": "Clip Delivery",
+            "type": "object"
+          },
+          "clip_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clip Id"
+          },
+          "clip_public_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clip Public Id"
+          },
+          "clip_raw_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clip Raw Text"
+          },
+          "clip_segmentation": {
+            "additionalProperties": true,
+            "title": "Clip Segmentation",
+            "type": "object"
+          },
+          "clip_spoken_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clip Spoken Text"
+          },
+          "clip_tagged_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clip Tagged Text"
+          },
+          "clip_usage": {
+            "additionalProperties": true,
+            "title": "Clip Usage",
+            "type": "object"
+          },
           "cost": {
             "title": "Cost",
             "type": "number"
@@ -3665,6 +3735,17 @@
             ],
             "title": "Rate"
           },
+          "recording_text_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recording Text State"
+          },
           "reference_id": {
             "anyOf": [
               {
@@ -3691,28 +3772,6 @@
               }
             ],
             "title": "Seed"
-          },
-          "selected_take_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Selected Take Id"
-          },
-          "selected_take_text_state": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Selected Take Text State"
           },
           "size_bytes": {
             "anyOf": [
@@ -3766,65 +3825,6 @@
             "default": false,
             "title": "Subtitles Stale",
             "type": "boolean"
-          },
-          "take_delivery": {
-            "additionalProperties": true,
-            "title": "Take Delivery",
-            "type": "object"
-          },
-          "take_public_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Take Public Id"
-          },
-          "take_raw_text": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Take Raw Text"
-          },
-          "take_segmentation": {
-            "additionalProperties": true,
-            "title": "Take Segmentation",
-            "type": "object"
-          },
-          "take_spoken_text": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Take Spoken Text"
-          },
-          "take_tagged_text": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Take Tagged Text"
-          },
-          "take_usage": {
-            "additionalProperties": true,
-            "title": "Take Usage",
-            "type": "object"
           },
           "text": {
             "title": "Text",
@@ -5247,6 +5247,17 @@
         "additionalProperties": true,
         "description": "Documented speech result facts already produced by the runtime.",
         "properties": {
+          "clip_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clip Id"
+          },
           "duration_ms": {
             "anyOf": [
               {
@@ -5268,17 +5279,6 @@
               }
             ],
             "title": "Part Id"
-          },
-          "take_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Take Id"
           }
         },
         "title": "SpeechGenerateResultResponse",

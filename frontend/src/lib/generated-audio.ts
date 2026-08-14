@@ -6,7 +6,7 @@ export type PlayableGenerateResult = GenerateResult & { url: string }
 /**
  * Normalize every successful speech endpoint to one frontend contract.
  *
- * Older server responses for replacement takes only returned `name`, even
+ * Older server responses for replacement clips only returned `name`, even
  * though the paid render and database replacement had succeeded. Falling back
  * to that immutable filename keeps a successful render playable during mixed
  * frontend/backend deployments. A response with neither field is genuinely

@@ -35,8 +35,8 @@ const longText = Array.from({ length: 18 }, (_, index) => `Sentence ${index + 1}
 function part(values: Partial<ProductionPart> = {}): ProductionPart {
   return {
     id: 7, created_at: "2026-08-13T10:00:00Z", position: 0, kind: "speech",
-    text: longText, selected_take_id: 21,
-    selected_take_text_state: "tagged", voice_name: "Maya", voice: "maya-provider-id",
+    text: longText, clip_id: 21,
+    recording_text_state: "tagged", voice_name: "Maya", voice: "maya-provider-id",
     engine: "audio", tier: "flash", model: "qwen-audio-3.0-tts-flash",
     capability_name: "Expressive + tags", language: "English", duration_ms: 5100,
     filename: "maya.mp3", cost: .01, spent: .02,
@@ -87,7 +87,7 @@ describe("SpeechPartCard", () => {
     const { container } = renderCard(<SpeechPartCard part={part()} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={{ ...actions(), recordPart: vi.fn() }} />)
     const footer = container.querySelector(".speech-part-result")
     expect(footer?.contains(screen.getByRole("button", { name: /play part/i }))).toBe(true)
-    expect(screen.queryByRole("button", { name: /New Take/i })).toBeNull()
+    expect(screen.queryByRole("button", { name: /New Clip/i })).toBeNull()
     fireEvent.pointerDown(screen.getByRole("button", { name: "Part actions" }), { button: 0, ctrlKey: false })
     expect(screen.queryByRole("menuitem", { name: /Replace recording/i })).toBeNull()
     expect(container.querySelector(".speech-operation-lane")).toBeNull()
@@ -96,7 +96,7 @@ describe("SpeechPartCard", () => {
 
   it("gives drafts their own truthful actions and zero-duration state", () => {
     const actionSet = actions()
-    renderCard(<SpeechPartCard part={part({ kind: "draft", selected_take_id: null, filename: "", duration_ms: 9000 })} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
+    renderCard(<SpeechPartCard part={part({ kind: "draft", clip_id: null, filename: "", duration_ms: 9000 })} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
     expect(screen.getByText("Not recorded")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Edit draft" }))
     fireEvent.click(screen.getByRole("button", { name: "Record" }))

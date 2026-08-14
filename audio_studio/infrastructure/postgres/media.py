@@ -8,11 +8,11 @@ from audio_studio.infrastructure.postgres.session import read_only
 class MediaLookupRepository:
     """Resolve database identity to a contained output filename only."""
 
-    def take(self, take_id: int) -> dict | None:
+    def clip(self, clip_id: int) -> dict | None:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT id, filename FROM takes
+                SELECT id, filename FROM clips
                  WHERE id = %s AND filename <> ''
-            """, (take_id,))
+            """, (clip_id,))
             row = cursor.fetchone()
         return ({"id": int(row[0]), "filename": row[1]} if row else None)

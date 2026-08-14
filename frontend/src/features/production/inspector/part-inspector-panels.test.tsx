@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { PartInspectorDetails } from "./part-inspector-details"
-import { PartInspectorScript, selectedTakeWording } from "./part-inspector-script"
+import { PartInspectorScript, recordingWording } from "./part-inspector-script"
 import { partInspectorTabs } from "./part-inspector"
 import type { ProductionPart, VoiceDirectory } from "@/types/domain"
 
@@ -12,10 +12,10 @@ afterEach(cleanup)
 const directory = { config: null, cloned: [], meta: {}, catalog: [], identities: [], registry: null } as VoiceDirectory
 const part = {
   id: 4, public_id: "part-public", created_at: "2026-08-12T00:00:00Z", position: 0,
-  kind: "speech", text: "Canonical words", revision: 4, selected_take_id: 8,
-  selected_take_text_state: "raw",
-  take_public_id: "take-public", take_raw_text: "Canonical words",
-  take_spoken_text: "Provider wording", provider_text: "Provider wording",
+  kind: "speech", text: "Canonical words", revision: 4, clip_id: 8,
+  recording_text_state: "raw",
+  clip_public_id: "clip-public", clip_raw_text: "Canonical words",
+  clip_spoken_text: "Provider wording", provider_text: "Provider wording",
   voice: "provider-voice", voice_name: "Sarah", cost: 0.04, spent: 0.08,
   provider: "alibaba", provider_region: "intl", model: "qwen-model",
   tier: "plus", binding_id: "binding-public", reference_id: "reference-public",
@@ -41,7 +41,7 @@ describe("Part Inspector panels", () => {
   })
 
   it("does not project speech route concepts onto Silence Parts", () => {
-    const silence = { ...part, id: 5, kind: "silence", text: "", duration_ms: 2500, selected_take_id: null } as ProductionPart
+    const silence = { ...part, id: 5, kind: "silence", text: "", duration_ms: 2500, clip_id: null } as ProductionPart
     render(<PartInspectorScript part={silence} directory={directory} currentPlaying={false} onPlay={vi.fn()} onRecordPart={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
     expect(screen.getByText("Intentional silence")).toBeTruthy()
     expect(screen.getByText(/no Voice, recording, provider operation, captions, or generation spend/i)).toBeTruthy()
@@ -49,7 +49,7 @@ describe("Part Inspector panels", () => {
   })
 
   it("shows Asset provenance instead of a fictional recording route", () => {
-    const asset = { ...part, id: 6, kind: "asset", text: "Intro", title: "Evening intro", filename: "intro.mp3", selected_take_id: null } as ProductionPart
+    const asset = { ...part, id: 6, kind: "asset", text: "Intro", title: "Evening intro", filename: "intro.mp3", clip_id: null } as ProductionPart
     render(<PartInspectorDetails part={asset} directory={directory} />)
     expect(screen.getByText("Linked Venture audio")).toBeTruthy()
     expect(screen.getByText("Evening intro")).toBeTruthy()
@@ -58,20 +58,20 @@ describe("Part Inspector panels", () => {
 
   it("limits tabs by the current Part type", () => {
     expect(partInspectorTabs(part)).toEqual(["script", "captions", "details"])
-    expect(partInspectorTabs({ ...part, kind: "draft", selected_take_id: null })).toEqual(["script", "details"])
-    expect(partInspectorTabs({ ...part, kind: "asset", selected_take_id: null })).toEqual(["script", "details"])
-    expect(partInspectorTabs({ ...part, kind: "silence", selected_take_id: null })).toEqual(["script", "details"])
+    expect(partInspectorTabs({ ...part, kind: "draft", clip_id: null })).toEqual(["script", "details"])
+    expect(partInspectorTabs({ ...part, kind: "asset", clip_id: null })).toEqual(["script", "details"])
+    expect(partInspectorTabs({ ...part, kind: "silence", clip_id: null })).toEqual(["script", "details"])
   })
 
   it("shows Draft editorial facts without pretending a recording route exists", () => {
-    render(<PartInspectorDetails part={{ ...part, kind: "draft", selected_take_id: null }} directory={directory} />)
+    render(<PartInspectorDetails part={{ ...part, kind: "draft", clip_id: null }} directory={directory} />)
     expect(screen.getByText("Draft speech")).toBeTruthy()
     expect(screen.queryByText("Recording route")).toBeNull()
     expect(screen.queryByText("Immutable evidence")).toBeNull()
   })
 
   it("does not guess the recording input state from populated fields", () => {
-    expect(selectedTakeWording({ ...part, selected_take_text_state: null, take_raw_text: "Present", take_spoken_text: "Also present" })).toEqual({ state: null, label: "Unknown", value: "" })
+    expect(recordingWording({ ...part, recording_text_state: null, clip_raw_text: "Present", clip_spoken_text: "Also present" })).toEqual({ state: null, label: "Unknown", value: "" })
   })
 
   it("compares canonical editorial truth with the active recording wording", () => {

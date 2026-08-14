@@ -57,7 +57,7 @@ class SpeechGenerateResultResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     part_id: int | None = None
-    take_id: int | None = None
+    clip_id: int | None = None
     duration_ms: int | None = None
 
 

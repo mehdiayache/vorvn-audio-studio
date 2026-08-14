@@ -144,21 +144,21 @@ class VoiceRepository:
     def profile_usage(self) -> dict[str, dict]:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT coalesce(take.voice_identity_id,
+                SELECT coalesce(clip.voice_identity_id,
                                 binding.identity_id) AS identity_id,
                        count(*) AS uses,
                        count(DISTINCT part.production_id) AS productions,
-                       coalesce(sum(take.cost), 0),
-                       max(take.created_at),
-                       (array_agg(take.filename
-                                  ORDER BY take.created_at DESC)
-                           FILTER (WHERE take.filename <> ''))[1]
-                  FROM takes take
-                  LEFT JOIN production_parts part ON part.id=take.part_id
+                       coalesce(sum(clip.cost), 0),
+                       max(clip.created_at),
+                       (array_agg(clip.filename
+                                  ORDER BY clip.created_at DESC)
+                           FILTER (WHERE clip.filename <> ''))[1]
+                  FROM clips clip
+                  LEFT JOIN production_parts part ON part.id=clip.part_id
                   LEFT JOIN voice_bindings binding
-                    ON binding.id = take.binding_id
-                 WHERE take.provider_voice_id NOT IN ('', '-')
-                 GROUP BY coalesce(take.voice_identity_id,
+                    ON binding.id = clip.binding_id
+                 WHERE clip.provider_voice_id NOT IN ('', '-')
+                 GROUP BY coalesce(clip.voice_identity_id,
                                    binding.identity_id)
             """)
             rows = cursor.fetchall()
@@ -204,18 +204,18 @@ class VoiceRepository:
     def unlinked_history(self) -> list[dict]:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT take.provider_voice_id, '', coalesce(max(take.model_id), ''),
+                SELECT clip.provider_voice_id, '', coalesce(max(clip.model_id), ''),
                        count(*), count(DISTINCT part.production_id),
-                       max(take.created_at),
-                       (array_agg(take.filename ORDER BY take.created_at DESC)
-                           FILTER (WHERE coalesce(take.filename, '') <> ''))[1]
-                  FROM takes take
-                  LEFT JOIN production_parts part ON part.id=take.part_id
-                 WHERE take.voice_identity_id IS NULL
-                   AND take.binding_resolution_status = 'unresolved'
-                   AND take.provider_voice_id ~* '^qwen.*-[0-9a-f]{32}$'
-                 GROUP BY take.provider_voice_id
-                 ORDER BY max(take.created_at) DESC
+                       max(clip.created_at),
+                       (array_agg(clip.filename ORDER BY clip.created_at DESC)
+                           FILTER (WHERE coalesce(clip.filename, '') <> ''))[1]
+                  FROM clips clip
+                  LEFT JOIN production_parts part ON part.id=clip.part_id
+                 WHERE clip.voice_identity_id IS NULL
+                   AND clip.binding_resolution_status = 'unresolved'
+                   AND clip.provider_voice_id ~* '^qwen.*-[0-9a-f]{32}$'
+                 GROUP BY clip.provider_voice_id
+                 ORDER BY max(clip.created_at) DESC
             """)
             rows = cursor.fetchall()
         return [{
@@ -242,7 +242,7 @@ class VoiceRepository:
                 raise ValueError(
                     "Restore the archived voice before linking history to it.")
             cursor.execute("""
-                UPDATE takes SET voice_identity_id = %s,
+                UPDATE clips SET voice_identity_id = %s,
                        voice_name_snapshot = coalesce(nullif(voice_name_snapshot,''), %s)
                  WHERE provider_voice_id = %s AND voice_identity_id IS NULL
             """, (identity_id, identity_id, provider_voice_id))
@@ -375,16 +375,16 @@ class VoiceRepository:
     def catalog_usage(self) -> dict:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT take.provider_voice_id, count(*) AS uses,
+                SELECT clip.provider_voice_id, count(*) AS uses,
                        count(DISTINCT part.production_id) AS folders,
-                       coalesce(sum(take.cost), 0) AS spend,
-                       max(take.created_at) AS last_used,
-                       (array_agg(take.filename ORDER BY take.created_at DESC)
-                           FILTER (WHERE take.filename <> ''))[1] AS latest
-                  FROM takes take
-                  LEFT JOIN production_parts part ON part.id=take.part_id
-                 WHERE take.provider_voice_id NOT IN ('-', '')
-                 GROUP BY take.provider_voice_id
+                       coalesce(sum(clip.cost), 0) AS spend,
+                       max(clip.created_at) AS last_used,
+                       (array_agg(clip.filename ORDER BY clip.created_at DESC)
+                           FILTER (WHERE clip.filename <> ''))[1] AS latest
+                  FROM clips clip
+                  LEFT JOIN production_parts part ON part.id=clip.part_id
+                 WHERE clip.provider_voice_id NOT IN ('-', '')
+                 GROUP BY clip.provider_voice_id
             """)
             rows = cursor.fetchall()
         rolled: dict[str, dict] = {}

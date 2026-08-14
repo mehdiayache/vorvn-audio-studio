@@ -27,7 +27,7 @@ describe("useProductionActions durable commands", () => {
   beforeEach(() => vi.clearAllMocks())
 
   it("retries a failed pending Part with a new Job on the same Part", async () => {
-    const pendingPart = { ...part, kind: "speech", selected_take_id: null } as ProductionPart
+    const pendingPart = { ...part, kind: "speech", clip_id: null } as ProductionPart
     const retryJob: DurableJob<GenerateResult> = {
       id: "job-retry-128", type: "speech", status: "queued", progress: 0,
       detail: "Queued", retries: 0, result: {}, part_id: pendingPart.id,

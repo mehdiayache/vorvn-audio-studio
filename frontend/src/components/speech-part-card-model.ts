@@ -54,7 +54,7 @@ const LANGUAGE_CODES: Record<string, string> = {
   thai: "TH", turkish: "TR", urdu: "UR", vietnamese: "VI",
 }
 
-export function selectedTakeInputLabel(state?: string | null): SpeechPartCardFacts["inputLabel"] {
+export function recordingInputLabel(state?: string | null): SpeechPartCardFacts["inputLabel"] {
   if (state === "raw") return "Original"
   if (state === "shaped") return "Spoken"
   if (state === "tagged") return "Tagged"
@@ -129,7 +129,7 @@ export function speechPartCardFacts({ part, speechJob, captionJob, directory }: 
   captionJob?: DurableJob<unknown> | null
   directory: VoiceDirectory
 }): SpeechPartCardFacts {
-  const recorded = Boolean(part.selected_take_id)
+  const recorded = Boolean(part.clip_id)
   const displayVoice = part.voice_name || part.voice
   const voice = resolveVoice(displayVoice, directory, part.voice_identity_id)
   const model = resolveSpeechModel({ engine: part.engine, tier: part.tier, model: part.model, config: directory.config })
@@ -137,7 +137,7 @@ export function speechPartCardFacts({ part, speechJob, captionJob, directory }: 
   const family = FAMILY_LABELS[String(model.engine || "")] || model.product
   const methodLine = [family, model.tierName, capability, languageCode(part.language)].filter(Boolean).join(" · ")
   const technicalDetail = [model.modelId, part.provider, part.provider_region, part.language ? `Language: ${part.language}` : ""].filter(Boolean).join(" · ")
-  const inputLabel = selectedTakeInputLabel(part.selected_take_text_state)
+  const inputLabel = recordingInputLabel(part.recording_text_state)
   const duration = partDurationMs(part)
   const durationLabel = compactDuration(duration)
   const recordingSummary = recorded

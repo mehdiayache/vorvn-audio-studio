@@ -31,10 +31,10 @@ class RecordingHistoryRepository:
                 SELECT job.public_id, job.status, job.created_at,
                        job.started_at, job.finished_at, job.payload,
                        job.error, job.cost, job.cost_basis, job.result,
-                       take.filename, take.duration_ms, take.size_bytes,
+                       clip.filename, clip.duration_ms, clip.size_bytes,
                        continuation.public_id
                   FROM jobs job
-                  LEFT JOIN takes take ON take.id = job.take_id
+                  LEFT JOIN clips clip ON clip.id = job.clip_id
                   LEFT JOIN LATERAL (
                     SELECT child.public_id FROM jobs child
                      WHERE child.parent_id=job.id

@@ -110,16 +110,16 @@ class SpeechRepository:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT part.id, part.created_at, part.kind, part.title,
-                       part.script, part.revision, part.selected_take_id,
-                       draft.state, take.provider_voice_id,
-                       take.voice_identity_id, take.provider, take.model_id,
-                       take.tier, take.language, take.delivery,
-                       take.raw_text, take.spoken_text, take.tagged_text,
-                       take.binding_id, take.catalogue_voice_id,
-                       take.capability_id, take.snapshot
+                       part.script, part.revision, clip.id,
+                       draft.state, clip.provider_voice_id,
+                       clip.voice_identity_id, clip.provider, clip.model_id,
+                       clip.tier, clip.language, clip.delivery,
+                       clip.raw_text, clip.spoken_text, clip.tagged_text,
+                       clip.binding_id, clip.catalogue_voice_id,
+                       clip.capability_id, clip.snapshot
                   FROM production_parts part
              LEFT JOIN composition_drafts draft ON draft.part_id = part.id
-             LEFT JOIN takes take ON take.id = part.selected_take_id
+             LEFT JOIN clips clip ON clip.part_id = part.id
                  WHERE part.id = %s AND part.production_id = %s
                    AND part.archived_at IS NULL
             """, (part_id, production_id))
@@ -127,21 +127,21 @@ class SpeechRepository:
         if not row:
             return None
         draft = row[7] or {}
-        take_snapshot = row[21] or {}
+        clip_snapshot = row[21] or {}
         delivery = row[14] or {}
         return {
             "id": row[0], "created_at": row[1], "kind": row[2],
             "title": row[3], "text": row[4], "revision": row[5],
-            "selected_take_id": row[6],
+            "clip_id": row[6],
             "text_raw": draft.get("text_raw", row[15]),
             "text_shaped": draft.get("text_shaped", row[16]),
             "text_tagged": draft.get("text_tagged", row[17]),
             "text_state": draft.get("text_state", "raw"),
-            "voice": row[8] or take_snapshot.get("voice", ""),
+            "voice": row[8] or clip_snapshot.get("voice", ""),
             "voice_identity_id": row[9],
-            "engine": take_snapshot.get("engine", draft.get("engine", "")),
+            "engine": clip_snapshot.get("engine", draft.get("engine", "")),
             "model": row[12] or draft.get("model", ""),
-            "format": take_snapshot.get("format", draft.get("format", "mp3")),
+            "format": clip_snapshot.get("format", draft.get("format", "mp3")),
             "language": row[13] or draft.get("language", "Auto"),
             "instruction": delivery.get("instruction", draft.get("instruction", "")),
             "speech_mode": delivery.get("speech_mode", draft.get("speech_mode", "exact")),
@@ -183,21 +183,18 @@ class SpeechRepository:
             """, (production_id, position, canonical_script,
                   values.get("title") or ""))
             part_id = int(cursor.fetchone()[0])
-            take_id = self._insert_take(
+            self._insert_clip(
                 cursor, part_id, 1, values,
                 canonical_script=canonical_script)
-            cursor.execute("""
-                UPDATE production_parts SET selected_take_id=%s
-                 WHERE id=%s AND revision=1
-            """, (take_id, part_id))
             return part_id
 
-    def replace_part(self, part_id: int, production_id: int,
-                     expected_revision: int, values: dict[str, Any], *,
-                     operation: str) -> dict[str, int]:
+    def attach_clip(self, part_id: int, production_id: int,
+                    expected_revision: int, values: dict[str, Any], *,
+                    operation: str) -> dict[str, int]:
         with transaction() as cursor:
             cursor.execute("""
-                SELECT revision, kind, script, selected_take_id
+                SELECT revision, kind, script,
+                       (SELECT clip.id FROM clips clip WHERE clip.part_id = production_parts.id)
                   FROM production_parts
                  WHERE id = %s AND production_id = %s
                    AND archived_at IS NULL FOR UPDATE
@@ -213,27 +210,24 @@ class SpeechRepository:
                     kind != "speech" or current[3] is not None):
                 raise ValueError("That pending speech Part has already been recorded.")
             if current_revision != int(expected_revision):
-                return {"subtitles_stale": 0, "selected": 0}
-            if current[3] is not None:
-                cursor.execute("DELETE FROM takes WHERE id=%s AND part_id=%s",
-                               (current[3], part_id))
-            take_id = self._insert_take(
+                return {"subtitles_stale": 0, "attached": 0}
+            clip_id = self._insert_clip(
                 cursor, part_id, int(expected_revision), values,
                 canonical_script=str(current[2] or ""),
                 source_script_hash=values.get("_source_script_hash"))
             cursor.execute("""
                 UPDATE production_parts
-                   SET selected_take_id = %s, kind = 'speech',
-                       editorial_status = 'ready', updated_at = now()
+                   SET kind = 'speech', editorial_status = 'ready',
+                       updated_at = now()
                  WHERE id = %s
-            """, (take_id, part_id))
+            """, (part_id,))
             cursor.execute("DELETE FROM composition_drafts WHERE part_id = %s",
                            (part_id,))
-            return {"subtitles_stale": 0, "selected": 1,
-                    "take_id": take_id}
+            return {"subtitles_stale": 0, "attached": 1,
+                    "clip_id": clip_id}
 
     @staticmethod
-    def _insert_take(cursor, part_id: int, source_revision: int,
+    def _insert_clip(cursor, part_id: int, source_revision: int,
                      values: dict[str, Any], *,
                      canonical_script: str | None = None,
                      source_script_hash: str | None = None) -> int:
@@ -246,7 +240,7 @@ class SpeechRepository:
             "text_state": values.get("text_state"),
         }
         cursor.execute("""
-            INSERT INTO takes
+            INSERT INTO clips
                 (part_id, source_part_revision, source_script_hash,
                  voice_identity_id, voice_name_snapshot, reference_id,
                  binding_id, catalogue_voice_id, binding_resolution_status,
@@ -254,13 +248,14 @@ class SpeechRepository:
                  provider_region, provider_voice_id, model_id, tier, language,
                  raw_text, spoken_text, tagged_text, delivery, segmentation,
                  usage, cost, cost_basis, diagnostics, filename, path,
-                 size_bytes, duration_ms, snapshot, provider_attempt_id)
+                 size_bytes, duration_ms, snapshot, provider_attempt_id,
+                 start_time_ms, file_url)
             VALUES
                 (%s, %s, %s, %s, %s, %s, %s, %s,
                  %s, %s, %s, %s, %s, %s, %s, %s,
                  %s, %s, %s, %s, %s::jsonb,
                  %s::jsonb, %s::jsonb, %s, %s, %s::jsonb, %s, %s, %s, %s,
-                 %s::jsonb, %s)
+                 %s::jsonb, %s, 0, %s)
             RETURNING id
         """, (
             part_id, source_revision,
@@ -286,5 +281,6 @@ class SpeechRepository:
             values.get("path") or "", values.get("size_bytes") or 0,
             values.get("duration_ms"), json.dumps(snapshot),
             values.get("provider_attempt_id"),
+            values.get("file_url") or f"/audio/{values.get('filename') or ''}",
         ))
         return int(cursor.fetchone()[0])

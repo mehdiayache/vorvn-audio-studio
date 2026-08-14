@@ -61,7 +61,7 @@
 }
 .speech-part-heading { width: 100%; min-width: 0; display: grid; grid-template-columns: 30px minmax(0, 1fr); align-items: start; gap: 10px; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
 .speech-part-heading:focus-visible,
-.speech-part-take-summary:focus-visible,
+.speech-part-clip-summary:focus-visible,
 .speech-part-caption:focus-visible { border-radius: var(--vrn-radius-sm); outline: var(--vrn-focus-width-strong) solid var(--vrn-focus-ring-soft); outline-offset: var(--vrn-focus-offset); }
 .speech-part-heading .voice-portrait { border-color: color-mix(in oklab, var(--speech-identity-color) 36%, var(--vrn-border)); background: color-mix(in oklab, var(--speech-identity-color) 8%, var(--surface-raised)); color: var(--speech-identity-color); }
 .speech-part-heading-copy { min-width: 0; display: grid; gap: 2px; }
@@ -106,14 +106,14 @@
 .speech-part-waveform .audio-waveform { position: static; width: 100%; height: 26px; opacity: .82; }
 .speech-part-waveform .waveform-loading,
 .speech-part-waveform .waveform-unavailable { position: absolute; left: 0; right: 0; top: 50%; border-top: var(--vrn-stroke-hairline) solid currentColor; opacity: .36; }
-.speech-part-take-summary,
+.speech-part-clip-summary,
 .speech-part-caption { min-width: 0; display: inline-flex; align-items: center; gap: var(--vrn-space-1); padding: 0; border: 0; background: transparent; color: var(--foreground); font: inherit; font-weight: var(--vrn-weight-label); text-align: left; white-space: nowrap; }
-.speech-part-take-summary:hover,
+.speech-part-clip-summary:hover,
 .speech-part-caption:hover { text-decoration: underline; text-underline-offset: 3px; }
 .speech-part-input-state.is-original { color: var(--vrn-data-series-2); }
 .speech-part-input-state.is-spoken { color: var(--vrn-data-series-4); }
 .speech-part-input-state.is-tagged { color: var(--vrn-data-series-3); }
-.speech-part-take-count { color: var(--vrn-content-secondary); font-weight: var(--vrn-weight-body); }
+.speech-part-clip-count { color: var(--vrn-content-secondary); font-weight: var(--vrn-weight-body); }
 .speech-part-caption svg { width: 15px; height: 15px; }
 .speech-part-caption.is-neutral { color: var(--vrn-content-secondary); }
 .speech-part-caption.is-ready { color: var(--success); }

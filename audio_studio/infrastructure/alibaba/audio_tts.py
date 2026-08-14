@@ -178,7 +178,7 @@ def _is_fatal(message: str) -> bool:
 
 def synthesize(plan: AudioPlan, options, on_progress=None,
                retries: int = RETRIES):
-    """Render atomically; an incomplete provider task never becomes a Take."""
+    """Render atomically; an incomplete provider task never becomes a Clip."""
     apply_credentials()
     pcm = bytearray()
     failures: list[ChunkFailure] = []

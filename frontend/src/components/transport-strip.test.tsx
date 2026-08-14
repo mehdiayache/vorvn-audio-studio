@@ -17,7 +17,7 @@ Element.prototype.scrollIntoView = () => undefined
 
 afterEach(cleanup)
 
-const source: PlayerSource = { key: "take:1", url: "/audio/take.mp3", title: "Narrator take", subtitle: "Eve · exact route", kind: "take" }
+const source: PlayerSource = { key: "clip:1", url: "/audio/clip.mp3", title: "Narrator clip", subtitle: "Eve · exact route", kind: "clip" }
 const props: TransportStripViewProps = {
   source,
   state: "paused",
@@ -40,13 +40,13 @@ describe("TransportStrip", () => {
 
   it("owns the shared playback controls", () => {
     render(<TransportStripView {...props} />)
-    expect(screen.getByRole("region", { name: "Audio player" }).getAttribute("data-source-kind")).toBe("take")
+    expect(screen.getByRole("region", { name: "Audio player" }).getAttribute("data-source-kind")).toBe("clip")
     expect(screen.getByText("Recording")).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Play Narrator take" }))
+    fireEvent.click(screen.getByRole("button", { name: "Play Narrator clip" }))
     expect(props.onToggle).toHaveBeenCalledOnce()
     fireEvent.click(screen.getByRole("button", { name: "Playback speed 1.00 times" }))
     expect(props.onSpeed).toHaveBeenCalledWith(1.25)
-    expect(screen.getByRole("link", { name: "Download Narrator take" }).getAttribute("href")).toBe("/audio/take.mp3")
+    expect(screen.getByRole("link", { name: "Download Narrator clip" }).getAttribute("href")).toBe("/audio/clip.mp3")
   })
 
   it("labels every supported product source without page-specific players", () => {

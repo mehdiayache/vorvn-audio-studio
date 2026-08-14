@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { selectedTakeInputLabel, speechPartCardFacts } from "./speech-part-card-model"
+import { recordingInputLabel, speechPartCardFacts } from "./speech-part-card-model"
 import type { DurableJob, GenerateResult, ProductionPart, VoiceDirectory } from "@/types/domain"
 
 const directory = {
@@ -19,8 +19,8 @@ const directory = {
 function part(values: Partial<ProductionPart> = {}): ProductionPart {
   return {
     id: 12, created_at: "2026-08-13T10:00:00Z", position: 2, kind: "speech",
-    text: "Selected immutable script", selected_take_id: 93,
-    selected_take_text_state: "shaped",
+    text: "Selected immutable script", clip_id: 93,
+    recording_text_state: "shaped",
     voice_identity_id: "voice-maya", voice_name: "Maya",
     engine: "audio", tier: "flash", model: "qwen-audio-3.0-tts-flash",
     capability_name: "Expressive + tags", language: "English",
@@ -42,11 +42,11 @@ describe("speechPartCardFacts", () => {
   })
 
   it("never infers selected input truth from populated text variants", () => {
-    const historical = part({ selected_take_text_state: null, take_tagged_text: "<happy>Tagged</happy>" })
+    const historical = part({ recording_text_state: null, clip_tagged_text: "<happy>Tagged</happy>" })
     const facts = speechPartCardFacts({ part: historical, speechJob: null, directory })
     expect(facts.inputLabel).toBeNull()
     expect(facts.recordingSummary).toContain("Input unknown")
-    expect(selectedTakeInputLabel("unexpected")).toBeNull()
+    expect(recordingInputLabel("unexpected")).toBeNull()
   })
 
   it("keeps orthogonal warnings and one shared durable operation interpretation", () => {

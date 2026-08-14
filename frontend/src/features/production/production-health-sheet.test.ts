@@ -12,7 +12,7 @@ function part(values: Partial<ProductionPart>): ProductionPart {
     kind: "speech",
     text: "Canonical words",
     cost: 0,
-    selected_take_id: 9,
+    clip_id: 9,
     ...values,
   }
 }
@@ -27,7 +27,7 @@ describe("productionHealth", () => {
 
   it("derives editorial, media and durable operation issues from server Parts", () => {
     const issues = productionHealth([
-      part({ id: 1, selected_take_id: null }),
+      part({ id: 1, clip_id: null }),
       part({ id: 2, missing: true }),
       part({ id: 3, outdated: true, subtitles_stale: true }),
       part({ id: 4, speech_job: {
@@ -50,8 +50,8 @@ describe("productionHealth", () => {
 
   it("does not report non-speech Parts as unrecorded", () => {
     expect(productionHealth([
-      part({ kind: "silence", selected_take_id: null }),
-      part({ kind: "asset", selected_take_id: null }),
+      part({ kind: "silence", clip_id: null }),
+      part({ kind: "asset", clip_id: null }),
     ])).toEqual([])
   })
 })
