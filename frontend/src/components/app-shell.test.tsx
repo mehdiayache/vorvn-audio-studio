@@ -6,7 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { AppShell, activeAudioStudioDestination } from "@/components/app-shell"
 import { GlobalPlayerProvider } from "@/components/global-player-provider"
-import { ProductReadinessProvider } from "@/design-system/vorvn"
+import { ProductReadinessProvider } from "@/components/product-readiness"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { studioApi } from "@/lib/api"
 
 vi.mock("@/lib/api", () => ({ studioApi: { config: vi.fn() } }))
@@ -36,16 +37,18 @@ function renderShell(mode: "standalone" | "embedded", path = "/audio-studio/", d
   })))
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <ProductReadinessProvider>
-        <GlobalPlayerProvider>
-          <Routes>
-            <Route path="/audio-studio" element={<AppShell mode={mode} />}>
-              <Route index element={<h1>Work content</h1>} />
-              <Route path="productions/:identifier" element={<h1>Production content</h1>} />
-            </Route>
-          </Routes>
-        </GlobalPlayerProvider>
-      </ProductReadinessProvider>
+      <TooltipProvider>
+        <ProductReadinessProvider>
+          <GlobalPlayerProvider>
+            <Routes>
+              <Route path="/audio-studio" element={<AppShell mode={mode} />}>
+                <Route index element={<h1>Work content</h1>} />
+                <Route path="productions/:identifier" element={<h1>Production content</h1>} />
+              </Route>
+            </Routes>
+          </GlobalPlayerProvider>
+        </ProductReadinessProvider>
+      </TooltipProvider>
     </MemoryRouter>,
   )
 }
@@ -63,20 +66,20 @@ function renderQueryWorkspace(path: string, queryKey: "subtitle-job") {
   vi.mocked(studioApi.config).mockResolvedValue(configured)
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <ProductReadinessProvider><GlobalPlayerProvider><Routes>
-        <Route path="/audio-studio" element={<AppShell />}>
-          <Route path="subtitles" element={<QueryWorkspace queryKey={queryKey} />} />
-        </Route>
-      </Routes></GlobalPlayerProvider></ProductReadinessProvider>
+      <TooltipProvider><ProductReadinessProvider><GlobalPlayerProvider><Routes>
+          <Route path="/audio-studio" element={<AppShell />}>
+            <Route path="subtitles" element={<QueryWorkspace queryKey={queryKey} />} />
+          </Route>
+        </Routes></GlobalPlayerProvider></ProductReadinessProvider></TooltipProvider>
     </MemoryRouter>,
   )
 }
 
 describe("Audio Studio shell", () => {
   it("derives one honest destination from tool and Work resource routes", () => {
-    expect(activeAudioStudioDestination("/audio-studio/speak")).toBe("Speak")
-    expect(activeAudioStudioDestination("/audio-studio/productions/production-id")).toBe("Work")
-    expect(activeAudioStudioDestination("/audio-studio/projects/project-id")).toBe("Work")
+    expect(activeAudioStudioDestination("/audio-studio/speak")).toBe("Create")
+    expect(activeAudioStudioDestination("/audio-studio/productions/production-id")).toBe("Productions")
+    expect(activeAudioStudioDestination("/audio-studio/projects/project-id")).toBe("Productions")
   })
   it("renders one standalone identity and the Studio-owned navigation", async () => {
     const { container } = renderShell("standalone", "/audio-studio/", true)

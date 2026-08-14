@@ -4,10 +4,9 @@ import "@fontsource-variable/inter"
 
 import { App } from "@/app"
 import "@/design-system/vorvn/snapshot/tokens.css"
-import "@/styles/base.css"
-import "@/styles/shell.css"
 import "@/design-system/vorvn/foundation/theme.css"
-import "@/design-system/vorvn/foundation/shell.css"
+import "@/styles/base.css"
+import "@/styles/studio-deck.css"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
