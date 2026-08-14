@@ -76,7 +76,7 @@ class ComposerDraftTests(unittest.TestCase):
     def test_contract_rejects_mixed_or_incomplete_routes_and_contexts(self):
         with self.assertRaises(ValueError):
             DraftLookup(context={"kind": "production", "production_id": 4,
-                                 "operation": "new_take"})
+                                 "operation": "unsupported"})
         broken = state()
         broken["route"] = {"kind": "owned", "binding_id": "binding-1",
                            "catalogue_voice_id": "catalogue-1"}

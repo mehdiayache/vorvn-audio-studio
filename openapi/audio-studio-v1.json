@@ -701,51 +701,6 @@
         "title": "AssetSummaryResponse",
         "type": "object"
       },
-      "BulkEnrollmentEnvelope": {
-        "properties": {
-          "data": {
-            "additionalProperties": true,
-            "title": "Data",
-            "type": "object"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "BulkEnrollmentEnvelope",
-        "type": "object"
-      },
-      "BulkEnrollmentRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "confirmed": {
-            "default": false,
-            "title": "Confirmed",
-            "type": "boolean"
-          },
-          "provider_model_id": {
-            "maxLength": 300,
-            "minLength": 1,
-            "title": "Provider Model Id",
-            "type": "string"
-          },
-          "selections": {
-            "items": {
-              "$ref": "#/components/schemas/EnrollmentSelection"
-            },
-            "maxItems": 1000,
-            "minItems": 1,
-            "title": "Selections",
-            "type": "array"
-          }
-        },
-        "required": [
-          "provider_model_id",
-          "selections"
-        ],
-        "title": "BulkEnrollmentRequest",
-        "type": "object"
-      },
       "CaptionCueResponse": {
         "properties": {
           "end": {
@@ -1650,29 +1605,6 @@
           "enabled"
         ],
         "title": "EnabledBody",
-        "type": "object"
-      },
-      "EnrollmentSelection": {
-        "additionalProperties": false,
-        "properties": {
-          "identity_id": {
-            "maxLength": 120,
-            "minLength": 1,
-            "title": "Identity Id",
-            "type": "string"
-          },
-          "reference_id": {
-            "maxLength": 120,
-            "minLength": 1,
-            "title": "Reference Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "identity_id",
-          "reference_id"
-        ],
-        "title": "EnrollmentSelection",
         "type": "object"
       },
       "FidelityResponse": {
@@ -3027,8 +2959,7 @@
           "operation": {
             "enum": [
               "new_part",
-              "render_draft",
-              "new_take"
+              "render_draft"
             ],
             "title": "Operation",
             "type": "string"
@@ -4940,25 +4871,6 @@
         "title": "ResourceUpdate",
         "type": "object"
       },
-      "RetryEnrollmentItemsRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "item_ids": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 1000,
-            "minItems": 1,
-            "title": "Item Ids",
-            "type": "array"
-          }
-        },
-        "required": [
-          "item_ids"
-        ],
-        "title": "RetryEnrollmentItemsRequest",
-        "type": "object"
-      },
       "RouteState": {
         "additionalProperties": false,
         "properties": {
@@ -5468,7 +5380,6 @@
             "enum": [
               "create",
               "record_part",
-              "regenerate",
               "render_draft"
             ],
             "title": "Operation",
@@ -10386,224 +10297,6 @@
         "summary": "Get Config",
         "tags": [
           "catalog"
-        ]
-      }
-    },
-    "/api/v1/enrollment-campaigns": {
-      "post": {
-        "operationId": "createEnrollmentCampaign",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BulkEnrollmentRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BulkEnrollmentEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Create",
-        "tags": [
-          "voices"
-        ]
-      }
-    },
-    "/api/v1/enrollment-campaigns/preflight": {
-      "post": {
-        "operationId": "preflightEnrollmentCampaign",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BulkEnrollmentRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BulkEnrollmentEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Preflight",
-        "tags": [
-          "voices"
-        ]
-      }
-    },
-    "/api/v1/enrollment-campaigns/{campaign_id}": {
-      "get": {
-        "operationId": "getEnrollmentCampaign",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "campaign_id",
-            "required": true,
-            "schema": {
-              "title": "Campaign Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BulkEnrollmentEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Campaign",
-        "tags": [
-          "voices"
-        ]
-      }
-    },
-    "/api/v1/enrollment-campaigns/{campaign_id}/cancel": {
-      "post": {
-        "operationId": "cancelEnrollmentCampaign",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "campaign_id",
-            "required": true,
-            "schema": {
-              "title": "Campaign Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BulkEnrollmentEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Cancel Campaign",
-        "tags": [
-          "voices"
-        ]
-      }
-    },
-    "/api/v1/enrollment-campaigns/{campaign_id}/retry": {
-      "post": {
-        "operationId": "retryEnrollmentCampaignItems",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "campaign_id",
-            "required": true,
-            "schema": {
-              "title": "Campaign Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RetryEnrollmentItemsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BulkEnrollmentEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Retry Campaign Items",
-        "tags": [
-          "voices"
         ]
       }
     },

@@ -169,8 +169,6 @@ class SpeechGenerationService:
                     part.get("kind") != "speech" or
                     part.get("selected_take_id") is not None):
                 raise ValueError("That pending speech Part has already been recorded.")
-            if operation == "regenerate" and part.get("kind") not in {"audio", "speech"}:
-                raise ValueError("Only recorded speech can replace its recording.")
             inherited = {key: part.get(key) for key in _SETTING_FIELDS}
             inherited["title"] = part.get("title")
             overrides = {key: value for key, value in values.items()

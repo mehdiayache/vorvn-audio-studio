@@ -212,8 +212,6 @@ class SpeechRepository:
             if operation == "record_part" and (
                     kind != "speech" or current[3] is not None):
                 raise ValueError("That pending speech Part has already been recorded.")
-            if operation == "regenerate" and kind not in {"audio", "speech"}:
-                raise ValueError("Only recorded speech can replace its recording.")
             if current_revision != int(expected_revision):
                 return {"subtitles_stale": 0, "selected": 0}
             if current[3] is not None:
@@ -231,14 +229,7 @@ class SpeechRepository:
             """, (take_id, part_id))
             cursor.execute("DELETE FROM composition_drafts WHERE part_id = %s",
                            (part_id,))
-            stale = 0
-            if operation == "regenerate":
-                cursor.execute("""
-                    UPDATE transcripts SET stale = true
-                     WHERE part_id = %s AND stale = false
-                """, (part_id,))
-                stale = cursor.rowcount
-            return {"subtitles_stale": stale, "selected": 1,
+            return {"subtitles_stale": 0, "selected": 1,
                     "take_id": take_id}
 
     @staticmethod

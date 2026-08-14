@@ -55,6 +55,7 @@ class MigrationTests(unittest.TestCase):
                     "028_part_enabled_state.sql",
                     "029_remove_casting.sql",
                     "030_remove_cast_draft_state.sql",
+                    "031_remove_enrollment_campaigns.sql",
         ])
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:
@@ -69,6 +70,9 @@ class MigrationTests(unittest.TestCase):
                     "audit_records", "transcripts", "schema_migrations",
                     "composer_working_drafts",
                 }.issubset(tables))
+                self.assertTrue({
+                    "enrollment_campaigns", "enrollment_campaign_items",
+                }.isdisjoint(tables))
                 fixtures = dict(database.execute("""
                     SELECT system_role, count(*) FROM projects
                      WHERE system_role IN ('inbox', 'sandbox')

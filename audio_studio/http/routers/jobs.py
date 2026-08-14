@@ -114,9 +114,7 @@ class SpeechJobCreate(BaseModel):
     volume: int = Field(default=50, ge=0, le=100)
     seed: int = Field(default=0, ge=0, le=2_147_483_647)
     confirmed: bool = False
-    operation: Literal[
-        "create", "record_part", "regenerate", "render_draft"
-    ] = "create"
+    operation: Literal["create", "record_part", "render_draft"] = "create"
     part_id: int | None = Field(default=None, gt=0)
 
     @model_validator(mode="after")
@@ -240,7 +238,7 @@ def create_speech_job(payload: SpeechJobCreate,
     key = (idempotency_key or f"speech-{uuid4()}")[:200]
     labels = {
         "create": "Generate speech", "record_part": "Record pending Part",
-        "regenerate": "Replace recording", "render_draft": "Render draft",
+        "render_draft": "Render draft",
     }
     if payload.production_id is not None:
         before_part = payload.insert_before_part_id

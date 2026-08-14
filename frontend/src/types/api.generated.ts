@@ -90,91 +90,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/enrollment-campaigns": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create */
-        post: operations["createEnrollmentCampaign"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/enrollment-campaigns/preflight": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Preflight */
-        post: operations["preflightEnrollmentCampaign"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/enrollment-campaigns/{campaign_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Campaign */
-        get: operations["getEnrollmentCampaign"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/enrollment-campaigns/{campaign_id}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Cancel Campaign */
-        post: operations["cancelEnrollmentCampaign"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/enrollment-campaigns/{campaign_id}/retry": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Retry Campaign Items */
-        post: operations["retryEnrollmentCampaignItems"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/exports/{export_id}/download": {
         parameters: {
             query?: never;
@@ -1646,25 +1561,6 @@ export interface components {
             /** Total */
             total: number;
         };
-        /** BulkEnrollmentEnvelope */
-        BulkEnrollmentEnvelope: {
-            /** Data */
-            data: {
-                [key: string]: unknown;
-            };
-        };
-        /** BulkEnrollmentRequest */
-        BulkEnrollmentRequest: {
-            /**
-             * Confirmed
-             * @default false
-             */
-            confirmed: boolean;
-            /** Provider Model Id */
-            provider_model_id: string;
-            /** Selections */
-            selections: components["schemas"]["EnrollmentSelection"][];
-        };
         /** CaptionCueResponse */
         CaptionCueResponse: {
             /** End */
@@ -1994,13 +1890,6 @@ export interface components {
         EnabledBody: {
             /** Enabled */
             enabled: boolean;
-        };
-        /** EnrollmentSelection */
-        EnrollmentSelection: {
-            /** Identity Id */
-            identity_id: string;
-            /** Reference Id */
-            reference_id: string;
         };
         /** FidelityResponse */
         FidelityResponse: {
@@ -2441,7 +2330,7 @@ export interface components {
              * Operation
              * @enum {string}
              */
-            operation: "new_part" | "render_draft" | "new_take";
+            operation: "new_part" | "render_draft";
             /** Part Id */
             part_id?: number | null;
             /** Production Id */
@@ -3032,11 +2921,6 @@ export interface components {
             /** Status */
             status?: string | null;
         };
-        /** RetryEnrollmentItemsRequest */
-        RetryEnrollmentItemsRequest: {
-            /** Item Ids */
-            item_ids: string[];
-        };
         /** RouteState */
         RouteState: {
             /** Binding Id */
@@ -3195,7 +3079,7 @@ export interface components {
              * @default create
              * @enum {string}
              */
-            operation: "create" | "record_part" | "regenerate" | "render_draft";
+            operation: "create" | "record_part" | "render_draft";
             /** Part Id */
             part_id?: number | null;
             /**
@@ -4952,169 +4836,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudioConfigEnvelope"];
-                };
-            };
-        };
-    };
-    createEnrollmentCampaign: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BulkEnrollmentRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BulkEnrollmentEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    preflightEnrollmentCampaign: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BulkEnrollmentRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BulkEnrollmentEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    getEnrollmentCampaign: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                campaign_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BulkEnrollmentEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    cancelEnrollmentCampaign: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                campaign_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BulkEnrollmentEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    retryEnrollmentCampaignItems: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                campaign_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RetryEnrollmentItemsRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BulkEnrollmentEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

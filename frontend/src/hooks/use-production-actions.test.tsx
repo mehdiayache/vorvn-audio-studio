@@ -9,7 +9,7 @@ import { useProductionActions } from "./use-production-actions"
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }))
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>()
-  return { ...actual, studioApi: { ...actual.studioApi, preview: vi.fn(), enqueueRecordPart: vi.fn(), enqueueRegenerate: vi.fn(), savePartEditorial: vi.fn() } }
+  return { ...actual, studioApi: { ...actual.studioApi, preview: vi.fn(), enqueueRecordPart: vi.fn(), savePartEditorial: vi.fn() } }
 })
 
 const payload: GeneratePayload = {
@@ -25,29 +25,6 @@ const music = { filename: "" } as MusicBed
 
 describe("useProductionActions durable commands", () => {
   beforeEach(() => vi.clearAllMocks())
-
-  it("enqueues a paid take without inventing a local result", async () => {
-    const durableJob: DurableJob<GenerateResult> = { id: "job-real-127", type: "speech", status: "queued", progress: 0, detail: "Queued", retries: 0, result: {} }
-    vi.mocked(studioApi.enqueueRegenerate).mockResolvedValue(durableJob)
-    const refresh = vi.fn()
-    const toggleSource = vi.fn().mockResolvedValue(undefined)
-    const player = {
-      source: null, state: "idle", currentTime: 0, duration: 0, volume: 1, speed: 1,
-      toggleSource, toggle: vi.fn(), pause: vi.fn(), seek: vi.fn(), setVolume: vi.fn(), setSpeed: vi.fn(), close: vi.fn(),
-    }
-    const { result } = renderHook(() => useProductionActions({
-      production, music, player: player as never,
-      refresh, refreshAssets: vi.fn(),
-    }))
-
-    let enqueued
-    await act(async () => { enqueued = await result.current.regeneratePart(part, payload) })
-    expect(enqueued).toBe(durableJob)
-    expect(toggleSource).not.toHaveBeenCalled()
-
-    expect(studioApi.savePartEditorial).not.toHaveBeenCalled()
-    expect(toggleSource).not.toHaveBeenCalled()
-  })
 
   it("retries a failed pending Part with a new Job on the same Part", async () => {
     const pendingPart = { ...part, kind: "speech", selected_take_id: null } as ProductionPart

@@ -746,9 +746,9 @@ class ProductionDocumentRepository:
                            %s, path, size_bytes, duration_ms, snapshot
                       FROM takes WHERE id=%s RETURNING id
                 """, (new_id, script_hash(row[5]), filename or "", row[10]))
-                new_take = int(cursor.fetchone()[0])
+                duplicated_recording_id = int(cursor.fetchone()[0])
                 cursor.execute("UPDATE production_parts SET selected_take_id=%s WHERE id=%s",
-                               (new_take, new_id))
+                               (duplicated_recording_id, new_id))
             return new_id
 
     def delete(self, production_id: int, ids: list[int]) -> list[str] | None:

@@ -32,7 +32,6 @@ from audio_studio.http.routers.timeline import router as timeline_router
 from audio_studio.http.routers.voices import router as voices_router
 from audio_studio.http.routers.uploads import router as uploads_router
 from audio_studio.http.routers.speak import router as speak_router
-from audio_studio.http.routers.bulk_enrollment import router as bulk_enrollment_router
 from audio_studio.http.routers.composer_drafts import router as composer_drafts_router
 from audio_studio.migrations import run as run_migrations
 from audio_studio.composition.provider_catalogue import provider_catalogue_sync
@@ -72,7 +71,6 @@ app.include_router(timeline_router)
 app.include_router(voices_router)
 app.include_router(uploads_router)
 app.include_router(speak_router)
-app.include_router(bulk_enrollment_router)
 app.include_router(composer_drafts_router)
 
 

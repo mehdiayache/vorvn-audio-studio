@@ -26,7 +26,7 @@ class ProductionContext(BaseModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["production"]
     production_id: int = Field(gt=0)
-    operation: Literal["new_part", "render_draft", "new_take"]
+    operation: Literal["new_part", "render_draft"]
     part_id: int | None = Field(default=None, gt=0)
     insert_before_part_id: UUID | None = None
 

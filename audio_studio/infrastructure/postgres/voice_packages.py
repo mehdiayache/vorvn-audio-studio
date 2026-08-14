@@ -470,7 +470,6 @@ class VoicePackageRepository:
                             "model_id": job.model_id}), activity_id,
             ))
             self._reconcile(cursor, job.identity_id)
-            self._reconcile_campaigns(cursor, job.id)
 
     def fail(self, job: VoicePackageJob, activity_id: int,
              error: str) -> None:
@@ -498,38 +497,6 @@ class VoicePackageRepository:
                  WHERE id = %s
             """, (message[:400], activity_id))
             self._reconcile(cursor, job.identity_id)
-            self._reconcile_campaigns(cursor, job.id)
-
-    @staticmethod
-    def _reconcile_campaigns(cursor, package_job_id: str) -> None:
-        cursor.execute("""
-            UPDATE enrollment_campaign_items item
-               SET status=package.status
-              FROM voice_package_jobs package
-             WHERE item.package_job_id=package.id AND package.id=%s
-            RETURNING item.campaign_id
-        """, (package_job_id,))
-        campaign_ids = {row[0] for row in cursor.fetchall()}
-        for campaign_id in campaign_ids:
-            cursor.execute("""
-                SELECT array_agg(coalesce(package.status,item.status))
-                  FROM enrollment_campaign_items item
-                  LEFT JOIN voice_package_jobs package
-                    ON package.id=item.package_job_id
-                 WHERE item.campaign_id=%s
-            """, (campaign_id,))
-            statuses = set(cursor.fetchone()[0] or [])
-            state = ("running" if statuses & {"queued", "creating"} else
-                     "partial" if statuses & {"failed", "interrupted"} and
-                     statuses & {"ready"} else
-                     "failed" if statuses & {"failed", "interrupted"} else
-                     "cancelled" if statuses and statuses <= {"cancelled"} else
-                     "succeeded" if statuses and statuses <= {"ready"} else
-                     "queued")
-            cursor.execute("""
-                UPDATE enrollment_campaigns SET status=%s,updated_at=now()
-                 WHERE id=%s
-            """, (state, campaign_id))
 
     @staticmethod
     def _reconcile(cursor, identity_id: str) -> None:

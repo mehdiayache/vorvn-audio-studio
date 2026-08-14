@@ -126,8 +126,8 @@ function registerJob<T>(job: DurableJob<T>) {
   return job
 }
 
-async function enqueueSpeech(payload: GeneratePayload, operation?: "record_part" | "render_draft" | "regenerate", partId?: number) {
-  const prefix = operation === "render_draft" ? `render-draft-${partId}` : operation === "record_part" ? `record-part-${partId}` : operation === "regenerate" ? `regenerate-${partId}` : "speech"
+async function enqueueSpeech(payload: GeneratePayload, operation?: "record_part" | "render_draft", partId?: number) {
+  const prefix = operation === "render_draft" ? `render-draft-${partId}` : operation === "record_part" ? `record-part-${partId}` : "speech"
   const response = await request<{ data: DurableJob<GenerateResult> }>("/api/v1/jobs/speech", {
     method: "POST",
     headers: { "Idempotency-Key": `${prefix}-${crypto.randomUUID()}` },
@@ -281,7 +281,6 @@ export const studioApi = {
   enqueueGenerate: (payload: GeneratePayload) => enqueueSpeech(payload),
   enqueueRecordPart: (id: number, payload: GeneratePayload) => enqueueSpeech(payload, "record_part", id),
   enqueueRenderDraft: (id: number, payload: GeneratePayload) => enqueueSpeech(payload, "render_draft", id),
-  enqueueRegenerate: (id: number, payload: GeneratePayload) => enqueueSpeech(payload, "regenerate", id),
   generate: async (payload: GeneratePayload) => {
     const job = await enqueueSpeech(payload)
     const result = await jobObserver.completion<GenerateResult>(job.id)
@@ -295,10 +294,6 @@ export const studioApi = {
     request<{ data: { deleted: boolean } }>("/api/v1/composer-drafts", { method: "DELETE", body: JSON.stringify({ context: contextWire(context), expected_version: expectedVersion }) }).then((response) => response.data),
   renderDraft: async (id: number, payload: GeneratePayload) => {
     const job = await enqueueSpeech(payload, "render_draft", id)
-    return jobObserver.completion<GenerateResult>(job.id)
-  },
-  regenerate: async (id: number, payload: GeneratePayload) => {
-    const job = await enqueueSpeech(payload, "regenerate", id)
     return jobObserver.completion<GenerateResult>(job.id)
   },
   enqueueTextPass: async (kind: "shape" | "tag", payload: { text: string; production_id?: number; part_id?: number; density?: "none" | "light" | "normal" | "heavy"; capability_id: string; confirmed?: boolean }) => {

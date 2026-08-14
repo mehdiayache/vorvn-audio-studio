@@ -112,7 +112,7 @@ class AudioStudioArchitectureTests(unittest.TestCase):
         SpeechJobCreate(text="Hello", catalogue_voice_id="catalogue:tina")
         with self.assertRaises(ValueError):
             SpeechJobCreate(text="Hello", catalogue_voice_id="catalogue:tina",
-                            operation="regenerate")
+                            operation="render_draft")
 
     def test_transcription_accepts_library_or_uploaded_audio_only(self):
         TranscriptionJobCreate(file="take.mp3", part_id=7)
