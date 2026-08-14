@@ -20,11 +20,11 @@ export function ProductionSequenceToolbar({ view, partCount, visiblePartCount, d
   return <header className="production-sequence-toolbar" aria-label="Production Sequence tools">
     <div className="production-view-switch" aria-label="Production view">
       <Button size="sm" variant={view === "sequence" ? "secondary" : "ghost"} aria-pressed={view === "sequence"} onClick={() => onViewChange("sequence")}><ListMusic /> Sequence</Button>
-      <Button size="sm" variant={view === "timing" ? "secondary" : "ghost"} aria-pressed={view === "timing"} onClick={() => onViewChange("timing")}><Clock3 /> Timing</Button>
+      <Button size="sm" variant={view === "timing" ? "secondary" : "ghost"} aria-pressed={view === "timing"} onClick={() => onViewChange(view === "timing" ? "sequence" : "timing")}><Clock3 /> Timing</Button>
     </div>
     <span className="production-sequence-summary">{filtered && <><b>{visiblePartCount}</b> of </>}<b>{partCount}</b> parts <i aria-hidden="true" /> <b>{formatDuration(duration)}</b></span>
     <div className="production-sequence-actions">
-      {view === "sequence" && navigator}
+      {navigator}
       <DropdownMenu>
         <DropdownMenuTrigger asChild><Button size="sm"><Plus /> Add <ChevronDown /></Button></DropdownMenuTrigger>
         <DropdownMenuContent align="end">

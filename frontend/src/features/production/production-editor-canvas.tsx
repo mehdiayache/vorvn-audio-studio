@@ -86,11 +86,12 @@ export function ProductionEditorCanvas({ production, tree, music, directory, liv
     return () => window.cancelAnimationFrame(frame)
   }, [filtersActive, onLocate, pendingLocateId])
 
-  const timing = <TimingOverview parts={production.parts} music={music} playingKey={playingKey} productionLoaded={productionLoaded} productionCurrentTime={productionCurrentTime} onLocate={onLocate} onSeekProduction={onSeekProduction} />
-  const canvas = <main className="production-main">
-    {view === "sequence" && <ProductionMusicLane music={music} playingKey={playingKey} playing={playerPlaying} previewReady={productionLoaded} onPlay={onPlay} onAdd={onChooseMusic} onEdit={onMusicOpen} />}
+  const timingOpen = view === "timing"
+  const canvas = <main className={`production-main${timingOpen ? " has-timing-workspace" : ""}`}>
+    <ProductionMusicLane music={music} playingKey={playingKey} playing={playerPlaying} previewReady={productionLoaded} onPlay={onPlay} onAdd={onChooseMusic} onEdit={onMusicOpen} />
     <ProductionSequenceToolbar view={view} partCount={sourceParts.length} visiblePartCount={filtersActive ? visibleParts.length : undefined} duration={duration} navigator={<ProductionSequenceSearch parts={production.parts} issuePartIds={issuePartIds} value={filters} onChange={setFilters} onLocate={revealPart} />} onViewChange={setView} onAdd={(kind) => onTool(kind)} />
-    {view === "sequence" ? <SequenceWorkspace parts={production.parts} liveJobs={liveJobs} visiblePartIds={filtersActive ? new Set(visibleParts.map((part) => part.id)) : undefined} filtersActive={filtersActive} activePartId={activePartId} playingKey={playingKey} playerPlaying={playerPlaying} previewPlayingPartId={previewPlayingPartId} directory={directory} onClearFilters={() => setFilters(EMPTY_SEQUENCE_FILTERS)} onInsert={(kind: InsertKind, beforePartId) => onTool(kind, beforePartId)} onRetryJob={onRetryJob} onConfirmJob={onConfirmJob} onReplaceAsset={onReplaceAsset} onOpenCaptions={onOpenCaptions} actions={sequenceActions} /> : timing}
+    <SequenceWorkspace parts={production.parts} liveJobs={liveJobs} visiblePartIds={filtersActive ? new Set(visibleParts.map((part) => part.id)) : undefined} filtersActive={filtersActive} activePartId={activePartId} playingKey={playingKey} playerPlaying={playerPlaying} previewPlayingPartId={previewPlayingPartId} directory={directory} onClearFilters={() => setFilters(EMPTY_SEQUENCE_FILTERS)} onInsert={(kind: InsertKind, beforePartId) => onTool(kind, beforePartId)} onRetryJob={onRetryJob} onConfirmJob={onConfirmJob} onReplaceAsset={onReplaceAsset} onOpenCaptions={onOpenCaptions} actions={sequenceActions} />
+    {timingOpen && <div className="production-timing-drawer"><TimingOverview parts={production.parts} music={music} playingKey={playingKey} productionLoaded={productionLoaded} productionCurrentTime={productionCurrentTime} onLocate={onLocate} onSeekProduction={onSeekProduction} onClose={() => setView("sequence")} /></div>}
   </main>
 
   return (

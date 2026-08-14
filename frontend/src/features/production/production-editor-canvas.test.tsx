@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 const timing = vi.hoisted(() => vi.fn(() => <div>Timing mounted</div>))
 vi.mock("@/components/timing-overview", () => ({ TimingOverview: timing }))
 vi.mock("@/components/production-header", () => ({ ProductionHeader: () => null }))
-vi.mock("@/components/sequence-workspace", () => ({ SequenceWorkspace: () => null }))
+vi.mock("@/components/sequence-workspace", () => ({ SequenceWorkspace: () => <div>Sequence mounted</div> }))
 vi.mock("@/features/production/production-command-menu", () => ({ ProductionCommandMenu: () => null }))
 vi.mock("@/features/production/production-explorer-sheet", () => ({ ProductionExplorerSheet: () => null }))
 vi.mock("@/features/production/production-health-sheet", () => ({ productionHealth: () => [], ProductionHealthSheet: () => null }))
@@ -37,7 +37,10 @@ describe("ProductionEditorCanvas timing", () => {
     expect(timing).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole("button", { name: "Timing" }))
     expect(screen.getByText("Timing mounted")).toBeTruthy()
+    expect(screen.getByText("Sequence mounted")).toBeTruthy()
     expect(timing).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole("button", { name: "Timing" }))
+    expect(screen.queryByText("Timing mounted")).toBeNull()
   })
 
   it("restores the full sequence before locating a search result", async () => {

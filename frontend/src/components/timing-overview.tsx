@@ -1,11 +1,12 @@
-import { Clock3 } from "lucide-react"
+import { Clock3, X } from "lucide-react"
 
 import { ProductionTimeline } from "@/components/production-timeline"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { formatDuration, partDurationMs } from "@/lib/format"
 import type { MusicBed as MusicBedType, ProductionPart } from "@/types/domain"
 
-export function TimingOverview({ parts, music, playingKey, productionCurrentTime, productionLoaded, onLocate, onSeekProduction }: {
+export function TimingOverview({ parts, music, playingKey, productionCurrentTime, productionLoaded, onLocate, onSeekProduction, onClose }: {
   parts: ProductionPart[]
   music: MusicBedType
   playingKey?: string
@@ -13,6 +14,7 @@ export function TimingOverview({ parts, music, playingKey, productionCurrentTime
   productionLoaded: boolean
   onLocate: (id: number) => void
   onSeekProduction: (seconds: number) => void
+  onClose?: () => void
 }) {
   const sourceParts = parts.filter((part) => part.kind !== "stitch" && part.enabled !== false)
   const total = sourceParts.reduce((sum, part) => sum + partDurationMs(part), 0)
@@ -21,7 +23,7 @@ export function TimingOverview({ parts, music, playingKey, productionCurrentTime
       <header className="production-timing-header">
         <span><Clock3 /></span>
         <div><span className="eyebrow">Read-only timing</span><h2>{sourceParts.length} Part{sourceParts.length === 1 ? "" : "s"} · {formatDuration(total / 1000)}</h2><p>{music.filename ? `Narration with ${music.name || "Music Bed"}` : "Narration only"} · use the Focus Bar to prepare or play the current mix.</p></div>
-        <Badge variant="outline">{productionLoaded ? "Current preview loaded" : "Preview not loaded"}</Badge>
+        <div className="production-timing-actions"><Badge variant="outline">{productionLoaded ? "Current preview loaded" : "Preview not loaded"}</Badge>{onClose && <Button variant="ghost" size="icon-sm" aria-label="Close Timing" onClick={onClose}><X /></Button>}</div>
       </header>
       <ProductionTimeline parts={sourceParts} music={music} playingKey={playingKey} currentTime={productionCurrentTime} productionLoaded={productionLoaded} onLocate={onLocate} onSeek={onSeekProduction} />
     </section>

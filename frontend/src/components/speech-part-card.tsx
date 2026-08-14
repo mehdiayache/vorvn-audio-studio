@@ -83,27 +83,23 @@ export function SpeechPartCard({ part, job, captionJob, index, count, playing, p
       </div>
     </div>
 
-    <header className="speech-part-identity">
-        <Tooltip>
-          <TooltipTrigger asChild><button className="speech-part-heading" onClick={openPart} aria-label={`Open details for part ${index + 1}`}>
-            <VoiceIdentity voice={part.voice_name || part.voice} identityId={part.voice_identity_id} directory={directory} compact showCopy={false} showEditorialFlag={false} />
-            <span className="speech-part-heading-copy">
-              <b className="speech-part-voice-name">{facts.selectedVoiceName}</b>
-              <span className="speech-part-method">{facts.methodLine}</span>
-            </span>
-          </button></TooltipTrigger>
-          <TooltipContent>{facts.technicalDetail || "Active recording method"}</TooltipContent>
-        </Tooltip>
-    </header>
-
     <div className="speech-part-body">
       <header className="speech-part-main-header">
-        <div className="speech-part-main-state">
-          {!enabled && <span className="speech-part-output-off"><VolumeX /> Excluded from output</span>}
-          {playingPreview && <span className="speech-part-preview-playing"><AudioLines /> Playing in Production preview</span>}
-          {visibleAlerts.length > 0 && <div className="speech-part-alerts" aria-label="Part states">
-            {visibleAlerts.map((alert) => <span key={alert.key} className={`speech-part-alert is-${alert.tone}`}><CircleAlert />{alert.label}</span>)}
-          </div>}
+        <div className="speech-part-header-copy">
+          <div className="speech-part-identity">
+            <Tooltip>
+              <TooltipTrigger asChild><button className="speech-part-heading" onClick={openPart} aria-label={`Open details for part ${index + 1}`}>
+                <VoiceIdentity voice={part.voice_name || part.voice} identityId={part.voice_identity_id} directory={directory} compact showCopy={false} showEditorialFlag={false} />
+                <span className="speech-part-heading-copy"><b className="speech-part-voice-name">{facts.selectedVoiceName}</b><span className="speech-part-method">{facts.methodLine}</span></span>
+              </button></TooltipTrigger>
+              <TooltipContent>{facts.technicalDetail || "Active recording method"}</TooltipContent>
+            </Tooltip>
+          </div>
+          <div className="speech-part-main-state">
+            {!enabled && <span className="speech-part-output-off"><VolumeX /> Excluded from output</span>}
+            {playingPreview && <span className="speech-part-preview-playing"><AudioLines /> Playing in Production preview</span>}
+            {visibleAlerts.length > 0 && <div className="speech-part-alerts" aria-label="Part states">{visibleAlerts.map((alert) => <span key={alert.key} className={`speech-part-alert is-${alert.tone}`}><CircleAlert />{alert.label}</span>)}</div>}
+          </div>
         </div>
         <div className="speech-part-top-actions">
           <Tooltip><TooltipTrigger asChild><Button variant={enabled ? "ghost" : "secondary"} size="icon" onClick={() => actions.setEnabled?.(part, !enabled)} aria-label={enabled ? `Exclude part ${index + 1} from output` : `Include part ${index + 1} in output`}>{enabled ? <Volume2 /> : <VolumeX />}</Button></TooltipTrigger><TooltipContent>{enabled ? "Exclude from preview and export" : "Include in preview and export"}</TooltipContent></Tooltip>

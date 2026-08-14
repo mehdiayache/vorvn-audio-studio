@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
 vi.mock("@/components/production-timeline", () => ({ ProductionTimeline: () => <div>Timeline blocks</div> }))
@@ -14,5 +14,12 @@ describe("TimingOverview", () => {
     expect(screen.getByRole("heading", { name: "1 Part · 0:03" })).toBeTruthy()
     expect(screen.getByText("Timeline blocks")).toBeTruthy()
     expect(screen.queryByRole("button", { name: /production/i })).toBeNull()
+  })
+
+  it("can close its bottom workspace without changing timeline truth", () => {
+    const onClose = vi.fn()
+    render(<TimingOverview parts={[]} music={{}} productionCurrentTime={0} productionLoaded={false} onLocate={vi.fn()} onSeekProduction={vi.fn()} onClose={onClose} />)
+    fireEvent.click(screen.getByRole("button", { name: "Close Timing" }))
+    expect(onClose).toHaveBeenCalledOnce()
   })
 })

@@ -31,6 +31,7 @@
 .studio-app-shell[data-presentation="production-focus"] .production-workstation { height: calc(100dvh - 58px); }
 .production-canvas { min-width: 0; height: 100%; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; background: var(--surface-subtle); }
 .production-page .production-main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; width: min(1256px, calc(100% - 48px)); margin: 16px auto 126px; }
+.production-page .production-main.has-timing-workspace { margin-bottom: 360px; }
 
 .production-stage {
   position: absolute;
@@ -114,6 +115,15 @@
 .production-timing-header > span svg { width: 17px; }
 .production-timing-header h2 { margin: 2px 0 0; font-size: var(--vrn-type-panel-size); }
 .production-timing-header p { margin-top: 2px; color: var(--vrn-content-secondary); font-size: var(--vrn-type-metadata-size); }
+.production-timing-actions { display: flex; align-items: center; gap: 8px; }
+.production-timing-drawer { position: fixed; z-index: 35; right: 0; bottom: 0; left: 0; height: min(300px, 42dvh); background: var(--surface-raised); box-shadow: 0 -18px 48px rgb(var(--shadow-color) / 12%); animation: production-timing-rise 180ms ease-out; }
+.production-timing-drawer .production-timing { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); border: 0; border-top: 1px solid var(--border); border-radius: 0; box-shadow: none; }
+.production-timing-drawer .production-timing-header { min-height: 64px; padding: 10px 20px; border-color: var(--border); }
+.production-timing-drawer .production-timing-header > span { color: var(--primary); background: var(--primary-soft); }
+.production-timing-drawer .timeline-shell { min-height: 0; height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; border: 0; border-radius: 0; }
+.production-timing-drawer .timeline-scroll { min-height: 0; overflow: auto; }
+.production-page:has(.transport-strip.is-production) .production-timing-drawer { padding-bottom: 78px; }
+@keyframes production-timing-rise { from { transform: translateY(18px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 .move-sheet { width: min(430px, 94vw) !important; max-width: none !important; }
 .move-targets { display: grid; gap: 7px; padding: 18px 20px; }

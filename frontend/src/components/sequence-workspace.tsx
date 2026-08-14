@@ -40,7 +40,6 @@ export function SequenceWorkspace({ parts, liveJobs, visiblePartIds, filtersActi
   return (
     <section className="sequence-workspace" aria-label="Production sequence">
       <div className="sequence-ledger">
-        <div className="sequence-ledger-header" aria-hidden="true"><span>#</span><span>Voice</span><span>Script &amp; Recording</span></div>
         <div className="sequence-part-list" role="list" aria-label={filtersActive ? `${visibleParts.length} of ${sourceParts.length} ordered Production Parts` : `${sourceParts.length} ordered Production Parts`}>
       {!filtersActive && <SequenceInsertControl at={0} beforePartId={sourceParts[0]?.public_id || null} onInsert={onInsert} />}
       {visibleParts.map((part) => {
