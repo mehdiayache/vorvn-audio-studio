@@ -11,6 +11,7 @@ import { useProductionSpeechJobs } from "@/features/production/use-production-sp
 import { MixExportWorkspace } from "@/features/production/mix-export-workspace"
 import { MusicWorkbench } from "@/features/production/music-workbench"
 import { PartInspectorContent, partInspectorTitle } from "@/features/production/inspector/part-inspector"
+import { PartCaptionsDialog } from "@/features/production/part-captions-dialog"
 import { productionHealth, ProductionHealthContent } from "@/features/production/production-health-sheet"
 import type { ProductionStageMode } from "@/features/production/production-stage"
 import { useMediaQuery } from "@/hooks/use-media-query"
@@ -65,6 +66,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const [composerPart, setComposerPart] = useState<ProductionPart | null>(null)
   const [replacingAsset, setReplacingAsset] = useState<ProductionPart | null>(null)
   const [movePositionPart, setMovePositionPart] = useState<ProductionPart | null>(null)
+  const [captionPart, setCaptionPart] = useState<ProductionPart | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
   const stageOrigin = useRef<HTMLElement | null>(null)
   const mobile = useMediaQuery("(max-width: 48rem)")
@@ -120,6 +122,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
 
   const duration = useMemo(() => activeSourceParts.reduce((total, part) => total + partDurationMs(part), 0) / 1000, [activeSourceParts])
   const activeDetail = activeStage?.mode === "part" ? production.parts.find((part) => part.id === activeStage.part.id) || activeStage.part : null
+  const activeCaptionPart = captionPart ? production.parts.find((part) => part.id === captionPart.id) || captionPart : null
   const detailTab = activeStage?.mode === "part" ? activeStage.tab : "script"
   const healthOpen = activeStage?.mode === "health"
   const assetCollectionIds = Object.fromEntries(assetCollections.map((collection) => [collection.name, collection.id]))
@@ -146,36 +149,40 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const openTool = useCallback((next: Exclude<ToolKind, null>, beforePartId: string | null = null) => {
     rememberStageOrigin()
     setActiveStage(null)
+    setCaptionPart(null)
     setInsertBeforePartId(beforePartId)
     setComposerPart(null)
     setReplacingAsset(null)
     setTool(next)
   }, [rememberStageOrigin])
   const openAssetReplacement = useCallback((part: ProductionPart) => {
-    rememberStageOrigin(); setActiveStage(null); setInsertBeforePartId(null); setComposerPart(null); setReplacingAsset(part); setTool("asset")
+    rememberStageOrigin(); setActiveStage(null); setCaptionPart(null); setInsertBeforePartId(null); setComposerPart(null); setReplacingAsset(part); setTool("asset")
   }, [rememberStageOrigin])
   const openRecordingComposer = useCallback((part: ProductionPart) => {
     if (part.selected_take_id) return
-    setActiveStage(null); setInsertBeforePartId(null); setComposerPart(part); setTool("speech")
+    setActiveStage(null); setCaptionPart(null); setInsertBeforePartId(null); setComposerPart(part); setTool("speech")
   }, [])
   const openPart = useCallback((part: ProductionPart, tab: PartDetailTab = "script") => {
-    rememberStageOrigin(); closeTool(); setActiveStage({ mode: "part", part, tab })
+    rememberStageOrigin(); closeTool(); setCaptionPart(null); setActiveStage({ mode: "part", part, tab })
+  }, [closeTool, rememberStageOrigin])
+  const openCaptions = useCallback((part: ProductionPart) => {
+    rememberStageOrigin(); closeTool(); setActiveStage(null); setCaptionPart(part)
   }, [closeTool, rememberStageOrigin])
   const openCaptionContext = useCallback((partId: number) => {
     const part = production.parts.find((item) => item.id === partId)
     if (!part || !["audio", "speech"].includes(part.kind)) return
     scrollPartIntoView(part.id)
-    openPart(part, "captions")
-  }, [openPart, production.parts])
+    openCaptions(part)
+  }, [openCaptions, production.parts])
   const openMixExport = useCallback(() => {
-    rememberStageOrigin(); closeTool(); setActiveStage({ mode: "mix-export" })
+    rememberStageOrigin(); closeTool(); setCaptionPart(null); setActiveStage({ mode: "mix-export" })
   }, [closeTool, rememberStageOrigin])
   const openMusicStage = useCallback(() => {
-    rememberStageOrigin(); closeTool(); setActiveStage({ mode: "music" })
+    rememberStageOrigin(); closeTool(); setCaptionPart(null); setActiveStage({ mode: "music" })
   }, [closeTool, rememberStageOrigin])
   const openHealthStage = useCallback((open = true) => {
     if (!open) { setActiveStage((current) => current?.mode === "health" ? null : current); return }
-    rememberStageOrigin(); closeTool(); setActiveStage({ mode: "health" })
+    rememberStageOrigin(); closeTool(); setCaptionPart(null); setActiveStage({ mode: "health" })
   }, [closeTool, rememberStageOrigin])
 
   const retryJob = useCallback(async (part: ProductionPart, _job: DurableJob<GenerateResult>) => {
@@ -196,6 +203,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     setExplorerOpen(false)
     setCommandsOpen(false)
     setActiveStage(null)
+    setCaptionPart(null)
     closeTool()
   }, [closeTool])
   const openCommands = useCallback(() => setCommandsOpen(true), [])
@@ -221,6 +229,16 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     const origin = stageOrigin.current
     window.requestAnimationFrame(() => origin?.focus())
   }, [])
+  const closeCaptions = useCallback(() => {
+    setCaptionPart(null)
+    const origin = stageOrigin.current
+    window.requestAnimationFrame(() => origin?.focus())
+  }, [])
+  const captionChanged = useCallback(async () => {
+    if (activeCaptionPart && player.source?.key === `part:${activeCaptionPart.id}`) player.pause()
+    actions.invalidatePreview()
+    await refresh()
+  }, [actions, activeCaptionPart, player, refresh])
 
   const stageContent = stageMode === "part" ? <PartInspectorContent
     productionId={production.id}
@@ -296,10 +314,12 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       onRetryJob={(part, job) => void retryJob(part, job)}
       onConfirmJob={(part, job) => void confirmJob(part, job)}
       onReplaceAsset={openAssetReplacement}
+      onOpenCaptions={openCaptions}
       onOpenCaptionContext={openCaptionContext}
       sequenceActions={sequenceActions}
     />
     <MovePartPositionDialog part={movePositionPart} count={sourceParts.length} onClose={() => setMovePositionPart(null)} onMove={actions.movePartToPosition} />
+    <PartCaptionsDialog productionId={production.id} part={activeCaptionPart} directory={directory} onOpenChange={(open) => { if (!open) closeCaptions() }} onChanged={captionChanged} />
     {overlaysOpen && <Suspense fallback={null}>
       <ProductionOverlays
         tool={modalTool}

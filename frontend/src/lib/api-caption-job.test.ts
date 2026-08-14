@@ -24,4 +24,15 @@ describe("Part caption Job API", () => {
     const body = JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))
     expect(body.language).toBe("English")
   })
+
+  it("omits Auto so the caption provider can detect the spoken language", async () => {
+    const queued: DurableJob<CaptionMutationResult> = { id: "caption-job", type: "transcribe", status: "queued", progress: 0, detail: "Queued", retries: 0, result: {} as CaptionMutationResult, part_id: 12 }
+    const fetch = vi.fn().mockResolvedValue({ ok: true, status: 202, json: async () => ({ data: queued }) })
+    vi.stubGlobal("fetch", fetch)
+
+    await studioApi.enqueueTranscribePart(8, { id: 12, filename: "take.mp3", language: "Auto" } as ProductionPart)
+
+    const body = JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))
+    expect(body).not.toHaveProperty("language")
+  })
 })

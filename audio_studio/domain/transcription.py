@@ -25,6 +25,7 @@ class ProviderTranscript:
     text: str
     sentences: list[dict]
     duration_ms: int
+    language: str | None = None
     request_id: str | None = None
     provider_region: str | None = None
     provider_endpoint: str | None = None

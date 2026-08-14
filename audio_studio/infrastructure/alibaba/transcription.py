@@ -24,11 +24,28 @@ LANGUAGE_CODES = {
     "Vietnamese": "vi", "Tagalog": "fil",
 }
 
+LANGUAGE_NAMES = {code: name for name, code in LANGUAGE_CODES.items()}
+LANGUAGE_NAMES.update({
+    "yue": "Cantonese", "hi": "Hindi", "tr": "Turkish",
+    "uk": "Ukrainian", "cs": "Czech", "da": "Danish",
+    "fi": "Finnish", "is": "Icelandic", "no": "Norwegian",
+    "pl": "Polish", "sv": "Swedish",
+})
+
 
 def parse(payload: dict) -> dict:
     sentences = []
+    language_duration: dict[str, int] = {}
     for transcript in payload.get("transcripts", []):
         for sentence in transcript.get("sentences", []):
+            code = str(sentence.get("language") or "").strip().lower()
+            if code:
+                duration = max(
+                    int(sentence.get("end_time", 0))
+                    - int(sentence.get("begin_time", 0)),
+                    1,
+                )
+                language_duration[code] = language_duration.get(code, 0) + duration
             sentences.append({
                 "start": int(sentence.get("begin_time", 0)),
                 "end": int(sentence.get("end_time", 0)),
@@ -41,10 +58,14 @@ def parse(payload: dict) -> dict:
                 } for word in sentence.get("words", [])],
             })
     sentences = [sentence for sentence in sentences if sentence["text"]]
+    detected_code = (sorted(
+        language_duration.items(), key=lambda item: (-item[1], item[0]))[0][0]
+        if language_duration else None)
     return {
         "text": " ".join(sentence["text"] for sentence in sentences),
         "sentences": sentences,
         "duration_ms": max((sentence["end"] for sentence in sentences), default=0),
+        "language": LANGUAGE_NAMES.get(detected_code, detected_code),
     }
 
 

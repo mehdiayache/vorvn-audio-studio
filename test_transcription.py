@@ -45,6 +45,7 @@ class FakeProvider:
                 ],
             }],
             duration_ms=2100,
+            language="English",
             request_id="asr-request-1",
             provider_region="intl",
             provider_endpoint="https://example.test/api/v1",
@@ -136,6 +137,16 @@ class TranscriptionTests(unittest.TestCase):
         self.assertEqual(saved["take_id"], 45)
         self.assertEqual(saved["sentences"][0]["words"][1]["text"], "world.")
         self.assertEqual(repository.finished, [(44, 45, 2100, 91)])
+
+    def test_auto_language_persists_provider_detection(self):
+        repository = FakeRepository()
+        provider = FakeProvider()
+        result = self.service(repository=repository, provider=provider).transcribe(
+            file="audio.mp3", part_id=44, language="Auto", source_job_id=12)
+
+        self.assertEqual(result["language"], "English")
+        self.assertEqual(repository.saved[0]["language"], "English")
+        self.assertIsNone(provider.calls[0]["language"])
 
     def test_warning_and_cap_stop_before_provider(self):
         provider = FakeProvider()

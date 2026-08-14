@@ -86,6 +86,12 @@
 
 .part-inspector-message { position: absolute; left: 18px; right: 18px; bottom: max(14px, var(--safe-bottom)); z-index: 2; padding: 9px 11px; color: var(--primary-foreground); background: var(--primary); border-radius: var(--vrn-radius-sm); box-shadow: var(--vrn-shadow-popover); font-size: var(--vrn-type-metadata-size); }
 .part-inspector-content .caption-detail { padding: var(--vrn-space-5) var(--vrn-space-5) var(--vrn-space-8); }
+.part-caption-dialog { width: min(1120px, calc(100vw - 48px)) !important; max-width: 1120px !important; height: min(840px, calc(100dvh - 48px)); grid-template-rows: auto minmax(0, 1fr); gap: 0 !important; overflow: hidden; padding: 0 !important; border-color: var(--vrn-border); background: var(--surface-raised); }
+.part-caption-dialog-header { padding: var(--vrn-space-4) var(--vrn-space-5); border-bottom: var(--vrn-stroke-hairline) solid var(--vrn-border); background: var(--surface-raised); }
+.part-caption-dialog-header [data-slot="dialog-description"] { color: var(--vrn-content-secondary); }
+.part-caption-dialog-body { min-height: 0; overflow: auto; background: var(--surface-raised); }
+.part-caption-dialog-body .caption-detail { padding: var(--vrn-space-5); }
+.part-caption-dialog-message { position: absolute; right: var(--vrn-space-5); bottom: var(--vrn-space-4); z-index: 3; max-width: min(32rem, calc(100% - 48px)); padding: 9px 11px; border-radius: var(--vrn-radius-sm); color: var(--primary-foreground); background: var(--primary); box-shadow: var(--vrn-shadow-popover); font-size: var(--vrn-type-metadata-size); }
 .caption-detail { display: grid; gap: var(--vrn-space-5); }
 .caption-detail > section { display: grid; gap: var(--vrn-space-3); }
 .caption-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--vrn-space-4); padding-bottom: var(--vrn-space-4); border-bottom: var(--vrn-stroke-hairline) solid var(--vrn-border); }
@@ -140,4 +146,9 @@
   .inspector-heading-actions { justify-content: flex-start; flex-wrap: wrap; }
   .inspector-facts, .inspector-compare-grid { grid-template-columns: 1fr; }
   .inspector-compare-grid section + section { border-left: 0; border-top: var(--vrn-stroke-hairline) solid var(--vrn-border); }
+  .part-caption-dialog { width: calc(100vw - 16px) !important; height: calc(100dvh - 16px); border-radius: var(--vrn-radius-md); }
+  .part-caption-dialog-header { padding: var(--vrn-space-4); }
+  .part-caption-dialog-body .caption-detail { padding: var(--vrn-space-4); }
+  .part-caption-dialog .caption-workspace { grid-template-columns: 1fr; }
+  .part-caption-dialog .caption-files { border-right: 0; border-bottom: var(--vrn-stroke-hairline) solid var(--vrn-border); }
 }

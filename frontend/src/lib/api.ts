@@ -313,10 +313,12 @@ export const studioApi = {
   captions: (productionId: number, id: number) => v1<TranscriptSummary[]>(`/api/v1/productions/${productionId}/parts/${id}/captions`).then((transcripts) => ({ transcripts })),
   transcript: (id: number) => v1<Transcript>(`/api/v1/subtitles/${id}`),
   enqueueTranscribePart: async (productionId: number, part: ProductionPart, confirmed = false, language?: string) => {
+    const requestedLanguage = String(language || part.language || "").trim()
+    const languageHint = requestedLanguage && requestedLanguage.toLowerCase() !== "auto" ? requestedLanguage : undefined
     const response = await request<{ data: DurableJob<CaptionMutationResult> }>("/api/v1/jobs/transcription", {
       method: "POST",
       headers: { "Idempotency-Key": `transcribe-part-${part.id}-${crypto.randomUUID()}` },
-      body: JSON.stringify({ file: part.filename, part_id: part.id, production_id: productionId, language: language || part.language || undefined, confirmed }),
+      body: JSON.stringify({ file: part.filename, part_id: part.id, production_id: productionId, language: languageHint, confirmed }),
     })
     return registerJob(response.data)
   },

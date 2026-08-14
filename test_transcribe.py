@@ -19,6 +19,7 @@ class Response:
 
 PAYLOAD = {"transcripts": [{"sentences": [{
     "begin_time": 0, "end_time": 900, "text": "Hello.",
+    "language": "en",
     "words": [{"begin_time": 0, "end_time": 900, "text": "Hello", "punctuation": "."}],
 }]}]}
 
@@ -70,6 +71,32 @@ class TranscriptionContractTests(unittest.TestCase):
             "language": "ar",
         })
         self.assertEqual(result.text, "Hello.")
+        self.assertEqual(result.language, "English")
+
+    def test_detected_language_uses_the_dominant_timed_language(self):
+        payload = {"transcripts": [{"sentences": [
+            {"begin_time": 0, "end_time": 300, "text": "Bonjour.", "language": "fr", "words": []},
+            {"begin_time": 300, "end_time": 1800, "text": "This is English.", "language": "en", "words": []},
+        ]}]}
+
+        class FakeQwen:
+            @classmethod
+            def async_call(cls, **params):
+                return Response({"task_id": "task-language"})
+
+            @classmethod
+            def wait(cls, task):
+                return Response({"task_status": "SUCCEEDED", "result": {
+                    "transcription_url": "https://results.test/transcript.json"}})
+
+        body = io.BytesIO(json.dumps(payload).encode())
+        with self._module("dashscope.audio.qwen_asr", "QwenTranscription", FakeQwen), \
+                patch("urllib.request.urlopen", return_value=body):
+            result = AlibabaTranscriptionProvider().transcribe(
+                url="https://audio.test/file.mp3", language=None, words=True,
+                vocabulary_id=None, enable_itn=False)
+
+        self.assertEqual(result.language, "English")
 
     def test_custom_vocabulary_stays_on_fun_asr_contract(self):
         class FakeFun:

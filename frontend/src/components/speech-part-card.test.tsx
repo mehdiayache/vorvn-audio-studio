@@ -106,12 +106,14 @@ describe("SpeechPartCard", () => {
 
   it("routes captions to the explicit Production target without a replacement action", () => {
     const actionSet = { ...actions(), recordPart: vi.fn() }
+    const onOpenCaptions = vi.fn()
     const sourcePart = part()
-    renderCard(<SpeechPartCard part={sourcePart} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
+    renderCard(<SpeechPartCard part={sourcePart} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} onOpenCaptions={onOpenCaptions} actions={actionSet} />)
 
     fireEvent.click(screen.getByRole("button", { name: /Captions: No captions/ }))
 
-    expect(actionSet.openPart).toHaveBeenCalledWith(sourcePart, "captions")
+    expect(onOpenCaptions).toHaveBeenCalledOnce()
+    expect(actionSet.openPart).not.toHaveBeenCalled()
     expect(actionSet.recordPart).not.toHaveBeenCalled()
   })
 

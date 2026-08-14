@@ -59,6 +59,9 @@ class TranscriptionService:
                    vocabulary_id: str | None = None,
                    confirmed: bool = False, source_job_id: int | None = None,
                    on_progress=None) -> dict:
+        language = str(language or "").strip()
+        if language.lower() == "auto":
+            language = ""
         source = self.source_resolver.prepare(
             url=url, name=name, playable=playable, duration_ms=duration_ms,
             part_id=part_id, production_id=production_id, file=file)
@@ -126,9 +129,10 @@ class TranscriptionService:
                 })
         cues = captions.build_cues(result.sentences, "standard")
         srt, vtt = captions.render_srt(cues), captions.render_vtt(cues)
+        resolved_language = language or result.language
         transcript_id = self.repository.save({
             "name": source.name, "source_url": source.url,
-            "audio_url": source.playable, "language": language or None,
+            "audio_url": source.playable, "language": resolved_language,
             "duration_ms": result.duration_ms, "text": result.text,
             "srt": srt, "vtt": vtt, "sentences": result.sentences,
             "part_id": source.part_id, "take_id": source.take_id,
@@ -149,7 +153,7 @@ class TranscriptionService:
             "id": transcript_id, "file": source.name,
             "part_id": source.part_id, "take_id": source.take_id,
             "url": source.playable,
-            "language": language or None, "text": result.text,
+            "language": resolved_language, "text": result.text,
             "sentences": result.sentences,
             "srt": srt, "vtt": vtt, "cost": cost.catalog_cost,
             "estimated_cost": estimate.catalog_cost,

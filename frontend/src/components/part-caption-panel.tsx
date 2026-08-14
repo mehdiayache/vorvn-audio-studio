@@ -47,18 +47,19 @@ export function PartCaptionPanel({ captions, transcript, languages, sourceLangua
   const [profile, setProfile] = useState<CaptionProfile>("standard")
   const [layout, setLayout] = useState<CaptionLayout | null>(null)
   const [layoutBusy, setLayoutBusy] = useState(false)
+  const original = captions.find((item) => !item.is_translation)
+  const recordedLanguage = sourceLanguage && sourceLanguage.toLowerCase() !== "auto" ? sourceLanguage : undefined
+  const selectedLanguage = original?.language || transcript?.language || recordedLanguage
   const availableLanguages = useMemo(() => {
     const existing = new Set(captions.map((item) => item.language?.toLowerCase()).filter(Boolean))
-    return languages.filter((language) => language !== "Auto" && language.toLowerCase() !== sourceLanguage?.toLowerCase() && !existing.has(language.toLowerCase()))
-  }, [captions, languages, sourceLanguage])
+    return languages.filter((language) => language !== "Auto" && language.toLowerCase() !== selectedLanguage?.toLowerCase() && !existing.has(language.toLowerCase()))
+  }, [captions, languages, selectedLanguage])
   const [target, setTarget] = useState("")
   const selectedTarget = availableLanguages.includes(target) ? target : availableLanguages[0] || ""
-  const original = captions.find((item) => !item.is_translation)
   const sourceChoices = useMemo(() => ["Auto", ...Array.from(new Set(languages.filter((language) => language && language !== "Auto")))], [languages])
   const [captionLanguage, setCaptionLanguage] = useState("Auto")
   const needsRefresh = Boolean(original?.stale)
   const selectedSummary = transcript ? captions.find((item) => item.id === transcript.id) : null
-  const selectedLanguage = sourceLanguage || original?.language || transcript?.language
 
   useEffect(() => {
     setCaptionLanguage(selectedLanguage && sourceChoices.includes(selectedLanguage) ? selectedLanguage : "Auto")
@@ -89,7 +90,7 @@ export function PartCaptionPanel({ captions, transcript, languages, sourceLangua
       <div className="detail-section-head caption-actions">
         <div><span className="eyebrow">Editorial captions</span><h3>{original ? needsRefresh ? "Captions need review" : "Captions are current" : "No captions yet"}</h3><p>{original ? `${selectedLanguage || "Original captions"} · ${captions.filter((item) => item.is_translation).length} translation${captions.filter((item) => item.is_translation).length === 1 ? "" : "s"}` : "Create timed text from the active recording."}</p></div>
       </div>
-      <div className="caption-source-bar"><Languages /><span><b>Spoken language</b><small>Use Auto only when the recording language is genuinely unknown.</small></span><Select value={captionLanguage} onValueChange={setCaptionLanguage} disabled={Boolean(busy)}><SelectTrigger aria-label="Caption source language"><SelectValue /></SelectTrigger><SelectContent>{sourceChoices.map((language) => <SelectItem key={language} value={language}>{language}</SelectItem>)}</SelectContent></Select><Button disabled={Boolean(busy)} onClick={() => void onCreate(captionLanguage === "Auto" ? undefined : captionLanguage)}>{busy === "transcribe" ? <LoaderCircle className="spin" /> : needsRefresh || original ? <RefreshCw /> : <Captions />}{createLabel}</Button></div>
+      <div className="caption-source-bar"><Languages /><span><b>Spoken language</b><small>{selectedLanguage ? `${selectedLanguage} is saved with the current captions.` : "Auto-detect lets the caption AI identify and save the spoken language."}</small></span><Select value={captionLanguage} onValueChange={setCaptionLanguage} disabled={Boolean(busy)}><SelectTrigger aria-label="Caption source language"><SelectValue /></SelectTrigger><SelectContent>{sourceChoices.map((language) => <SelectItem key={language} value={language}>{language === "Auto" ? "Auto-detect" : language}</SelectItem>)}</SelectContent></Select><Button disabled={Boolean(busy)} onClick={() => void onCreate(captionLanguage === "Auto" ? undefined : captionLanguage)}>{busy === "transcribe" ? <LoaderCircle className="spin" /> : needsRefresh || original ? <RefreshCw /> : <Captions />}{createLabel}</Button></div>
       {needsRefresh && <div className="caption-stale-callout"><CircleAlert /><span><b>Recording changed</b><small>These timed captions remain available as historical work, but must be regenerated before release.</small></span></div>}
       {original && !needsRefresh && <div className="caption-translate-bar"><Languages /><span>Translate subtitles</span><Select value={selectedTarget} onValueChange={setTarget} disabled={!availableLanguages.length}><SelectTrigger aria-label="Translation language"><SelectValue placeholder="Choose language" /></SelectTrigger><SelectContent>{availableLanguages.map((language) => <SelectItem key={language} value={language}>{language}</SelectItem>)}</SelectContent></Select><Button variant="outline" disabled={!selectedTarget || busy === "translate"} onClick={() => void onTranslate(selectedTarget)}>{busy === "translate" ? <LoaderCircle className="spin" /> : <Languages />}{busy === "translate" ? "Translating…" : "Translate"}</Button></div>}
     </section>
