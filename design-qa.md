@@ -1,60 +1,62 @@
-# Design QA — Integrated caption player
+# Design QA — Direct caption controls
 
 ## Evidence
 
 - Source visual truth: `/var/folders/cb/4m2zrd4916q19q1n5mrpc_jh0000gn/T/TemporaryItems/NSIRD_screencaptureui_fh6aJR/Screenshot 2026-08-14 at 10.18.40.png`
-- Browser implementation capture, captions enabled at a silent timing gap: `/Users/berberos/VORVN-DEV/vorvn-os/projects/text-to-voice/out/caption-player-integrated-final.png`
-- Browser implementation capture, captions disabled: `/Users/berberos/VORVN-DEV/vorvn-os/projects/text-to-voice/out/caption-player-no-captions-final.png`
-- Normalized focused comparison: `/Users/berberos/VORVN-DEV/vorvn-os/projects/text-to-voice/out/caption-player-design-qa-comparison.png`
-- Source pixels: 723 × 526.
-- Captions-enabled implementation pixels: 1608 × 955 at a 1608 × 964 CSS viewport and device scale factor 1.
-- Captions-disabled implementation pixels: 1265 × 712. The focused player crop was normalized to the same 840 px comparison width as the captions-enabled state.
-- State: Living QA Production, Part 01 selected, English Short captions, real saved transcript, paused spoken-cue and silent-gap positions.
+- Desktop implementation: `/Users/berberos/VORVN-DEV/vorvn-os/projects/text-to-voice/out/caption-controls-final.png`
+- Language-menu implementation: `/Users/berberos/VORVN-DEV/vorvn-os/projects/text-to-voice/out/caption-controls-language-menu.png`
+- Mobile implementation: `/Users/berberos/VORVN-DEV/vorvn-os/projects/text-to-voice/out/caption-controls-mobile.png`
+- Desktop viewport: 1280 × 720 CSS pixels, device scale factor 1.
+- Mobile viewport: 390 × 844 CSS pixels, device scale factor 1.
+- State: Living QA Production `test production of conversation`, real English timed captions, Production preview paused on a spoken cue.
+- The founder reference and the final desktop capture were reviewed together in one visual comparison input.
 
 ## Comparison history
 
-### Pass 1
+### Pass 1 — interaction ownership
 
-- [P1] The caption surface was a conditional floating element outside the player.
-  - Evidence: it was rendered only when `currentCaptionCue` existed and was positioned above the transport. During timing gaps the complete caption block disappeared and the player changed visual structure.
-  - Fix: captions now render as the first grid row inside the one player card whenever a caption track is enabled. The controls remain the second row. Turning captions off removes only the caption row and returns the player to its one-row state.
-- [P1] The caption/player geometry did not match the two-state source drawing.
-  - Fix: the integrated caption row owns the player's top corners and bottom divider; the control row stays inside the same outer border, radius, and elevation.
+- [P1] The CC button opened an intermediary dropdown instead of performing the operator's primary action.
+  - Fix: CC is now a direct, pressed-state show/hide control. Showing captions immediately uses the saved/default presentation and current track; hiding captions removes the caption row without closing the player.
+- [P1] Language selection and Standard / Short / Word by word were hidden behind the same CC menu.
+  - Fix: those settings now live persistently on the right side of the integrated caption row. The language uses the local shadcn Select and the three presentation modes use the local shadcn ToggleGroup.
+- [P1] The old menu could render beneath the fixed player because the player used a sheet-level z-index above shadcn popups.
+  - Fix: the player now uses the semantic dock layer (`40`); the shadcn Select popup stays at `50`, while dialogs and sheets remain higher.
 
-### Pass 2
+### Pass 2 — geometry and behavior
 
-- [P2] A flexible caption-row height could still move the controls when Standard captions changed between one and two lines.
-  - Fix: the caption row now reserves a fixed 56 px two-line region and clamps caption content to two lines. The complete captions-enabled player measured 115.59375 px in both a spoken cue and a silent gap.
+- [P2] The language menu touched or overlapped the player edge.
+  - Fix: the menu opens above with a 10 px side offset. Measured menu bottom: `586.5625`; player top: `588.40625`.
+- [P2] Caption controls could outgrow the mobile player border.
+  - Fix: the mobile caption panel is a 112 px stacked row inside the outer card. Measured panel width: `357`; player inner width: `357`; document horizontal overflow: `0`.
+- [P2] A mobile player without the caption row could wrap CC and Close because the grid lost a control column.
+  - Fix: a source with caption tracks reserves five transport columns whether captions are currently shown or hidden.
 
-The normalized comparison shows the exact source composition: a two-row player when captions are enabled and a single-row player when captions are disabled. No actionable P0, P1, or P2 findings remain.
+No actionable P0, P1, or P2 finding remains for this caption-player scope.
 
 ## Required fidelity surfaces
 
-- Fonts and typography: existing Audio Studio Inter typography, semantic VORVN caption/body sizes, and label/title weights are preserved. Caption text remains readable and is capped at the backend's two-line Standard contract.
-- Spacing and layout rhythm: captions-enabled geometry is stable at a 56 px caption row and 115.59375 px total player height. Captions-disabled geometry is a 60 px single row. The row is in normal player grid flow, so it cannot float, overlap, or disappear between cues.
-- Colors and visual tokens: the implementation uses existing surface, border, information, foreground, muted, radius, and shadow tokens. Information blue identifies the active caption language/mode without turning the full player into a status color.
-- Image quality and asset fidelity: the source contains no required image assets. Existing Lucide media icons and real Audio Studio waveform/source treatment are preserved; no fake visual asset was introduced.
-- Copy and content: live caption text remains primary. Silent timing gaps explicitly say `No spoken caption at this position` while preserving the caption row. Language and presentation mode remain visible.
+- Typography: existing Audio Studio Inter typography and semantic VORVN body/metadata weights remain intact. The actual cue is the primary content; controls are compact and secondary.
+- Layout: the enabled player remains one card with a fixed 56 px caption row above the 60 px transport row. Language and the three display modes stay visible in the caption row. The disabled player collapses to the transport row only.
+- Color grammar: information blue is reserved for the active caption capability and CC pressed state. Neutral surfaces carry the player, dropdown, and segmented controls. No decorative color competes with playback or transcript content.
+- Components: no parallel primitive was created. Select, ToggleGroup, Button, and Lucide caption icons reuse the repository's local shadcn components.
+- Content: the selected language remains visible even when only one track exists. Spoken cues are directly actionable; timing gaps retain `No spoken caption at this position` without making the whole caption surface disappear.
 
 ## Real product QA
 
-- Opened the served Living QA Production and played the existing captioned Part 01.
-- Enabled English captions and verified the integrated caption row with a real spoken cue.
-- Paused at a silent timing gap and verified that the row remained present with identical geometry.
-- Reloaded and verified the captions-disabled one-row player state.
-- Confirmed the CC language and display menu remains functional.
-- Browser console after the final render: no errors.
+- Opened the served Living QA Production and loaded its real recorded Preview.
+- Clicked CC once and confirmed captions appeared directly with Standard selected; clicked it again and confirmed the caption row hid directly with no intermediary menu.
+- Exercised Standard, Short, and Word by word, then returned to Standard and confirmed the durable active state.
+- Opened the English selector and confirmed its popup was fully visible above the player, with z-index `50` over player z-index `40`.
+- Clicked the real cue text and confirmed `Captions · Part 01` opened in place, on the same Production URL, with saved transcript and all three caption styles.
+- Verified desktop player geometry: `832 × 115.59375`; caption row height: `56`; horizontal overflow: `0`.
+- Verified mobile at 390 × 844: all four controls remain visible, player height `188`, caption panel height `112`, horizontal overflow `0`.
 - No provider call or paid transcription was issued.
-
-## Focused comparison
-
-The focused comparison places the founder's two-state player drawing beside the cropped real implementation. It is the correct comparison level because the requested change concerns player ownership and state geometry, not the surrounding Production table.
 
 ## Verification
 
-- Frontend OpenAPI generation, TypeScript, production build, and all 242 React tests across 71 files passed.
+- OpenAPI generation, TypeScript, production Vite build, and all 243 React tests across 71 files passed.
 - All 304 Python tests passed.
-- Provider contracts passed 31/31 and render contracts passed 15/15.
-- Domain invariants passed 11/11 against the local test database.
+- Provider contracts passed 31/31 and render contracts passed 15/15 as part of the Python suite.
+- Domain invariants passed 11/11 against the local PostgreSQL database.
 
 final result: passed

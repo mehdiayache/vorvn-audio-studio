@@ -10,6 +10,10 @@ globalThis.ResizeObserver = class ResizeObserver {
   unobserve() {}
   disconnect() {}
 } as typeof ResizeObserver
+Element.prototype.hasPointerCapture = () => false
+Element.prototype.setPointerCapture = () => undefined
+Element.prototype.releasePointerCapture = () => undefined
+Element.prototype.scrollIntoView = () => undefined
 
 afterEach(cleanup)
 
@@ -67,12 +71,27 @@ describe("TransportStrip", () => {
     expect(screen.getByRole("alert").textContent).toContain("This audio could not be played")
   })
 
-  it("selects CC languages and opens the current cue context", async () => {
+  it("toggles captions directly without opening an intermediary menu", () => {
+    const onToggleCaptions = vi.fn()
+    render(<TransportStripView {...props}
+      captionTracks={[{ id: "en", language: "English", label: "English · Original", stale: false, cues: [] }]}
+      captionTrack={{ id: "en", language: "English", label: "English · Original", stale: false, cues: [] }}
+      onToggleCaptions={onToggleCaptions}
+    />)
+    fireEvent.click(screen.getByRole("button", { name: "Show captions" }))
+    expect(onToggleCaptions).toHaveBeenCalledOnce()
+    expect(screen.queryByRole("menu")).toBeNull()
+  })
+
+  it("keeps language, display mode and cue context inside the caption panel", async () => {
     const onCaptionTrack = vi.fn()
     const onCaptionProfile = vi.fn()
     const onOpenCaptionContext = vi.fn()
     render(<TransportStripView {...props}
-      captionTracks={[{ id: "en", language: "English", label: "English · Original", stale: false, cues: [] }]}
+      captionTracks={[
+        { id: "en", language: "English", label: "English · Original", stale: false, cues: [] },
+        { id: "fr", language: "French", label: "French", stale: false, cues: [] },
+      ]}
       captionTrack={{ id: "en", language: "English", label: "English · Original", stale: false, cues: [] }}
       captionsEnabled
       currentCaptionCue={{ startMs: 0, endMs: 2000, text: "The light changes before the rain.", partId: 12 }}
@@ -80,13 +99,14 @@ describe("TransportStrip", () => {
       onCaptionProfile={onCaptionProfile}
       onOpenCaptionContext={onOpenCaptionContext}
     />)
-    fireEvent.click(screen.getByRole("button", { name: /The light changes/ }))
+    expect(screen.getByLabelText("Caption display")).toBeTruthy()
+    expect(screen.getByRole("radiogroup", { name: "Caption display mode" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: /Open captions for: The light changes/ }))
     expect(onOpenCaptionContext).toHaveBeenCalledWith(12)
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Captions on · English" }), { button: 0, ctrlKey: false })
-    fireEvent.click(await screen.findByRole("menuitemradio", { name: "Off" }))
-    expect(onCaptionTrack).toHaveBeenCalledWith(null)
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Captions on · English" }), { button: 0, ctrlKey: false })
-    fireEvent.click(await screen.findByRole("menuitemradio", { name: "Word by word" }))
+    fireEvent.pointerDown(screen.getByRole("combobox", { name: "Caption language" }), { button: 0, ctrlKey: false, pointerType: "mouse" })
+    fireEvent.click(await screen.findByRole("option", { name: "French" }))
+    expect(onCaptionTrack).toHaveBeenCalledWith("fr")
+    fireEvent.click(screen.getByRole("radio", { name: "Word by word" }))
     expect(onCaptionProfile).toHaveBeenCalledWith("words")
   })
 
@@ -99,7 +119,7 @@ describe("TransportStrip", () => {
       currentCaptionCue={{ startMs: 0, endMs: 2000, text: "Before the rain." }}
     />)
     expect(screen.getByRole("region", { name: "Audio player" }).getAttribute("data-caption-profile")).toBe("short")
-    expect(screen.getByText("Short")).toBeTruthy()
+    expect(screen.getByRole("radio", { name: "Short" }).getAttribute("data-state")).toBe("on")
   })
 
   it("keeps the caption row inside the player during silent timing gaps", () => {
