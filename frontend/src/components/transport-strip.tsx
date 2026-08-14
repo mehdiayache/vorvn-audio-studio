@@ -51,8 +51,11 @@ export function TransportStripView({ source, state, currentTime, duration, volum
   if (!source) return null
   const playLabel = state === "playing" ? `Pause ${source.title}` : `Play ${source.title}`
   const activePresentation = captionPresentationMode(captionProfile)
-  return <section className={`transport-strip is-${variant}${currentCaptionCue ? " has-caption-cue" : ""}${previewStale ? " is-stale" : ""}`} aria-label="Audio player" data-source-kind={source.kind} data-caption-profile={captionProfile}>
-    {currentCaptionCue && <button className="transport-caption-cue" onClick={() => currentCaptionCue.partId && onOpenCaptionContext?.(currentCaptionCue.partId)} disabled={!currentCaptionCue.partId || !onOpenCaptionContext} dir="auto"><span className="transport-caption-label"><Captions />{captionTrack?.language || "Captions"}<span>{activePresentation.label}</span></span><span className="transport-caption-text">{currentCaptionCue.text}</span></button>}
+  const captionDockVisible = captionsEnabled && Boolean(captionTrack)
+  const captionContextAvailable = Boolean(currentCaptionCue?.partId && onOpenCaptionContext)
+  const captionText = currentCaptionCue?.text || "No spoken caption at this position"
+  return <section className={`transport-strip is-${variant}${captionDockVisible ? " has-caption-dock" : ""}${previewStale ? " is-stale" : ""}`} aria-label="Audio player" data-source-kind={source.kind} data-caption-profile={captionProfile}>
+    {captionDockVisible && <div className="transport-caption-row" aria-live="polite" aria-atomic="true" dir="auto"><span className="transport-caption-label"><Captions />{captionTrack?.language || "Captions"}<span>{activePresentation.label}</span></span>{captionContextAvailable ? <button type="button" className="transport-caption-text" onClick={() => onOpenCaptionContext?.(currentCaptionCue!.partId!)}>{captionText}</button> : <span className={`transport-caption-text${currentCaptionCue ? "" : " is-gap"}`}>{captionText}</span>}</div>}
     {previewStale && <div className="transport-preview-stale" role="status"><span>Preview out of date</span><Button variant="ghost" size="sm" onClick={onRefreshPreview}><RefreshCw /> Refresh</Button></div>}
     <span className="transport-strip-art" aria-hidden="true">{source.artwork ? <img src={source.artwork} alt="" /> : <AudioLines />}</span>
     <div className="transport-strip-copy"><small>{sourceLabels[source.kind]}</small><b title={source.title}>{source.title}</b>{source.subtitle && <span title={source.subtitle}>{source.subtitle}</span>}</div>

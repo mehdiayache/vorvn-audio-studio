@@ -102,6 +102,18 @@ describe("TransportStrip", () => {
     expect(screen.getByText("Short")).toBeTruthy()
   })
 
+  it("keeps the caption row inside the player during silent timing gaps", () => {
+    const track = { id: "en", language: "English", label: "English · Original", stale: false, cues: [] }
+    const { rerender } = render(<TransportStripView {...props} captionTracks={[track]} captionTrack={track} captionsEnabled currentCaptionCue={null} />)
+    const player = screen.getByRole("region", { name: "Audio player" })
+    expect(player.classList.contains("has-caption-dock")).toBe(true)
+    expect(screen.getByText("No spoken caption at this position")).toBeTruthy()
+
+    rerender(<TransportStripView {...props} captionTracks={[track]} captionTrack={track} captionsEnabled={false} currentCaptionCue={null} />)
+    expect(player.classList.contains("has-caption-dock")).toBe(false)
+    expect(screen.queryByText("No spoken caption at this position")).toBeNull()
+  })
+
   it("marks an old Production preview and offers an explicit refresh", () => {
     const onRefreshPreview = vi.fn()
     render(<TransportStripView {...props} source={{ ...source, kind: "production" }} previewStale onRefreshPreview={onRefreshPreview} />)

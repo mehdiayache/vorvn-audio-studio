@@ -1,61 +1,60 @@
-# Design QA — Standalone Speak and Sandbox checkpoint
+# Design QA — Integrated caption player
 
 ## Evidence
 
-- Source visual truth: `/var/folders/cb/4m2zrd4916q19q1n5mrpc_jh0000gn/T/TemporaryItems/NSIRD_screencaptureui_gzQf9A/Screenshot 2026-08-14 at 07.53.07.png`
-- Browser implementation capture: `/Users/berberos/VORVN-DEV/vorvn-os/projects/text-to-voice/out/speak-sandbox-final.jpg`
-- Normalized side-by-side comparison: `/Users/berberos/VORVN-DEV/vorvn-os/projects/text-to-voice/out/design-qa-comparison.jpg`
-- Source pixels: 2414 × 1052.
-- Implementation pixels: 1280 × 720 at a 1280 × 720 CSS viewport and device scale factor 2. Browser capture is normalized by the in-app browser to 1280 × 720 pixels.
-- Comparison normalization: the implementation Composer was cropped to its 1230 × 528 content frame; source and implementation were padded/scaled to 1230 × 536 before horizontal comparison.
-- State: clean standalone Composer, no Voice/route selected, existing reusable recording history below the workstation.
+- Source visual truth: `/var/folders/cb/4m2zrd4916q19q1n5mrpc_jh0000gn/T/TemporaryItems/NSIRD_screencaptureui_fh6aJR/Screenshot 2026-08-14 at 10.18.40.png`
+- Browser implementation capture, captions enabled at a silent timing gap: `/Users/berberos/VORVN-DEV/vorvn-os/projects/text-to-voice/out/caption-player-integrated-final.png`
+- Browser implementation capture, captions disabled: `/Users/berberos/VORVN-DEV/vorvn-os/projects/text-to-voice/out/caption-player-no-captions-final.png`
+- Normalized focused comparison: `/Users/berberos/VORVN-DEV/vorvn-os/projects/text-to-voice/out/caption-player-design-qa-comparison.png`
+- Source pixels: 723 × 526.
+- Captions-enabled implementation pixels: 1608 × 955 at a 1608 × 964 CSS viewport and device scale factor 1.
+- Captions-disabled implementation pixels: 1265 × 712. The focused player crop was normalized to the same 840 px comparison width as the captions-enabled state.
+- State: Living QA Production, Part 01 selected, English Short captions, real saved transcript, paused spoken-cue and silent-gap positions.
 
 ## Comparison history
 
 ### Pass 1
 
-- [P1] Voice setup consumed the visible primary column and pushed the script below the internal scroll boundary.
-  - Fix: the setup became a compact, explicit summary row. Operators can write immediately and open setup only when choosing or changing the Voice and exact route.
-- [P2] The page-level Speak title duplicated the Composer title and pushed the persistent Generate footer below the initial 1280 × 720 viewport.
-  - Fix: the redundant page header was removed and the Composer header now owns the visible `Speak · Create a reusable recording` identity.
-- [P2] Collapsing setup after route selection retained the primary column's previous scroll offset.
-  - Fix: completion collapses setup and resets the primary workspace scroll position.
+- [P1] The caption surface was a conditional floating element outside the player.
+  - Evidence: it was rendered only when `currentCaptionCue` existed and was positioned above the transport. During timing gaps the complete caption block disappeared and the player changed visual structure.
+  - Fix: captions now render as the first grid row inside the one player card whenever a caption track is enabled. The controls remain the second row. Turning captions off removes only the caption row and returns the player to its one-row state.
+- [P1] The caption/player geometry did not match the two-state source drawing.
+  - Fix: the integrated caption row owns the player's top corners and bottom divider; the control row stays inside the same outer border, radius, and elevation.
 
 ### Pass 2
 
-The normalized side-by-side comparison shows the intended shared composition: context/setup across the top, script as the dominant left work area, performance/output in a subordinate right rail, and one persistent generation footer. The rejected session, destination, and Cast controls from the source are intentionally absent.
+- [P2] A flexible caption-row height could still move the controls when Standard captions changed between one and two lines.
+  - Fix: the caption row now reserves a fixed 56 px two-line region and clamps caption content to two lines. The complete captions-enabled player measured 115.59375 px in both a spoken cue and a silent gap.
 
-No actionable P0, P1, or P2 findings remain.
+The normalized comparison shows the exact source composition: a two-row player when captions are enabled and a single-row player when captions are disabled. No actionable P0, P1, or P2 findings remain.
 
 ## Required fidelity surfaces
 
-- Fonts and typography: existing Audio Studio Inter typography and VORVN weights are preserved. The script/editor hierarchy is stronger than utility labels, metadata remains legible, and labels do not truncate at 1280 px.
-- Spacing and layout rhythm: the 1230 px workstation fits the 1280 px viewport with 25 px side margins and no horizontal overflow. The 1.7 / .78 column proportion keeps writing primary while preserving usable controls.
-- Colors and visual tokens: only semantic VORVN surface, border, text, warning, data-series, and action tokens are used. The incomplete Voice state uses warning color; the interface does not become an undifferentiated black surface.
-- Image quality and asset fidelity: the source contains no required product imagery. Audio Studio's real `VoiceIdentity` portrait remains in the shared Voice picker and recording cards after selection; no placeholder or handcrafted asset was introduced.
-- Copy and content: `Session`, `New session`, and session destination wording are removed. The visible language now says Speak, reusable recording, Sandbox, and recordings. Real history cards retain voice, exact model, language, script, cost, duration, and durable operation state.
+- Fonts and typography: existing Audio Studio Inter typography, semantic VORVN caption/body sizes, and label/title weights are preserved. Caption text remains readable and is capped at the backend's two-line Standard contract.
+- Spacing and layout rhythm: captions-enabled geometry is stable at a 56 px caption row and 115.59375 px total player height. Captions-disabled geometry is a 60 px single row. The row is in normal player grid flow, so it cannot float, overlap, or disappear between cues.
+- Colors and visual tokens: the implementation uses existing surface, border, information, foreground, muted, radius, and shadow tokens. Information blue identifies the active caption language/mode without turning the full player into a status color.
+- Image quality and asset fidelity: the source contains no required image assets. Existing Lucide media icons and real Audio Studio waveform/source treatment are preserved; no fake visual asset was introduced.
+- Copy and content: live caption text remains primary. Silent timing gaps explicitly say `No spoken caption at this position` while preserving the caption row. Language and presentation mode remain visible.
 
 ## Real product QA
 
-- Opened the served application in the in-app browser.
-- Verified the no-session `/audio-studio/speak` route against the live API.
-- Opened the real 74-Voice selector, selected owned Voice Eva, and selected the exact `Qwen Audio 3.0 TTS · Flash` route.
-- Verified setup auto-collapses after the exact route becomes valid and the script returns to the top of the primary work area.
-- Verified existing reusable recordings load with playable actions and real metadata.
-- Verified the singleton Composer draft saves through the live API.
-- Verified zero horizontal document overflow at 1280 × 720.
-- Browser console log after the final render: no errors.
+- Opened the served Living QA Production and played the existing captioned Part 01.
+- Enabled English captions and verified the integrated caption row with a real spoken cue.
+- Paused at a silent timing gap and verified that the row remained present with identical geometry.
+- Reloaded and verified the captions-disabled one-row player state.
+- Confirmed the CC language and display menu remains functional.
+- Browser console after the final render: no errors.
+- No provider call or paid transcription was issued.
 
 ## Focused comparison
 
-The full normalized comparison keeps the controls and editor text readable, so a separate close crop was not necessary. The important focused state—Voice selector with real portraits and exact route selection—was exercised interactively in the browser rather than represented by fake fixture content.
+The focused comparison places the founder's two-state player drawing beside the cropped real implementation. It is the correct comparison level because the requested change concerns player ownership and state geometry, not the surrounding Production table.
 
 ## Verification
 
-- Frontend: 73 files, 239 tests passed; API generation, typecheck, and production build passed.
-- Python: 302 tests passed.
-- Provider/domain contracts: 31/31 passed.
-- Render contracts: 15/15 passed.
-- Focused post-polish Composer tests: 10/10 passed; production build passed.
+- Frontend OpenAPI generation, TypeScript, production build, and all 242 React tests across 71 files passed.
+- All 304 Python tests passed.
+- Provider contracts passed 31/31 and render contracts passed 15/15.
+- Domain invariants passed 11/11 against the local test database.
 
 final result: passed
