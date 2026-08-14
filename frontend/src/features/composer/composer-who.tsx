@@ -9,20 +9,20 @@ import { useComposer } from "./composer-controller"
 export function ComposerWho() {
   const composer = useComposer()
   return <section className="composer-section voice-capability-section">
-    <header><div><span className="eyebrow">Who</span><h3>Choose who speaks and the exact recording method</h3></div></header>
+    <header><div><span className="eyebrow">Voice & method</span><h3>Set the recording source</h3></div></header>
     <div className="composer-route-grid voice-first-grid">
       <label className="wide">
         <span>Voice</span>
         <VoicePicker identities={composer.identities} value={composer.identityId} directory={composer.directory} playingKey={composer.playingKey} playerPlaying={composer.playerPlaying} onPlay={composer.onPlay} onChange={composer.selectIdentity} />
-        {composer.selectedIdentity?.editorialLanguage && <small className="voice-source-note">The flag is a team casting tag. It never limits this voice.</small>}
+        {composer.selectedIdentity?.editorialLanguage && <small className="voice-source-note">The flag is editorial context, not a language limit.</small>}
       </label>
       <label className="wide">
         <span>Output language</span>
         <Select value={composer.language} onValueChange={composer.setLanguage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{composer.languageOptions.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select>
-        <small>Language changes the requested output only. It never changes or silently reroutes the Voice.</small>
+        <small>The voice stays fixed when output language changes.</small>
       </label>
     </div>
-    <div className="method-heading"><b>Exact recording method</b><span>Choose one exact route. Audio Studio never picks, replaces or falls back for you.</span></div>
+    <div className="method-heading"><b>Recording method</b><span>Choose the exact provider route.</span></div>
     {composer.visibleRoutes.length
       ? <VoiceMethodPicker routes={composer.visibleRoutes} availableRoutes={composer.compatibleRoutes} selectedRouteId={routeSelectionId(composer.route)} selectedCapabilityId={composer.route?.capabilityId || null} language={composer.language} customVoice={composer.selectedIdentity?.source === "owned"} config={composer.config} onSelect={composer.applyRoute} />
       : <div className="capability-empty"><b>{composer.selectedIdentity ? "This voice has no ready recording method." : "Choose a voice to see its exact routes."}</b><span>{composer.selectedIdentity ? "Open Voices to create a provider binding." : "Nothing is preselected. You stay in control of the exact route."}</span></div>}

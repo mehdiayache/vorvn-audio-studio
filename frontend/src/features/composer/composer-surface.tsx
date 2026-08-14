@@ -9,6 +9,7 @@ import { ComposerOutput } from "./composer-output"
 import { ComposerPerformance } from "./composer-performance"
 import { ComposerProvider, type ComposerSurfaceProps, useComposerController } from "./composer-controller"
 import { ComposerRecordingContext } from "./composer-recording-context"
+import { ComposerWho } from "./composer-who"
 import { ComposerWords } from "./composer-words"
 
 import "./composer.css"
@@ -26,20 +27,26 @@ export function ControlledComposerSurface({ composer, presentation = "mega", onE
   return <ComposerProvider value={composer}>
     <div className={cn("speech-composer composer-surface", `is-${presentation}`)}>
       <header className="composer-context-bar">
-        <div><span className="eyebrow">{standalone ? "Speak" : "Recording context"}</span><b>{standalone ? "Create a reusable recording" : composer.destination}</b></div>
+        <div className="composer-context-copy">
+          <span className="eyebrow">{standalone ? "Create" : "Production recording"}</span>
+          <b>{standalone ? "New recording" : composer.destination}</b>
+          <small>{standalone ? "Prepare the voice, words, and delivery" : "Voice, script, and performance in one workspace"}</small>
+        </div>
         <div className="composer-context-actions">
           {presentation === "inline" && onExpand && <Button variant="outline" size="sm" onClick={onExpand}><Expand /> Expand</Button>}
           {onClose && <Button variant="ghost" size="icon-sm" aria-label="Close Composer" onClick={onClose}><X /></Button>}
         </div>
       </header>
-      {workstation ? <div className="composer-stage composer-mega-stage">
-        <div className="composer-mega-primary">
-          <ComposerRecordingContext presentation={presentation} />
+      {workstation ? <div className="composer-workspace">
+        <aside className="composer-setup-rail" aria-label="Voice and recording method">
+          <ComposerWho />
+        </aside>
+        <main className="composer-script-canvas" aria-label="Script canvas">
           <ComposerWords />
-        </div>
-        <aside className="composer-mega-secondary" aria-label="Recording controls">
-          <div className="composer-mega-panel"><ComposerPerformance /></div>
-          <div className="composer-mega-panel"><ComposerOutput /></div>
+        </main>
+        <aside className="composer-controls-rail" aria-label="Performance and output">
+          <ComposerPerformance />
+          <ComposerOutput />
         </aside>
       </div> : <div className="composer-stage">
         <ComposerRecordingContext presentation={presentation} />

@@ -39,6 +39,14 @@ const common = {
 }
 
 describe("shared Composer contract", () => {
+  it("keeps voice, script, and performance visible as stable workstation zones", async () => {
+    render(<ComposerSurface {...common} presentation="dialog" productionId={3} />)
+    expect(await screen.findByRole("complementary", { name: "Voice and recording method" })).toBeTruthy()
+    expect(screen.getByRole("main", { name: "Script canvas" })).toBeTruthy()
+    expect(screen.getByRole("complementary", { name: "Performance and output" })).toBeTruthy()
+    expect(screen.queryByText("Recording setup")).toBeNull()
+  })
+
   it("keeps the full Composer contract available in compact inline presentation with a 20k script", async () => {
     const script = "A deliberate long-form narration sentence with performance detail. ".repeat(350).slice(0, 20_000)
     const part = { id: 6, kind: "draft", text: script, text_raw: script, revision: 1, cost: 0, created_at: "", position: 4, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
@@ -54,15 +62,15 @@ describe("shared Composer contract", () => {
     render(<ComposerSurface {...common} />)
     await waitFor(() => expect(screen.getByText("Choose a voice to see its exact routes.")).toBeTruthy())
     expect(screen.getByRole("button", { name: "Choose a voice" })).toBeTruthy()
-    expect(screen.getAllByText("Exact recording method required").length).toBeGreaterThan(0)
+    expect(screen.getByText("Recording method")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Create recording" }).hasAttribute("disabled")).toBe(true)
   })
 
   it("restores explicit Part identity context without inventing a route", async () => {
     const part = { id: 7, kind: "speech", text: "Hello", cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
     render(<ComposerSurface {...common} productionId={3} part={part} />)
-    await waitFor(() => expect(screen.getAllByText("Sarah").length).toBeGreaterThan(0))
-    expect(screen.getByText("Choose one exact route. Audio Studio never picks, replaces or falls back for you.")).toBeTruthy()
+    await waitFor(() => expect(screen.getAllByText("Binding Sarah").length).toBeGreaterThan(0))
+    expect(screen.getByText("Choose the exact provider route.")).toBeTruthy()
     expect(screen.getByRole("button", { name: /Record Part/ }).hasAttribute("disabled")).toBe(true)
   })
 

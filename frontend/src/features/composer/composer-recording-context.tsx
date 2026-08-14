@@ -1,5 +1,5 @@
 import { CheckCircle2, ChevronDown, CircleAlert, Mic2 } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 
 import { cn } from "@/lib/utils"
 import type { ComposerPresentation } from "./composer-surface"
@@ -10,20 +10,8 @@ export function ComposerRecordingContext({ presentation }: { presentation: Compo
   const composer = useComposer()
   const incomplete = !composer.selectedIdentity || !composer.currentRoute
   const [open, setOpen] = useState(false)
-  const wasIncomplete = useRef(incomplete)
-  const contextRef = useRef<HTMLDetailsElement>(null)
-  useEffect(() => {
-    if (presentation === "mega" && wasIncomplete.current && !incomplete) {
-      setOpen(false)
-      window.requestAnimationFrame(() => {
-        const workspace = contextRef.current?.closest<HTMLElement>(".composer-mega-primary")
-        if (workspace) workspace.scrollTop = 0
-      })
-    }
-    wasIncomplete.current = incomplete
-  }, [incomplete, presentation])
 
-  return <details ref={contextRef} open={open} onToggle={(event) => setOpen(event.currentTarget.open)} className={cn("composer-recording-context", incomplete && "is-incomplete")}>
+  return <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)} className={cn("composer-recording-context", incomplete && "is-incomplete")}>
     <summary className="composer-recording-summary">
       <span className="composer-recording-status" aria-hidden="true">{incomplete ? <CircleAlert /> : <CheckCircle2 />}</span>
       <div className="composer-recording-primary">

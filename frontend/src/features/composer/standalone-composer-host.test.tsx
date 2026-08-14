@@ -39,7 +39,7 @@ describe("StandaloneComposerHost", () => {
     viewport(false)
     render(<StandaloneComposerHost {...props} />)
     expect(screen.getByRole("region", { name: "Script workspace" })).toBeTruthy()
-    expect(screen.getByText("Create a reusable recording")).toBeTruthy()
+    expect(screen.getByText("New recording")).toBeTruthy()
     expect(screen.queryByRole("dialog")).toBeNull()
   })
 
