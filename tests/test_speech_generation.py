@@ -16,8 +16,9 @@ from audio_studio.domain.jobs import Job, JobFailed, JobStatus
 from audio_studio.domain.speech import PreparedSpeech, SpeechSynthesisError, StoredAudio, SynthesizedSpeech
 from audio_studio.http.routers.jobs import SpeechJobCreate
 from audio_studio.infrastructure.audio_workspace import AudioWorkspace
-from audio_studio.infrastructure.alibaba.speech_generation import AlibabaSpeechProvider
-from audio_studio.infrastructure.alibaba.qwen_tts import ChunkFailure
+from audio_studio.infrastructure import audio_codec
+from audio_studio.providers.alibaba.speech_generation import AlibabaSpeechProvider
+from audio_studio.providers.alibaba.qwen_tts import ChunkFailure
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -227,7 +228,7 @@ class SpeechGenerationTests(unittest.TestCase):
             1, "مرحبا",
             "RuntimeError: invalid_parameter: unsupported language_type Arabic")
         with patch(
-                "audio_studio.infrastructure.alibaba.speech_generation.synthesize",
+                "audio_studio.providers.alibaba.speech_generation.synthesize",
                 return_value=(b"", [failure], [], {}, [], [])):
             with self.assertRaises(SpeechSynthesisError) as raised:
                 AlibabaSpeechProvider().synthesize(prepared)
@@ -472,10 +473,11 @@ class SpeechGenerationTests(unittest.TestCase):
     def test_audio_workspace_uses_opaque_contained_names(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
-            saved = AudioWorkspace(root).save(b"not-real-audio", "mp3")
+            source = audio_codec.pcm_wav(b"\0\0" * 2_400, sample_rate=24_000)
+            saved = AudioWorkspace(root).save(source, "mp3")
             target = Path(saved.path)
             self.assertEqual(target.parent, root.resolve())
-            self.assertEqual(target.read_bytes(), b"not-real-audio")
+            self.assertGreater(target.stat().st_size, 0)
             self.assertEqual(target.suffix, ".mp3")
             with self.assertRaises(ValueError):
                 AudioWorkspace(root).save(b"audio", "../escape")

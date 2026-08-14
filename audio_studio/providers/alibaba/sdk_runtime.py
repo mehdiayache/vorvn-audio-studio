@@ -6,7 +6,7 @@ import os
 
 import dashscope
 
-from audio_studio.infrastructure.alibaba import config
+from audio_studio.providers.alibaba import config
 
 
 def apply_credentials() -> None:

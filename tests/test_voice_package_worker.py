@@ -16,8 +16,8 @@ from audio_studio.domain.voice_packages import (
     VoicePackageJob,
 )
 from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
-from audio_studio.infrastructure.alibaba.voice_cloning import AlibabaVoiceCloningProvider
-from audio_studio.infrastructure.enrollment_provider_registry import (
+from audio_studio.providers.alibaba.voice_cloning import AlibabaVoiceCloningProvider
+from audio_studio.providers.enrollment_registry import (
     ExactEnrollmentProviderRegistry,
 )
 from audio_studio.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
@@ -133,10 +133,10 @@ class VoicePackageWorkerTests(unittest.TestCase):
             local.write_bytes(b"RIFF-test")
             with patch.dict("os.environ", {"DASHSCOPE_API_KEY": "fixture"}), \
                     patch(
-                        "audio_studio.infrastructure.alibaba.voice_cloning.storage.configured",
+                        "audio_studio.providers.alibaba.voice_cloning.storage.configured",
                         return_value=True), \
                     patch(
-                        "audio_studio.infrastructure.alibaba.voice_cloning.storage.upload",
+                        "audio_studio.providers.alibaba.voice_cloning.storage.upload",
                         return_value="https://storage.test/reference.wav"), \
                     patch("dashscope.audio.tts_v2.VoiceEnrollmentService") as service:
                 service.return_value.create_voice.return_value = "audio-fixture"
@@ -151,7 +151,7 @@ class VoicePackageWorkerTests(unittest.TestCase):
     def test_alibaba_adapter_rejects_a_different_region_before_upload(self):
         job = package_job(region="beijing")
         with patch(
-                "audio_studio.infrastructure.alibaba.voice_cloning.storage.upload"
+                "audio_studio.providers.alibaba.voice_cloning.storage.upload"
                 ) as upload, patch.dict(
                     "os.environ", {"DASHSCOPE_API_KEY": "fixture"}):
             with self.assertRaisesRegex(ValueError, "region"):
@@ -169,13 +169,13 @@ class VoicePackageWorkerTests(unittest.TestCase):
             local.write_bytes(b"RIFF-test")
             with patch.dict("os.environ", {"DASHSCOPE_API_KEY": "fixture"}), \
                     patch(
-                        "audio_studio.infrastructure.alibaba.voice_cloning.storage.configured",
+                        "audio_studio.providers.alibaba.voice_cloning.storage.configured",
                         return_value=True), \
                     patch(
-                        "audio_studio.infrastructure.alibaba.voice_cloning.storage.upload",
+                        "audio_studio.providers.alibaba.voice_cloning.storage.upload",
                         return_value="https://storage.test/reference.wav"), \
                     patch(
-                        "audio_studio.infrastructure.alibaba.voice_cloning.omni.create_voice",
+                        "audio_studio.providers.alibaba.voice_cloning.omni.create_voice",
                         return_value="qwen3-tts-vc-fixture") as create:
                 binding = AlibabaVoiceCloningProvider().create(job, local)
         self.assertEqual(binding.provider_voice_id, "qwen3-tts-vc-fixture")

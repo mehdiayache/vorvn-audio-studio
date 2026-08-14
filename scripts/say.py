@@ -13,7 +13,7 @@ import sys
 
 from audio_studio.config import settings
 from audio_studio.domain import provider_catalog, speech_text
-from audio_studio.infrastructure.alibaba import audio_tts
+from audio_studio.providers.alibaba import audio_tts
 from audio_studio.infrastructure.postgres.pronunciations import PronunciationRepository
 from audio_studio.infrastructure.runtime_environment import reload_owned_environment
 

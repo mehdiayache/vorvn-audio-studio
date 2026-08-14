@@ -6,7 +6,7 @@ import types
 import unittest
 from unittest.mock import patch
 
-from audio_studio.infrastructure.alibaba.transcription import AlibabaTranscriptionProvider
+from audio_studio.providers.alibaba.transcription import AlibabaTranscriptionProvider
 
 
 class Response:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from audio_studio.domain.text import ProviderText
-from audio_studio.infrastructure.alibaba import config, text as alibaba_text
+from audio_studio.providers.alibaba import config, text as alibaba_text
 
 
 class AlibabaTranslationProvider:

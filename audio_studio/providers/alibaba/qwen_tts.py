@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import NamedTuple
 
 from audio_studio.domain import provider_catalog, speech_segments, token_budget
-from audio_studio.infrastructure.alibaba import config
+from audio_studio.providers.alibaba import config
 from audio_studio.infrastructure import audio_codec
 
 

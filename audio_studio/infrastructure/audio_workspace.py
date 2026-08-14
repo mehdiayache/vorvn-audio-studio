@@ -8,6 +8,7 @@ import subprocess
 from uuid import uuid4
 
 from audio_studio.domain.speech import StoredAudio
+from audio_studio.infrastructure.audio_codec import normalize_audio
 from audio_studio.infrastructure.media_paths import media_root
 
 
@@ -33,9 +34,11 @@ class AudioWorkspace:
         if target.parent != root:
             raise ValueError("The output path is invalid.")
         temporary = target.with_suffix(target.suffix + ".tmp")
-        temporary.write_bytes(audio)
+        normalized = normalize_audio(audio, output_format=safe_extension)
+        temporary.write_bytes(normalized)
         temporary.replace(target)
-        return StoredAudio(filename, str(target), len(audio), self.duration_ms(target))
+        return StoredAudio(
+            filename, str(target), len(normalized), self.duration_ms(target))
 
     @staticmethod
     def duration_ms(path: Path) -> int | None:

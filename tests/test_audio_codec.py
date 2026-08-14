@@ -52,6 +52,20 @@ class AudioCodecTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             audio_codec.decode_pcm(b"not an audio file", sample_rate=24_000)
 
+    def test_provider_audio_is_normalized_to_studio_format(self):
+        source = audio_codec.encode_pcm(
+            tone_pcm(sample_rate=24_000, seconds=.1, frequency=220),
+            sample_rate=24_000, output_format="wav",
+        )
+        normalized = audio_codec.normalize_audio(source, output_format="mp3")
+        inspected = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "a:0",
+             "-show_entries", "stream=sample_rate,channels", "-of", "csv=p=0",
+             "pipe:0"],
+            input=normalized, capture_output=True, check=True,
+        )
+        self.assertEqual(inspected.stdout.strip(), b"48000,2")
+
 
 if __name__ == "__main__":
     unittest.main()

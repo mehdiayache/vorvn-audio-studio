@@ -10,7 +10,7 @@ import time
 from typing import Callable
 
 from audio_studio.infrastructure import object_storage as storage
-from audio_studio.infrastructure.alibaba import config, omni, sdk_runtime
+from audio_studio.providers.alibaba import config, omni, sdk_runtime
 from audio_studio.domain.provider_pricing import PRICE_VERSION
 
 from audio_studio.domain.voice_packages import (

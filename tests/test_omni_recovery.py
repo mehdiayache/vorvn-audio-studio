@@ -3,7 +3,7 @@
 from types import SimpleNamespace
 import unittest
 
-from audio_studio.infrastructure.alibaba import omni
+from audio_studio.providers.alibaba import omni
 
 
 def response(text: str, returned: str, marker: int) -> omni.ChunkResponse:

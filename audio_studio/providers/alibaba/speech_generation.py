@@ -6,7 +6,7 @@ import json
 import os
 
 from audio_studio.domain import delivery_tags, provider_catalog, speech_text, voice_routing
-from audio_studio.infrastructure.alibaba import audio_tts, config, omni, qwen_tts
+from audio_studio.providers.alibaba import audio_tts, config, omni, qwen_tts
 from audio_studio.domain import speech_fidelity as alibaba_fidelity
 from audio_studio.domain.provider_pricing import PRICE_VERSION, qwen_audio_tts_cost
 
@@ -15,6 +15,7 @@ from audio_studio.domain.speech import (
     SpeechSynthesisError,
     SynthesizedSpeech,
 )
+from audio_studio.providers.base import BaseTTSProvider
 
 
 INSTRUCTION_MAX = 100
@@ -125,7 +126,7 @@ def _guard_estimate(text: str, engine: str, tier: str) -> float:
     return round(len(text) * rates[tier] / 1_000_000, 6)
 
 
-class AlibabaSpeechProvider:
+class AlibabaSpeechProvider(BaseTTSProvider):
     @staticmethod
     def is_configured() -> bool:
         return bool(os.getenv("DASHSCOPE_API_KEY", "").strip())

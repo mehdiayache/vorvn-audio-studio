@@ -7,7 +7,7 @@ import os
 
 from openai import OpenAI
 
-from audio_studio.infrastructure.alibaba import config
+from audio_studio.providers.alibaba import config
 
 
 @dataclass(frozen=True, slots=True)

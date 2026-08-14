@@ -30,16 +30,16 @@ from audio_studio.application.voice_cloning import VoiceCloningService
 
 from audio_studio.composition.jobs import job_service
 from audio_studio.composition.renders import render_service
-from audio_studio.infrastructure.alibaba.text_preparation import AlibabaTextProvider
-from audio_studio.infrastructure.alibaba.speech_generation import AlibabaSpeechProvider
-from audio_studio.infrastructure.alibaba.translation import AlibabaTranslationProvider
-from audio_studio.infrastructure.alibaba.transcription import AlibabaTranscriptionProvider
-from audio_studio.infrastructure.alibaba.voice_cloning import AlibabaVoiceCloningProvider
+from audio_studio.providers.alibaba.text_preparation import AlibabaTextProvider
+from audio_studio.providers.alibaba.speech_generation import AlibabaSpeechProvider
+from audio_studio.providers.alibaba.translation import AlibabaTranslationProvider
+from audio_studio.providers.alibaba.transcription import AlibabaTranscriptionProvider
+from audio_studio.providers.alibaba.voice_cloning import AlibabaVoiceCloningProvider
 from audio_studio.infrastructure.audio_workspace import AudioWorkspace
-from audio_studio.infrastructure.enrollment_provider_registry import (
+from audio_studio.providers.enrollment_registry import (
     ExactEnrollmentProviderRegistry,
 )
-from audio_studio.infrastructure.speech_provider_registry import (
+from audio_studio.providers.speech_registry import (
     ExactSpeechProviderRegistry,
 )
 from audio_studio.infrastructure.postgres.text_preparation import (

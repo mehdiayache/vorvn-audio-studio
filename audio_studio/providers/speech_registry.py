@@ -2,17 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Protocol
-
 from audio_studio.domain import voice_routing
 from audio_studio.domain.speech import PreparedSpeech, SynthesizedSpeech
-
-
-class SpeechAdapter(Protocol):
-    def is_configured(self) -> bool: ...
-    def prepare(self, **values) -> PreparedSpeech: ...
-    def synthesize(self, prepared: PreparedSpeech,
-                   on_progress=None) -> SynthesizedSpeech: ...
+from audio_studio.providers.base import BaseTTSProvider
 
 
 class ExactSpeechProviderRegistry:
@@ -22,7 +14,7 @@ class ExactSpeechProviderRegistry:
     the registry never substitutes another provider, model, tier or engine.
     """
 
-    def __init__(self, adapters: dict[tuple[str, str], SpeechAdapter]):
+    def __init__(self, adapters: dict[tuple[str, str], BaseTTSProvider]):
         self._adapters = dict(adapters)
 
     def is_configured(self) -> bool:
@@ -58,7 +50,7 @@ class ExactSpeechProviderRegistry:
             str(route.get("adapter_key") or ""))
         return adapter.synthesize(prepared, on_progress=on_progress)
 
-    def _adapter(self, provider: str, adapter_key: str) -> SpeechAdapter:
+    def _adapter(self, provider: str, adapter_key: str) -> BaseTTSProvider:
         adapter = self._adapters.get((provider, adapter_key))
         if not adapter:
             raise ValueError(

@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from audio_studio.domain import speech_segments, speech_text
-from audio_studio.infrastructure.alibaba import audio_tts
+from audio_studio.providers.alibaba import audio_tts
 
 
 def options():

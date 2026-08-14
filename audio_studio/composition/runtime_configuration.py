@@ -6,7 +6,7 @@ from contextlib import contextmanager
 import os
 from typing import Iterator
 
-from audio_studio.infrastructure.alibaba.sdk_runtime import apply_credentials
+from audio_studio.providers.alibaba.sdk_runtime import apply_credentials
 from audio_studio.infrastructure.runtime_environment import (
     OWNED_KEYS,
     reload_owned_environment,

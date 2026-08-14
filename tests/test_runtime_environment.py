@@ -9,8 +9,8 @@ from unittest.mock import Mock
 
 from audio_studio import runtime
 from audio_studio.infrastructure import runtime_environment
-from audio_studio.infrastructure.alibaba import config as alibaba_config
-from audio_studio.infrastructure.alibaba import sdk_runtime
+from audio_studio.providers.alibaba import config as alibaba_config
+from audio_studio.providers.alibaba import sdk_runtime
 from audio_studio.infrastructure.settings_administration import EnvironmentSettings
 from audio_studio.composition.runtime_configuration import configured_api_environment
 from audio_studio import config

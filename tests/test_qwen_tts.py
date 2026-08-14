@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from audio_studio.infrastructure.alibaba import qwen_tts
+from audio_studio.providers.alibaba import qwen_tts
 
 
 class QwenTtsTests(unittest.TestCase):

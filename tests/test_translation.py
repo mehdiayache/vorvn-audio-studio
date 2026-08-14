@@ -19,9 +19,9 @@ from audio_studio.application.provider_operations import ProviderOperationServic
 from audio_studio.domain.jobs import Job, JobStatus
 from audio_studio.domain.text import ProviderText
 from audio_studio.http.routers.jobs import TranslationJobCreate
-from audio_studio.infrastructure.alibaba.translation import AlibabaTranslationProvider
+from audio_studio.providers.alibaba.translation import AlibabaTranslationProvider
 from audio_studio.infrastructure.postgres import transcripts as postgres_transcripts
-from audio_studio.infrastructure.alibaba import text as alibaba_text
+from audio_studio.providers.alibaba import text as alibaba_text
 from test_support import FakeProviderOperationsRepository
 
 

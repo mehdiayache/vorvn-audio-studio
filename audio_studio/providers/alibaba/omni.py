@@ -14,7 +14,7 @@ from typing import NamedTuple
 from openai import APIStatusError, OpenAI
 
 from audio_studio.domain import speech_fidelity, speech_segments, speech_text
-from audio_studio.infrastructure.alibaba import config
+from audio_studio.providers.alibaba import config
 from audio_studio.infrastructure import audio_codec
 
 

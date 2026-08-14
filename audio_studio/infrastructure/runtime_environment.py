@@ -40,5 +40,5 @@ def reload_owned_environment() -> None:
                 values[key] = value.strip().strip("\"'")
     for key, value in values.items():
         os.environ[key] = value
-    from audio_studio.infrastructure.alibaba.sdk_runtime import apply_credentials
+    from audio_studio.providers.alibaba.sdk_runtime import apply_credentials
     apply_credentials()

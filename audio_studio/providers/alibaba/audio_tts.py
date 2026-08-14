@@ -16,7 +16,7 @@ from audio_studio.domain import (
     speech_text,
 )
 from audio_studio.infrastructure import audio_codec
-from audio_studio.infrastructure.alibaba.sdk_runtime import apply_credentials
+from audio_studio.providers.alibaba.sdk_runtime import apply_credentials
 
 
 # A transport failure after opening a paid synthesis request is ambiguous.
