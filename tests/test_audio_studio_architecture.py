@@ -10,7 +10,7 @@ from audio_studio.http.routers.jobs import SpeechJobCreate, TranscriptionJobCrea
 from audio_studio.infrastructure.media_workspace import contained_file
 
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class AudioStudioArchitectureTests(unittest.TestCase):

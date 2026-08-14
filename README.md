@@ -17,5 +17,5 @@ Open <http://127.0.0.1:7860/audio-studio/>.
 
 ```bash
 pnpm check
-.venv/bin/python -m unittest discover
+.venv/bin/python -m unittest discover -s tests
 ```

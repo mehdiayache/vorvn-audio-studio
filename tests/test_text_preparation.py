@@ -16,7 +16,7 @@ from audio_studio.http.routers.jobs import TextJobCreate
 from test_support import FakeProviderOperationsRepository
 
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class FakeRepository:

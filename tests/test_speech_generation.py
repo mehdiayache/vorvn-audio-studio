@@ -24,7 +24,7 @@ from audio_studio.infrastructure.alibaba.qwen_tts import ChunkFailure
 from audio_studio.infrastructure.postgres.speech import SpeechRepository
 
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class FakeRepository:

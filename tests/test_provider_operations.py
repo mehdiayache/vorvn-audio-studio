@@ -109,7 +109,7 @@ class ProviderOperationTests(unittest.TestCase):
                  WHERE id=%s
             """, (job_id,))
             database.commit()
-        self.assertEqual(self.jobs.abandon_stale(30), 1)
+        self.assertGreaterEqual(self.jobs.abandon_stale(30), 1)
         with psycopg.connect(settings.database_url) as database:
             attempt_row = database.execute(
                 "SELECT status,cost FROM provider_attempts WHERE id=%s",

@@ -24,7 +24,7 @@ from audio_studio.infrastructure.postgres import transcripts as postgres_transcr
 from test_support import FakeProviderOperationsRepository
 
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class FakeProvider:

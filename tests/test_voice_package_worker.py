@@ -23,7 +23,7 @@ from audio_studio.infrastructure.enrollment_provider_registry import (
 from audio_studio.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
 
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def package_job(**changes):
