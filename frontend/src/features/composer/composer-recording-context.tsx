@@ -30,7 +30,7 @@ export function ComposerRecordingContext({ presentation }: { presentation: Compo
         <span><Mic2 /><b>{composer.selectedIdentity?.name || "Choose a Voice"}</b>{composer.selectedCastRole && <em>{composer.selectedCastRole.name}</em>}</span>
         <small>{composer.currentRoute ? `${composer.methodLabel} · ${composer.currentRoute.modelId}` : "Exact recording method required"}</small>
       </div>
-      <div className="composer-recording-facts"><span>{composer.language}</span><span>{composer.format.toUpperCase()}</span><span>{presentation === "inline" ? "Inline" : presentation === "stage" ? "Production" : "Speak"}</span></div>
+      <div className="composer-recording-facts"><span>{composer.language}</span><span>{composer.format.toUpperCase()}</span><span>{presentation === "mega" ? "Speak" : "Production"}</span></div>
       <span className="composer-recording-trigger">{open ? "Collapse" : incomplete ? "Complete setup" : "Edit setup"}<ChevronDown className={cn(open && "is-open")} /></span>
     </summary>
     <div className="composer-recording-content"><ComposerWho /></div>

@@ -9,6 +9,7 @@ export type SequenceActions = {
   move: (part: ProductionPart, direction: -1 | 1) => void
   moveToPosition: (part: ProductionPart) => void
   editSilence: (part: ProductionPart, seconds: number) => void
+  setEnabled?: (part: ProductionPart, enabled: boolean) => void
   openPart: (part: ProductionPart, tab?: PartDetailTab) => void
   recordPart?: (part: ProductionPart) => void
 }

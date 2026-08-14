@@ -14,7 +14,6 @@ vi.mock("@/hooks/use-production-actions", () => ({ useProductionActions: () => (
   movePart: vi.fn(), movePartToPosition: vi.fn(), editSilence: vi.fn(), moveParts: vi.fn(),
   toggleProduction: vi.fn(), setMusic: vi.fn(), exportMp3: vi.fn(), invalidatePreview: vi.fn(),
 }) }))
-vi.mock("@/features/production/production-selection-bar", () => ({ ProductionSelectionBar: () => null }))
 vi.mock("@/features/production/move-part-position-dialog", () => ({ MovePartPositionDialog: () => null }))
 vi.mock("@/features/production/cast-manager-sheet", () => ({
   CastManagerSheet: () => null,

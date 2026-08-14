@@ -169,7 +169,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   const destination = !productionId
     ? "Reusable recording"
     : part
-      ? part.kind === "draft" ? `Record draft · Part ${(part.position ?? 0) + 1}` : `Replace recording · Part ${(part.position ?? 0) + 1}`
+      ? `Record draft · Part ${(part.position ?? 0) + 1}`
       : insertAt === null ? `New speech · Part ${nextPartNumber}` : `New speech · before Part ${insertAt + 1}`
   const context = useMemo(() => compositionContext({ productionId, part, insertAt, insertBeforePartId }), [insertAt, insertBeforePartId, part, productionId])
   const baseline = useMemo(() => editorialBaseline(part), [part])

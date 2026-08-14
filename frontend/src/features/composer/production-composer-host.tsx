@@ -1,3 +1,4 @@
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { createPortal } from "react-dom"
 
@@ -18,6 +19,18 @@ export function ProductionComposerSession({ target, presentation, onExpand, onCl
   const composer = useComposerController({ ...props, visible: true })
   if (!target) return null
   return createPortal(<ControlledComposerSurface composer={composer} presentation={presentation} onExpand={onExpand} onClose={presentation === "inline" ? onClose : undefined} />, target)
+}
+
+export function ProductionComposerDialog({ title, description, onClose, ...composerProps }: ComposerSurfaceProps & { title: string; description: string; onClose: () => void }) {
+  return <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+    <DialogContent className="production-composer-dialog" showCloseButton={false}>
+      <DialogHeader className="sr-only">
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>{description} Closing this window does not cancel a running Job.</DialogDescription>
+      </DialogHeader>
+      <ComposerSurface {...composerProps} presentation="dialog" onClose={onClose} />
+    </DialogContent>
+  </Dialog>
 }
 
 export function MobileProductionComposerSheet({ title, description, onClose, ...composerProps }: ComposerSurfaceProps & { title: string; description: string; onClose: () => void }) {

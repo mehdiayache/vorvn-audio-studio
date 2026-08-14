@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react"
-import { AudioLines, Captions, ChevronDown, ChevronUp, CircleAlert, Copy, GripVertical, MoreHorizontal, Pause, Pencil, Play, Plus, Trash2 } from "lucide-react"
+import { AudioLines, Captions, ChevronDown, ChevronUp, CircleAlert, Copy, GripVertical, MoreHorizontal, Pause, Pencil, Play, Trash2 } from "lucide-react"
 
 import { AudioWaveform } from "@/components/audio-waveform"
 import type { SequenceActions } from "@/components/sequence-actions"
@@ -7,7 +7,6 @@ import { SpeechOperationLane } from "@/components/speech-operation-lane"
 import { speechPartCardFacts } from "@/components/speech-part-card-model"
 import { VoiceIdentity } from "@/components/voice-identity"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -43,18 +42,16 @@ function useRenderedScriptOverflow(text: string, expanded: boolean) {
   return { ref, overflowing }
 }
 
-export function SpeechPartCard({ part, job, captionJob, castRole, index, count, selected, playing, playingPreview = false, directory, onSelect, onRetryJob, onConfirmJob, onOpenCaptions, actions }: {
+export function SpeechPartCard({ part, job, captionJob, castRole, index, count, playing, playingPreview = false, directory, onRetryJob, onConfirmJob, onOpenCaptions, actions }: {
   part: ProductionPart
   job: DurableJob<GenerateResult> | null
   captionJob?: DurableJob<unknown> | null
   castRole?: ProductionCastRole
   index: number
   count: number
-  selected: boolean
   playing: boolean
   playingPreview?: boolean
   directory: VoiceDirectory
-  onSelect: (checked: boolean, shift: boolean) => void
   onRetryJob: () => void
   onConfirmJob: () => void
   onOpenCaptions?: () => void
@@ -74,12 +71,11 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
   const warning = facts.captionTone === "warning" || visibleAlerts.some((alert) => alert.tone === "warning")
   const danger = facts.captionTone === "danger" || visibleAlerts.some((alert) => alert.tone === "danger") || facts.operation.kind === "failed"
 
-  return <article id={`part-${part.id}`} style={castStyle} data-operation={operationTone || undefined} className={cn("sequence-card speech-part-card", `identity-tone-${identityTone}`, `input-${facts.inputLabel?.toLowerCase() || "unknown"}`, !facts.recorded && "draft", selected && "selected", playing && "playing", playingPreview && "playing-preview", warning && "has-warning", danger && "has-danger", part.missing && "missing", facts.castName && "has-cast", facts.operation.kind !== "idle" && "has-operation")}>
+  return <article id={`part-${part.id}`} style={castStyle} data-operation={operationTone || undefined} className={cn("sequence-card speech-part-card", `identity-tone-${identityTone}`, `input-${facts.inputLabel?.toLowerCase() || "unknown"}`, !facts.recorded && "draft", playing && "playing", playingPreview && "playing-preview", warning && "has-warning", danger && "has-danger", part.missing && "missing", facts.castName && "has-cast", facts.operation.kind !== "idle" && "has-operation")}>
     <span className="speech-part-identity-rail" aria-hidden="true" />
     <div className="speech-part-order">
       <div className="speech-part-number">
         <span>{String(index + 1).padStart(2, "0")}</span>
-        <Checkbox checked={selected} onClick={(event) => onSelect(!selected, event.shiftKey)} aria-label={`Select part ${index + 1}`} />
       </div>
       <Button className="speech-part-grip" variant="ghost" size="icon-sm" onClick={() => actions.moveToPosition(part)} aria-label={`Move part ${index + 1} to position`}><GripVertical /></Button>
       <div className="speech-part-move-controls" aria-label={`Move part ${index + 1}`}>
@@ -116,7 +112,6 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
           <Button variant="outline" size="sm" className="speech-part-edit" onClick={openPart} aria-label={`Edit part ${index + 1}`}><Pencil /> Edit</Button>
           <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Part actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={openPart}><Pencil />Open details</DropdownMenuItem>
-            {facts.recorded && <DropdownMenuItem onSelect={recordPart}><Plus />Replace recording</DropdownMenuItem>}
             <DropdownMenuItem onSelect={() => actions.duplicate(part)}><Copy />Duplicate</DropdownMenuItem>
             <DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}><Trash2 />Delete part</DropdownMenuItem>
           </DropdownMenuContent></DropdownMenu>

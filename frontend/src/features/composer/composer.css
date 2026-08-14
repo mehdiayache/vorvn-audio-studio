@@ -222,6 +222,10 @@
 .production-composer-stage .composer-stage { padding: var(--vrn-space-4) var(--vrn-space-5); }
 .production-composer-stage .composer-footer { min-height: 76px; padding-inline: var(--vrn-space-5); }
 
+.production-composer-dialog { width: min(1480px, calc(100vw - 48px)); max-width: 1480px; height: min(860px, calc(100dvh - 48px)); padding: 0; gap: 0; overflow: hidden; }
+.production-composer-dialog .composer-surface { min-height: 0; border: 0; border-radius: inherit; box-shadow: none; }
+.production-composer-dialog .composer-stage { padding: var(--vrn-space-4); }
+
 .speak-page .composer-surface { height: min(54rem, calc(100dvh - 14rem)); min-height: 38rem; }
 .speak-page .composer-surface.is-mega { height: min(50rem, calc(100dvh - 12rem)); }
 .speak-page .composer-surface.is-mega .composer-recording-context { border-radius: var(--vrn-radius-md); }

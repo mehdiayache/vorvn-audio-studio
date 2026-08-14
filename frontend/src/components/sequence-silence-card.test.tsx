@@ -12,7 +12,7 @@ describe("Sequence Silence Part", () => {
   it("exposes the type-correct Part Workbench directly", () => {
     const part = { id: 7, kind: "silence", title: "1.4", duration_ms: 1400 } as ProductionPart
     const actions = { openPart: vi.fn(), editSilence: vi.fn() } as unknown as SequenceActions
-    render(<SequenceSilenceCard part={part} index={6} count={7} selected={false} onSelect={vi.fn()} actions={actions} />)
+    render(<SequenceSilenceCard part={part} index={6} count={7} actions={actions} />)
 
     fireEvent.click(screen.getByRole("button", { name: "Open details for silence 7" }))
     expect(actions.openPart).toHaveBeenCalledWith(part)

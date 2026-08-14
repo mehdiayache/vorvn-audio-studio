@@ -13,7 +13,7 @@ import { ComposerWords } from "./composer-words"
 
 import "./composer.css"
 
-export type ComposerPresentation = "inline" | "stage" | "mega"
+export type ComposerPresentation = "inline" | "stage" | "mega" | "dialog"
 
 export function ControlledComposerSurface({ composer, presentation = "mega", onExpand, onClose }: {
   composer: ComposerController
@@ -22,6 +22,7 @@ export function ControlledComposerSurface({ composer, presentation = "mega", onE
   onClose?: () => void
 }) {
   const standalone = presentation === "mega"
+  const workstation = standalone || presentation === "dialog"
   return <ComposerProvider value={composer}>
     <div className={cn("speech-composer composer-surface", `is-${presentation}`)}>
       <header className="composer-context-bar">
@@ -31,7 +32,7 @@ export function ControlledComposerSurface({ composer, presentation = "mega", onE
           {onClose && <Button variant="ghost" size="icon-sm" aria-label="Close Composer" onClick={onClose}><X /></Button>}
         </div>
       </header>
-      {standalone ? <div className="composer-stage composer-mega-stage">
+      {workstation ? <div className="composer-stage composer-mega-stage">
         <div className="composer-mega-primary">
           <ComposerRecordingContext presentation={presentation} />
           <ComposerWords />

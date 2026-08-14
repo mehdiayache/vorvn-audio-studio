@@ -1,14 +1,13 @@
 import { MobilePartInspectorSheet } from "@/features/production/inspector/part-inspector"
 import { ProductionToolDialog, type ToolKind } from "@/components/production-tools"
-import { MobileProductionComposerSheet } from "@/features/composer/production-composer-host"
+import { ProductionComposerDialog } from "@/features/composer/production-composer-host"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import type { DurableJob, GeneratePayload, GenerateResult, HierarchyNode, PlayerSource, ProductionCastRole, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, PlayerSource, ProductionCastRole, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
 
 export type ConfirmAction = { title: string; description: string; action: () => void }
 
-export default function ProductionOverlays({ tool, productionId, nextPartNumber, insertAt, insertBeforePartId, composerPart, replacingAssetId, initialMusicAssetId, config, directory, cast, assets, assetCollectionIds, playingKey, playerPlaying, activeDetail, moveOpen, selectedCount, moveTargets, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertAsset, onSetMusic, onUploadAsset, onPlay, onCloseDetail, onDetailChanged, onDuplicate, onDeleteDetail, onRecordPart, onMoveOpen, onMoveSelected, onConfirmAction }: {
+export default function ProductionOverlays({ tool, productionId, nextPartNumber, insertAt, insertBeforePartId, composerPart, replacingAssetId, initialMusicAssetId, config, directory, cast, assets, assetCollectionIds, playingKey, playerPlaying, activeDetail, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertAsset, onSetMusic, onUploadAsset, onPlay, onCloseDetail, onDetailChanged, onDuplicate, onDeleteDetail, onRecordPart, onConfirmAction }: {
   tool: ToolKind
   productionId: number
   nextPartNumber: number
@@ -25,9 +24,6 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
   playingKey?: string
   playerPlaying: boolean
   activeDetail: ProductionPart | null
-  moveOpen: boolean
-  selectedCount: number
-  moveTargets: HierarchyNode[]
   confirmAction: ConfirmAction | null
   onCloseTool: () => void
   onSaveDraft: (payload: Omit<GeneratePayload, "confirmed">) => Promise<void>
@@ -43,14 +39,12 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
   onDuplicate: (part: ProductionPart) => void
   onDeleteDetail: (part: ProductionPart) => void
   onRecordPart: (part: ProductionPart) => void
-  onMoveOpen: (open: boolean) => void
-  onMoveSelected: (targetId: number, targetName: string) => void
   onConfirmAction: (action: ConfirmAction | null) => void
 }) {
   return <>
-    {tool === "speech" && <MobileProductionComposerSheet
-      title={composerPart ? composerPart.kind === "draft" ? `Record draft · Part ${(composerPart.position ?? 0) + 1}` : `Replace recording · Part ${(composerPart.position ?? 0) + 1}` : "Add speech"}
-      description={composerPart?.kind === "draft" ? "Turn this saved script into its first recording." : composerPart ? "Generate a new result and replace this Part’s active recording." : insertBeforePartId ? "Insert at the selected Sequence position." : `Add as Part ${nextPartNumber}.`}
+    {tool === "speech" && <ProductionComposerDialog
+      title={composerPart ? `Record draft · Part ${(composerPart.position ?? 0) + 1}` : "Add speech"}
+      description={composerPart ? "Turn this saved script into its first recording." : insertBeforePartId ? "Insert at the selected Sequence position." : `Add as Part ${nextPartNumber}.`}
       productionId={productionId}
       nextPartNumber={nextPartNumber}
       insertAt={insertAt}
@@ -69,7 +63,6 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
     />}
     <ProductionToolDialog open={tool === "speech" ? null : tool} nextPartNumber={nextPartNumber} beforePartId={insertBeforePartId} replacingAssetId={replacingAssetId} initialMusicAssetId={initialMusicAssetId} assets={assets} assetCollectionIds={assetCollectionIds} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseTool} onAddSilence={onAddSilence} onInsertAsset={onInsertAsset} onSetMusic={onSetMusic} onUploadAsset={onUploadAsset} onPlay={onPlay} />
     <MobilePartInspectorSheet productionId={productionId} part={activeDetail} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseDetail} onPlay={onPlay} onChanged={onDetailChanged} onDuplicate={onDuplicate} onDelete={onDeleteDetail} onRecordPart={onRecordPart} />
-    <Sheet open={moveOpen} onOpenChange={onMoveOpen}><SheetContent className="move-sheet"><SheetHeader><SheetTitle>Move {selectedCount} selected part{selectedCount === 1 ? "" : "s"}</SheetTitle><SheetDescription>Choose another Production. The order inside this Production closes up automatically.</SheetDescription></SheetHeader><div className="move-targets">{moveTargets.map((node) => <Button key={node.id} variant="outline" onClick={() => onMoveSelected(node.id, node.name)}><span>{node.name.slice(0, 1).toUpperCase()}</span><b>{node.name}</b></Button>)}</div></SheetContent></Sheet>
     <Dialog open={Boolean(confirmAction)} onOpenChange={(open) => { if (!open) onConfirmAction(null) }}><DialogContent><DialogHeader><DialogTitle>{confirmAction?.title}</DialogTitle><DialogDescription>{confirmAction?.description}</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => onConfirmAction(null)}>Cancel</Button><Button variant="destructive" onClick={() => { const action = confirmAction?.action; onConfirmAction(null); action?.() }}>Delete</Button></DialogFooter></DialogContent></Dialog>
   </>
 }
