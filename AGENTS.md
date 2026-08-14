@@ -40,3 +40,42 @@ Follow these strict rules on every file, function, and architecture you generate
 - Write clean, type-hinted, self-documenting Python (FastAPI/Pydantic) and TypeScript (React/Vite).
 - Keep dependencies minimal and standard. Do not introduce bloated NPM/Pip packages when built-in Web APIs or standard libraries suffice.
 - Refactor existing dead code before writing new layers. Always delete unused endpoints, variables, and abandoned files.
+
+---
+
+## 6. PRODUCT DESIGN DIRECTIVE — CREATOR-FIRST AUDIO SOFTWARE
+
+For every Audio Studio UI/UX task, use the installed
+`$audio-studio-product-design` skill.
+
+- The current UI is functional documentation, never the design reference.
+- Preserve capabilities, data, states, API contracts, and backend truth. Freely
+  replace the current information architecture, navigation, layouts, component
+  hierarchy, and styling when a better operator experience requires it.
+- Before frontend changes, run and explore the real application, map the
+  operator's jobs and affected states, and propose three structurally different
+  architectures for a major redesign. Implement only the approved direction.
+- Build a professional creative audio workspace: dominant creative content,
+  thin chrome, contextual controls, temporary inspectors, command palette,
+  direct manipulation, progressive disclosure, predictable global playback,
+  and low pointer travel.
+- Never default to a SaaS dashboard, permanent sidebar, card grid, nested card
+  soup, one-control-per-line forms, grey slabs, black primary buttons, excessive
+  pills, borders, radii, badges, shadows, gradients, glass, or decoration.
+- Use restrained purple as the functional accent for primary action, active
+  selection, generation, focus, playhead, and track identity. Semantic success,
+  warning, and failure colors remain distinct.
+- Use Tailwind CSS 4.x and start the new token language from shadcn preset
+  `b6FUDGQoi`. Query the shadcn MCP before recreating a generic primitive.
+- Use local shadcn/ui plus Base UI/Radix for behavior, Lucide for icons, Motion
+  only for purposeful transitions, and wavesurfer.js for genuinely interactive
+  waveform/timeline work. Do not add another general UI kit.
+- Retire VORVN UI imports and tokens as redesigned surfaces replace them. Never
+  use VORVN as the new visual reference.
+- Production Composer must become a wide, spatial creative modal with coherent
+  script, voice/method, performance, output, cost, state, and primary action.
+- Production Timing must become a full-width horizontal bottom workspace that
+  expands into a serious timeline editor and collapses without losing context.
+- The rendered application is authoritative. Inspect and operate every major
+  screen at realistic desktop widths, including loading, empty, selected,
+  playing, generating, disabled, warning, failure, and error states.
