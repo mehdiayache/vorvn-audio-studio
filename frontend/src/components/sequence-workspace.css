@@ -95,6 +95,10 @@
 }
 .sequence-row.is-stage-active .sequence-row-node { color: var(--primary-foreground); border-color: var(--primary); background: var(--primary); box-shadow: 0 0 0 3px var(--surface-subtle); }
 .sequence-row.is-preview-playing .sequence-row-node { color: var(--vrn-info-solid); border-color: var(--vrn-info-border); background: var(--vrn-info-soft); }
+.sequence-row.is-disabled { background: color-mix(in oklab, var(--muted) 42%, var(--surface-raised)); }
+.sequence-row.is-disabled .sequence-card,
+.sequence-row.is-disabled .sequence-silence-card { opacity: .58; }
+.sequence-row.is-disabled .sequence-row-node { color: var(--muted-foreground); border-color: var(--border); background: var(--muted); }
 .sequence-row-node.asset { color: var(--asset); border-color: color-mix(in oklab, var(--asset) 38%, var(--border)); background: var(--asset-soft); }
 .sequence-row-node.draft { color: var(--warning); border-color: color-mix(in oklab, var(--warning) 38%, var(--border)); background: var(--warning-soft); }
 .sequence-row-node.issue { color: var(--destructive); border-color: var(--danger-border); background: var(--danger-soft); }
@@ -138,8 +142,9 @@
 .sequence-card-heading { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sequence-card .voice-copy b, .sequence-asset-identity b { font-size: var(--type-body); }
 .sequence-card .voice-copy small, .sequence-asset-identity small { margin-top: 2px; color: var(--muted-foreground); font-size: var(--type-small); }
-.sequence-card-status { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; }
+.sequence-card-status { flex: 0 0 auto; display: flex; align-items: flex-end; flex-direction: column; gap: 2px; }
 .sequence-card-status > b { color: var(--muted-foreground); font-size: var(--type-small); font-variant-numeric: tabular-nums; }
+.sequence-card-status > small { color: var(--foreground); font-size: var(--vrn-type-metadata-size); font-weight: var(--vrn-weight-label); }
 .sequence-card-meta { display: flex; align-items: center; gap: var(--vrn-space-2); flex-wrap: wrap; margin-top: var(--vrn-space-1); }
 .sequence-card-meta span { display: inline-flex; align-items: center; gap: var(--vrn-space-1); color: var(--muted-foreground); font-size: var(--vrn-type-metadata-size); line-height: var(--vrn-type-metadata-line); }
 .sequence-card-meta svg { width: 13px; }

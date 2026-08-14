@@ -58,6 +58,7 @@ export type ProductionPart = {
   public_id?: string
   created_at: string
   position: number | null
+  enabled?: boolean
   kind: "audio" | "speech" | "draft" | "silence" | "asset" | "stitch" | string
   title?: string | null
   text: string

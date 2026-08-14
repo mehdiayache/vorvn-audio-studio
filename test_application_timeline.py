@@ -14,6 +14,7 @@ class Records:
         self.replaced_assets = []
         self.duplicated = []
         self.music_values = []
+        self.enabled_values = []
         self.allow_asset = True
         self.duplicate_id = 8
 
@@ -34,6 +35,10 @@ class Records:
 
     @staticmethod
     def reorder(_production_id, _order):
+        return True
+
+    def set_enabled(self, production_id, part_id, enabled):
+        self.enabled_values.append((production_id, part_id, enabled))
         return True
 
     def create_part(self, production_id, values, insert_at=None,
@@ -137,6 +142,14 @@ class TimelineServiceTests(unittest.TestCase):
                          ("silence", 120_000, 3))
         self.assertIsNone(before_part_id)
         self.assertEqual(values["cost_basis"], "not billed")
+
+    def test_part_inclusion_is_durable_without_deleting_the_part(self):
+        self.assertEqual(
+            self.service.set_enabled(6, 7, False),
+            {"ok": True, "enabled": False},
+        )
+        self.assertEqual(self.records.enabled_values, [(6, 7, False)])
+        self.assertIn(7, self.records.parts)
 
     def test_draft_preserves_composer_settings_without_provider_work(self):
         self.service.add_draft(6, {

@@ -15,6 +15,16 @@ const production = {
 } as unknown as Production
 
 describe("MixExportWorkspace", () => {
+  it("excludes disabled Parts from readiness and output duration", () => {
+    const readiness = productionMixReadiness({ ...production, parts: [
+      production.parts[0]!,
+      { ...production.parts[0]!, id: 3, kind: "draft", enabled: false, selected_take_id: null },
+    ] })
+    expect(readiness.ready).toBe(true)
+    expect(readiness.sequence.map((part) => part.id)).toEqual([12])
+    expect(readiness.issues).toEqual([])
+  })
+
   it("shows the current mix, recorded Parts and canonical Export history", () => {
     render(<MixExportWorkspace production={production} music={{}} previewing={false} productionPlaying={false} previewReady previewStale={false} exportJob={null} onPreview={vi.fn()} onExport={vi.fn()} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting={false} />)
     expect(screen.getByText("1 of 1 recorded")).toBeTruthy()

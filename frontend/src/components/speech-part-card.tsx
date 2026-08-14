@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react"
-import { AudioLines, Captions, ChevronDown, ChevronUp, CircleAlert, Copy, GripVertical, MoreHorizontal, Pause, Pencil, Play, Trash2 } from "lucide-react"
+import { AudioLines, Captions, ChevronDown, ChevronUp, CircleAlert, Copy, GripVertical, MoreHorizontal, Pause, Pencil, Play, Trash2, Volume2, VolumeX } from "lucide-react"
 
 import { AudioWaveform } from "@/components/audio-waveform"
 import type { SequenceActions } from "@/components/sequence-actions"
@@ -70,8 +70,9 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
   const operationTone = facts.operation.kind === "idle" ? null : facts.operation.kind
   const warning = facts.captionTone === "warning" || visibleAlerts.some((alert) => alert.tone === "warning")
   const danger = facts.captionTone === "danger" || visibleAlerts.some((alert) => alert.tone === "danger") || facts.operation.kind === "failed"
+  const enabled = part.enabled !== false
 
-  return <article id={`part-${part.id}`} style={castStyle} data-operation={operationTone || undefined} className={cn("sequence-card speech-part-card", `identity-tone-${identityTone}`, `input-${facts.inputLabel?.toLowerCase() || "unknown"}`, !facts.recorded && "draft", playing && "playing", playingPreview && "playing-preview", warning && "has-warning", danger && "has-danger", part.missing && "missing", facts.castName && "has-cast", facts.operation.kind !== "idle" && "has-operation")}>
+  return <article id={`part-${part.id}`} style={castStyle} data-operation={operationTone || undefined} className={cn("sequence-card speech-part-card", `identity-tone-${identityTone}`, `input-${facts.inputLabel?.toLowerCase() || "unknown"}`, !facts.recorded && "draft", !enabled && "is-disabled", playing && "playing", playingPreview && "playing-preview", warning && "has-warning", danger && "has-danger", part.missing && "missing", facts.castName && "has-cast", facts.operation.kind !== "idle" && "has-operation")}>
     <span className="speech-part-identity-rail" aria-hidden="true" />
     <div className="speech-part-order">
       <div className="speech-part-number">
@@ -103,12 +104,14 @@ export function SpeechPartCard({ part, job, captionJob, castRole, index, count, 
     <div className="speech-part-body">
       <header className="speech-part-main-header">
         <div className="speech-part-main-state">
+          {!enabled && <span className="speech-part-output-off"><VolumeX /> Excluded from output</span>}
           {playingPreview && <span className="speech-part-preview-playing"><AudioLines /> Playing in Production preview</span>}
           {visibleAlerts.length > 0 && <div className="speech-part-alerts" aria-label="Part states">
             {visibleAlerts.map((alert) => <span key={alert.key} className={`speech-part-alert is-${alert.tone}`}><CircleAlert />{alert.label}</span>)}
           </div>}
         </div>
         <div className="speech-part-top-actions">
+          <Tooltip><TooltipTrigger asChild><Button variant={enabled ? "ghost" : "secondary"} size="icon" onClick={() => actions.setEnabled?.(part, !enabled)} aria-label={enabled ? `Exclude part ${index + 1} from output` : `Include part ${index + 1} in output`}>{enabled ? <Volume2 /> : <VolumeX />}</Button></TooltipTrigger><TooltipContent>{enabled ? "Exclude from preview and export" : "Include in preview and export"}</TooltipContent></Tooltip>
           <Button variant="outline" size="sm" className="speech-part-edit" onClick={openPart} aria-label={`Edit part ${index + 1}`}><Pencil /> Edit</Button>
           <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Part actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={openPart}><Pencil />Open details</DropdownMenuItem>

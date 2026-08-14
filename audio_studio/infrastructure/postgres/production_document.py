@@ -46,7 +46,8 @@ class ProductionDocumentRepository:
         cursor.execute("""
             SELECT id, public_id, production_id, position, kind, script, title,
                    cast_role_id, editorial_status, revision, selected_take_id,
-                   asset_id, asset_version_id, duration_ms, created_at, updated_at
+                   asset_id, asset_version_id, duration_ms, created_at, updated_at,
+                   enabled
               FROM production_parts
              WHERE id = %s AND production_id = %s AND archived_at IS NULL
         """ + (" FOR UPDATE" if lock else ""), (part_id, production_id))
@@ -140,6 +141,7 @@ class ProductionDocumentRepository:
             "selected_take_id": row[10], "asset_id": row[11],
             "asset_version_id": row[12], "duration_ms": row[13],
             "created_at": row[14], "updated_at": row[15],
+            "enabled": bool(row[16]),
             "filename": take[0] if take else "",
             "voice": (take[1] or (take[3] or {}).get("voice")) if take else "",
             "voice_name": (take[4] or (take[3] or {}).get("voice_name")) if take else "",
@@ -196,7 +198,7 @@ class ProductionDocumentRepository:
                        caption_job.created_at, caption_job.started_at,
                        caption_job.finished_at, caption_job.payload,
                        caption_job.result, take.capability_name_snapshot,
-                       captions.source_language
+                       captions.source_language, part.enabled
                   FROM production_parts part
                   LEFT JOIN production_cast_roles role ON role.id = part.cast_role_id
                   LEFT JOIN composition_drafts draft ON draft.part_id = part.id
@@ -355,6 +357,7 @@ class ProductionDocumentRepository:
                 "subtitled": bool(row[36]), "subtitles_stale": bool(row[37]),
                 "languages": sorted(set(row[38] or [])),
                 "caption_source_language": row[83],
+                "enabled": bool(row[84]),
             }
             if row[41]:
                 request = {
@@ -609,6 +612,17 @@ class ProductionDocumentRepository:
                 cursor.execute("UPDATE production_parts SET position=%s, updated_at=now() WHERE id=%s",
                                (position, part_id))
             return True
+
+    def set_enabled(
+        self, production_id: int, part_id: int, enabled: bool,
+    ) -> bool:
+        with transaction() as cursor:
+            cursor.execute("""
+                UPDATE production_parts
+                   SET enabled=%s, updated_at=now()
+                 WHERE id=%s AND production_id=%s AND archived_at IS NULL
+            """, (bool(enabled), part_id, production_id))
+            return cursor.rowcount == 1
 
     def save_script(self, production_id: int, part_id: int, script: str,
                     values: dict[str, Any] | None = None) -> bool:

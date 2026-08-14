@@ -33,6 +33,11 @@ class SilenceBody(BaseModel):
     before_part_id: str | None = None
 
 
+class EnabledBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool
+
+
 class AssetBody(BaseModel):
     asset_id: int = Field(gt=0)
     insert_at: int | None = None
@@ -135,6 +140,16 @@ def update_music(production_id: int, payload: MusicBody) -> dict:
 def reorder_parts(production_id: int, payload: OrderBody) -> dict:
     return _run(lambda: {
         "ok": timeline_service.reorder(production_id, payload.order)})
+
+
+@router.patch("/parts/{part_id}/enabled",
+              operation_id="updateProductionPartEnabled",
+              response_model=OkEnvelope)
+def update_part_enabled(
+    production_id: int, part_id: int, payload: EnabledBody,
+) -> dict:
+    return _run(lambda: timeline_service.set_enabled(
+        production_id, part_id, payload.enabled))
 
 
 @router.post("/parts/silence", operation_id="addProductionSilence",

@@ -33,6 +33,11 @@ class PostgresTimelineRecords:
     def reorder(self, production_id: int, order: list[int]) -> bool:
         return self.documents.reorder(production_id, order)
 
+    def set_enabled(
+        self, production_id: int, part_id: int, enabled: bool,
+    ) -> bool:
+        return self.documents.set_enabled(production_id, part_id, enabled)
+
     def create_part(
         self, production_id: int, values: dict,
         insert_at: int | None = None,

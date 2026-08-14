@@ -253,6 +253,8 @@ export const studioApi = {
     }) }).then((response) => response.data),
   editSilence: (productionId: number, id: number, seconds: number) =>
     request<TimelinePartEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/silence`, { method: "PATCH", body: JSON.stringify({ seconds }) }).then((response) => response.data),
+  setPartEnabled: (productionId: number, id: number, enabled: boolean) =>
+    request<{ data: { ok: boolean } }>(`/api/v1/productions/${productionId}/parts/${id}/enabled`, { method: "PATCH", body: JSON.stringify({ enabled }) }).then((response) => response.data),
   duplicatePart: (productionId: number, id: number) => request<TimelinePartEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/duplicate`, { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
   deletePart: (productionId: number, id: number) =>
     request<TimelineDeleteEnvelope>(`/api/v1/productions/${productionId}/parts`, { method: "DELETE", body: JSON.stringify({ ids: [id] }) }).then((response) => response.data),

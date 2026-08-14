@@ -18,6 +18,13 @@ function part(values: Partial<ProductionPart>): ProductionPart {
 }
 
 describe("productionHealth", () => {
+  it("does not block release for Parts explicitly excluded from output", () => {
+    expect(productionHealth([
+      part({ id: 9, kind: "draft", enabled: false }),
+      part({ id: 10, kind: "speech", missing: true, enabled: false }),
+    ])).toEqual([])
+  })
+
   it("derives editorial, media and durable operation issues from server Parts", () => {
     const issues = productionHealth([
       part({ id: 1, selected_take_id: null }),

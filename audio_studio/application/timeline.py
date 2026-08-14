@@ -11,6 +11,9 @@ class TimelineRecords(Protocol):
     def music(self, production_id: int) -> dict: ...
     def set_music(self, production_id: int, values: dict) -> bool: ...
     def reorder(self, production_id: int, order: list[int]) -> bool: ...
+    def set_enabled(
+        self, production_id: int, part_id: int, enabled: bool,
+    ) -> bool: ...
     def create_part(
         self, production_id: int, values: dict,
         insert_at: int | None = None,
@@ -107,6 +110,15 @@ class TimelineService:
         self._production(production_id)
         return self.records.reorder(
             production_id, [int(item) for item in order])
+
+    def set_enabled(
+        self, production_id: int, part_id: int, enabled: bool,
+    ) -> dict[str, Any]:
+        self._part(production_id, part_id)
+        if not self.records.set_enabled(
+                production_id, part_id, bool(enabled)):
+            raise TimelineError("The Part inclusion state could not be saved.")
+        return {"ok": True, "enabled": bool(enabled)}
 
     def add_silence(
         self, production_id: int, seconds: float, insert_at: int | None,

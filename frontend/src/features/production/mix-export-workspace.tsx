@@ -12,7 +12,7 @@ type ExportResult = { url?: string; name?: string; error?: string }
 export type MixReadinessIssue = { part: ProductionPart; number: number; title: string; detail: string; blocking: boolean }
 
 export function productionMixReadiness(production: Production) {
-  const sequence = production.parts.filter((part) => part.kind !== "stitch")
+  const sequence = production.parts.filter((part) => part.kind !== "stitch" && part.enabled !== false)
   const issues = sequence.flatMap<MixReadinessIssue>((part, index) => {
     const found: MixReadinessIssue[] = []
     if (part.kind === "draft" || (part.kind === "speech" && !part.selected_take_id)) found.push({ part, number: index + 1, title: "Speech not recorded", detail: "Record this Speech Part before export.", blocking: true })

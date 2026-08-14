@@ -32,7 +32,7 @@ export function SequenceWorkspace({ parts, cast, liveJobs, visiblePartIds, filte
   actions: SequenceActions
 }) {
   const sourceParts = parts.filter((part) => part.kind !== "stitch")
-  const totalDuration = sourceParts.reduce((sum, part) => sum + partDurationMs(part), 0) / 1000
+  const totalDuration = sourceParts.filter((part) => part.enabled !== false).reduce((sum, part) => sum + partDurationMs(part), 0) / 1000
   const totalSpend = sourceParts.reduce((sum, part) => sum + Number(part.spent || 0), 0)
   const visibleParts = visiblePartIds ? sourceParts.filter((part) => visiblePartIds.has(part.id)) : sourceParts
   if (!sourceParts.length) return <section className="sequence-workspace" aria-label="Production sequence"><EmptySequence onAdd={() => onInsert("speech", null)} /></section>
@@ -46,7 +46,7 @@ export function SequenceWorkspace({ parts, cast, liveJobs, visiblePartIds, filte
       {visibleParts.map((part) => {
         const index = sourceParts.findIndex((item) => item.id === part.id)
         return <Fragment key={part.id}>
-        <div className={cn("sequence-row", part.kind === "silence" && "silence", !["silence", "asset"].includes(part.kind) && "speech", activePartId === part.id && "is-stage-active", playerPlaying && previewPlayingPartId === part.id && "is-preview-playing")} data-stage-active={activePartId === part.id || undefined} data-preview-playing={playerPlaying && previewPlayingPartId === part.id || undefined} role="listitem" aria-posinset={index + 1} aria-setsize={sourceParts.length}>
+        <div className={cn("sequence-row", part.kind === "silence" && "silence", !["silence", "asset"].includes(part.kind) && "speech", part.enabled === false && "is-disabled", activePartId === part.id && "is-stage-active", playerPlaying && previewPlayingPartId === part.id && "is-preview-playing")} data-stage-active={activePartId === part.id || undefined} data-preview-playing={playerPlaying && previewPlayingPartId === part.id || undefined} role="listitem" aria-posinset={index + 1} aria-setsize={sourceParts.length}>
           <div className="sequence-node-column"><span className={cn("sequence-row-node", part.kind === "asset" && "asset", part.kind === "draft" && "draft", part.missing && "issue")}>{part.kind === "silence" ? "" : String(index + 1).padStart(2, "0")}</span></div>
           {part.kind === "silence"
             ? <SequenceSilenceCard part={part} index={index} count={sourceParts.length} actions={actions} />

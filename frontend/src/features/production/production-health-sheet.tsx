@@ -9,7 +9,7 @@ import type { ProductionPart } from "@/types/domain"
 export type ProductionHealthIssue = { part: ProductionPart; title: string; detail: string; severity: "blocking" | "review" }
 
 export function productionHealth(parts: ProductionPart[]) {
-  return parts.filter((part) => part.kind !== "stitch").flatMap<ProductionHealthIssue>((part) => {
+  return parts.filter((part) => part.kind !== "stitch" && part.enabled !== false).flatMap<ProductionHealthIssue>((part) => {
     const issues: ProductionHealthIssue[] = []
     if (part.kind === "draft" || (part.kind === "speech" && !part.selected_take_id)) issues.push({ part, title: "Speech not recorded", detail: "This Part has no active recording.", severity: "blocking" })
     if (part.missing) issues.push({ part, title: "Missing media", detail: "The selected source file is unavailable.", severity: "blocking" })

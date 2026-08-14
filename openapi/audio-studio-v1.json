@@ -1749,6 +1749,20 @@
         "title": "EditorialBody",
         "type": "object"
       },
+      "EnabledBody": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "EnabledBody",
+        "type": "object"
+      },
       "EnrollmentSelection": {
         "additionalProperties": false,
         "properties": {
@@ -12354,6 +12368,67 @@
           }
         },
         "summary": "Update Part Editorial",
+        "tags": [
+          "timeline"
+        ]
+      }
+    },
+    "/api/v1/productions/{production_id}/parts/{part_id}/enabled": {
+      "patch": {
+        "operationId": "updateProductionPartEnabled",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "part_id",
+            "required": true,
+            "schema": {
+              "title": "Part Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Part Enabled",
         "tags": [
           "timeline"
         ]

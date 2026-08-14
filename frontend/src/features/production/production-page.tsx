@@ -74,6 +74,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const mobile = useMediaQuery("(max-width: 48rem)")
   const player = useGlobalPlayer()
   const sourceParts = useMemo(() => production.parts.filter((part) => part.kind !== "stitch"), [production.parts])
+  const activeSourceParts = useMemo(() => sourceParts.filter((part) => part.enabled !== false), [sourceParts])
   const captionTrackCache = useRef(new Map<string, Promise<PlayerCaptionTrack[]>>())
   useEffect(() => { captionTrackCache.current.clear() }, [production.id, production.parts])
   const preparePlayerSource = useCallback(async (source: PlayerSource): Promise<PlayerSource> => {
@@ -82,7 +83,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     let load: (() => Promise<PlayerCaptionTrack[]>) | null = null
     if (source.kind === "production") {
       cacheKey = `production:${production.id}`
-      load = () => loadProductionCaptionTracks(production.id, sourceParts)
+      load = () => loadProductionCaptionTracks(production.id, activeSourceParts)
     } else if (source.kind === "take" && source.key.startsWith("part:")) {
       const part = sourceParts.find((item) => item.id === Number(source.key.slice(5)))
       if (part) {
@@ -100,7 +101,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       captionTrackCache.current.delete(cacheKey)
       return source
     }
-  }, [production.id, sourceParts])
+  }, [activeSourceParts, production.id, sourceParts])
   const playSource = useCallback(async (source: PlayerSource) => {
     await player.toggleSource(await preparePlayerSource(source))
   }, [player, preparePlayerSource])
@@ -132,7 +133,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     })
   }, [actions, closeTool, composerPart, refresh])
 
-  const duration = useMemo(() => sourceParts.reduce((total, part) => total + partDurationMs(part), 0) / 1000, [sourceParts])
+  const duration = useMemo(() => activeSourceParts.reduce((total, part) => total + partDurationMs(part), 0) / 1000, [activeSourceParts])
   const activeDetail = activeStage?.mode === "part" ? production.parts.find((part) => part.id === activeStage.part.id) || activeStage.part : null
   const detailTab = activeStage?.mode === "part" ? activeStage.tab : "script"
   const castOpen = activeStage?.mode === "cast"
@@ -229,12 +230,12 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     if (!actions.productionPlaying) return null
     const position = player.currentTime * 1000
     let elapsed = 0
-    for (const part of sourceParts) {
+    for (const part of activeSourceParts) {
       elapsed += partDurationMs(part)
       if (position < elapsed) return part.id
     }
-    return sourceParts.at(-1)?.id || null
-  }, [actions.productionPlaying, player.currentTime, sourceParts])
+    return activeSourceParts.at(-1)?.id || null
+  }, [actions.productionPlaying, activeSourceParts, player.currentTime])
   const closeStage = useCallback(() => {
     setActiveStage(null)
     const origin = stageOrigin.current
@@ -272,6 +273,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     move: actions.movePart,
     moveToPosition: setMovePositionPart,
     editSilence: (part, seconds) => void actions.editSilence(part, seconds),
+    setEnabled: (part, enabled) => void actions.setPartEnabled(part, enabled),
     openPart,
     recordPart: openRecordingComposer,
   }), [actions, openPart, openRecordingComposer, playSource])

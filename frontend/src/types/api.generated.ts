@@ -636,6 +636,23 @@ export interface paths {
         patch: operations["updateProductionPartEditorial"];
         trace?: never;
     };
+    "/api/v1/productions/{production_id}/parts/{part_id}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Part Enabled */
+        patch: operations["updateProductionPartEnabled"];
+        trace?: never;
+    };
     "/api/v1/productions/{production_id}/parts/{part_id}/silence": {
         parameters: {
             query?: never;
@@ -2054,6 +2071,11 @@ export interface components {
             expected_revision: number;
             /** Script */
             script?: string | null;
+        };
+        /** EnabledBody */
+        EnabledBody: {
+            /** Enabled */
+            enabled: boolean;
         };
         /** EnrollmentSelection */
         EnrollmentSelection: {
@@ -6191,6 +6213,42 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["EditorialBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateProductionPartEnabled: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: number;
+                part_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnabledBody"];
             };
         };
         responses: {

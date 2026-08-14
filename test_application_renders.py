@@ -90,6 +90,18 @@ class RenderServiceTests(unittest.TestCase):
         self.assertEqual(result["skipped_drafts"], 1)
         self.assertEqual([part["id"] for part in workspace.previews[0][1]], [7])
 
+    def test_preview_and_export_exclude_disabled_parts_and_drafts(self):
+        records = FakeRecords([
+            dict(PART), {**PART, "id": 8, "enabled": False},
+            {**PART, "id": 9, "kind": "draft", "enabled": False},
+        ])
+        workspace = FakeWorkspace()
+        RenderService(records, workspace).preview(6)
+        self.assertEqual([part["id"] for part in workspace.previews[0][1]], [7])
+        self.assertEqual(workspace.previews[0][3], 0)
+        RenderService(records, workspace).export(6)
+        self.assertEqual(workspace.finished[0].part_count, 1)
+
     def test_export_rejects_drafts_and_missing_audio_before_finishing(self):
         workspace = FakeWorkspace()
         with self.assertRaisesRegex(RenderError, "Draft"):

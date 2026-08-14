@@ -83,9 +83,12 @@
 .speech-part-edit { background: var(--surface-raised); }
 .speech-part-alerts { display: flex; align-items: center; flex-wrap: wrap; gap: var(--vrn-space-3); }
 .speech-part-alert,
-.speech-part-preview-playing { display: inline-flex; align-items: center; gap: var(--vrn-space-1); color: var(--vrn-content-secondary); font-size: var(--vrn-type-metadata-size); font-weight: var(--vrn-weight-label); line-height: var(--vrn-type-metadata-line); }
+.speech-part-preview-playing,
+.speech-part-output-off { display: inline-flex; align-items: center; gap: var(--vrn-space-1); color: var(--vrn-content-secondary); font-size: var(--vrn-type-metadata-size); font-weight: var(--vrn-weight-label); line-height: var(--vrn-type-metadata-line); }
 .speech-part-alert svg,
-.speech-part-preview-playing svg { width: 14px; height: 14px; }
+.speech-part-preview-playing svg,
+.speech-part-output-off svg { width: 14px; height: 14px; }
+.speech-part-output-off { color: var(--foreground); }
 .speech-part-alert.is-warning { color: var(--warning); }
 .speech-part-alert.is-danger { color: var(--destructive); }
 .speech-part-preview-playing { color: var(--vrn-info-solid); }

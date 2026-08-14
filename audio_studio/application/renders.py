@@ -40,7 +40,8 @@ class RenderService:
         production = self.records.production(production_id)
         if not production:
             raise RenderError("That Production does not exist.")
-        everything = self.records.parts(production_id)
+        everything = [part for part in self.records.parts(production_id)
+                      if part.get("enabled", True)]
         drafts = [part for part in everything if part["kind"] == "draft"]
         parts = [part for part in everything
                  if part["kind"] not in ("stitch", "draft")]

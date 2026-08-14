@@ -14,7 +14,7 @@ export function TimingOverview({ parts, music, playingKey, productionCurrentTime
   onLocate: (id: number) => void
   onSeekProduction: (seconds: number) => void
 }) {
-  const sourceParts = parts.filter((part) => part.kind !== "stitch")
+  const sourceParts = parts.filter((part) => part.kind !== "stitch" && part.enabled !== false)
   const total = sourceParts.reduce((sum, part) => sum + partDurationMs(part), 0)
   return (
     <section className="production-timing" aria-label="Production timing overview">
@@ -23,7 +23,7 @@ export function TimingOverview({ parts, music, playingKey, productionCurrentTime
         <div><span className="eyebrow">Read-only timing</span><h2>{sourceParts.length} Part{sourceParts.length === 1 ? "" : "s"} · {formatDuration(total / 1000)}</h2><p>{music.filename ? `Narration with ${music.name || "Music Bed"}` : "Narration only"} · use the Focus Bar to prepare or play the current mix.</p></div>
         <Badge variant="outline">{productionLoaded ? "Current preview loaded" : "Preview not loaded"}</Badge>
       </header>
-      <ProductionTimeline parts={parts} music={music} playingKey={playingKey} currentTime={productionCurrentTime} productionLoaded={productionLoaded} onLocate={onLocate} onSeek={onSeekProduction} />
+      <ProductionTimeline parts={sourceParts} music={music} playingKey={playingKey} currentTime={productionCurrentTime} productionLoaded={productionLoaded} onLocate={onLocate} onSeek={onSeekProduction} />
     </section>
   )
 }

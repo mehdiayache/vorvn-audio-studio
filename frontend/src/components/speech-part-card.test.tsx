@@ -114,4 +114,14 @@ describe("SpeechPartCard", () => {
     expect(actionSet.openPart).toHaveBeenCalledWith(sourcePart, "captions")
     expect(actionSet.recordPart).not.toHaveBeenCalled()
   })
+
+  it("toggles durable output inclusion without deleting the recording", () => {
+    const setEnabled = vi.fn()
+    const sourcePart = part({ enabled: false })
+    renderCard(<SpeechPartCard part={sourcePart} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={{ ...actions(), setEnabled }} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Include part 1 in output" }))
+    expect(setEnabled).toHaveBeenCalledWith(sourcePart, true)
+    expect(screen.getByText(longText)).toBeTruthy()
+  })
 })
