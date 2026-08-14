@@ -277,6 +277,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/media/peaks/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Audio Peaks */
+        get: operations["getAudioPeaks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/productions/{production_id}/assets": {
         parameters: {
             query?: never;
@@ -550,6 +567,23 @@ export interface paths {
         patch: operations["updateProductionSilence"];
         trace?: never;
     };
+    "/api/v1/productions/{production_id}/project-scene": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Production Project Scene */
+        get: operations["getProductionProjectScene"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/productions/{resource_id}": {
         parameters: {
             query?: never;
@@ -580,6 +614,23 @@ export interface paths {
         put?: never;
         /** Upload Project Cover */
         post: operations["uploadProjectCover"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/render": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render Audio Project */
+        post: operations["renderAudioProject"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1560,6 +1611,37 @@ export interface components {
             duration_ms: number;
             /** Total */
             total: number;
+        };
+        /** AudioPeaksEnvelope */
+        AudioPeaksEnvelope: {
+            data: components["schemas"]["AudioPeaksResponse"];
+        };
+        /** AudioPeaksResponse */
+        AudioPeaksResponse: {
+            /** Bars */
+            bars: number;
+            /** Filename */
+            filename: string;
+            /** Peaks */
+            peaks: number[];
+        };
+        /** AudioProject */
+        AudioProject: {
+            /** Id */
+            id?: string | null;
+            /**
+             * Name
+             * @default Untitled Project
+             */
+            name: string;
+            /**
+             * Sample Rate
+             * @default 48000
+             * @constant
+             */
+            sample_rate: 48000;
+            /** Tracks */
+            tracks: components["schemas"]["ProjectTrack"][];
         };
         /** CaptionCueResponse */
         CaptionCueResponse: {
@@ -2645,6 +2727,21 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** ProjectClip */
+        ProjectClip: {
+            /** Duration */
+            duration: number;
+            /** File Url */
+            file_url: string;
+            /** Id */
+            id: string;
+            /** Start Time */
+            start_time: number;
+        };
+        /** ProjectEnvelope */
+        ProjectEnvelope: {
+            data: components["schemas"]["AudioProject"];
+        };
         /** ProjectOverviewEnvelope */
         ProjectOverviewEnvelope: {
             data: components["schemas"]["ProjectOverviewResponse"];
@@ -2676,6 +2773,35 @@ export interface components {
             standalone_productions: components["schemas"]["ProductionSummaryResponse"][];
             /** Trail */
             trail: components["schemas"]["TrailItemResponse"][];
+        };
+        /** ProjectRenderEnvelope */
+        ProjectRenderEnvelope: {
+            data: components["schemas"]["ProjectRenderResult"];
+        };
+        /** ProjectRenderResult */
+        ProjectRenderResult: {
+            /** Cached */
+            cached: boolean;
+            /**
+             * Channels
+             * @constant
+             */
+            channels: 2;
+            /** Clips */
+            clips: number;
+            /** Duration Ms */
+            duration_ms: number | null;
+            /** Name */
+            name: string;
+            /**
+             * Sample Rate
+             * @constant
+             */
+            sample_rate: 48000;
+            /** Tracks */
+            tracks: number;
+            /** Url */
+            url: string;
         };
         /** ProjectSeriesSummaryResponse */
         ProjectSeriesSummaryResponse: {
@@ -2735,6 +2861,33 @@ export interface components {
             type: "project";
             /** Updated At */
             updated_at?: string | null;
+        };
+        /** ProjectTrack */
+        ProjectTrack: {
+            /** Clips */
+            clips: components["schemas"]["ProjectClip"][];
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "dialogue" | "sfx" | "music" | "ambience";
+            /**
+             * Loop
+             * @default false
+             */
+            loop: boolean;
+            /**
+             * Source Offset
+             * @default 0
+             */
+            source_offset: number;
+            /**
+             * Volume
+             * @default 1
+             */
+            volume: number;
         };
         /** PronunciationListEnvelope */
         PronunciationListEnvelope: {
@@ -5202,6 +5355,39 @@ export interface operations {
             };
         };
     };
+    getAudioPeaks: {
+        parameters: {
+            query?: {
+                bars?: number;
+            };
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioPeaksEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listProductionAssets: {
         parameters: {
             query?: never;
@@ -5784,6 +5970,37 @@ export interface operations {
             };
         };
     };
+    getProductionProjectScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getProduction: {
         parameters: {
             query?: never;
@@ -5899,6 +6116,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UploadedImageEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    renderAudioProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudioProject"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRenderEnvelope"];
                 };
             };
             /** @description Validation Error */

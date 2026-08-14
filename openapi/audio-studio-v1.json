@@ -701,6 +701,88 @@
         "title": "AssetSummaryResponse",
         "type": "object"
       },
+      "AudioPeaksEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AudioPeaksResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "AudioPeaksEnvelope",
+        "type": "object"
+      },
+      "AudioPeaksResponse": {
+        "properties": {
+          "bars": {
+            "title": "Bars",
+            "type": "integer"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "peaks": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Peaks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "filename",
+          "bars",
+          "peaks"
+        ],
+        "title": "AudioPeaksResponse",
+        "type": "object"
+      },
+      "AudioProject": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "default": "Untitled Project",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "sample_rate": {
+            "const": 48000,
+            "default": 48000,
+            "title": "Sample Rate",
+            "type": "integer"
+          },
+          "tracks": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectTrack"
+            },
+            "maxItems": 64,
+            "minItems": 1,
+            "title": "Tracks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tracks"
+        ],
+        "title": "AudioProject",
+        "type": "object"
+      },
       "CaptionCueResponse": {
         "properties": {
           "end": {
@@ -4150,6 +4232,55 @@
         "title": "ProductionSummaryResponse",
         "type": "object"
       },
+      "ProjectClip": {
+        "additionalProperties": false,
+        "properties": {
+          "duration": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 86400.0,
+            "title": "Duration",
+            "type": "number"
+          },
+          "file_url": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "File Url",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "start_time": {
+            "maximum": 86400.0,
+            "minimum": 0.0,
+            "title": "Start Time",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "start_time",
+          "duration",
+          "file_url"
+        ],
+        "title": "ProjectClip",
+        "type": "object"
+      },
+      "ProjectEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AudioProject"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ProjectEnvelope",
+        "type": "object"
+      },
       "ProjectOverviewEnvelope": {
         "properties": {
           "data": {
@@ -4243,6 +4374,75 @@
           "metrics"
         ],
         "title": "ProjectOverviewResponse",
+        "type": "object"
+      },
+      "ProjectRenderEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProjectRenderResult"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ProjectRenderEnvelope",
+        "type": "object"
+      },
+      "ProjectRenderResult": {
+        "properties": {
+          "cached": {
+            "title": "Cached",
+            "type": "boolean"
+          },
+          "channels": {
+            "const": 2,
+            "title": "Channels",
+            "type": "integer"
+          },
+          "clips": {
+            "title": "Clips",
+            "type": "integer"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "sample_rate": {
+            "const": 48000,
+            "title": "Sample Rate",
+            "type": "integer"
+          },
+          "tracks": {
+            "title": "Tracks",
+            "type": "integer"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "name",
+          "duration_ms",
+          "tracks",
+          "clips",
+          "sample_rate",
+          "channels",
+          "cached"
+        ],
+        "title": "ProjectRenderResult",
         "type": "object"
       },
       "ProjectSeriesSummaryResponse": {
@@ -4375,6 +4575,62 @@
           "metrics"
         ],
         "title": "ProjectSummaryResponse",
+        "type": "object"
+      },
+      "ProjectTrack": {
+        "additionalProperties": false,
+        "properties": {
+          "clips": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectClip"
+            },
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Clips",
+            "type": "array"
+          },
+          "id": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "dialogue",
+              "sfx",
+              "music",
+              "ambience"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "loop": {
+            "default": false,
+            "title": "Loop",
+            "type": "boolean"
+          },
+          "source_offset": {
+            "default": 0,
+            "maximum": 86400.0,
+            "minimum": 0.0,
+            "title": "Source Offset",
+            "type": "number"
+          },
+          "volume": {
+            "default": 1,
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Volume",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "clips"
+        ],
+        "title": "ProjectTrack",
         "type": "object"
       },
       "PronunciationListEnvelope": {
@@ -10879,6 +11135,60 @@
         ]
       }
     },
+    "/api/v1/media/peaks/{name}": {
+      "get": {
+        "operationId": "getAudioPeaks",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "bars",
+            "required": false,
+            "schema": {
+              "default": 48,
+              "maximum": 512,
+              "minimum": 8,
+              "title": "Bars",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioPeaksEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Audio Peaks",
+        "tags": [
+          "media"
+        ]
+      }
+    },
     "/api/v1/productions/{production_id}/assets": {
       "get": {
         "operationId": "listProductionAssets",
@@ -11774,6 +12084,48 @@
         ]
       }
     },
+    "/api/v1/productions/{production_id}/project-scene": {
+      "get": {
+        "operationId": "getProductionProjectScene",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Production Project Scene",
+        "tags": [
+          "audio-projects"
+        ]
+      }
+    },
     "/api/v1/productions/{resource_id}": {
       "delete": {
         "operationId": "deleteProduction",
@@ -11946,6 +12298,47 @@
         "summary": "Upload Project Cover",
         "tags": [
           "uploads"
+        ]
+      }
+    },
+    "/api/v1/projects/render": {
+      "post": {
+        "operationId": "renderAudioProject",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioProject"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRenderEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Render Audio Project",
+        "tags": [
+          "audio-projects"
         ]
       }
     },

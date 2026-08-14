@@ -2,14 +2,26 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 from audio_studio.composition.media import media_service
+from audio_studio.composition.waveforms import waveform_peaks
 from audio_studio.domain.media import MediaFile
 
 
 router = APIRouter(tags=["media"])
+
+
+class AudioPeaksResponse(BaseModel):
+    filename: str
+    bars: int
+    peaks: list[float]
+
+
+class AudioPeaksEnvelope(BaseModel):
+    data: AudioPeaksResponse
 
 
 def _response(item: MediaFile | None) -> FileResponse:
@@ -21,6 +33,18 @@ def _response(item: MediaFile | None) -> FileResponse:
 @router.api_route("/audio/{name}", methods=["GET", "HEAD"], include_in_schema=False)
 def get_audio(name: str) -> FileResponse:
     return _response(media_service.resolve("audio", name))
+
+
+@router.get("/api/v1/media/peaks/{name}", operation_id="getAudioPeaks",
+            response_model=AudioPeaksEnvelope)
+def get_audio_peaks(name: str, bars: int = Query(48, ge=8, le=512)) -> dict:
+    try:
+        values = waveform_peaks(name, bars)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"data": {"filename": name, "bars": len(values), "peaks": values}}
 
 
 @router.api_route("/icon/{name}", methods=["GET", "HEAD"], include_in_schema=False)

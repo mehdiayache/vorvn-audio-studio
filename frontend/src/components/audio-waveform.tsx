@@ -2,29 +2,14 @@ import { useEffect, useId, useState } from "react"
 
 const waveformCache = new Map<string, Promise<number[]>>()
 
-async function decodeWaveform(url: string, bars: number) {
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`Audio unavailable (${response.status})`)
-  const data = await response.arrayBuffer()
-  const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-  if (!AudioContextClass) throw new Error("Audio decoding is unavailable")
-  const context = new AudioContextClass()
-  try {
-    const buffer = await context.decodeAudioData(data.slice(0))
-    const channel = buffer.getChannelData(0)
-    const stride = Math.max(1, Math.floor(channel.length / bars))
-    const peaks = Array.from({ length: bars }, (_, index) => {
-      const start = index * stride
-      const end = Math.min(channel.length, start + stride)
-      let peak = 0
-      for (let sample = start; sample < end; sample += Math.max(1, Math.floor(stride / 32))) peak = Math.max(peak, Math.abs(channel[sample] || 0))
-      return peak
-    })
-    const max = Math.max(...peaks, 0.01)
-    return peaks.map((peak) => Math.max(0.08, peak / max))
-  } finally {
-    void context.close()
-  }
+async function fetchWaveform(url: string, bars: number) {
+  const path = new URL(url, window.location.origin).pathname
+  const filename = decodeURIComponent(path.split("/").pop() || "")
+  if (!filename) throw new Error("Audio filename is unavailable")
+  const response = await fetch(`/api/v1/media/peaks/${encodeURIComponent(filename)}?bars=${bars}`)
+  if (!response.ok) throw new Error(`Waveform unavailable (${response.status})`)
+  const payload = await response.json() as { data: { peaks: number[] } }
+  return payload.data.peaks
 }
 
 export function AudioWaveform({ url, bars = 48 }: { url?: string; bars?: number }) {
@@ -35,7 +20,7 @@ export function AudioWaveform({ url, bars = 48 }: { url?: string; bars?: number 
     let active = true
     if (!url) { setPeaks(null); return () => { active = false } }
     const key = `${url}:${bars}`
-    const pending = waveformCache.get(key) || decodeWaveform(url, bars)
+    const pending = waveformCache.get(key) || fetchWaveform(url, bars)
     waveformCache.set(key, pending)
     pending.then((value) => { if (active) setPeaks(value) }).catch(() => { if (active) setPeaks([]) })
     return () => { active = false }

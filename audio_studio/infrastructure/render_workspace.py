@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-from urllib.parse import quote
+from urllib.parse import quote, unquote, urlparse
 from uuid import uuid4
 
 from audio_studio.domain import speech_text
@@ -132,6 +132,99 @@ def _mix(voice: Path, music: Path, values: dict, target: Path) -> None:
 
 
 class FFmpegRenderWorkspace:
+    def render_project(self, project: dict) -> dict:
+        """Render a lightweight Tracks/Clips scene without a database Job."""
+        tracks = project.get("tracks") or []
+        entries = [
+            (track, clip)
+            for track in tracks
+            for clip in (track.get("clips") or [])
+        ]
+        if not entries:
+            raise RenderError("The Project has no Clips to render.")
+        signature = json.dumps(project, sort_keys=True, default=str)
+        digest = hashlib.sha256(signature.encode()).hexdigest()[:20]
+        filename = f"project-{digest}.mp3"
+        target = _output() / filename
+        if target.is_file() and target.stat().st_size > 0:
+            return self._project_result(project, target, cached=True)
+
+        command = ["ffmpeg", "-y", "-nostdin", "-loglevel", "error"]
+        sources: list[tuple[dict, dict, float]] = []
+        for track, clip in entries:
+            duration = max(.01, float(clip.get("duration") or 0))
+            file_url = str(clip.get("file_url") or "")
+            if file_url.startswith("silence://"):
+                command.extend([
+                    "-f", "lavfi", "-i",
+                    f"anullsrc=r=48000:cl=stereo:d={duration:.3f}",
+                ])
+            else:
+                parsed = urlparse(file_url)
+                if parsed.scheme or not parsed.path.startswith("/audio/"):
+                    raise RenderError(
+                        "Project Clips must use a local /audio/ file URL.")
+                source = (_output() / Path(unquote(parsed.path)).name).resolve()
+                if source.parent != _output() or not source.is_file():
+                    raise RenderError("A Project Clip audio file is unavailable.")
+                if track.get("loop"):
+                    command.extend(["-stream_loop", "-1"])
+                command.extend(["-i", str(source)])
+            sources.append((track, clip, duration))
+
+        filters = []
+        labels = []
+        for index, (track, clip, duration) in enumerate(sources):
+            start_ms = max(0, round(float(clip.get("start_time") or 0) * 1000))
+            offset = max(0, float(track.get("source_offset") or 0))
+            volume_value = track.get("volume")
+            volume = max(0, min(2, float(
+                1 if volume_value is None else volume_value)))
+            label = f"clip{index}"
+            filters.append(
+                f"[{index}:a]aformat=sample_fmts=fltp:sample_rates=48000:"
+                f"channel_layouts=stereo,atrim=start={offset:.3f}:"
+                f"duration={duration:.3f},asetpts=PTS-STARTPTS,"
+                f"volume={volume:.4f},adelay={start_ms}|{start_ms}[{label}]"
+            )
+            labels.append(f"[{label}]")
+        filters.append(
+            f"{''.join(labels)}amix=inputs={len(labels)}:duration=longest:"
+            "dropout_transition=0:normalize=0,alimiter=limit=0.98[out]"
+        )
+        temporary = target.with_name(f".{target.stem}-{uuid4().hex}.tmp.mp3")
+        command.extend([
+            "-filter_complex", ";".join(filters), "-map", "[out]", "-vn",
+            "-ar", "48000", "-ac", "2", "-c:a", "libmp3lame", "-b:a",
+            "192k", str(temporary),
+        ])
+        try:
+            done = subprocess.run(command, capture_output=True, timeout=600)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            temporary.unlink(missing_ok=True)
+            raise RenderError(f"Project rendering failed: {exc}") from exc
+        if done.returncode or not temporary.is_file() or temporary.stat().st_size <= 0:
+            temporary.unlink(missing_ok=True)
+            detail = done.stderr.decode(errors="replace").strip().splitlines()
+            raise RenderError(
+                f"Project rendering failed: {(detail[-1] if detail else 'no audio')[:300]}")
+        os.replace(temporary, target)
+        return self._project_result(project, target, cached=False)
+
+    @staticmethod
+    def _project_result(project: dict, target: Path, *, cached: bool) -> dict:
+        return {
+            "url": f"/audio/{quote(target.name)}",
+            "name": target.name,
+            "duration_ms": _measure(target),
+            "tracks": len(project.get("tracks") or []),
+            "clips": sum(len(track.get("clips") or [])
+                         for track in (project.get("tracks") or [])),
+            "sample_rate": 48_000,
+            "channels": 2,
+            "cached": cached,
+        }
+
     def duration_for_part(self, part: dict) -> int:
         filename = Path(str(part.get("filename") or "")).name
         return _measure(_output() / filename) or 0
