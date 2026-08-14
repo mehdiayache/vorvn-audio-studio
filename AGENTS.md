@@ -39,30 +39,24 @@ For Production work:
   adding new UI;
 - do not create a generic ShadCN dashboard, card soup, or an "admin" layout.
 
-Use semantic VORVN tokens only. Neutral structure carries hierarchy; near-black
+Use semantic product tokens only. Neutral structure carries hierarchy; near-black
 is the normal action accent; green means success; amber means warning/review;
 red means failure/destructive; blue means neutral information. Cast/media
 identity colors are categorical and never status colors. Never use color as the
 only signal or tint a whole Part because one nested fact has a state.
 
-## UI sources and primitives
+## Design exploration and primitives
 
-Use UI VORVN as mature precedent, not code to paste:
+When a redesign or new visual direction is explicitly requested, use the
+connected Lovable MCP to explore the operator experience and produce a concrete
+visual direction before implementation. Treat Lovable output as design input,
+not as product or architecture truth. Preserve Audio Studio's real domain,
+workflows, content, API contracts, and locked operator decisions.
 
-- Registry: `/Users/berberos/VORVN-DEV/vorvn-os/projects/ui-vorvn/src/registry/ui-vorvn.registry.json`
-- Catalog: `/Users/berberos/VORVN-DEV/vorvn-os/projects/ui-vorvn/components/index.html`
-- Tokens: `/Users/berberos/VORVN-DEV/vorvn-os/projects/ui-vorvn/src/foundation/tokens.css`
-- Foundation: `/Users/berberos/VORVN-DEV/vorvn-os/projects/ui-vorvn/docs/FOUNDATION_V1.md`
-- Typography: `/Users/berberos/VORVN-DEV/vorvn-os/projects/ui-vorvn/docs/TYPOGRAPHY_V1.md`
-- Media: `/Users/berberos/VORVN-DEV/vorvn-os/projects/ui-vorvn/docs/MEDIA_VIDEO_AND_VOICE.md`
-
-Registry `reference` entries are established precedent. `candidate` requires
-validation. `fixture` is demonstration only. Never use rejected labs.
-
-Use Audio Studio's local ShadCN/Radix primitives. Query the ShadCN MCP before
-recreating a generic primitive and run its audit checklist after UI changes.
-Translate precedent into the existing React architecture and tokens; do not
-create a parallel design system.
+Translate an approved direction into the existing React architecture. Reuse
+Audio Studio's local ShadCN/Radix primitives where they fit, but do not force a
+generic dashboard vocabulary or copy generated code blindly. Do not create a
+parallel design system, runtime, backend, or source of product state.
 
 ## Simplicity
 
