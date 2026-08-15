@@ -93,9 +93,6 @@ button.transport-caption-text:hover { color: var(--info); text-decoration: under
 .transport-caption-modes { flex: none; padding: 2px; border-radius: var(--radius-sm); background: var(--muted); }
 .transport-caption-modes [data-slot="toggle-group-item"] { height: 1.75rem; padding-inline: var(--space-2); border: 0; color: var(--muted-foreground); background: transparent; font-size: var(--type-caption); }
 .transport-caption-modes [data-slot="toggle-group-item"][data-state="on"] { color: var(--foreground); background: var(--surface-raised); box-shadow: var(--shadow-xs); }
-.transport-strip[data-caption-profile="short"] .transport-caption-text { font-weight: var(--weight-label); }
-.transport-strip[data-caption-profile="words"] .transport-caption-panel { background: color-mix(in oklab, var(--surface-raised) 88%, var(--info-soft)); }
-.transport-strip[data-caption-profile="words"] .transport-caption-text { color: var(--info); font-size: var(--type-heading-sm); font-weight: var(--weight-title); letter-spacing: -.01em; }
 .transport-preview-stale {
   position: absolute;
   right: var(--space-3);

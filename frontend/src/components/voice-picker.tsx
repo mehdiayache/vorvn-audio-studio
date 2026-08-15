@@ -61,7 +61,7 @@ export function VoicePicker({ identities, value, directory, playingKey, playerPl
     <PopoverTrigger asChild>
       <Button type="button" variant="outline" className="voice-picker-trigger" aria-label="Choose a voice" aria-expanded={open}>
         {selectedRoute
-          ? <><VoiceIdentity voice={selectedRoute.id} identityId={selected?.identityId} directory={directory} compact showDetail={false} showEditorialFlag={false} /><span className="voice-picker-selected-detail">{[selected?.gender, selected?.description].filter(Boolean).join(" · ") || "Voice identity"}</span></>
+          ? <><VoiceIdentity voice={selectedRoute.id} identityId={selected?.identityId} directory={directory} gender={selected?.gender} compact showDetail={false} showEditorialFlag={false} /><span className="voice-picker-selected-detail">{selected?.description || "Voice identity"}</span></>
           : <span className="voice-picker-placeholder">Choose a Voice</span>}
         <ChevronDown className="voice-picker-chevron" />
       </Button>
@@ -89,10 +89,10 @@ export function VoicePicker({ identities, value, directory, playingKey, playerPl
             const isSelected = value === identity.identityId
             const methodCount = identity.routes.reduce((total, item) => total + Math.max(1, item.capabilities.length), 0)
             const providerLabel = [...new Set(identity.routes.map((item) => providerName(item.provider)))].join(", ")
-            const qualification = [identity.gender || "Unspecified", identity.description, providerLabel, `${methodCount} ${methodCount === 1 ? "method" : "methods"}`].filter(Boolean).join(" · ")
+            const qualification = [identity.description, providerLabel, `${methodCount} ${methodCount === 1 ? "method" : "methods"}`].filter(Boolean).join(" · ")
             return <div className={cn("voice-picker-row", isSelected && "selected")} key={identity.identityId}>
               <button type="button" className="voice-picker-select" onClick={() => { onChange(identity); setOpen(false) }}>
-                <VoiceIdentity voice={route.id} identityId={identity.identityId} directory={directory} showDetail={false} showEditorialFlag={false} />
+                <VoiceIdentity voice={route.id} identityId={identity.identityId} directory={directory} gender={identity.gender} showDetail={false} showEditorialFlag={false} />
                 <small className="voice-source-qualification">{qualification}</small>
                 {isSelected && <Check aria-hidden="true" />}
               </button>

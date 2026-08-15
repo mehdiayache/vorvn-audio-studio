@@ -1,15 +1,17 @@
 import { Mic2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { VoiceGenderBadge } from "@/components/voice-gender-badge"
 
 import "./voice-identity.css"
 import { languageDisplay, languageFlag, resolveVoice } from "@/lib/voice"
 import type { VoiceDirectory } from "@/types/domain"
 
-export function VoiceIdentity({ voice, identityId, directory, compact = false, showDetail = true, showEditorialFlag = true, showCopy = true }: {
+export function VoiceIdentity({ voice, identityId, directory, gender, compact = false, showDetail = true, showEditorialFlag = true, showCopy = true }: {
   voice?: string
   identityId?: string | null
   directory: VoiceDirectory
+  gender?: string | null
   compact?: boolean
   showDetail?: boolean
   showEditorialFlag?: boolean
@@ -20,7 +22,7 @@ export function VoiceIdentity({ voice, identityId, directory, compact = false, s
   return (
     <span className={cn("voice-identity", compact && "compact")}>
       <span className="voice-portrait">{resolved.image ? <img src={resolved.image} alt="" /> : resolved.id ? initials : <Mic2 />}</span>
-      {showCopy && <span className="voice-copy"><b className="voice-name-row">{showEditorialFlag && resolved.editorialLanguage && <span className="voice-source-flag" title={`${languageDisplay(resolved.editorialLanguage)} editorial focus`} aria-label={`${languageDisplay(resolved.editorialLanguage)} editorial focus`}>{languageFlag(resolved.editorialLanguage)}</span>}<span>{resolved.name}</span></b>{showDetail && <small>{resolved.unavailable ? "Unavailable voice · existing recording" : resolved.detail}</small>}</span>}
+      {showCopy && <span className="voice-copy"><b className="voice-name-row">{showEditorialFlag && resolved.editorialLanguage && <span className="voice-source-flag" title={`${languageDisplay(resolved.editorialLanguage)} editorial focus`} aria-label={`${languageDisplay(resolved.editorialLanguage)} editorial focus`}>{languageFlag(resolved.editorialLanguage)}</span>}<span>{resolved.name}</span><VoiceGenderBadge gender={gender || resolved.gender} /></b>{showDetail && <small>{resolved.unavailable ? "Unavailable voice · existing recording" : resolved.detail}</small>}</span>}
     </span>
   )
 }

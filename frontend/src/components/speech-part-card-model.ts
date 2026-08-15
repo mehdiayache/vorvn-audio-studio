@@ -130,7 +130,7 @@ export function speechPartCardFacts({ part, speechJob, captionJob, directory }: 
   directory: VoiceDirectory
 }): SpeechPartCardFacts {
   const recorded = Boolean(part.clip_id)
-  const displayVoice = part.voice_name || part.voice
+  const displayVoice = part.catalogue_voice_id || part.voice || part.voice_name
   const voice = resolveVoice(displayVoice, directory, part.voice_identity_id)
   const model = resolveSpeechModel({ engine: part.engine, tier: part.tier, model: part.model, config: directory.config })
   const capability = selectedCapability(part, directory)

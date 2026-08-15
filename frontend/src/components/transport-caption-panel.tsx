@@ -16,7 +16,7 @@ type TransportCaptionPanelProps = {
 }
 
 export function TransportCaptionPanel({ tracks, track, profile, currentCue, onTrackChange, onProfileChange, onOpenCue }: TransportCaptionPanelProps) {
-  const captionText = currentCue?.text || "No spoken caption at this position"
+  const captionText = currentCue?.text || ""
   const canOpenCue = Boolean(currentCue?.partId && onOpenCue)
 
   return <div className="transport-caption-panel" aria-label="Caption display">
@@ -24,7 +24,7 @@ export function TransportCaptionPanel({ tracks, track, profile, currentCue, onTr
       <Captions aria-hidden="true" />
       {canOpenCue
         ? <button type="button" className="transport-caption-text" onClick={() => onOpenCue?.(currentCue!.partId!)} aria-label={`Open captions for: ${captionText}`}>{captionText}</button>
-        : <span className={`transport-caption-text${currentCue ? "" : " is-gap"}`}>{captionText}</span>}
+        : <span className={`transport-caption-text${currentCue ? "" : " is-gap"}`} aria-label={currentCue ? undefined : "No active caption"}>{captionText}</span>}
     </div>
     <div className="transport-caption-controls" aria-label="Caption settings">
       <Select value={track.id} onValueChange={(value) => onTrackChange?.(value)}>

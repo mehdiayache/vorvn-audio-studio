@@ -37,6 +37,14 @@ export function clipText(text: string, length = 150) {
   return clean.length > length ? `${clean.slice(0, length).trimEnd()}…` : clean
 }
 
+export function formatPartNumber(index: number) {
+  return String(Math.max(0, index) + 1).padStart(2, "0")
+}
+
+export function formatPartLabel(index: number) {
+  return `Part ${formatPartNumber(index)}`
+}
+
 export function textDirection(text?: string): "rtl" | "ltr" {
   return /[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufefc]/.test(text || "") ? "rtl" : "ltr"
 }

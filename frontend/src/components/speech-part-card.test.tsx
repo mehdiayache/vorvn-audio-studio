@@ -28,6 +28,7 @@ afterEach(() => {
 const directory = {
   config: { capabilities: { audio: { operator_title: "Expressive + tags", label: "Audio", models: { flash: "qwen-audio-3.0-tts-flash" } } } },
   cloned: [], meta: {}, catalog: [], usage: {},
+  identities: [{ id: "voice-maya", name: "Maya", metadata: { gender: "female" }, usage: {} }],
 } as unknown as VoiceDirectory
 
 const longText = Array.from({ length: 18 }, (_, index) => `Sentence ${index + 1} remains fully authored and visible to assistive technology.`).join(" ")
@@ -36,7 +37,7 @@ function part(values: Partial<ProductionPart> = {}): ProductionPart {
   return {
     id: 7, created_at: "2026-08-13T10:00:00Z", position: 0, kind: "speech",
     text: longText, clip_id: 21,
-    recording_text_state: "tagged", voice_name: "Maya", voice: "maya-provider-id",
+    recording_text_state: "tagged", voice_identity_id: "voice-maya", voice_name: "Maya", voice: "maya-provider-id",
     engine: "audio", tier: "flash", model: "qwen-audio-3.0-tts-flash",
     capability_name: "Expressive + tags", language: "English", duration_ms: 5100,
     filename: "maya.mp3", cost: .01, spent: .02,
@@ -73,11 +74,14 @@ describe("SpeechPartCard", () => {
     expect(screen.queryByRole("button", { name: /show more/i })).toBeNull()
   })
 
-  it("keeps Voice, exact method, recording, captions and spend visible during generation", () => {
+  it("keeps Voice, factual gender, exact method, duration, captions and spend visible during generation", () => {
     renderCard(<SpeechPartCard part={part()} job={{ id: "speech-1", type: "speech", status: "running", progress: 68, detail: "Generating", retries: 0, result: {} }} captionJob={{ id: "cc-1", type: "transcribe", status: "running", progress: .2, detail: "Listening", retries: 0, result: {} }} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actions()} />)
     expect(screen.getByText("Maya")).toBeTruthy()
+    expect(screen.getByText("Female")).toBeTruthy()
     expect(screen.getByText("Qwen Audio · Flash · Expressive + tags · EN")).toBeTruthy()
-    expect(screen.getByLabelText("Active recording · 0:05.1 · Tagged input")).toBeTruthy()
+    expect(screen.getByText("0:05.1")).toBeTruthy()
+    expect(screen.queryByText("Recording")).toBeNull()
+    expect(screen.queryByText("Tagged")).toBeNull()
     expect(screen.getByRole("button", { name: /Captions: Creating captions/ })).toBeTruthy()
     expect(screen.getByText("$0.02")).toBeTruthy()
     expect(screen.getByText("RECORDING · GENERATING 68%")).toBeTruthy()
@@ -92,6 +96,14 @@ describe("SpeechPartCard", () => {
     expect(screen.queryByRole("menuitem", { name: /Replace recording/i })).toBeNull()
     expect(container.querySelector(".speech-operation-lane")).toBeNull()
     expect(screen.queryByText("Direct voice")).toBeNull()
+  })
+
+  it("uses the same zero-padded Part label in the card and floating player source", () => {
+    const actionSet = actions()
+    renderCard(<SpeechPartCard part={part()} job={null} index={1} count={2} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
+    expect(screen.getByText("02")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Play part" }))
+    expect(actionSet.play).toHaveBeenCalledWith(expect.objectContaining({ title: "Part 02" }))
   })
 
   it("gives drafts their own truthful actions and zero-duration state", () => {

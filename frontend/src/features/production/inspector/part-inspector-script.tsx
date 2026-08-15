@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { VoiceIdentity } from "@/components/voice-identity"
 import { audioUrl } from "@/lib/api"
-import { formatDuration, formatExactDurationMs, formatMoney, textDirection } from "@/lib/format"
+import { formatDuration, formatExactDurationMs, formatMoney, formatPartLabel, textDirection } from "@/lib/format"
 import { resolveVoice } from "@/lib/voice"
 import type { PlayerSource, ProductionPart, VoiceDirectory } from "@/types/domain"
 
@@ -47,7 +47,7 @@ export function PartInspectorScript({ part, directory, currentPlaying, onPlay, o
       <span>{silence ? <Clock3 /> : asset ? <FileAudio /> : <Mic2 />}</span>
       <div className="inspector-summary-copy">{silence ? <><b>Intentional silence</b><p>Editorial timing · {formatExactDurationMs(Number(part.duration_ms || 0))}</p></> : asset ? <><b>{part.title || "Venture audio"}</b><p>Linked Venture asset · {formatDuration(Number(part.duration_ms || 0) / 1000)}</p></> : <><VoiceIdentity voice={part.voice} identityId={part.voice_identity_id} directory={directory} compact /><p>{recorded ? `Active recording · ${formatDuration(Number(part.duration_ms || 0) / 1000)} · ${formatMoney(part.spent ?? part.cost)}` : `Draft speech · revision ${part.revision || 1}`}</p></>}</div>
       <div className="inspector-summary-actions">
-        {part.filename && <Button variant="outline" size="icon" aria-label={currentPlaying ? "Pause current part" : "Play current part"} onClick={() => onPlay({ key: currentKey, url: audioUrl(part.filename!), title: `Part ${(part.position ?? 0) + 1}`, subtitle: asset ? "Linked Venture asset" : voiceName, kind: asset ? "asset" : "clip" })}>{currentPlaying ? <Pause /> : <Play />}</Button>}
+        {part.filename && <Button variant="outline" size="icon" aria-label={currentPlaying ? "Pause current part" : "Play current part"} onClick={() => onPlay({ key: currentKey, url: audioUrl(part.filename!), title: formatPartLabel(part.position ?? 0), subtitle: asset ? "Linked Venture asset" : voiceName, kind: asset ? "asset" : "clip" })}>{currentPlaying ? <Pause /> : <Play />}</Button>}
         {draft && <Button variant="outline" onClick={() => onRecordPart(part)}><Plus /> Record draft</Button>}
       </div>
     </div>

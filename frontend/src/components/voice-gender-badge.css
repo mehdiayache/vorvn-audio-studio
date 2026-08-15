@@ -1,0 +1,14 @@
+.voice-gender-badge {
+  height: 19px;
+  flex: 0 0 auto;
+  padding-inline: 7px;
+  border-color: var(--border);
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  background: var(--surface-subtle);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .01em;
+  line-height: 1;
+  text-transform: none;
+}

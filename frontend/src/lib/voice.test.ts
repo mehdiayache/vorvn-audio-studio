@@ -40,10 +40,10 @@ describe("voice identity", () => {
   it("resolves registry truth from a stable catalogue route id", () => {
     const withRegistry = {
       ...directory,
-      registry: { bindings: [{ catalogue_voice_id: "provider:region:model:aiden", provider_voice_id: "aiden", name: "Aiden", description: "Friendly young voice", image: null }] },
+      registry: { bindings: [{ catalogue_voice_id: "provider:region:model:aiden", provider_voice_id: "aiden", name: "Aiden", description: "Friendly young voice", image: null, gender: "male" }] },
     } as unknown as VoiceDirectory
     expect(resolveVoice("provider:region:model:aiden", withRegistry)).toMatchObject({
-      name: "Aiden", detail: "Friendly young voice", unavailable: false,
+      name: "Aiden", detail: "Friendly young voice", gender: "male", unavailable: false,
     })
   })
 

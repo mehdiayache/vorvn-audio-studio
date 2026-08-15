@@ -22,6 +22,8 @@
 .voice-profile-card header small { color: var(--muted-foreground); font-size: var(--type-caption); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
 .voice-profile-card header small svg { width: 11px; display: inline; margin-right: 3px; color: var(--warning); fill: currentColor; }
 .voice-profile-card h2 { margin: 2px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--type-heading-md); letter-spacing: -.02em; }
+.voice-profile-name { min-width: 0; display: flex; align-items: center; gap: 8px; }
+.voice-profile-name h2 { min-width: 0; }
 .voice-profile-card header p { margin: 5px 0 0; overflow: hidden; color: var(--muted-foreground); font-size: var(--type-small); text-overflow: ellipsis; white-space: nowrap; }
 .voice-profile-actions { display: flex; align-items: center; gap: 4px; }
 .voice-profile-actions > button svg { width: 17px; }

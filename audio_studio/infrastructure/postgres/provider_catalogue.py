@@ -68,6 +68,7 @@ class ProviderCatalogueRepository:
                     "identity_id": item.get("identity_id"),
                     "name": item.get("name") or item["provider_voice_id"],
                     "description": item.get("description") or "",
+                    "gender": item.get("gender") or "",
                 }
                 cursor.execute("""
                     INSERT INTO provider_catalogue_voices
@@ -187,6 +188,7 @@ class ProviderCatalogueRepository:
                 "languages": row[8] or [],
                 "name": metadata.get("name") or row[5],
                 "description": metadata.get("description") or "",
+                "gender": metadata.get("gender") or "",
                 "adapter_key": row[10] or row[6],
                 "estimate_rate_per_million_chars": float(
                     (row[11] or {}).get("speech_per_million_chars") or 0),

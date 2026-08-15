@@ -6,12 +6,13 @@ import type { SequenceActions } from "@/components/sequence-actions"
 import { SpeechOperationLane } from "@/components/speech-operation-lane"
 import { speechPartCardFacts } from "@/components/speech-part-card-model"
 import { VoiceIdentity } from "@/components/voice-identity"
+import { VoiceGenderBadge } from "@/components/voice-gender-badge"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { audioUrl } from "@/lib/api"
-import { textDirection } from "@/lib/format"
+import { formatPartLabel, formatPartNumber, textDirection } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { DurableJob, GenerateResult, ProductionPart, VoiceDirectory } from "@/types/domain"
 
@@ -74,7 +75,7 @@ export function SpeechPartCard({ part, job, captionJob, index, count, playing, p
     <span className="speech-part-identity-rail" aria-hidden="true" />
     <div className="speech-part-order">
       <div className="speech-part-number">
-        <span>{String(index + 1).padStart(2, "0")}</span>
+        <span>{formatPartNumber(index)}</span>
       </div>
       <Button className="speech-part-grip" variant="ghost" size="icon-sm" onClick={() => actions.moveToPosition(part)} aria-label={`Move part ${index + 1} to position`}><GripVertical /></Button>
       <div className="speech-part-move-controls" aria-label={`Move part ${index + 1}`}>
@@ -89,8 +90,8 @@ export function SpeechPartCard({ part, job, captionJob, index, count, playing, p
           <div className="speech-part-identity">
             <Tooltip>
               <TooltipTrigger asChild><button className="speech-part-heading" onClick={openPart} aria-label={`Open details for part ${index + 1}`}>
-                <VoiceIdentity voice={part.voice_name || part.voice} identityId={part.voice_identity_id} directory={directory} compact showCopy={false} showEditorialFlag={false} />
-                <span className="speech-part-heading-copy"><b className="speech-part-voice-name">{facts.selectedVoiceName}</b><span className="speech-part-method">{facts.methodLine}</span></span>
+                <VoiceIdentity voice={part.catalogue_voice_id || part.voice || part.voice_name} identityId={part.voice_identity_id} directory={directory} compact showCopy={false} showEditorialFlag={false} />
+                <span className="speech-part-heading-copy"><b className="speech-part-voice-name"><span>{facts.selectedVoiceName}</span><VoiceGenderBadge gender={facts.voice.gender} /></b><span className="speech-part-method">{facts.methodLine}</span></span>
               </button></TooltipTrigger>
               <TooltipContent>{facts.technicalDetail || "Active recording method"}</TooltipContent>
             </Tooltip>
@@ -122,13 +123,9 @@ export function SpeechPartCard({ part, job, captionJob, index, count, playing, p
       <footer className="speech-part-result">
         {facts.recorded ? <>
           <div className="speech-part-playback">
-            {facts.playable && <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="speech-part-play" onClick={() => actions.play({ key: `part:${part.id}`, url: audioUrl(part.filename!), title: `Part ${index + 1}`, subtitle: facts.selectedVoiceName, kind: "clip" })} aria-label={playing ? "Pause part" : "Play part"}>{playing ? <Pause /> : <Play />}</Button></TooltipTrigger><TooltipContent>{playing ? "Pause recording" : "Play recording"}</TooltipContent></Tooltip>}
+            {facts.playable && <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="speech-part-play" onClick={() => actions.play({ key: `part:${part.id}`, url: audioUrl(part.filename!), title: formatPartLabel(index), subtitle: facts.selectedVoiceName, kind: "clip" })} aria-label={playing ? "Pause part" : "Play part"}>{playing ? <Pause /> : <Play />}</Button></TooltipTrigger><TooltipContent>{playing ? "Pause recording" : "Play recording"}</TooltipContent></Tooltip>}
             {(playing || facts.operation.kind === "active") && <span className="speech-part-waveform"><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={34} /></span>}
             <span>{facts.durationLabel}</span>
-          </div>
-          <div className="speech-part-clip-summary" title={facts.recordingSummary} aria-label={facts.recordingSummary}>
-            <span>Recording</span>
-            <span className={cn("speech-part-input-state", facts.inputLabel && `is-${facts.inputLabel.toLowerCase()}`)}>{facts.inputLabel || "Unknown input"}</span>
           </div>
           <button onClick={openCaptions} className={`speech-part-caption is-${facts.captionTone}`} aria-label={`Captions: ${facts.captionSummary}`}><Captions />{facts.captionSummary}</button>
         </> : <span className="speech-part-not-recorded">Not recorded</span>}

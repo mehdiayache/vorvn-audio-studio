@@ -64,6 +64,7 @@ export type ResolvedVoice = {
   unavailable: boolean
   preview?: string
   editorialLanguage?: string
+  gender?: string
 }
 
 export function resolveVoice(id: string | undefined, directory: VoiceDirectory, identityId?: string | null): ResolvedVoice {
@@ -87,6 +88,7 @@ export function resolveVoice(id: string | undefined, directory: VoiceDirectory, 
     : ""
   const name = identity?.name || meta?.name || binding?.name || cloned?.name || catalogue?.name || ownedSnapshotName || (omniDescription ? technicalId : isClone ? `${humanize(fallbackCloneName)} · your voice` : stockFallbackName(key || "Unknown voice"))
   const editorialLanguage = identity?.metadata.editorial_language
+  const gender = identity?.metadata.gender || binding?.gender || catalogue?.gender || meta?.gender
   const identityDetail = [editorialLanguage ? `${languageFlag(String(editorialLanguage))} ${languageDisplay(String(editorialLanguage))} focus` : "", identity?.metadata.trait, identity?.metadata.accent].filter(Boolean).join(" · ")
   const detail = identity ? identityDetail || "Your cloned voice" : isClone
     ? [meta?.languages ? `Speaks ${languageDisplay(meta.languages)}` : "Cloned voice", cloned?.engine === "omni" || /omni/i.test(technicalId) ? "Qwen Omni" : "Qwen Audio"].filter(Boolean).join(" · ")
@@ -96,5 +98,5 @@ export function resolveVoice(id: string | undefined, directory: VoiceDirectory, 
   const made = directory.usage?.[key]?.latest_preview
   const previewFilename = identity?.usage?.preview_filename
   const preview = previewFilename ? `/audio/${encodeURIComponent(previewFilename)}` : catalogue?.sample ? `/samples/${encodeURIComponent(catalogue.sample)}` : made ? `/audio/${encodeURIComponent(made)}` : undefined
-  return { id: technicalId, key: identity?.id || key, name: name.trim() || "Unavailable voice", detail, image: String(identity?.metadata.image || binding?.image || meta?.image || directory.config?.voice_images?.[key] || "") || undefined, cloned: Boolean(identity || isClone), unavailable, preview, editorialLanguage: String(editorialLanguage || "") || undefined }
+  return { id: technicalId, key: identity?.id || key, name: name.trim() || "Unavailable voice", detail, image: String(identity?.metadata.image || binding?.image || meta?.image || directory.config?.voice_images?.[key] || "") || undefined, cloned: Boolean(identity || isClone), unavailable, preview, editorialLanguage: String(editorialLanguage || "") || undefined, gender: String(gender || "") || undefined }
 }
