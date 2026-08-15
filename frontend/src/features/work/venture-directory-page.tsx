@@ -4,7 +4,6 @@ import { Link } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
 import { VentureMark } from "@/components/venture-mark"
-import { ToolPageHeader } from "@/design-system/vorvn"
 import { resourceHref } from "@/lib/links"
 import type { HierarchyNode } from "@/types/domain"
 import { CreateVentureDialog } from "./create-venture-dialog"
@@ -34,12 +33,10 @@ export function VentureDirectoryPage({ items }: { items: HierarchyNode[] }) {
 
   return (
     <main className="work-page work-directory-page">
-      <ToolPageHeader
-        eyebrow="Audio Studio"
-        title="Work"
-        description="Ventures organize brands and production boundaries."
-        actions={<Button onClick={() => setCreating(true)}><Plus /> New Venture</Button>}
-      />
+      <header className="work-directory-header">
+        <div><small>Audio Studio</small><h1>Work</h1><p>Ventures organize brands and production boundaries.</p></div>
+        <Button onClick={() => setCreating(true)}><Plus /> New Venture</Button>
+      </header>
       <section className="venture-directory-grid" aria-label="Ventures">
         {ventures.map((venture) => {
           const { projects, productions } = descendantsFor(venture, items)

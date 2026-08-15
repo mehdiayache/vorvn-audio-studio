@@ -47,21 +47,30 @@ export function RecordingClipCard({ clip, directory, active = false, onPlay, onS
   const created = clip.createdAt ? new Date(clip.createdAt).toLocaleString() : ""
 
   return <article className={cn("recording-clip-card", `is-${outdated || review ? "warning" : clip.status}`)}>
-    <div className="recording-clip-status"><b>Recording</b><StatusIcon className={working ? "spin" : ""} /><span>{statusLabel}</span>{clip.inputState && <em>Rendered from {clip.inputState}</em>}</div>
-    <VoiceIdentity voice={clip.voice} identityId={clip.voiceIdentityId} directory={directory} compact showDetail={false} />
-    <div className="recording-clip-summary">
-      <b>{[clip.method, clip.language].filter(Boolean).join(" · ")}</b>
-      <SpeechModelIdentity engine={clip.engine} model={clip.model} modelId={clip.modelId} config={directory.config} compact />
-      <small>{[
-        clip.durationMs ? formatDuration(clip.durationMs / 1000) : "",
-        clip.cost !== undefined ? formatMoney(clip.cost) : "",
-        created,
-      ].filter(Boolean).join(" · ")}</small>
-      {clip.message && <p>{clip.message}</p>}
+    <div className="recording-clip-leading">
+      {clip.audioUrl && onPlay
+        ? <Button variant="outline" size="icon" aria-label={active ? "Pause recording" : "Play recording"} onClick={onPlay}>{active ? <Pause /> : <Play />}</Button>
+        : <span className="recording-clip-state-icon" aria-hidden="true"><StatusIcon className={working ? "spin" : ""} /></span>}
+    </div>
+    <div className="recording-clip-body">
+      <header>
+        <VoiceIdentity voice={clip.voice} identityId={clip.voiceIdentityId} directory={directory} compact showDetail={false} />
+        <span className="recording-clip-status"><StatusIcon className={working ? "spin" : ""} />{statusLabel}</span>
+      </header>
       {clip.script && <p className="recording-clip-script" dir="auto">{clip.script}</p>}
+      <div className="recording-clip-facts">
+        <b>{[clip.method, clip.language].filter(Boolean).join(" · ")}</b>
+        <SpeechModelIdentity engine={clip.engine} model={clip.model} modelId={clip.modelId} config={directory.config} compact />
+        <small>{[
+          clip.durationMs ? formatDuration(clip.durationMs / 1000) : "",
+          clip.cost !== undefined ? formatMoney(clip.cost) : "",
+          created,
+        ].filter(Boolean).join(" · ")}</small>
+        {clip.inputState && <em>Rendered from {clip.inputState}</em>}
+      </div>
+      {clip.message && <p className="recording-clip-message">{clip.message}</p>}
     </div>
     <div className="recording-clip-actions">
-      {clip.audioUrl && onPlay && <Button variant="outline" size="icon" aria-label={active ? "Pause recording" : "Play recording"} onClick={onPlay}>{active ? <Pause /> : <Play />}</Button>}
       {onSecondaryAction && <Button variant="outline" onClick={onSecondaryAction}><RotateCw /> {secondaryLabel}</Button>}
     </div>
   </article>

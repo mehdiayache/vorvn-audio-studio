@@ -1,18 +1,32 @@
-.recording-clip-card { display: grid; grid-template-columns: minmax(210px, .72fr) minmax(320px, 1.45fr) auto; gap: 16px; align-items: center; padding: 16px 18px; border: 1px solid var(--border); border-radius: var(--vrn-radius-md); background: var(--card); box-shadow: var(--vrn-shadow-subtle); }
-.recording-clip-card + .recording-clip-card { margin-top: 9px; }
-.recording-clip-card.is-pending { border-color: color-mix(in oklch, var(--primary) 42%, var(--border)); background: var(--primary-soft); }
-.recording-clip-card.is-failed { border-color: var(--danger-border); background: var(--danger-soft); }
-.recording-clip-card.is-warning { border-color: color-mix(in oklch, var(--warning) 34%, var(--border)); background: var(--warning-soft); }
-.recording-clip-status { grid-column: 1 / -1; display: flex; align-items: center; gap: 7px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: 680; }
-.recording-clip-status svg { width: 17px; height: 17px; }
-.recording-clip-status b, .recording-clip-status em { padding: 2px 7px; border-radius: var(--vrn-radius-round); background: var(--surface-muted); color: var(--foreground); font-size: var(--vrn-type-metadata-size); font-style: normal; }
-.recording-clip-status b { margin-right: 2px; }
-.recording-clip-status em { margin-left: auto; background: color-mix(in oklab, var(--vrn-data-series-2) 10%, var(--surface-raised)); color: var(--vrn-data-series-2); }
-.recording-clip-summary { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.recording-clip-summary .speech-model-identity { margin: 2px 0; }
-.recording-clip-summary > b, .recording-clip-summary > small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.recording-clip-summary > small { color: var(--muted-foreground); font-size: var(--type-small); }
-.recording-clip-summary > p { margin: 3px 0 0; color: var(--muted-foreground); font-size: var(--type-small); }
-.recording-clip-script { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.recording-clip-actions { display: flex; gap: 7px; justify-content: flex-end; }
-@media (max-width: 820px) { .recording-clip-card { grid-template-columns: minmax(0,1fr) auto; }.recording-clip-status { grid-column: 1 / -1; }.recording-clip-summary { grid-column: 1 / -1; }.recording-clip-actions { grid-column: 1 / -1; justify-content: stretch; }.recording-clip-actions > button:not([data-slot="button"][class*="size-"]) { flex: 1; } }
+.recording-clip-card { position: relative; display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px 16px; border: 1px solid var(--border); border-radius: calc(var(--radius) * 1.2); background: var(--surface-raised); box-shadow: var(--shadow-xs); }
+.recording-clip-card + .recording-clip-card { margin-top: 8px; }
+.recording-clip-card::before { position: absolute; inset: 10px auto 10px -1px; width: 2px; border-radius: 2px; content: ""; background: transparent; }
+.recording-clip-card.is-pending::before { background: var(--primary); }
+.recording-clip-card.is-failed::before { background: var(--destructive); }
+.recording-clip-card.is-warning::before { background: var(--warning); }
+.recording-clip-leading > button, .recording-clip-state-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; }
+.recording-clip-leading > button { color: var(--primary); border-color: color-mix(in oklch, var(--primary) 24%, var(--border)); }
+.recording-clip-leading > button:hover { color: var(--primary-foreground); border-color: var(--primary); background: var(--primary); }
+.recording-clip-state-icon { color: var(--muted-foreground); background: var(--surface-subtle); }
+.is-pending .recording-clip-state-icon { color: var(--primary); background: var(--primary-soft); }
+.is-failed .recording-clip-state-icon { color: var(--destructive); background: var(--danger-soft); }
+.is-warning .recording-clip-state-icon { color: var(--warning); background: var(--warning-soft); }
+.recording-clip-state-icon svg { width: 17px; height: 17px; }
+.recording-clip-body { min-width: 0; display: grid; gap: 6px; }
+.recording-clip-body > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.recording-clip-status { flex: none; display: inline-flex; align-items: center; gap: 5px; color: var(--muted-foreground); font-size: var(--type-caption); font-weight: 650; }
+.recording-clip-status svg { width: 14px; height: 14px; }
+.is-pending .recording-clip-status { color: var(--primary); }
+.is-failed .recording-clip-status { color: var(--destructive); }
+.is-warning .recording-clip-status { color: var(--warning); }
+.recording-clip-script { display: -webkit-box; overflow: hidden; margin: 0; color: var(--foreground); font-size: var(--type-body); line-height: 1.45; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.recording-clip-facts { min-width: 0; display: flex; align-items: center; gap: 7px 12px; overflow: hidden; color: var(--muted-foreground); font-size: var(--type-caption); }
+.recording-clip-facts > b, .recording-clip-facts > small, .recording-clip-facts > em { flex: none; overflow: hidden; font-size: inherit; font-style: normal; font-weight: 520; text-overflow: ellipsis; white-space: nowrap; }
+.recording-clip-facts > b { color: var(--foreground); font-weight: 620; }
+.recording-clip-facts > * + *::before { margin-right: 12px; color: var(--border-strong); content: "·"; }
+.recording-clip-facts .speech-model-identity { flex: 0 1 auto; min-width: 0; }
+.recording-clip-facts .speech-model-identity::before { margin-right: 12px; color: var(--border-strong); content: "·"; }
+.recording-clip-message { margin: 2px 0 0; color: var(--destructive); font-size: var(--type-small); line-height: 1.4; }
+.is-warning .recording-clip-message { color: var(--warning); }
+.recording-clip-actions { display: flex; justify-content: flex-end; }
+@media (max-width: 820px) { .recording-clip-card { grid-template-columns: 40px minmax(0,1fr); }.recording-clip-actions { grid-column: 2; justify-content: flex-start; }.recording-clip-facts { flex-wrap: wrap; }.recording-clip-body > header { align-items: flex-start; flex-direction: column; gap: 5px; } }
