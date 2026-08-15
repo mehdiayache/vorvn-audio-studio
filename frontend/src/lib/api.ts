@@ -126,12 +126,12 @@ function registerJob<T>(job: DurableJob<T>) {
   return job
 }
 
-async function enqueueSpeech(payload: GeneratePayload, operation?: "record_part" | "render_draft", partId?: number) {
-  const prefix = operation === "render_draft" ? `render-draft-${partId}` : operation === "record_part" ? `record-part-${partId}` : "speech"
+async function enqueueSpeech(payload: GeneratePayload, partId?: number) {
+  const prefix = partId ? `record-part-${partId}` : "speech"
   const response = await request<{ data: DurableJob<GenerateResult> }>("/api/v1/jobs/speech", {
     method: "POST",
     headers: { "Idempotency-Key": `${prefix}-${crypto.randomUUID()}` },
-    body: JSON.stringify(operation ? { ...payload, operation, part_id: partId } : payload),
+    body: JSON.stringify(partId ? { ...payload, part_id: partId } : payload),
   })
   return registerJob(response.data)
 }
@@ -207,8 +207,6 @@ export const studioApi = {
     } while (after)
     return items
   },
-  resource: (type: "ventures" | "projects" | "series", id: number) =>
-    v1<HierarchyNode>(`/api/v1/${type}/${id}`),
   ventureOverview: (id: number) => request<VentureOverviewEnvelope>(`/api/v1/ventures/${id}/overview`).then((response) => response.data),
   ventureAssets: (id: number) => request<VentureAssetsEnvelope>(`/api/v1/ventures/${id}/assets`).then((response) => response.data as VentureAssetLibrary),
   projectOverview: (id: number) => request<ProjectOverviewEnvelope>(`/api/v1/projects/${id}/overview`).then((response) => response.data),
@@ -244,7 +242,7 @@ export const studioApi = {
   addSilence: (productionId: number, seconds: number, beforePartId: string | null) =>
     request<TimelinePartEnvelope>(`/api/v1/productions/${productionId}/parts/silence`, { method: "POST", body: JSON.stringify({
       seconds,
-      before_part_id: beforePartId,
+      insert_before_part_id: beforePartId,
     }) }).then((response) => response.data),
   editSilence: (productionId: number, id: number, seconds: number) =>
     request<TimelinePartEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/silence`, { method: "PATCH", body: JSON.stringify({ seconds }) }).then((response) => response.data),
@@ -260,7 +258,7 @@ export const studioApi = {
   insertAsset: (productionId: number, assetId: number, beforePartId: string | null) =>
     postV1<{ ok?: boolean; id?: number }>(`/api/v1/productions/${productionId}/parts/assets`, {
       asset_id: assetId,
-      before_part_id: beforePartId,
+      insert_before_part_id: beforePartId,
     }),
   replaceAsset: (productionId: number, partId: number, assetId: number) =>
     request<TimelinePartEnvelope>(`/api/v1/productions/${productionId}/parts/${partId}/asset`, { method: "PATCH", body: JSON.stringify({ asset_id: assetId }) }).then((response) => response.data),
@@ -279,8 +277,7 @@ export const studioApi = {
     return registerJob(response.data)
   },
   enqueueGenerate: (payload: GeneratePayload) => enqueueSpeech(payload),
-  enqueueRecordPart: (id: number, payload: GeneratePayload) => enqueueSpeech(payload, "record_part", id),
-  enqueueRenderDraft: (id: number, payload: GeneratePayload) => enqueueSpeech(payload, "render_draft", id),
+  enqueueRecordPart: (id: number, payload: GeneratePayload) => enqueueSpeech(payload, id),
   generate: async (payload: GeneratePayload) => {
     const job = await enqueueSpeech(payload)
     const result = await jobObserver.completion<GenerateResult>(job.id)
@@ -292,10 +289,6 @@ export const studioApi = {
     request<{ data: ComposerDraftWireRecord }>("/api/v1/composer-drafts", { method: "PUT", body: JSON.stringify({ context: contextWire(context), state: draftWire(state), expected_version: expectedVersion }) }).then((response) => draftFromWire(response.data) as ComposerDraftRecord),
   deleteComposerDraft: (context: CompositionContext, expectedVersion: number | null) =>
     request<{ data: { deleted: boolean } }>("/api/v1/composer-drafts", { method: "DELETE", body: JSON.stringify({ context: contextWire(context), expected_version: expectedVersion }) }).then((response) => response.data),
-  renderDraft: async (id: number, payload: GeneratePayload) => {
-    const job = await enqueueSpeech(payload, "render_draft", id)
-    return jobObserver.completion<GenerateResult>(job.id)
-  },
   enqueueTextPass: async (kind: "shape" | "tag", payload: { text: string; production_id?: number; part_id?: number; density?: "none" | "light" | "normal" | "heavy"; capability_id: string; confirmed?: boolean }) => {
     const response = await request<{ data: DurableJob<TextPassResult> }>("/api/v1/jobs/text", { method: "POST", headers: { "Idempotency-Key": `rewrite-${kind}-${crypto.randomUUID()}` }, body: JSON.stringify({ ...payload, operation: kind }) })
     return registerJob(response.data)

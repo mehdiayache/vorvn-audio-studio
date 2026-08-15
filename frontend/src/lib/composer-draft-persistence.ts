@@ -28,7 +28,6 @@ export function contextWire(context: CompositionContext) {
   return {
     kind: "production" as const,
     production_id: context.productionId,
-    operation: context.operation,
     part_id: context.partId ?? null,
     insert_before_part_id: context.insertion?.partId ?? null,
   }

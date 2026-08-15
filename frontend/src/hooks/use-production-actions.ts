@@ -122,15 +122,6 @@ export function useProductionActions({ production, music, player, refresh, refre
     }
   }, [])
 
-  const renderDraft = useCallback(async (part: ProductionPart, payload: GeneratePayload): Promise<DurableJob<GenerateResult>> => {
-    try {
-      return await studioApi.enqueueRenderDraft(part.id, payload)
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "The draft could not be recorded.")
-      throw error
-    }
-  }, [production.id])
-
   const updatePartEditorial = useCallback(async (part: ProductionPart, values: { expected_revision: number; script?: string }) => {
     try {
       await studioApi.savePartEditorial(production.id, part.id, values)
@@ -185,5 +176,5 @@ export function useProductionActions({ production, music, player, refresh, refre
     toast.success(`${file.name} uploaded to ${folder}`)
   }, [refreshAssets])
 
-  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, renderDraft, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, setMusic, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, moveParts, uploadAsset }
+  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, setMusic, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, moveParts, uploadAsset }
 }

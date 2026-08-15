@@ -51,52 +51,6 @@ def list_hierarchy(limit: int = Query(100, ge=1, le=100),
     return _page(work_service.hierarchy(), limit, after)
 
 
-@router.get("/ventures", operation_id="listVentures",
-            response_model=HierarchyPageEnvelope,
-            response_model_exclude_none=True)
-def list_ventures(limit: int = Query(100, ge=1, le=100),
-                  after: str | None = None) -> dict:
-    return _page([item for item in work_service.hierarchy()
-                  if item["type"] == "venture"],
-                 limit, after)
-
-
-def _get_resource(collection: str, resource_id: int) -> dict:
-    item = work_service.resource(collection, resource_id)
-    if not item:
-        raise ApiProblem(404, f"{KINDS[collection]}_not_found",
-                         f"That {KINDS[collection]} does not exist.")
-    return {"data": item}
-
-
-@router.get("/ventures/{resource_id}", operation_id="getVenture",
-            response_model=WorkResourceEnvelope,
-            response_model_exclude_none=True)
-def get_venture(resource_id: str) -> dict:
-    return _get_resource("ventures", resource_id)
-
-
-@router.get("/projects/{resource_id}", operation_id="getProject",
-            response_model=WorkResourceEnvelope,
-            response_model_exclude_none=True)
-def get_project(resource_id: str) -> dict:
-    return _get_resource("projects", resource_id)
-
-
-@router.get("/series/{resource_id}", operation_id="getSeries",
-            response_model=WorkResourceEnvelope,
-            response_model_exclude_none=True)
-def get_series(resource_id: str) -> dict:
-    return _get_resource("series", resource_id)
-
-
-@router.get("/productions/{resource_id}", operation_id="getProduction",
-            response_model=WorkResourceEnvelope,
-            response_model_exclude_none=True)
-def get_production(resource_id: str) -> dict:
-    return _get_resource("productions", resource_id)
-
-
 def _get_overview(collection: str, resource_id: str) -> dict:
     item = work_service.overview(collection, resource_id)
     if not item:

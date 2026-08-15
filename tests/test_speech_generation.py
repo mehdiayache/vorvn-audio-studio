@@ -25,12 +25,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class FakeRepository:
-    def __init__(self, *, spent=0, part=None, production=True,
-                 production_settings=None):
+    def __init__(self, *, spent=0, part=None):
         self.spent = spent
         self.current_part = part
-        self.has_production = production
-        self.production_settings = production_settings or {}
         self.created = []
         self.replaced = []
 
@@ -52,25 +49,16 @@ class FakeRepository:
     def today_spend(self):
         return self.spent
 
-    def production(self, production_id):
-        return ({"id": production_id, "legacy_container_id": 88,
-                 "name": "Fixture", "settings": self.production_settings}
-                if self.has_production else None)
-
     def part(self, part_id, production_id):
         if not self.current_part:
             return None
         return {**self.current_part, "id": part_id,
                 "production_id": production_id}
 
-    def create_part(self, production_id, insert_at, values):
-        self.created.append((production_id, insert_at, values))
-        return 701 if production_id is not None else None
-
     def attach_clip(self, part_id, production_id, expected_revision,
-                    values, *, operation):
-        self.replaced.append((part_id, production_id, expected_revision,
-                              values, operation))
+                    values):
+        self.replaced.append(
+            (part_id, production_id, expected_revision, values))
         return {"attached": 1, "clip_id": 901, "subtitles_stale": 0}
 
 
@@ -272,22 +260,11 @@ class SpeechGenerationTests(unittest.TestCase):
         self.assertIsNone(provider.prepared[0].language)
         self.assertEqual(provider.prepared[0].engine, "audio")
 
-    def test_new_speech_inherits_missing_series_defaults_from_production(self):
-        repository = FakeRepository(production_settings={
-            "language": "Arabic", "engine": "omni",
-            "model": "flash", "speech_mode": "directed",
-        })
-        service, _, provider, _ = self.service(repository=repository)
-        values = payload(production_id=12)
-        for key in ("language", "engine", "model", "speech_mode"):
-            values.pop(key)
-        service.run(values)
-        prepared = provider.prepared[0]
-        self.assertEqual(
-            (prepared.language, prepared.engine, prepared.tier,
-             prepared.speech_mode),
-            ("Arabic", "omni", "flash", "directed"),
-        )
+    def test_production_speech_requires_the_atomic_part_command(self):
+        service, _, provider, workspace = self.service()
+        with self.assertRaisesRegex(ValueError, "target the Part"):
+            service.run(payload(production_id=12))
+        self.assertEqual((provider.calls, workspace.saved), ([], []))
 
     def service(self, repository=None, provider=None, preferences=None):
         repository = repository or FakeRepository()
@@ -301,38 +278,28 @@ class SpeechGenerationTests(unittest.TestCase):
         )
         return service, repository, provider, workspace
 
-    def test_create_validates_destination_then_persists_the_paid_audio(self):
+    def test_standalone_create_persists_paid_audio_without_a_fake_part(self):
         service, repository, provider, workspace = self.service()
-        result = service.run(payload(production_id=12, insert_at=2))
-        self.assertEqual(result["id"], 701)
-        self.assertEqual(result["url"], "/audio/generated.mp3")
-        self.assertEqual(result["model"], "model-audio-plus")
-        self.assertEqual(result["cost_basis"], "catalog_characters")
-        self.assertEqual(repository.created[0][:2], (12, 2))
-        saved = repository.created[0][2]
-        self.assertEqual((saved["text"], saved["filename"], saved["kind"]),
-                         ("Hello world", "generated.mp3", "audio"))
-        self.assertEqual(saved["cost"], .0015)
-        self.assertEqual(len(provider.calls), 1)
-        self.assertEqual(workspace.saved, [(b"generated-audio", "mp3")])
-
-    def test_standalone_speech_has_no_fake_production(self):
-        service, repository, _, _ = self.service()
         result = service.run(payload())
         self.assertIsNone(result["id"])
         self.assertIsNone(result["part_id"])
-        self.assertEqual(repository.created[0][:2], (None, None))
+        self.assertEqual(result["url"], "/audio/generated.mp3")
+        self.assertEqual(result["model"], "model-audio-plus")
+        self.assertEqual(result["cost_basis"], "catalog_characters")
+        self.assertEqual(repository.created, [])
+        self.assertEqual(len(provider.calls), 1)
+        self.assertEqual(workspace.saved, [(b"generated-audio", "mp3")])
 
-    def test_render_draft_attaches_the_first_recording(self):
+    def test_record_attaches_the_first_clip_to_a_draft(self):
         repository = FakeRepository(part=existing("draft"))
         service, _, _, _ = self.service(repository=repository)
         result = service.run(payload(
-            operation="render_draft", production_id=12, part_id=45,
+            operation="record", production_id=12, part_id=45,
             text="First recording"))
         self.assertEqual(result["id"], 45)
-        self.assertEqual(repository.replaced[0][4], "render_draft")
+        self.assertEqual(repository.replaced[0][0], 45)
 
-    def test_record_part_uses_the_enqueue_revision_and_script_snapshot(self):
+    def test_record_uses_the_enqueue_revision_and_script_snapshot(self):
         repository = FakeRepository(part={
             **existing("speech"),
             "revision": 4,
@@ -342,7 +309,7 @@ class SpeechGenerationTests(unittest.TestCase):
         source_hash = hashlib.sha256(b"Canonical queued script").hexdigest()
 
         result = service.run(payload(
-            operation="record_part", production_id=12, part_id=44,
+            operation="record", production_id=12, part_id=44,
             text="Prepared words sent to the provider",
             _source_part_revision=3,
             _source_script_hash=source_hash,
@@ -351,7 +318,6 @@ class SpeechGenerationTests(unittest.TestCase):
         self.assertEqual(result["id"], 44)
         self.assertEqual(repository.created, [])
         self.assertEqual(repository.replaced[0][2], 3)
-        self.assertEqual(repository.replaced[0][4], "record_part")
         self.assertEqual(
             repository.replaced[0][3]["_source_script_hash"], source_hash)
 
@@ -359,15 +325,14 @@ class SpeechGenerationTests(unittest.TestCase):
         repository = FakeRepository(part=existing("draft"))
         service, _, provider, _ = self.service(repository=repository)
         service.run(payload(
-            operation="render_draft", production_id=12, part_id=44,
+            operation="record", production_id=12, part_id=44,
             voice="Tina", voice_identity_id=None))
         self.assertIsNone(provider.prepared[0].voice_identity_id)
         self.assertIsNone(repository.replaced[0][3]["voice_identity_id"])
 
     def test_preflight_and_budget_guards_never_call_or_write_provider_audio(self):
-        repository = FakeRepository(production=False)
-        service, _, provider, workspace = self.service(repository=repository)
-        with self.assertRaisesRegex(LookupError, "Production"):
+        service, _, provider, workspace = self.service()
+        with self.assertRaisesRegex(ValueError, "target the Part"):
             service.run(payload(production_id=99))
         self.assertEqual((provider.calls, workspace.saved), ([], []))
 
@@ -386,8 +351,8 @@ class SpeechGenerationTests(unittest.TestCase):
 
         repository = FakeRepository(part=existing("audio"))
         service, _, provider, workspace = self.service(repository=repository)
-        with self.assertRaisesRegex(ValueError, "Draft"):
-            service.run(payload(operation="render_draft", production_id=12,
+        with self.assertRaisesRegex(ValueError, "already been recorded"):
+            service.run(payload(operation="record", production_id=12,
                                 part_id=4))
         self.assertEqual((provider.calls, workspace.saved), ([], []))
 
@@ -431,13 +396,7 @@ class SpeechGenerationTests(unittest.TestCase):
         self.assertEqual(progress.events[0][1:3], (0, 2))
         self.assertEqual(progress.events[-1][1:3], (2, 2))
 
-    def test_http_contract_is_canonical_strict_and_backwards_readable(self):
-        model = SpeechJobCreate(
-            text="Hello",
-            catalogue_voice_id="alibaba:intl:qwen3.5-omni-plus:Tina",
-            project_id=7)
-        self.assertEqual(model.production_id, 7)
-        self.assertEqual(model.model_dump()["production_id"], 7)
+    def test_http_contract_is_canonical_and_strict(self):
         cleared = SpeechJobCreate(
             text="Hello", voice_identity_id=None,
             catalogue_voice_id="alibaba:intl:qwen3.5-omni-plus:Tina")
@@ -445,24 +404,21 @@ class SpeechGenerationTests(unittest.TestCase):
         SpeechJobCreate(
             text="Hello",
             catalogue_voice_id="alibaba:intl:qwen3.5-omni-plus:Tina",
-            production_id=7, operation="render_draft", part_id=8)
+            production_id=7, part_id=8)
         anchor = uuid4()
         anchored = SpeechJobCreate(
             text="Hello",
             catalogue_voice_id="alibaba:intl:qwen3.5-omni-plus:Tina",
             production_id=7, insert_before_part_id=anchor)
         self.assertEqual(anchored.insert_before_part_id, anchor)
-        with self.assertRaises(ValueError):
-            SpeechJobCreate(
-                text="Hello",
-                catalogue_voice_id="alibaba:intl:qwen3.5-omni-plus:Tina",
-                production_id=7, insert_at=1,
-                insert_before_part_id=anchor)
         for changes in (
             {"voice": "Tina"}, {"engine": "omni"}, {"model": "plus"},
             {"rate": 3}, {"volume": 101},
-            {"operation": "unsupported", "part_id": 8},
-            {"insert_at": 2},
+            {"operation": "render_draft", "production_id": 7, "part_id": 8},
+            {"insert_at": 2}, {"project_id": 7},
+            {"part_id": 8},
+            {"production_id": 7, "part_id": 8,
+             "insert_before_part_id": anchor},
         ):
             values = {"text": "Hello",
                       "catalogue_voice_id": "alibaba:intl:qwen3.5-omni-plus:Tina",

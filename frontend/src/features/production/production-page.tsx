@@ -110,8 +110,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const queueRender = useCallback((payload: GeneratePayload) => {
     const target = composerPart
     if (target?.clip_id) return Promise.reject(new Error("This Part already has a recording. Delete it before creating a different one."))
-    const operation = target?.kind === "draft" ? actions.renderDraft(target, payload)
-      : target ? actions.recordPendingPart(target, payload)
+    const operation = target ? actions.recordPendingPart(target, payload)
         : actions.generatePart(payload)
     return operation.then((job) => {
       closeTool()
@@ -189,9 +188,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     const payload = { ...(part.speech_job?.request || {}), production_id: production.id } as GeneratePayload
     if (!payload.text) return
     if (part.clip_id) return
-    const next = part.kind === "draft" ? actions.renderDraft(part, payload)
-      : actions.recordPendingPart(part, payload)
-    await next
+    await actions.recordPendingPart(part, payload)
     await refresh()
   }, [actions, production.id, refresh])
   const confirmJob = useCallback(async (_part: ProductionPart, job: DurableJob<GenerateResult>) => {

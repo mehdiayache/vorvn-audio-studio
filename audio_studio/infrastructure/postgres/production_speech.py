@@ -37,20 +37,17 @@ class ProductionSpeechCommandRepository:
             if not created:
                 return job, False
 
-            operation = str(request_payload.get("operation") or "create")
-            if operation == "create":
+            if request_payload.get("part_id") is None:
                 part_id, source_revision, source_script = self._create_part(
                     cursor, production_id, request_payload,
                     before_part_public_id)
-                runtime_operation = "record_part"
             else:
                 part_id, source_revision, source_script = self._lock_part(
                     cursor, production_id, request_payload)
-                runtime_operation = operation
 
             runtime_payload = {
                 **request_payload,
-                "operation": runtime_operation,
+                "operation": "record",
                 "part_id": part_id,
                 "_source_part_revision": source_revision,
                 "_source_script_hash": hashlib.sha256(
@@ -92,10 +89,7 @@ class ProductionSpeechCommandRepository:
                   FROM production_parts
                  WHERE production_id=%s AND archived_at IS NULL
             """, (production_id,))
-            next_position = int(cursor.fetchone()[0])
-            legacy_position = payload.get("insert_at")
-            position = (next_position if legacy_position is None else
-                        max(0, min(int(legacy_position), next_position)))
+            position = int(cursor.fetchone()[0])
         cursor.execute("""
             UPDATE production_parts SET position=position+1, updated_at=now()
              WHERE production_id=%s AND archived_at IS NULL AND position >= %s

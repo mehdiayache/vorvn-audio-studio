@@ -139,7 +139,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     : part
       ? `Record draft · Part ${(part.position ?? 0) + 1}`
       : insertAt === null ? `New speech · Part ${nextPartNumber}` : `New speech · before Part ${insertAt + 1}`
-  const context = useMemo(() => compositionContext({ productionId, part, insertAt, insertBeforePartId }), [insertAt, insertBeforePartId, part, productionId])
+  const context = useMemo(() => compositionContext({ productionId, part, insertBeforePartId }), [insertBeforePartId, part, productionId])
   const baseline = useMemo(() => editorialBaseline(part), [part])
   const draft: CompositionDraft = {
     voiceIdentityId: selectedIdentity?.source === "owned" ? selectedIdentity.identityId : null,

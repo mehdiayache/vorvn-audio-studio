@@ -10,9 +10,6 @@ from audio_studio.infrastructure.postgres.session import read_only, transaction
 from audio_studio.infrastructure.postgres.provider_catalogue import (
     ProviderCatalogueRepository,
 )
-from audio_studio.infrastructure.postgres.part_positions import (
-    release_archived_positions,
-)
 from audio_studio.infrastructure.postgres.spend import today_provider_spend
 
 
@@ -88,24 +85,6 @@ class SpeechRepository:
     def today_spend(self) -> float:
         return today_provider_spend()
 
-    def production(self, production_id: int) -> dict[str, Any] | None:
-        with read_only() as cursor:
-            cursor.execute("""
-                SELECT production.id, production.legacy_container_id,
-                       production.name, production.settings
-                  FROM productions production
-                  JOIN work_projects project ON project.id = production.project_id
-                  JOIN ventures venture ON venture.id = project.venture_id
-                 WHERE production.id = %s
-                   AND production.archived_at IS NULL
-                   AND project.archived_at IS NULL
-                   AND venture.archived_at IS NULL
-            """, (production_id,))
-            row = cursor.fetchone()
-        return ({"id": row[0], "legacy_container_id": row[1], "name": row[2],
-                 "settings": row[3] or {}}
-                if row else None)
-
     def part(self, part_id: int, production_id: int) -> dict[str, Any] | None:
         with read_only() as cursor:
             cursor.execute("""
@@ -154,43 +133,9 @@ class SpeechRepository:
             "capability_id": row[20] or draft.get("capability_id"),
         }
 
-    def create_part(self, production_id: int | None, insert_at: int | None,
-                    values: dict[str, Any]) -> int | None:
-        if production_id is None:
-            # Standalone Speak history is the durable Job/ProviderAttempt.  It
-            # must not manufacture a fake Production Part.
-            return None
-        with transaction() as cursor:
-            cursor.execute("SELECT id FROM productions WHERE id = %s AND archived_at IS NULL FOR UPDATE",
-                           (production_id,))
-            if not cursor.fetchone():
-                raise LookupError("That Production no longer exists.")
-            release_archived_positions(cursor, production_id)
-            cursor.execute("SELECT coalesce(max(position), -1) + 1 FROM production_parts WHERE production_id = %s AND archived_at IS NULL",
-                           (production_id,))
-            next_position = int(cursor.fetchone()[0] or 0)
-            position = next_position if insert_at is None else max(0, min(int(insert_at), next_position))
-            cursor.execute("UPDATE production_parts SET position = position + 1 WHERE production_id = %s AND archived_at IS NULL AND position >= %s",
-                           (production_id, position))
-            canonical_script = str(values.get("text_raw") or
-                                   values.get("text") or "")
-            cursor.execute("""
-                INSERT INTO production_parts
-                    (production_id, position, kind, script, title,
-                     editorial_status, revision)
-                VALUES (%s, %s, 'speech', %s, %s, 'ready', 1)
-                RETURNING id
-            """, (production_id, position, canonical_script,
-                  values.get("title") or ""))
-            part_id = int(cursor.fetchone()[0])
-            self._insert_clip(
-                cursor, part_id, 1, values,
-                canonical_script=canonical_script)
-            return part_id
-
     def attach_clip(self, part_id: int, production_id: int,
-                    expected_revision: int, values: dict[str, Any], *,
-                    operation: str) -> dict[str, int]:
+                    expected_revision: int,
+                    values: dict[str, Any]) -> dict[str, int]:
         with transaction() as cursor:
             cursor.execute("""
                 SELECT revision, kind, script,
@@ -204,11 +149,8 @@ class SpeechRepository:
                 raise LookupError("That Part no longer belongs to this Production.")
             current_revision = int(current[0])
             kind = str(current[1] or "")
-            if operation == "render_draft" and kind != "draft":
-                raise ValueError("That Draft has already been recorded.")
-            if operation == "record_part" and (
-                    kind != "speech" or current[3] is not None):
-                raise ValueError("That pending speech Part has already been recorded.")
+            if kind not in {"draft", "speech"} or current[3] is not None:
+                raise ValueError("That Part has already been recorded.")
             if current_revision != int(expected_revision):
                 return {"subtitles_stale": 0, "attached": 0}
             clip_id = self._insert_clip(

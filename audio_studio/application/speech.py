@@ -30,13 +30,10 @@ class SpeechRepository(Protocol):
     def catalogue_voices(self) -> list[dict]: ...
     def pronunciations(self) -> list[dict]: ...
     def today_spend(self) -> float: ...
-    def production(self, production_id: int) -> dict | None: ...
     def part(self, part_id: int, production_id: int) -> dict | None: ...
-    def create_part(self, production_id: int | None, insert_at: int | None,
-                    values: dict[str, Any]) -> int | None: ...
     def attach_clip(self, part_id: int, production_id: int,
-                    expected_revision: int, values: dict[str, Any], *,
-                    operation: str) -> dict[str, int]: ...
+                    expected_revision: int,
+                    values: dict[str, Any]) -> dict[str, int]: ...
 
 
 class SpeechProvider(Protocol):
@@ -150,26 +147,23 @@ class SpeechGenerationService:
         part_id = int(part_id) if part_id is not None else None
         part = None
         if operation == "create":
-            production = (self.repository.production(production_id)
-                          if production_id is not None else None)
-            if production_id is not None and not production:
-                raise LookupError("That Production no longer exists.")
-            inherited = production.get("settings", {}) if production else {}
+            if production_id is not None or part_id is not None:
+                raise ValueError(
+                    "Production speech must target the Part created by the command.")
             overrides = {key: value for key, value in values.items()
                          if key in _SETTING_FIELDS or key == "title"}
-            effective = _defaults({**inherited, **overrides})
+            effective = _defaults(overrides)
         else:
+            if operation != "record":
+                raise ValueError("Unknown speech operation.")
             if production_id is None or part_id is None:
                 raise ValueError("A Production and Part are required.")
             part = self.repository.part(part_id, production_id)
             if not part:
                 raise LookupError("That Part no longer belongs to this Production.")
-            if operation == "render_draft" and part.get("kind") != "draft":
-                raise ValueError("That Draft has already been recorded.")
-            if operation == "record_part" and (
-                    part.get("kind") != "speech" or
-                    part.get("clip_id") is not None):
-                raise ValueError("That pending speech Part has already been recorded.")
+            if (part.get("kind") not in {"draft", "speech"}
+                    or part.get("clip_id") is not None):
+                raise ValueError("That Part has already been recorded.")
             inherited = {key: part.get(key) for key in _SETTING_FIELDS}
             inherited["title"] = part.get("title")
             overrides = {key: value for key, value in values.items()
@@ -343,13 +337,7 @@ class SpeechGenerationService:
         mutation: dict[str, int] = {}
         try:
             if operation == "create":
-                created_part_id = self.repository.create_part(
-                    production_id, values.get("insert_at"), row)
-                if production_id is not None and created_part_id:
-                    created_part = self.repository.part(
-                        created_part_id, production_id)
-                    if created_part and created_part.get("clip_id"):
-                        mutation["clip_id"] = int(created_part["clip_id"])
+                created_part_id = None
             else:
                 assert (part is not None and part_id is not None
                         and production_id is not None)
@@ -357,8 +345,7 @@ class SpeechGenerationService:
                 mutation = self.repository.attach_clip(
                     part_id, production_id,
                     int(values.get("_source_part_revision") or part["revision"]),
-                    row,
-                    operation=operation)
+                    row)
         except Exception as exc:
             raise JobFailed(
                 "The provider completed and the audio was saved, but Audio "

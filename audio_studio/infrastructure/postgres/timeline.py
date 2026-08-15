@@ -40,11 +40,10 @@ class PostgresTimelineRecords:
 
     def create_part(
         self, production_id: int, values: dict,
-        insert_at: int | None = None,
         before_part_public_id: str | None = None,
     ) -> int | None:
         return self.documents.create_part(
-            production_id, values, insert_at, before_part_public_id)
+            production_id, values, before_part_public_id)
 
     def asset(self, asset_id: int) -> dict | None:
         return self.assets.get(asset_id)
@@ -58,11 +57,11 @@ class PostgresTimelineRecords:
         return self.assets.allowed_for_production(production_id, asset_id, kinds)
 
     def insert_asset(
-        self, production_id: int, asset_id: int, insert_at: int | None,
+        self, production_id: int, asset_id: int,
         before_part_public_id: str | None = None,
     ) -> int | None:
         return self.documents.insert_asset(
-            production_id, asset_id, insert_at, before_part_public_id)
+            production_id, asset_id, before_part_public_id)
 
     def replace_asset(
         self, production_id: int, part_id: int, asset_id: int,

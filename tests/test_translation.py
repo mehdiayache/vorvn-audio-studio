@@ -204,10 +204,13 @@ class TranslationTests(unittest.TestCase):
                          (0, 1, "Translating into French"))
         self.assertEqual(progress.events[-1][1:], (1, 1, "Complete"))
 
-    def test_http_contract_accepts_old_id_but_serializes_transcript_id(self):
-        payload = TranslationJobCreate(id=7, target="Arabic", quality="best")
+    def test_http_contract_uses_only_canonical_transcript_id(self):
+        payload = TranslationJobCreate(
+            transcript_id=7, target="Arabic", quality="best")
         self.assertEqual(payload.transcript_id, 7)
         self.assertEqual(payload.model_dump()["transcript_id"], 7)
+        with self.assertRaises(ValueError):
+            TranslationJobCreate(id=7, target="Arabic", quality="best")
         with self.assertRaises(ValueError):
             TranslationJobCreate(transcript_id=7, target="Arabic", quality="turbo")
 

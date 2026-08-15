@@ -85,8 +85,8 @@ class ComposerDraftRepository:
                 cursor.execute("""
                     INSERT INTO composer_working_drafts
                         (context_key, context_kind, session_id, production_id,
-                         part_id, operation, insert_before_part_public_id, state)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s::jsonb)
+                         part_id, insert_before_part_public_id, state)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s::jsonb)
                     RETURNING public_id, state, version, updated_at
                 """, (
                     context_key, context["kind"],
@@ -94,7 +94,6 @@ class ComposerDraftRepository:
                      if context["kind"] == "standalone" else None),
                     context.get("production_id"),
                     context.get("part_id"),
-                    context.get("operation"),
                     context.get("insert_before_part_id"), json.dumps(state),
                 ))
             return _result(cursor.fetchone())

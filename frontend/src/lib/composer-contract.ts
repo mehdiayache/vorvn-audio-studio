@@ -8,7 +8,6 @@ export type CompositionContext =
   | {
       kind: "production"
       productionId: number
-      operation: "new_part" | "render_draft"
       partId?: number
       insertion: { kind: "before_part"; partId: string | null } | null
     }
@@ -92,17 +91,14 @@ export type SpeechGenerationCommand = {
 export function compositionContext(input: {
   productionId?: number
   part?: ProductionPart | null
-  insertAt?: number | null
   insertBeforePartId?: string | null
 }): CompositionContext {
   if (!input.productionId) return { kind: "standalone" }
-  const operation = input.part ? "render_draft" : "new_part"
   return {
     kind: "production",
     productionId: input.productionId,
-    operation,
     partId: input.part?.id,
-    insertion: operation === "new_part"
+    insertion: !input.part
       ? { kind: "before_part", partId: input.insertBeforePartId ?? null }
       : null,
   }
@@ -176,7 +172,6 @@ export function toGeneratePayload(command: SpeechGenerationCommand): GeneratePay
     text_tagged: command.text.tagged || null,
     text_state: command.text.active,
     ...(production ? { production_id: production.productionId } : {}),
-    insert_at: null,
     insert_before_part_id: production?.insertion?.partId ?? null,
     binding_id: command.route.kind === "owned" ? command.route.bindingId : null,
     catalogue_voice_id: command.route.kind === "catalogue" ? command.route.catalogueVoiceId : null,

@@ -5,7 +5,7 @@ import { jobObserver } from "@/lib/job-observer"
 import type { DurableJob, GeneratePayload, GenerateResult } from "@/types/domain"
 
 const payload: GeneratePayload = {
-  text: "Immediate durable handle", insert_at: null,
+  text: "Immediate durable handle",
   voice_identity_id: "identity-1", binding_id: "binding-1", capability_id: null, format: "mp3",
   language: "English", instruction: "", speech_mode: "exact", rate: 1,
   pitch: 1, volume: 50, seed: 0,

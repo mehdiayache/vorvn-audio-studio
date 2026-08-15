@@ -149,8 +149,7 @@ def production_get(production_id: int) -> dict[str, Any] | None:
             SELECT production.id, production.public_id, production.name,
                    production.description, production.status,
                    production.project_id, production.series_id,
-                   production.legacy_container_id, production.settings,
-                   production.updated_at,
+                   production.settings, production.updated_at,
                    project.name, project.public_id, project.venture_id,
                    venture.name, venture.public_id, venture.icon,
                    series.name, series.public_id
@@ -167,7 +166,7 @@ def production_get(production_id: int) -> dict[str, Any] | None:
     if not row:
         return None
     (ident, public_id, name, description, status, project_id, series_id,
-     legacy_id, production_settings, updated, project_name, project_public_id,
+     production_settings, updated, project_name, project_public_id,
      venture_id, venture_name, venture_public_id, venture_icon,
      series_name, series_public_id) = row
     trail = [
@@ -182,7 +181,6 @@ def production_get(production_id: int) -> dict[str, Any] | None:
         "key": f"production:{ident}", "name": name,
         "description": description or "", "status": status,
         "project_id": project_id, "series_id": series_id,
-        "legacy_container_id": legacy_id,
         "settings": production_settings or {}, "trail": trail,
         "updated_at": _iso(updated),
     }

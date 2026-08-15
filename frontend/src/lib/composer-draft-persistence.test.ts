@@ -25,8 +25,8 @@ describe("Composer Draft persistence", () => {
 
   it("keeps standalone and insertion contexts explicit", () => {
     expect(contextWire({ kind: "standalone" })).toEqual({ kind: "standalone" })
-    expect(contextWire({ kind: "production", productionId: 6, operation: "new_part", insertion: { kind: "before_part", partId: "part-public" } })).toEqual({
-      kind: "production", production_id: 6, operation: "new_part", part_id: null, insert_before_part_id: "part-public",
+    expect(contextWire({ kind: "production", productionId: 6, insertion: { kind: "before_part", partId: "part-public" } })).toEqual({
+      kind: "production", production_id: 6, part_id: null, insert_before_part_id: "part-public",
     })
   })
 

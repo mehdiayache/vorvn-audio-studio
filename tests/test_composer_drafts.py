@@ -67,16 +67,15 @@ class ComposerDraftTests(unittest.TestCase):
         self.assertEqual(context_key({"kind": "standalone"}), "standalone")
         self.assertNotEqual(
             context_key({"kind": "production", "production_id": 4,
-                         "operation": "new_part",
                          "insert_before_part_id": str(uuid4())}),
             context_key({"kind": "production", "production_id": 4,
-                         "operation": "new_part",
                          "insert_before_part_id": None}))
 
     def test_contract_rejects_mixed_or_incomplete_routes_and_contexts(self):
         with self.assertRaises(ValueError):
             DraftLookup(context={"kind": "production", "production_id": 4,
-                                 "operation": "unsupported"})
+                                 "part_id": 7,
+                                 "insert_before_part_id": uuid4()})
         broken = state()
         broken["route"] = {"kind": "owned", "binding_id": "binding-1",
                            "catalogue_voice_id": "catalogue-1"}

@@ -121,17 +121,19 @@ class ProductionDocumentTests(unittest.TestCase):
             filename=f"music-{self.marker}.wav", path=f"/tmp/music-{self.marker}.wav",
             size_bytes=44, duration_ms=30000, audio_format="wav",
             mime_type="audio/wav")
-        silence = self.timeline.add_silence(first_id, 2, None)
+        silence = self.timeline.add_silence(first_id, 2)
+        silence_public_id = self.repository.part(
+            first_id, silence["id"])["public_id"]
         draft = self.timeline.add_draft(first_id, {
             "text": "A quiet opening", "voice": "Tina", "engine": "audio",
-            "model": "plus", "insert_at": 0,
+            "model": "plus", "insert_before_part_id": silence_public_id,
         })
         parts = self.repository.parts(first_id)
         self.assertEqual([item["id"] for item in parts], [draft["id"], silence["id"]])
         self.assertEqual([item["position"] for item in parts], [0, 1])
         self.assertIsNone(parts[0]["fidelity"])
 
-        linked = self.timeline.insert_asset(first_id, intro["id"], None)
+        linked = self.timeline.insert_asset(first_id, intro["id"])
         linked_part = next(item for item in self.repository.parts(first_id)
                            if item["id"] == linked["id"])
         self.assertEqual(linked_part["kind"], "asset")
@@ -258,7 +260,9 @@ class ProductionDocumentTests(unittest.TestCase):
 
         # Reusing the archived slot must commit cleanly; this is the exact
         # regression that previously returned HTTP 500 before provider work.
-        replacement = self.timeline.add_silence(first_id, 1, 0)
+        first_active = self.repository.parts(first_id)[0]
+        replacement = self.timeline.add_silence(
+            first_id, 1, first_active["public_id"])
         active = self.repository.parts(first_id)
         self.assertEqual(active[0]["id"], replacement["id"])
         self.assertEqual([part["position"] for part in active],
@@ -266,9 +270,9 @@ class ProductionDocumentTests(unittest.TestCase):
 
     def test_reorder_locks_the_active_sequence_and_persists_exact_order(self):
         production_id = int(self.first["id"])
-        first = self.timeline.add_silence(production_id, 1, None)
-        second = self.timeline.add_silence(production_id, 2, None)
-        third = self.timeline.add_silence(production_id, 3, None)
+        first = self.timeline.add_silence(production_id, 1)
+        second = self.timeline.add_silence(production_id, 2)
+        third = self.timeline.add_silence(production_id, 3)
         self.assertTrue(self.timeline.reorder(
             production_id, [third["id"], first["id"], second["id"]]))
         self.assertEqual(
@@ -279,7 +283,7 @@ class ProductionDocumentTests(unittest.TestCase):
     def test_editorial_revision_marks_the_active_recording_outdated(self):
         production_id = int(self.first["id"])
         draft = self.timeline.add_draft(production_id, {
-            "text": "Original words", "insert_at": 0,
+            "text": "Original words",
         })
         part = self.repository.part(production_id, draft["id"])
         with psycopg.connect(settings.database_url) as database:
@@ -320,7 +324,7 @@ class ProductionDocumentTests(unittest.TestCase):
     def test_active_recording_projection_is_immutable_and_caption_relevant(self):
         production_id = int(self.first["id"])
         draft = self.timeline.add_draft(production_id, {
-            "text": "The selected performance stays true", "insert_at": 0,
+            "text": "The selected performance stays true",
             "voice": "future-eve", "engine": "audio", "model": "flash",
         })
         part = self.repository.part(production_id, draft["id"])

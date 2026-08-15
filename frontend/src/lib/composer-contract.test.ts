@@ -49,15 +49,15 @@ describe("provider-neutral Composer contract", () => {
   it("uses the same draft and command contract for Standalone and Production", () => {
     const selected = routeSelection(ownedRoute)
     const standalone = buildSpeechCommand({ context: compositionContext({}), draft: draft(selected) })
-    const production = buildSpeechCommand({ context: compositionContext({ productionId: 7, insertAt: 2, insertBeforePartId: "part-public-3" }), draft: draft(selected) })
+    const production = buildSpeechCommand({ context: compositionContext({ productionId: 7, insertBeforePartId: "part-public-3" }), draft: draft(selected) })
     expect(standalone.route).toEqual(production.route)
     expect(standalone.text).toEqual(production.text)
     expect(standalone.context).toEqual({ kind: "standalone" })
-    expect(production.context).toEqual({ kind: "production", productionId: 7, operation: "new_part", insertion: { kind: "before_part", partId: "part-public-3" } })
+    expect(production.context).toEqual({ kind: "production", productionId: 7, insertion: { kind: "before_part", partId: "part-public-3" } })
     expect(toGeneratePayload(production)).toMatchObject({
-      insert_at: null,
       insert_before_part_id: "part-public-3",
     })
+    expect(toGeneratePayload(production)).not.toHaveProperty("operation")
   })
 
   it("refuses generation without an operator-selected exact route", () => {

@@ -22,11 +22,11 @@ def context_key(context: dict[str, Any]) -> str:
     if context["kind"] == "standalone":
         return "standalone"
     production_id = int(context["production_id"])
-    operation = str(context["operation"])
-    if operation == "new_part":
-        anchor = context.get("insert_before_part_id") or "end"
-        return f"production:{production_id}:new_part:before:{anchor}"
-    return f"production:{production_id}:{operation}:part:{int(context['part_id'])}"
+    part_id = context.get("part_id")
+    if part_id is not None:
+        return f"production:{production_id}:part:{int(part_id)}"
+    anchor = context.get("insert_before_part_id") or "end"
+    return f"production:{production_id}:new_part:before:{anchor}"
 
 
 class ComposerDraftService:

@@ -30,7 +30,6 @@ class RecordingHistoryTests(unittest.TestCase):
     def test_standalone_speech_needs_no_grouping_identifier(self):
         contract = SpeechJobCreate(
             text="Hello", catalogue_voice_id="catalogue:voice",
-            insert_at=None,
         )
         persisted = contract.model_dump(exclude_unset=True, mode="json")
         self.assertNotIn("session_id", persisted)

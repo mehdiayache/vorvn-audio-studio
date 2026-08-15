@@ -146,7 +146,6 @@ export type Production = {
   status: "draft" | "in_progress" | "review" | "approved" | "released" | "archived" | string
   project_id?: number
   series_id: number | null
-  legacy_container_id: number
   updated_at?: string
   trail: TrailItem[]
   parts: ProductionPart[]
@@ -394,14 +393,11 @@ type SpeechJobCreateRequest = components["schemas"]["SpeechJobCreate"]
 
 export type GeneratePayload = Omit<
   SpeechJobCreateRequest,
-  "operation" | "part_id" | "confirmed" | "text_state"
+  "part_id" | "confirmed" | "text_state"
 > & Partial<Pick<
   SpeechJobCreateRequest,
   "confirmed" | "text_state"
->> & {
-  /** The API permits omission, but the shared Composer always owns this value. */
-  insert_at: number | null
-}
+>>
 
 export type ResolvedGeneratePayload = GeneratePayload & {
   voice?: string

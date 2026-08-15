@@ -240,7 +240,7 @@ class NativeHttpTests(unittest.TestCase):
                 return_value={"id": 101, "seconds": 2.5}):
             silence = self.client.post(
                 "/api/v1/productions/7/parts/silence",
-                json={"seconds": 2.5, "insert_at": None})
+                json={"seconds": 2.5})
         self.assertEqual(silence.status_code, 200)
         self.assertEqual(silence.json()["data"], {"id": 101, "seconds": 2.5})
 

@@ -32,14 +32,15 @@ class ProductionDocumentRepository:
     """Own stable Parts, one recording snapshot and background-music state."""
 
     @staticmethod
-    def _legacy_id(cursor, production_id: int, *, lock: bool = False) -> int | None:
+    def _production_exists(
+        cursor, production_id: int, *, lock: bool = False,
+    ) -> bool:
         cursor.execute(
-            "SELECT legacy_container_id FROM productions "
+            "SELECT 1 FROM productions "
             "WHERE id = %s AND archived_at IS NULL" + (" FOR UPDATE" if lock else ""),
             (production_id,),
         )
-        row = cursor.fetchone()
-        return int(row[0]) if row else None
+        return cursor.fetchone() is not None
 
     @staticmethod
     def _part_row(cursor, production_id: int, part_id: int, *, lock=False):
@@ -394,10 +395,9 @@ class ProductionDocumentRepository:
             return self._next_position(cursor, production_id)
 
     def create_part(self, production_id: int, values: dict[str, Any],
-                    insert_at: int | None = None,
                     before_part_public_id: str | None = None) -> int | None:
         with transaction() as cursor:
-            if self._legacy_id(cursor, production_id, lock=True) is None:
+            if not self._production_exists(cursor, production_id, lock=True):
                 return None
             release_archived_positions(cursor, production_id)
             next_position = self._next_position(cursor, production_id)
@@ -413,8 +413,7 @@ class ProductionDocumentRepository:
                         "The selected insertion point no longer exists.")
                 position = int(anchor[0])
             else:
-                position = next_position if insert_at is None else max(
-                    0, min(int(insert_at), next_position))
+                position = next_position
             if position < next_position:
                 cursor.execute("""
                     UPDATE production_parts SET position = position + 1,
@@ -445,7 +444,6 @@ class ProductionDocumentRepository:
             return part_id
 
     def insert_asset(self, production_id: int, asset_id: int,
-                     insert_at: int | None = None,
                      before_part_public_id: str | None = None) -> int | None:
         with read_only() as cursor:
             cursor.execute("""
@@ -467,7 +465,7 @@ class ProductionDocumentRepository:
             "kind": "asset", "text": row[2] or "", "title": row[2] or "",
             "asset_id": row[0], "asset_version_id": row[1],
             "duration_ms": row[3],
-        }, insert_at, before_part_public_id)
+        }, before_part_public_id)
 
     def replace_asset(self, production_id: int, part_id: int,
                       asset_id: int) -> bool:
@@ -538,7 +536,7 @@ class ProductionDocumentRepository:
         if not provided:
             return False
         with transaction() as cursor:
-            if self._legacy_id(cursor, production_id, lock=True) is None:
+            if not self._production_exists(cursor, production_id, lock=True):
                 return False
             cursor.execute("""
                 SELECT music_asset_id, level, volume, start_seconds,
@@ -776,7 +774,8 @@ class ProductionDocumentRepository:
              destination_production_id: int) -> bool:
         ids = [int(item) for item in ids]
         with transaction() as cursor:
-            if self._legacy_id(cursor, destination_production_id, lock=True) is None:
+            if not self._production_exists(
+                    cursor, destination_production_id, lock=True):
                 return False
             cursor.execute("""
                 SELECT id FROM production_parts

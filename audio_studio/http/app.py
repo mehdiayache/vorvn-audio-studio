@@ -76,11 +76,6 @@ app.include_router(composer_drafts_router)
 app.include_router(audio_projects_router)
 
 
-# The React product has no public dependency on the historical HTTP surface.
-# Keep this guard visible until the internal provider adapter is retired too.
-COMPATIBILITY_ALLOWLIST: set[str] = set()
-
-
 def _spa_file(relative: str) -> Path:
     candidate = (settings.web_build / relative).resolve()
     build = settings.web_build.resolve()

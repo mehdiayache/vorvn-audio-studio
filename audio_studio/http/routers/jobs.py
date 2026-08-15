@@ -7,7 +7,7 @@ from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Header
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from uuid import uuid4
 
 from audio_studio.domain.jobs import Job
@@ -95,11 +95,7 @@ class SpeechJobCreate(BaseModel):
     text_shaped: str | None = Field(default=None, max_length=500_000)
     text_tagged: str | None = Field(default=None, max_length=500_000)
     text_state: Literal["raw", "shaped", "tagged"] = "raw"
-    production_id: int | None = Field(
-        default=None, gt=0,
-        validation_alias=AliasChoices("production_id", "project_id"),
-    )
-    insert_at: int | None = Field(default=None, ge=0)
+    production_id: int | None = Field(default=None, gt=0)
     insert_before_part_id: UUID | None = None
     voice_identity_id: str | None = Field(default=None, max_length=120)
     binding_id: UUID | None = None
@@ -114,22 +110,18 @@ class SpeechJobCreate(BaseModel):
     volume: int = Field(default=50, ge=0, le=100)
     seed: int = Field(default=0, ge=0, le=2_147_483_647)
     confirmed: bool = False
-    operation: Literal["create", "record_part", "render_draft"] = "create"
     part_id: int | None = Field(default=None, gt=0)
 
     @model_validator(mode="after")
-    def part_is_present_for_replacement(self):
+    def target_is_coherent(self):
         if bool(self.binding_id) == bool(self.catalogue_voice_id):
             raise ValueError("Choose exactly one cloned binding or catalogue voice.")
-        if self.operation != "create" and (not self.part_id or not self.production_id):
-            raise ValueError(
-                "A Production and Part are required for that speech operation.")
-        if self.operation == "create" and self.part_id:
-            raise ValueError("A new speech Part cannot replace an existing Part.")
-        if self.insert_at is not None and self.insert_before_part_id is not None:
-            raise ValueError("Choose one insertion anchor, not two.")
-        if self.production_id is None and self.insert_at is not None:
-            raise ValueError("A sequence position requires a Production.")
+        if self.part_id and not self.production_id:
+            raise ValueError("A Part recording requires its Production.")
+        if self.part_id and self.insert_before_part_id:
+            raise ValueError("An existing Part cannot have an insertion point.")
+        if self.insert_before_part_id and not self.production_id:
+            raise ValueError("An insertion point requires a Production.")
         return self
 
 
@@ -165,10 +157,9 @@ class TranscriptionJobCreate(BaseModel):
 
 
 class TranslationJobCreate(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    model_config = ConfigDict(extra="forbid")
 
-    transcript_id: int = Field(
-        gt=0, validation_alias=AliasChoices("transcript_id", "id"))
+    transcript_id: int = Field(gt=0)
     target: str = Field(min_length=1, max_length=80)
     source: str = Field(default="", max_length=80)
     quality: Literal["fast", "best"] = "fast"
@@ -176,17 +167,11 @@ class TranslationJobCreate(BaseModel):
 
 
 class TextJobCreate(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    model_config = ConfigDict(extra="forbid")
     operation: Literal["shape", "tag"]
     text: str = Field(min_length=1)
-    production_id: int | None = Field(
-        default=None, gt=0,
-        validation_alias=AliasChoices("production_id", "project_id"),
-    )
-    part_id: int | None = Field(
-        default=None, gt=0,
-        validation_alias=AliasChoices("part_id", "id"),
-    )
+    production_id: int | None = Field(default=None, gt=0)
+    part_id: int | None = Field(default=None, gt=0)
     density: Literal["none", "light", "normal", "heavy"] = "normal"
     capability_id: str = Field(min_length=1, max_length=120)
     confirmed: bool = False
@@ -236,21 +221,18 @@ def create_speech_job(payload: SpeechJobCreate,
         "capability_id": resolved.get("capability_id"),
     })
     key = (idempotency_key or f"speech-{uuid4()}")[:200]
-    labels = {
-        "create": "Generate speech", "record_part": "Record pending Part",
-        "render_draft": "Render draft",
-    }
     if payload.production_id is not None:
         before_part = payload.insert_before_part_id
         job, created = production_speech_service.enqueue(
             values, idempotency_key=key,
             production_id=payload.production_id,
             before_part_public_id=before_part,
-            operation_label=labels[payload.operation])
+            operation_label=("Record Part" if payload.part_id
+                             else "Generate and add Part"))
     else:
         job, created = job_service.enqueue(
             "speech", values, idempotency_key=key,
-            source_tool="speak", operation_label=labels[payload.operation])
+            source_tool="speak", operation_label="Create recording")
     return {"data": _payload(job), "meta": {"created": created}}
 
 

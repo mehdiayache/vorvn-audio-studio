@@ -584,13 +584,14 @@
         "type": "object"
       },
       "AssetBody": {
+        "additionalProperties": false,
         "properties": {
           "asset_id": {
             "exclusiveMinimum": 0.0,
             "title": "Asset Id",
             "type": "integer"
           },
-          "before_part_id": {
+          "insert_before_part_id": {
             "anyOf": [
               {
                 "type": "string"
@@ -599,18 +600,7 @@
                 "type": "null"
               }
             ],
-            "title": "Before Part Id"
-          },
-          "insert_at": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Insert At"
+            "title": "Insert Before Part Id"
           }
         },
         "required": [
@@ -1345,17 +1335,6 @@
             "default": "mp3",
             "title": "Format",
             "type": "string"
-          },
-          "insert_at": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Insert At"
           },
           "insert_before_part_id": {
             "anyOf": [
@@ -3038,14 +3017,6 @@
             "title": "Kind",
             "type": "string"
           },
-          "operation": {
-            "enum": [
-              "new_part",
-              "render_draft"
-            ],
-            "title": "Operation",
-            "type": "string"
-          },
           "part_id": {
             "anyOf": [
               {
@@ -3066,8 +3037,7 @@
         },
         "required": [
           "kind",
-          "production_id",
-          "operation"
+          "production_id"
         ],
         "title": "ProductionContext",
         "type": "object"
@@ -3158,10 +3128,6 @@
           "key": {
             "title": "Key",
             "type": "string"
-          },
-          "legacy_container_id": {
-            "title": "Legacy Container Id",
-            "type": "integer"
           },
           "locked": {
             "anyOf": [
@@ -3293,7 +3259,6 @@
           "description",
           "project_id",
           "series_id",
-          "legacy_container_id",
           "settings",
           "trail",
           "parts",
@@ -5463,8 +5428,9 @@
         "type": "object"
       },
       "SilenceBody": {
+        "additionalProperties": false,
         "properties": {
-          "before_part_id": {
+          "insert_before_part_id": {
             "anyOf": [
               {
                 "type": "string"
@@ -5473,18 +5439,7 @@
                 "type": "null"
               }
             ],
-            "title": "Before Part Id"
-          },
-          "insert_at": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Insert At"
+            "title": "Insert Before Part Id"
           },
           "seconds": {
             "maximum": 120.0,
@@ -5595,18 +5550,6 @@
             "title": "Format",
             "type": "string"
           },
-          "insert_at": {
-            "anyOf": [
-              {
-                "minimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Insert At"
-          },
           "insert_before_part_id": {
             "anyOf": [
               {
@@ -5629,16 +5572,6 @@
             "default": "Auto",
             "maxLength": 80,
             "title": "Language",
-            "type": "string"
-          },
-          "operation": {
-            "default": "create",
-            "enum": [
-              "create",
-              "record_part",
-              "render_draft"
-            ],
-            "title": "Operation",
             "type": "string"
           },
           "part_id": {
@@ -9946,17 +9879,6 @@
             "title": "Key",
             "type": "string"
           },
-          "legacy_container_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Legacy Container Id"
-          },
           "locked": {
             "anyOf": [
               {
@@ -12167,46 +12089,6 @@
           "work"
         ]
       },
-      "get": {
-        "operationId": "getProduction",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "resource_id",
-            "required": true,
-            "schema": {
-              "title": "Resource Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkResourceEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Production",
-        "tags": [
-          "work"
-        ]
-      },
       "patch": {
         "operationId": "updateProduction",
         "parameters": [
@@ -12487,46 +12369,6 @@
           "work"
         ]
       },
-      "get": {
-        "operationId": "getProject",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "resource_id",
-            "required": true,
-            "schema": {
-              "title": "Resource Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkResourceEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Project",
-        "tags": [
-          "work"
-        ]
-      },
       "patch": {
         "operationId": "updateProject",
         "parameters": [
@@ -12702,46 +12544,6 @@
           }
         },
         "summary": "Delete Series",
-        "tags": [
-          "work"
-        ]
-      },
-      "get": {
-        "operationId": "getSeries",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "resource_id",
-            "required": true,
-            "schema": {
-              "title": "Resource Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkResourceEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Series",
         "tags": [
           "work"
         ]
@@ -13598,65 +13400,6 @@
       }
     },
     "/api/v1/ventures": {
-      "get": {
-        "operationId": "listVentures",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 100,
-              "maximum": 100,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "after",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "After"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HierarchyPageEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "List Ventures",
-        "tags": [
-          "work"
-        ]
-      },
       "post": {
         "operationId": "createVenture",
         "requestBody": {
@@ -13734,46 +13477,6 @@
           }
         },
         "summary": "Delete Venture",
-        "tags": [
-          "work"
-        ]
-      },
-      "get": {
-        "operationId": "getVenture",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "resource_id",
-            "required": true,
-            "schema": {
-              "title": "Resource Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkResourceEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Venture",
         "tags": [
           "work"
         ]

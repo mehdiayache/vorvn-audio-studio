@@ -108,7 +108,6 @@ class JobRepositoryTests(unittest.TestCase):
             jobs_module.transaction = rolled_back_transaction
             try:
                 request = {
-                    "operation": "create",
                     "text": "Prepared provider text",
                     "text_raw": "Canonical Part script",
                     "voice": "Tina",
@@ -147,7 +146,7 @@ class JobRepositoryTests(unittest.TestCase):
                 """, (stale_archived_id,))
                 self.assertEqual(cursor.fetchone(), (
                     None, anchor_position + 1))
-                self.assertEqual(job.payload["operation"], "record_part")
+                self.assertEqual(job.payload["operation"], "record")
                 self.assertEqual(job.payload["part_id"], job.part_id)
                 self.assertEqual(job.payload["_source_part_revision"], 1)
                 self.assertEqual(
@@ -173,7 +172,7 @@ class JobRepositoryTests(unittest.TestCase):
                     idempotency_key=f"production-confirm-{uuid4()}")
                 self.assertTrue(confirmed_created)
                 self.assertEqual(confirmed.part_id, job.part_id)
-                self.assertEqual(confirmed.payload["operation"], "record_part")
+                self.assertEqual(confirmed.payload["operation"], "record")
                 self.assertTrue(confirmed.payload["confirmed"])
                 cursor.execute("""
                     SELECT parent_id, part_id FROM jobs WHERE id=%s
@@ -187,8 +186,7 @@ class JobRepositoryTests(unittest.TestCase):
 
                 retry, retry_created = (
                     repository.enqueue(
-                        {**request, "operation": "record_part",
-                         "part_id": job.part_id},
+                        {**request, "part_id": job.part_id},
                         idempotency_key=f"production-speech-retry-{uuid4()}",
                         production_id=production_id))
                 self.assertTrue(retry_created)
@@ -198,8 +196,7 @@ class JobRepositoryTests(unittest.TestCase):
                 with self.assertRaisesRegex(
                         ValueError, "Update the Part explicitly"):
                     repository.enqueue(
-                        {**request, "operation": "record_part",
-                         "part_id": job.part_id,
+                        {**request, "part_id": job.part_id,
                          "text_raw": changed_text},
                         idempotency_key=f"production-speech-invalid-{uuid4()}",
                         production_id=production_id)

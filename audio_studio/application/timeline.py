@@ -16,7 +16,6 @@ class TimelineRecords(Protocol):
     ) -> bool: ...
     def create_part(
         self, production_id: int, values: dict,
-        insert_at: int | None = None,
         before_part_public_id: str | None = None,
     ) -> int | None: ...
     def asset(self, asset_id: int) -> dict | None: ...
@@ -25,7 +24,7 @@ class TimelineRecords(Protocol):
         self, production_id: int, asset_id: int, kinds: set[str],
     ) -> bool: ...
     def insert_asset(
-        self, production_id: int, asset_id: int, insert_at: int | None,
+        self, production_id: int, asset_id: int,
         before_part_public_id: str | None = None,
     ) -> int | None: ...
     def replace_asset(
@@ -121,7 +120,7 @@ class TimelineService:
         return {"ok": True, "enabled": bool(enabled)}
 
     def add_silence(
-        self, production_id: int, seconds: float, insert_at: int | None,
+        self, production_id: int, seconds: float,
         before_part_public_id: str | None = None,
     ) -> dict[str, Any]:
         self._production(production_id)
@@ -135,8 +134,7 @@ class TimelineService:
             "duration_ms": round(seconds * 1000), "chars": 0, "requests": 0,
             "cost": 0, "kind": "silence", "title": f"{seconds:g}",
             "usage": {}, "cost_basis": "not billed", "failures": [],
-        }, insert_at=insert_at,
-           before_part_public_id=before_part_public_id)
+        }, before_part_public_id=before_part_public_id)
         if not new_id:
             raise TimelineError("The silence could not be saved.")
         return {"id": new_id, "seconds": seconds}
@@ -166,8 +164,7 @@ class TimelineService:
             "filename": "", "path": "", "size_bytes": 0, "duration_ms": 0,
             "chars": len(text), "requests": 0, "cost": 0, "kind": "draft",
             "usage": {}, "cost_basis": "not billed", "failures": [],
-        }, insert_at=values.get("insert_at"),
-           before_part_public_id=values.get("insert_before_part_id"))
+        }, before_part_public_id=values.get("insert_before_part_id"))
         if not new_id:
             raise TimelineError("The Draft could not be saved.")
         return {"id": new_id}
@@ -187,7 +184,7 @@ class TimelineService:
         return {"id": part_id, "seconds": seconds}
 
     def insert_asset(
-        self, production_id: int, asset_id: int, insert_at: int | None,
+        self, production_id: int, asset_id: int,
         before_part_public_id: str | None = None,
     ) -> dict[str, Any]:
         self._production(production_id)
@@ -203,7 +200,7 @@ class TimelineService:
             raise TimelineError(
                 "That clip is not in this Venture's reusable clip library.")
         part_id = self.records.insert_asset(
-            production_id, asset_id, insert_at, before_part_public_id)
+            production_id, asset_id, before_part_public_id)
         if not part_id:
             raise TimelineError("The Asset could not be inserted.")
         return {"id": part_id}

@@ -111,7 +111,7 @@ print("\npaid-call destination gate")
 
 
 class MissingDestinationRepository:
-    def production(self, _production_id):
+    def part(self, _part_id, _production_id):
         return None
 
 
@@ -133,7 +133,8 @@ service = SpeechGenerationService(
     lambda: {"warn_above": 0, "daily_cap": 0},
 )
 try:
-    service.run({"operation": "create", "production_id": 999999,
+    service.run({"operation": "record", "production_id": 999999,
+                 "part_id": 888888,
                  "text": "Never send this", "voice": "Tina",
                  "engine": "omni", "model": "plus"})
     rejected = False

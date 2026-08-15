@@ -19,7 +19,6 @@ _REQUEST_FIELDS = (
 def _safe_request(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         **{field: payload.get(field) for field in _REQUEST_FIELDS},
-        "insert_at": None,
         "confirmed": False,
     }
 

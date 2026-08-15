@@ -591,8 +591,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Production */
-        get: operations["getProduction"];
+        get?: never;
         put?: never;
         post?: never;
         /** Delete Production */
@@ -678,8 +677,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Project */
-        get: operations["getProject"];
+        get?: never;
         put?: never;
         post?: never;
         /** Delete Project */
@@ -731,8 +729,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Series */
-        get: operations["getSeries"];
+        get?: never;
         put?: never;
         post?: never;
         /** Delete Series */
@@ -1079,8 +1076,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Ventures */
-        get: operations["listVentures"];
+        get?: never;
         put?: never;
         /** Create Venture */
         post: operations["createVenture"];
@@ -1097,8 +1093,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Venture */
-        get: operations["getVenture"];
+        get?: never;
         put?: never;
         post?: never;
         /** Delete Venture */
@@ -1574,10 +1569,8 @@ export interface components {
         AssetBody: {
             /** Asset Id */
             asset_id: number;
-            /** Before Part Id */
-            before_part_id?: string | null;
-            /** Insert At */
-            insert_at?: number | null;
+            /** Insert Before Part Id */
+            insert_before_part_id?: string | null;
         };
         /** AssetCollectionResponse */
         AssetCollectionResponse: {
@@ -1857,8 +1850,6 @@ export interface components {
              * @default mp3
              */
             format: string;
-            /** Insert At */
-            insert_at?: number | null;
             /** Insert Before Part Id */
             insert_before_part_id?: string | null;
             /**
@@ -2408,11 +2399,6 @@ export interface components {
              * @enum {string}
              */
             kind: "production";
-            /**
-             * Operation
-             * @enum {string}
-             */
-            operation: "new_part" | "render_draft";
             /** Part Id */
             part_id?: number | null;
             /** Production Id */
@@ -2442,8 +2428,6 @@ export interface components {
             id: number;
             /** Key */
             key: string;
-            /** Legacy Container Id */
-            legacy_container_id: number;
             /** Locked */
             locked?: boolean | null;
             metrics?: components["schemas"]["HierarchyMetricsResponse"] | null;
@@ -3173,10 +3157,8 @@ export interface components {
         };
         /** SilenceBody */
         SilenceBody: {
-            /** Before Part Id */
-            before_part_id?: string | null;
-            /** Insert At */
-            insert_at?: number | null;
+            /** Insert Before Part Id */
+            insert_before_part_id?: string | null;
             /** Seconds */
             seconds: number;
         };
@@ -3213,8 +3195,6 @@ export interface components {
              * @enum {string}
              */
             format: "mp3" | "mp3-24k" | "wav" | "opus";
-            /** Insert At */
-            insert_at?: number | null;
             /** Insert Before Part Id */
             insert_before_part_id?: string | null;
             /**
@@ -3227,12 +3207,6 @@ export interface components {
              * @default Auto
              */
             language: string;
-            /**
-             * Operation
-             * @default create
-             * @enum {string}
-             */
-            operation: "create" | "record_part" | "render_draft";
             /** Part Id */
             part_id?: number | null;
             /**
@@ -4707,8 +4681,6 @@ export interface components {
             id: number;
             /** Key */
             key: string;
-            /** Legacy Container Id */
-            legacy_container_id?: number | null;
             /** Locked */
             locked?: boolean | null;
             metrics?: components["schemas"]["HierarchyMetricsResponse"] | null;
@@ -6001,37 +5973,6 @@ export interface operations {
             };
         };
     };
-    getProduction: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                resource_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkResourceEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     deleteProduction: {
         parameters: {
             query?: never;
@@ -6232,37 +6173,6 @@ export interface operations {
             };
         };
     };
-    getProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                resource_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkResourceEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     deleteProject: {
         parameters: {
             query?: never;
@@ -6377,37 +6287,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    getSeries: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                resource_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkResourceEnvelope"];
-                };
             };
             /** @description Validation Error */
             422: {
@@ -7106,38 +6985,6 @@ export interface operations {
             };
         };
     };
-    listVentures: {
-        parameters: {
-            query?: {
-                limit?: number;
-                after?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HierarchyPageEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     createVenture: {
         parameters: {
             query?: never;
@@ -7158,37 +7005,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResourceMutationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    getVenture: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                resource_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkResourceEnvelope"];
                 };
             };
             /** @description Validation Error */

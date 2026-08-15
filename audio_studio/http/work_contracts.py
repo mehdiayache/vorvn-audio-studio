@@ -84,7 +84,6 @@ class WorkResourceResponse(BaseModel):
     project_id: int | None = None
     series_id: int | None = None
     status: str | None = None
-    legacy_container_id: int | None = None
     settings: dict[str, Any] | None = None
     trail: list[TrailItemResponse] | None = None
     metrics: HierarchyMetricsResponse | None = None
@@ -412,7 +411,6 @@ class ProductionEditorResponse(WorkResourceResponse):
     type: Literal["production"]
     project_id: int
     series_id: int | None
-    legacy_container_id: int
     settings: dict[str, Any]
     trail: list[TrailItemResponse]
     parts: list[ProductionPartResponse]

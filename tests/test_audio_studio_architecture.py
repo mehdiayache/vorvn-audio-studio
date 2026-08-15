@@ -5,7 +5,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from audio_studio.http.app import COMPATIBILITY_ALLOWLIST, app
+from audio_studio.http.app import app
+from audio_studio.http.routers.composer_drafts import ProductionContext
 from audio_studio.http.routers.jobs import SpeechJobCreate, TranscriptionJobCreate
 from audio_studio.infrastructure.media_workspace import contained_file
 
@@ -108,11 +109,27 @@ class AudioStudioArchitectureTests(unittest.TestCase):
                 "application/json"]["schema"]
             self.assertIn("$ref", schema, route)
 
-    def test_every_speech_operation_has_the_required_target(self):
+    def test_speech_part_recording_requires_its_production(self):
         SpeechJobCreate(text="Hello", catalogue_voice_id="catalogue:tina")
         with self.assertRaises(ValueError):
             SpeechJobCreate(text="Hello", catalogue_voice_id="catalogue:tina",
-                            operation="render_draft")
+                            part_id=8)
+
+    def test_removed_batch_and_take_contracts_cannot_reappear(self):
+        paths = app.openapi()["paths"]
+        self.assertFalse(any("batch" in path or "take" in path
+                             for path in paths))
+        self.assertNotIn("operation", SpeechJobCreate.model_fields)
+        self.assertNotIn("insert_at", SpeechJobCreate.model_fields)
+        self.assertNotIn("operation", ProductionContext.model_fields)
+        self.assertEqual(set(paths["/api/v1/ventures"]), {"post"})
+        for path in (
+            "/api/v1/ventures/{resource_id}",
+            "/api/v1/projects/{resource_id}",
+            "/api/v1/series/{resource_id}",
+            "/api/v1/productions/{resource_id}",
+        ):
+            self.assertNotIn("get", paths[path])
 
     def test_transcription_accepts_library_or_uploaded_audio_only(self):
         TranscriptionJobCreate(file="clip.mp3", part_id=7)
@@ -146,7 +163,6 @@ class AudioStudioArchitectureTests(unittest.TestCase):
         self.assertFalse([route for route in forbidden if route in client])
 
     def test_compatibility_boundary_is_explicit_and_has_no_escape_hatch(self):
-        self.assertEqual(COMPATIBILITY_ALLOWLIST, set())
         self.assertFalse(any(getattr(route, "path", "").startswith("/legacy")
                              for route in app.routes))
         self.assertFalse(any(getattr(route, "path", "").startswith(("/download", "/stream"))

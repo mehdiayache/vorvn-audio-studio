@@ -169,12 +169,16 @@ class TextPreparationTests(unittest.TestCase):
         self.assertEqual(progress.events[0][1:], (0, 1, "Rewriting for the ear"))
         self.assertEqual(progress.events[-1][1:], (1, 1, "Complete"))
 
-    def test_http_contract_accepts_old_aliases_but_serializes_canonical_names(self):
+    def test_http_contract_uses_only_canonical_work_ids(self):
         payload = TextJobCreate(operation="shape", text="Hello",
-                                capability_id="exact_longform", project_id=7, id=8)
+                                capability_id="exact_longform",
+                                production_id=7, part_id=8)
         self.assertEqual(payload.production_id, 7)
         self.assertEqual(payload.part_id, 8)
         self.assertEqual(payload.model_dump()["production_id"], 7)
+        with self.assertRaises(ValueError):
+            TextJobCreate(operation="shape", text="Hello",
+                          capability_id="exact_longform", project_id=7, id=8)
         with self.assertRaises(ValueError):
             TextJobCreate(operation="tag", text="Hello", density="extreme",
                           capability_id="expressive_tags")

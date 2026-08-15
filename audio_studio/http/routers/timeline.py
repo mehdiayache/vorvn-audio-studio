@@ -28,9 +28,9 @@ class OrderBody(BaseModel):
 
 
 class SilenceBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     seconds: float = Field(ge=.1, le=120)
-    insert_at: int | None = None
-    before_part_id: str | None = None
+    insert_before_part_id: str | None = None
 
 
 class EnabledBody(BaseModel):
@@ -39,9 +39,9 @@ class EnabledBody(BaseModel):
 
 
 class AssetBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     asset_id: int = Field(gt=0)
-    insert_at: int | None = None
-    before_part_id: str | None = None
+    insert_before_part_id: str | None = None
 
 
 class ReplaceAssetBody(BaseModel):
@@ -55,7 +55,6 @@ class DraftBody(BaseModel):
     text_shaped: str | None = None
     text_tagged: str | None = None
     text_state: str = "raw"
-    insert_at: int | None = None
     insert_before_part_id: str | None = None
     voice_identity_id: str | None = None
     binding_id: str | None = None
@@ -155,8 +154,7 @@ def update_part_enabled(
              response_model_exclude_none=True)
 def add_silence(production_id: int, payload: SilenceBody) -> dict:
     return _run(lambda: timeline_service.add_silence(
-        production_id, payload.seconds, payload.insert_at,
-        payload.before_part_id))
+        production_id, payload.seconds, payload.insert_before_part_id))
 
 
 @router.post("/parts/drafts", operation_id="addProductionDraft",
@@ -180,8 +178,7 @@ def update_silence(production_id: int, part_id: int, payload: SilenceBody) -> di
              response_model_exclude_none=True)
 def insert_asset(production_id: int, payload: AssetBody) -> dict:
     return _run(lambda: timeline_service.insert_asset(
-        production_id, payload.asset_id, payload.insert_at,
-        payload.before_part_id))
+        production_id, payload.asset_id, payload.insert_before_part_id))
 
 
 @router.patch("/parts/{part_id}/asset", operation_id="replaceProductionAsset",

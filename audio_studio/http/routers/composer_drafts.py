@@ -26,18 +26,13 @@ class ProductionContext(BaseModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["production"]
     production_id: int = Field(gt=0)
-    operation: Literal["new_part", "render_draft"]
     part_id: int | None = Field(default=None, gt=0)
     insert_before_part_id: UUID | None = None
 
     @model_validator(mode="after")
     def coherent_target(self):
-        if self.operation == "new_part" and self.part_id is not None:
-            raise ValueError("A new Part Draft cannot target an existing Part.")
-        if self.operation != "new_part" and self.part_id is None:
-            raise ValueError("An existing Part Draft needs a Part ID.")
-        if self.operation != "new_part" and self.insert_before_part_id:
-            raise ValueError("Only a new Part Draft has an insertion point.")
+        if self.part_id is not None and self.insert_before_part_id:
+            raise ValueError("An existing Part cannot have an insertion point.")
         return self
 
 

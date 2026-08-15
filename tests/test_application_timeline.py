@@ -41,10 +41,9 @@ class Records:
         self.enabled_values.append((production_id, part_id, enabled))
         return True
 
-    def create_part(self, production_id, values, insert_at=None,
+    def create_part(self, production_id, values,
                     before_part_public_id=None):
-        self.created.append((production_id, values, insert_at,
-                             before_part_public_id))
+        self.created.append((production_id, values, before_part_public_id))
         return 101
 
     def asset(self, asset_id):
@@ -56,10 +55,10 @@ class Records:
     def asset_allowed(self, _production_id, _asset_id, _kinds):
         return self.allow_asset
 
-    def insert_asset(self, production_id, asset_id, insert_at,
+    def insert_asset(self, production_id, asset_id,
                      before_part_public_id=None):
-        self.inserted_assets.append((production_id, asset_id, insert_at,
-                                     before_part_public_id))
+        self.inserted_assets.append(
+            (production_id, asset_id, before_part_public_id))
         return 102
 
     def replace_asset(self, production_id, part_id, asset_id):
@@ -135,11 +134,11 @@ class TimelineServiceTests(unittest.TestCase):
         self.assertFalse(self.records.duplicated)
 
     def test_silence_is_clamped_and_saved_with_exact_free_contract(self):
-        result = self.service.add_silence(6, 500, 3)
-        _, values, insert_at, before_part_id = self.records.created[0]
+        result = self.service.add_silence(6, 500)
+        _, values, before_part_id = self.records.created[0]
         self.assertEqual(result, {"id": 101, "seconds": 120.0})
-        self.assertEqual((values["kind"], values["duration_ms"], insert_at),
-                         ("silence", 120_000, 3))
+        self.assertEqual((values["kind"], values["duration_ms"]),
+                         ("silence", 120_000))
         self.assertIsNone(before_part_id)
         self.assertEqual(values["cost_basis"], "not billed")
 
@@ -155,15 +154,13 @@ class TimelineServiceTests(unittest.TestCase):
         self.service.add_draft(6, {
             "text": "  Rest now  ", "voice": "custom:serenity",
             "voice_identity_id": "voice-1", "engine": "omni",
-            "model": "plus", "insert_at": 2,
+            "model": "plus",
             "insert_before_part_id": "part-before",
         })
-        _, values, insert_at, before_part_id = self.records.created[0]
+        _, values, before_part_id = self.records.created[0]
         self.assertEqual((values["text"], values["voice_identity_id"],
-                          values["kind"], insert_at,
-                          before_part_id),
-                         ("Rest now", "voice-1", "draft", 2,
-                          "part-before"))
+                          values["kind"], before_part_id),
+                         ("Rest now", "voice-1", "draft", "part-before"))
 
     def test_music_and_clip_enforce_venture_library_semantics(self):
         self.records.allow_asset = False
@@ -173,17 +170,16 @@ class TimelineServiceTests(unittest.TestCase):
         self.records.assets[55] = {
             "filename": "bed.mp3", "context": {"collection": "Music"}}
         with self.assertRaisesRegex(TimelineError, "background bed"):
-            self.service.insert_asset(6, 55, None)
+            self.service.insert_asset(6, 55)
 
     def test_public_part_anchor_is_the_stable_insertion_contract(self):
-        self.service.add_silence(6, 2, None, "part-before")
-        self.assertEqual(self.records.created[0][2:],
-                         (None, "part-before"))
+        self.service.add_silence(6, 2, "part-before")
+        self.assertEqual(self.records.created[0][2], "part-before")
         self.records.assets[55] = {
             "filename": "intro.mp3", "context": {"collection": "Intros"}}
-        self.service.insert_asset(6, 55, None, "part-before")
+        self.service.insert_asset(6, 55, "part-before")
         self.assertEqual(self.records.inserted_assets,
-                         [(6, 55, None, "part-before")])
+                         [(6, 55, "part-before")])
 
     def test_asset_replacement_keeps_the_part_identity(self):
         self.records.parts[7]["kind"] = "asset"
