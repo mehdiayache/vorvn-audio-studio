@@ -37,7 +37,7 @@ describe("VoiceProfileCard", () => {
     expect(screen.getByText("Reference: serinity.wav")).toBeTruthy()
     expect(screen.getByText("Reference: serinity-studio.wav")).toBeTruthy()
     expect(screen.getAllByText("2 documented output languages")).toHaveLength(2)
-    expect(screen.getByRole("button", { name: "Create 1 binding for preferred reference" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Create 1 missing method" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Edit Serinity" })).toBeTruthy()
   })
 

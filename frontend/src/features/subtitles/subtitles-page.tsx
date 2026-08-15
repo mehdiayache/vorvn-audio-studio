@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ToolPageHeader } from "@/design-system/vorvn"
+import { StudioPageHeader } from "@/components/studio-page-header"
 import { useJobExecution } from "@/hooks/use-job-execution"
 import { useJobQuery } from "@/hooks/use-job-query"
 import { studioApi } from "@/lib/api"
@@ -130,7 +130,7 @@ export function SubtitlesPage() {
 
   const display = transcript ? layout || fallbackLayout(transcript, profile) : null
   return <main className="subtitles-page">
-    <ToolPageHeader eyebrow="Standalone tool" title="Subtitles" description="Transcribe external audio. Audio made inside a Production keeps its subtitles with that Part." />
+    <StudioPageHeader eyebrow="Standalone tool" title="Subtitles" description="Transcribe external audio. Audio made inside a Production keeps its subtitles with that Part." />
     <div className="subtitles-layout"><div className="subtitles-main">
       <section className="subtitles-card"><header><div><h2>External audio</h2><p>MP3, WAV, M4A, AAC, OGG or FLAC · maximum 500 MB.</p></div></header><FileDropZone file={file} accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" disabled={uploading || active} onFile={(next) => { setFile(next); setUploaded(null); setError(""); setJobId(null) }} hint="or choose a file" emptyLabel="Drop audio here" /><div className="subtitles-form"><label><span>Spoken language</span><Select value={language} onValueChange={setLanguage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Auto">Auto</SelectItem>{languages.map((item) => <SelectItem value={item} key={item}>{item}</SelectItem>)}</SelectContent></Select></label><label className="subtitle-itn"><Checkbox checked={enableItn} onCheckedChange={(value) => setEnableItn(value === true)} /><span><b>Format numbers and dates</b><small>For example, “twenty twenty-six” may become “2026”.</small></span></label><Button disabled={!file || uploading || active} onClick={() => void upload()}>{uploading || (active && job?.type === "transcribe") ? <LoaderCircle className="spin" /> : error && uploaded ? <RotateCw /> : <Upload />}{uploading ? "Uploading…" : active && job?.type === "transcribe" ? "Creating subtitles…" : error && uploaded ? "Retry subtitles" : "Create subtitles"}</Button></div><p className="recognition-note">Word timings are saved whenever the provider supplies them. Caption styles can be changed later without paying again.</p>{error && <div className="subtitles-inline-error" role="alert"><CircleAlert /><div><b>Subtitles were not created</b><span>{error}</span>{uploaded && <small>Your upload is preserved. Retry does not upload the file again.</small>}</div></div>}</section>
       {job && <OperationState job={job} title={job.type === "translate" ? "Subtitle translation" : "Audio transcription"} onConfirm={confirmation ? () => void confirmJob() : undefined} onRetry={job.status === "failed" && uploaded && job.type === "transcribe" ? () => void enqueueTranscription(uploaded) : undefined} onDismiss={!active ? () => setJobId(null) : undefined} />}

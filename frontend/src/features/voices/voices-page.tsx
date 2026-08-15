@@ -4,8 +4,8 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { StudioPageHeader } from "@/components/studio-page-header"
 import { ErrorState, InlineResourceError, PageLoading } from "@/components/state-panel"
-import { ToolPageHeader } from "@/design-system/vorvn"
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { audioUrl, studioApi } from "@/lib/api"
 import { announceVoiceDirectoryChange } from "@/lib/voice-directory-events"
@@ -70,7 +70,7 @@ export function VoicesPage() {
   if (resources.status === "loading" && !resources.profiles.length) return <PageLoading label="Loading voices" />
   if (resources.status === "error" && !resources.profiles.length) return <ErrorState title="Voices unavailable" message={resources.error} retry={resources.refresh} />
   return <main className="voices-page">
-    <ToolPageHeader eyebrow="Voice identities" title="Your voices" description="One identity can have several exact provider bindings. Editorial profile tags never limit output languages." actions={<Button onClick={() => setCreating(true)}><Plus /> Create voice</Button>} />
+    <StudioPageHeader eyebrow="Voice Library" title="Your voices" description="Choose the person first. Exact recording methods and provider evidence stay available when you need them." actions={<Button onClick={() => setCreating(true)}><Plus /> Create voice</Button>} />
     {resources.status === "error" && resources.profiles.length > 0 && <InlineResourceError message="Voice Library refresh failed. Existing identities are preserved." retry={() => void resources.refresh()} />}
     <section className="voices-overview" aria-label="Voice summary"><span><b>{activeProfiles.length}</b> voices</span><span><b>{readyBindings}</b> ready provider bindings</span><span><b>{installedProviderModels}</b> installed provider models</span>{Boolean(archivedProfiles.length) && <Button variant={showArchived ? "secondary" : "ghost"} size="sm" onClick={() => setShowArchived((value) => !value)}>{showArchived ? "Back to active" : `${archivedProfiles.length} archived`}</Button>}</section>
     <section className="voices-controls" aria-label="Find voices"><label><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, language, trait, or accent" /></label><div role="group" aria-label="Voice filters"><Button size="sm" variant={filter === "all" ? "secondary" : "ghost"} onClick={() => setFilter("all")}>All</Button><Button size="sm" variant={filter === "favourites" ? "secondary" : "ghost"} onClick={() => setFilter("favourites")}>Favourites</Button><Button size="sm" variant={filter === "incomplete" ? "secondary" : "ghost"} onClick={() => setFilter("incomplete")}>Needs setup</Button></div></section>

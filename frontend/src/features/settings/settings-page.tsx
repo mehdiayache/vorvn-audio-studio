@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 
 import { ErrorState, PageLoading } from "@/components/state-panel"
 import { Input } from "@/components/ui/input"
-import { ToolPageHeader } from "@/design-system/vorvn"
+import { StudioPageHeader } from "@/components/studio-page-header"
 import { studioApi } from "@/lib/api"
 import type { SettingsSnapshot } from "@/types/domain"
 
@@ -44,7 +44,7 @@ export function SettingsPage() {
   if (!data) return <ErrorState title="Settings unavailable" message={error} retry={() => void load()} />
 
   return <main className="settings-page">
-    <ToolPageHeader eyebrow="Audio Studio" title="Settings" description="Connection, storage and production defaults used by every tool. Each card saves only its own changes." />
+    <StudioPageHeader eyebrow="Audio Studio" title="Settings" description="Connection, storage and production defaults used by every tool. Each section saves only its own changes." />
 
     <section className="settings-readiness" aria-labelledby="product-readiness-title"><header><h2 id="product-readiness-title">Product readiness</h2><p>Live application, provider and durable storage status.</p></header><div className="settings-status-grid">
       <article><Server /><div><b>Audio Studio</b><span>{data.database.connected ? data.provider.configured ? "Ready" : "Setup required" : "Audio Studio unavailable"}</span></div><i className={data.database.connected && data.provider.configured ? "healthy" : "warning"} /></article>

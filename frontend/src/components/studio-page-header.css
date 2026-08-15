@@ -1,0 +1,7 @@
+.studio-page-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+.studio-page-header > div:first-child { min-width: 0; }
+.studio-page-header small { display: block; margin-bottom: 6px; color: var(--primary); font-size: var(--type-caption); font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+.studio-page-header h1 { margin: 0; font-size: var(--type-display-sm); font-weight: 700; letter-spacing: -.04em; line-height: 1.1; }
+.studio-page-header p { max-width: 680px; margin: 7px 0 0; color: var(--muted-foreground); font-size: var(--type-body); line-height: 1.5; }
+.studio-page-header-actions { flex: none; display: flex; align-items: center; gap: 8px; }
+@media (max-width: 640px) { .studio-page-header { align-items: stretch; flex-direction: column; gap: 16px; }.studio-page-header-actions > * { width: 100%; } }
