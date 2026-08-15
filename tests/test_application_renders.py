@@ -117,7 +117,9 @@ class RenderServiceTests(unittest.TestCase):
 
     def test_export_offsets_subtitles_and_records_canonical_identity(self):
         records = FakeRecords([
-            {"id": 3, "kind": "silence", "title": "2"}, dict(PART),
+            {"id": 3, "kind": "silence", "title": "9",
+             "duration_ms": 2000},
+            dict(PART),
         ])
         workspace = FakeWorkspace()
         result = RenderService(records, workspace).export(6)

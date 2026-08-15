@@ -5,7 +5,11 @@ from __future__ import annotations
 from typing import Protocol
 
 from audio_studio.domain import captions
-from audio_studio.domain.rendering import FinishedExport, RenderError
+from audio_studio.domain.rendering import (
+    FinishedExport,
+    RenderError,
+    silence_duration_seconds,
+)
 
 
 class RenderRecords(Protocol):
@@ -66,7 +70,7 @@ class RenderService:
         cues, missing, stale, offset = [], [], [], 0
         for number, part in enumerate(parts, 1):
             if part["kind"] == "silence":
-                offset += int(float(part["title"] or 1) * 1000)
+                offset += round(silence_duration_seconds(part) * 1000)
                 continue
             length = (part.get("duration_ms")
                       or self.workspace.duration_for_part(part) or 0)

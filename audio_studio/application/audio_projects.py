@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from audio_studio.domain.rendering import RenderError
+from audio_studio.domain.rendering import RenderError, silence_duration_seconds
 
 
 class ProjectWorkspace(Protocol):
@@ -19,7 +19,7 @@ def production_scene(editor: dict, music: dict) -> dict:
         if not part.get("enabled", True) or part.get("kind") in ("draft", "stitch"):
             continue
         if part.get("kind") == "silence":
-            duration = max(.1, float(part.get("title") or 1))
+            duration = silence_duration_seconds(part)
             file_url = f"silence://{part['id']}"
         else:
             duration = max(0, float(part.get("duration_ms") or 0) / 1000)

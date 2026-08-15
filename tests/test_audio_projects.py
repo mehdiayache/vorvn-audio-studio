@@ -36,7 +36,8 @@ class AudioProjectTests(unittest.TestCase):
                  "position": 0, "enabled": True, "duration_ms": 800,
                  "filename": "one.wav"},
                 {"id": 2, "public_id": "part-2", "kind": "silence",
-                 "position": 1, "enabled": True, "title": "0.5"},
+                 "position": 1, "enabled": True, "title": "9",
+                 "duration_ms": 500},
                 {"id": 3, "kind": "draft", "position": 2,
                  "enabled": True},
                 {"id": 4, "kind": "speech", "position": 3,
@@ -51,6 +52,16 @@ class AudioProjectTests(unittest.TestCase):
             {"id": "part-2", "start_time": .8, "duration": .5,
              "file_url": "silence://2"},
         ])
+
+    def test_legacy_silence_uses_title_only_without_duration_ms(self):
+        scene = production_scene({
+            "id": 6,
+            "parts": [{
+                "id": 2, "kind": "silence", "enabled": True,
+                "title": "0.75",
+            }],
+        }, {})
+        self.assertEqual(scene["tracks"][0]["clips"][0]["duration"], .75)
 
     def test_project_render_is_normalized_and_cached(self):
         with TemporaryDirectory() as folder:

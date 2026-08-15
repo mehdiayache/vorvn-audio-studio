@@ -8,6 +8,16 @@ class RenderError(RuntimeError):
     pass
 
 
+def silence_duration_seconds(part: dict) -> float:
+    """Return canonical Silence duration, with title compatibility for old rows."""
+    duration_ms = part.get("duration_ms")
+    if duration_ms is not None:
+        seconds = float(duration_ms) / 1000
+    else:
+        seconds = float(part.get("title") or 1)
+    return max(.1, min(120.0, seconds))
+
+
 @dataclass(frozen=True, slots=True)
 class FinishedExport:
     target: Path

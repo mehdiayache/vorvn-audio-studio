@@ -13,7 +13,11 @@ from urllib.parse import quote, unquote, urlparse
 from uuid import uuid4
 
 from audio_studio.domain import speech_text
-from audio_studio.domain.rendering import FinishedExport, RenderError
+from audio_studio.domain.rendering import (
+    FinishedExport,
+    RenderError,
+    silence_duration_seconds,
+)
 from audio_studio.infrastructure.media_paths import media_root
 from audio_studio.infrastructure.postgres.production_document import MUSIC_LEVELS
 
@@ -52,7 +56,7 @@ def _sequence(parts: list[dict], target: Path) -> tuple[list[dict], str]:
     root = _output()
     for index, part in enumerate(parts):
         if part.get("kind") == "silence":
-            seconds = max(.1, min(120.0, float(part.get("title") or 1)))
+            seconds = silence_duration_seconds(part)
             command.extend(["-f", "lavfi", "-i",
                             f"anullsrc=r=48000:cl=stereo:d={seconds:.3f}"])
             manifest.append({"position": index, "part_id": part.get("id"),

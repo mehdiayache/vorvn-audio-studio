@@ -48,7 +48,8 @@ with tempfile.TemporaryDirectory() as directory:
         target = root / "finished.mp3"
         parts = [
             {"id": 1, "kind": "audio", "filename": wav.name},
-            {"id": 2, "kind": "silence", "title": "0.2", "filename": ""},
+            {"id": 2, "kind": "silence", "title": "9",
+             "duration_ms": 200, "filename": ""},
             {"id": 3, "kind": "asset", "filename": second.name, "asset_of": 42},
         ]
         try:
