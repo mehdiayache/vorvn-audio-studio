@@ -1,6 +1,6 @@
 .capability-picker { min-width: 0; }
-.capability-choice-list { overflow: hidden; border: 1px solid var(--border); border-radius: var(--vrn-radius-md); background: var(--surface-raised); }
-.capability-choice-row { width: 100%; min-width: 0; display: grid; grid-template-columns: 28px minmax(190px,1fr) minmax(180px,.85fr) auto auto; align-items: center; gap: var(--vrn-space-3); padding: var(--vrn-space-3) var(--vrn-space-4); color: var(--foreground); border: 0; border-bottom: 1px solid var(--border); background: transparent; text-align: left; cursor: pointer; }
+.capability-choice-list { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-raised); }
+.capability-choice-row { width: 100%; min-width: 0; display: grid; grid-template-columns: 28px minmax(190px,1fr) minmax(180px,.85fr) auto auto; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); color: var(--foreground); border: 0; border-bottom: 1px solid var(--border); background: transparent; text-align: left; cursor: pointer; }
 .capability-choice-row:last-child { border-bottom: 0; }
 .capability-choice-row:hover { background: var(--surface-subtle); }
 .capability-choice-row.selected { background: var(--primary-soft); box-shadow: inset 3px 0 0 var(--primary); }
@@ -18,24 +18,24 @@
 .capability-choice-row .capability-card-state.documented { color: var(--success); }
 .capability-choice-row .capability-card-state.experimental { color: var(--warning); }
 .capability-choice-row .capability-card-state svg { width: 13px; height: 13px; }
-.capability-choice-details { margin-top: var(--vrn-space-2); }
-.capability-choice-details summary { display: flex; align-items: center; gap: var(--vrn-space-2); width: fit-content; color: var(--muted-foreground); font-size: var(--type-caption); cursor: pointer; list-style: none; }
+.capability-choice-details { margin-top: var(--space-2); }
+.capability-choice-details summary { display: flex; align-items: center; gap: var(--space-2); width: fit-content; color: var(--muted-foreground); font-size: var(--type-caption); cursor: pointer; list-style: none; }
 .capability-choice-details summary::-webkit-details-marker { display: none; }
 .capability-choice-details summary svg { width: 14px; transition: transform 150ms ease; }
 .capability-choice-details[open] summary svg { transform: rotate(180deg); }
 .capability-choice-details summary b { color: var(--foreground); font-size: var(--type-small); }
-.capability-choice-details > div { display: grid; grid-template-columns: minmax(180px,1fr) minmax(260px,1.2fr); gap: var(--vrn-space-5); margin-top: var(--vrn-space-2); padding: var(--vrn-space-3) var(--vrn-space-4); border: 1px solid var(--border); border-radius: var(--vrn-radius-sm); background: var(--surface-subtle); }
-.capability-detail-models { display: grid; align-content: start; gap: var(--vrn-space-2); }
+.capability-choice-details > div { display: grid; grid-template-columns: minmax(180px,1fr) minmax(260px,1.2fr); gap: var(--space-5); margin-top: var(--space-2); padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-subtle); }
+.capability-detail-models { display: grid; align-content: start; gap: var(--space-2); }
 .capability-detail-models > span { min-width: 0; display: grid; gap: 2px; }
 .capability-detail-models b { font-size: var(--type-caption); }
 .capability-detail-models code { overflow: hidden; color: var(--muted-foreground); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.capability-picker.compact .capability-choice-row { grid-template-columns: 22px minmax(0,1fr); padding: var(--vrn-space-3); }
+.capability-picker.compact .capability-choice-row { grid-template-columns: 22px minmax(0,1fr); padding: var(--space-3); }
 .capability-picker.compact .capability-row-model,
 .capability-picker.compact .capability-card-state,
 .capability-picker.compact .capability-card-coverage { display: none; }
 
 @media (max-width: 600px) {
-  .capability-choice-row { grid-template-columns: 24px minmax(0,1fr) auto; gap: var(--vrn-space-2); padding: var(--vrn-space-3); }
+  .capability-choice-row { grid-template-columns: 24px minmax(0,1fr) auto; gap: var(--space-2); padding: var(--space-3); }
   .capability-row-model { grid-column: 2; text-align: left; }
   .capability-choice-row .capability-card-state { grid-column: 3; grid-row: 1 / span 2; }
   .capability-choice-row .capability-card-coverage { display: none; }

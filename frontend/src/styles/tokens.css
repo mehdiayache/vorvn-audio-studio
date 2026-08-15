@@ -80,10 +80,26 @@
   --series-soft: oklch(0.97 0.02 245);
   --production: var(--primary);
   --production-soft: var(--primary-soft);
+  --info: oklch(0.56 0.14 245);
+  --info-soft: oklch(0.97 0.02 245);
+  --info-border: oklch(0.84 0.06 245);
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --stroke-hairline: 1px;
+  --radius-full: 999px;
+  --control-xs: 1.75rem;
 
   --type-caption: 0.75rem;
   --type-small: 0.8125rem;
   --type-body: 0.9375rem;
+  --type-panel-size: 0.875rem;
+  --type-panel-line: 1.35;
   --type-heading-sm: 1rem;
   --type-heading-md: 1.125rem;
   --type-heading-lg: 1.25rem;
@@ -93,6 +109,11 @@
   --type-display-base: 1.75rem;
   --type-display-page: 1.75rem;
   --type-display-hero: 2.25rem;
+  --font-mono: "SFMono-Regular", Consolas, ui-monospace, monospace;
+  --weight-regular: 400;
+  --weight-body: 500;
+  --weight-label: 650;
+  --weight-title: 680;
 
   --layer-page: 0;
   --layer-sticky: 20;

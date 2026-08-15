@@ -1,9 +1,9 @@
 .operation-state {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: var(--vrn-space-4);
+  gap: var(--space-4);
   align-items: start;
-  padding: var(--vrn-space-5);
+  padding: var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--card);
@@ -15,7 +15,7 @@
 .operation-state p { margin: .25rem 0; color: var(--muted-foreground); }
 .operation-state code { display: inline-block; margin-top: .5rem; font-size: .75rem; color: var(--muted-foreground); }
 .operation-state [role="progressbar"] { margin-top: .75rem; }
-.operation-state-actions { display: flex; gap: var(--vrn-space-2); flex-wrap: wrap; justify-content: flex-end; }
+.operation-state-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; }
 .operation-failed, .operation-lost, .operation-cancelled { border-color: color-mix(in oklab, var(--destructive) 35%, var(--border)); }
 .operation-failed > svg, .operation-lost > svg, .operation-cancelled > svg { color: var(--destructive); }
 .operation-blocked { border-color: color-mix(in oklab, var(--warning) 40%, var(--border)); }

@@ -1,8 +1,0 @@
-{
-  "name": "UI VORVN",
-  "version": "1.0.0-alpha.34",
-  "source": "projects/ui-vorvn/src/foundation/tokens.css",
-  "sha256": "8424561ef4865ffc77719b5e8a95d1cd701645be8037e25f639792607d40541e",
-  "synced_at": "2026-08-12",
-  "policy": "Versioned local adapter. Product code consumes semantic tokens and never imports the design lab at runtime."
-}
