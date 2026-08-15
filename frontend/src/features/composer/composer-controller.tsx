@@ -142,7 +142,9 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   const context = useMemo(() => compositionContext({ productionId, part, insertBeforePartId }), [insertBeforePartId, part, productionId])
   const baseline = useMemo(() => editorialBaseline(part), [part])
   const draft: CompositionDraft = {
-    voiceIdentityId: selectedIdentity?.source === "owned" ? selectedIdentity.identityId : null,
+    // Every registry identity is stable enough to restore an operator choice.
+    // Generation still projects voice_identity_id only for owned routes.
+    voiceIdentityId: selectedIdentity?.identityId || null,
     route,
     text: { raw: textSession.states.raw, shaped: textSession.states.shaped, tagged: textSession.states.tagged, active: textSession.view },
     textPreparation: { tagDensity: textSession.density, pendingReview: textReviewReference },

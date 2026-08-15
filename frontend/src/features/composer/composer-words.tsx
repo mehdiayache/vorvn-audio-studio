@@ -1,4 +1,4 @@
-import { AudioLines, Check, Columns2, Copy, WandSparkles } from "lucide-react"
+import { AudioLines, Check, Columns2, Copy, Maximize2, Minimize2, WandSparkles } from "lucide-react"
 import { useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import type { TextView } from "@/hooks/use-composer-text"
 import { formatMicroMoney } from "@/lib/format"
+import { cn } from "@/lib/utils"
 import { useComposer } from "./composer-controller"
 
 function textLabel(view: TextView) {
@@ -27,33 +28,59 @@ export function ComposerWords() {
   const text = composer.textSession
   const [compareOpen, setCompareOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [focusMode, setFocusMode] = useState(false)
   const states = ["raw", "shaped", ...(composer.capabilityControls.deliveryTags ? ["tagged" as const] : [])] as TextView[]
-  const compareView = text.view === "raw" ? (text.states.tagged ? "tagged" : text.states.shaped ? "shaped" : null) : text.view
+  const savedCompareView = text.view === "raw" ? (text.states.tagged ? "tagged" : text.states.shaped ? "shaped" : null) : text.view
+  const candidateView: TextView | null = text.review?.kind === "shape" ? "shaped" : text.review?.kind === "tag" ? "tagged" : null
+  const compareView = candidateView || savedCompareView
+  const compareText = text.review?.result.after || (compareView ? text.states[compareView] : "")
+  const displayedText = text.review?.result.after || text.text
 
   const copy = async () => {
-    await navigator.clipboard?.writeText(text.text)
+    await navigator.clipboard?.writeText(displayedText)
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1200)
   }
 
-  return <section className="composer-section script-section" aria-label="Script workspace">
+  return <section className={cn("composer-section script-section", focusMode && "is-focus")} aria-label="Script workspace">
     <header>
-      <div><span className="eyebrow">Script workspace</span><h3>Write the performance</h3></div>
-      <div className="script-utility-actions"><Button variant="ghost" size="sm" disabled={!text.text} onClick={() => void copy()}>{copied ? <Check /> : <Copy />}{copied ? "Copied" : "Copy"}</Button><Button variant="ghost" size="sm" disabled={!compareView || !text.states.raw} onClick={() => setCompareOpen(true)}><Columns2 /> Compare</Button></div>
+      <div><span className="eyebrow">Script</span><h3>Write the performance</h3></div>
+      <div className="script-utility-actions">
+        <Button variant="ghost" size="sm" disabled={!displayedText} onClick={() => void copy()}>{copied ? <Check /> : <Copy />}{copied ? "Copied" : "Copy"}</Button>
+        <Button variant="ghost" size="sm" disabled={!compareView || !text.states.raw} onClick={() => setCompareOpen(true)}><Columns2 /> Compare</Button>
+        <Button variant="ghost" size="sm" aria-pressed={focusMode} onClick={() => setFocusMode((current) => !current)}>{focusMode ? <Minimize2 /> : <Maximize2 />}{focusMode ? "Show Sound" : "Focus editor"}</Button>
+      </div>
     </header>
-    <div className="speech-states" role="tablist" aria-label="Script versions">{states.map((state) => <Button key={state} role="tab" aria-selected={text.view === state} variant="ghost" size="sm" className={text.view === state ? "active" : ""} disabled={state !== "raw" && !text.states[state]} onClick={() => text.select(state)}>{textLabel(state)}{state === text.view && <small>Used to generate</small>}</Button>)}</div>
+    <div className="script-command-row">
+      <div className="speech-states" role="tablist" aria-label="Script versions">{states.map((state) => <Button key={state} role="tab" aria-selected={text.view === state && !text.review} variant="ghost" size="sm" className={text.view === state && !text.review ? "active" : ""} disabled={Boolean(text.review) || (state !== "raw" && !text.states[state])} onClick={() => text.select(state)}>{textLabel(state)}{state === text.view && !text.review && <small>Recording input</small>}</Button>)}</div>
+      {!text.review && <div className="text-tools" aria-label="Text tools">
+        <Button variant="ghost" size="sm" disabled={!composer.currentRoute || !text.text.trim() || Boolean(text.busy) || composer.recovery.status === "loading"} onClick={() => void text.run("shape")}><AudioLines />{text.busy === "shape" ? "Rewriting…" : "Make spoken"}</Button>
+        {composer.capabilityControls.deliveryTags && <>
+          <Select value={text.density} onValueChange={text.setDensity}><SelectTrigger aria-label="Tag density"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="light">Light tags</SelectItem><SelectItem value="normal">Normal tags</SelectItem><SelectItem value="heavy">Heavy tags</SelectItem></SelectContent></Select>
+          <Button variant="ghost" size="sm" disabled={!text.text.trim() || Boolean(text.busy) || composer.recovery.status === "loading"} onClick={() => void text.run("tag")}><WandSparkles />{text.busy === "tag" ? "Tagging…" : "Add tags"}</Button>
+        </>}
+      </div>}
+    </div>
     {composer.currentRoute && composer.taggedIncompatible && <div className="composer-warning"><b>Inline tags are not available with {composer.methodLabel}.</b><span>Your words remain unchanged until you choose what to do.</span><div>{text.states.shaped && <Button size="sm" variant="outline" onClick={() => text.select("shaped")}>Use Spoken version</Button>}{composer.hasInlineDeliveryTag && <Button size="sm" variant="outline" onClick={composer.removeInlineTags}>Remove inline tags</Button>}</div></div>}
-    {text.view === "tagged" ? <TaggedScriptEditor value={text.text} onChange={text.updateText} autoFocus={Boolean(composer.currentRoute)} /> : <Textarea dir="auto" aria-label={`${textLabel(text.view)} script`} value={text.text} onChange={(event) => text.updateText(event.target.value)} placeholder="Type or paste what should be said…" autoFocus={Boolean(composer.currentRoute)} />}
-    <div className="text-pass-actions">
-      <Button variant="outline" disabled={!composer.currentRoute || !text.text.trim() || Boolean(text.busy) || composer.recovery.status === "loading"} onClick={() => void text.run("shape")}><AudioLines />{text.busy === "shape" ? "Rewriting…" : "Make it spoken"}</Button>
-      {composer.capabilityControls.deliveryTags ? <>
-        <Select value={text.density} onValueChange={text.setDensity}><SelectTrigger aria-label="Tag density"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="light">Light tags</SelectItem><SelectItem value="normal">Normal tags</SelectItem><SelectItem value="heavy">Heavy tags</SelectItem></SelectContent></Select>
-        <Button variant="outline" disabled={!text.text.trim() || Boolean(text.busy) || composer.recovery.status === "loading"} onClick={() => void text.run("tag")}><WandSparkles />{text.busy === "tag" ? "Tagging…" : "Add delivery tags"}</Button>
-      </> : <p className="composer-engine-note">{composer.currentRoute ? `${composer.methodLabel} does not use inline tags.` : "Choose an exact route to see its text tools."}</p>}
-      <small className="text-pass-cost">Paid text preparation · {composer.config?.text_preparation?.model || "Qwen text"} · about {formatMicroMoney(composer.textPassEstimate)} each</small>
+    <div className={cn("script-editor-shell", text.review && "is-reviewing")}>
+      {text.review ? <>
+        <div className="candidate-toolbar">
+          <div><span className="eyebrow">{text.review.kind === "shape" ? "Spoken candidate" : "Tagged candidate"}</span><b>Review the prepared words where you write</b><small>{formatMicroMoney(Number(text.review.result.cost || 0))} · {text.review.result.cost_basis === "actual_tokens" ? "actual provider tokens" : "estimated"}</small></div>
+          <Button variant="outline" size="sm" onClick={() => setCompareOpen(true)}><Columns2 /> Compare with Original</Button>
+        </div>
+        <Textarea className="candidate-editor" dir="auto" aria-label={`${text.review.kind === "shape" ? "Spoken" : "Tagged"} candidate`} value={text.review.result.after || ""} readOnly />
+        <div className="candidate-actions"><Button variant="ghost" onClick={() => void text.reject()}>Reject</Button><Button onClick={() => void text.accept()}><Check />Accept {text.review.kind === "shape" ? "Spoken" : "Tagged"}</Button></div>
+      </> : text.view === "tagged"
+        ? <TaggedScriptEditor value={text.text} onChange={text.updateText} autoFocus={Boolean(composer.currentRoute)} />
+        : <Textarea dir="auto" aria-label={`${textLabel(text.view)} script`} value={text.text} onChange={(event) => text.updateText(event.target.value)} placeholder="Type or paste what should be said…" autoFocus={Boolean(composer.currentRoute)} />}
+    </div>
+    <div className="script-meta-row">
+      <span>{displayedText.length.toLocaleString()} characters</span>
+      {!composer.currentRoute && <span>Choose a Voice and recording method to prepare text</span>}
+      {composer.currentRoute && !composer.capabilityControls.deliveryTags && <span>{composer.methodLabel} uses words without inline tags</span>}
+      <span>Text tools · {composer.config?.text_preparation?.model || "Qwen text"} · about {formatMicroMoney(composer.textPassEstimate)}</span>
     </div>
     {text.error && <p className="composer-warning">{text.error}</p>}
-    {text.review && <div className="text-review"><header><div><b>{text.review.kind === "shape" ? "Spoken version ready" : "Tagged version ready"}</b><span>{formatMicroMoney(Number(text.review.result.cost || 0))} · {text.review.result.cost_basis === "actual_tokens" ? "actual provider tokens" : "estimated"} · review before accepting</span></div><div><Button variant="ghost" onClick={text.reject}>Reject</Button><Button onClick={() => void text.accept()}>Accept version</Button></div></header><p>{text.review.result.difference?.map((change, index) => change.kind === "added" ? <ins key={index}>{change.text}</ins> : change.kind === "removed" ? <del key={index}>{change.text}</del> : <span key={index}>{change.text}</span>)}</p></div>}
-    <Dialog open={compareOpen} onOpenChange={setCompareOpen}><DialogContent className="composer-compare-dialog"><DialogHeader><DialogTitle>Compare script versions</DialogTitle><DialogDescription>Original editorial words beside the prepared version. Both remain plain, copyable text.</DialogDescription></DialogHeader><div className="composer-compare-grid"><section><b>Original</b><pre>{text.states.raw}</pre></section><section><b>{compareView ? textLabel(compareView) : "Prepared"}</b><pre>{compareView ? text.states[compareView] : ""}</pre></section></div></DialogContent></Dialog>
+    <Dialog open={compareOpen} onOpenChange={setCompareOpen}><DialogContent className="composer-compare-dialog"><DialogHeader><DialogTitle>Compare script versions</DialogTitle><DialogDescription>Original editorial words beside the prepared version. Both remain plain, copyable text.</DialogDescription></DialogHeader><div className="composer-compare-grid"><section><b>Original</b><pre>{text.states.raw}</pre></section><section><b>{compareView ? textLabel(compareView) : "Prepared"}</b><pre>{compareText}</pre></section></div></DialogContent></Dialog>
   </section>
 }

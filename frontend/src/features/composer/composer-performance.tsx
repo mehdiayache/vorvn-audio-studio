@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
+import { Textarea } from "@/components/ui/textarea"
 import { useComposer } from "./composer-controller"
 
 function modeLabel(mode: string) {
@@ -12,13 +13,18 @@ function modeLabel(mode: string) {
 export function ComposerPerformance() {
   const composer = useComposer()
   const controls = composer.capabilityControls
+  const selectedPreset = composer.performancePresets.find((preset) => preset.instruction === composer.instruction)
   return <section className="composer-section">
-    <header><div><span className="eyebrow">Performance</span><h3>How should it sound?</h3></div></header>
+    <header><div><span className="eyebrow">Sound</span><h3>Shape the delivery</h3></div></header>
     {controls.directionModes.length > 1 && <div className="delivery-mode"><div><span>Delivery</span>{controls.directionModes.map((mode) => <Button key={mode} variant={composer.deliveryMode === mode ? "secondary" : "outline"} onClick={() => composer.setDeliveryModeRequest(mode)}>{modeLabel(mode)}</Button>)}</div><p>{composer.deliveryMode === "exact" ? controls.exactHelp : controls.directedHelp}</p></div>}
+    {composer.performancePresets.length > 0 && <label className="performance-preset-select"><span>Performance preset</span><Select value={selectedPreset?.id || "custom"} onValueChange={(value) => {
+      const preset = composer.performancePresets.find((item) => item.id === value)
+      composer.setInstruction(preset?.instruction || "")
+      if (preset && controls.directionModes.includes("directed")) composer.setDeliveryModeRequest("directed")
+    }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="custom">{composer.instruction && !selectedPreset ? "Custom direction" : "No preset"}</SelectItem>{composer.performancePresets.map((preset) => <SelectItem key={preset.id} value={preset.id}>{preset.name}</SelectItem>)}</SelectContent></Select></label>}
     {controls.naturalDirection
-      ? <label><span>{controls.directionLabel}</span><Input value={composer.instruction} disabled={composer.deliveryMode === "exact"} maxLength={composer.config?.instruction_max || 100} onChange={(event) => composer.setInstruction(event.target.value)} placeholder="Describe the performance in natural language" />{composer.deliveryMode === "exact" && <small>Choose Add direction to control the overall performance.</small>}</label>
+      ? <label className="performance-direction"><span>{controls.directionLabel}</span><Textarea rows={3} value={composer.instruction} disabled={composer.deliveryMode === "exact"} maxLength={composer.config?.instruction_max || 100} onChange={(event) => composer.setInstruction(event.target.value)} placeholder="Warm, intimate, slow at first, then more excited near the end…" />{composer.deliveryMode === "exact" && <small>Choose Add direction to control the overall performance.</small>}</label>
       : <p className="composer-engine-note">{composer.selectedCapability?.description || "This method uses the prepared script without a separate performance direction."}</p>}
-    {composer.performancePresets.length > 0 && <div className="performance-presets"><span>Presets</span><div>{composer.performancePresets.map((preset) => <Button key={preset.id} type="button" variant={composer.instruction === preset.instruction ? "secondary" : "outline"} onClick={() => { composer.setInstruction(preset.instruction); if (controls.directionModes.includes("directed")) composer.setDeliveryModeRequest("directed") }}><b>{preset.name}</b><small>{preset.instruction}</small></Button>)}</div></div>}
     {(controls.rate || controls.pitch || controls.volume) && <div className="composer-fine-grid composer-performance-controls">
       {controls.rate && <label><span>Speed <b>{composer.rate.toFixed(2)}×</b></span><Slider aria-label="Recording speed" value={[composer.rate]} min={0.5} max={2} step={0.05} onValueChange={([value = 1]) => composer.setRate(value)} /></label>}
       {controls.pitch && <label><span>Pitch <b>{composer.pitch.toFixed(2)}×</b></span><Slider aria-label="Recording pitch" value={[composer.pitch]} min={0.5} max={2} step={0.05} onValueChange={([value = 1]) => composer.setPitch(value)} /></label>}

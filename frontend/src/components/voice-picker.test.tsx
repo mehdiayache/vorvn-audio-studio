@@ -34,14 +34,14 @@ describe("VoicePicker", () => {
     const onChange = vi.fn(); const onPlay = vi.fn()
     render(<VoicePicker identities={[identity()]} value="system:olivia" directory={directory} playerPlaying={false} onChange={onChange} onPlay={onPlay} />)
     fireEvent.click(screen.getByRole("button", { name: "Choose a voice" }))
-    expect(await screen.findByText("Choose the identity first. Output language and capability come next.")).toBeTruthy()
-    expect(screen.getByRole("region", { name: "Provider catalogue" })).toBeTruthy()
+    expect(await screen.findByText("Select the performer. Previewing never changes your choice.")).toBeTruthy()
+    expect(screen.getByRole("region", { name: "Catalogue" })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Preview Olivia Lin" }))
     expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ url: "/samples/olivia.mp3", kind: "voice" }))
     expect(onChange).not.toHaveBeenCalled()
   })
 
-  it("shows each cloned identity once with its editorial casting tag", async () => {
+  it("shows each cloned identity once with factual gender, provider, and method count", async () => {
     const onChange = vi.fn()
     const serenity = identity({
       identityId: "voice-serinity", name: "Serinity", source: "owned", editorialLanguage: "en",
@@ -53,9 +53,26 @@ describe("VoicePicker", () => {
     render(<VoicePicker identities={[serenity]} value="" directory={directory} playerPlaying={false} onChange={onChange} onPlay={vi.fn()} />)
     fireEvent.click(screen.getByRole("button", { name: "Choose a voice" }))
     expect((await screen.findAllByText("Serinity Audio")).length).toBe(1)
-    expect(screen.getByText("🇬🇧 English focus · 2 capabilities")).toBeTruthy()
+    expect(screen.getByText("female · Gentle narration · Alibaba · 2 methods")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: /Serinity Audio/ }))
     expect(onChange).toHaveBeenCalledWith(serenity)
+  })
+
+  it("searches factual metadata and filters by explicit gender", async () => {
+    const male = identity({
+      identityId: "system:theo",
+      name: "Theo",
+      gender: "male",
+      description: "Warm documentary",
+      routes: [{ ...identity().routes[0]!, id: "theo", identityId: "system:theo", name: "Theo", description: "Warm documentary", gender: "male" }],
+    })
+    render(<VoicePicker identities={[identity(), male]} value="" directory={directory} playerPlaying={false} onChange={vi.fn()} onPlay={vi.fn()} />)
+    fireEvent.click(screen.getByRole("button", { name: "Choose a voice" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Male" }))
+    expect(screen.getByText("male · Warm documentary · Alibaba · 1 method")).toBeTruthy()
+    expect(screen.queryByText("female · Gentle narration · Alibaba · 1 method")).toBeNull()
+    fireEvent.change(screen.getByPlaceholderText("Search voices, traits, or providers…"), { target: { value: "no result" } })
+    expect(screen.getByText("No matching Voice")).toBeTruthy()
   })
 
   it("explains unavailable previews without a broken play control", async () => {

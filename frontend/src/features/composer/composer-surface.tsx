@@ -38,16 +38,16 @@ export function ControlledComposerSurface({ composer, presentation = "mega", onE
         </div>
       </header>
       {workstation ? <div className="composer-workspace">
-        <aside className="composer-setup-rail" aria-label="Voice and recording method">
-          <ComposerWho />
-        </aside>
-        <main className="composer-script-canvas" aria-label="Script canvas">
-          <ComposerWords />
-        </main>
-        <aside className="composer-controls-rail" aria-label="Performance and output">
-          <ComposerPerformance />
-          <ComposerOutput />
-        </aside>
+        <ComposerWho />
+        <div className="composer-creative-workspace">
+          <main className="composer-script-canvas" aria-label="Script canvas">
+            <ComposerWords />
+          </main>
+          <aside className="composer-controls-rail" aria-label="Sound and output">
+            <ComposerPerformance />
+            <ComposerOutput />
+          </aside>
+        </div>
       </div> : <div className="composer-stage">
         <ComposerRecordingContext presentation={presentation} />
         <ComposerWords />

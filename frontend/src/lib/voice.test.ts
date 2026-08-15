@@ -37,6 +37,16 @@ describe("voice identity", () => {
     expect(resolveVoice("longanlingxin", directory)).toMatchObject({ name: "Lingxin", detail: "female, warm and empathetic" })
   })
 
+  it("resolves registry truth from a stable catalogue route id", () => {
+    const withRegistry = {
+      ...directory,
+      registry: { bindings: [{ catalogue_voice_id: "provider:region:model:aiden", provider_voice_id: "aiden", name: "Aiden", description: "Friendly young voice", image: null }] },
+    } as unknown as VoiceDirectory
+    expect(resolveVoice("provider:region:model:aiden", withRegistry)).toMatchObject({
+      name: "Aiden", detail: "Friendly young voice", unavailable: false,
+    })
+  })
+
   it("prefers a saved name for an Omni clone", () => {
     expect(resolveVoice("qwen-omni-vc-mehdi_ar-voice-20260804171956804-9ab9", directory).name).toBe("Mehdi Ayache")
   })

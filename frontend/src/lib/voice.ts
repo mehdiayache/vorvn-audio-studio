@@ -72,7 +72,10 @@ export function resolveVoice(id: string | undefined, directory: VoiceDirectory, 
   const identity = identityId ? directory.identities?.find((item) => item.id === identityId) : undefined
   const meta = directory.meta[key] || directory.meta[technicalId]
   const catalogue = directory.catalog.find((item) => voiceKey(item.id) === key)
-  const binding = directory.registry?.bindings.find((item) => item.provider_voice_id === technicalId)
+  const binding = directory.registry?.bindings.find((item) =>
+    item.binding_id === technicalId
+    || item.catalogue_voice_id === technicalId
+    || item.provider_voice_id === technicalId)
   const cloned = directory.cloned.find((item) => voiceKey(cloneId(item)) === key)
   const omniDescription = directory.config?.capabilities.omni?.system_voices?.[technicalId]
   const cloneMatch = /^qwen[\w.-]*?-tts-(?:plus|flash)-([a-z0-9_-]+)-[0-9a-f]{16,}$/i.exec(technicalId)

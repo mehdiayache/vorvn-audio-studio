@@ -6,7 +6,10 @@ import type { ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domai
 import { ComposerSurface } from "@/features/composer/composer-surface"
 import { studioApi } from "@/lib/api"
 
-beforeEach(() => { vi.stubGlobal("ResizeObserver", class { observe() {}; unobserve() {}; disconnect() {} }) })
+beforeEach(() => {
+  vi.stubGlobal("ResizeObserver", class { observe() {}; unobserve() {}; disconnect() {} })
+  Element.prototype.scrollIntoView = vi.fn()
+})
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
 const directory = {
@@ -39,11 +42,12 @@ const common = {
 }
 
 describe("shared Composer contract", () => {
-  it("keeps voice, script, and performance visible as stable workstation zones", async () => {
+  it("keeps recording context attached above a dominant script workspace", async () => {
     render(<ComposerSurface {...common} presentation="dialog" productionId={3} />)
-    expect(await screen.findByRole("complementary", { name: "Voice and recording method" })).toBeTruthy()
+    expect(await screen.findByRole("region", { name: "Voice and recording context" })).toBeTruthy()
     expect(screen.getByRole("main", { name: "Script canvas" })).toBeTruthy()
-    expect(screen.getByRole("complementary", { name: "Performance and output" })).toBeTruthy()
+    expect(screen.getByRole("complementary", { name: "Sound and output" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Focus editor" })).toBeTruthy()
     expect(screen.queryByText("Recording setup")).toBeNull()
   })
 
@@ -60,17 +64,18 @@ describe("shared Composer contract", () => {
 
   it("does not silently select the first identity or exact route in fresh Speak", async () => {
     render(<ComposerSurface {...common} />)
-    await waitFor(() => expect(screen.getByText("Choose a voice to see its exact routes.")).toBeTruthy())
-    expect(screen.getByRole("button", { name: "Choose a voice" })).toBeTruthy()
+    await waitFor(() => expect(screen.getByRole("button", { name: "Choose a voice" })).toBeTruthy())
     expect(screen.getByText("Recording method")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Recording method" }).hasAttribute("disabled")).toBe(true)
     expect(screen.getByRole("button", { name: "Create recording" }).hasAttribute("disabled")).toBe(true)
   })
 
   it("restores explicit Part identity context without inventing a route", async () => {
     const part = { id: 7, kind: "speech", text: "Hello", cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
     render(<ComposerSurface {...common} productionId={3} part={part} />)
-    await waitFor(() => expect(screen.getAllByText("Binding Sarah").length).toBeGreaterThan(0))
-    expect(screen.getByText("Choose the exact provider route.")).toBeTruthy()
+    await waitFor(() => expect(screen.getAllByText("Sarah").length).toBeGreaterThan(0))
+    expect(screen.getByText("Choose recording method")).toBeTruthy()
+    expect(screen.getByText("Exact route required")).toBeTruthy()
     expect(screen.getByRole("button", { name: /Record Part/ }).hasAttribute("disabled")).toBe(true)
   })
 
@@ -118,14 +123,23 @@ describe("shared Composer contract", () => {
     vi.spyOn(studioApi, "deleteComposerDraft").mockResolvedValue({ deleted: true })
     const saveDraft = vi.spyOn(studioApi, "saveComposerDraft").mockResolvedValue({ id: "draft-1", state: {} as never, version: 1, updatedAt: "now" })
     const onGenerate = vi.fn().mockResolvedValue({ id: "job-1" })
-    render(<ComposerSurface {...common} onGenerate={onGenerate} />)
+    const catalogueDirectory = {
+      ...directory,
+      registry: {
+        ...directory.registry,
+        bindings: directory.registry!.bindings.map((binding) => ({ ...binding, binding_id: null, catalogue_voice_id: `catalogue-${binding.provider_voice_id}`, source: "system" })),
+      },
+    } as unknown as VoiceDirectory
+    render(<ComposerSurface {...common} directory={catalogueDirectory} onGenerate={onGenerate} />)
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Choose a voice" })).toBeTruthy())
     fireEvent.click(screen.getByRole("button", { name: "Choose a voice" }))
-    fireEvent.click(screen.getByRole("button", { name: /Binding Sarah.*1 capability/ }))
-    fireEvent.click(await screen.findByRole("button", { name: /Expressive \+ tags/ }))
+    fireEvent.click(screen.getByRole("button", { name: /Sarah.*1 method/ }))
+    fireEvent.click(screen.getByRole("button", { name: "Recording method" }))
+    fireEvent.click(await screen.findByRole("option", { name: /Expressive \+ tags/ }))
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "A recoverable recording" } })
     await waitFor(() => expect(saveDraft).toHaveBeenCalled())
+    expect(saveDraft.mock.calls.some(([, saved]) => saved.voiceIdentityId === "identity-sarah" && saved.route?.kind === "catalogue")).toBe(true)
     fireEvent.click(screen.getByRole("button", { name: "Create recording" }))
 
     await waitFor(() => expect(onGenerate).toHaveBeenCalledTimes(1))
