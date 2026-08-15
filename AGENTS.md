@@ -21,16 +21,26 @@ Follow these strict rules on every file, function, and architecture you generate
 ---
 
 ### 3. MODULAR MULTI-PROVIDER PATTERN (TTS / SFX / MUSIC)
-- Every AI model MUST inherit from a clean, decoupled base interface:
-  - `BaseTTSProvider.generate_speech(text, voice_id, **kwargs) -> AudioResult`
-  - `BaseSFXProvider.generate_sfx(prompt, duration) -> AudioResult`
+- Every provider implementation MUST use the small, decoupled interface that
+  exists in the repository. For TTS, the real two-phase contract is
+  `BaseTTSProvider.prepare(...) -> PreparedSpeech`, followed by
+  `BaseTTSProvider.synthesize(prepared, on_progress=None) -> SynthesizedSpeech`.
+  Preparation resolves and validates the exact route before the potentially
+  paid synthesis call. Do not document or introduce a parallel imaginary
+  `generate_speech()` contract.
+- SFX providers use the repository's actual
+  `BaseSFXProvider.generate_sfx(prompt, duration) -> AudioResult` contract.
 - Never tightly couple core business logic to vendor-specific SDKs (e.g., Alibaba DashScope, ElevenLabs). All vendor logic belongs exclusively in its respective adapter file inside `/providers`.
 - Standardize Audio Output: Normalize all audio to consistent 44.1kHz or 48kHz stereo PCM via FFmpeg before serving to the frontend or timeline.
 
 ---
 
 ### 4. HEADLESS AGENT & DAW COMPATIBILITY
-- Single Source of Truth: The entire audio scene must serialize to a lightweight Project JSON format (`Project -> Tracks -> Clips`).
+- The canonical source of truth remains the application domain and persistence
+  model. A lightweight Project JSON representation (`Project -> Tracks ->
+  Clips`) is a derived, versioned scene/render interchange contract for
+  headless clients, agents and DAW-compatible export; it is never a competing
+  persistence model.
 - Provide headless API endpoints (`POST /api/v1/projects/render`) so external CLI shells, scripts, and autonomous agents can build entire audio projects programmatically without touching the UI.
 - Frontend Player Standard: Structure waveform audio responses for lightweight canvas renderers (e.g., Naomi Aro's Waveform Playlist) with pre-computed peak arrays to avoid client-side CPU lag.
 
@@ -72,10 +82,11 @@ For every Audio Studio UI/UX task, use the installed
   waveform/timeline work. Do not add another general UI kit.
 - Retire VORVN UI imports and tokens as redesigned surfaces replace them. Never
   use VORVN as the new visual reference.
-- Production Composer must become a wide, spatial creative modal with coherent
-  script, voice/method, performance, output, cost, state, and primary action.
-- Production Timing must become a full-width horizontal bottom workspace that
-  expands into a serious timeline editor and collapses without losing context.
+- Composer and timing workflows must expose their required creative controls,
+  durable states and playback relationships coherently. Their spatial
+  architecture, geometry and presentation are product-design decisions made
+  after inspecting the real application and receiving approval; this file does
+  not prescribe a modal, dock, sheet, panel or timeline position.
 - The rendered application is authoritative. Inspect and operate every major
   screen at realistic desktop widths, including loading, empty, selected,
   playing, generating, disabled, warning, failure, and error states.
