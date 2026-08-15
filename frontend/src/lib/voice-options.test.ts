@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest"
 import type { VoiceBinding, VoiceRegistry } from "@/types/domain"
 import { getVoiceIdentities, routesForIdentity } from "./voice-options"
 
-function binding(id: string, engine: "audio" | "omni", tier: "plus" | "flash", source: "system" | "custom"): VoiceBinding {
-  return { identity_id: `${source}:${id}`, provider_voice_id: id, name: id, description: "", languages: ["English"], source, provider: "alibaba", region: "intl", adapter_key: engine, engine, tier, model_id: `${engine}-${tier}`, status: "active", estimate_rate_per_million_chars: 0, capabilities: [{ id: `${engine}_mode`, name: `${engine} mode`, description: "Provider capability" }] }
+function binding(id: string, engine: string, tier: string, source: "system" | "custom", provider = "alibaba"): VoiceBinding {
+  return { identity_id: `${source}:${id}`, provider_voice_id: id, name: id, description: "", gender: id === "Sarah" ? "female" : "", languages: ["English"], source, provider, region: "intl", adapter_key: engine, engine, tier, model_id: `${engine}-${tier}`, status: "active", estimate_rate_per_million_chars: 0, capabilities: [{ id: `${engine}_mode`, name: `${engine} mode`, description: "Provider capability" }] }
 }
 
 const bindings = [binding("Tina", "omni", "plus", "system"), binding("Tina", "omni", "flash", "system"), binding("Mehdi", "omni", "plus", "custom"), binding("Lingxin", "audio", "plus", "system"), binding("Sarah", "audio", "flash", "custom")]
@@ -28,6 +28,15 @@ describe("voice-first routing", () => {
       provider: "alibaba", region: "intl", adapterKey: "omni",
       capabilities: [{ id: "omni_mode", name: "omni mode", description: "Provider capability" }],
     })
+  })
+
+  it("keeps provider identity and descriptive gender open to future providers", () => {
+    const eleven = binding("Maya", "eleven_multilingual", "v3", "system", "elevenlabs")
+    eleven.gender = "female"
+    const identities = getVoiceIdentities({ ...registry, bindings: [...registry.bindings, eleven] })
+    const maya = identities.find((item) => item.name === "Maya")!
+    expect(maya.gender).toBe("female")
+    expect(maya.routes[0]).toMatchObject({ provider: "elevenlabs", engine: "eleven_multilingual", model: "v3" })
   })
 
   it("keeps published language coverage out of identity casting", () => {

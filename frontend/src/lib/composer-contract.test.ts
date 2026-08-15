@@ -20,6 +20,7 @@ const ownedRoute: VoiceChoice = {
   identityId: "identity-1",
   name: "Sarah",
   description: "",
+  gender: "",
   source: "owned",
   engine: "audio",
   model: "flash",

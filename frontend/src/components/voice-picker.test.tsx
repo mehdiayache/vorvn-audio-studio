@@ -21,9 +21,10 @@ function identity(overrides: Partial<VoiceIdentityChoice> = {}): VoiceIdentityCh
     identityId: "system:olivia",
     name: "Olivia Lin",
     description: "Gentle narration",
+    gender: "female",
     source: "catalogue",
     editorialLanguage: "",
-    routes: [{ id: "olivia", identityId: "system:olivia", name: "Olivia Lin", description: "Gentle narration", source: "catalogue", engine: "audio", model: "plus", modelId: "audio-plus", provider: "alibaba", region: "intl", adapterKey: "audio", capabilities: [], compatible: true, languages: ["English"], status: "active" }],
+    routes: [{ id: "olivia", identityId: "system:olivia", name: "Olivia Lin", description: "Gentle narration", gender: "female", source: "catalogue", engine: "audio", model: "plus", modelId: "audio-plus", provider: "alibaba", region: "intl", adapterKey: "audio", capabilities: [], compatible: true, languages: ["English"], status: "active" }],
     ...overrides,
   }
 }

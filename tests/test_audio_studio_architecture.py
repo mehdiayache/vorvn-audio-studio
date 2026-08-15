@@ -59,6 +59,15 @@ class AudioStudioArchitectureTests(unittest.TestCase):
                 "application/json"]["schema"]
             self.assertIn("$ref", schema, route)
 
+    def test_voice_registry_contract_is_open_to_new_provider_models(self):
+        schemas = app.openapi()["components"]["schemas"]
+        binding = schemas["VoiceBindingResponse"]["properties"]
+        summary = schemas["VoiceModelSummaryResponse"]["properties"]
+        self.assertNotIn("enum", binding["engine"])
+        self.assertNotIn("enum", binding["tier"])
+        self.assertNotIn("enum", summary["engine"])
+        self.assertNotIn("enum", summary["tier"])
+
     def test_job_endpoints_publish_generated_response_contracts(self):
         paths = app.openapi()["paths"]
         routes = (

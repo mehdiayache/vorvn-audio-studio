@@ -4,6 +4,7 @@ import type { StudioConfig } from "@/types/domain"
 import "./speech-model-identity.css"
 
 type ModelIdentityInput = {
+  provider?: string | null
   engine?: string | null
   tier?: string | null
   model?: string | null
@@ -13,12 +14,19 @@ type ModelIdentityInput = {
 
 const TIERS = new Set(["plus", "flash", "vc"])
 
-export function speechProductName(engine?: string | null) {
+function humanize(value?: string | null) {
+  return String(value || "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .trim()
+}
+
+export function speechProductName(engine?: string | null, provider?: string | null, config?: StudioConfig | null) {
   if (engine === "audio") return "Qwen Audio 3.0 TTS"
   if (engine === "omni") return "Qwen 3.5 Omni"
   if (engine === "qwen_tts") return "Qwen3 TTS Voice Clone"
   if (engine === "text") return "Qwen Text"
-  return "Model"
+  return String(config?.capabilities?.[String(engine || "")]?.label || humanize(engine) || humanize(provider) || "Model")
 }
 
 export function speechTierName(tier?: string | null) {
@@ -56,13 +64,14 @@ export function resolveSpeechModel(input: ModelIdentityInput) {
     engine,
     tier,
     modelId,
-    product: speechProductName(engine),
+    provider: input.provider || "",
+    product: speechProductName(engine, input.provider, input.config),
     tierName: speechTierName(tier),
   }
 }
 
-export function SpeechModelIdentity({ engine, tier, model, modelId, config, compact = false, className }: ModelIdentityInput & { compact?: boolean; className?: string }) {
-  const resolved = resolveSpeechModel({ engine, tier, model, modelId, config })
+export function SpeechModelIdentity({ provider, engine, tier, model, modelId, config, compact = false, className }: ModelIdentityInput & { compact?: boolean; className?: string }) {
+  const resolved = resolveSpeechModel({ provider, engine, tier, model, modelId, config })
   if (!resolved.modelId && !resolved.engine) return null
   return <span className={cn("speech-model-identity", compact && "compact", className)}>
     <span>{resolved.product}{resolved.tierName ? ` · ${resolved.tierName}` : ""}</span>

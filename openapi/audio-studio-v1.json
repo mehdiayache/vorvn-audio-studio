@@ -7849,11 +7849,6 @@
             "type": "string"
           },
           "engine": {
-            "enum": [
-              "audio",
-              "omni",
-              "qwen_tts"
-            ],
             "title": "Engine",
             "type": "string"
           },
@@ -7961,11 +7956,6 @@
             "type": "string"
           },
           "tier": {
-            "enum": [
-              "plus",
-              "flash",
-              "vc"
-            ],
             "title": "Tier",
             "type": "string"
           }
@@ -8226,11 +8216,6 @@
             "type": "integer"
           },
           "engine": {
-            "enum": [
-              "audio",
-              "omni",
-              "qwen_tts"
-            ],
             "title": "Engine",
             "type": "string"
           },
@@ -8247,11 +8232,6 @@
             "type": "integer"
           },
           "tier": {
-            "enum": [
-              "plus",
-              "flash",
-              "vc"
-            ],
             "title": "Tier",
             "type": "string"
           },

@@ -93,8 +93,8 @@ class VoiceBindingResponse(BaseModel):
     provider: str
     region: str = "intl"
     adapter_key: str
-    engine: Literal["audio", "omni", "qwen_tts"]
-    tier: Literal["plus", "flash", "vc"]
+    engine: str
+    tier: str
     model_id: str
     status: str
     estimate_rate_per_million_chars: float = 0
@@ -109,8 +109,8 @@ class VoiceBindingResponse(BaseModel):
 
 
 class VoiceModelSummaryResponse(BaseModel):
-    engine: Literal["audio", "omni", "qwen_tts"]
-    tier: Literal["plus", "flash", "vc"]
+    engine: str
+    tier: str
     model_id: str
     label: str
     system_count: int

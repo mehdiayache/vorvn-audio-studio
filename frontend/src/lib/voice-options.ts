@@ -1,7 +1,7 @@
 import type { VoiceProfile, VoiceRegistry } from "@/types/domain"
 
-export type SpeechEngine = "audio" | "omni" | "qwen_tts"
-export type SpeechModel = "plus" | "flash" | "vc"
+export type SpeechEngine = string
+export type SpeechModel = string
 
 export type VoiceCapabilityChoice = {
   id: string
@@ -19,6 +19,7 @@ export type VoiceChoice = {
   identityId: string
   name: string
   description: string
+  gender: string
   source: "owned" | "catalogue"
   engine: SpeechEngine
   model: SpeechModel
@@ -37,6 +38,7 @@ export type VoiceIdentityChoice = {
   identityId: string
   name: string
   description: string
+  gender: string
   source: "owned" | "catalogue"
   editorialLanguage: string
   routes: VoiceChoice[]
@@ -67,6 +69,7 @@ function toChoice(binding: VoiceRegistry["bindings"][number]): VoiceChoice {
     identityId: binding.identity_id,
     name: binding.name,
     description: binding.description,
+    gender: String(binding.gender || ""),
     source: binding.source === "custom" ? "owned" : "catalogue",
     engine: binding.engine,
     model: binding.tier,
@@ -99,6 +102,7 @@ export function getVoiceIdentities(registry: VoiceRegistry | null, profiles: Voi
       identityId,
       name: profile?.name || first.name,
       description: String(profile?.metadata.trait || first.description),
+      gender: String(profile?.metadata.gender || first.gender || ""),
       source: first.source,
       editorialLanguage: first.source === "owned"
         ? String(profile?.metadata.editorial_language || "")

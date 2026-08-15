@@ -247,7 +247,7 @@ export type StudioConfig = {
 export type ClonedVoice = {
   voice_id?: string
   voice?: string
-  engine?: "audio" | "omni" | "qwen_tts"
+  engine?: string
   target_model?: string
   targetModel?: string
   name?: string
@@ -278,8 +278,8 @@ export type VoiceBinding = {
   provider: string
   region: string
   adapter_key: string
-  engine: "audio" | "omni" | "qwen_tts"
-  tier: "plus" | "flash" | "vc"
+  engine: string
+  tier: string
   model_id: string
   status: string
   estimate_rate_per_million_chars: number
@@ -296,8 +296,8 @@ export type VoiceBinding = {
 }
 
 export type VoiceModelSummary = {
-  engine: "audio" | "omni" | "qwen_tts"
-  tier: "plus" | "flash" | "vc"
+  engine: string
+  tier: string
   model_id: string
   label: string
   system_count: number
@@ -401,8 +401,8 @@ export type GeneratePayload = Omit<
 
 export type ResolvedGeneratePayload = GeneratePayload & {
   voice?: string
-  engine?: "audio" | "omni" | "qwen_tts"
-  model?: "plus" | "flash" | "vc"
+  engine?: string
+  model?: string
   model_id?: string
   provider?: string
   provider_region?: string
@@ -413,8 +413,8 @@ export type VoiceRouteDecision = {
   catalogue_voice_id?: string | null
   identity_id?: string | null
   provider_voice_id: string
-  engine: "audio" | "omni" | "qwen_tts"
-  tier: "plus" | "flash" | "vc"
+  engine: string
+  tier: string
   model_id: string
   capability_id?: string | null
 }

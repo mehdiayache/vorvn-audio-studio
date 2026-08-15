@@ -4044,11 +4044,8 @@ export interface components {
             catalogue_voice_id?: string | null;
             /** Description */
             description: string;
-            /**
-             * Engine
-             * @enum {string}
-             */
-            engine: "audio" | "omni" | "qwen_tts";
+            /** Engine */
+            engine: string;
             /**
              * Estimate Rate Per Million Chars
              * @default 0
@@ -4087,11 +4084,8 @@ export interface components {
             source: "system" | "custom";
             /** Status */
             status: string;
-            /**
-             * Tier
-             * @enum {string}
-             */
-            tier: "plus" | "flash" | "vc";
+            /** Tier */
+            tier: string;
         };
         /** VoiceCapabilityResponse */
         VoiceCapabilityResponse: {
@@ -4165,22 +4159,16 @@ export interface components {
             clone_supported: boolean;
             /** Custom Count */
             custom_count: number;
-            /**
-             * Engine
-             * @enum {string}
-             */
-            engine: "audio" | "omni" | "qwen_tts";
+            /** Engine */
+            engine: string;
             /** Label */
             label: string;
             /** Model Id */
             model_id: string;
             /** System Count */
             system_count: number;
-            /**
-             * Tier
-             * @enum {string}
-             */
-            tier: "plus" | "flash" | "vc";
+            /** Tier */
+            tier: string;
             /** Total Count */
             total_count: number;
         };
