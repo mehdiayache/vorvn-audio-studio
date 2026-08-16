@@ -46,42 +46,43 @@ export function ComposerWords() {
   }
 
   return <section className={cn("composer-section script-section", focusMode && "is-focus")} aria-label="Script workspace">
-    <header>
-      <div><span className="eyebrow">Script</span><h3>Write the performance</h3></div>
-      <div className="script-utility-actions">
-        <Button variant="ghost" size="sm" disabled={!displayedText} onClick={() => void copy()}>{copied ? <Check /> : <Copy />}{copied ? "Copied" : "Copy"}</Button>
-        <Button variant="ghost" size="sm" disabled={!compareView || !text.states.raw} onClick={() => setCompareOpen(true)}><Columns2 /> Compare</Button>
-        <Button variant="ghost" size="sm" aria-pressed={focusMode} onClick={() => setFocusMode((current) => !current)}>{focusMode ? <Minimize2 /> : <Maximize2 />}{focusMode ? "Show Sound" : "Focus editor"}</Button>
-      </div>
-    </header>
     <div className="script-command-row">
       <div className="speech-states" role="tablist" aria-label="Script versions">{states.map((state) => <Button key={state} role="tab" aria-selected={text.view === state && !text.review} variant="ghost" size="sm" className={text.view === state && !text.review ? "active" : ""} disabled={Boolean(text.review) || (state !== "raw" && !text.states[state])} onClick={() => text.select(state)}>{textLabel(state)}{state === text.view && !text.review && <small>Recording input</small>}</Button>)}</div>
-      {!text.review && <div className="text-tools" aria-label="Text tools">
-        <div className="spoken-split-action">
-          <Button variant="ghost" size="sm" disabled={textToolDisabled} onClick={() => void text.run("shape", false, text.spokenProfile)}><AudioLines />{text.busy === "shape" ? "Preparing…" : `Make spoken · ${spokenLabel}`}</Button>
-          <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Choose Spoken preparation method" disabled={textToolDisabled}><ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="spoken-method-menu">
-            <DropdownMenuItem onSelect={() => void text.run("shape", false, "spoken_1")}><span><b>Spoken 1 · Natural phrasing</b><small>Reshapes sentences for comfortable listening.</small></span>{text.spokenProfile === "spoken_1" && <Check />}</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => void text.run("shape", false, "spoken_2")}><span><b>Spoken 2 · Prosody only</b><small>Locks the words; controls punctuation and cadence.</small></span>{text.spokenProfile === "spoken_2" && <Check />}</DropdownMenuItem>
-          </DropdownMenuContent></DropdownMenu>
+      <div className="script-command-actions">
+        {!text.review && <div className="text-tools" aria-label="Text tools">
+          <div className="spoken-split-action">
+            <Button variant="ghost" size="sm" disabled={textToolDisabled} onClick={() => void text.run("shape", false, text.spokenProfile)}><AudioLines />{text.busy === "shape" ? "Preparing…" : `Make spoken · ${spokenLabel}`}</Button>
+            <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Choose Spoken preparation method" disabled={textToolDisabled}><ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="spoken-method-menu">
+              <DropdownMenuItem onSelect={() => void text.run("shape", false, "spoken_1")}><span><b>Spoken 1 · Natural phrasing</b><small>Reshapes sentences for comfortable listening.</small></span>{text.spokenProfile === "spoken_1" && <Check />}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => void text.run("shape", false, "spoken_2")}><span><b>Spoken 2 · Prosody only</b><small>Locks the words; controls punctuation and cadence.</small></span>{text.spokenProfile === "spoken_2" && <Check />}</DropdownMenuItem>
+            </DropdownMenuContent></DropdownMenu>
+          </div>
+          {composer.capabilityControls.deliveryTags && <>
+            <Select value={text.density} onValueChange={text.setDensity}><SelectTrigger aria-label="Tag density"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="light">Light tags</SelectItem><SelectItem value="normal">Normal tags</SelectItem><SelectItem value="heavy">Heavy tags</SelectItem></SelectContent></Select>
+            <Button variant="ghost" size="sm" disabled={!text.text.trim() || Boolean(text.busy) || composer.recovery.status === "loading"} onClick={() => void text.run("tag")}><WandSparkles />{text.busy === "tag" ? "Tagging…" : "Add tags"}</Button>
+          </>}
+        </div>}
+        <div className="script-utility-actions" aria-label="Script actions">
+          <Button variant="ghost" size="icon-sm" aria-label={copied ? "Copied" : "Copy"} title={copied ? "Copied" : "Copy script"} disabled={!displayedText} onClick={() => void copy()}>{copied ? <Check /> : <Copy />}</Button>
+          <Button variant="ghost" size="icon-sm" aria-label="Compare" title="Compare script versions" disabled={!compareView || !text.states.raw} onClick={() => setCompareOpen(true)}><Columns2 /></Button>
+          <Button variant="ghost" size="icon-sm" aria-label={focusMode ? "Show Sound" : "Focus editor"} title={focusMode ? "Show Sound controls" : "Focus editor"} aria-pressed={focusMode} onClick={() => setFocusMode((current) => !current)}>{focusMode ? <Minimize2 /> : <Maximize2 />}</Button>
         </div>
-        {composer.capabilityControls.deliveryTags && <>
-          <Select value={text.density} onValueChange={text.setDensity}><SelectTrigger aria-label="Tag density"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="light">Light tags</SelectItem><SelectItem value="normal">Normal tags</SelectItem><SelectItem value="heavy">Heavy tags</SelectItem></SelectContent></Select>
-          <Button variant="ghost" size="sm" disabled={!text.text.trim() || Boolean(text.busy) || composer.recovery.status === "loading"} onClick={() => void text.run("tag")}><WandSparkles />{text.busy === "tag" ? "Tagging…" : "Add tags"}</Button>
-        </>}
-      </div>}
+      </div>
     </div>
-    {composer.currentRoute && composer.taggedIncompatible && <div className="composer-warning"><b>Inline tags are not available with {composer.methodLabel}.</b><span>Your words remain unchanged until you choose what to do.</span><div>{text.states.shaped && <Button size="sm" variant="outline" onClick={() => text.select("shaped")}>Use Spoken version</Button>}{composer.hasInlineDeliveryTag && <Button size="sm" variant="outline" onClick={composer.removeInlineTags}>Remove inline tags</Button>}</div></div>}
-    <div className={cn("script-editor-shell", text.review && "is-reviewing")}>
-      {text.review ? <>
-        <div className="candidate-toolbar">
-          <div><span className="eyebrow">{text.review.kind === "shape" ? `${text.review.result.spoken_profile === "spoken_2" ? "Spoken 2 · Prosody only" : "Spoken 1 · Natural phrasing"} candidate` : "Tagged candidate"}</span><b>Review the prepared words where you write</b><small>{formatMicroMoney(Number(text.review.result.cost || 0))} · {text.review.result.cost_basis === "actual_tokens" ? "actual provider tokens" : "estimated"}</small></div>
-          <Button variant="outline" size="sm" onClick={() => setCompareOpen(true)}><Columns2 /> Compare with Original</Button>
-        </div>
-        <Textarea className="candidate-editor" dir="auto" aria-label={`${text.review.kind === "shape" ? "Spoken" : "Tagged"} candidate`} value={text.review.result.after || ""} readOnly />
-        <div className="candidate-actions"><Button variant="ghost" disabled={Boolean(text.busy)} onClick={() => void text.reject()}>Reject</Button><Button disabled={Boolean(text.busy)} onClick={() => void text.accept()}><Check />{text.busy ? "Accepting…" : `Accept ${text.review.kind === "shape" ? "Spoken" : "Tagged"}`}</Button></div>
-      </> : text.view === "tagged"
-        ? <TaggedScriptEditor value={text.text} onChange={text.updateText} autoFocus={Boolean(composer.currentRoute)} />
-        : <Textarea dir="auto" aria-label={`${textLabel(text.view)} script`} value={text.text} onChange={(event) => text.updateText(event.target.value)} placeholder="Type or paste what should be said…" autoFocus={Boolean(composer.currentRoute)} />}
+    <div className="script-content-stack">
+      {composer.currentRoute && composer.taggedIncompatible && <div className="composer-warning"><b>Inline tags are not available with {composer.methodLabel}.</b><span>Your words remain unchanged until you choose what to do.</span><div>{text.states.shaped && <Button size="sm" variant="outline" onClick={() => text.select("shaped")}>Use Spoken version</Button>}{composer.hasInlineDeliveryTag && <Button size="sm" variant="outline" onClick={composer.removeInlineTags}>Remove inline tags</Button>}</div></div>}
+      <div className={cn("script-editor-shell", text.review && "is-reviewing")}>
+        {text.review ? <>
+          <div className="candidate-toolbar">
+            <div><span className="eyebrow">{text.review.kind === "shape" ? `${text.review.result.spoken_profile === "spoken_2" ? "Spoken 2 · Prosody only" : "Spoken 1 · Natural phrasing"} candidate` : "Tagged candidate"}</span><b>Review the prepared words where you write</b><small>{formatMicroMoney(Number(text.review.result.cost || 0))} · {text.review.result.cost_basis === "actual_tokens" ? "actual provider tokens" : "estimated"}</small></div>
+            <Button variant="outline" size="sm" onClick={() => setCompareOpen(true)}><Columns2 /> Compare with Original</Button>
+          </div>
+          <Textarea className="candidate-editor" dir="auto" aria-label={`${text.review.kind === "shape" ? "Spoken" : "Tagged"} candidate`} value={text.review.result.after || ""} readOnly />
+          <div className="candidate-actions"><Button variant="ghost" disabled={Boolean(text.busy)} onClick={() => void text.reject()}>Reject</Button><Button disabled={Boolean(text.busy)} onClick={() => void text.accept()}><Check />{text.busy ? "Accepting…" : `Accept ${text.review.kind === "shape" ? "Spoken" : "Tagged"}`}</Button></div>
+        </> : text.view === "tagged"
+          ? <TaggedScriptEditor value={text.text} onChange={text.updateText} autoFocus={Boolean(composer.currentRoute)} />
+          : <Textarea dir="auto" aria-label={`${textLabel(text.view)} script`} value={text.text} onChange={(event) => text.updateText(event.target.value)} placeholder="Type or paste what should be said…" autoFocus={Boolean(composer.currentRoute)} />}
+      </div>
     </div>
     <div className="script-meta-row">
       <span>{displayedText.length.toLocaleString()} characters</span>
