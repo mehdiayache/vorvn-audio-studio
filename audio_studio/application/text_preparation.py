@@ -43,201 +43,135 @@ DEFAULTS = {
         "- do not add new information, do not summarise, do not add tags\n"
         "Reply with the rewritten text only, nothing else."
     ),
-    "shape_2": """You are an editing engine.
+    "shape_2": """Transform the input into text designed to be heard aloud.
 
-Do not try to "write better."
-Do not try to "sound human."
-Do not polish.
+Read the entire text first.
 
-Apply the mechanical operations below to the input text.
+Understand:
 
-Your goal is to change the structure of the text so it behaves like speech rather than polished written prose.
+- the meaning
+- the facts
+- the point of view
+- the sequence of events
+- the emotional movement
+- the intention
+- what matters most
+- where attention shifts
+- what should move quickly
+- what should slow down
+- what should land strongly
+- what should feel tense, soft, intimate, urgent, surprising, uncertain, sad, excited, reflective, or calm
 
-Most of the original meaning and wording should remain, but you may modify wording whenever the mechanics require it.
+Then imagine the entire piece being spoken aloud to someone who cannot see the words.
 
-For every sentence or passage, apply only the operations that have a reason to fire.
+They only hear it.
 
-OPERATIONS
+Shape the text for that experience.
 
-CUT
-Remove words, clauses, explanations, transitions, and repetitions that add weight without adding necessary meaning.
+Preserve the meaning, facts, point of view, sequence of events, intended emotion, existing voice, and personality.
 
-SPLIT
-If one sentence contains several separate thoughts, reactions, images, actions, realizations, or emotional beats, break it into separate units.
+First try to solve the spoken-performance problem through segmentation, punctuation, sentence boundaries, spacing, and rhythm.
 
-Do not preserve a long sentence merely because it is grammatically correct.
+Change wording only when the existing wording itself prevents natural spoken delivery.
 
-JOIN
-If neighboring short sentences feel artificially isolated even though they belong to one continuous thought, reconnect them.
+Treat the text as a vocal performance.
 
-DROP
-Remove formal glue when the meaning survives without it.
+Break sentences where the voice should naturally breathe, react, shift intention, reset, or let something land.
 
-This includes unnecessary connectors, introductions, explanations, qualifications, and explicit emotional interpretation.
+Join sentences where the thought should keep moving.
 
-SHORTEN
-When a phrase takes longer than necessary to deliver a simple thought, compress it.
+Let information arrive at a pace the listener can understand on first hearing.
 
-RESHAPE
-If a construction feels designed for writing rather than saying, change the construction.
+Use punctuation as part of the performance.
 
-Small lexical substitutions are allowed.
+`,` = light continuation or a small internal pause
 
-REORDER
-If information lands in an unnatural order, move a word, phrase, or short clause so the thought unfolds more directly.
+`.` = completed thought, reset, or clean landing
 
-CONTRACT
-Use ordinary contractions and reduced constructions where appropriate.
+`...` = meaningful held space, hesitation, suspense, reflection, emotional space, delayed arrival, or trailing thought
 
-REPEAT
-A short word or phrase may be repeated when repetition creates emphasis, insistence, hesitation, disbelief, emotional pressure, or rhythm.
+`?` = genuine questioning, uncertainty, disbelief, challenge, or upward conversational movement
 
-Never repeat merely as decoration.
+`!` = genuine force, urgency, excitement, shock, anger, or emotional release
 
-RESTART
-A thought may occasionally break and restart when the underlying idea genuinely changes direction.
+Let the meaning decide the rhythm.
 
-Do not manufacture false mistakes.
+Action can move quickly.
 
-ISOLATE
-If one word, realization, reaction, answer, image, or important phrase is buried inside a larger construction, give it its own beat when doing so increases its impact.
+Reflection can breathe.
 
-PAUSE
-Use punctuation as timing.
+Tension can tighten.
 
-Comma:
-small continuation or separation.
+Intimacy can become quieter.
 
-Period:
-thought lands.
+Important moments can receive more space.
 
-Dash:
-interruption, turn, collision, correction, or abrupt continuation.
+Simple information can pass quickly.
 
-Ellipsis:
-actual suspension, hesitation, trailing thought, or delayed completion.
+Some thoughts can flow.
 
-Question mark:
-real questioning, disbelief, uncertainty, challenge, or rising thought.
+Some can stop sharply.
 
-Exclamation mark:
-actual force, shock, excitement, urgency, anger, or emphatic release.
+Some can linger.
 
-Line break:
-meaningful change of beat.
+Some can arrive almost immediately after the previous thought.
 
-Do not distribute punctuation evenly.
+Think in spoken phrases rather than written sentences.
 
-Do not treat ellipses, dashes, or exclamation marks as a style.
+Consider where the voice would naturally:
 
-HIT
-When a word or very short phrase carries the core reaction or impact, restructure the surrounding text so that beat lands clearly.
+- continue
+- breathe
+- pause
+- reset
+- accelerate
+- slow down
+- soften
+- hesitate
+- react
+- emphasize
+- change intention
+- let something land
 
-Do not over-emphasize everything.
+Shape the text around those moments.
 
-RHYTHM
-Avoid long runs of units with the same:
+Allow sentence length to vary naturally.
 
-* length
-* syntax
-* punctuation
-* opening structure
-* cadence
-* number of clauses
+Allow fragments when the spoken moment calls for them.
 
-If three or more consecutive units fall into an obvious pattern, disturb the pattern.
+Allow repetition when it naturally comes from emotion, hesitation, insistence, memory, surprise, emphasis, or rhythm.
 
-Mix:
+Let irregularity emerge naturally from the meaning and performance.
 
-short landing beats
+Keep passages that already sound good aloud with minimal intervention.
 
-with medium flowing thoughts
+Reshape more strongly when the written structure creates stiffness, overload, flatness, rushing, mechanical rhythm, weak emphasis, or unnatural spoken phrasing.
 
-and occasional longer runs when the thought genuinely carries forward.
+The text may look unusual on the page.
 
-Do not alternate lengths mechanically.
+The auditory result is the target.
 
-DE-POLISH
-Destroy structures that are suspiciously perfect.
+Before returning the result, internally hear the entire transformed text from beginning to end as if performed by a high-quality natural voice.
 
-Especially inspect:
+Listen to the pacing.
 
-* symmetrical sentences
-* balanced clause pairs
-* rhetorical triples
-* perfectly completed explanations
-* elegant transitions
-* repeated sentence templates
-* neat emotional conclusions
-* unnecessary summaries
-* sentences that explain what the previous sentence already showed
+Listen to the phrasing.
 
-Keep them only when they genuinely belong.
+Listen to the breathing.
 
-INFORMATION FLOW
+Listen to the emotional movement.
 
-Do not pack several new ideas into one spoken unit.
+Listen to where thoughts continue and where they land.
 
-When the listener needs to process one thing before the next thing arrives, create a boundary.
+Listen for sections that feel flat, rushed, overloaded, chopped, monotonous, overly polished, or strongly written rather than naturally spoken.
 
-When two pieces of information belong to the same immediate thought, keep them together.
+Reshape those sections.
 
-Let important moments have more space than functional information.
+Perform one final pass focused only on how the voice moves through the text.
 
-Do not give every moment equal weight.
+Return only the transformed text.
 
-EDITING BUDGET
-
-Punctuation and boundaries may change freely.
-
-Small wording changes are normal.
-
-Deletion is allowed.
-
-Addition is allowed when a very small addition materially improves the movement of the thought.
-
-Reordering is allowed locally.
-
-Large rewrites are allowed only when the existing structure cannot be repaired with smaller operations.
-
-Do not change wording merely to produce prettier wording.
-
-DO-NOTHING RULE
-
-If a line already works, leave it alone.
-
-Do not prove that you edited the text by changing everything.
-
-ANTI-CARICATURE PASS
-
-After editing, inspect the complete result.
-
-Remove mechanical overuse of:
-
-* ellipses
-* dashes
-* exclamation marks
-* fragments
-* one-line sentences
-* repeated words
-* questions
-* restarts
-* fillers
-* dramatic pauses
-
-No technique should become visible as a repeated trick.
-
-Then inspect the rhythm again.
-
-If several consecutive passages have the same shape, break that shape using the smallest useful change.
-
-FINAL RULE
-
-Every change must be explainable by one of these operations.
-
-If a change only makes the prose more elegant, sophisticated, literary, polished, descriptive, or impressive, undo it.
-
-Return only the transformed text.""",
+Use only words, punctuation, spacing, and line breaks intended for the final spoken performance.""",
     "tag": (
         "You add inline delivery tags to text that is about to be spoken by a "
         "text-to-speech model.\n"

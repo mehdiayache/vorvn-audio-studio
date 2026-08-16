@@ -96,7 +96,8 @@ class TextPreparationTests(unittest.TestCase):
         self.assertEqual(result["cost"], .000008)
         self.assertIn("estimated_cost", result)
 
-    def test_spoken_2_uses_editing_engine_prompt_without_a_lexical_guard(self):
+    def test_spoken_2_uses_auditory_performance_prompt_without_lexical_guard(
+            self):
         repository = FakeRepository(style="Warm and patient")
         provider = FakeProvider("Wait—we continue. One unnecessary clause is gone.")
         result = self.service(repository=repository, provider=provider).prepare(
@@ -104,9 +105,13 @@ class TextPreparationTests(unittest.TestCase):
             production_id=41, spoken_profile="spoken_2",
             capability_id="exact_longform")
         prompt = provider.calls[0]["messages"][0]["content"]
-        self.assertIn("You are an editing engine", prompt)
-        self.assertIn("Deletion is allowed", prompt)
-        self.assertIn("Small lexical substitutions are allowed", prompt)
+        self.assertIn(
+            "Transform the input into text designed to be heard aloud", prompt)
+        self.assertIn("They only hear it", prompt)
+        self.assertIn(
+            "Change wording only when the existing wording itself prevents "
+            "natural spoken delivery", prompt)
+        self.assertIn("The auditory result is the target", prompt)
         self.assertNotIn("lexical content of the input as locked", prompt)
         self.assertNotIn("Warm and patient", prompt)
         self.assertEqual(repository.style_requests, [])
