@@ -43,80 +43,201 @@ DEFAULTS = {
         "- do not add new information, do not summarise, do not add tags\n"
         "Reply with the rewritten text only, nothing else."
     ),
-    "shape_2": (
-        "You are a prosody compiler, not a writer.\n\n"
-        "Your task is to convert the supplied text into a performance-control "
-        "version for text-to-speech.\n\n"
-        "The words carry the content.\n\n"
-        "Punctuation, segmentation, spacing, capitalization, and supported "
-        "speech-control notation carry the performance.\n\n"
-        "Do not improve the writing.\n"
-        "Do not humanize the writing.\n"
-        "Do not make it conversational.\n"
-        "Do not paraphrase.\n"
-        "Do not summarize.\n"
-        "Do not beautify.\n"
-        "Do not add literary style.\n"
-        "Do not replace awkward language merely because better wording exists.\n\n"
-        "Treat the lexical content of the input as locked.\n\n"
-        "Your primary operation is to alter the delivery layer around the words.\n\n"
-        "You may control:\n\n"
-        "- sentence boundaries\n"
-        "- clause boundaries\n"
-        "- commas\n"
-        "- periods\n"
-        "- question marks\n"
-        "- exclamation marks\n"
-        "- colons\n"
-        "- semicolons\n"
-        "- dashes\n"
-        "- ellipses\n"
-        "- line breaks\n"
-        "- paragraph breaks\n"
-        "- capitalization when it materially affects vocal emphasis\n"
-        "- orthographic rendering only when required to obtain the intended pronunciation\n"
-        "- native TTS control notation when the active synthesis format supports it\n\n"
-        "Infer the intended vocal performance from meaning and context.\n\n"
-        "For every passage, determine internally:\n\n"
-        "- where the speaker actually completes a thought\n"
-        "- where the voice continues without fully stopping\n"
-        "- where a micro-pause belongs\n"
-        "- where a stronger pause belongs\n"
-        "- which words receive natural emphasis\n"
-        "- where tempo should tighten\n"
-        "- where tempo should relax\n"
-        "- where hesitation is genuinely implied\n"
-        "- where certainty, tension, intimacy, excitement, restraint, or emotional weight changes the delivery\n"
-        "- where the TTS would otherwise group words incorrectly\n"
-        "- where written punctuation would cause an unnatural spoken interpretation\n\n"
-        "Then encode those decisions into the text using the smallest effective intervention.\n\n"
-        "Do not mechanically insert pauses.\n\n"
-        "Do not decorate the text.\n\n"
-        "Do not apply a repeating punctuation pattern.\n\n"
-        "Do not use ellipses as a generic naturalness effect.\n\n"
-        "Do not fragment every sentence.\n\n"
-        "Do not exaggerate emphasis.\n\n"
-        "Do not add speech mannerisms merely to simulate humanity.\n\n"
-        "Every intervention must have a specific acoustic purpose.\n\n"
-        "The output is not prose for a reader.\n\n"
-        "It is a control surface for a speech synthesizer.\n\n"
-        "Optimize for the resulting audio, even when the resulting text looks "
-        "unusual, inelegant, fragmented, or undesirable on a page.\n\n"
-        "Preserve the original sequence of lexical content as strictly as possible.\n\n"
-        "Unless pronunciation absolutely requires otherwise, words must not be "
-        "added, deleted, substituted, reordered, or rewritten.\n\n"
-        "Before returning the result, compare input and output internally.\n\n"
-        "If a lexical change was made merely to improve style, fluency, elegance, "
-        "naturalness, grammar, or readability, undo it.\n\n"
-        "Then simulate the likely TTS rendering internally and revise only the "
-        "performance layer wherever phrasing, emphasis, pausing, grouping, cadence, "
-        "or emotional delivery would likely be wrong.\n\n"
-        "Return only the TTS-ready text.\n\n"
-        "No explanation.\n"
-        "No analysis.\n"
-        "No headings.\n"
-        "No commentary."
-    ),
+    "shape_2": """You are an editing engine.
+
+Do not try to "write better."
+Do not try to "sound human."
+Do not polish.
+
+Apply the mechanical operations below to the input text.
+
+Your goal is to change the structure of the text so it behaves like speech rather than polished written prose.
+
+Most of the original meaning and wording should remain, but you may modify wording whenever the mechanics require it.
+
+For every sentence or passage, apply only the operations that have a reason to fire.
+
+OPERATIONS
+
+CUT
+Remove words, clauses, explanations, transitions, and repetitions that add weight without adding necessary meaning.
+
+SPLIT
+If one sentence contains several separate thoughts, reactions, images, actions, realizations, or emotional beats, break it into separate units.
+
+Do not preserve a long sentence merely because it is grammatically correct.
+
+JOIN
+If neighboring short sentences feel artificially isolated even though they belong to one continuous thought, reconnect them.
+
+DROP
+Remove formal glue when the meaning survives without it.
+
+This includes unnecessary connectors, introductions, explanations, qualifications, and explicit emotional interpretation.
+
+SHORTEN
+When a phrase takes longer than necessary to deliver a simple thought, compress it.
+
+RESHAPE
+If a construction feels designed for writing rather than saying, change the construction.
+
+Small lexical substitutions are allowed.
+
+REORDER
+If information lands in an unnatural order, move a word, phrase, or short clause so the thought unfolds more directly.
+
+CONTRACT
+Use ordinary contractions and reduced constructions where appropriate.
+
+REPEAT
+A short word or phrase may be repeated when repetition creates emphasis, insistence, hesitation, disbelief, emotional pressure, or rhythm.
+
+Never repeat merely as decoration.
+
+RESTART
+A thought may occasionally break and restart when the underlying idea genuinely changes direction.
+
+Do not manufacture false mistakes.
+
+ISOLATE
+If one word, realization, reaction, answer, image, or important phrase is buried inside a larger construction, give it its own beat when doing so increases its impact.
+
+PAUSE
+Use punctuation as timing.
+
+Comma:
+small continuation or separation.
+
+Period:
+thought lands.
+
+Dash:
+interruption, turn, collision, correction, or abrupt continuation.
+
+Ellipsis:
+actual suspension, hesitation, trailing thought, or delayed completion.
+
+Question mark:
+real questioning, disbelief, uncertainty, challenge, or rising thought.
+
+Exclamation mark:
+actual force, shock, excitement, urgency, anger, or emphatic release.
+
+Line break:
+meaningful change of beat.
+
+Do not distribute punctuation evenly.
+
+Do not treat ellipses, dashes, or exclamation marks as a style.
+
+HIT
+When a word or very short phrase carries the core reaction or impact, restructure the surrounding text so that beat lands clearly.
+
+Do not over-emphasize everything.
+
+RHYTHM
+Avoid long runs of units with the same:
+
+* length
+* syntax
+* punctuation
+* opening structure
+* cadence
+* number of clauses
+
+If three or more consecutive units fall into an obvious pattern, disturb the pattern.
+
+Mix:
+
+short landing beats
+
+with medium flowing thoughts
+
+and occasional longer runs when the thought genuinely carries forward.
+
+Do not alternate lengths mechanically.
+
+DE-POLISH
+Destroy structures that are suspiciously perfect.
+
+Especially inspect:
+
+* symmetrical sentences
+* balanced clause pairs
+* rhetorical triples
+* perfectly completed explanations
+* elegant transitions
+* repeated sentence templates
+* neat emotional conclusions
+* unnecessary summaries
+* sentences that explain what the previous sentence already showed
+
+Keep them only when they genuinely belong.
+
+INFORMATION FLOW
+
+Do not pack several new ideas into one spoken unit.
+
+When the listener needs to process one thing before the next thing arrives, create a boundary.
+
+When two pieces of information belong to the same immediate thought, keep them together.
+
+Let important moments have more space than functional information.
+
+Do not give every moment equal weight.
+
+EDITING BUDGET
+
+Punctuation and boundaries may change freely.
+
+Small wording changes are normal.
+
+Deletion is allowed.
+
+Addition is allowed when a very small addition materially improves the movement of the thought.
+
+Reordering is allowed locally.
+
+Large rewrites are allowed only when the existing structure cannot be repaired with smaller operations.
+
+Do not change wording merely to produce prettier wording.
+
+DO-NOTHING RULE
+
+If a line already works, leave it alone.
+
+Do not prove that you edited the text by changing everything.
+
+ANTI-CARICATURE PASS
+
+After editing, inspect the complete result.
+
+Remove mechanical overuse of:
+
+* ellipses
+* dashes
+* exclamation marks
+* fragments
+* one-line sentences
+* repeated words
+* questions
+* restarts
+* fillers
+* dramatic pauses
+
+No technique should become visible as a repeated trick.
+
+Then inspect the rhythm again.
+
+If several consecutive passages have the same shape, break that shape using the smallest useful change.
+
+FINAL RULE
+
+Every change must be explainable by one of these operations.
+
+If a change only makes the prose more elegant, sophisticated, literary, polished, descriptive, or impressive, undo it.
+
+Return only the transformed text.""",
     "tag": (
         "You add inline delivery tags to text that is about to be spoken by a "
         "text-to-speech model.\n"
@@ -305,7 +426,10 @@ class TextPreparationService:
                     "warn_above": warning, "model": MODEL,
                     "cost_basis": "estimate", "price_version": PRICE_VERSION}
 
-        style = self.repository.style_for(production_id) if production_id else ""
+        uses_venture_style = not (
+            operation == "shape" and spoken_profile == "spoken_2")
+        style = (self.repository.style_for(production_id)
+                 if production_id and uses_venture_style else "")
         saved = self.repository.prompt_settings()
         prompt = (shape_prompt(style, saved, spoken_profile) if operation == "shape"
                   else tag_prompt(density, style, saved))

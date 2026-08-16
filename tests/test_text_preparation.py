@@ -96,16 +96,25 @@ class TextPreparationTests(unittest.TestCase):
         self.assertEqual(result["cost"], .000008)
         self.assertIn("estimated_cost", result)
 
-    def test_spoken_2_uses_prosody_prompt_and_preserves_lexical_content(self):
-        provider = FakeProvider("HELLO, there... we continue!")
-        result = self.service(provider=provider).prepare(
+    def test_spoken_2_uses_editing_engine_prompt_without_a_lexical_guard(self):
+        repository = FakeRepository(style="Warm and patient")
+        provider = FakeProvider("Wait—we continue. One unnecessary clause is gone.")
+        result = self.service(repository=repository, provider=provider).prepare(
             operation="shape", text="Hello there we continue",
-            spoken_profile="spoken_2", capability_id="exact_longform")
+            production_id=41, spoken_profile="spoken_2",
+            capability_id="exact_longform")
         prompt = provider.calls[0]["messages"][0]["content"]
-        self.assertIn("prosody compiler, not a writer", prompt)
-        self.assertIn("Treat the lexical content of the input as locked", prompt)
+        self.assertIn("You are an editing engine", prompt)
+        self.assertIn("Deletion is allowed", prompt)
+        self.assertIn("Small lexical substitutions are allowed", prompt)
+        self.assertNotIn("lexical content of the input as locked", prompt)
+        self.assertNotIn("Warm and patient", prompt)
+        self.assertEqual(repository.style_requests, [])
+        self.assertFalse(result["style_used"])
         self.assertEqual(result["spoken_profile"], "spoken_2")
-        self.assertEqual(result["after"], "HELLO, there... we continue!")
+        self.assertEqual(
+            result["after"],
+            "Wait—we continue. One unnecessary clause is gone.")
 
     def test_spoken_1_retains_existing_rewrite_semantics(self):
         provider = FakeProvider("A more natural spoken rewrite.")

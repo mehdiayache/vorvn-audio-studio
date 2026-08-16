@@ -36,7 +36,7 @@ export function ComposerWords() {
   const compareView = candidateView || savedCompareView
   const compareText = text.review?.result.after || (compareView ? text.states[compareView] : "")
   const displayedText = text.review?.result.after || text.text
-  const spokenLabel = text.spokenProfile === "spoken_2" ? "Prosody only" : "Natural phrasing"
+  const spokenLabel = text.spokenProfile === "spoken_2" ? "Speech editing" : "Natural phrasing"
   const textToolDisabled = !composer.currentRoute || !text.text.trim() || Boolean(text.busy) || composer.recovery.status === "loading"
 
   const copy = async () => {
@@ -54,7 +54,7 @@ export function ComposerWords() {
             <Button variant="ghost" size="sm" disabled={textToolDisabled} onClick={() => void text.run("shape", false, text.spokenProfile)}><AudioLines />{text.busy === "shape" ? "Preparing…" : `Make spoken · ${spokenLabel}`}</Button>
             <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Choose Spoken preparation method" disabled={textToolDisabled}><ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="spoken-method-menu">
               <DropdownMenuItem onSelect={() => void text.run("shape", false, "spoken_1")}><span><b>Spoken 1 · Natural phrasing</b><small>Reshapes sentences for comfortable listening.</small></span>{text.spokenProfile === "spoken_1" && <Check />}</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => void text.run("shape", false, "spoken_2")}><span><b>Spoken 2 · Prosody only</b><small>Locks the words; controls punctuation and cadence.</small></span>{text.spokenProfile === "spoken_2" && <Check />}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => void text.run("shape", false, "spoken_2")}><span><b>Spoken 2 · Speech editing</b><small>Cuts and reshapes written prose for spoken rhythm.</small></span>{text.spokenProfile === "spoken_2" && <Check />}</DropdownMenuItem>
             </DropdownMenuContent></DropdownMenu>
           </div>
           {composer.capabilityControls.deliveryTags && <>
@@ -74,7 +74,7 @@ export function ComposerWords() {
       <div className={cn("script-editor-shell", text.review && "is-reviewing")}>
         {text.review ? <>
           <div className="candidate-toolbar">
-            <div><span className="eyebrow">{text.review.kind === "shape" ? `${text.review.result.spoken_profile === "spoken_2" ? "Spoken 2 · Prosody only" : "Spoken 1 · Natural phrasing"} candidate` : "Tagged candidate"}</span><b>Review the prepared words where you write</b><small>{formatMicroMoney(Number(text.review.result.cost || 0))} · {text.review.result.cost_basis === "actual_tokens" ? "actual provider tokens" : "estimated"}</small></div>
+            <div><span className="eyebrow">{text.review.kind === "shape" ? `${text.review.result.spoken_profile === "spoken_2" ? "Spoken 2 · Speech editing" : "Spoken 1 · Natural phrasing"} candidate` : "Tagged candidate"}</span><b>Review the prepared words where you write</b><small>{formatMicroMoney(Number(text.review.result.cost || 0))} · {text.review.result.cost_basis === "actual_tokens" ? "actual provider tokens" : "estimated"}</small></div>
             <Button variant="outline" size="sm" onClick={() => setCompareOpen(true)}><Columns2 /> Compare with Original</Button>
           </div>
           <Textarea className="candidate-editor" dir="auto" aria-label={`${text.review.kind === "shape" ? "Spoken" : "Tagged"} candidate`} value={text.review.result.after || ""} readOnly />
