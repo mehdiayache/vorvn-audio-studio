@@ -43,6 +43,11 @@ class ProviderOperationRepository:
                                   WHERE NOT EXISTS (
                                       SELECT 1 FROM active
                                        WHERE active.job_id=terminal.job_id)),0)
+                     + coalesce((SELECT sum(job.cost) FROM jobs job
+                                  WHERE job.created_at::date=current_date
+                                    AND NOT EXISTS (
+                                        SELECT 1 FROM provider_attempts attempt
+                                         WHERE attempt.job_id=job.id)),0)
             """)
             committed = float(cursor.fetchone()[0] or 0)
             if daily_cap > 0 and committed + amount > daily_cap:

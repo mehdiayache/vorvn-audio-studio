@@ -145,6 +145,19 @@ class ProviderOperationTests(unittest.TestCase):
                 "SELECT count(*) FROM provider_attempts").fetchone()[0]
         self.assertEqual(after, before)
 
+    def test_daily_cap_includes_legacy_job_cost_without_provider_attempt(self):
+        legacy_job = self.job()
+        with psycopg.connect(settings.database_url) as database:
+            database.execute(
+                "UPDATE jobs SET cost=5, status='ok' WHERE id=%s",
+                (legacy_job,))
+            database.commit()
+        cap = today_provider_spend()
+        with self.assertRaisesRegex(PermissionError, "Daily cap"):
+            self.service.authorize(
+                self.job(), "speech", .01,
+                {"daily_cap": cap, "warn_above": 0}, True)
+
     def test_active_multi_attempt_reservation_keeps_its_full_budget(self):
         """A cheap first attempt must not release a live operation's remainder."""
         cap = today_provider_spend() + 10
