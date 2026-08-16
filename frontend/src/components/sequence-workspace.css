@@ -1,6 +1,6 @@
 .sequence-workspace { position: relative; width: 100%; margin: 0; padding: 0 0 36px; }
 .sequence-ledger { overflow: visible; background: transparent; }
-.sequence-part-list { display: grid; gap: 10px; overflow: visible; background: transparent; }
+.sequence-part-list { display: grid; gap: 0; overflow: visible; background: transparent; }
 .sequence-ledger-summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px 0; color: var(--muted-foreground); font-size: var(--type-caption); }
 .sequence-ledger-summary span { display: inline-flex; align-items: baseline; gap: 8px; }
 .sequence-ledger-summary b { color: var(--foreground); font-size: var(--type-small); font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -60,14 +60,15 @@
 .silence-cost { padding-left: 3px; color: var(--success); font-weight: 650; }
 .sequence-silence-card button { width: 30px; height: 30px; }
 
-.sequence-insert { position: relative; z-index: 8; display: block; height: 18px; margin: -4px 0; }
-.sequence-insert-line { position: absolute; inset: 50% 0 auto; border-top: 1px solid color-mix(in oklch, var(--border) 72%, transparent); transition: border-color 150ms; }
-.sequence-insert-trigger { position: absolute; z-index: 9; left: 50%; top: 50%; width: auto; height: 26px; padding: 0 9px; transform: translate(-50%, -50%); border-radius: 99px; opacity: 1; pointer-events: auto; background: var(--surface-raised); color: var(--muted-foreground); border-color: var(--border); box-shadow: 0 0 0 4px var(--background); transition: color 150ms, border-color 150ms, background 150ms, box-shadow 150ms; }
-.sequence-insert-trigger svg { width: 15px; flex: 0 0 auto; }
+.sequence-insert { position: relative; z-index: 2; height: 34px; display: grid; place-items: center; margin: 0; }
+.sequence-insert-line { position: absolute; inset: 50% 0 auto; border-top: 1px solid color-mix(in oklch, var(--border) 62%, transparent); transition: border-color 150ms; }
+.sequence-insert-trigger { position: relative; z-index: 1; width: 26px; height: 26px; padding: 0; border-radius: 999px; background: var(--background); color: var(--muted-foreground); border-color: color-mix(in oklch, var(--border-strong) 82%, transparent); box-shadow: 0 0 0 6px var(--background); transition: width 150ms, height 150ms, color 150ms, border-color 150ms, background 150ms, box-shadow 150ms, transform 150ms; }
+.sequence-insert-trigger svg { width: 14px; height: 14px; }
 .sequence-insert:hover .sequence-insert-line, .sequence-insert:focus-within .sequence-insert-line { border-color: color-mix(in oklch, var(--primary) 34%, var(--border)); }
-.sequence-insert:hover .sequence-insert-trigger, .sequence-insert:focus-within .sequence-insert-trigger { color: var(--primary); border-color: color-mix(in oklch, var(--primary) 38%, var(--border)); background: var(--primary-soft); box-shadow: 0 0 0 4px var(--background), var(--shadow-sm); }
-.sequence-insert.last { height: 44px; margin: 0; }
-.sequence-insert.last .sequence-insert-trigger { top: 22px; opacity: 1; pointer-events: auto; background: var(--surface-raised); color: var(--foreground); border-color: var(--border); }
+.sequence-insert:hover .sequence-insert-trigger, .sequence-insert:focus-within .sequence-insert-trigger, .sequence-insert-trigger[aria-expanded="true"] { width: 30px; height: 30px; color: var(--primary-foreground); border-color: var(--primary); background: var(--primary); box-shadow: 0 0 0 6px var(--background), var(--shadow-sm); transform: scale(1.02); }
+.sequence-insert.last { height: 46px; }
+.sequence-insert.last .sequence-insert-trigger { width: 32px; height: 32px; color: var(--foreground); border-color: var(--border-strong); background: var(--surface-raised); }
+.sequence-insert.last:hover .sequence-insert-trigger, .sequence-insert.last:focus-within .sequence-insert-trigger, .sequence-insert.last .sequence-insert-trigger[aria-expanded="true"] { color: var(--primary-foreground); border-color: var(--primary); background: var(--primary); }
 .sequence-insert-menu { width: 290px; padding: 7px; }
 .sequence-menu-label { display: block; padding: 6px 9px; color: var(--muted-foreground); font-size: var(--type-caption); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .sequence-insert-menu > [role="menuitem"] { height: auto; justify-content: flex-start; gap: 10px; padding: 9px; text-align: left; }
@@ -77,11 +78,11 @@
 .sequence-insert-menu small { margin-top: 2px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: 400; }
 
 @media (max-width: 700px) {
-  .sequence-row, .sequence-insert { grid-template-columns: 36px minmax(0, 1fr); }
+  .sequence-row { grid-template-columns: 36px minmax(0, 1fr); }
   .sequence-row-node { margin-left: 2px; }
   .sequence-insert-line { border-color: color-mix(in oklch, var(--primary) 20%, var(--border)); }
-  .sequence-insert-trigger { left: 50%; top: -14px; width: 28px; height: 28px; padding: 0; transform: translateX(-50%); opacity: 1; pointer-events: auto; }
-  .sequence-insert-trigger span { display: none; }
+  .sequence-insert { height: 38px; }
+  .sequence-insert-trigger { width: 30px; height: 30px; }
   .sequence-card { grid-template-columns: 1fr; }
   .sequence-card-actions { justify-content: flex-start; margin-top: 7px; }
   .sequence-silence-card { max-width: 100%; flex-wrap: wrap; }

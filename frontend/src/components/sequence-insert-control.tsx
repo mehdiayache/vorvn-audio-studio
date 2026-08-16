@@ -3,6 +3,7 @@ import { Clock3, FileAudio, Mic2, Plus } from "lucide-react"
 import type { InsertKind } from "@/components/sequence-actions"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 export function SequenceInsertControl({ at, beforePartId, last = false, onInsert }: {
   at: number
@@ -14,11 +15,16 @@ export function SequenceInsertControl({ at, beforePartId, last = false, onInsert
     <div className={`sequence-insert${last ? " last" : ""}`}>
       <span className="sequence-insert-line" aria-hidden="true" />
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button className="sequence-insert-trigger" size="sm" aria-label={`Add part at position ${at + 1}`}>
-            <Plus /> <span>{last ? "Add another Part" : "Add part"}</span>
-          </Button>
-        </DropdownMenuTrigger>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <Button className="sequence-insert-trigger" variant="outline" size="icon" aria-label={`Add part at position ${at + 1}`}>
+                <Plus />
+              </Button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="top" sideOffset={6}>{last ? "Add another Part" : `Add Part at position ${at + 1}`}</TooltipContent>
+        </Tooltip>
         <DropdownMenuContent className="sequence-insert-menu" align="start">
           <span className="sequence-menu-label">Position {at + 1}</span>
           <DropdownMenuItem onSelect={() => onInsert("speech", beforePartId)}><Mic2 /><span><b>Speech</b><small>Write or paste the words to record.</small></span></DropdownMenuItem>
