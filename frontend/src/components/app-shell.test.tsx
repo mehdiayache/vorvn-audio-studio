@@ -91,12 +91,13 @@ describe("Audio Studio shell", () => {
     expect(studioApi.config).toHaveBeenCalledTimes(1)
   })
 
-  it("makes the Focus Bar the only Audio Studio chrome on standalone desktop Production", () => {
+  it("keeps the common Audio Studio navigation above desktop Production", () => {
     const { container } = renderShell("standalone", "/audio-studio/productions/production-id", true)
-    expect(screen.queryByRole("link", { name: "Audio Studio Work" })).toBeNull()
-    expect(screen.queryByRole("navigation", { name: "Audio Studio tools" })).toBeNull()
+    expect(screen.getByRole("link", { name: "Audio Studio Work" })).toBeTruthy()
+    expect(screen.getByRole("navigation", { name: "Audio Studio tools" })).toBeTruthy()
+    expect(screen.getByRole("link", { name: "Productions" }).getAttribute("aria-current")).toBe("page")
     expect(screen.getByRole("heading", { name: "Production content" })).toBeTruthy()
-    expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("production-focus")
+    expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
   })
 
   it("preserves the normal standalone chrome for mobile Production", () => {

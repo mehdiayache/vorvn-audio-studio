@@ -9,11 +9,6 @@
   --studio-local-chrome-height: var(--studio-deck-height);
 }
 
-.studio-app-shell[data-presentation="production-focus"] {
-  --studio-standalone-header-height: 0rem;
-  --studio-local-chrome-height: 0rem;
-}
-
 .studio-skip-link {
   position: fixed;
   z-index: var(--layer-toast);

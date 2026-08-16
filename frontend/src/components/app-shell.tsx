@@ -4,7 +4,7 @@ import {
   Settings2, UsersRound, Wrench,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
-import { NavLink, Outlet, useLocation } from "react-router-dom"
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
 
 import { AppErrorBoundary } from "@/components/app-error-boundary"
 import { useProductReadiness } from "@/components/product-readiness"
@@ -18,8 +18,6 @@ import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger,
 } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { useMediaQuery } from "@/hooks/use-media-query"
-import { studioRouteFromLocation } from "@/lib/routes"
 import { cn } from "@/lib/utils"
 
 export type AudioStudioMountMode = "standalone" | "embedded"
@@ -99,16 +97,19 @@ function PrimaryNavigation() {
       <div className="studio-deck-primary-links">
         {primaryItems.map((item) => {
           const Icon = item.icon
+          const itemActive = item.id === "work"
+            ? activeAudioStudioDestination(location.pathname) === item.label
+            : location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
           return (
-            <NavLink
+            <Link
               key={item.id}
               to={item.href}
-              end={item.href === "/audio-studio/"}
-              className={({ isActive }) => cn("studio-deck-link", isActive && "is-active")}
+              aria-current={itemActive ? "page" : undefined}
+              className={cn("studio-deck-link", itemActive && "is-active")}
             >
               <Icon aria-hidden="true" />
               <span>{item.label}</span>
-            </NavLink>
+            </Link>
           )
         })}
       </div>
@@ -209,13 +210,10 @@ function StudioDeckChrome({ mode, destination }: { mode: AudioStudioMountMode; d
 export function AppShell({ mode = "standalone" }: { mode?: AudioStudioMountMode }) {
   const location = useLocation()
   const activeDestination = activeAudioStudioDestination(location.pathname)
-  const desktop = useMediaQuery("(min-width: 48.001rem)")
-  const route = studioRouteFromLocation(location.pathname, location.search)
-  const productionFocus = mode === "standalone" && desktop && route.type === "production"
   return (
-    <div className="studio-app-shell" data-mount-mode={mode} data-presentation={productionFocus ? "production-focus" : "standard"}>
+    <div className="studio-app-shell" data-mount-mode={mode} data-presentation="standard">
       <a className="studio-skip-link" href="#audio-studio-content">Skip to Audio Studio content</a>
-      {!productionFocus && <StudioDeckChrome mode={mode} destination={activeDestination} />}
+      <StudioDeckChrome mode={mode} destination={activeDestination} />
       <main id="audio-studio-content" className="audio-studio-viewport" tabIndex={-1}>
         <AppErrorBoundary key={location.pathname}>
           <Outlet />
