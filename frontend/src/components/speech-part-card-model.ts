@@ -28,6 +28,7 @@ export type SpeechPartCardFacts = {
   exactModel: string
   technicalDetail: string
   script: string
+  scriptState: "raw" | "shaped" | "tagged" | null
   recordingSummary: string
   durationLabel: string
   inputLabel: "Original" | "Spoken" | "Tagged" | null
@@ -58,6 +59,29 @@ export function recordingInputLabel(state?: string | null): SpeechPartCardFacts[
   if (state === "shaped") return "Spoken"
   if (state === "tagged") return "Tagged"
   return null
+}
+
+function recordingTextState(state?: string | null): SpeechPartCardFacts["scriptState"] {
+  return state === "raw" || state === "shaped" || state === "tagged"
+    ? state
+    : null
+}
+
+function displayedScript(part: ProductionPart, recorded: boolean) {
+  const state = recordingTextState(recorded
+    ? part.recording_text_state
+    : part.text_state)
+  if (!recorded) return { text: part.text || "Untitled speech", state }
+  if (state === "raw") {
+    return { text: part.clip_raw_text || part.text_raw || part.text || "Untitled speech", state }
+  }
+  if (state === "shaped") {
+    return { text: part.clip_spoken_text || part.text_shaped || part.text || "Untitled speech", state }
+  }
+  if (state === "tagged") {
+    return { text: part.clip_tagged_text || part.text_tagged || part.text || "Untitled speech", state }
+  }
+  return { text: part.text || "Untitled speech", state: null }
 }
 
 function compactDuration(durationMs: number) {
@@ -129,6 +153,7 @@ export function speechPartCardFacts({ part, speechJob, captionJob, directory }: 
   directory: VoiceDirectory
 }): SpeechPartCardFacts {
   const recorded = Boolean(part.clip_id)
+  const script = displayedScript(part, recorded)
   const displayVoice = part.catalogue_voice_id || part.voice || part.voice_name
   const voice = resolveVoice(displayVoice, directory, part.voice_identity_id)
   const model = resolveSpeechModel({ engine: part.engine, tier: part.tier, model: part.model, config: directory.config })
@@ -159,7 +184,8 @@ export function speechPartCardFacts({ part, speechJob, captionJob, directory }: 
     methodLine: methodLine || "Recording method unknown",
     exactModel: hasRecordingMethod ? model.modelId : "",
     technicalDetail,
-    script: part.text || "Untitled speech",
+    script: script.text,
+    scriptState: script.state,
     recordingSummary,
     durationLabel,
     inputLabel,

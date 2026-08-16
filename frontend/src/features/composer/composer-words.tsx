@@ -3,6 +3,7 @@ import { useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import type { TextView } from "@/hooks/use-composer-text"
@@ -16,9 +17,8 @@ function textLabel(view: TextView) {
 
 function TaggedScriptEditor({ value, onChange, autoFocus }: { value: string; onChange: (value: string) => void; autoFocus: boolean }) {
   const highlight = useRef<HTMLPreElement | null>(null)
-  const fragments = value.split(/(\[[^\[\]\n]{1,40}\])/g)
   return <div className="tagged-script-editor">
-    <pre ref={highlight} aria-hidden="true">{fragments.map((fragment, index) => /^\[[^\[\]\n]{1,40}\]$/.test(fragment) ? <mark key={index}>{fragment}</mark> : <span key={index}>{fragment}</span>)}</pre>
+    <pre ref={highlight} aria-hidden="true"><InlineDeliveryTags text={value} /></pre>
     <Textarea dir="auto" aria-label="Tagged script" value={value} onChange={(event) => onChange(event.target.value)} onScroll={(event) => { if (highlight.current) { highlight.current.scrollTop = event.currentTarget.scrollTop; highlight.current.scrollLeft = event.currentTarget.scrollLeft } }} placeholder="Type or paste what should be said…" autoFocus={autoFocus} />
   </div>
 }

@@ -20,6 +20,7 @@ function part(values: Partial<ProductionPart> = {}): ProductionPart {
   return {
     id: 12, created_at: "2026-08-13T10:00:00Z", position: 2, kind: "speech",
     text: "Selected immutable script", clip_id: 93,
+    clip_spoken_text: "Selected immutable spoken script",
     recording_text_state: "shaped",
     voice_identity_id: "voice-maya", voice_name: "Maya",
     engine: "audio", tier: "flash", model: "qwen-audio-3.0-tts-flash",
@@ -38,6 +39,8 @@ describe("speechPartCardFacts", () => {
     expect(facts.methodLine).toBe("Qwen Audio · Flash · Expressive + tags · EN")
     expect(facts.technicalDetail).toContain("Language: English")
     expect(facts.recordingSummary).toBe("Active recording · 0:12.4 · Spoken input")
+    expect(facts.script).toBe("Selected immutable spoken script")
+    expect(facts.scriptState).toBe("shaped")
     expect(facts.captionSummary).toBe("EN + FR captions")
   })
 
@@ -61,7 +64,23 @@ describe("speechPartCardFacts", () => {
     const facts = speechPartCardFacts({ part: historical, speechJob: null, directory })
     expect(facts.inputLabel).toBeNull()
     expect(facts.recordingSummary).toContain("Input unknown")
+    expect(facts.script).toBe("Selected immutable script")
+    expect(facts.scriptState).toBeNull()
     expect(recordingInputLabel("unexpected")).toBeNull()
+  })
+
+  it("shows the immutable Tagged input rather than mutable Part words", () => {
+    const facts = speechPartCardFacts({
+      part: part({
+        text: "Mutable editorial words",
+        recording_text_state: "tagged",
+        clip_tagged_text: "[whispers] Immutable recorded words",
+      }),
+      speechJob: null,
+      directory,
+    })
+    expect(facts.script).toBe("[whispers] Immutable recorded words")
+    expect(facts.scriptState).toBe("tagged")
   })
 
   it("keeps orthogonal warnings and one shared durable operation interpretation", () => {

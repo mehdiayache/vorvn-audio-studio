@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react"
 import { AudioLines, Captions, ChevronDown, ChevronUp, CircleAlert, Copy, GripVertical, Info, MoreHorizontal, Pause, Pencil, Play, Trash2, Volume2, VolumeX } from "lucide-react"
 
 import { AudioWaveform } from "@/components/audio-waveform"
+import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
 import type { SequenceActions } from "@/components/sequence-actions"
 import { SpeechOperationLane } from "@/components/speech-operation-lane"
 import { speechPartCardFacts } from "@/components/speech-part-card-model"
@@ -115,7 +116,7 @@ export function SpeechPartCard({ part, job, captionJob, index, count, playing, p
       </header>
 
       <Collapsible open={expanded} onOpenChange={setExpanded} className="speech-part-script">
-        <p ref={scriptRef} className={cn("speech-part-script-copy", expanded && "is-expanded")} dir={textDirection(facts.script)}>{facts.script}</p>
+        <p ref={scriptRef} className={cn("speech-part-script-copy", expanded && "is-expanded")} dir={textDirection(facts.script)}>{facts.scriptState === "tagged" ? <InlineDeliveryTags text={facts.script} /> : facts.script}</p>
         {overflowing && <CollapsibleTrigger asChild><Button variant="ghost" size="sm" className="speech-part-script-toggle" aria-expanded={expanded}>
           {expanded ? <>Show less <ChevronUp /></> : <>Show more <ChevronDown /></>}
         </Button></CollapsibleTrigger>}

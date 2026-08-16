@@ -400,13 +400,6 @@
   color: var(--foreground);
 }
 
-.tagged-script-editor pre mark {
-  padding: 1px 3px;
-  border-radius: 4px;
-  background: var(--primary-soft);
-  color: var(--primary);
-}
-
 .tagged-script-editor textarea {
   position: absolute;
   inset: 0;

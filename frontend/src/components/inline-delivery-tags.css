@@ -1,0 +1,8 @@
+.inline-delivery-tag {
+  padding: 1px 3px;
+  border-radius: 4px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}

@@ -22,6 +22,8 @@ function humanize(value?: string | null) {
 }
 
 export function speechProductName(engine?: string | null, provider?: string | null, config?: StudioConfig | null) {
+  const configured = config?.capabilities?.[String(engine || "")]?.label
+  if (configured) return String(configured)
   if (engine === "audio") return "Qwen Audio 3.0 TTS"
   if (engine === "qwen_tts") return "Qwen3 TTS Voice Clone"
   if (engine === "cosyvoice") return "CosyVoice V3 Plus"

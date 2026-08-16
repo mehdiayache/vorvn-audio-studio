@@ -37,7 +37,8 @@ function part(values: Partial<ProductionPart> = {}): ProductionPart {
   return {
     id: 7, created_at: "2026-08-13T10:00:00Z", position: 0, kind: "speech",
     text: longText, clip_id: 21,
-    recording_text_state: "tagged", voice_identity_id: "voice-maya", voice_name: "Maya", voice: "maya-provider-id",
+    recording_text_state: "raw", clip_raw_text: longText,
+    voice_identity_id: "voice-maya", voice_name: "Maya", voice: "maya-provider-id",
     engine: "audio", tier: "flash", model: "qwen-audio-3.0-tts-flash",
     capability_name: "Expressive + tags", language: "English", duration_ms: 5100,
     filename: "maya.mp3", cost: .01, spent: .02,
@@ -70,9 +71,19 @@ describe("SpeechPartCard", () => {
 
   it("does not offer expansion when the rendered script fits", () => {
     const shortText = "One compact authored line."
-    renderCard(<SpeechPartCard part={part({ text: shortText })} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actions()} />)
+    renderCard(<SpeechPartCard part={part({ text: shortText, clip_raw_text: shortText })} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actions()} />)
     expect(screen.getByText(shortText).textContent).toBe(shortText)
     expect(screen.queryByRole("button", { name: /show more/i })).toBeNull()
+  })
+
+  it("uses the shared tag presentation for a Tagged recording", () => {
+    const { container } = renderCard(<SpeechPartCard part={part({
+      text: "Mutable original",
+      recording_text_state: "tagged",
+      clip_tagged_text: "[whispers] The recorded performance.",
+    })} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actions()} />)
+    expect(container.querySelector(".speech-part-script-copy")?.textContent).toBe("[whispers] The recorded performance.")
+    expect(container.querySelector("mark.inline-delivery-tag")?.textContent).toBe("[whispers]")
   })
 
   it("keeps Voice, factual gender, exact method, duration, captions and spend visible during generation", () => {
