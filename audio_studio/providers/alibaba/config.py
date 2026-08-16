@@ -7,6 +7,7 @@ from audio_studio.domain.provider_catalog import (
     AUDIO_CLONE_LANGUAGES,
     AUDIO_SYSTEM_VOICES,
     CAPABILITIES,
+    COSYVOICE_CLONE_LANGUAGES,
     QWEN_TTS_CLONE_LANGUAGES,
     model_id,
     normalise_engine,

@@ -566,6 +566,21 @@
   color: var(--foreground);
 }
 
+.composer-output-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.composer-output-option > span {
+  display: grid;
+  gap: 2px;
+}
+
+.composer-output-option small {
+  color: var(--muted-foreground);
+}
+
 .composer-performance-controls {
   margin-top: 22px;
 }

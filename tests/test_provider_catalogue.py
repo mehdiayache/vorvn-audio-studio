@@ -103,6 +103,21 @@ class ProviderCatalogueTests(unittest.TestCase):
                                  (provider_model_id,))
                 database.commit()
 
+    def test_cosyvoice_route_is_exact_and_capability_driven(self):
+        facts = provider_catalog.CAPABILITIES["cosyvoice"]
+        self.assertEqual(facts["models"], {"plus": "cosyvoice-v3-plus"})
+        self.assertEqual(
+            set(facts["clone_languages"]),
+            {"zh", "en", "fr", "de", "ja", "ko", "ru"},
+        )
+        self.assertFalse(facts["instruction_control"])
+        self.assertFalse(facts["inline_tags"])
+        method = next(
+            item for item in ProviderCatalogueRepository().enrollment_methods()
+            if item["provider_model_id"] == "alibaba:intl:cosyvoice-v3-plus")
+        self.assertEqual(method["adapter_key"], "cosyvoice")
+        self.assertEqual(method["capability_ids"], ["controlled_exact"])
+
 
 if __name__ == "__main__":
     unittest.main()

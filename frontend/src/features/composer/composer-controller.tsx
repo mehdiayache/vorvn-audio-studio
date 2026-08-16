@@ -55,6 +55,8 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   const [rate, setRate] = useState(part?.rate ?? 1)
   const [pitch, setPitch] = useState(part?.pitch ?? 1)
   const [volume, setVolume] = useState(part?.volume ?? 50)
+  const [seed, setSeed] = useState(part?.seed ?? 0)
+  const [enableSsml, setEnableSsml] = useState(Boolean(part?.enable_ssml))
   const [busy, setBusy] = useState<"draft" | "generate" | null>(null)
   const [confirmationEstimate, setConfirmationEstimate] = useState<number | null>(null)
   const [pendingCommand, setPendingCommand] = useState<PendingGeneration | null>(null)
@@ -77,6 +79,8 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     setRate(part?.rate ?? 1)
     setPitch(part?.pitch ?? 1)
     setVolume(part?.volume ?? 50)
+    setSeed(part?.seed ?? 0)
+    setEnableSsml(Boolean(part?.enable_ssml))
   }, [part?.id])
 
   const identities = useMemo(
@@ -153,7 +157,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     route,
     text: { raw: textSession.states.raw, shaped: textSession.states.shaped, tagged: textSession.states.tagged, active: textSession.view },
     textPreparation: { tagDensity: textSession.density, pendingReview: textReviewReference },
-    delivery: { modeId: deliveryMode, instruction: capabilityControls.naturalDirection ? instruction : "", rate, pitch, volume, seed: part?.seed ?? 0 },
+    delivery: { modeId: deliveryMode, instruction: capabilityControls.naturalDirection ? instruction : "", rate, pitch, volume, seed, enableSsml: capabilityControls.ssml && enableSsml },
     output: { format, language: language || "Auto" },
     editorialPatch: {
       ...(baseline && textSession.states.raw !== baseline.script ? { script: textSession.states.raw } : {}),
@@ -174,6 +178,8 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
       setRate(saved.delivery.rate)
       setPitch(saved.delivery.pitch)
       setVolume(saved.delivery.volume)
+      setSeed(saved.delivery.seed)
+      setEnableSsml(Boolean(saved.delivery.enableSsml))
       setFormat(saved.output.format)
       setLanguage(saved.output.language)
     },
@@ -258,13 +264,13 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
 
   return {
     productionId, nextPartNumber, insertAt, insertBeforePartId, part, config, directory, playingKey, playerPlaying, onSave, onPlay,
-    route, identityId, language, format, deliveryModeRequest, instruction, rate, pitch, volume,
+    route, identityId, language, format, deliveryModeRequest, instruction, rate, pitch, volume, seed, enableSsml,
     busy, confirmationEstimate, pendingCommand, editorialCommand, textReviewReference,
     identities, selectedIdentity, compatibleRoutes, visibleRoutes, currentRoute, selectedCapability, capabilityControls, deliveryMode,
     formatOptions, outputFormatSupported,
     textSession, languageOptions, taggedIncompatible, hasInlineDeliveryTag, estimate, textPassEstimate, destination,
     recovery, performancePresets, methodLabel,
-    setLanguage, setFormat, setDeliveryModeRequest, setInstruction, setRate, setPitch, setVolume,
+    setLanguage, setFormat, setDeliveryModeRequest, setInstruction, setRate, setPitch, setVolume, setSeed, setEnableSsml,
     setConfirmationEstimate, setPendingCommand, setEditorialCommand,
     applyRoute, selectIdentity, removeInlineTags, payload, saveDraft, executeGeneration, continueGeneration, generate,
   }

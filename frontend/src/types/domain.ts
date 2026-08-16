@@ -104,6 +104,7 @@ export type ProductionPart = {
   pitch?: number
   volume?: number
   seed?: number
+  enable_ssml?: boolean
   filename?: string
   size_bytes?: number
   chars?: number
@@ -389,10 +390,10 @@ type SpeechJobCreateRequest = components["schemas"]["SpeechJobCreate"]
 
 export type GeneratePayload = Omit<
   SpeechJobCreateRequest,
-  "part_id" | "confirmed" | "text_state"
+  "part_id" | "confirmed" | "text_state" | "enable_ssml"
 > & Partial<Pick<
   SpeechJobCreateRequest,
-  "confirmed" | "text_state"
+  "confirmed" | "text_state" | "enable_ssml"
 >>
 
 export type ResolvedGeneratePayload = GeneratePayload & {

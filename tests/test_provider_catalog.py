@@ -24,6 +24,8 @@ class ProviderCatalogTests(unittest.TestCase):
                          "qwen-audio-3.0-tts-flash")
         self.assertEqual(provider_catalog.model_id("qwen_tts", "vc"),
                          "qwen3-tts-vc-2026-01-22")
+        self.assertEqual(provider_catalog.model_id("cosyvoice", "plus"),
+                         "cosyvoice-v3-plus")
         with self.assertRaisesRegex(ValueError, "Unknown speech engine"):
             provider_catalog.model_id("removed", "plus")
 
@@ -38,7 +40,7 @@ class ProviderCatalogTests(unittest.TestCase):
             provider_catalog.SEGMENTATION["qwen_tts"]
             ["provider_token_limit"], 512)
         self.assertEqual(set(provider_catalog.SEGMENTATION),
-                         {"audio", "qwen_tts"})
+                         {"audio", "qwen_tts", "cosyvoice"})
 
 
 if __name__ == "__main__":

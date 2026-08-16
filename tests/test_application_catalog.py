@@ -94,7 +94,8 @@ class CatalogServiceTests(unittest.TestCase):
         self.assertEqual(
             result["segmentation"]["qwen_tts"]["provider_token_limit"],
             512)
-        self.assertEqual(set(result["segmentation"]), {"audio", "qwen_tts"})
+        self.assertEqual(
+            set(result["segmentation"]), {"audio", "qwen_tts", "cosyvoice"})
 
     def test_voice_reads_are_delegated_without_mutation(self):
         self.assertIs(self.service.voice_metadata(), self.voices.metadata)

@@ -2638,6 +2638,11 @@ export interface components {
             duration_ms?: number | null;
             /** Editorial Status */
             editorial_status?: string | null;
+            /**
+             * Enable Ssml
+             * @default false
+             */
+            enable_ssml: boolean;
             /** Engine */
             engine?: string | null;
             /** Filename */
@@ -3277,6 +3282,11 @@ export interface components {
              * @default false
              */
             confirmed: boolean;
+            /**
+             * Enable Ssml
+             * @default false
+             */
+            enable_ssml: boolean;
             /**
              * Format
              * @default mp3

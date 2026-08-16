@@ -6,8 +6,12 @@ import json
 import os
 
 from audio_studio.domain import delivery_tags, provider_catalog, speech_text, voice_routing
-from audio_studio.providers.alibaba import audio_tts, config, qwen_tts
-from audio_studio.domain.provider_pricing import PRICE_VERSION, qwen_audio_tts_cost
+from audio_studio.providers.alibaba import audio_tts, config, cosyvoice, qwen_tts
+from audio_studio.domain.provider_pricing import (
+    PRICE_VERSION,
+    cosyvoice_tts_cost,
+    qwen_audio_tts_cost,
+)
 
 from audio_studio.domain.speech import (
     PreparedSpeech,
@@ -26,9 +30,11 @@ def synthesize(plan, options, on_progress=None):
         texts = [text for session in plan.sessions for text in session]
     elif options.engine == "qwen_tts":
         texts = list(plan.segments)
+    elif options.engine == "cosyvoice":
+        texts = [text for session in plan.sessions for text in session]
     else:
         raise ValueError(f"Unsupported Alibaba speech engine: {options.engine}")
-    if options.engine == "qwen_tts" and any(
+    if options.engine in {"qwen_tts", "cosyvoice"} and any(
         tag.casefold() in delivery_tags.KNOWN_TAGS
         for text in texts for tag in delivery_tags.TAG_RE.findall(text)
     ):
@@ -40,6 +46,8 @@ def synthesize(plan, options, on_progress=None):
     if options.engine == "qwen_tts":
         return qwen_tts.synthesize(
             plan, options, on_progress=on_progress)
+    if options.engine == "cosyvoice":
+        return cosyvoice.synthesize(plan, options, on_progress=on_progress)
     return audio_tts.synthesize(plan, options, on_progress=on_progress)
 
 
@@ -48,11 +56,13 @@ def _plan(text: str, options):
         return audio_tts.plan(text)
     if options.engine == "qwen_tts":
         return qwen_tts.plan(text)
+    if options.engine == "cosyvoice":
+        return cosyvoice.plan(text, ssml=bool(options.enable_ssml))
     raise ValueError(f"Unsupported Alibaba speech engine: {options.engine}")
 
 
 def _request_count(plan, engine: str) -> int:
-    if engine not in {"audio", "qwen_tts"}:
+    if engine not in {"audio", "qwen_tts", "cosyvoice"}:
         raise ValueError(f"Unsupported Alibaba speech engine: {engine}")
     return int(plan.request_count)
 
@@ -65,8 +75,9 @@ class _Options:
         language = values.get("language")
         text = str(values.get("text") or "")
         route = voice_routing.resolve(values, bindings, catalogue)
-        if route.engine == "qwen_tts" and not route.provider_voice_id:
-            raise ValueError("Choose a ready Qwen3 TTS cloned voice.")
+        if route.engine in {"qwen_tts", "cosyvoice"} and not route.provider_voice_id:
+            raise ValueError(
+                f"Choose a ready {provider_catalog.CAPABILITIES[route.engine]['label']} cloned voice.")
         self.language = None if language in (None, "", "Auto") else str(language)
         self.voice_identity_id = route.identity_id
         self.binding_id = route.binding_id
@@ -85,7 +96,10 @@ class _Options:
         self.voice_name = route.voice_name
         self.format = str(values.get("format") or "mp3")
         instruction = str(values.get("instruction") or "").strip()
-        self.instruction = instruction[:INSTRUCTION_MAX] or None
+        supports_instruction = bool(
+            provider_catalog.CAPABILITIES[route.engine]["instruction_control"])
+        self.instruction = (instruction[:INSTRUCTION_MAX] or None) \
+            if supports_instruction else None
         # Capability mode IDs are open provider metadata, not a closed
         # exact/directed enum. Individual adapters may interpret known modes,
         # but the chosen ID must survive unchanged into evidence and Clips.
@@ -116,6 +130,8 @@ def _guard_estimate(text: str, engine: str, tier: str) -> float:
     if engine == "audio":
         return qwen_audio_tts_cost(
             len(text), config.region(), tier).catalog_cost
+    if engine == "cosyvoice":
+        return cosyvoice_tts_cost(len(text), config.region()).catalog_cost
     rates = config.CAPABILITIES[engine]["estimate_rates_per_million_chars"]
     return round(len(text) * rates[tier] / 1_000_000, 6)
 
@@ -131,7 +147,7 @@ class AlibabaSpeechProvider(BaseTTSProvider):
         options = _Options(values, bindings, catalogue, pronunciations, preferences)
         tagged = [tag for tag in delivery_tags.TAG_RE.findall(text)
                   if tag.casefold() in delivery_tags.KNOWN_TAGS]
-        if options.engine == "qwen_tts" and tagged:
+        if options.engine in {"qwen_tts", "cosyvoice"} and tagged:
             raise ValueError(
                 f"{provider_catalog.CAPABILITIES[options.engine]['label']} "
                 "does not support inline delivery tags. Choose Raw or Spoken "
@@ -185,6 +201,20 @@ class AlibabaSpeechProvider(BaseTTSProvider):
             })
             priced = qwen_audio_tts_cost(
                 generated_characters, config.region(), prepared.tier)
+            cost, basis = priced.catalog_cost, priced.cost_basis
+            endpoint = config.websocket_base()
+            rate = priced.catalog_rate
+        elif prepared.engine == "cosyvoice":
+            generated_characters = sum(
+                int(item.get("characters") or 0) for item in diagnostics
+                if item.get("status") == "accepted")
+            if not diagnostics and not failure_rows:
+                generated_characters = len(prepared.spoken_text)
+            measured_usage.update({
+                "submitted_characters": len(prepared.spoken_text),
+                "generated_characters": generated_characters,
+            })
+            priced = cosyvoice_tts_cost(generated_characters, config.region())
             cost, basis = priced.catalog_cost, priced.cost_basis
             endpoint = config.websocket_base()
             rate = priced.catalog_rate

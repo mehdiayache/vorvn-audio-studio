@@ -22,6 +22,7 @@ _SETTING_FIELDS = (
     "voice", "voice_identity_id", "binding_id", "catalogue_voice_id",
     "capability_id", "engine", "model", "format", "language",
     "instruction", "speech_mode", "rate", "pitch", "volume", "seed",
+    "enable_ssml",
 )
 
 
@@ -60,7 +61,7 @@ def _defaults(values: dict) -> dict:
         "engine": "audio", "model": "plus",
         "format": "mp3", "language": "Auto", "instruction": "",
         "speech_mode": "exact", "rate": 1, "pitch": 1, "volume": 50,
-        "seed": 0, **values,
+        "seed": 0, "enable_ssml": False, **values,
     }
 
 
@@ -96,6 +97,7 @@ def _record(prepared: PreparedSpeech, result: SynthesizedSpeech,
         "speech_mode": prepared.speech_mode,
         "rate": prepared.rate, "pitch": prepared.pitch,
         "volume": prepared.volume, "seed": prepared.seed,
+        "enable_ssml": bool(values.get("enable_ssml")),
         "filename": saved.filename, "path": saved.path,
         "file_url": f"/audio/{quote(saved.filename)}",
         "size_bytes": saved.size_bytes, "duration_ms": saved.duration_ms,

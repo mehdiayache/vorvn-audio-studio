@@ -55,7 +55,8 @@ class NativeHttpTests(unittest.TestCase):
         payload = response.json()["data"]
         self.assertIn("audio", payload["capabilities"])
         self.assertIn("qwen_tts", payload["capabilities"])
-        self.assertEqual(set(payload["capabilities"]), {"audio", "qwen_tts"})
+        self.assertEqual(
+            set(payload["capabilities"]), {"audio", "qwen_tts", "cosyvoice"})
         self.assertIn(payload["workspace"]["region"], {"intl", "beijing"})
 
     def test_voice_catalogue_contracts_are_live(self):
@@ -125,7 +126,7 @@ class NativeHttpTests(unittest.TestCase):
         self.assertIsInstance(history.json()["data"], list)
         package = plan.json()["data"]
         self.assertEqual(package["region"], "intl")
-        self.assertEqual(len(package["available_routes"]), 2)
+        self.assertEqual(len(package["available_routes"]), 3)
 
     def test_media_is_typed_seekable_and_security_hardened(self):
         with TemporaryDirectory() as directory:

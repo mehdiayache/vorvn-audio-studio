@@ -128,6 +128,8 @@ class SpeechRepository:
             "pitch": delivery.get("pitch", draft.get("pitch", 1)),
             "volume": delivery.get("volume", draft.get("volume", 50)),
             "seed": delivery.get("seed", draft.get("seed", 0)),
+            "enable_ssml": bool(delivery.get(
+                "enable_ssml", draft.get("enable_ssml", False))),
             "binding_id": str(row[18]) if row[18] else draft.get("binding_id"),
             "catalogue_voice_id": row[19] or draft.get("catalogue_voice_id"),
             "capability_id": row[20] or draft.get("capability_id"),
@@ -231,7 +233,8 @@ class SpeechRepository:
             values.get("language"), values.get("text_raw"),
             values.get("text_shaped") or spoken_script, values.get("text_tagged"),
             json.dumps({key: values.get(key) for key in
-                        ("instruction", "speech_mode", "rate", "pitch", "volume", "seed")}),
+                        ("instruction", "speech_mode", "rate", "pitch", "volume", "seed",
+                         "enable_ssml")}),
             json.dumps(values.get("segmentation") or {}),
             json.dumps(values.get("usage") or {}), values.get("cost") or 0,
             values.get("cost_basis") or "unknown",

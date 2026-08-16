@@ -7,6 +7,10 @@ export type ComposerCapabilityControls = {
   rate: boolean
   pitch: boolean
   volume: boolean
+  seed: boolean
+  ssml: boolean
+  wordTimestamps: boolean
+  languageHints: boolean
   verifiedPassages: boolean
   directionLabel: string
   exactHelp: string
@@ -42,6 +46,10 @@ export function composerCapabilityControls(
     rate: boolean(controls.rate),
     pitch: boolean(controls.pitch),
     volume: boolean(controls.volume),
+    seed: boolean(controls.seed),
+    ssml: boolean(controls.ssml),
+    wordTimestamps: boolean(controls.word_timestamps),
+    languageHints: boolean(controls.language_hints),
     verifiedPassages: boolean(controls.verified_passages),
     directionLabel: String(metadata.direction_label || "Performance direction"),
     exactHelp: String(metadata.exact_help || "Read the prepared script without an added performance direction."),

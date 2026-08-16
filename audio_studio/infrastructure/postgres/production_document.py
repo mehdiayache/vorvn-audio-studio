@@ -355,6 +355,9 @@ class ProductionDocumentRepository:
                 "pitch": _float(delivery.get("pitch", snapshot.get("pitch", draft.get("pitch", job_payload.get("pitch")))), 1),
                 "volume": _int(delivery.get("volume", snapshot.get("volume", draft.get("volume", job_payload.get("volume")))), 50),
                 "seed": _int(delivery.get("seed", snapshot.get("seed", draft.get("seed", job_payload.get("seed")))), 0),
+                "enable_ssml": bool(delivery.get("enable_ssml", snapshot.get(
+                    "enable_ssml", draft.get("enable_ssml", job_payload.get(
+                        "enable_ssml", False))))),
                 "filename": row[24] or row[34] or "",
                 "size_bytes": int(row[25] or 0), "cost": _float(row[26]),
                 "spent": _float(row[33]), "cost_basis": row[28],

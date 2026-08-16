@@ -109,6 +109,7 @@ class SpeechJobCreate(BaseModel):
     pitch: float = Field(default=1, ge=.5, le=2)
     volume: int = Field(default=50, ge=0, le=100)
     seed: int = Field(default=0, ge=0, le=2_147_483_647)
+    enable_ssml: bool = False
     confirmed: bool = False
     part_id: int | None = Field(default=None, gt=0)
 

@@ -23,6 +23,11 @@ QWEN_TTS_CLONE_LANGUAGES = {
     "ko": "Korean", "fr": "French", "ru": "Russian",
 }
 
+COSYVOICE_CLONE_LANGUAGES = {
+    "zh": "Chinese", "en": "English", "fr": "French", "de": "German",
+    "ja": "Japanese", "ko": "Korean", "ru": "Russian",
+}
+
 
 def documented_voice_catalog() -> dict:
     path = Path(__file__).with_name("alibaba_voice_catalog.json")
@@ -83,6 +88,27 @@ CAPABILITIES = {
         "inline_tags": False,
         "instruction_control": False,
     },
+    "cosyvoice": {
+        "label": "CosyVoice V3 Plus",
+        "operator_title": "Controlled exact reading",
+        "purpose": "Best for faithful cloned-voice speech with precise delivery controls.",
+        "operator_notes": [
+            "Reads the prepared script without performance rewriting",
+            "Adjust speed, pitch and volume",
+            "Use a seed for repeatable generation",
+            "Supports SSML and streaming word timestamps",
+        ],
+        "models": {"plus": "cosyvoice-v3-plus"},
+        "clone_tiers": ["plus"],
+        "clone_languages": COSYVOICE_CLONE_LANGUAGES,
+        "output_languages": list(COSYVOICE_CLONE_LANGUAGES.values()),
+        "system_languages": [],
+        "rates_per_million_chars": {"plus": 26.0},
+        "estimate_rates_per_million_chars": {"plus": 26.0},
+        "clone_cost": 0.0,
+        "inline_tags": False,
+        "instruction_control": False,
+    },
 }
 
 
@@ -96,6 +122,12 @@ SEGMENTATION = {
         "mode": "token_budget",
         "provider_token_limit": 512,
         "planned_token_budget": 480,
+    },
+    "cosyvoice": {
+        "mode": "continuous_session",
+        "characters_per_submission": 20_000,
+        "characters_per_session": 200_000,
+        "ssml_submissions_per_session": 1,
     },
 }
 

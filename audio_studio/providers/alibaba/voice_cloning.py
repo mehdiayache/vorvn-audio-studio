@@ -86,7 +86,7 @@ class AlibabaVoiceCloningProvider:
                 transcript=str(job.metadata.get("transcript") or "").strip()
                 or None)
             endpoint = config.http_base()
-        else:
+        elif job.engine in {"audio", "cosyvoice"}:
             from dashscope.audio.tts_v2 import VoiceEnrollmentService
             sdk_runtime.apply_credentials()
             documented_sources = capability.get(
@@ -99,6 +99,8 @@ class AlibabaVoiceCloningProvider:
                 max_prompt_audio_length=30.0,
             )
             endpoint = config.http_base()
+        else:
+            raise ValueError(f"Unsupported Alibaba enrollment engine: {job.engine}")
         estimate = self.estimated_cost(job)
         return CreatedVoiceBinding(
             provider_voice_id=str(provider_voice_id),

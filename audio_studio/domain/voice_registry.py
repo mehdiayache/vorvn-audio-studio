@@ -16,6 +16,7 @@ ROOT = Path(__file__).parent
 CAPABILITY_IDS = {
     "audio": "expressive_tags",
     "qwen_tts": "exact_longform",
+    "cosyvoice": "controlled_exact",
 }
 
 

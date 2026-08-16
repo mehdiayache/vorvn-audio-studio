@@ -79,6 +79,7 @@ export type ComposerDelivery = {
   pitch: number
   volume: number
   seed: number
+  enableSsml: boolean
 }
 
 export type ComposerOutput = { format: GeneratePayload["format"]; language: string }
@@ -224,6 +225,7 @@ export function toGeneratePayload(command: SpeechGenerationCommand): GeneratePay
     pitch: command.delivery.pitch,
     volume: command.delivery.volume,
     seed: command.delivery.seed,
+    enable_ssml: command.delivery.enableSsml,
     confirmed: command.confirmed,
   }
 }

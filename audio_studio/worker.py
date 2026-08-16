@@ -70,7 +70,7 @@ def main() -> int:
     alibaba_speech = AlibabaSpeechProvider()
     speech_provider = ExactSpeechProviderRegistry({
         ("alibaba", adapter_key): alibaba_speech
-        for adapter_key in ("audio", "qwen_tts")
+        for adapter_key in ("audio", "qwen_tts", "cosyvoice")
     })
     provider_operations = ProviderOperationService(ProviderOperationRepository())
     service.register("speech", SpeechJobHandler(SpeechGenerationService(

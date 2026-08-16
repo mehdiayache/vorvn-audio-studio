@@ -340,6 +340,7 @@ class ProductionPartResponse(BaseModel):
     pitch: float | None = None
     volume: int | None = None
     seed: int | None = None
+    enable_ssml: bool = False
     filename: str | None = None
     size_bytes: int | None = None
     chars: int | None = None

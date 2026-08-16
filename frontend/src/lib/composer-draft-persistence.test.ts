@@ -9,7 +9,7 @@ function draft(): RecoverableCompositionDraft {
     route: { kind: "owned", bindingId: "binding-1", capabilityId: null },
     text: { raw: "Hello", shaped: "", tagged: "", active: "raw" },
     textPreparation: { tagDensity: "normal", pendingReview: null },
-    delivery: { modeId: "exact", instruction: "", rate: 1, pitch: 1, volume: 50, seed: 0 },
+    delivery: { modeId: "exact", instruction: "", rate: 1, pitch: 1, volume: 50, seed: 0, enableSsml: false },
     output: { format: "mp3", language: "English" },
   }
 }

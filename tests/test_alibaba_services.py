@@ -11,7 +11,7 @@ def check(label, condition):
 
 
 check("Only exact-text speech engines are installed",
-      set(config.CAPABILITIES) == {"audio", "qwen_tts"})
+      set(config.CAPABILITIES) == {"audio", "qwen_tts", "cosyvoice"})
 check("Audio cloning keeps its documented language boundary",
       "en" in config.AUDIO_CLONE_LANGUAGES
       and "ar" not in config.AUDIO_CLONE_LANGUAGES)
@@ -22,10 +22,13 @@ check("Audio clone is Flash-only",
       config.CAPABILITIES["audio"]["clone_tiers"] == ["flash"])
 check("Only Qwen Audio exposes inline delivery tags",
       config.CAPABILITIES["audio"]["inline_tags"] is True
-      and config.CAPABILITIES["qwen_tts"]["inline_tags"] is False)
+      and config.CAPABILITIES["qwen_tts"]["inline_tags"] is False
+      and config.CAPABILITIES["cosyvoice"]["inline_tags"] is False)
 check("Qwen3 TTS is the exact cloned-voice route",
       config.CAPABILITIES["qwen_tts"]["models"]
-      == {"vc": "qwen3-tts-vc-2026-01-22"})
+      == {"vc": "qwen3-tts-vc-2026-01-22"}
+      and config.CAPABILITIES["cosyvoice"]["models"]
+      == {"plus": "cosyvoice-v3-plus"})
 
 registry = voice_registry.assemble([], {}, {})
 model_counts = {(item["engine"], item["tier"]): item["system_count"]
@@ -33,7 +36,8 @@ model_counts = {(item["engine"], item["tier"]): item["system_count"]
 check("The registry exposes only installed exact-text products",
       model_counts == {("audio", "plus"): 2,
                        ("audio", "flash"): 12,
-                       ("qwen_tts", "vc"): 0})
+                       ("qwen_tts", "vc"): 0,
+                       ("cosyvoice", "plus"): 0})
 check("Voice counts are derived from bindings",
       all(item["total_count"] == item["system_count"] + item["custom_count"]
           for item in registry["models"]))

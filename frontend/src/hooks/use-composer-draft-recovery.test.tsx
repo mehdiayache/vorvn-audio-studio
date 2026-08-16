@@ -19,7 +19,7 @@ function emptyDraft(): RecoverableCompositionDraft {
     voiceIdentityId: null, route: null,
     text: { raw: "", shaped: "", tagged: "", active: "raw" },
     textPreparation: { tagDensity: "normal", pendingReview: null },
-    delivery: { modeId: null, instruction: "", rate: 1, pitch: 1, volume: 50, seed: 0 },
+    delivery: { modeId: null, instruction: "", rate: 1, pitch: 1, volume: 50, seed: 0, enableSsml: false },
     output: { format: "mp3", language: "Auto" },
   }
 }

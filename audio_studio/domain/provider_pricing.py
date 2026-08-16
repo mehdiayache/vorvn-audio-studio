@@ -22,6 +22,7 @@ TTS_USD_PER_MILLION_CHARACTERS = {
     "beijing": {"plus": Decimal("19.253"),
                 "flash": Decimal("13.7521")},
 }
+COSYVOICE_USD_PER_MILLION_CHARACTERS = Decimal("26")
 
 
 @dataclass(frozen=True)
@@ -87,5 +88,20 @@ def qwen_audio_tts_cost(characters: int, region: str = "intl",
         provider_region=safe_region,
         characters=safe_characters,
         catalog_rate=format(rate, "f"),
+        catalog_cost=float(cost),
+    )
+
+
+def cosyvoice_tts_cost(characters: int, region: str = "intl") -> CharacterCost:
+    """Price CosyVoice V3 Plus at its International catalogue rate."""
+    if region != "intl":
+        raise ValueError("CosyVoice V3 Plus is installed only in Singapore/International.")
+    safe_characters = max(0, int(characters or 0))
+    rate = COSYVOICE_USD_PER_MILLION_CHARACTERS
+    cost = (Decimal(safe_characters) * rate / Decimal(1_000_000)).quantize(
+        Decimal("0.000001"), rounding=ROUND_HALF_UP)
+    return CharacterCost(
+        model="cosyvoice-v3-plus", provider_region="intl",
+        characters=safe_characters, catalog_rate=format(rate, "f"),
         catalog_cost=float(cost),
     )

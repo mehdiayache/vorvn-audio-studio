@@ -14,7 +14,7 @@ export type ComposerDraftWireRecord = {
     route: { kind: "owned" | "catalogue"; binding_id: string | null; catalogue_voice_id: string | null; capability_id: string | null } | null
     text: RecoverableCompositionDraft["text"]
     text_preparation: { tag_density: RecoverableCompositionDraft["textPreparation"]["tagDensity"]; pending_review: { job_id: string; kind: "shape" | "tag" } | null }
-    delivery: { mode_id: string | null; instruction: string; rate: number; pitch: number; volume: number; seed: number }
+    delivery: { mode_id: string | null; instruction: string; rate: number; pitch: number; volume: number; seed: number; enable_ssml?: boolean }
     output: RecoverableCompositionDraft["output"]
   }
   version: number
@@ -68,6 +68,7 @@ export function draftWire(draft: RecoverableCompositionDraft): ComposerDraftWire
       pitch: draft.delivery.pitch,
       volume: draft.delivery.volume,
       seed: draft.delivery.seed,
+      enable_ssml: draft.delivery.enableSsml,
     },
     output: draft.output,
   }
@@ -95,6 +96,7 @@ export function draftFromWire(record: ComposerDraftWireRecord): ComposerDraftRec
         pitch: record.state.delivery.pitch,
         volume: record.state.delivery.volume,
         seed: record.state.delivery.seed,
+        enableSsml: Boolean(record.state.delivery.enable_ssml),
       },
       output: record.state.output,
     },
@@ -108,7 +110,7 @@ export function meaningfulDraft(draft: RecoverableCompositionDraft) {
     || draft.textPreparation.pendingReview || draft.textPreparation.tagDensity !== "normal"
     || draft.delivery.instruction || draft.delivery.modeId
     || draft.delivery.rate !== 1 || draft.delivery.pitch !== 1
-    || draft.delivery.volume !== 50 || draft.delivery.seed
+    || draft.delivery.volume !== 50 || draft.delivery.seed || draft.delivery.enableSsml
     || draft.output.language !== "Auto" || draft.output.format !== "mp3"
   )
 }
