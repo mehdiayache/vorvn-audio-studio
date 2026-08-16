@@ -12,3 +12,21 @@
   line-height: 1;
   text-transform: none;
 }
+
+.voice-gender-badge.is-female {
+  border-color: oklch(.86 .075 350);
+  color: oklch(.46 .16 350);
+  background: oklch(.96 .035 350);
+}
+
+.voice-gender-badge.is-male {
+  border-color: oklch(.86 .075 250);
+  color: oklch(.45 .16 250);
+  background: oklch(.96 .035 250);
+}
+
+.voice-gender-badge.is-non-binary {
+  border-color: oklch(.86 .07 302);
+  color: oklch(.47 .15 302);
+  background: oklch(.96 .035 302);
+}

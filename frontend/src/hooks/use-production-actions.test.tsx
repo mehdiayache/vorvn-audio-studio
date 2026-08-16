@@ -61,9 +61,10 @@ describe("useProductionActions durable commands", () => {
       toggleSource: vi.fn(), toggle: vi.fn(), pause: vi.fn(), seek: vi.fn(),
       setVolume: vi.fn(), setSpeed: vi.fn(), close: vi.fn(),
     }
+    const refresh = vi.fn().mockResolvedValue(undefined)
     const { result } = renderHook(() => useProductionActions({
       production, music, player: player as never,
-      refresh: vi.fn(), refreshAssets: vi.fn(),
+      refresh, refreshAssets: vi.fn(),
     }))
     await act(async () => {
       await result.current.updatePartEditorial(part, {
@@ -72,6 +73,7 @@ describe("useProductionActions durable commands", () => {
     })
     expect(studioApi.savePartEditorial).toHaveBeenCalledWith(
       28, 127, { expected_revision: 3, script: "Explicit revision" })
+    expect(refresh).toHaveBeenCalledOnce()
   })
 
   it("marks a loaded preview stale when refreshed Production truth changes", async () => {

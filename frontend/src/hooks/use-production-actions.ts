@@ -5,7 +5,7 @@ import type { usePlayer } from "@/hooks/use-player"
 import { useJobExecution } from "@/hooks/use-job-execution"
 import { studioApi } from "@/lib/api"
 import { moveSelectionToPosition } from "@/lib/production-order"
-import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, PlayerSource, Production, ProductionPart, VentureAsset } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, PartEditorialUpdate, PlayerSource, Production, ProductionPart, VentureAsset } from "@/types/domain"
 
 type Player = ReturnType<typeof usePlayer>
 
@@ -122,14 +122,15 @@ export function useProductionActions({ production, music, player, refresh, refre
     }
   }, [])
 
-  const updatePartEditorial = useCallback(async (part: ProductionPart, values: { expected_revision: number; script?: string }) => {
+  const updatePartEditorial = useCallback(async (part: ProductionPart, values: PartEditorialUpdate) => {
     try {
       await studioApi.savePartEditorial(production.id, part.id, values)
+      await refresh()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "The Part could not be updated.")
       throw error
     }
-  }, [production.id])
+  }, [production.id, refresh])
 
   const movePart = useCallback((part: ProductionPart, direction: -1 | 1) => {
     const order = production.parts.filter((item) => item.kind !== "stitch").map((item) => item.id)

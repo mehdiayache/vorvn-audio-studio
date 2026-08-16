@@ -30,9 +30,10 @@
 .speech-part-heading:focus-visible, .speech-part-clip-summary:focus-visible, .speech-part-caption:focus-visible { border-radius: 6px; outline: 2px solid var(--ring); outline-offset: 2px; }
 .speech-part-heading .voice-portrait { border-color: color-mix(in oklch, var(--speech-identity-color) 34%, var(--border)); background: color-mix(in oklch, var(--speech-identity-color) 8%, var(--surface-raised)); color: var(--speech-identity-color); }
 .speech-part-heading-copy { min-width: 0; display: grid; gap: 1px; }
-.speech-part-role { overflow: hidden; color: var(--warning); font-size: 10px; font-weight: 800; letter-spacing: .08em; line-height: 1.3; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
-.speech-part-card:not(.draft) .speech-part-role { color: var(--muted-foreground); }
-.speech-part-voice-name { min-width: 0; display: flex; align-items: center; gap: 7px; color: var(--foreground); font-size: var(--type-small); font-weight: 750; }
+.speech-part-role { min-width: 0; display: flex; align-items: center; gap: 7px; overflow: hidden; color: var(--foreground); font-size: 15px; font-weight: 760; letter-spacing: -.01em; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.speech-part-role i { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 999px; background: var(--speech-identity-color); }
+.speech-part-voice-name { min-width: 0; display: flex; align-items: center; gap: 7px; color: var(--muted-foreground); font-size: var(--type-caption); font-weight: 650; }
+.speech-part-voice-name.is-primary { color: var(--foreground); font-size: var(--type-small); font-weight: 750; }
 .speech-part-voice-name > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .speech-part-method { overflow: hidden; color: var(--muted-foreground); font-size: var(--type-caption); line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 .speech-part-main-state { min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }

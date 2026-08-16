@@ -146,6 +146,7 @@ class EditorialBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     expected_revision: int = Field(ge=1)
     script: str | None = None
+    authored_role: str | None = Field(default=None, max_length=120)
 
 
 def _run(operation):

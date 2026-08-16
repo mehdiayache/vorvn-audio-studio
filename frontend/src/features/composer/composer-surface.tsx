@@ -9,6 +9,7 @@ import { ComposerOutput } from "./composer-output"
 import { ComposerPerformance } from "./composer-performance"
 import { ComposerProvider, type ComposerSurfaceProps, useComposerController } from "./composer-controller"
 import { ComposerRecordingContext } from "./composer-recording-context"
+import { ComposerRoleEditor } from "./composer-role-editor"
 import { ComposerWho } from "./composer-who"
 import { ComposerWords } from "./composer-words"
 
@@ -33,6 +34,7 @@ export function ControlledComposerSurface({ composer, presentation = "mega", onE
           <small>{standalone ? "Prepare the voice, words, and delivery" : "Voice, script, and performance in one workspace"}</small>
         </div>
         <div className="composer-context-actions">
+          {!standalone && <ComposerRoleEditor composer={composer} />}
           {presentation === "inline" && onExpand && <Button variant="outline" size="sm" onClick={onExpand}><Expand /> Expand</Button>}
           {onClose && <Button variant="ghost" size="icon-sm" aria-label="Close Composer" onClick={onClose}><X /></Button>}
         </div>

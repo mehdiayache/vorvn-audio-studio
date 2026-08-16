@@ -15,5 +15,6 @@ export function voiceGenderLabel(value?: unknown) {
 export function VoiceGenderBadge({ gender }: { gender?: unknown }) {
   const label = voiceGenderLabel(gender)
   if (!label) return null
-  return <Badge variant="outline" className="voice-gender-badge">{label}</Badge>
+  const tone = label === "Female" ? "female" : label === "Male" ? "male" : label === "Non-binary" ? "non-binary" : "neutral"
+  return <Badge variant="outline" className={`voice-gender-badge is-${tone}`} data-gender={tone}>{label}</Badge>
 }

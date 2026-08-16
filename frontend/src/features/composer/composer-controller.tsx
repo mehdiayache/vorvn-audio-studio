@@ -18,9 +18,10 @@ import {
   type TextReviewReference,
 } from "@/lib/composer-contract"
 import { composerCapabilityControls, resolvedDeliveryMode, selectedRouteCapability } from "@/lib/composer-capability"
+import { formatAuthoredRole, formatPartNumber } from "@/lib/format"
 import { outputLanguageOptions } from "@/lib/voice-capabilities"
 import { getVoiceIdentities, routesForIdentity, type VoiceChoice, type VoiceIdentityChoice } from "@/lib/voice-options"
-import type { DurableJob, GeneratePayload, GenerateResult, PlayerSource, ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
 
 export type ComposerSurfaceProps = {
   productionId?: number
@@ -33,7 +34,7 @@ export type ComposerSurfaceProps = {
   playingKey?: string
   playerPlaying: boolean
   onSave?: (payload: Omit<GeneratePayload, "confirmed">) => Promise<void>
-  onUpdateEditorial?: (values: { expected_revision: number; script?: string }) => Promise<void>
+  onUpdateEditorial?: (values: PartEditorialUpdate) => Promise<void>
   onGenerate: (payload: GeneratePayload) => Promise<DurableJob<GenerateResult>>
   onPlay: (source: PlayerSource) => void
   /** Visual hosts may hide the Composer without unmounting it. */
@@ -57,6 +58,8 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   const [volume, setVolume] = useState(part?.volume ?? 50)
   const [seed, setSeed] = useState(part?.seed ?? 0)
   const [enableSsml, setEnableSsml] = useState(Boolean(part?.enable_ssml))
+  const [authoredRole, setAuthoredRole] = useState(String(part?.authored_role || "").trim())
+  const [roleBusy, setRoleBusy] = useState(false)
   const [busy, setBusy] = useState<"draft" | "generate" | null>(null)
   const [confirmationEstimate, setConfirmationEstimate] = useState<number | null>(null)
   const [pendingCommand, setPendingCommand] = useState<PendingGeneration | null>(null)
@@ -82,6 +85,10 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     setSeed(part?.seed ?? 0)
     setEnableSsml(Boolean(part?.enable_ssml))
   }, [part?.id])
+
+  useEffect(() => {
+    setAuthoredRole(String(part?.authored_role || "").trim())
+  }, [part?.authored_role, part?.id])
 
   const identities = useMemo(
     () => getVoiceIdentities(directory.registry ?? null, directory.identities),
@@ -146,7 +153,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   const destination = !productionId
     ? "Reusable recording"
     : part
-      ? `Edit speech · Part ${(part.position ?? 0) + 1}`
+      ? `Edit ${formatAuthoredRole(authoredRole) || "speech"} · Part ${formatPartNumber(part.position ?? 0)}`
       : insertAt === null ? `New speech · Part ${nextPartNumber}` : `New speech · before Part ${insertAt + 1}`
   const context = useMemo(() => compositionContext({ productionId, part, insertBeforePartId }), [insertBeforePartId, part, productionId])
   const baseline = useMemo(() => editorialBaseline(part), [part])
@@ -239,6 +246,19 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     }
   }
 
+  async function saveRole(value: string) {
+    if (!part || !baseline || !onUpdateEditorial) return
+    const canonical = value.trim()
+    if (canonical === String(part.authored_role || "").trim()) return
+    setRoleBusy(true)
+    try {
+      await onUpdateEditorial({ expected_revision: baseline.revision, authored_role: canonical || null })
+      setAuthoredRole(canonical)
+    } finally {
+      setRoleBusy(false)
+    }
+  }
+
   function continueGeneration(next: SpeechGenerationCommand, updateEditorial: boolean) {
     const warnAbove = Number(config?.prefs?.warn_above || 0)
     if (!next.confirmed && warnAbove > 0 && estimate > warnAbove) {
@@ -265,14 +285,14 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   return {
     productionId, nextPartNumber, insertAt, insertBeforePartId, part, config, directory, playingKey, playerPlaying, onSave, onPlay,
     route, identityId, language, format, deliveryModeRequest, instruction, rate, pitch, volume, seed, enableSsml,
-    busy, confirmationEstimate, pendingCommand, editorialCommand, textReviewReference,
+    busy, roleBusy, authoredRole, confirmationEstimate, pendingCommand, editorialCommand, textReviewReference,
     identities, selectedIdentity, compatibleRoutes, visibleRoutes, currentRoute, selectedCapability, capabilityControls, deliveryMode,
     formatOptions, outputFormatSupported,
     textSession, languageOptions, taggedIncompatible, hasInlineDeliveryTag, estimate, textPassEstimate, destination,
     recovery, performancePresets, methodLabel,
     setLanguage, setFormat, setDeliveryModeRequest, setInstruction, setRate, setPitch, setVolume, setSeed, setEnableSsml,
     setConfirmationEstimate, setPendingCommand, setEditorialCommand,
-    applyRoute, selectIdentity, removeInlineTags, payload, saveDraft, executeGeneration, continueGeneration, generate,
+    applyRoute, selectIdentity, removeInlineTags, payload, saveDraft, saveRole, executeGeneration, continueGeneration, generate,
   }
 }
 

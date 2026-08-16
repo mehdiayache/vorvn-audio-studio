@@ -45,6 +45,16 @@ export function formatPartLabel(index: number) {
   return `Part ${formatPartNumber(index)}`
 }
 
+export function formatAuthoredRole(role?: string | null) {
+  const value = String(role || "").trim().replace(/[-_]+/g, " ")
+  return value ? value.replace(/\b\p{L}/gu, (letter) => letter.toLocaleUpperCase()) : ""
+}
+
+export function formatPartRoleLabel(index: number, role?: string | null) {
+  const label = formatAuthoredRole(role)
+  return label ? `${formatPartNumber(index)} · ${label}` : formatPartLabel(index)
+}
+
 export function textDirection(text?: string): "rtl" | "ltr" {
   return /[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufefc]/.test(text || "") ? "rtl" : "ltr"
 }

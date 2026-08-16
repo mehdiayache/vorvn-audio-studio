@@ -1646,6 +1646,18 @@
       "EditorialBody": {
         "additionalProperties": false,
         "properties": {
+          "authored_role": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authored Role"
+          },
           "expected_revision": {
             "minimum": 1.0,
             "title": "Expected Revision",

@@ -364,8 +364,19 @@ class ProductionDocumentTests(unittest.TestCase):
                 """, (draft["id"],))
             database.commit()
 
-        changed = self.timeline.save_editorial(
+        role_changed = self.timeline.save_editorial(
             production_id, draft["id"], part["revision"],
+            {"authored_role": "  narrator  "})
+        self.assertEqual(
+            (role_changed["revision"], role_changed["outdated"]),
+            (1, False))
+        role_part = self.repository.part(production_id, draft["id"])
+        self.assertEqual(
+            (role_part["authored_role"], role_part["revision"]),
+            ("narrator", 1))
+
+        changed = self.timeline.save_editorial(
+            production_id, draft["id"], role_changed["revision"],
             {"script": "Revised words"})
         self.assertEqual((changed["revision"], changed["outdated"]), (2, True))
         current = self.repository.part(production_id, draft["id"])

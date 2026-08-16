@@ -3,6 +3,7 @@ import type {
   PreviewResult,
   Production,
   ProductionPart,
+  PartEditorialUpdate,
   HierarchyNode,
   ProductionSummary,
   VentureAsset,
@@ -308,7 +309,7 @@ export const studioApi = {
   textPassResult: (jobId: string) => waitForJob<TextPassResult>(jobId),
   saveTextStates: (productionId: number, id: number, states: { text: string; text_raw: string | null; text_shaped: string | null; text_tagged: string | null; text_state: string }) =>
     request<TimelineOkEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/draft`, { method: "PATCH", body: JSON.stringify(states) }).then((response) => response.data),
-  savePartEditorial: (productionId: number, id: number, values: { expected_revision: number; script?: string }) =>
+  savePartEditorial: (productionId: number, id: number, values: PartEditorialUpdate) =>
     request<TimelineOkEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/editorial`, { method: "PATCH", body: JSON.stringify(values) }).then((response) => response.data),
   captions: (productionId: number, id: number) => v1<TranscriptSummary[]>(`/api/v1/productions/${productionId}/parts/${id}/captions`).then((transcripts) => ({ transcripts })),
   transcript: (id: number) => v1<Transcript>(`/api/v1/subtitles/${id}`),

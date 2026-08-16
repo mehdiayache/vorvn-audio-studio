@@ -60,7 +60,7 @@ describe("ProductionEditorCanvas timing", () => {
 
     render(<ProductionEditorCanvas {...props} />)
     fireEvent.click(screen.getByRole("button", { name: "Search / Jump" }))
-    fireEvent.change(screen.getByPlaceholderText("Script, Voice, or Part number"), { target: { value: "harbor" } })
+    fireEvent.change(screen.getByPlaceholderText("Script, role, Voice, or Part number"), { target: { value: "harbor" } })
     fireEvent.click(screen.getByRole("option", { name: /Harbor ending/ }))
 
     await waitFor(() => expect(onLocate).toHaveBeenCalledWith(17))

@@ -123,12 +123,14 @@ describe("SpeechPartCard", () => {
     expect(actionSet.remove).toHaveBeenCalledWith(sourcePart)
   })
 
-  it("uses the same zero-padded Part label in the card and floating player source", () => {
+  it("uses the authored role in the card and floating player without hiding the Voice", () => {
     const actionSet = actions()
-    renderCard(<SpeechPartCard part={part()} job={null} index={1} count={2} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
+    const { container } = renderCard(<SpeechPartCard part={part({ authored_role: "narrator" })} job={null} index={1} count={2} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
     expect(screen.getByText("02")).toBeTruthy()
+    expect(screen.getByText("Narrator")).toBeTruthy()
+    expect(container.querySelector(".voice-gender-badge")?.classList.contains("is-female")).toBe(true)
     fireEvent.click(screen.getByRole("button", { name: "Play part" }))
-    expect(actionSet.play).toHaveBeenCalledWith(expect.objectContaining({ title: "Part 02" }))
+    expect(actionSet.play).toHaveBeenCalledWith(expect.objectContaining({ title: "02 · Narrator", subtitle: "Maya" }))
   })
 
   it("gives drafts a visible role and direct Edit and Generate actions", () => {

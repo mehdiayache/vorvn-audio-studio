@@ -4,14 +4,15 @@ import type { ProductionPart } from "@/types/domain"
 import { EMPTY_SEQUENCE_FILTERS, filterProductionParts } from "./production-sequence-search"
 
 const parts = [
-  { id: 1, kind: "speech", text: "The lighthouse keeper checks the eastern window.", voice_name: "Samira", clip_id: 10, subtitled: true },
+  { id: 1, kind: "speech", text: "The lighthouse keeper checks the eastern window.", authored_role: "Narrator", voice_name: "Samira", clip_id: 10, subtitled: true },
   { id: 2, kind: "draft", text: "A storm warning arrives before midnight." },
   { id: 3, kind: "speech", text: "Secure the boats before the tide turns.", voice_name: "Mina", clip_id: 12, subtitled: false },
 ] as ProductionPart[]
 
 describe("filterProductionParts", () => {
-  it("searches script, Voice, and stable Part number", () => {
+  it("searches script, authored role, Voice, and stable Part number", () => {
     expect(filterProductionParts(parts, new Set(), { ...EMPTY_SEQUENCE_FILTERS, query: "lighthouse" }).map((part) => part.id)).toEqual([1])
+    expect(filterProductionParts(parts, new Set(), { ...EMPTY_SEQUENCE_FILTERS, query: "narrator" }).map((part) => part.id)).toEqual([1])
     expect(filterProductionParts(parts, new Set(), { ...EMPTY_SEQUENCE_FILTERS, query: "Samira" }).map((part) => part.id)).toEqual([1])
     expect(filterProductionParts(parts, new Set(), { ...EMPTY_SEQUENCE_FILTERS, query: "part 3" }).map((part) => part.id)).toEqual([3])
   })

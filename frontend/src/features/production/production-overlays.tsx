@@ -3,7 +3,8 @@ import { ProductionToolDialog, type ToolKind } from "@/components/production-too
 import { ProductionComposerDialog } from "@/features/composer/production-composer-host"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import type { DurableJob, GeneratePayload, GenerateResult, PlayerSource, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
+import { formatAuthoredRole, formatPartNumber } from "@/lib/format"
+import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
 import type { ProductionImportCounts, ProductionImportDocument } from "@/features/production/production-import"
 
 export type ConfirmAction = { title: string; description: string; action: () => void; confirmLabel?: string }
@@ -27,7 +28,7 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
   confirmAction: ConfirmAction | null
   onCloseTool: () => void
   onSaveDraft: (payload: Omit<GeneratePayload, "confirmed">) => Promise<void>
-  onUpdateEditorial: (values: { expected_revision: number; script?: string }) => Promise<void>
+  onUpdateEditorial: (values: PartEditorialUpdate) => Promise<void>
   onGenerate: (payload: GeneratePayload) => Promise<DurableJob<GenerateResult>>
   onAddSilence: (seconds: number) => Promise<void>
   onInsertAsset: (asset: VentureAsset) => Promise<void>
@@ -45,7 +46,7 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
 }) {
   return <>
     {tool === "speech" && <ProductionComposerDialog
-      title={composerPart ? `Edit speech · Part ${(composerPart.position ?? 0) + 1}` : "Add speech"}
+      title={composerPart ? `Edit ${formatAuthoredRole(composerPart.authored_role) || "speech"} · Part ${formatPartNumber(composerPart.position ?? 0)}` : "Add speech"}
       description={composerPart?.clip_id ? "Change the words, Voice or delivery, then generate again to replace the current audio." : composerPart ? "Finish this Draft and generate its first recording." : insertBeforePartId ? "Insert at the selected Sequence position." : `Add as Part ${nextPartNumber}.`}
       productionId={productionId}
       nextPartNumber={nextPartNumber}

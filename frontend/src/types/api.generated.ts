@@ -1982,6 +1982,8 @@ export interface components {
         };
         /** EditorialBody */
         EditorialBody: {
+            /** Authored Role */
+            authored_role?: string | null;
             /** Expected Revision */
             expected_revision: number;
             /** Script */

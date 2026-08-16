@@ -727,9 +727,13 @@ class ProductionDocumentRepository:
                 return {"status": "conflict", "revision": current_revision}
             next_script = (str(values["script"]) if "script" in values
                            else str(row[5] or ""))
+            next_role = (str(values["authored_role"] or "").strip()
+                         if "authored_role" in values else row[17])
             changed_fields = []
             if next_script != str(row[5] or ""):
                 changed_fields.append("script")
+            if next_role != row[17]:
+                changed_fields.append("authored_role")
             if not changed_fields:
                 selected_outdated = False
                 if row[10]:
@@ -745,12 +749,14 @@ class ProductionDocumentRepository:
                 return {"status": "ok", "changed": False,
                         "revision": current_revision,
                         "outdated": selected_outdated}
-            next_revision = current_revision + 1
+            script_changed = "script" in changed_fields
+            next_revision = current_revision + int(script_changed)
             cursor.execute("""
                 UPDATE production_parts
-                   SET script=%s, revision=%s, updated_at=now()
+                   SET script=%s, authored_role=%s, revision=%s,
+                       updated_at=now()
                  WHERE id=%s
-            """, (next_script, next_revision, part_id))
+            """, (next_script, next_role, next_revision, part_id))
             cursor.execute("""
                 INSERT INTO audit_records
                     (action, resource_type, resource_id, detail)
@@ -760,9 +766,20 @@ class ProductionDocumentRepository:
                 "to_revision": next_revision,
                 "changed_fields": changed_fields,
             })))
+            selected_outdated = False
+            if row[10]:
+                cursor.execute(
+                    "SELECT source_part_revision, source_script_hash "
+                    "FROM clips WHERE id=%s",
+                    (row[10],))
+                selected = cursor.fetchone()
+                selected_outdated = bool(
+                    selected and (
+                        int(selected[0]) != next_revision
+                        or str(selected[1]) != script_hash(next_script)))
             return {"status": "ok", "changed": True,
                     "revision": next_revision,
-                    "outdated": bool(row[10])}
+                    "outdated": selected_outdated}
 
     def save_draft(self, production_id: int, part_id: int,
                    values: dict[str, Any]) -> bool:

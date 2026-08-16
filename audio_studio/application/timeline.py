@@ -380,6 +380,8 @@ class TimelineService:
             if part.get("kind") in {"speech", "audio", "draft"} and not canonical:
                 raise TimelineError("A speech Part needs a script.")
             changes["script"] = canonical
+        if "authored_role" in values:
+            changes["authored_role"] = str(values["authored_role"] or "").strip() or None
         if not changes:
             raise TimelineError("Choose a Part change before saving.")
         try:

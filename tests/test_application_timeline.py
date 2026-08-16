@@ -18,6 +18,7 @@ class Records:
         self.allow_asset = True
         self.duplicate_id = 8
         self.deleted = []
+        self.editorial_values = []
 
     @staticmethod
     def production(production_id):
@@ -82,8 +83,8 @@ class Records:
     def save_script(_production_id, _part_id, _script, _values=None):
         return True
 
-    @staticmethod
-    def save_editorial(_production_id, _part_id, expected_revision, values):
+    def save_editorial(self, _production_id, _part_id, expected_revision, values):
+        self.editorial_values.append(values)
         if expected_revision != 3:
             return {"status": "conflict", "revision": 3}
         return {"status": "ok", "changed": True, "revision": 4,
@@ -216,6 +217,13 @@ class TimelineServiceTests(unittest.TestCase):
         with self.assertRaisesRegex(Exception, "changed in another view"):
             self.service.save_editorial(
                 6, 7, 2, {"script": "Stale edit"})
+
+    def test_authored_role_is_trimmed_without_creating_a_cast(self):
+        changed = self.service.save_editorial(
+            6, 7, 3, {"authored_role": "  Narrator  "})
+        self.assertEqual(changed["changed"], True)
+        self.assertEqual(self.records.editorial_values[-1],
+                         {"authored_role": "Narrator"})
 
 
 if __name__ == "__main__":

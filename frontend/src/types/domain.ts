@@ -125,6 +125,12 @@ export type ProductionPart = {
   missing?: boolean
 }
 
+export type PartEditorialUpdate = {
+  expected_revision: number
+  script?: string
+  authored_role?: string | null
+}
+
 export type ProductionExport = {
   id: number
   production_id: number

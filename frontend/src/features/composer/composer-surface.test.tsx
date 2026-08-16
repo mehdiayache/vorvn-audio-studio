@@ -85,6 +85,17 @@ describe("shared Composer contract", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Generate again" }).hasAttribute("disabled")).toBe(false))
   })
 
+  it("shows and edits the authored story role as Part metadata", async () => {
+    const onUpdateEditorial = vi.fn().mockResolvedValue(undefined)
+    const part = { id: 7, kind: "speech", text: "Hello", text_raw: "Hello", authored_role: "narrator", revision: 3, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
+    render(<ComposerSurface {...common} presentation="dialog" productionId={3} part={part} onUpdateEditorial={onUpdateEditorial} />)
+    expect(await screen.findByText("Edit Narrator · Part 01")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Narrator" }))
+    fireEvent.change(screen.getByLabelText("Story role"), { target: { value: "Esther" } })
+    fireEvent.click(screen.getByRole("button", { name: "Save role" }))
+    await waitFor(() => expect(onUpdateEditorial).toHaveBeenCalledWith({ expected_revision: 3, authored_role: "Esther" }))
+  })
+
   it("compares immutable Original words with the prepared Spoken version", async () => {
     const part = {
       id: 71,
