@@ -7,7 +7,7 @@ import { useComposerText } from "./use-composer-text"
 
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>()
-  return { ...actual, studioApi: { ...actual.studioApi, enqueueTextPass: vi.fn(), textPassResult: vi.fn(), confirmJob: vi.fn() } }
+  return { ...actual, studioApi: { ...actual.studioApi, enqueueTextPass: vi.fn(), textPassResult: vi.fn(), confirmJob: vi.fn(), saveTextStates: vi.fn() } }
 })
 
 afterEach(cleanup)
@@ -24,6 +24,7 @@ describe("useComposerText text preparation contract", () => {
     vi.mocked(studioApi.confirmJob).mockResolvedValue({
       id: "33333333-3333-4333-8333-333333333333", type: "text", status: "queued", progress: 0, detail: "", retries: 0, result: {},
     })
+    vi.mocked(studioApi.saveTextStates).mockResolvedValue({} as never)
   })
 
   it.each(["shape", "tag"] as const)("omits Production identifiers for standalone Speak %s", async (operation) => {
@@ -73,6 +74,28 @@ describe("useComposerText text preparation contract", () => {
     await waitFor(() => expect(result.current.review).not.toBeNull())
     await act(async () => { await result.current.accept() })
     expect(onReviewReferenceChange).toHaveBeenLastCalledWith(null, expect.objectContaining({ active: "tagged", tagged: "[whispers] مرحبا" }))
+  })
+
+  it("keeps a Production candidate unresolved until its text variants are durably saved", async () => {
+    let releaseSave!: (value: never) => void
+    vi.mocked(studioApi.saveTextStates).mockReturnValue(new Promise((resolve) => { releaseSave = resolve }))
+    const part = { id: 121, text: "مرحبا", text_state: "raw" } as never
+    const { result } = renderHook(() => useComposerText(part, 28, "expressive_tags"))
+
+    await act(async () => { await result.current.run("tag") })
+    await waitFor(() => expect(result.current.review?.result.after).toBe("[whispers] مرحبا"))
+
+    let acceptance!: Promise<void>
+    act(() => { acceptance = result.current.accept() })
+    await waitFor(() => expect(result.current.busy).toBe("tag"))
+    expect(result.current.review).not.toBeNull()
+    expect(result.current.view).toBe("raw")
+
+    releaseSave({} as never)
+    await act(async () => { await acceptance })
+    expect(result.current.review).toBeNull()
+    expect(result.current.view).toBe("tagged")
+    expect(result.current.text).toBe("[whispers] مرحبا")
   })
 
   it("publishes the durable Job pointer before a paid result finishes", async () => {

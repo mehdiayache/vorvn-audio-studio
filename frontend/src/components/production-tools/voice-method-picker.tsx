@@ -36,8 +36,11 @@ export function VoiceMethodPicker({ routes, availableRoutes, selectedRouteId, se
           const languageStatus = route
             ? voiceLanguageStatus(route, language, customVoice)
             : "unavailable"
-          const modeId = route.capabilities.length > 1 ? mode?.id || null : null
-          const selected = selectedRouteId === route.id && selectedCapabilityId === modeId
+          const modeId = mode?.id || null
+          const selected = selectedRouteId === route.id && (
+            selectedCapabilityId === modeId
+            || (!selectedCapabilityId && route.capabilities.length === 1)
+          )
           const resolvedModel = resolveSpeechModel({ engine: route.engine,
             tier: route.model, modelId: route.modelId, config })
           const modelLabel = `${resolvedModel.product}${resolvedModel.tierName ? ` · ${resolvedModel.tierName}` : ""}`

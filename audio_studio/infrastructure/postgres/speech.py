@@ -193,6 +193,9 @@ class SpeechRepository:
             "engine": values.get("engine"), "format": values.get("format"),
             "voice": values.get("provider_voice_id") or values.get("voice"),
             "text_state": values.get("text_state"),
+            "text_raw": values.get("text_raw"),
+            "text_shaped": values.get("text_shaped"),
+            "text_tagged": values.get("text_tagged"),
         }
         cursor.execute("""
             INSERT INTO clips

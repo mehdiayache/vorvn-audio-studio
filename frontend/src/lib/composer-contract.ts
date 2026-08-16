@@ -33,6 +33,45 @@ export type ComposerText = {
   active: TextState
 }
 
+function textState(value: unknown): TextState {
+  return value === "shaped" || value === "tagged" ? value : "raw"
+}
+
+/**
+ * Rebuild the editable recording input from the currently attached Clip.
+ * Canonical Part words remain separate; Generate Again starts from the exact
+ * immutable input variants used by the active recording whenever they exist.
+ */
+export function composerTextFromPart(part?: ProductionPart | null): ComposerText {
+  if (!part) return { raw: "", shaped: "", tagged: "", active: "raw" }
+
+  const attachedRequest = part.clip_id
+    && part.speech_job?.result?.clip_id === part.clip_id
+    ? part.speech_job.request
+    : null
+  const recorded = Boolean(part.clip_id)
+  const active = textState(
+    attachedRequest?.text_state
+      || (recorded ? part.recording_text_state : part.text_state),
+  )
+  const clipSpoken = String(part.clip_spoken_text || "")
+  const clipTagged = String(part.clip_tagged_text || "")
+  const historicalShaped = active === "shaped"
+    ? clipSpoken
+    : active === "tagged" && clipSpoken !== clipTagged
+      ? clipSpoken
+      : ""
+  const states = {
+    raw: String(attachedRequest?.text_raw || part.text_raw || (recorded ? part.clip_raw_text : "") || part.text || ""),
+    shaped: String(attachedRequest?.text_shaped || part.text_shaped || (recorded ? historicalShaped : "") || ""),
+    tagged: String(attachedRequest?.text_tagged || part.text_tagged || (recorded ? clipTagged : "") || ""),
+  }
+  const selectedText = String(attachedRequest?.text || "")
+  if (!states[active] && selectedText) states[active] = selectedText
+
+  return { ...states, active: states[active] ? active : "raw" }
+}
+
 export type ComposerDelivery = {
   modeId: string | null
   instruction: string

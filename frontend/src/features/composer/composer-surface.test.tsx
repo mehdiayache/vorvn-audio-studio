@@ -136,6 +136,54 @@ describe("shared Composer contract", () => {
     expect(presentation?.textContent).toBe(taggedText)
   })
 
+  it("reopens the attached recording input and sends it unchanged to Generate again", async () => {
+    const taggedText = "[whispers] The exact attached performance."
+    const onGenerate = vi.fn().mockResolvedValue({ id: "job-replacement" })
+    const part = {
+      id: 73,
+      kind: "speech",
+      text: "The exact attached performance.",
+      recording_text_state: "tagged",
+      clip_id: 44,
+      clip_raw_text: "The exact attached performance.",
+      clip_spoken_text: "The exact attached performance…",
+      clip_tagged_text: taggedText,
+      revision: 1,
+      cost: 0,
+      created_at: "",
+      position: 2,
+      voice_identity_id: "identity-sarah",
+      binding_id: "binding-sarah",
+      capability_id: "expressive_tags",
+      language: "English",
+      speech_job: {
+        result: { clip_id: 44 },
+        request: {
+          text: taggedText,
+          text_raw: "The exact attached performance.",
+          text_shaped: "The exact attached performance…",
+          text_tagged: taggedText,
+          text_state: "tagged",
+        },
+      },
+    } as ProductionPart
+    render(<ComposerSurface {...common} productionId={3} part={part} onGenerate={onGenerate} />)
+
+    expect((await screen.findByRole("textbox", { name: "Tagged script" }) as HTMLTextAreaElement).value).toBe(taggedText)
+    expect(screen.getByRole("button", { name: "Recording method" }).textContent).toContain("Expressive + tags")
+    fireEvent.click(screen.getByRole("button", { name: "Generate again" }))
+
+    await waitFor(() => expect(onGenerate).toHaveBeenCalledWith(expect.objectContaining({
+      text: taggedText,
+      text_raw: "The exact attached performance.",
+      text_shaped: "The exact attached performance…",
+      text_tagged: taggedText,
+      text_state: "tagged",
+      binding_id: "binding-sarah",
+      capability_id: "expressive_tags",
+    })))
+  })
+
   it("requires an explicit editorial decision before generating changed Part words", async () => {
     const onGenerate = vi.fn().mockResolvedValue({ id: "job-1" })
     const onUpdateEditorial = vi.fn().mockResolvedValue(undefined)

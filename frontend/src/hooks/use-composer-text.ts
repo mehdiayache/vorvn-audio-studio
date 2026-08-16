@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { studioApi } from "@/lib/api"
 import type { ProductionPart, TextPassResult } from "@/types/domain"
-import type { ComposerText, TextReviewReference } from "@/lib/composer-contract"
+import { composerTextFromPart, type ComposerText, type TextReviewReference } from "@/lib/composer-contract"
 
 export type TextView = "raw" | "shaped" | "tagged"
 export type TagDensity = "none" | "light" | "normal" | "heavy"
@@ -13,11 +13,8 @@ type PreparationOptions = {
 }
 
 function initial(part?: ProductionPart | null) {
-  return {
-    raw: part?.text_raw || part?.text || "",
-    shaped: part?.text_shaped || "",
-    tagged: part?.text_tagged || "",
-  }
+  const { active: _active, ...states } = composerTextFromPart(part)
+  return states
 }
 
 export function useComposerText(
@@ -27,7 +24,7 @@ export function useComposerText(
   options: PreparationOptions = {},
 ) {
   const [states, setStates] = useState(initial(part))
-  const [view, setView] = useState<TextView>((part?.text_state as TextView) || "raw")
+  const [view, setView] = useState<TextView>(composerTextFromPart(part).active)
   const [review, setReview] = useState<{ kind: "shape" | "tag"; result: TextPassResult } | null>(null)
   const [pending, setPending] = useState<{ kind: "shape" | "tag"; estimate: number } | null>(null)
   const [busy, setBusy] = useState<"shape" | "tag" | null>(null)
@@ -41,10 +38,10 @@ export function useComposerText(
   const text = states[view] || ""
 
   useEffect(() => {
-    const next = initial(part)
-    const nextView = (part?.text_state as TextView) || "raw"
+    const restored = composerTextFromPart(part)
+    const { active: nextView, ...next } = restored
     setStates(next)
-    setView(next[nextView] ? nextView : "raw")
+    setView(nextView)
     setReview(null); setPending(null); setError("")
     setActiveReference(options.reviewReference || null)
   // The parent restores the persisted reference separately from Part identity.
@@ -131,17 +128,26 @@ export function useComposerText(
   }
 
   async function accept() {
-    if (!review?.result.after) return
-    const nextView: TextView = review.kind === "shape" ? "shaped" : "tagged"
+    const after = review?.result.after
+    if (!review || !after) return
+    const accepted = review
+    const nextView: TextView = accepted.kind === "shape" ? "shaped" : "tagged"
     const nextStates = {
       ...states,
-      raw: states.raw || review.result.before || "",
-      [nextView]: review.result.after,
+      raw: states.raw || accepted.result.before || "",
+      [nextView]: after,
     }
     const nextText = { ...nextStates, active: nextView } satisfies ComposerText
-    if (part && productionId) await studioApi.saveTextStates(productionId, part.id, { text: review.result.after, text_raw: nextStates.raw || null, text_shaped: nextStates.shaped || null, text_tagged: nextStates.tagged || null, text_state: nextView })
-    await referenceChangeRef.current?.(null, nextText)
-    setStates(nextStates); setView(nextView); setReview(null); setActiveReference(null)
+    setBusy(accepted.kind); setError("")
+    try {
+      if (part && productionId) await studioApi.saveTextStates(productionId, part.id, { text: after, text_raw: nextStates.raw || null, text_shaped: nextStates.shaped || null, text_tagged: nextStates.tagged || null, text_state: nextView })
+      await referenceChangeRef.current?.(null, nextText)
+      setStates(nextStates); setView(nextView); setReview(null); setActiveReference(null)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "The prepared text could not be accepted.")
+    } finally {
+      setBusy(null)
+    }
   }
 
   async function reject() {

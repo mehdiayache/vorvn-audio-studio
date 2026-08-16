@@ -57,6 +57,11 @@ describe("Composer context pickers", () => {
     expect(await screen.findByText("Aurora Labs")).toBeTruthy()
     expect(screen.getByText("aurora-natural-v2")).toBeTruthy()
     fireEvent.click(screen.getByRole("option", { name: /Directed speech/ }))
-    expect(onSelect).toHaveBeenCalledWith(route, null)
+    expect(onSelect).toHaveBeenCalledWith(route, "directing")
+  })
+
+  it("shows a restored single-capability route as the selected method", () => {
+    render(<ComposerMethodPicker routes={[route]} availableRoutes={[route]} selectedRouteId={route.id} selectedCapabilityId="directing" language="English" customVoice config={config} onSelect={vi.fn()} />)
+    expect(screen.getByRole("button", { name: "Recording method" }).textContent).toContain("Directed speech")
   })
 })

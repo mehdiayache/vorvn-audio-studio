@@ -37,10 +37,13 @@ export function ComposerMethodPicker({ routes, availableRoutes, selectedRouteId,
       id: `${route.id}:${capability?.id || "default"}`,
       route,
       capability,
-      capabilityId: route.capabilities.length > 1 ? capability?.id || null : null,
+      capabilityId: capability?.id || null,
     }))
   }), [routes])
-  const selected = methods.find((method) => method.route.id === selectedRouteId && method.capabilityId === selectedCapabilityId)
+  const selected = methods.find((method) => method.route.id === selectedRouteId && (
+    method.capabilityId === selectedCapabilityId
+    || (!selectedCapabilityId && method.route.capabilities.length === 1)
+  ))
   const groups = [...new Set(methods.map((method) => method.route.provider))]
 
   function modelLabel(route: VoiceChoice) {

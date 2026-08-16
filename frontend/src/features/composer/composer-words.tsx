@@ -69,7 +69,7 @@ export function ComposerWords() {
           <Button variant="outline" size="sm" onClick={() => setCompareOpen(true)}><Columns2 /> Compare with Original</Button>
         </div>
         <Textarea className="candidate-editor" dir="auto" aria-label={`${text.review.kind === "shape" ? "Spoken" : "Tagged"} candidate`} value={text.review.result.after || ""} readOnly />
-        <div className="candidate-actions"><Button variant="ghost" onClick={() => void text.reject()}>Reject</Button><Button onClick={() => void text.accept()}><Check />Accept {text.review.kind === "shape" ? "Spoken" : "Tagged"}</Button></div>
+        <div className="candidate-actions"><Button variant="ghost" disabled={Boolean(text.busy)} onClick={() => void text.reject()}>Reject</Button><Button disabled={Boolean(text.busy)} onClick={() => void text.accept()}><Check />{text.busy ? "Accepting…" : `Accept ${text.review.kind === "shape" ? "Spoken" : "Tagged"}`}</Button></div>
       </> : text.view === "tagged"
         ? <TaggedScriptEditor value={text.text} onChange={text.updateText} autoFocus={Boolean(composer.currentRoute)} />
         : <Textarea dir="auto" aria-label={`${textLabel(text.view)} script`} value={text.text} onChange={(event) => text.updateText(event.target.value)} placeholder="Type or paste what should be said…" autoFocus={Boolean(composer.currentRoute)} />}

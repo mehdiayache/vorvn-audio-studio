@@ -283,6 +283,23 @@ class ProductionDocumentRepository:
             job_result = row[51] or {}
             clip_revision = row[17]
             has_clip = row[11] is not None
+            recording_text_state = (
+                snapshot.get("text_state") if has_clip else None)
+            if has_clip:
+                recording_raw = (snapshot.get("text_raw") or row[61]
+                                 or row[6] or "")
+                recording_tagged = snapshot.get("text_tagged") or row[63]
+                recording_shaped = snapshot.get("text_shaped")
+                if not recording_shaped and recording_text_state == "shaped":
+                    recording_shaped = row[62]
+                elif (not recording_shaped
+                      and recording_text_state == "tagged"
+                      and row[62] and row[62] != row[63]):
+                    recording_shaped = row[62]
+            else:
+                recording_raw = draft.get("text_raw")
+                recording_shaped = draft.get("text_shaped")
+                recording_tagged = draft.get("text_tagged")
             item = {
                 "id": row[0], "public_id": str(row[1]),
                 "created_at": row[2].isoformat(), "position": row[3],
@@ -290,17 +307,17 @@ class ProductionDocumentRepository:
                 "text": row[6],
                 "editorial_status": row[9],
                 "revision": row[10], "clip_id": row[11],
-                "recording_text_state": (
-                    snapshot.get("text_state") if has_clip else None),
+                "recording_text_state": recording_text_state,
                 "outdated": bool(row[11] and (
                     clip_revision != row[10]
                     or row[52] != script_hash(row[6]))),
                 "asset_id": row[12], "asset_version_id": row[13],
                 "duration_ms": row[27] if row[11] else row[14],
-                "text_raw": snapshot.get("text_raw", draft.get("text_raw")),
-                "text_shaped": snapshot.get("text_shaped", draft.get("text_shaped")),
-                "text_tagged": snapshot.get("text_tagged", draft.get("text_tagged")),
-                "text_state": snapshot.get("text_state", draft.get("text_state", "raw")),
+                "text_raw": recording_raw,
+                "text_shaped": recording_shaped,
+                "text_tagged": recording_tagged,
+                "text_state": (recording_text_state
+                               or draft.get("text_state", "raw")),
                 "voice_identity_id": (row[18] if has_clip else
                                       draft.get("voice_identity_id") or job_payload.get("voice_identity_id")),
                 "voice": ((row[19] or snapshot.get("voice") or "") if has_clip else

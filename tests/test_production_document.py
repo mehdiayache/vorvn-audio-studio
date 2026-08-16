@@ -393,6 +393,11 @@ class ProductionDocumentTests(unittest.TestCase):
 
         projected = self.repository.parts(production_id)[0]
         self.assertEqual(projected["recording_text_state"], "shaped")
+        self.assertEqual(projected["text_raw"], "Raw words")
+        self.assertEqual(projected["text_shaped"], "Spoken words")
+        self.assertEqual(projected["text_tagged"],
+                         "<happy>Tagged words</happy>")
+        self.assertEqual(projected["text_state"], "shaped")
         self.assertEqual(projected["voice_name"], "Maya")
         self.assertEqual(projected["model"], "qwen3.5-omni-plus")
         self.assertEqual(projected["language"], "English")

@@ -13,7 +13,8 @@ function primaryLabel(composer: ReturnType<typeof useComposer>) {
 
 export function ComposerActions() {
   const composer = useComposer()
-  const blocked = !composer.config?.has_key || !composer.textSession.text.trim() || !composer.currentRoute || !composer.outputFormatSupported || Boolean(composer.busy) || composer.taggedIncompatible || composer.recovery.status === "loading" || composer.recovery.status === "conflict"
+  const textUnresolved = Boolean(composer.textSession.busy || composer.textSession.review || composer.textSession.pending)
+  const blocked = !composer.config?.has_key || !composer.textSession.text.trim() || !composer.currentRoute || !composer.outputFormatSupported || Boolean(composer.busy) || textUnresolved || composer.taggedIncompatible || composer.recovery.status === "loading" || composer.recovery.status === "conflict"
   return <>
     <footer className="composer-footer">
       <div className="composer-cost" role="status" aria-live="polite">
@@ -26,7 +27,7 @@ export function ComposerActions() {
         {composer.recovery.status === "error" && <span className="composer-conflict"><small className="composer-save-error">Preparation could not be saved</small><Button size="sm" variant="outline" onClick={() => void composer.recovery.saveNow()}>Retry save</Button></span>}
       </div>
       <div className="composer-actions">
-        {!composer.part && composer.productionId && composer.onSave && <Button variant="outline" disabled={!composer.textSession.text.trim() || !composer.currentRoute || Boolean(composer.busy) || composer.recovery.status === "loading" || composer.recovery.status === "conflict"} onClick={() => void composer.saveDraft().catch(() => undefined)}><Plus />{composer.busy === "draft" ? "Saving…" : "Save Draft"}</Button>}
+        {!composer.part && composer.productionId && composer.onSave && <Button variant="outline" disabled={!composer.textSession.text.trim() || !composer.currentRoute || Boolean(composer.busy) || textUnresolved || composer.recovery.status === "loading" || composer.recovery.status === "conflict"} onClick={() => void composer.saveDraft().catch(() => undefined)}><Plus />{composer.busy === "draft" ? "Saving…" : "Save Draft"}</Button>}
         <Button disabled={blocked} onClick={() => void composer.generate()}><WandSparkles />{primaryLabel(composer)}</Button>
       </div>
     </footer>

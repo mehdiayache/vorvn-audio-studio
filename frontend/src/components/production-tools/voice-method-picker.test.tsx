@@ -36,7 +36,7 @@ describe("VoiceMethodPicker", () => {
     expect(screen.getByText("Not documented for Arabic")).toBeTruthy()
     expect(screen.getByText("Details")).toBeTruthy()
     fireEvent.click(method)
-    expect(onSelect).toHaveBeenCalledWith(qwen3, null)
+    expect(onSelect).toHaveBeenCalledWith(qwen3, "exact_longform")
   })
 
   it("makes each capability explicit when one binding has multiple modes", () => {

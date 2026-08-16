@@ -213,9 +213,11 @@ class ProductionImportTests(unittest.TestCase):
         speech = PostgresSpeechRepository()
 
         def recording(filename: str, text: str) -> dict:
+            tagged = f"[serious] {text}"
             return {
-                "text": text, "text_raw": part["text"],
-                "text_state": "raw", "filename": filename,
+                "text": tagged, "text_raw": part["text"],
+                "text_shaped": text, "text_tagged": tagged,
+                "text_state": "tagged", "filename": filename,
                 "path": f"/fixture/{filename}", "size_bytes": 12,
                 "duration_ms": 1200, "format": "mp3",
                 "language": "English", "voice": "fixture-voice",
@@ -233,13 +235,24 @@ class ProductionImportTests(unittest.TestCase):
         self.assertEqual(second["replaced_filename"], "first.mp3")
         with psycopg.connect(settings.database_url) as database:
             rows = database.execute(
-                "SELECT id,filename FROM clips WHERE part_id=%s",
+                "SELECT id,filename,snapshot FROM clips WHERE part_id=%s",
                 (part["id"],),
             ).fetchall()
-        self.assertEqual(rows, [(second["clip_id"], "second.mp3")])
+        self.assertEqual([(row[0], row[1]) for row in rows],
+                         [(second["clip_id"], "second.mp3")])
+        self.assertEqual(rows[0][2]["text_state"], "tagged")
+        self.assertEqual(rows[0][2]["text_raw"], part["text"])
+        self.assertEqual(rows[0][2]["text_shaped"], part["text"])
+        self.assertEqual(rows[0][2]["text_tagged"],
+                         f"[serious] {part['text']}")
         recorded = self.repository.parts(self.production["id"])[0]
         self.assertEqual(recorded["authored_role"],
                          self.document["items"][0]["role"])
+        self.assertEqual(recorded["text_state"], "tagged")
+        self.assertEqual(recorded["text_raw"], part["text"])
+        self.assertEqual(recorded["text_shaped"], part["text"])
+        self.assertEqual(recorded["text_tagged"],
+                         f"[serious] {part['text']}")
 
 
 class ProductionImportHttpTests(unittest.TestCase):

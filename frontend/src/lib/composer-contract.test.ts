@@ -4,6 +4,7 @@ import type { ProductionPart } from "@/types/domain"
 import type { VoiceChoice } from "@/lib/voice-options"
 import {
   buildSpeechCommand,
+  composerTextFromPart,
   compositionContext,
   editorialBaseline,
   resolveSelectedRoute,
@@ -116,5 +117,56 @@ describe("provider-neutral Composer contract", () => {
       .toEqual({ kind: "owned", bindingId: "binding-1", capabilityId: "expressive_tags" })
     expect(routeSelectionFromPart({ kind: "draft", ...routeFields } as ProductionPart))
       .toEqual({ kind: "owned", bindingId: "binding-1", capabilityId: "expressive_tags" })
+  })
+
+  it("rehydrates Generate Again from the exact attached recording request", () => {
+    const request = {
+      text: "[whispers] Spoken for this recording",
+      text_raw: "Canonical words",
+      text_shaped: "Spoken for this recording",
+      text_tagged: "[whispers] Spoken for this recording",
+      text_state: "tagged",
+    }
+    const part = {
+      id: 9,
+      text: "Canonical words",
+      text_state: "tagged",
+      recording_text_state: "tagged",
+      clip_id: 44,
+      clip_raw_text: "Historical raw fallback",
+      clip_spoken_text: "Historical spoken fallback",
+      clip_tagged_text: "[old] Historical tagged fallback",
+      speech_job: { result: { clip_id: 44 }, request },
+    } as ProductionPart
+
+    expect(composerTextFromPart(part)).toEqual({
+      raw: "Canonical words",
+      shaped: "Spoken for this recording",
+      tagged: "[whispers] Spoken for this recording",
+      active: "tagged",
+    })
+  })
+
+  it("ignores an obsolete Job request and falls back to immutable Clip truth", () => {
+    const part = {
+      id: 9,
+      text: "Canonical words",
+      recording_text_state: "shaped",
+      clip_id: 44,
+      clip_raw_text: "Clip original",
+      clip_spoken_text: "Clip spoken",
+      clip_tagged_text: "",
+      speech_job: {
+        result: { clip_id: 43 },
+        request: { text: "Obsolete request", text_state: "raw" },
+      },
+    } as ProductionPart
+
+    expect(composerTextFromPart(part)).toEqual({
+      raw: "Clip original",
+      shaped: "Clip spoken",
+      tagged: "",
+      active: "shaped",
+    })
   })
 })
