@@ -109,6 +109,33 @@ describe("shared Composer contract", () => {
     expect(screen.getAllByText("The signal is live…").length).toBeGreaterThan(1)
   })
 
+  it("keeps the tagged script presentation visible while its editor has focus", async () => {
+    const taggedText = "[whispers] The signal is live."
+    const part = {
+      id: 72,
+      kind: "draft",
+      text: taggedText,
+      text_raw: "The signal is live.",
+      text_tagged: taggedText,
+      text_state: "tagged",
+      revision: 1,
+      cost: 0,
+      created_at: "",
+      position: 0,
+      voice_identity_id: "identity-sarah",
+      binding_id: "binding-sarah",
+    } as ProductionPart
+    render(<ComposerSurface {...common} productionId={3} part={part} />)
+
+    const editor = await screen.findByRole("textbox", { name: "Tagged script" }) as HTMLTextAreaElement
+    const presentation = editor.closest(".tagged-script-editor")?.querySelector("pre")
+    expect(presentation?.textContent).toBe(taggedText)
+
+    editor.focus()
+    expect(document.activeElement).toBe(editor)
+    expect(presentation?.textContent).toBe(taggedText)
+  })
+
   it("requires an explicit editorial decision before generating changed Part words", async () => {
     const onGenerate = vi.fn().mockResolvedValue({ id: "job-1" })
     const onUpdateEditorial = vi.fn().mockResolvedValue(undefined)
