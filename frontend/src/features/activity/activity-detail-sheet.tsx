@@ -33,10 +33,21 @@ function ProviderDiagnostics({ diagnostics }: { diagnostics: ActivityRun["provid
 }
 
 export function ActivityDetailSheet({ run, onClose }: { run: ActivityRun | null; onClose: () => void }) {
+  const audit = run?.record_type === "audit"
+  const eventDetail = run?.event_detail || {}
   return <Sheet open={Boolean(run)} onOpenChange={(open) => { if (!open) onClose() }}>
     <SheetContent className="activity-detail">
-      {run && <><SheetHeader><SheetTitle>{run.operation}</SheetTitle><SheetDescription>{run.kind_label} · {new Date(run.when).toLocaleString()}</SheetDescription></SheetHeader>
-        <div className="activity-detail-body">
+      {run && <><SheetHeader><SheetTitle>{run.operation}</SheetTitle><SheetDescription>{audit ? "Permanent action" : run.kind_label} · {new Date(run.when).toLocaleString()}</SheetDescription></SheetHeader>
+        {audit ? <div className="activity-detail-body">
+          <section className="activity-deletion-receipt"><span>Deletion receipt</span><b>Content permanently removed</b><p>This record proves the operator action occurred. It contains no Production name, script, audio, captions or restorable state.</p></section>
+          <dl>
+            <Field label="Status">Recorded</Field><Field label="Started by">{run.actor_label}</Field>
+            <Field label="Workspace">{run.organization_id}</Field><Field label="Tool">{run.source_tool}</Field>
+            <Field label="Parts">{String(eventDetail.parts ?? 0)}</Field><Field label="Recordings">{String(eventDetail.recordings ?? 0)}</Field>
+            <Field label="Captions">{String(eventDetail.captions ?? 0)}</Field><Field label="Exports">{String(eventDetail.exports ?? 0)}</Field>
+          </dl>
+          <section className="activity-identifiers"><h3>Activity receipt</h3><code>{run.id}</code><Button size="sm" variant="outline" onClick={() => void navigator.clipboard.writeText(run.id).then(() => toast.success("Receipt ID copied."))}><Copy /> Copy receipt ID</Button></section>
+        </div> : <div className="activity-detail-body">
           <section className="activity-cost"><span>{costBasisLabel(run.cost_basis)}</span><b>{formatMoney(run.cost)}</b><small>{run.cost_basis_raw}</small></section>
           <dl>
             <Field label="Status">{operationStatusLabel(run.status, run)}</Field><Field label="Started by">{run.actor_label}</Field>
@@ -53,7 +64,7 @@ export function ActivityDetailSheet({ run, onClose }: { run: ActivityRun | null;
           <ProviderDiagnostics diagnostics={run.provider_diagnostics} />
           {Object.keys(run.usage || {}).length > 0 && <section><h3>Provider usage</h3><pre>{JSON.stringify(run.usage, null, 2)}</pre></section>}
           {run.error && <section className="activity-detail-error"><h3>Operation problem</h3><p>{run.requires_review ? "The provider result needs an operator decision." : "Audio Studio retained the failure record. Technical diagnostics are shown below for support and debugging."}</p><details><summary>Technical error</summary><pre>{run.error}</pre></details></section>}
-        </div></>}
+        </div>}</>}
     </SheetContent>
   </Sheet>
 }

@@ -11,6 +11,7 @@ KIND_LABELS = {
     "speech": "Speech", "batch": "Legacy bulk operation", "transcribe": "Subtitles",
     "translate": "Translation", "rewrite": "Text preparation",
     "render": "Production render", "clone": "Voice cloning",
+    "production_deleted": "Production deleted",
 }
 
 
@@ -91,6 +92,40 @@ def _run(row) -> dict[str, Any]:
         "where": production_name or source_tool or "Audio Studio",
         "cost_basis": _basis(cost_basis),
         "cost_basis_raw": cost_basis or "unknown", "children": 0,
+        "record_type": "job", "event_detail": {},
+    }
+
+
+def _deletion_receipt(row) -> dict[str, Any]:
+    internal_id, public_id, when, actor_id, organization_id, detail = row
+    receipt = detail or {}
+    summary = " · ".join((
+        f"{int(receipt.get('parts') or 0)} Parts",
+        f"{int(receipt.get('recordings') or 0)} recordings",
+        f"{int(receipt.get('captions') or 0)} captions",
+        f"{int(receipt.get('exports') or 0)} exports",
+    ))
+    return {
+        "id": str(public_id), "internal_id": int(internal_id),
+        "when": when.isoformat(), "created_at": when.isoformat(),
+        "started_at": None, "finished_at": when.isoformat(),
+        "kind": "production_deleted", "kind_label": "Permanent deletion",
+        "operation": "Production deleted", "source_tool": "work",
+        "status": "ok", "model": None, "voice": None,
+        "detail": summary, "error": "", "diagnostic_id": None,
+        "estimated": 0.0, "cost": 0.0, "chars": 0, "seconds": 0.0,
+        "elapsed_ms": None, "actor_id": actor_id,
+        "actor_label": "You" if actor_id == "local-owner" else actor_id or "System",
+        "organization_id": organization_id, "provider_request_id": None,
+        "provider_region": None, "provider_endpoint": None,
+        "price_version": None, "currency": "USD", "output_ids": [],
+        "usage": {}, "provider_diagnostics": [], "provider_request_ids": [],
+        "provider_attempt_status": None, "provider_attempt_id": None,
+        "requires_review": False, "needs_confirmation": False,
+        "review_evidence": {}, "production_id": None,
+        "production_name": None, "where": "Audio Studio",
+        "cost_basis": "not_billed", "cost_basis_raw": "not_billed",
+        "children": 0, "record_type": "audit", "event_detail": receipt,
     }
 
 
@@ -140,7 +175,23 @@ class ActivityRepository:
         """
         with read_only() as cursor:
             cursor.execute(query, (*parameters, limit))
-            runs = [_run(row) for row in cursor.fetchall()]
+            job_runs = [_run(row) for row in cursor.fetchall()]
+            include_receipts = not failed_only and kind in {"", "production_deleted"}
+            receipts = []
+            if include_receipts:
+                cursor.execute("""
+                    SELECT id, public_id, created_at, actor_id,
+                           organization_id, detail
+                      FROM audit_records
+                     WHERE action='production.deleted'
+                       AND resource_type='production'
+                     ORDER BY created_at DESC LIMIT %s
+                """, (limit,))
+                receipts = [_deletion_receipt(row) for row in cursor.fetchall()]
+            runs = sorted(
+                [*job_runs, *receipts],
+                key=lambda item: item["when"], reverse=True,
+            )[:limit]
             cursor.execute("""
                 WITH attempt_costs AS (
                   SELECT job_id, sum(CASE WHEN status='ambiguous'
@@ -165,6 +216,12 @@ class ActivityRepository:
                   FROM effective
             """)
             totals = cursor.fetchone()
+            cursor.execute("""
+                SELECT count(*) FROM audit_records
+                 WHERE action='production.deleted'
+                   AND resource_type='production'
+            """)
+            deletion_count = int(cursor.fetchone()[0] or 0)
             cursor.execute("""
                 WITH attempt_costs AS (
                   SELECT job_id, sum(CASE WHEN status='ambiguous'
@@ -206,9 +263,14 @@ class ActivityRepository:
                 "kind": row[0], "runs": row[1],
                 "cost": float(row[2] or 0), "problems": row[3],
             } for row in cursor.fetchall()]
+            if deletion_count:
+                by_kind.append({
+                    "kind": "production_deleted", "runs": deletion_count,
+                    "cost": 0.0, "problems": 0,
+                })
         return {
             "today": float(totals[0]), "month": float(totals[1]),
-            "total": float(totals[2]), "runs": totals[3],
+            "total": float(totals[2]), "runs": totals[3] + deletion_count,
             "problems": totals[4],
             "running": [item for item in runs if item["status"] in {
                 "queued", "running", "retrying"}],

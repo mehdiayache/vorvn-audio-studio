@@ -10,6 +10,7 @@ import psycopg
 from audio_studio.composition.work import work_service as work
 from audio_studio.config import settings
 from audio_studio.domain.work import DomainConflict
+from audio_studio.infrastructure.postgres.activity import ActivityRepository
 
 
 class WorkRepositoryTests(unittest.TestCase):
@@ -24,6 +25,7 @@ class WorkRepositoryTests(unittest.TestCase):
     def setUp(self):
         self.marker = uuid4().hex[:12]
         self.created_project_rows: list[int] = []
+        self.receipt_resource_ids: list[str] = []
         self.venture = work.create(
             "ventures", None, f"Work fixture {self.marker}", "Fixture Venture")
         self.assertIsNotNone(self.venture)
@@ -53,6 +55,12 @@ class WorkRepositoryTests(unittest.TestCase):
                 if self.created_project_rows:
                     cursor.execute("DELETE FROM projects WHERE id = ANY(%s)",
                                    (self.created_project_rows,))
+                if self.receipt_resource_ids:
+                    cursor.execute("""
+                        DELETE FROM audit_records
+                         WHERE action='production.deleted'
+                           AND resource_id=ANY(%s)
+                    """, (self.receipt_resource_ids,))
             database.commit()
 
     def test_hierarchy_overviews_and_series_lifecycle_remain_consistent(self):
@@ -125,7 +133,21 @@ class WorkRepositoryTests(unittest.TestCase):
             "projects", venture_id, f"Delete project {self.marker}")
         production = work.create(
             "productions", project["id"], f"Delete production {self.marker}")
+        self.receipt_resource_ids.append(production["public_id"])
         self.created_project_rows.extend([project["id"], production["id"]])
+        with psycopg.connect(settings.database_url) as database:
+            part_id = database.execute("""
+                INSERT INTO production_parts
+                    (production_id,position,kind,script,title,editorial_status)
+                VALUES (%s,0,'draft','private deleted script','', 'draft')
+                RETURNING id
+            """, (production["id"],)).fetchone()[0]
+            database.execute("""
+                INSERT INTO transcripts (name,text,srt,vtt,part_id)
+                VALUES ('private caption','private deleted script',
+                        'private deleted script','private deleted script',%s)
+            """, (part_id,))
+            database.commit()
 
         deleted = work.remove("productions", production["id"])
 
@@ -142,6 +164,25 @@ class WorkRepositoryTests(unittest.TestCase):
                 "SELECT id FROM projects WHERE id=%s",
                 (production["id"],),
             ).fetchone())
+            receipt = database.execute("""
+                SELECT action, resource_type, detail
+                  FROM audit_records WHERE resource_id=%s
+            """, (production["public_id"],)).fetchone()
+            self.assertEqual(receipt, (
+                "production.deleted", "production", {
+                    "permanent": True, "parts": 1, "recordings": 0,
+                    "captions": 1, "exports": 0,
+                },
+            ))
+
+        activity = ActivityRepository().snapshot(
+            kind="production_deleted", limit=10)
+        run = next(item for item in activity["runs_list"]
+                   if item["event_detail"] == receipt[2])
+        self.assertEqual((run["record_type"], run["operation"], run["cost"]),
+                         ("audit", "Production deleted", 0.0))
+        self.assertNotIn(production["name"], str(run))
+        self.assertNotIn("private deleted script", str(run))
 
 
 if __name__ == "__main__":

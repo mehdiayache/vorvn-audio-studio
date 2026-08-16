@@ -57,6 +57,8 @@ class ActivityRunResponse(BaseModel):
     cost_basis: str
     cost_basis_raw: str
     children: int
+    record_type: str
+    event_detail: dict[str, Any] = Field(default_factory=dict)
 
 
 class ActivityKindResponse(BaseModel):

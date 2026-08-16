@@ -25,7 +25,7 @@ export function ActivityPage() {
   useEffect(() => { void refresh(); const timer = window.setInterval(refresh, 5000); return () => window.clearInterval(timer) }, [refresh])
 
   return <main className="activity-page">
-    <StudioPageHeader eyebrow="Operations and spend" title="Activity" description="Every significant provider operation remains here even when its editable output is removed." actions={<Button variant="outline" onClick={() => void refresh()}><RefreshCw /> Refresh</Button>} />
+    <StudioPageHeader eyebrow="Operations and spend" title="Activity" description="Provider operations and permanent workspace actions remain visible without preserving deleted creative content." actions={<Button variant="outline" onClick={() => void refresh()}><RefreshCw /> Refresh</Button>} />
     {error && <div className="activity-error"><AlertTriangle /> {error}</div>}
     <section className="activity-totals" aria-label="Spend totals"><article><small>Recorded today</small><b>{formatMoney(data?.today || 0)}</b></article><article><small>Recorded this month</small><b>{formatMoney(data?.month || 0)}</b></article><article><small>Recorded all time</small><b>{formatMoney(data?.total || 0)}</b></article><article><small>Operations</small><b>{data?.runs || 0}</b></article></section>
     <p className="activity-accounting-note">Recorded cost combines provider-reported usage, catalogue calculations and historical estimates. Open any operation to see its basis; it is not a provider invoice.</p>

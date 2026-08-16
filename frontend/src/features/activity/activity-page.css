@@ -14,6 +14,8 @@
 .activity-run-icon svg { width: 17px; }
 .activity-run:not(.ok):not(.running) .activity-run-icon { background: var(--danger-soft); color: var(--destructive); }
 .activity-run.running .activity-run-icon { background: var(--primary-soft); color: var(--primary); }
+.activity-run.audit .activity-run-icon { background: var(--danger-soft); color: var(--destructive); }
+.activity-run.audit > strong { color: var(--destructive); font-size: var(--type-small); }
 .activity-run-copy header { display: flex; align-items: center; gap: 9px; }
 .activity-run-copy header span { padding: 2px 7px; border-radius: 99px; background: var(--surface-muted); color: var(--muted-foreground); font-size: var(--type-caption); text-transform: capitalize; }
 .activity-run-copy p { margin: 4px 0; color: var(--muted-foreground); font-size: var(--type-small); }

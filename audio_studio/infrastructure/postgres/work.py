@@ -574,13 +574,41 @@ def delete_production(resource_id: int) -> list[str] | None:
     """Permanently remove one Production and only its owned local media."""
     with transaction() as cur:
         cur.execute("""
-            SELECT legacy_container_id FROM productions
-             WHERE id=%s FOR UPDATE
+            SELECT production.legacy_container_id,
+                   production.public_id::text,
+                   (SELECT count(*) FROM production_parts part
+                     WHERE part.production_id=production.id),
+                   (SELECT count(*) FROM clips clip
+                     JOIN production_parts part ON part.id=clip.part_id
+                    WHERE part.production_id=production.id),
+                   (SELECT count(*) FROM transcripts transcript
+                    WHERE transcript.part_id IN (
+                        SELECT id FROM production_parts
+                         WHERE production_id=production.id)
+                       OR transcript.source_job_id IN (
+                        SELECT id FROM jobs
+                         WHERE production_id=production.id
+                            OR project_id=production.legacy_container_id
+                            OR part_id IN (
+                                SELECT id FROM production_parts
+                                 WHERE production_id=production.id))),
+                   (SELECT count(*) FROM exports export
+                     WHERE export.production_id=production.id)
+              FROM productions production
+             WHERE production.id=%s FOR UPDATE
         """, (resource_id,))
         production = cur.fetchone()
         if not production:
             return None
         legacy_container_id = int(production[0])
+        production_public_id = str(production[1])
+        receipt = {
+            "permanent": True,
+            "parts": int(production[2] or 0),
+            "recordings": int(production[3] or 0),
+            "captions": int(production[4] or 0),
+            "exports": int(production[5] or 0),
+        }
         cur.execute("""
             SELECT filename FROM clips
              WHERE part_id IN (
@@ -642,6 +670,13 @@ def delete_production(resource_id: int) -> list[str] | None:
                     (legacy_container_id,))
         cur.execute("DELETE FROM productions WHERE id=%s", (resource_id,))
         cur.execute("DELETE FROM projects WHERE id=%s", (legacy_container_id,))
+        cur.execute("""
+            INSERT INTO audit_records
+                (actor_id, organization_id, action, resource_type,
+                 resource_id, detail)
+            VALUES ('local-owner','local-studio','production.deleted',
+                    'production',%s,%s::jsonb)
+        """, (production_public_id, json.dumps(receipt)))
         return list(dict.fromkeys(files))
 
 

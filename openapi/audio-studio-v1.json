@@ -150,6 +150,11 @@
             "title": "Estimated",
             "type": "number"
           },
+          "event_detail": {
+            "additionalProperties": true,
+            "title": "Event Detail",
+            "type": "object"
+          },
           "finished_at": {
             "anyOf": [
               {
@@ -318,6 +323,10 @@
             "title": "Provider Request Ids",
             "type": "array"
           },
+          "record_type": {
+            "title": "Record Type",
+            "type": "string"
+          },
           "requires_review": {
             "default": false,
             "title": "Requires Review",
@@ -415,7 +424,8 @@
           "where",
           "cost_basis",
           "cost_basis_raw",
-          "children"
+          "children",
+          "record_type"
         ],
         "title": "ActivityRunResponse",
         "type": "object"

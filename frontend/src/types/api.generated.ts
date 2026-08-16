@@ -1453,6 +1453,10 @@ export interface components {
             error: string;
             /** Estimated */
             estimated: number;
+            /** Event Detail */
+            event_detail?: {
+                [key: string]: unknown;
+            };
             /** Finished At */
             finished_at: string | null;
             /** Id */
@@ -1498,6 +1502,8 @@ export interface components {
             provider_request_id: string | null;
             /** Provider Request Ids */
             provider_request_ids: string[];
+            /** Record Type */
+            record_type: string;
             /**
              * Requires Review
              * @default false
