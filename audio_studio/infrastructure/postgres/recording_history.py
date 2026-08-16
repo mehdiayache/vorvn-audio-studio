@@ -13,6 +13,7 @@ _REQUEST_FIELDS = (
     "voice", "voice_identity_id", "binding_id", "catalogue_voice_id",
     "capability_id", "engine", "model", "format", "language",
     "instruction", "speech_mode", "rate", "pitch", "volume", "seed",
+    "enable_ssml",
 )
 
 

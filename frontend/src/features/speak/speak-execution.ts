@@ -1,6 +1,17 @@
-import type { GeneratePayload, RecordingAttempt, RecordingHistory } from "@/types/domain"
+import type { GeneratePayload, RecordingAttempt, RecordingHistory, ResolvedGeneratePayload } from "@/types/domain"
 
 export type SpeakExecution = { jobId: string; payload: GeneratePayload }
+
+export function reusableGeneratePayload(request: ResolvedGeneratePayload): GeneratePayload {
+  const payload = { ...request }
+  delete payload.voice
+  delete payload.engine
+  delete payload.model
+  delete payload.model_id
+  delete payload.provider
+  delete payload.provider_region
+  return payload
+}
 
 export function recoverSpeakExecutions(current: SpeakExecution[], history: RecordingHistory) {
   const active = new Set(["queued", "running", "retrying"])

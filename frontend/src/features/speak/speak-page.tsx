@@ -12,7 +12,7 @@ import { playableGenerateResult } from "@/lib/generated-audio"
 import { operationStatusLabel } from "@/lib/operation-language"
 import { resolveRequestRoute, resolveRequestVoice } from "@/lib/voice"
 import type { DurableJob, GeneratePayload, GenerateResult, RecordingAttempt, RecordingHistory, ResolvedGeneratePayload, VoiceDirectory } from "@/types/domain"
-import { recordingAttemptStatus, recoverSpeakExecutions, type SpeakExecution } from "./speak-execution"
+import { recordingAttemptStatus, recoverSpeakExecutions, reusableGeneratePayload, type SpeakExecution } from "./speak-execution"
 
 import "@/components/production-tools/production-tools.css"
 import "./speak-page.css"
@@ -157,7 +157,7 @@ export function SpeakPage() {
       {historyLoading && !history?.recordings.length ? <p className="speak-empty">Loading recording history…</p> : history?.recordings.length ? history.recordings.filter((attempt) => !executions.some((execution) => execution.jobId === attempt.id)).map((attempt) => {
         const sourceKey = `job:${attempt.id}`
         const confirmation = attempt.status === "blocked" && attempt.needs_confirmation && !attempt.requires_review && !attempt.continued_by_job_id
-        return <RecordingClipCard key={attempt.id} clip={clipView(attempt)} directory={voices.directory} active={player.source?.key === sourceKey && player.state === "playing"} onPlay={attempt.audio_url ? () => void player.toggleSource({ key: sourceKey, url: attempt.audio_url!, title: "Generated recording", subtitle: resolveRequestVoice(attempt.request, voices.directory).name, kind: "standalone" }) : undefined} onSecondaryAction={confirmation ? () => void confirmAttempt(attempt) : attempt.status === "blocked" ? undefined : () => void generate(attempt.request)} secondaryLabel={confirmation ? `Confirm $${Number(attempt.estimate || 0).toFixed(4)}` : "Record again · same setup"} />
+        return <RecordingClipCard key={attempt.id} clip={clipView(attempt)} directory={voices.directory} active={player.source?.key === sourceKey && player.state === "playing"} onPlay={attempt.audio_url ? () => void player.toggleSource({ key: sourceKey, url: attempt.audio_url!, title: "Generated recording", subtitle: resolveRequestVoice(attempt.request, voices.directory).name, kind: "standalone" }) : undefined} onSecondaryAction={confirmation ? () => void confirmAttempt(attempt) : attempt.status === "blocked" ? undefined : () => void generate(reusableGeneratePayload(attempt.request))} secondaryLabel={confirmation ? `Confirm $${Number(attempt.estimate || 0).toFixed(4)}` : "Record again · same setup"} />
       }) : !executions.length && <p className="speak-empty">Your first recording will appear here and remain available for reuse.</p>}
     </section>
   </main>

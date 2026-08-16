@@ -4,6 +4,7 @@ import unittest
 
 from audio_studio.application.recording_history import RecordingHistoryService
 from audio_studio.http.routers.jobs import SpeechJobCreate
+from audio_studio.infrastructure.postgres.recording_history import _safe_request
 
 
 class FakeLedger:
@@ -33,6 +34,14 @@ class RecordingHistoryTests(unittest.TestCase):
         )
         persisted = contract.model_dump(exclude_unset=True, mode="json")
         self.assertNotIn("session_id", persisted)
+
+    def test_history_preserves_ssml_choice_for_safe_reuse(self):
+        request = _safe_request({
+            "text": "<speak>Hello</speak>", "enable_ssml": True,
+            "provider_secret": "never expose this",
+        })
+        self.assertTrue(request["enable_ssml"])
+        self.assertNotIn("provider_secret", request)
 
 
 if __name__ == "__main__":

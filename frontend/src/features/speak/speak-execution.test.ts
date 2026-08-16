@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { GeneratePayload, RecordingHistory } from "@/types/domain"
-import { recordingAttemptStatus, recoverSpeakExecutions } from "./speak-execution"
+import { recordingAttemptStatus, recoverSpeakExecutions, reusableGeneratePayload } from "./speak-execution"
 
 const request: GeneratePayload = {
   text: "Hello", voice_identity_id: "identity", binding_id: "binding",
@@ -29,5 +29,20 @@ describe("Speak execution history", () => {
     expect(recordingAttemptStatus({ status: "running" })).toBe("pending")
     expect(recordingAttemptStatus({ status: "ok" })).toBe("ready")
     expect(recordingAttemptStatus({ status: "blocked", continued_by_job_id: "next-job" })).toBe("continued")
+  })
+
+  it("replays the provider-neutral command without resolved server facts", () => {
+    const replay = reusableGeneratePayload({
+      ...request, enable_ssml: true, voice: "provider-voice", engine: "cosyvoice",
+      model: "plus", model_id: "cosyvoice-v3-plus", provider: "alibaba",
+      provider_region: "intl",
+    })
+    expect(replay.enable_ssml).toBe(true)
+    expect(replay).not.toHaveProperty("voice")
+    expect(replay).not.toHaveProperty("engine")
+    expect(replay).not.toHaveProperty("model")
+    expect(replay).not.toHaveProperty("model_id")
+    expect(replay).not.toHaveProperty("provider")
+    expect(replay).not.toHaveProperty("provider_region")
   })
 })
