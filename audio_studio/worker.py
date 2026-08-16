@@ -101,7 +101,7 @@ def main() -> int:
     alibaba_enrollment = AlibabaVoiceCloningProvider()
     enrollment_provider = ExactEnrollmentProviderRegistry({
         ("alibaba", adapter_key): alibaba_enrollment
-        for adapter_key in ("audio", "qwen_tts")
+        for adapter_key in ("audio", "qwen_tts", "cosyvoice")
     })
     voice_cloning = VoiceCloningService(
         VoicePackageRepository(), enrollment_provider,
