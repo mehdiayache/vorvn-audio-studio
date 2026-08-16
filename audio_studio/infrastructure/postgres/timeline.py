@@ -45,6 +45,13 @@ class PostgresTimelineRecords:
         return self.documents.create_part(
             production_id, values, before_part_public_id)
 
+    def import_parts(
+        self, production_id: int, items: list[dict],
+        voice_identity_ids: set[str],
+    ) -> dict[str, int] | None:
+        return self.documents.import_parts(
+            production_id, items, voice_identity_ids)
+
     def asset(self, asset_id: int) -> dict | None:
         return self.assets.get(asset_id)
 

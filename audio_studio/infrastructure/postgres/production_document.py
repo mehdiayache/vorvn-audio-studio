@@ -28,6 +28,10 @@ def _float(value, default: float = 0) -> float:
     return float(value if value is not None else default)
 
 
+def _int(value, default: int = 0) -> int:
+    return int(value if value is not None else default)
+
+
 class ProductionDocumentRepository:
     """Own stable Parts, one recording snapshot and background-music state."""
 
@@ -328,11 +332,11 @@ class ProductionDocumentRepository:
                 "language": ((row[22] or snapshot.get("language")) if has_clip else
                              draft.get("language") or job_payload.get("language")),
                 "instruction": delivery.get("instruction", draft.get("instruction", job_payload.get("instruction", ""))),
-                "speech_mode": delivery.get("speech_mode", snapshot.get("speech_mode", job_payload.get("speech_mode", "exact"))),
-                "rate": _float(delivery.get("rate", snapshot.get("rate", job_payload.get("rate"))), 1),
-                "pitch": _float(delivery.get("pitch", snapshot.get("pitch", job_payload.get("pitch"))), 1),
-                "volume": int(delivery.get("volume", snapshot.get("volume", job_payload.get("volume", 50))) or 50),
-                "seed": int(delivery.get("seed", snapshot.get("seed", job_payload.get("seed", 0))) or 0),
+                "speech_mode": delivery.get("speech_mode", snapshot.get("speech_mode", draft.get("speech_mode", job_payload.get("speech_mode", "exact")))),
+                "rate": _float(delivery.get("rate", snapshot.get("rate", draft.get("rate", job_payload.get("rate")))), 1),
+                "pitch": _float(delivery.get("pitch", snapshot.get("pitch", draft.get("pitch", job_payload.get("pitch")))), 1),
+                "volume": _int(delivery.get("volume", snapshot.get("volume", draft.get("volume", job_payload.get("volume")))), 50),
+                "seed": _int(delivery.get("seed", snapshot.get("seed", draft.get("seed", job_payload.get("seed")))), 0),
                 "filename": row[24] or row[34] or "",
                 "size_bytes": int(row[25] or 0), "cost": _float(row[26]),
                 "spent": _float(row[33]), "cost_basis": row[28],
@@ -442,6 +446,63 @@ class ProductionDocumentRepository:
                     VALUES (%s, %s, %s::jsonb)
                 """, (part_id, production_id, json.dumps(values)))
             return part_id
+
+    def import_parts(
+        self, production_id: int, items: list[dict[str, Any]],
+        voice_identity_ids: set[str],
+    ) -> dict[str, int] | None:
+        """Append one import atomically; no role or import state is persisted."""
+        with transaction() as cursor:
+            if not self._production_exists(cursor, production_id, lock=True):
+                return None
+            if voice_identity_ids:
+                cursor.execute("""
+                    SELECT identity.id
+                      FROM voice_identities identity
+                     WHERE identity.id = ANY(%s)
+                       AND identity.status = 'active'
+                       AND EXISTS (
+                           SELECT 1 FROM voice_bindings binding
+                            WHERE binding.identity_id = identity.id
+                              AND binding.source = 'custom'
+                              AND binding.status IN ('active', 'ready')
+                              AND binding.archived_at IS NULL)
+                """, (list(voice_identity_ids),))
+                valid = {str(row[0]) for row in cursor.fetchall()}
+                invalid = sorted(voice_identity_ids - valid)
+                if invalid:
+                    raise ValueError(
+                        "Every role must use an active owned Voice. Invalid: "
+                        + ", ".join(invalid))
+            release_archived_positions(cursor, production_id)
+            position = self._next_position(cursor, production_id)
+            counts = {"items": len(items), "speech": 0, "silence": 0}
+            for offset, values in enumerate(items):
+                kind = str(values["kind"])
+                cursor.execute("""
+                    INSERT INTO production_parts
+                        (production_id, position, kind, script, title,
+                         editorial_status, duration_ms)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s)
+                    RETURNING id
+                """, (
+                    production_id, position + offset, kind,
+                    str(values.get("text") or ""),
+                    str(values.get("title") or ""),
+                    "draft" if kind == "draft" else "ready",
+                    values.get("duration_ms"),
+                ))
+                part_id = int(cursor.fetchone()[0])
+                if kind == "draft":
+                    cursor.execute("""
+                        INSERT INTO composition_drafts
+                            (part_id, production_id, state)
+                        VALUES (%s,%s,%s::jsonb)
+                    """, (part_id, production_id, json.dumps(values)))
+                    counts["speech"] += 1
+                else:
+                    counts["silence"] += 1
+            return counts
 
     def insert_asset(self, production_id: int, asset_id: int,
                      before_part_public_id: str | None = None) -> int | None:

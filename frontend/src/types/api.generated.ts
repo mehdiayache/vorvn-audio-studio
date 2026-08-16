@@ -328,6 +328,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/productions/{production_id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Production */
+        post: operations["importProductionDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/productions/{production_id}/music": {
         parameters: {
             query?: never;
@@ -2057,6 +2074,47 @@ export interface components {
             /** Provider Voice Id */
             provider_voice_id: string;
         };
+        /** ImportSilenceItem */
+        ImportSilenceItem: {
+            /** Seconds */
+            seconds: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "silence";
+        };
+        /** ImportSpeechItem */
+        ImportSpeechItem: {
+            /** Format */
+            format: string;
+            /** Instruction */
+            instruction: string;
+            /** Language */
+            language: string;
+            /** Pitch */
+            pitch: number;
+            /** Rate */
+            rate: number;
+            /** Role */
+            role: string;
+            /** Seed */
+            seed: number;
+            /**
+             * Speech Mode
+             * @enum {string}
+             */
+            speech_mode: "exact" | "directed";
+            /** Text */
+            text: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "speech";
+            /** Volume */
+            volume: number;
+        };
         /** JobCreatedEnvelope */
         JobCreatedEnvelope: {
             data: components["schemas"]["JobResponse"];
@@ -2487,6 +2545,44 @@ export interface components {
             renderer: string;
             /** Size Bytes */
             size_bytes: number;
+        };
+        /** ProductionImportBody */
+        ProductionImportBody: {
+            document: components["schemas"]["ProductionImportDocument"];
+            /** Role Voices */
+            role_voices: {
+                [key: string]: string;
+            };
+        };
+        /** ProductionImportDocument */
+        ProductionImportDocument: {
+            /** Items */
+            items: (components["schemas"]["ImportSpeechItem"] | components["schemas"]["ImportSilenceItem"])[];
+            /**
+             * Schema
+             * @constant
+             */
+            schema: "audio-studio-production-import";
+            /** Title */
+            title: string;
+            /**
+             * Version
+             * @constant
+             */
+            version: 1;
+        };
+        /** ProductionImportEnvelope */
+        ProductionImportEnvelope: {
+            data: components["schemas"]["ProductionImportResponse"];
+        };
+        /** ProductionImportResponse */
+        ProductionImportResponse: {
+            /** Items */
+            items: number;
+            /** Silence */
+            silence: number;
+            /** Speech */
+            speech: number;
         };
         /** ProductionPartResponse */
         ProductionPartResponse: {
@@ -5397,6 +5493,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProductionEditorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    importProductionDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductionImportBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionImportEnvelope"];
                 };
             };
             /** @description Validation Error */

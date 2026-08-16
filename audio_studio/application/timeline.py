@@ -18,6 +18,10 @@ class TimelineRecords(Protocol):
         self, production_id: int, values: dict,
         before_part_public_id: str | None = None,
     ) -> int | None: ...
+    def import_parts(
+        self, production_id: int, items: list[dict],
+        voice_identity_ids: set[str],
+    ) -> dict[str, int] | None: ...
     def asset(self, asset_id: int) -> dict | None: ...
     def asset_context(self, asset_id: int) -> dict | None: ...
     def asset_allowed(
@@ -168,6 +172,89 @@ class TimelineService:
         if not new_id:
             raise TimelineError("The Draft could not be saved.")
         return {"id": new_id}
+
+    def import_document(
+        self, production_id: int, document: dict[str, Any],
+        role_voices: dict[str, str],
+    ) -> dict[str, int]:
+        """Append validated V1 authoring items to the canonical Production."""
+        self._production(production_id)
+        items = list(document.get("items") or [])
+        roles = {
+            str(item["role"]): index
+            for index, item in enumerate(items, start=1)
+            if item.get("type") == "speech"
+        }
+        for role, item_number in roles.items():
+            if role != role.strip():
+                raise TimelineError(
+                    f"Item {item_number}: role cannot start or end with spaces.")
+        mapped_roles = set(role_voices)
+        missing = sorted(set(roles) - mapped_roles)
+        extra = sorted(mapped_roles - set(roles))
+        if missing:
+            raise TimelineError(
+                "Map every role before importing. Missing: "
+                + ", ".join(missing))
+        if extra:
+            raise TimelineError(
+                "Remove role mappings that are not in this document: "
+                + ", ".join(extra))
+        for role, identity_id in role_voices.items():
+            if not str(identity_id).strip():
+                raise TimelineError(f"Choose a Voice for role {role}.")
+
+        canonical_items: list[dict[str, Any]] = []
+        for number, item in enumerate(items, start=1):
+            if item["type"] == "silence":
+                seconds = float(item["seconds"])
+                canonical_items.append({
+                    "kind": "silence",
+                    "text": f"{seconds:g} seconds of silence",
+                    "title": f"{seconds:g}",
+                    "duration_ms": round(seconds * 1000),
+                })
+                continue
+            text = str(item["text"])
+            language = str(item["language"])
+            instruction = str(item["instruction"])
+            output_format = str(item["format"])
+            for label, value in (
+                ("text", text), ("language", language),
+                ("format", output_format),
+            ):
+                if not value.strip():
+                    raise TimelineError(
+                        f"Item {number}: {label} cannot be blank.")
+            canonical_items.append({
+                "kind": "draft",
+                "text": text,
+                "text_raw": text,
+                "text_shaped": None,
+                "text_tagged": None,
+                "text_state": "raw",
+                "voice_identity_id": role_voices[str(item["role"])],
+                "binding_id": None,
+                "catalogue_voice_id": None,
+                "capability_id": None,
+                "language": language,
+                "speech_mode": item["speech_mode"],
+                "instruction": instruction,
+                "rate": float(item["rate"]),
+                "pitch": float(item["pitch"]),
+                "volume": int(item["volume"]),
+                "seed": int(item["seed"]),
+                "format": output_format,
+                "duration_ms": 0,
+            })
+        try:
+            result = self.records.import_parts(
+                production_id, canonical_items, set(role_voices.values()))
+        except ValueError as exc:
+            raise TimelineError(str(exc)) from exc
+        if result is None:
+            raise TimelineError("That Production no longer exists.")
+        return result
 
     def edit_silence(
         self, production_id: int, part_id: int, seconds: float,

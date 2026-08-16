@@ -44,6 +44,16 @@ class PartCreatedEnvelope(BaseModel):
     data: PartCreatedResponse
 
 
+class ProductionImportResponse(BaseModel):
+    items: int
+    speech: int
+    silence: int
+
+
+class ProductionImportEnvelope(BaseModel):
+    data: ProductionImportResponse
+
+
 class DeletedPartsResponse(BaseModel):
     deleted: int
 

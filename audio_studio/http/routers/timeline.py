@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field
@@ -16,6 +16,7 @@ from audio_studio.http.timeline_contracts import (
     MusicBedEnvelope,
     OkEnvelope,
     PartCreatedEnvelope,
+    ProductionImportEnvelope,
     TranscriptSummaryListEnvelope,
 )
 
@@ -69,6 +70,47 @@ class DraftBody(BaseModel):
     volume: int = 50
     seed: int = 0
     confirmed: bool = False
+
+
+class ImportSpeechItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal["speech"]
+    role: str = Field(min_length=1, max_length=120)
+    text: str = Field(min_length=1, max_length=500_000)
+    language: str = Field(min_length=1, max_length=80)
+    speech_mode: Literal["exact", "directed"]
+    instruction: str = Field(max_length=100)
+    rate: float = Field(ge=.5, le=2)
+    pitch: float = Field(ge=.5, le=2)
+    volume: int = Field(ge=0, le=100)
+    seed: int = Field(ge=0, le=2_147_483_647)
+    format: str = Field(min_length=1, max_length=24)
+
+
+class ImportSilenceItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal["silence"]
+    seconds: float = Field(ge=.1, le=120)
+
+
+ImportItem = Annotated[
+    ImportSpeechItem | ImportSilenceItem,
+    Field(discriminator="type"),
+]
+
+
+class ProductionImportDocument(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    schema_name: Literal["audio-studio-production-import"] = Field(alias="schema")
+    version: Literal[1]
+    title: str = Field(min_length=1, max_length=200)
+    items: list[ImportItem] = Field(min_length=1, max_length=1_000)
+
+
+class ProductionImportBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    document: ProductionImportDocument
+    role_voices: dict[str, str]
 
 
 class MoveBody(BaseModel):
@@ -163,6 +205,16 @@ def add_silence(production_id: int, payload: SilenceBody) -> dict:
 def add_draft(production_id: int, payload: DraftBody) -> dict:
     return _run(lambda: timeline_service.add_draft(
         production_id, payload.model_dump()))
+
+
+@router.post("/import", operation_id="importProductionDocument",
+             response_model=ProductionImportEnvelope)
+def import_production(
+    production_id: int, payload: ProductionImportBody,
+) -> dict:
+    return _run(lambda: timeline_service.import_document(
+        production_id, payload.document.model_dump(by_alias=True),
+        payload.role_voices))
 
 
 @router.patch("/parts/{part_id}/silence", operation_id="updateProductionSilence",

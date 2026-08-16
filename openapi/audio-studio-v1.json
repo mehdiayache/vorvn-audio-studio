@@ -1956,6 +1956,114 @@
         "title": "HistoryLink",
         "type": "object"
       },
+      "ImportSilenceItem": {
+        "additionalProperties": false,
+        "properties": {
+          "seconds": {
+            "maximum": 120.0,
+            "minimum": 0.1,
+            "title": "Seconds",
+            "type": "number"
+          },
+          "type": {
+            "const": "silence",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "seconds"
+        ],
+        "title": "ImportSilenceItem",
+        "type": "object"
+      },
+      "ImportSpeechItem": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "maxLength": 24,
+            "minLength": 1,
+            "title": "Format",
+            "type": "string"
+          },
+          "instruction": {
+            "maxLength": 100,
+            "title": "Instruction",
+            "type": "string"
+          },
+          "language": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Language",
+            "type": "string"
+          },
+          "pitch": {
+            "maximum": 2.0,
+            "minimum": 0.5,
+            "title": "Pitch",
+            "type": "number"
+          },
+          "rate": {
+            "maximum": 2.0,
+            "minimum": 0.5,
+            "title": "Rate",
+            "type": "number"
+          },
+          "role": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Role",
+            "type": "string"
+          },
+          "seed": {
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "speech_mode": {
+            "enum": [
+              "exact",
+              "directed"
+            ],
+            "title": "Speech Mode",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 500000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "type": {
+            "const": "speech",
+            "title": "Type",
+            "type": "string"
+          },
+          "volume": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Volume",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "type",
+          "role",
+          "text",
+          "language",
+          "speech_mode",
+          "instruction",
+          "rate",
+          "pitch",
+          "volume",
+          "seed",
+          "format"
+        ],
+        "title": "ImportSpeechItem",
+        "type": "object"
+      },
       "JobCreatedEnvelope": {
         "properties": {
           "data": {
@@ -3325,6 +3433,114 @@
           "created_at"
         ],
         "title": "ProductionExportResponse",
+        "type": "object"
+      },
+      "ProductionImportBody": {
+        "additionalProperties": false,
+        "properties": {
+          "document": {
+            "$ref": "#/components/schemas/ProductionImportDocument"
+          },
+          "role_voices": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Role Voices",
+            "type": "object"
+          }
+        },
+        "required": [
+          "document",
+          "role_voices"
+        ],
+        "title": "ProductionImportBody",
+        "type": "object"
+      },
+      "ProductionImportDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "silence": "#/components/schemas/ImportSilenceItem",
+                  "speech": "#/components/schemas/ImportSpeechItem"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ImportSpeechItem"
+                },
+                {
+                  "$ref": "#/components/schemas/ImportSilenceItem"
+                }
+              ]
+            },
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          },
+          "schema": {
+            "const": "audio-studio-production-import",
+            "title": "Schema",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "const": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schema",
+          "version",
+          "title",
+          "items"
+        ],
+        "title": "ProductionImportDocument",
+        "type": "object"
+      },
+      "ProductionImportEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProductionImportResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ProductionImportEnvelope",
+        "type": "object"
+      },
+      "ProductionImportResponse": {
+        "properties": {
+          "items": {
+            "title": "Items",
+            "type": "integer"
+          },
+          "silence": {
+            "title": "Silence",
+            "type": "integer"
+          },
+          "speech": {
+            "title": "Speech",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "speech",
+          "silence"
+        ],
+        "title": "ProductionImportResponse",
         "type": "object"
       },
       "ProductionPartResponse": {
@@ -11172,6 +11388,58 @@
         "summary": "Get Production Editor",
         "tags": [
           "work"
+        ]
+      }
+    },
+    "/api/v1/productions/{production_id}/import": {
+      "post": {
+        "operationId": "importProductionDocument",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductionImportBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionImportEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Production",
+        "tags": [
+          "timeline"
         ]
       }
     },
