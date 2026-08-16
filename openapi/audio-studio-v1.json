@@ -3600,6 +3600,17 @@
             ],
             "title": "Asset Version Id"
           },
+          "authored_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authored Role"
+          },
           "binding_id": {
             "anyOf": [
               {

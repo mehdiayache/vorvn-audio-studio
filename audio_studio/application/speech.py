@@ -33,7 +33,7 @@ class SpeechRepository(Protocol):
     def part(self, part_id: int, production_id: int) -> dict | None: ...
     def attach_clip(self, part_id: int, production_id: int,
                     expected_revision: int,
-                    values: dict[str, Any]) -> dict[str, int]: ...
+                    values: dict[str, Any]) -> dict[str, Any]: ...
 
 
 class SpeechProvider(Protocol):
@@ -48,6 +48,7 @@ class SpeechProvider(Protocol):
 
 class SpeechWorkspace(Protocol):
     def save(self, audio: bytes, extension: str) -> StoredAudio: ...
+    def discard(self, filename: str) -> None: ...
 
 
 def _defaults(values: dict) -> dict:
@@ -161,9 +162,8 @@ class SpeechGenerationService:
             part = self.repository.part(part_id, production_id)
             if not part:
                 raise LookupError("That Part no longer belongs to this Production.")
-            if (part.get("kind") not in {"draft", "speech"}
-                    or part.get("clip_id") is not None):
-                raise ValueError("That Part has already been recorded.")
+            if part.get("kind") not in {"draft", "speech"}:
+                raise ValueError("That Part cannot contain speech.")
             inherited = {key: part.get(key) for key in _SETTING_FIELDS}
             inherited["title"] = part.get("title")
             overrides = {key: value for key, value in values.items()
@@ -346,6 +346,15 @@ class SpeechGenerationService:
                     part_id, production_id,
                     int(values.get("_source_part_revision") or part["revision"]),
                     row)
+                replaced_filename = str(
+                    mutation.pop("replaced_filename", "") or "")
+                if replaced_filename and replaced_filename != saved.filename:
+                    try:
+                        self.workspace.discard(replaced_filename)
+                    except OSError:
+                        # The active recording is already committed. A stale
+                        # local file is safer than reporting a false failure.
+                        pass
         except Exception as exc:
             raise JobFailed(
                 "The provider completed and the audio was saved, but Audio "

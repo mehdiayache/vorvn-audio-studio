@@ -59,7 +59,7 @@ describe("shared Composer contract", () => {
     expect(editor.value).toHaveLength(20_000)
     expect(screen.getAllByText("Performance").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Output").length).toBeGreaterThan(0)
-    expect(screen.getByRole("button", { name: /Record Part/ }).closest("footer")?.classList.contains("composer-footer")).toBe(true)
+    expect(screen.getByRole("button", { name: /Generate Part/ }).closest("footer")?.classList.contains("composer-footer")).toBe(true)
   })
 
   it("does not silently select the first identity or exact route in fresh Speak", async () => {
@@ -70,13 +70,18 @@ describe("shared Composer contract", () => {
     expect(screen.getByRole("button", { name: "Create recording" }).hasAttribute("disabled")).toBe(true)
   })
 
-  it("restores explicit Part identity context without inventing a route", async () => {
+  it("restores the exact persisted Part route for editing", async () => {
     const part = { id: 7, kind: "speech", text: "Hello", cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
     render(<ComposerSurface {...common} productionId={3} part={part} />)
     await waitFor(() => expect(screen.getAllByText("Sarah").length).toBeGreaterThan(0))
-    expect(screen.getByText("Choose recording method")).toBeTruthy()
-    expect(screen.getByText("Exact route required")).toBeTruthy()
-    expect(screen.getByRole("button", { name: /Record Part/ }).hasAttribute("disabled")).toBe(true)
+    expect(screen.getAllByText("Expressive + tags").length).toBeGreaterThan(0)
+    expect(screen.getByRole("button", { name: /Generate Part/ }).hasAttribute("disabled")).toBe(false)
+  })
+
+  it("labels an existing recording as one safe replacement action", async () => {
+    const part = { id: 7, kind: "speech", text: "Hello", text_raw: "Hello", clip_id: 44, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
+    render(<ComposerSurface {...common} productionId={3} part={part} />)
+    await waitFor(() => expect(screen.getByRole("button", { name: "Generate again" }).hasAttribute("disabled")).toBe(false))
   })
 
   it("compares immutable Original words with the prepared Spoken version", async () => {
@@ -109,11 +114,11 @@ describe("shared Composer contract", () => {
     const onUpdateEditorial = vi.fn().mockResolvedValue(undefined)
     const part = { id: 8, kind: "draft", text: "Original words", text_raw: "Original words", revision: 3, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
     render(<ComposerSurface {...common} productionId={3} part={part} onGenerate={onGenerate} onUpdateEditorial={onUpdateEditorial} />)
-    await waitFor(() => expect(screen.getByRole("button", { name: /Record Part/ }).hasAttribute("disabled")).toBe(false))
+    await waitFor(() => expect(screen.getByRole("button", { name: /Generate Part/ }).hasAttribute("disabled")).toBe(false))
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "Revised words" } })
-    fireEvent.click(screen.getByRole("button", { name: /Record Part/ }))
-    expect(screen.getByText("Update this Part before recording?")).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Update Part and record" }))
+    fireEvent.click(screen.getByRole("button", { name: /Generate Part/ }))
+    expect(screen.getByText("Update this Part before generating?")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Update Part and generate" }))
     await waitFor(() => expect(onUpdateEditorial).toHaveBeenCalledWith(expect.objectContaining({ expected_revision: 3, script: "Revised words" })))
     expect(onGenerate).toHaveBeenCalledWith(expect.not.objectContaining({ select_result: expect.anything() }))
   })

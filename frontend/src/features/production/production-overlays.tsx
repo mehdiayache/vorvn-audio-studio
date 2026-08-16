@@ -45,8 +45,8 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
 }) {
   return <>
     {tool === "speech" && <ProductionComposerDialog
-      title={composerPart ? `Record draft · Part ${(composerPart.position ?? 0) + 1}` : "Add speech"}
-      description={composerPart ? "Turn this saved script into its first recording." : insertBeforePartId ? "Insert at the selected Sequence position." : `Add as Part ${nextPartNumber}.`}
+      title={composerPart ? `Edit speech · Part ${(composerPart.position ?? 0) + 1}` : "Add speech"}
+      description={composerPart?.clip_id ? "Change the words, Voice or delivery, then generate again to replace the current audio." : composerPart ? "Finish this Draft and generate its first recording." : insertBeforePartId ? "Insert at the selected Sequence position." : `Add as Part ${nextPartNumber}.`}
       productionId={productionId}
       nextPartNumber={nextPartNumber}
       insertAt={insertAt}

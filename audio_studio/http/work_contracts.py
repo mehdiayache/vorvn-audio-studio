@@ -306,6 +306,7 @@ class ProductionPartResponse(BaseModel):
     position: int | None
     kind: str
     title: str | None = None
+    authored_role: str | None = None
     text: str
     text_raw: str | None = None
     text_shaped: str | None = None

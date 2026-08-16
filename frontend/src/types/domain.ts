@@ -61,6 +61,7 @@ export type ProductionPart = {
   enabled?: boolean
   kind: "audio" | "speech" | "draft" | "silence" | "asset" | "stitch" | string
   title?: string | null
+  authored_role?: string | null
   text: string
   text_raw?: string
   text_shaped?: string

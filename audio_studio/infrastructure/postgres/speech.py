@@ -135,11 +135,12 @@ class SpeechRepository:
 
     def attach_clip(self, part_id: int, production_id: int,
                     expected_revision: int,
-                    values: dict[str, Any]) -> dict[str, int]:
+                    values: dict[str, Any]) -> dict[str, Any]:
         with transaction() as cursor:
             cursor.execute("""
                 SELECT revision, kind, script,
-                       (SELECT clip.id FROM clips clip WHERE clip.part_id = production_parts.id)
+                       (SELECT clip.id FROM clips clip WHERE clip.part_id = production_parts.id),
+                       (SELECT clip.filename FROM clips clip WHERE clip.part_id = production_parts.id)
                   FROM production_parts
                  WHERE id = %s AND production_id = %s
                    AND archived_at IS NULL FOR UPDATE
@@ -149,10 +150,21 @@ class SpeechRepository:
                 raise LookupError("That Part no longer belongs to this Production.")
             current_revision = int(current[0])
             kind = str(current[1] or "")
-            if kind not in {"draft", "speech"} or current[3] is not None:
-                raise ValueError("That Part has already been recorded.")
+            if kind not in {"draft", "speech"}:
+                raise ValueError("That Part cannot contain speech.")
             if current_revision != int(expected_revision):
                 return {"subtitles_stale": 0, "attached": 0}
+            previous_clip_id = current[3]
+            replaced_filename = str(current[4] or "")
+            subtitles_stale = 0
+            if previous_clip_id is not None:
+                cursor.execute("""
+                    UPDATE transcripts SET stale=true
+                     WHERE part_id=%s AND stale=false
+                """, (part_id,))
+                subtitles_stale = cursor.rowcount
+                cursor.execute("DELETE FROM clips WHERE id=%s",
+                               (previous_clip_id,))
             clip_id = self._insert_clip(
                 cursor, part_id, int(expected_revision), values,
                 canonical_script=str(current[2] or ""),
@@ -165,8 +177,9 @@ class SpeechRepository:
             """, (part_id,))
             cursor.execute("DELETE FROM composition_drafts WHERE part_id = %s",
                            (part_id,))
-            return {"subtitles_stale": 0, "attached": 1,
-                    "clip_id": clip_id}
+            return {"subtitles_stale": subtitles_stale, "attached": 1,
+                    "clip_id": clip_id,
+                    "replaced_filename": replaced_filename}
 
     @staticmethod
     def _insert_clip(cursor, part_id: int, source_revision: int,

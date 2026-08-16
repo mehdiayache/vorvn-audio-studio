@@ -2596,6 +2596,8 @@ export interface components {
             asset_of?: number | null;
             /** Asset Version Id */
             asset_version_id?: number | null;
+            /** Authored Role */
+            authored_role?: string | null;
             /** Binding Id */
             binding_id?: string | null;
             /** Binding Resolution Status */

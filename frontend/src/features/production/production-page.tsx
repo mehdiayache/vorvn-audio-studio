@@ -109,7 +109,6 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
 
   const queueRender = useCallback((payload: GeneratePayload) => {
     const target = composerPart
-    if (target?.clip_id) return Promise.reject(new Error("This Part already has a recording. Delete it before creating a different one."))
     const operation = target ? actions.recordPendingPart(target, payload)
         : actions.generatePart(payload)
     return operation.then((job) => {
@@ -157,8 +156,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const openAssetReplacement = useCallback((part: ProductionPart) => {
     rememberStageOrigin(); setActiveStage(null); setCaptionPart(null); setInsertBeforePartId(null); setComposerPart(null); setReplacingAsset(part); setTool("asset")
   }, [rememberStageOrigin])
-  const openRecordingComposer = useCallback((part: ProductionPart) => {
-    if (part.clip_id) return
+  const openSpeechComposer = useCallback((part: ProductionPart) => {
     setActiveStage(null); setCaptionPart(null); setInsertBeforePartId(null); setComposerPart(part); setTool("speech")
   }, [])
   const openPart = useCallback((part: ProductionPart, tab: PartDetailTab = "script") => {
@@ -256,7 +254,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       description: "The Part leaves the active Sequence. Its provider evidence, generated audio and recorded spend remain recoverable history.",
       action: () => { setActiveStage(null); void actions.deletePart(part) },
     })}
-    onRecordPart={openRecordingComposer}
+    onRecordPart={openSpeechComposer}
     initialTab={detailTab}
     onTabChange={(tab) => setActiveStage((current) => current?.mode === "part" ? { ...current, tab } : current)}
   /> : stageMode === "music" ? <MusicWorkbench music={music} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)} onChange={actions.setMusic} onChoose={() => openTool("music")} onRemove={() => setConfirmAction({ title: "Remove this Music Bed?", description: "The reusable Venture asset remains available. Only its parallel placement in this Production is removed.", action: () => { void actions.setMusic({ music_of: null }).then(() => setActiveStage(null)) } })} /> : stageMode === "health" ? <ProductionHealthContent issues={healthIssues} onLocate={(id) => { setActiveStage(null); locate(id) }} /> : stageMode === "mix-export" ? <MixExportWorkspace production={production} music={music} previewing={actions.previewing} productionPlaying={actions.productionPlaying} previewReady={actions.productionLoaded} previewStale={Boolean(player.source?.kind === "production" && !actions.productionLoaded)} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={() => void actions.exportMp3()} onLocatePart={(id) => { setActiveStage(null); locate(id) }} onOpenHealth={() => openHealthStage(true)} exporting={actions.exporting} /> : null
@@ -270,8 +268,8 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     editSilence: (part, seconds) => void actions.editSilence(part, seconds),
     setEnabled: (part, enabled) => void actions.setPartEnabled(part, enabled),
     openPart,
-    recordPart: openRecordingComposer,
-  }), [actions, openPart, openRecordingComposer, playSource])
+    editSpeech: openSpeechComposer,
+  }), [actions, openPart, openSpeechComposer, playSource])
 
   return <>
     <ProductionEditorCanvas
@@ -374,7 +372,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
           description: "The Part leaves the active Sequence. Its provider evidence, generated audio and recorded spend remain recoverable history.",
           action: () => { setActiveStage(null); void actions.deletePart(part) },
         })}
-        onRecordPart={openRecordingComposer}
+        onRecordPart={openSpeechComposer}
         onConfirmAction={setConfirmAction}
       />
     </Suspense>}

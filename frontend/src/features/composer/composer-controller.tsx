@@ -9,7 +9,7 @@ import {
   recoverableDraft,
   resolveSelectedRoute,
   routeSelection,
-  routeSelectionFromPersistedDraft,
+  routeSelectionFromPart,
   routeSelectionId,
   toGeneratePayload,
   type ComposerText,
@@ -46,7 +46,7 @@ type PendingGeneration = {
 }
 
 export function useComposerController({ productionId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, visible = true }: ComposerSurfaceProps) {
-  const [route, setRoute] = useState(routeSelectionFromPersistedDraft(part))
+  const [route, setRoute] = useState(routeSelectionFromPart(part))
   const [identityId, setIdentityId] = useState(part?.voice_identity_id || "")
   const [language, setLanguage] = useState(part?.language || "Auto")
   const [format, setFormat] = useState<GeneratePayload["format"]>((part?.format as GeneratePayload["format"]) || "mp3")
@@ -68,7 +68,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     setPendingCommand(null)
     setEditorialCommand(null)
     setTextReviewReference(null)
-    setRoute(routeSelectionFromPersistedDraft(part))
+    setRoute(routeSelectionFromPart(part))
     setIdentityId(part?.voice_identity_id || "")
     setLanguage(part?.language || "Auto")
     setFormat((part?.format as GeneratePayload["format"]) || "mp3")
@@ -142,7 +142,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   const destination = !productionId
     ? "Reusable recording"
     : part
-      ? `Record draft · Part ${(part.position ?? 0) + 1}`
+      ? `Edit speech · Part ${(part.position ?? 0) + 1}`
       : insertAt === null ? `New speech · Part ${nextPartNumber}` : `New speech · before Part ${insertAt + 1}`
   const context = useMemo(() => compositionContext({ productionId, part, insertBeforePartId }), [insertBeforePartId, part, productionId])
   const baseline = useMemo(() => editorialBaseline(part), [part])

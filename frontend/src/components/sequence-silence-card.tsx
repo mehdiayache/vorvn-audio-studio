@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input"
 import type { ProductionPart } from "@/types/domain"
 
 function SilenceDuration({ part, onSave }: { part: ProductionPart; onSave: (seconds: number) => void }) {
-  const initial = Number(part.title || String((part.duration_ms || 0) / 1000) || 2)
+  const initial = part.duration_ms != null
+    ? Number(part.duration_ms) / 1000
+    : Number(part.title || 2)
   const [seconds, setSeconds] = useState(initial)
   useEffect(() => setSeconds(initial), [initial])
   const save = () => onSave(Math.max(0.1, Math.min(120, seconds)))

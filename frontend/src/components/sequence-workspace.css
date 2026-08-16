@@ -16,12 +16,12 @@
 .sequence-row-node { position: relative; z-index: 2; width: 28px; height: 28px; margin-left: 4px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-raised); color: var(--muted-foreground); box-shadow: var(--shadow-xs); font-size: var(--type-caption); font-weight: 700; }
 .sequence-row.is-stage-active .sequence-row-node { color: var(--primary-foreground); border-color: var(--primary); background: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
 .sequence-row.is-preview-playing .sequence-row-node { color: var(--primary); border-color: color-mix(in oklch, var(--primary) 28%, var(--border)); background: var(--primary-soft); }
-.sequence-row.is-disabled .sequence-card, .sequence-row.is-disabled .sequence-silence-card { opacity: .58; }
+.sequence-row.is-disabled .sequence-card, .sequence-row.is-disabled .sequence-silence-card { opacity: .62; filter: grayscale(1); }
 .sequence-row-node.asset { color: var(--asset); border-color: color-mix(in oklch, var(--asset) 35%, var(--border)); background: var(--asset-soft); }
 .sequence-row-node.draft { color: var(--warning); border-color: color-mix(in oklch, var(--warning) 35%, var(--border)); background: var(--warning-soft); }
 .sequence-row-node.issue { color: var(--destructive); border-color: var(--danger-border); background: var(--danger-soft); }
-.sequence-row.silence { align-items: center; }
-.sequence-row.silence .sequence-node-column { padding-top: 7px; }
+.sequence-row.silence { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; }
+.sequence-row.silence .sequence-node-column { display: none; }
 .sequence-row.silence .sequence-row-node { width: 16px; height: 16px; margin-left: 10px; border: 4px solid var(--surface-raised); background: var(--muted-foreground); box-shadow: 0 0 0 1px var(--border); }
 
 .sequence-card { position: relative; min-height: 80px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; gap: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: calc(var(--radius) * 1.2); background: var(--surface-raised); box-shadow: var(--shadow-xs); transition: border-color 150ms, box-shadow 150ms, background 150ms; }
@@ -49,7 +49,7 @@
 .sequence-asset-icon { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; border-radius: 9px; background: var(--asset-soft); color: var(--asset); }
 .sequence-asset-icon svg { width: 17px; }
 
-.sequence-silence-card { justify-self: start; min-height: 38px; display: flex; align-items: center; gap: 8px; padding: 4px 5px 4px 9px; border: 1px dashed var(--border-strong); border-radius: var(--radius); background: var(--surface-subtle); color: var(--muted-foreground); font-size: var(--type-small); }
+.sequence-silence-card { justify-self: center; min-height: 38px; display: flex; align-items: center; gap: 8px; padding: 4px 5px 4px 9px; border: 1px dashed var(--border-strong); border-radius: var(--radius); background: var(--surface-subtle); color: var(--muted-foreground); font-size: var(--type-small); }
 .silence-open { width: auto !important; display: inline-flex; align-items: center; gap: 7px; padding: 0 2px 0 0; border: 0; color: var(--foreground); background: transparent; font-size: var(--type-small); }
 .silence-open:hover b { text-decoration: underline; text-underline-offset: 3px; }
 .silence-icon { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px; background: var(--muted); }
@@ -60,12 +60,12 @@
 .silence-cost { padding-left: 3px; color: var(--success); font-weight: 650; }
 .sequence-silence-card button { width: 30px; height: 30px; }
 
-.sequence-insert { position: relative; z-index: 8; display: block; height: 0; margin: -5px 0; }
-.sequence-insert-line { position: absolute; inset: 50% 0 auto; border-top: 1px solid transparent; transition: border-color 150ms; }
-.sequence-insert-trigger { position: absolute; z-index: 9; left: 50%; top: 50%; width: auto; height: 26px; padding: 0 9px; transform: translate(-50%, -50%); border-radius: 99px; opacity: 0; pointer-events: none; background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); transition: opacity 150ms, box-shadow 150ms; }
+.sequence-insert { position: relative; z-index: 8; display: block; height: 18px; margin: -4px 0; }
+.sequence-insert-line { position: absolute; inset: 50% 0 auto; border-top: 1px solid color-mix(in oklch, var(--border) 72%, transparent); transition: border-color 150ms; }
+.sequence-insert-trigger { position: absolute; z-index: 9; left: 50%; top: 50%; width: auto; height: 26px; padding: 0 9px; transform: translate(-50%, -50%); border-radius: 99px; opacity: 1; pointer-events: auto; background: var(--surface-raised); color: var(--muted-foreground); border-color: var(--border); box-shadow: 0 0 0 4px var(--background); transition: color 150ms, border-color 150ms, background 150ms, box-shadow 150ms; }
 .sequence-insert-trigger svg { width: 15px; flex: 0 0 auto; }
 .sequence-insert:hover .sequence-insert-line, .sequence-insert:focus-within .sequence-insert-line { border-color: color-mix(in oklch, var(--primary) 34%, var(--border)); }
-.sequence-insert:hover .sequence-insert-trigger, .sequence-insert:focus-within .sequence-insert-trigger { opacity: 1; pointer-events: auto; box-shadow: var(--shadow-sm); }
+.sequence-insert:hover .sequence-insert-trigger, .sequence-insert:focus-within .sequence-insert-trigger { color: var(--primary); border-color: color-mix(in oklch, var(--primary) 38%, var(--border)); background: var(--primary-soft); box-shadow: 0 0 0 4px var(--background), var(--shadow-sm); }
 .sequence-insert.last { height: 44px; margin: 0; }
 .sequence-insert.last .sequence-insert-trigger { top: 22px; opacity: 1; pointer-events: auto; background: var(--surface-raised); color: var(--foreground); border-color: var(--border); }
 .sequence-insert-menu { width: 290px; padding: 7px; }

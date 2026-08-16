@@ -228,6 +228,7 @@ class TimelineService:
                         f"Item {number}: {label} cannot be blank.")
             canonical_items.append({
                 "kind": "draft",
+                "authored_role": str(item["role"]),
                 "text": text,
                 "text_raw": text,
                 "text_shaped": None,

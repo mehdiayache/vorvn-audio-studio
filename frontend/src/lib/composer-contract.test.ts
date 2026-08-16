@@ -8,7 +8,7 @@ import {
   editorialBaseline,
   resolveSelectedRoute,
   routeSelection,
-  routeSelectionFromPersistedDraft,
+  routeSelectionFromPart,
   toGeneratePayload,
   type CompositionDraft,
 } from "./composer-contract"
@@ -110,10 +110,11 @@ describe("provider-neutral Composer contract", () => {
     expect(editorialBaseline(part)).toEqual({ partId: 9, revision: 4, script: "Current script" })
   })
 
-  it("restores exact routes only from an explicitly saved Draft, never a recorded Part", () => {
+  it("restores the exact saved route for Drafts and active recordings", () => {
     const routeFields = { binding_id: "binding-1", capability_id: "expressive_tags" }
-    expect(routeSelectionFromPersistedDraft({ kind: "speech", ...routeFields } as ProductionPart)).toBeNull()
-    expect(routeSelectionFromPersistedDraft({ kind: "draft", ...routeFields } as ProductionPart))
+    expect(routeSelectionFromPart({ kind: "speech", ...routeFields } as ProductionPart))
+      .toEqual({ kind: "owned", bindingId: "binding-1", capabilityId: "expressive_tags" })
+    expect(routeSelectionFromPart({ kind: "draft", ...routeFields } as ProductionPart))
       .toEqual({ kind: "owned", bindingId: "binding-1", capabilityId: "expressive_tags" })
   })
 })

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react"
-import { AudioLines, Captions, ChevronDown, ChevronUp, CircleAlert, Copy, GripVertical, MoreHorizontal, Pause, Pencil, Play, Trash2, Volume2, VolumeX } from "lucide-react"
+import { AudioLines, Captions, ChevronDown, ChevronUp, CircleAlert, Copy, GripVertical, Info, MoreHorizontal, Pause, Pencil, Play, Trash2, Volume2, VolumeX } from "lucide-react"
 
 import { AudioWaveform } from "@/components/audio-waveform"
 import type { SequenceActions } from "@/components/sequence-actions"
@@ -62,7 +62,7 @@ export function SpeechPartCard({ part, job, captionJob, index, count, playing, p
   const { ref: scriptRef, overflowing } = useRenderedScriptOverflow(facts.script, expanded)
   const openPart = () => actions.openPart(part)
   const openCaptions = () => onOpenCaptions ? onOpenCaptions() : actions.openPart(part, "captions")
-  const recordPart = () => actions.recordPart ? actions.recordPart(part) : openPart()
+  const editSpeech = () => actions.editSpeech ? actions.editSpeech(part) : openPart()
   const visibleAlerts = facts.alerts.filter((alert) => alert.key !== "draft")
   const identityKey = part.voice_identity_id || part.catalogue_voice_id || part.voice || part.public_id || String(part.id)
   const identityTone = Array.from(String(identityKey)).reduce((sum, character) => sum + character.charCodeAt(0), 0) % 4 + 2
@@ -91,7 +91,7 @@ export function SpeechPartCard({ part, job, captionJob, index, count, playing, p
             <Tooltip>
               <TooltipTrigger asChild><button className="speech-part-heading" onClick={openPart} aria-label={`Open details for part ${index + 1}`}>
                 <VoiceIdentity voice={part.catalogue_voice_id || part.voice || part.voice_name} identityId={part.voice_identity_id} directory={directory} compact showCopy={false} showEditorialFlag={false} />
-                <span className="speech-part-heading-copy"><b className="speech-part-voice-name"><span>{facts.selectedVoiceName}</span><VoiceGenderBadge gender={facts.voice.gender} /></b><span className="speech-part-method">{facts.methodLine}</span></span>
+                <span className="speech-part-heading-copy">{part.authored_role && <span className="speech-part-role">{part.authored_role}</span>}<b className="speech-part-voice-name"><span>{facts.selectedVoiceName}</span><VoiceGenderBadge gender={facts.voice.gender} /></b><span className="speech-part-method">{facts.methodLine}</span></span>
               </button></TooltipTrigger>
               <TooltipContent>{facts.technicalDetail || "Active recording method"}</TooltipContent>
             </Tooltip>
@@ -104,9 +104,9 @@ export function SpeechPartCard({ part, job, captionJob, index, count, playing, p
         </div>
         <div className="speech-part-top-actions">
           <Tooltip><TooltipTrigger asChild><Button variant={enabled ? "ghost" : "secondary"} size="icon" onClick={() => actions.setEnabled?.(part, !enabled)} aria-label={enabled ? `Exclude part ${index + 1} from output` : `Include part ${index + 1} in output`}>{enabled ? <Volume2 /> : <VolumeX />}</Button></TooltipTrigger><TooltipContent>{enabled ? "Exclude from preview and export" : "Include in preview and export"}</TooltipContent></Tooltip>
-          <Button variant="outline" size="sm" className="speech-part-edit" onClick={openPart} aria-label={`Edit part ${index + 1}`}><Pencil /> Edit</Button>
+          <Button variant="outline" size="sm" className="speech-part-edit" onClick={editSpeech} aria-label={`Edit part ${index + 1}`}><Pencil /> Edit</Button>
           <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Part actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={openPart}><Pencil />Open details</DropdownMenuItem>
+            <DropdownMenuItem onSelect={openPart}><Info />Details</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => actions.duplicate(part)}><Copy />Duplicate</DropdownMenuItem>
             <DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}><Trash2 />Delete part</DropdownMenuItem>
           </DropdownMenuContent></DropdownMenu>
@@ -133,7 +133,7 @@ export function SpeechPartCard({ part, job, captionJob, index, count, playing, p
         <SpeechOperationLane operation={facts.operation} onRetry={onRetryJob} onConfirm={onConfirmJob} />
         {facts.recorded && <span className="speech-part-spend" title={facts.spendSummary}>{facts.spendValue}</span>}
         <div className="speech-part-actions">
-          {!facts.recorded && <><Button variant="outline" size="sm" onClick={openPart}>Edit draft</Button><Button size="sm" onClick={recordPart}>Record</Button></>}
+          {!facts.recorded && <Button size="sm" onClick={editSpeech}>Generate</Button>}
         </div>
       </footer>
     </div>

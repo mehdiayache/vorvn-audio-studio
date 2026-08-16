@@ -11,7 +11,7 @@ export type SequenceActions = {
   editSilence: (part: ProductionPart, seconds: number) => void
   setEnabled?: (part: ProductionPart, enabled: boolean) => void
   openPart: (part: ProductionPart, tab?: PartDetailTab) => void
-  recordPart?: (part: ProductionPart) => void
+  editSpeech?: (part: ProductionPart) => void
 }
 
 export type InsertKind = "speech" | "asset" | "silence"

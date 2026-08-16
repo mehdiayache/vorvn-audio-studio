@@ -40,6 +40,14 @@ class AudioWorkspace:
         return StoredAudio(
             filename, str(target), len(normalized), self.duration_ms(target))
 
+    def discard(self, filename: str) -> None:
+        if not filename:
+            return
+        root = self.root
+        target = (root / Path(filename).name).resolve()
+        if target.parent == root:
+            target.unlink(missing_ok=True)
+
     @staticmethod
     def duration_ms(path: Path) -> int | None:
         if not path.is_file() or not shutil.which("ffprobe"):

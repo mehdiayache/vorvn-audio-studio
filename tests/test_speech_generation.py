@@ -25,9 +25,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class FakeRepository:
-    def __init__(self, *, spent=0, part=None):
+    def __init__(self, *, spent=0, part=None, replaced_filename=""):
         self.spent = spent
         self.current_part = part
+        self.replaced_filename = replaced_filename
         self.created = []
         self.replaced = []
 
@@ -59,7 +60,8 @@ class FakeRepository:
                     values):
         self.replaced.append(
             (part_id, production_id, expected_revision, values))
-        return {"attached": 1, "clip_id": 901, "subtitles_stale": 0}
+        return {"attached": 1, "clip_id": 901, "subtitles_stale": 0,
+                "replaced_filename": self.replaced_filename}
 
 
 class FakeProvider:
@@ -128,16 +130,23 @@ class RoutedFakeProvider(AlibabaSpeechProvider):
 class FakeWorkspace:
     def __init__(self):
         self.saved = []
+        self.discarded = []
 
     def save(self, audio, extension):
         self.saved.append((audio, extension))
         return StoredAudio("generated.mp3", "/safe/generated.mp3",
                            len(audio), 4_000)
 
+    def discard(self, filename):
+        self.discarded.append(filename)
+
 
 class FailingWorkspace:
     def save(self, _audio, _extension):
         raise OSError("disk unavailable")
+
+    def discard(self, _filename):
+        pass
 
 
 class FakeOperationsRepository:
@@ -299,6 +308,20 @@ class SpeechGenerationTests(unittest.TestCase):
         self.assertEqual(result["id"], 45)
         self.assertEqual(repository.replaced[0][0], 45)
 
+    def test_record_replaces_one_active_clip_only_after_generation_succeeds(self):
+        repository = FakeRepository(
+            part={**existing("speech"), "clip_id": 73},
+            replaced_filename="previous.mp3",
+        )
+        service, _, _, workspace = self.service(repository=repository)
+
+        result = service.run(payload(
+            operation="record", production_id=12, part_id=45,
+            text="Updated recording"))
+
+        self.assertEqual(result["clip_id"], 901)
+        self.assertEqual(workspace.discarded, ["previous.mp3"])
+
     def test_record_uses_the_enqueue_revision_and_script_snapshot(self):
         repository = FakeRepository(part={
             **existing("speech"),
@@ -351,7 +374,7 @@ class SpeechGenerationTests(unittest.TestCase):
 
         repository = FakeRepository(part=existing("audio"))
         service, _, provider, workspace = self.service(repository=repository)
-        with self.assertRaisesRegex(ValueError, "already been recorded"):
+        with self.assertRaisesRegex(ValueError, "cannot contain speech"):
             service.run(payload(operation="record", production_id=12,
                                 part_id=4))
         self.assertEqual((provider.calls, workspace.saved), ([], []))

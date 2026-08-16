@@ -53,7 +53,7 @@ class ProductionDocumentRepository:
                    NULL::bigint, editorial_status, revision,
                    (SELECT clip.id FROM clips clip WHERE clip.part_id = production_parts.id),
                    asset_id, asset_version_id, duration_ms, created_at, updated_at,
-                   enabled
+                   enabled, authored_role
               FROM production_parts
              WHERE id = %s AND production_id = %s AND archived_at IS NULL
         """ + (" FOR UPDATE" if lock else ""), (part_id, production_id))
@@ -147,6 +147,7 @@ class ProductionDocumentRepository:
             "asset_version_id": row[12], "duration_ms": row[13],
             "created_at": row[14], "updated_at": row[15],
             "enabled": bool(row[16]),
+            "authored_role": row[17],
             "filename": clip[0] if clip else "",
             "voice": (clip[1] or (clip[3] or {}).get("voice")) if clip else "",
             "voice_name": (clip[4] or (clip[3] or {}).get("voice_name")) if clip else "",
@@ -203,7 +204,8 @@ class ProductionDocumentRepository:
                        caption_job.created_at, caption_job.started_at,
                        caption_job.finished_at, caption_job.payload,
                        caption_job.result, clip.capability_name_snapshot,
-                       captions.source_language, part.enabled
+                       captions.source_language, part.enabled,
+                       part.authored_role
                   FROM production_parts part
                   LEFT JOIN composition_drafts draft ON draft.part_id = part.id
                   LEFT JOIN clips clip ON clip.part_id = part.id
@@ -354,6 +356,7 @@ class ProductionDocumentRepository:
                 "languages": sorted(set(row[38] or [])),
                 "caption_source_language": row[83],
                 "enabled": bool(row[84]),
+                "authored_role": row[85],
             }
             if row[41]:
                 request = {
@@ -451,7 +454,7 @@ class ProductionDocumentRepository:
         self, production_id: int, items: list[dict[str, Any]],
         voice_identity_ids: set[str],
     ) -> dict[str, int] | None:
-        """Append one import atomically; no role or import state is persisted."""
+        """Append one import atomically with optional authored role labels."""
         with transaction() as cursor:
             if not self._production_exists(cursor, production_id, lock=True):
                 return None
@@ -482,8 +485,8 @@ class ProductionDocumentRepository:
                 cursor.execute("""
                     INSERT INTO production_parts
                         (production_id, position, kind, script, title,
-                         editorial_status, duration_ms)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s)
+                         editorial_status, duration_ms, authored_role)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
                     RETURNING id
                 """, (
                     production_id, position + offset, kind,
@@ -491,6 +494,7 @@ class ProductionDocumentRepository:
                     str(values.get("title") or ""),
                     "draft" if kind == "draft" else "ready",
                     values.get("duration_ms"),
+                    values.get("authored_role"),
                 ))
                 part_id = int(cursor.fetchone()[0])
                 if kind == "draft":
@@ -772,10 +776,11 @@ class ProductionDocumentRepository:
             cursor.execute("""
                 INSERT INTO production_parts
                     (production_id, position, kind, script, title,
-                     editorial_status, asset_id, asset_version_id, duration_ms)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
+                     editorial_status, asset_id, asset_version_id, duration_ms,
+                     authored_role)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
             """, (production_id, position, row[4], row[5], row[6],
-                  row[8], row[11], row[12], row[13]))
+                  row[8], row[11], row[12], row[13], row[17]))
             new_id = int(cursor.fetchone()[0])
             if row[10]:
                 cursor.execute("""

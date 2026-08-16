@@ -49,6 +49,7 @@ function actions() {
   return {
     play: vi.fn(), duplicate: vi.fn(), remove: vi.fn(), move: vi.fn(),
     moveToPosition: vi.fn(), editSilence: vi.fn(), openPart: vi.fn(),
+    editSpeech: vi.fn(),
   }
 }
 
@@ -87,13 +88,16 @@ describe("SpeechPartCard", () => {
     expect(screen.getByText("RECORDING · GENERATING 68%")).toBeTruthy()
   })
 
-  it("keeps the result lane focused and does not offer recording replacement", () => {
-    const { container } = renderCard(<SpeechPartCard part={part()} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={{ ...actions(), recordPart: vi.fn() }} />)
+  it("opens the Composer from Edit and keeps technical details separate", () => {
+    const actionSet = actions()
+    const { container } = renderCard(<SpeechPartCard part={part()} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
     const footer = container.querySelector(".speech-part-result")
     expect(footer?.contains(screen.getByRole("button", { name: /play part/i }))).toBe(true)
-    expect(screen.queryByRole("button", { name: /New Clip/i })).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "Edit part 1" }))
+    expect(actionSet.editSpeech).toHaveBeenCalledWith(expect.objectContaining({ id: 7 }))
+    expect(actionSet.openPart).not.toHaveBeenCalled()
     fireEvent.pointerDown(screen.getByRole("button", { name: "Part actions" }), { button: 0, ctrlKey: false })
-    expect(screen.queryByRole("menuitem", { name: /Replace recording/i })).toBeNull()
+    expect(screen.getByRole("menuitem", { name: "Details" })).toBeTruthy()
     expect(container.querySelector(".speech-operation-lane")).toBeNull()
     expect(screen.queryByText("Direct voice")).toBeNull()
   })
@@ -106,18 +110,20 @@ describe("SpeechPartCard", () => {
     expect(actionSet.play).toHaveBeenCalledWith(expect.objectContaining({ title: "Part 02" }))
   })
 
-  it("gives drafts their own truthful actions and zero-duration state", () => {
+  it("gives drafts a visible role and direct Edit and Generate actions", () => {
     const actionSet = actions()
-    renderCard(<SpeechPartCard part={part({ kind: "draft", clip_id: null, filename: "", duration_ms: 9000 })} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
+    renderCard(<SpeechPartCard part={part({ kind: "draft", authored_role: "Esther", clip_id: null, filename: "", duration_ms: 9000 })} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
     expect(screen.getByText("Not recorded")).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Edit draft" }))
-    fireEvent.click(screen.getByRole("button", { name: "Record" }))
-    expect(actionSet.openPart).toHaveBeenCalledTimes(2)
+    expect(screen.getByText("Esther")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Edit part 1" }))
+    fireEvent.click(screen.getByRole("button", { name: "Generate" }))
+    expect(actionSet.editSpeech).toHaveBeenCalledTimes(2)
+    expect(actionSet.openPart).not.toHaveBeenCalled()
     expect(screen.queryByRole("button", { name: /play part/i })).toBeNull()
   })
 
   it("routes captions to the explicit Production target without a replacement action", () => {
-    const actionSet = { ...actions(), recordPart: vi.fn() }
+    const actionSet = actions()
     const onOpenCaptions = vi.fn()
     const sourcePart = part()
     renderCard(<SpeechPartCard part={sourcePart} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} onOpenCaptions={onOpenCaptions} actions={actionSet} />)
@@ -126,7 +132,7 @@ describe("SpeechPartCard", () => {
 
     expect(onOpenCaptions).toHaveBeenCalledOnce()
     expect(actionSet.openPart).not.toHaveBeenCalled()
-    expect(actionSet.recordPart).not.toHaveBeenCalled()
+    expect(actionSet.editSpeech).not.toHaveBeenCalled()
   })
 
   it("toggles durable output inclusion without deleting the recording", () => {

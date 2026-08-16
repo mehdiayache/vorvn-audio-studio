@@ -120,8 +120,8 @@ export function routeSelection(route: VoiceChoice, capabilityId?: string | null)
   throw new Error("That voice option does not contain an exact provider route.")
 }
 
-export function routeSelectionFromPersistedDraft(part?: ProductionPart | null): RouteSelection | null {
-  if (part?.kind !== "draft") return null
+export function routeSelectionFromPart(part?: ProductionPart | null): RouteSelection | null {
+  if (!part || !["draft", "speech", "audio"].includes(part.kind)) return null
   if (part.binding_id) return { kind: "owned", bindingId: part.binding_id, capabilityId: part.capability_id || null }
   if (part.catalogue_voice_id) return { kind: "catalogue", catalogueVoiceId: part.catalogue_voice_id, capabilityId: part.capability_id || null }
   return null

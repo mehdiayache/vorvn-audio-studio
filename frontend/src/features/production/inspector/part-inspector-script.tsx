@@ -1,4 +1,4 @@
-import { Check, CircleAlert, Clock3, Columns2, Copy, FileAudio, Mic2, Pause, Play, Plus, Trash2 } from "lucide-react"
+import { Check, CircleAlert, Clock3, Columns2, Copy, FileAudio, Mic2, Pause, Pencil, Play, Trash2 } from "lucide-react"
 import { useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -35,7 +35,6 @@ export function PartInspectorScript({ part, directory, currentPlaying, onPlay, o
   const [compareOpen, setCompareOpen] = useState(false)
   const currentKey = `part:${part.id}`
   const recorded = Boolean(part.clip_id)
-  const draft = part.kind === "draft"
   const silence = part.kind === "silence"
   const asset = part.kind === "asset"
   const clipWording = recordingWording(part)
@@ -48,7 +47,7 @@ export function PartInspectorScript({ part, directory, currentPlaying, onPlay, o
       <div className="inspector-summary-copy">{silence ? <><b>Intentional silence</b><p>Editorial timing · {formatExactDurationMs(Number(part.duration_ms || 0))}</p></> : asset ? <><b>{part.title || "Venture audio"}</b><p>Linked Venture asset · {formatDuration(Number(part.duration_ms || 0) / 1000)}</p></> : <><VoiceIdentity voice={part.voice} identityId={part.voice_identity_id} directory={directory} compact /><p>{recorded ? `Active recording · ${formatDuration(Number(part.duration_ms || 0) / 1000)} · ${formatMoney(part.spent ?? part.cost)}` : `Draft speech · revision ${part.revision || 1}`}</p></>}</div>
       <div className="inspector-summary-actions">
         {part.filename && <Button variant="outline" size="icon" aria-label={currentPlaying ? "Pause current part" : "Play current part"} onClick={() => onPlay({ key: currentKey, url: audioUrl(part.filename!), title: formatPartLabel(part.position ?? 0), subtitle: asset ? "Linked Venture asset" : voiceName, kind: asset ? "asset" : "clip" })}>{currentPlaying ? <Pause /> : <Play />}</Button>}
-        {draft && <Button variant="outline" onClick={() => onRecordPart(part)}><Plus /> Record draft</Button>}
+        {!silence && !asset && <Button variant="outline" onClick={() => onRecordPart(part)}><Pencil /> Edit in Composer</Button>}
       </div>
     </div>
 

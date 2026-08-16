@@ -19,6 +19,9 @@ from audio_studio.http.routers import timeline as timeline_router
 from audio_studio.infrastructure.postgres.production_document import (
     ProductionDocumentRepository,
 )
+from audio_studio.infrastructure.postgres.speech import (
+    SpeechRepository as PostgresSpeechRepository,
+)
 from audio_studio.infrastructure.postgres.timeline import PostgresTimelineRecords
 
 
@@ -137,6 +140,7 @@ class ProductionImportTests(unittest.TestCase):
         drafts = [part for part in parts if part["kind"] == "draft"]
         for source, draft in zip(speech_items, drafts, strict=True):
             self.assertEqual(draft["text"], source["text"])
+            self.assertEqual(draft["authored_role"], source["role"])
             self.assertEqual(draft["text_raw"], source["text"])
             self.assertIsNone(draft["text_shaped"])
             self.assertIsNone(draft["text_tagged"])
@@ -169,11 +173,14 @@ class ProductionImportTests(unittest.TestCase):
                 )
                 self.assertEqual(cursor.fetchone()[0], 0)
                 cursor.execute(
-                    "SELECT state ? 'role' FROM composition_drafts "
-                    "WHERE production_id=%s",
+                    "SELECT authored_role FROM production_parts "
+                    "WHERE production_id=%s AND kind='draft' ORDER BY position",
                     (self.production["id"],),
                 )
-                self.assertTrue(all(not row[0] for row in cursor.fetchall()))
+                self.assertEqual(
+                    [row[0] for row in cursor.fetchall()],
+                    [item["role"] for item in speech_items],
+                )
 
     def test_invalid_document_and_missing_mapping_mutate_nothing(self):
         invalid = json.loads(json.dumps(self.document))
@@ -197,6 +204,42 @@ class ProductionImportTests(unittest.TestCase):
             self.timeline.import_document(
                 self.production["id"], self.document, mappings)
         self.assertEqual(self._active_part_count(), 0)
+
+    def test_recording_again_atomically_keeps_one_active_clip(self):
+        self.timeline.import_document(
+            self.production["id"], self.document, self.identity_ids)
+        part = next(item for item in self.repository.parts(
+            self.production["id"]) if item["kind"] == "draft")
+        speech = PostgresSpeechRepository()
+
+        def recording(filename: str, text: str) -> dict:
+            return {
+                "text": text, "text_raw": part["text"],
+                "text_state": "raw", "filename": filename,
+                "path": f"/fixture/{filename}", "size_bytes": 12,
+                "duration_ms": 1200, "format": "mp3",
+                "language": "English", "voice": "fixture-voice",
+                "model": "fixture-model", "tier": "fixture",
+            }
+
+        first = speech.attach_clip(
+            part["id"], self.production["id"], part["revision"],
+            recording("first.mp3", part["text"]))
+        second = speech.attach_clip(
+            part["id"], self.production["id"], part["revision"],
+            recording("second.mp3", part["text"]))
+
+        self.assertEqual(first["replaced_filename"], "")
+        self.assertEqual(second["replaced_filename"], "first.mp3")
+        with psycopg.connect(settings.database_url) as database:
+            rows = database.execute(
+                "SELECT id,filename FROM clips WHERE part_id=%s",
+                (part["id"],),
+            ).fetchall()
+        self.assertEqual(rows, [(second["clip_id"], "second.mp3")])
+        recorded = self.repository.parts(self.production["id"])[0]
+        self.assertEqual(recorded["authored_role"],
+                         self.document["items"][0]["role"])
 
 
 class ProductionImportHttpTests(unittest.TestCase):

@@ -6,7 +6,8 @@ import { useComposer } from "./composer-controller"
 function primaryLabel(composer: ReturnType<typeof useComposer>) {
   if (composer.busy === "generate") return "Generating…"
   if (!composer.productionId) return "Create recording"
-  if (composer.part) return `Record Part ${(composer.part.position ?? 0) + 1}`
+  if (composer.part?.clip_id) return "Generate again"
+  if (composer.part) return `Generate Part ${(composer.part.position ?? 0) + 1}`
   return `Generate and add Part ${composer.insertAt === null ? composer.nextPartNumber : composer.insertAt + 1}`
 }
 

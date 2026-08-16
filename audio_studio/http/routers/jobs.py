@@ -227,7 +227,7 @@ def create_speech_job(payload: SpeechJobCreate,
             values, idempotency_key=key,
             production_id=payload.production_id,
             before_part_public_id=before_part,
-            operation_label=("Record Part" if payload.part_id
+            operation_label=("Generate Part" if payload.part_id
                              else "Generate and add Part"))
     else:
         job, created = job_service.enqueue(
