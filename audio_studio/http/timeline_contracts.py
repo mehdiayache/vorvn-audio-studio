@@ -62,6 +62,15 @@ class DeletedPartsEnvelope(BaseModel):
     data: DeletedPartsResponse
 
 
+class DeletedClipResponse(BaseModel):
+    deleted: bool
+    part_id: int
+
+
+class DeletedClipEnvelope(BaseModel):
+    data: DeletedClipResponse
+
+
 class MovedPartsResponse(BaseModel):
     moved: int
 

@@ -1,8 +1,9 @@
-import { FileAudio2, Plus, Settings2, Unlink, UserRound } from "lucide-react"
+import { FileAudio2, Plus, Settings2, Trash2, Unlink, UserRound } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { DeleteProductionDialog } from "@/components/delete-production-dialog"
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -12,7 +13,7 @@ import {
 } from "@/components/ui/select"
 import { useVoiceDirectory } from "@/hooks/use-voice-directory"
 import { studioApi } from "@/lib/api"
-import type { SeriesOverview } from "@/types/domain"
+import type { ProductionSummary, SeriesOverview } from "@/types/domain"
 import { CreateResourceDialog } from "./create-resource-dialog"
 import { ResourceManage } from "./resource-manage"
 import {
@@ -28,6 +29,7 @@ export function SeriesPage({ data, refresh }: { data: SeriesOverview; refresh: (
   const [language, setLanguage] = useState(String(data.defaults.language || ""))
   const [voiceIdentityId, setVoiceIdentityId] = useState(String(data.defaults.voice_identity_id || ""))
   const [savingDefaults, setSavingDefaults] = useState(false)
+  const [deleting, setDeleting] = useState<ProductionSummary | null>(null)
   const voices = useVoiceDirectory()
   const series = data.resource
   const parent = { id: series.id, type: "series" as const, name: series.name }
@@ -133,6 +135,9 @@ export function SeriesPage({ data, refresh }: { data: SeriesOverview; refresh: (
                         <DropdownMenuItem onSelect={() => void makeStandalone(production.id, production.name)}>
                           <Unlink /> Make standalone
                         </DropdownMenuItem>
+                        <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(production)}>
+                          <Trash2 /> Delete Production permanently
+                        </DropdownMenuItem>
                       </ProductionMenu>
                     )}
                   />
@@ -156,6 +161,7 @@ export function SeriesPage({ data, refresh }: { data: SeriesOverview; refresh: (
         onOpenChange={setCreating}
         onCreated={refresh}
       />
+      <DeleteProductionDialog production={deleting} open={Boolean(deleting)} onOpenChange={(open) => { if (!open) setDeleting(null) }} onDeleted={() => { setDeleting(null); refresh() }} />
       <Dialog
         open={editingDefaults}
         onOpenChange={(open) => { if (!savingDefaults) setEditingDefaults(open) }}

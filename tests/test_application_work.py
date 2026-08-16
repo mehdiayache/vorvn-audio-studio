@@ -12,6 +12,7 @@ class Records:
         self.created = []
         self.moved = []
         self.updated = []
+        self.deleted_productions = []
 
     @staticmethod
     def hierarchy():
@@ -104,11 +105,24 @@ class Records:
     def archive_resource(kind, resource_id):
         return {"id": resource_id, "type": kind, "archived": True}
 
+    def delete_production(self, resource_id):
+        self.deleted_productions.append(resource_id)
+        return ["clip.mp3", "/audio/preview.mp3"]
+
+
+class Workspace:
+    def __init__(self):
+        self.discarded = []
+
+    def discard(self, filename):
+        self.discarded.append(filename)
+
 
 class WorkServiceTests(unittest.TestCase):
     def setUp(self):
         self.records = Records()
-        self.service = WorkService(self.records)
+        self.workspace = Workspace()
+        self.service = WorkService(self.records, self.workspace)
 
     def test_new_venture_initializes_its_static_asset_collections(self):
         created = self.service.create("ventures", None, "Heartsnotes")
@@ -154,6 +168,16 @@ class WorkServiceTests(unittest.TestCase):
         self.assertEqual(self.records.moved, [(6, 4)])
         self.assertEqual(self.records.updated[-1],
                          ("production", 6, {"name": "Renamed"}))
+
+    def test_production_remove_is_permanent_and_discards_owned_media(self):
+        self.assertEqual(self.service.remove("productions", 6), {
+            "id": 6, "type": "production", "deleted": True,
+        })
+        self.assertEqual(self.records.deleted_productions, [6])
+        self.assertEqual(
+            self.workspace.discarded,
+            ["clip.mp3", "/audio/preview.mp3"],
+        )
 
 
 if __name__ == "__main__":

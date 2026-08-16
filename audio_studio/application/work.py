@@ -47,11 +47,17 @@ class WorkRecords(Protocol):
         self, series_id: int, make_standalone: bool,
     ) -> dict | None: ...
     def archive_resource(self, kind: str, resource_id: int) -> dict | None: ...
+    def delete_production(self, resource_id: int) -> list[str] | None: ...
+
+
+class WorkWorkspace(Protocol):
+    def discard(self, filename: str) -> None: ...
 
 
 class WorkService:
-    def __init__(self, records: WorkRecords):
+    def __init__(self, records: WorkRecords, workspace: WorkWorkspace):
         self.records = records
+        self.workspace = workspace
 
     def hierarchy(self) -> list[dict[str, Any]]:
         return self.records.hierarchy()
@@ -189,4 +195,11 @@ class WorkService:
         kind = KINDS[collection]
         if kind == "series":
             return self.records.delete_series(resource_id, make_standalone)
+        if kind == "production":
+            files = self.records.delete_production(resource_id)
+            if files is None:
+                return None
+            for filename in files:
+                self.workspace.discard(filename)
+            return {"id": resource_id, "type": "production", "deleted": True}
         return self.records.archive_resource(kind, resource_id)

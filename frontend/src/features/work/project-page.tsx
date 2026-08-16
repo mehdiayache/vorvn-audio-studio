@@ -1,11 +1,12 @@
 import {
-  ChevronDown, FileAudio2, Layers3, Plus, Rows3, Unlink,
+  ChevronDown, FileAudio2, Layers3, Plus, Rows3, Trash2, Unlink,
 } from "lucide-react"
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { DeleteProductionDialog } from "@/components/delete-production-dialog"
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -101,9 +102,11 @@ function MoveProductionDialog({
 function RowWithMove({
   production,
   onMove,
+  onDelete,
 }: {
   production: ProductionSummary
   onMove: (production: ProductionSummary) => void
+  onDelete: (production: ProductionSummary) => void
 }) {
   return (
     <ProductionRow
@@ -112,6 +115,9 @@ function RowWithMove({
         <ProductionMenu label={`Actions for ${production.name}`}>
           <ProductionMenuItem onSelect={() => onMove(production)}>
             <Rows3 /> Move Production
+          </ProductionMenuItem>
+          <ProductionMenuItem variant="destructive" onSelect={() => onDelete(production)}>
+            <Trash2 /> Delete Production permanently
           </ProductionMenuItem>
         </ProductionMenu>
       )}
@@ -122,9 +128,11 @@ function RowWithMove({
 function SeriesGroup({
   series,
   onMove,
+  onDelete,
 }: {
   series: ProjectSeries
   onMove: (production: ProductionSummary) => void
+  onDelete: (production: ProductionSummary) => void
 }) {
   const productions = series.productions || []
   return (
@@ -143,7 +151,7 @@ function SeriesGroup({
       <div className="series-group-productions">
         {productions.length
           ? productions.map((production) => (
-            <RowWithMove production={production} onMove={onMove} key={production.id} />
+            <RowWithMove production={production} onMove={onMove} onDelete={onDelete} key={production.id} />
           ))
           : (
             <div className="project-group-empty">
@@ -160,6 +168,7 @@ export function ProjectPage({ data, refresh }: { data: ProjectOverview; refresh:
   const navigate = useNavigate()
   const [creating, setCreating] = useState<CreateKind | null>(null)
   const [moving, setMoving] = useState<ProductionSummary | null>(null)
+  const [deleting, setDeleting] = useState<ProductionSummary | null>(null)
   const project = data.resource
   const venture = data.trail.find((item) => item.type === "venture")
   const editableProject = {
@@ -234,7 +243,7 @@ export function ProjectPage({ data, refresh }: { data: ProjectOverview; refresh:
         ) : (
           <>
             {data.series.map((series) => (
-              <SeriesGroup series={series} onMove={setMoving} key={series.id} />
+              <SeriesGroup series={series} onMove={setMoving} onDelete={setDeleting} key={series.id} />
             ))}
             {data.standalone_productions.length > 0 && (
               <section className="project-standalone-group">
@@ -244,7 +253,7 @@ export function ProjectPage({ data, refresh }: { data: ProjectOverview; refresh:
                 </header>
                 <div className="series-group-productions">
                   {data.standalone_productions.map((production) => (
-                    <RowWithMove production={production} onMove={setMoving} key={production.id} />
+                    <RowWithMove production={production} onMove={setMoving} onDelete={setDeleting} key={production.id} />
                   ))}
                 </div>
               </section>
@@ -268,6 +277,7 @@ export function ProjectPage({ data, refresh }: { data: ProjectOverview; refresh:
         onOpenChange={(open) => { if (!open) setMoving(null) }}
         refresh={refresh}
       />
+      <DeleteProductionDialog production={deleting} open={Boolean(deleting)} onOpenChange={(open) => { if (!open) setDeleting(null) }} onDeleted={() => { setDeleting(null); refresh() }} />
     </main>
   )
 }

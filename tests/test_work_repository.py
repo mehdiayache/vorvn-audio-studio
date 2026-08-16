@@ -119,6 +119,30 @@ class WorkRepositoryTests(unittest.TestCase):
         self.assertIsNone(work.resource("projects", project["id"]))
         self.assertIsNone(work.resource("productions", production["id"]))
 
+    def test_production_delete_is_permanent_not_archival(self):
+        venture_id = int(self.venture["id"])
+        project = work.create(
+            "projects", venture_id, f"Delete project {self.marker}")
+        production = work.create(
+            "productions", project["id"], f"Delete production {self.marker}")
+        self.created_project_rows.extend([project["id"], production["id"]])
+
+        deleted = work.remove("productions", production["id"])
+
+        self.assertEqual(deleted, {
+            "id": production["id"], "type": "production", "deleted": True,
+        })
+        self.assertIsNone(work.resource("productions", production["id"]))
+        with psycopg.connect(settings.database_url) as database:
+            self.assertIsNone(database.execute(
+                "SELECT id FROM productions WHERE id=%s",
+                (production["id"],),
+            ).fetchone())
+            self.assertIsNone(database.execute(
+                "SELECT id FROM projects WHERE id=%s",
+                (production["id"],),
+            ).fetchone())
+
 
 if __name__ == "__main__":
     unittest.main()

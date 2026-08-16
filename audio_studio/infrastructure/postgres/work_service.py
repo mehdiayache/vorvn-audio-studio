@@ -133,3 +133,7 @@ class PostgresWorkRecords:
     @staticmethod
     def archive_resource(kind: str, resource_id: int) -> dict | None:
         return work.archive_resource(kind, resource_id)
+
+    @staticmethod
+    def delete_production(resource_id: int) -> list[str] | None:
+        return work.delete_production(resource_id)

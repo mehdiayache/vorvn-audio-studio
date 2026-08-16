@@ -1,7 +1,9 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import type { ToolKind } from "@/components/production-tools"
 import type { PartDetailTab, SequenceActions } from "@/components/sequence-actions"
 import { ProductionEditorCanvas } from "@/features/production/production-editor-canvas"
+import { DeleteProductionDialog } from "@/components/delete-production-dialog"
 import { MovePartPositionDialog } from "@/features/production/move-part-position-dialog"
 import type { ConfirmAction } from "@/features/production/production-overlays"
 import { useGlobalPlayer } from "@/components/global-player-provider"
@@ -17,6 +19,7 @@ import type { ProductionStageMode } from "@/features/production/production-stage
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { partDurationMs } from "@/lib/format"
 import { studioApi } from "@/lib/api"
+import { audioStudioBase } from "@/lib/links"
 import { loadPartCaptionTracks, loadProductionCaptionTracks } from "@/lib/production-caption-tracks"
 import type { AssetCollection, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, MusicBed, PlayerCaptionTrack, PlayerSource, Production, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
 
@@ -58,6 +61,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   refresh: () => Promise<void>
   refreshAssets: () => Promise<void>
 }) {
+  const navigate = useNavigate()
   const [activeStage, setActiveStage] = useState<ActiveProductionStage | null>(() => initialPartStage(production))
   const [explorerOpen, setExplorerOpen] = useState(false)
   const [commandsOpen, setCommandsOpen] = useState(false)
@@ -68,6 +72,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const [movePositionPart, setMovePositionPart] = useState<ProductionPart | null>(null)
   const [captionPart, setCaptionPart] = useState<ProductionPart | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
+  const [deleteProductionOpen, setDeleteProductionOpen] = useState(false)
   const stageOrigin = useRef<HTMLElement | null>(null)
   const mobile = useMediaQuery("(max-width: 48rem)")
   const player = useGlobalPlayer()
@@ -263,6 +268,15 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     play: (source) => void playSource(source),
     duplicate: (part) => void actions.duplicatePart(part),
     remove: (part) => setConfirmAction({ title: "Delete this part?", description: "It will be removed from this Production. The reusable Venture source, if any, is not deleted.", action: () => void actions.deletePart(part) }),
+    deleteRecording: (part) => setConfirmAction({
+      title: "Delete this recording permanently?",
+      description: "The audio file and its captions will be permanently deleted. The Speech Part, script, role and Voice setup will remain so you can record it again. Provider charges already incurred cannot be undone.",
+      confirmLabel: "Delete recording",
+      action: () => {
+        if (player.source?.key === `part:${part.id}`) player.pause()
+        void actions.deleteClip(part)
+      },
+    }),
     move: actions.movePart,
     moveToPosition: setMovePositionPart,
     editSilence: (part, seconds) => void actions.editSilence(part, seconds),
@@ -301,6 +315,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       onTool={openTool}
       onPreview={actions.toggleProduction}
       onOpenMixExport={openMixExport}
+      onDeleteProduction={() => setDeleteProductionOpen(true)}
       onCloseStage={closeStage}
       onLocate={locate}
       onSeekProduction={player.seek}
@@ -314,6 +329,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       sequenceActions={sequenceActions}
     />
     <MovePartPositionDialog part={movePositionPart} count={sourceParts.length} onClose={() => setMovePositionPart(null)} onMove={actions.movePartToPosition} />
+    <DeleteProductionDialog production={production} open={deleteProductionOpen} onOpenChange={setDeleteProductionOpen} onDeleted={() => { player.pause(); navigate(`${audioStudioBase}/projects/${production.project_id}`) }} />
     <PartCaptionsDialog productionId={production.id} part={activeCaptionPart} directory={directory} onOpenChange={(open) => { if (!open) closeCaptions() }} onChanged={captionChanged} />
     {overlaysOpen && <Suspense fallback={null}>
       <ProductionOverlays

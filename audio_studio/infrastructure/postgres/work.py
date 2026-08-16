@@ -565,8 +565,84 @@ def archive_resource(kind: str, resource_id: int) -> dict[str, Any] | None:
                         (resource_id,))
             cur.execute("UPDATE series SET archived_at = now(), updated_at = now() WHERE id = %s", (resource_id,))
         else:
-            cur.execute("UPDATE productions SET archived_at = now(), status = 'archived', updated_at = now() WHERE id = %s", (resource_id,))
+            raise DomainValidation(
+                "Productions are permanently deleted; archival is not supported.")
     return {"id": resource_id, "type": kind, "archived": True}
+
+
+def delete_production(resource_id: int) -> list[str] | None:
+    """Permanently remove one Production and only its owned local media."""
+    with transaction() as cur:
+        cur.execute("""
+            SELECT legacy_container_id FROM productions
+             WHERE id=%s FOR UPDATE
+        """, (resource_id,))
+        production = cur.fetchone()
+        if not production:
+            return None
+        legacy_container_id = int(production[0])
+        cur.execute("""
+            SELECT filename FROM clips
+             WHERE part_id IN (
+                SELECT id FROM production_parts WHERE production_id=%s)
+               AND filename<>''
+            UNION
+            SELECT filename FROM exports
+             WHERE production_id=%s AND filename<>''
+            UNION
+            SELECT filename FROM generations
+             WHERE project_id=%s AND filename<>''
+        """, (resource_id, resource_id, legacy_container_id))
+        files = [str(row[0]) for row in cur.fetchall() if row[0]]
+        cur.execute("""
+            SELECT result->>'name', result->>'filename', result->>'url'
+              FROM jobs
+             WHERE production_id=%s OR project_id=%s
+                OR part_id IN (
+                    SELECT id FROM production_parts WHERE production_id=%s)
+        """, (resource_id, legacy_container_id, resource_id))
+        for row in cur.fetchall():
+            files.extend(str(value) for value in row if value)
+
+        cur.execute("""
+            DELETE FROM audit_records
+             WHERE (resource_type='production' AND resource_id IN (
+                        SELECT public_id::text FROM productions WHERE id=%s))
+                OR (resource_type='production_part' AND resource_id IN (
+                        SELECT public_id::text FROM production_parts
+                         WHERE production_id=%s))
+        """, (resource_id, resource_id))
+        cur.execute("""
+            DELETE FROM transcripts
+             WHERE part_id IN (
+                SELECT id FROM production_parts WHERE production_id=%s)
+                OR source_job_id IN (
+                    SELECT id FROM jobs
+                     WHERE production_id=%s OR project_id=%s
+                        OR part_id IN (
+                            SELECT id FROM production_parts
+                             WHERE production_id=%s))
+        """, (resource_id, resource_id, legacy_container_id, resource_id))
+        cur.execute("""
+            DELETE FROM provider_attempts
+             WHERE job_id IN (
+                SELECT id FROM jobs
+                 WHERE production_id=%s OR project_id=%s
+                    OR part_id IN (
+                        SELECT id FROM production_parts
+                         WHERE production_id=%s))
+        """, (resource_id, legacy_container_id, resource_id))
+        cur.execute("""
+            DELETE FROM jobs
+             WHERE production_id=%s OR project_id=%s
+                OR part_id IN (
+                    SELECT id FROM production_parts WHERE production_id=%s)
+        """, (resource_id, legacy_container_id, resource_id))
+        cur.execute("DELETE FROM generations WHERE project_id=%s",
+                    (legacy_container_id,))
+        cur.execute("DELETE FROM productions WHERE id=%s", (resource_id,))
+        cur.execute("DELETE FROM projects WHERE id=%s", (legacy_container_id,))
+        return list(dict.fromkeys(files))
 
 
 def delete_series(series_id: int, make_standalone: bool = False) -> dict[str, Any] | None:

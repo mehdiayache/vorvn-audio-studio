@@ -224,8 +224,10 @@ export const studioApi = {
     request<{ data: T }>(`/api/v1/${type}/${id}`, { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
   uploadProjectCover: (file: File) => uploadFile<{ data: UploadedImage }>("/api/v1/project-covers/upload", file).then((response) => response.data),
   uploadVentureLogo: (file: File) => uploadFile<{ data: UploadedImage }>("/api/v1/venture-logos/upload", file).then((response) => response.data),
-  archiveResource: (type: "ventures" | "projects" | "series" | "productions", id: number) =>
+  archiveResource: (type: "ventures" | "projects" | "series", id: number) =>
     request<{ data: unknown }>(`/api/v1/${type}/${id}${type === "series" ? "?strategy=make_standalone" : ""}`, { method: "DELETE" }),
+  deleteProduction: (id: number) =>
+    request<{ data: { id: number; type: "production"; deleted: boolean } }>(`/api/v1/productions/${id}`, { method: "DELETE" }).then((response) => response.data),
   music: (id: number) => v1<MusicBed>(`/api/v1/productions/${id}/music`),
   assets: (id: number) => v1<{ assets?: VentureAsset[]; collections?: AssetCollection[] }>(`/api/v1/productions/${id}/assets`),
   preview: async (id: number) => {
@@ -254,6 +256,8 @@ export const studioApi = {
   deletePart: (productionId: number, id: number) =>
     request<TimelineDeleteEnvelope>(`/api/v1/productions/${productionId}/parts`, { method: "DELETE", body: JSON.stringify({ ids: [id] }) }).then((response) => response.data),
   deleteParts: (productionId: number, ids: number[]) => request<TimelineDeleteEnvelope>(`/api/v1/productions/${productionId}/parts`, { method: "DELETE", body: JSON.stringify({ ids }) }).then((response) => response.data),
+  deleteClip: (productionId: number, partId: number) =>
+    request<{ data: { deleted: boolean; part_id: number } }>(`/api/v1/productions/${productionId}/parts/${partId}/clip`, { method: "DELETE" }).then((response) => response.data),
   moveParts: (sourceProductionId: number, ids: number[], destinationProductionId: number) => request<TimelineMoveEnvelope>(`/api/v1/productions/${sourceProductionId}/parts/move`, { method: "POST", body: JSON.stringify({ ids, destination_production_id: destinationProductionId }) }).then((response) => response.data),
   setMusic: (id: number, settings: Partial<MusicBed>) =>
     request<{ data: MusicBed }>(`/api/v1/productions/${id}/music`, { method: "PATCH", body: JSON.stringify(settings) }).then((response) => response.data),

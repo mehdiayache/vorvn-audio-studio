@@ -321,6 +321,53 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual((unchanged["changed"], unchanged["outdated"]),
                          (False, True))
 
+    def test_delete_recording_restores_an_editable_draft_snapshot(self):
+        production_id = int(self.first["id"])
+        draft = self.timeline.add_draft(production_id, {
+            "text": "Speak these authored words",
+            "voice_identity_id": None,
+            "language": "English",
+        })
+        with psycopg.connect(settings.database_url) as database:
+            with database.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO clips
+                        (part_id, source_part_revision, source_script_hash,
+                         provider, provider_region, provider_voice_id,
+                         model_id, tier, language, raw_text, spoken_text,
+                         tagged_text, delivery, filename, path, duration_ms,
+                         snapshot)
+                    VALUES (%s,1,encode(digest(%s,'sha256'),'hex'),
+                            'alibaba','intl','voice-esther','model','flash',
+                            'English',%s,%s,%s,%s::jsonb,%s,%s,4200,%s::jsonb)
+                """, (
+                    draft["id"], "Speak these authored words",
+                    "Speak these authored words", "Speak these spoken words",
+                    "<calm>Speak these tagged words</calm>",
+                    json.dumps({"instruction": "Calm and assured", "rate": .9}),
+                    f"delete-{self.marker}.mp3",
+                    f"/durable/delete-{self.marker}.mp3",
+                    json.dumps({"format": "mp3", "text_state": "tagged"}),
+                ))
+                cursor.execute("""
+                    UPDATE production_parts
+                       SET kind='speech', editorial_status='ready',
+                           duration_ms=4200
+                     WHERE id=%s
+                """, (draft["id"],))
+            database.commit()
+
+        filename = self.repository.delete_clip(production_id, draft["id"])
+        self.assertEqual(filename, f"delete-{self.marker}.mp3")
+        restored = self.repository.parts(production_id)[0]
+        self.assertEqual((restored["kind"], restored["clip_id"],
+                          restored["duration_ms"]), ("draft", None, 0))
+        self.assertEqual(restored["text_tagged"],
+                         "<calm>Speak these tagged words</calm>")
+        self.assertEqual(restored["text_state"], "tagged")
+        self.assertEqual(restored["instruction"], "Calm and assured")
+        self.assertEqual(restored["rate"], .9)
+
     def test_active_recording_projection_is_immutable_and_caption_relevant(self):
         production_id = int(self.first["id"])
         draft = self.timeline.add_draft(production_id, {

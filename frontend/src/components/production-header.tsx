@@ -1,4 +1,4 @@
-import { ArrowLeft, CircleAlert, Command, FileJson2, Folder, MoreHorizontal, Pause, Play, Plus, SlidersHorizontal } from "lucide-react"
+import { ArrowLeft, CircleAlert, Command, FileJson2, Folder, MoreHorizontal, Pause, Play, Plus, SlidersHorizontal, Trash2 } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
@@ -7,7 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { formatDuration, formatMoney } from "@/lib/format"
 import type { Production } from "@/types/domain"
 
-export function ProductionHeader({ production, duration, mixExportOpen, productionPlaying, issueCount, onExplorer, onCommands, onHealth, onPreview, onAdd, onRelease }: {
+export function ProductionHeader({ production, duration, mixExportOpen, productionPlaying, issueCount, onExplorer, onCommands, onHealth, onPreview, onAdd, onRelease, onDelete }: {
   production: Production
   duration: number
   mixExportOpen: boolean
@@ -19,6 +19,7 @@ export function ProductionHeader({ production, duration, mixExportOpen, producti
   onPreview: () => void
   onAdd: (kind: "speech" | "asset" | "silence" | "import") => void
   onRelease: () => void
+  onDelete: () => void
 }) {
   return (
       <section className="production-context-bar production-header-compact" aria-label="Production focus">
@@ -46,6 +47,8 @@ export function ProductionHeader({ production, duration, mixExportOpen, producti
               <DropdownMenuItem onSelect={onExplorer}><Folder /> Open Explorer</DropdownMenuItem>
               <DropdownMenuItem onSelect={onCommands}><Command /> Command menu</DropdownMenuItem>
               <DropdownMenuItem onSelect={onHealth}><CircleAlert /> Production health{issueCount ? ` · ${issueCount}` : ""}</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onSelect={onDelete}><Trash2 /> Delete Production permanently</DropdownMenuItem>
             </DropdownMenuContent></DropdownMenu>
         </div>
       </section>

@@ -20,7 +20,7 @@ import type { DurableJob, GenerateResult, HierarchyNode, MusicBed, PlayerSource,
 
 import "@/features/production/production-workspace.css"
 
-export function ProductionEditorCanvas({ production, tree, music, directory, liveJobs, duration, stageMode, stageTitle, stageDescription, stageContent, explorerOpen, healthOpen, commandsOpen, activePartId, playingKey, playerPlaying, previewing, productionPlaying, productionLoaded, productionCurrentTime, previewPlayingPartId, onExplorerOpen, onMusicOpen, onHealthOpen, onCommandsOpen, onTool, onPreview, onOpenMixExport, onCloseStage, onLocate, onSeekProduction, onPlay, onChooseMusic, onRetryJob, onConfirmJob, onReplaceAsset, onOpenCaptions, onOpenCaptionContext, sequenceActions }: {
+export function ProductionEditorCanvas({ production, tree, music, directory, liveJobs, duration, stageMode, stageTitle, stageDescription, stageContent, explorerOpen, healthOpen, commandsOpen, activePartId, playingKey, playerPlaying, previewing, productionPlaying, productionLoaded, productionCurrentTime, previewPlayingPartId, onExplorerOpen, onMusicOpen, onHealthOpen, onCommandsOpen, onTool, onPreview, onOpenMixExport, onDeleteProduction, onCloseStage, onLocate, onSeekProduction, onPlay, onChooseMusic, onRetryJob, onConfirmJob, onReplaceAsset, onOpenCaptions, onOpenCaptionContext, sequenceActions }: {
   production: Production
   tree: HierarchyNode[] | null
   music: MusicBed
@@ -49,6 +49,7 @@ export function ProductionEditorCanvas({ production, tree, music, directory, liv
   onTool: (tool: Exclude<ToolKind, null>, beforePartId?: string | null) => void
   onPreview: () => void
   onOpenMixExport: () => void
+  onDeleteProduction: () => void
   onCloseStage: () => void
   onLocate: (id: number) => void
   onSeekProduction: (seconds: number) => void
@@ -96,7 +97,7 @@ export function ProductionEditorCanvas({ production, tree, music, directory, liv
 
   return (
     <div className="production-page">
-      <ProductionHeader production={production} duration={duration} mixExportOpen={stageMode === "mix-export"} productionPlaying={productionPlaying} issueCount={issues.length} onExplorer={() => onExplorerOpen(true)} onCommands={() => onCommandsOpen(true)} onHealth={() => onHealthOpen(true)} onPreview={onPreview} onAdd={(kind) => onTool(kind)} onRelease={onOpenMixExport} />
+      <ProductionHeader production={production} duration={duration} mixExportOpen={stageMode === "mix-export"} productionPlaying={productionPlaying} issueCount={issues.length} onExplorer={() => onExplorerOpen(true)} onCommands={() => onCommandsOpen(true)} onHealth={() => onHealthOpen(true)} onPreview={onPreview} onAdd={(kind) => onTool(kind)} onRelease={onOpenMixExport} onDelete={onDeleteProduction} />
       <ProductionStage mode={stageMode} title={stageTitle} description={stageDescription} onClose={onCloseStage} canvas={canvas} previewStale={Boolean(playingKey?.startsWith("preview:") && !productionLoaded)} onRefreshPreview={onPreview} onOpenCaptionContext={onOpenCaptionContext}>{stageContent}</ProductionStage>
       {tree && <ProductionExplorerSheet open={explorerOpen} nodes={tree} activeKey={production.key} onOpenChange={onExplorerOpen} />}
       <ProductionHealthSheet open={healthOpen && stageMode !== "health"} issues={issues} onOpenChange={onHealthOpen} onLocate={revealPart} />

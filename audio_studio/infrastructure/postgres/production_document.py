@@ -853,6 +853,60 @@ class ProductionDocumentRepository:
             """, (production_id,))
             return list(dict.fromkeys(files))
 
+    def delete_clip(self, production_id: int, part_id: int) -> str | None:
+        """Delete one recording while preserving its editable Speech Part."""
+        with transaction() as cursor:
+            row = self._part_row(cursor, production_id, part_id, lock=True)
+            if not row:
+                return None
+            cursor.execute("""
+                SELECT id, filename, raw_text, spoken_text, tagged_text,
+                       delivery, snapshot, voice_identity_id, binding_id,
+                       catalogue_voice_id, capability_id, language
+                  FROM clips WHERE part_id=%s FOR UPDATE
+            """, (part_id,))
+            clip = cursor.fetchone()
+            if not clip:
+                return None
+            delivery = clip[5] or {}
+            snapshot = clip[6] or {}
+            text_state = str(snapshot.get("text_state") or "raw")
+            text_values = {
+                "text": str(row[5] or ""),
+                "text_raw": snapshot.get("text_raw") or clip[2],
+                "text_shaped": snapshot.get("text_shaped") or clip[3],
+                "text_tagged": snapshot.get("text_tagged") or clip[4],
+                "text_state": text_state,
+                "voice_identity_id": clip[7],
+                "binding_id": str(clip[8]) if clip[8] else None,
+                "catalogue_voice_id": clip[9],
+                "capability_id": clip[10],
+                "language": clip[11] or "Auto",
+                "instruction": delivery.get("instruction", ""),
+                "speech_mode": delivery.get("speech_mode", "exact"),
+                "rate": delivery.get("rate", 1),
+                "pitch": delivery.get("pitch", 1),
+                "volume": delivery.get("volume", 50),
+                "seed": delivery.get("seed", 0),
+                "format": snapshot.get("format", "mp3"),
+            }
+            cursor.execute("""
+                INSERT INTO composition_drafts (part_id, production_id, state)
+                VALUES (%s,%s,%s::jsonb)
+                ON CONFLICT (part_id) DO UPDATE SET
+                    state=EXCLUDED.state, updated_at=now()
+            """, (part_id, production_id, json.dumps(text_values)))
+            cursor.execute("DELETE FROM transcripts WHERE part_id=%s",
+                           (part_id,))
+            cursor.execute("DELETE FROM clips WHERE id=%s", (clip[0],))
+            cursor.execute("""
+                UPDATE production_parts
+                   SET kind='draft', editorial_status='draft', duration_ms=0,
+                       updated_at=now()
+                 WHERE id=%s
+            """, (part_id,))
+            return str(clip[1] or "")
+
     def move(self, source_production_id: int, ids: list[int],
              destination_production_id: int) -> bool:
         ids = [int(item) for item in ids]

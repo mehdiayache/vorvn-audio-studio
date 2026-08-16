@@ -1096,6 +1096,36 @@
         "title": "DeleteBody",
         "type": "object"
       },
+      "DeletedClipEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DeletedClipResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "DeletedClipEnvelope",
+        "type": "object"
+      },
+      "DeletedClipResponse": {
+        "properties": {
+          "deleted": {
+            "title": "Deleted",
+            "type": "boolean"
+          },
+          "part_id": {
+            "title": "Part Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "deleted",
+          "part_id"
+        ],
+        "title": "DeletedClipResponse",
+        "type": "object"
+      },
       "DeletedPartsEnvelope": {
         "properties": {
           "data": {
@@ -11958,6 +11988,57 @@
           }
         },
         "summary": "List Part Captions",
+        "tags": [
+          "timeline"
+        ]
+      }
+    },
+    "/api/v1/productions/{production_id}/parts/{part_id}/clip": {
+      "delete": {
+        "operationId": "deleteProductionPartClip",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "part_id",
+            "required": true,
+            "schema": {
+              "title": "Part Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedClipEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Part Clip",
         "tags": [
           "timeline"
         ]

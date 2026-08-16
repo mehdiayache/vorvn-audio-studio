@@ -11,6 +11,7 @@ from audio_studio.application.timeline import TimelineConflict, TimelineError
 from audio_studio.composition.timeline import timeline_service
 from audio_studio.http.errors import ApiProblem
 from audio_studio.http.timeline_contracts import (
+    DeletedClipEnvelope,
     DeletedPartsEnvelope,
     MovedPartsEnvelope,
     MusicBedEnvelope,
@@ -253,6 +254,12 @@ def duplicate_part(production_id: int, part_id: int) -> dict:
                response_model=DeletedPartsEnvelope)
 def delete_parts(production_id: int, payload: DeleteBody) -> dict:
     return _run(lambda: timeline_service.delete_parts(production_id, payload.ids))
+
+
+@router.delete("/parts/{part_id}/clip", operation_id="deleteProductionPartClip",
+               response_model=DeletedClipEnvelope)
+def delete_part_clip(production_id: int, part_id: int) -> dict:
+    return _run(lambda: timeline_service.delete_clip(production_id, part_id))
 
 
 @router.post("/parts/move", operation_id="moveProductionParts",

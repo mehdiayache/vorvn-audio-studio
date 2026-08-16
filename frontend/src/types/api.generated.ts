@@ -499,6 +499,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/productions/{production_id}/parts/{part_id}/clip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Part Clip */
+        delete: operations["deleteProductionPartClip"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/productions/{production_id}/parts/{part_id}/draft": {
         parameters: {
             query?: never;
@@ -1767,6 +1784,17 @@ export interface components {
         DeleteBody: {
             /** Ids */
             ids: number[];
+        };
+        /** DeletedClipEnvelope */
+        DeletedClipEnvelope: {
+            data: components["schemas"]["DeletedClipResponse"];
+        };
+        /** DeletedClipResponse */
+        DeletedClipResponse: {
+            /** Deleted */
+            deleted: boolean;
+            /** Part Id */
+            part_id: number;
         };
         /** DeletedPartsEnvelope */
         DeletedPartsEnvelope: {
@@ -5872,6 +5900,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TranscriptSummaryListEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteProductionPartClip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: number;
+                part_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletedClipEnvelope"];
                 };
             };
             /** @description Validation Error */
