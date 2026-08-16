@@ -2,6 +2,7 @@
 .tool-dialog > [data-slot="dialog-header"] { padding: 20px 22px 16px; border-bottom: 1px solid var(--border); }
 .silence-dialog { width: min(480px, calc(100vw - 40px)) !important; }
 .asset-dialog { width: min(1120px, calc(100vw - 40px)) !important; height: min(82dvh, 780px); }
+.import-dialog { width: min(840px, calc(100vw - 40px)) !important; max-height: min(88dvh, 860px); }
 .tool-panel-body { padding: 20px 22px; }
 .silence-tool > label { display: grid; gap: var(--space-2); font-weight: 650; }
 .tool-callout { margin: var(--space-4) 0; padding: var(--space-4); border-left: 3px solid var(--primary); background: var(--primary-soft); }
@@ -48,6 +49,30 @@
 .asset-footer-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: var(--radius-sm); background: var(--asset-soft); color: var(--asset); }
 .asset-footer-mark svg { width: 16px; }
 
+.production-import-tool { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; }
+.production-import-body { min-height: 0; overflow-y: auto; padding: 20px 22px; }
+.production-import-idle { display: flex; align-items: center; gap: 9px; margin: 14px 2px 0; color: var(--muted-foreground); font-size: var(--type-small); }
+.production-import-idle svg { width: 17px; color: var(--primary); }
+.production-import-error { display: flex; align-items: flex-start; gap: 10px; margin-top: 14px; padding: 12px 14px; border-left: 3px solid var(--destructive); background: color-mix(in oklab, var(--destructive) 7%, var(--surface-raised)); color: var(--destructive); }
+.production-import-error svg { width: 18px; margin-top: 1px; }
+.production-import-error span { display: grid; gap: 2px; font-size: var(--type-small); }
+.production-import-summary { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 20px 2px 16px; border-bottom: 1px solid var(--border); }
+.production-import-summary > svg:first-child { width: 38px; height: 38px; padding: 9px; border-radius: 12px; background: var(--primary-soft); color: var(--primary); }
+.production-import-summary > svg:last-child { width: 20px; color: var(--success); }
+.production-import-summary h3, .production-import-roles h3 { margin: 2px 0 0; font-size: var(--type-heading-sm); }
+.production-import-summary p, .production-import-roles header p { margin: 4px 0 0; color: var(--muted-foreground); font-size: var(--type-small); }
+.production-import-roles { padding-top: 18px; }
+.production-import-roles > header { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(260px, 1.2fr); align-items: end; gap: 24px; margin-bottom: 8px; }
+.production-import-roles > header p { text-align: right; }
+.production-import-role { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(280px, 1.2fr); align-items: center; gap: 24px; min-height: 72px; border-top: 1px solid var(--border); }
+.production-import-role > div:first-child { display: grid; gap: 5px; }
+.production-import-role code { width: fit-content; color: var(--foreground); font-family: inherit; font-size: var(--type-body); font-weight: 700; }
+.production-import-role > div:first-child span { color: var(--muted-foreground); font-size: var(--type-caption); }
+.production-import-role .voice-picker-trigger { width: 100%; }
+.production-import-owned-warning { margin: 10px 0 0; color: var(--warning); font-size: var(--type-small); }
+.production-import-footer { display: grid !important; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 14px 22px !important; border-top: 1px solid var(--border); background: var(--surface-raised); }
+.production-import-footer > span { color: var(--muted-foreground); font-size: var(--type-caption); }
+
 @media (max-width: 600px) {
   .tool-dialog { width: calc(100vw - 16px) !important; max-height: calc(100dvh - 112px); }
   .asset-explorer-body { grid-template-columns: 1fr; }
@@ -56,4 +81,8 @@
   .asset-result { grid-template-columns: 36px minmax(0,1fr) auto; padding: 11px 14px; }
   .asset-result-check { display: none; }
   .asset-explorer-footer { grid-template-columns: 1fr; }
+  .production-import-roles > header, .production-import-role { grid-template-columns: 1fr; gap: 10px; padding: 14px 0; }
+  .production-import-roles > header p { text-align: left; }
+  .production-import-footer { grid-template-columns: 1fr 1fr; }
+  .production-import-footer > span { grid-column: 1 / -1; }
 }

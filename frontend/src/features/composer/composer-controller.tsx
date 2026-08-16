@@ -101,6 +101,11 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     },
   })
   const languageOptions = outputLanguageOptions(config, selectedIdentity)
+  const formatOptions = useMemo(() => {
+    const supported = config?.formats?.length ? config.formats : ["mp3"]
+    return supported.includes(format) ? supported : [format, ...supported]
+  }, [config?.formats, format])
+  const outputFormatSupported = !config?.formats?.length || config.formats.includes(format)
 
   function applyRoute(nextRoute: VoiceChoice | undefined, capabilityId?: string | null) {
     setRoute(nextRoute ? routeSelection(nextRoute, capabilityId) : null)
@@ -256,6 +261,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     route, identityId, language, format, deliveryModeRequest, instruction, rate, pitch, volume,
     busy, confirmationEstimate, pendingCommand, editorialCommand, textReviewReference,
     identities, selectedIdentity, compatibleRoutes, visibleRoutes, currentRoute, selectedCapability, capabilityControls, deliveryMode,
+    formatOptions, outputFormatSupported,
     textSession, languageOptions, taggedIncompatible, hasInlineDeliveryTag, estimate, textPassEstimate, destination,
     recovery, performancePresets, methodLabel,
     setLanguage, setFormat, setDeliveryModeRequest, setInstruction, setRate, setPitch, setVolume,

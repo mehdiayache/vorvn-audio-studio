@@ -41,6 +41,21 @@ describe("speechPartCardFacts", () => {
     expect(facts.captionSummary).toBe("EN + FR captions")
   })
 
+  it("does not invent a model for an authored Draft whose recording method is intentionally unset", () => {
+    const facts = speechPartCardFacts({
+      part: part({
+        kind: "draft", clip_id: null, filename: "", engine: undefined, model: undefined,
+        tier: null, provider: null, binding_id: null, capability_id: null,
+        capability_name: null, language: "English",
+      }),
+      speechJob: null,
+      directory,
+    })
+
+    expect(facts.methodLine).toBe("Recording method not chosen · EN")
+    expect(facts.exactModel).toBe("")
+  })
+
   it("never infers selected input truth from populated text variants", () => {
     const historical = part({ recording_text_state: null, clip_tagged_text: "<happy>Tagged</happy>" })
     const facts = speechPartCardFacts({ part: historical, speechJob: null, directory })

@@ -354,6 +354,13 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
           if (!collectionId) throw new Error(`${folder} library is unavailable.`)
           await actions.uploadAsset(collectionId, folder, file)
         }}
+        onImport={(document, roleVoices) => studioApi.importProduction(
+          production.id, document, roleVoices,
+        )}
+        onImported={() => {
+          actions.invalidatePreview()
+          void refresh().then(closeTool)
+        }}
         onPlay={(source) => void playSource(source)}
         onCloseDetail={() => setActiveStage(null)}
         onDetailChanged={async () => {

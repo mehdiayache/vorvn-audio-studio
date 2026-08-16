@@ -135,7 +135,10 @@ export function speechPartCardFacts({ part, speechJob, captionJob, directory }: 
   const model = resolveSpeechModel({ engine: part.engine, tier: part.tier, model: part.model, config: directory.config })
   const capability = selectedCapability(part, directory)
   const family = FAMILY_LABELS[String(model.engine || "")] || model.product
-  const methodLine = [family, model.tierName, capability, languageCode(part.language)].filter(Boolean).join(" · ")
+  const hasRecordingMethod = Boolean(part.engine || part.model || part.tier || part.provider || part.binding_id || part.capability_id)
+  const methodLine = hasRecordingMethod
+    ? [family, model.tierName, capability, languageCode(part.language)].filter(Boolean).join(" · ")
+    : ["Recording method not chosen", languageCode(part.language)].filter(Boolean).join(" · ")
   const technicalDetail = [model.modelId, part.provider, part.provider_region, part.language ? `Language: ${part.language}` : ""].filter(Boolean).join(" · ")
   const inputLabel = recordingInputLabel(part.recording_text_state)
   const duration = partDurationMs(part)
@@ -156,7 +159,7 @@ export function speechPartCardFacts({ part, speechJob, captionJob, directory }: 
     voice,
     selectedVoiceName: voice.name,
     methodLine: methodLine || "Recording method unknown",
-    exactModel: model.modelId,
+    exactModel: hasRecordingMethod ? model.modelId : "",
     technicalDetail,
     script: part.text || "Untitled speech",
     recordingSummary,

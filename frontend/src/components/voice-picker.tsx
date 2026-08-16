@@ -25,10 +25,11 @@ function providerName(value: string) {
   return value.replace(/[-_]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
-export function VoicePicker({ identities, value, directory, playingKey, playerPlaying, onChange, onPlay }: {
+export function VoicePicker({ identities, value, directory, label = "Choose a voice", playingKey, playerPlaying, onChange, onPlay }: {
   identities: VoiceIdentityChoice[]
   value: string
   directory: VoiceDirectory
+  label?: string
   playingKey?: string
   playerPlaying: boolean
   onChange: (identity: VoiceIdentityChoice) => void
@@ -59,7 +60,7 @@ export function VoicePicker({ identities, value, directory, playingKey, playerPl
 
   return <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) setQuery("") }}>
     <PopoverTrigger asChild>
-      <Button type="button" variant="outline" className="voice-picker-trigger" aria-label="Choose a voice" aria-expanded={open}>
+      <Button type="button" variant="outline" className="voice-picker-trigger" aria-label={label} aria-expanded={open}>
         {selectedRoute
           ? <><VoiceIdentity voice={selectedRoute.id} identityId={selected?.identityId} directory={directory} gender={selected?.gender} compact showDetail={false} showEditorialFlag={false} /><span className="voice-picker-selected-detail">{selected?.description || "Voice identity"}</span></>
           : <span className="voice-picker-placeholder">Choose a Voice</span>}

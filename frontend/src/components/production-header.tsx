@@ -1,9 +1,9 @@
-import { ArrowLeft, CircleAlert, Command, Folder, MoreHorizontal, Pause, Play, Plus, SlidersHorizontal } from "lucide-react"
+import { ArrowLeft, CircleAlert, Command, FileJson2, Folder, MoreHorizontal, Pause, Play, Plus, SlidersHorizontal } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { formatDuration, formatMoney } from "@/lib/format"
 import type { Production } from "@/types/domain"
 
@@ -17,7 +17,7 @@ export function ProductionHeader({ production, duration, mixExportOpen, producti
   onCommands: () => void
   onHealth: () => void
   onPreview: () => void
-  onAdd: (kind: "speech" | "asset" | "silence") => void
+  onAdd: (kind: "speech" | "asset" | "silence" | "import") => void
   onRelease: () => void
 }) {
   return (
@@ -38,6 +38,8 @@ export function ProductionHeader({ production, duration, mixExportOpen, producti
                 <DropdownMenuItem onSelect={() => onAdd("speech")}><Plus /> Add speech</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => onAdd("silence")}><Plus /> Add silence</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => onAdd("asset")}><Plus /> Add Intro, Outro or Stinger</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => onAdd("import")}><FileJson2 /> Import JSON</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="More Production actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">

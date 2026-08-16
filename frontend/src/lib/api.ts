@@ -74,6 +74,8 @@ type TimelinePartEnvelope = paths["/api/v1/productions/{production_id}/parts/sil
 type TimelineDeleteEnvelope = paths["/api/v1/productions/{production_id}/parts"]["delete"]["responses"][200]["content"]["application/json"]
 type TimelineMoveEnvelope = paths["/api/v1/productions/{production_id}/parts/move"]["post"]["responses"][200]["content"]["application/json"]
 type TimelineOkEnvelope = paths["/api/v1/productions/{production_id}/parts/{part_id}/draft"]["patch"]["responses"][200]["content"]["application/json"]
+type ProductionImportBody = paths["/api/v1/productions/{production_id}/import"]["post"]["requestBody"]["content"]["application/json"]
+type ProductionImportEnvelope = paths["/api/v1/productions/{production_id}/import"]["post"]["responses"][200]["content"]["application/json"]
 
 export { ApiError } from "@/lib/api-error"
 
@@ -267,6 +269,14 @@ export const studioApi = {
     const { production_id, ...draft } = payload
     return postV1<{ id: number }>(`/api/v1/productions/${production_id}/parts/drafts`, draft)
   },
+  importProduction: (
+    productionId: number,
+    document: ProductionImportBody["document"],
+    roleVoices: ProductionImportBody["role_voices"],
+  ) => request<ProductionImportEnvelope>(`/api/v1/productions/${productionId}/import`, {
+    method: "POST",
+    body: JSON.stringify({ document, role_voices: roleVoices } satisfies ProductionImportBody),
+  }).then((response) => response.data),
   job: <T>(id: string) => v1<DurableJob<T>>(`/api/v1/jobs/${encodeURIComponent(id)}`),
   confirmJob: async <T>(id: string) => {
     const response = await request<{ data: DurableJob<T> }>(`/api/v1/jobs/${encodeURIComponent(id)}/confirm`, {
