@@ -137,7 +137,7 @@ try:
     service.run({"operation": "record", "production_id": 999999,
                  "part_id": 888888,
                  "text": "Never send this", "voice": "Tina",
-                 "engine": "omni", "model": "plus"})
+                 "engine": "audio", "model": "flash"})
     rejected = False
 except LookupError:
     rejected = True

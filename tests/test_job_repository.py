@@ -110,10 +110,10 @@ class JobRepositoryTests(unittest.TestCase):
                 request = {
                     "text": "Prepared provider text",
                     "text_raw": "Canonical Part script",
-                    "voice": "Tina",
+                    "voice": "Cherry",
                     "catalogue_voice_id":
-                        "alibaba:intl:qwen3.5-omni-plus:Tina",
-                    "engine": "omni",
+                        "alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
+                    "engine": "audio",
                     "model": "plus",
                     "format": "mp3",
                     "language": "English",
@@ -456,14 +456,14 @@ class JobRepositoryTests(unittest.TestCase):
         jobs_module.transaction = rolled_back_transaction
         try:
             job, created = jobs_module.JobRepository().enqueue(
-                "speech", {"text": "test", "voice": "Tina", "engine": "omni", "model": "plus"},
+                "speech", {"text": "test", "voice": "Cherry", "engine": "audio", "model": "plus"},
                 idempotency_key=f"rollback-test-{uuid4()}", source_tool="speak",
                 operation_label="Generate speech",
             )
             self.assertTrue(created)
             with connection.cursor() as cursor:
                 cursor.execute("SELECT actor_id, organization_id, source_tool, operation_label, model FROM jobs WHERE id = %s", (job.id,))
-                self.assertEqual(cursor.fetchone(), ("local-owner", "local-studio", "speak", "Generate speech", "qwen3.5-omni-plus"))
+                self.assertEqual(cursor.fetchone(), ("local-owner", "local-studio", "speak", "Generate speech", "qwen-audio-3.0-tts-plus"))
                 cursor.execute("SELECT action FROM audit_records WHERE resource_type = 'job' AND resource_id = %s", (str(job.id),))
                 self.assertEqual(cursor.fetchone()[0], "job.enqueued")
                 cursor.execute("""

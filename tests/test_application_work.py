@@ -159,7 +159,7 @@ class WorkServiceTests(unittest.TestCase):
         with self.assertRaisesRegex(DomainValidation, "Unknown Series default"):
             self.service.update("series", 4, {"defaults": {"mystery": True}})
         with self.assertRaisesRegex(DomainValidation, "Unknown Series default"):
-            self.service.update("series", 4, {"defaults": {"engine": "omni"}})
+            self.service.update("series", 4, {"defaults": {"engine": "audio"}})
 
     def test_moving_a_production_does_not_mutate_the_caller_payload(self):
         changes = {"series_id": 4, "name": "Renamed"}

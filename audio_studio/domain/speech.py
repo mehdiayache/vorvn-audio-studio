@@ -46,8 +46,6 @@ class SynthesizedSpeech:
     cost_basis: str
     usage: dict[str, int | float]
     failures: list[dict]
-    returned_text: str | None = None
-    fidelity: dict = field(default_factory=dict)
     provider_region: str | None = None
     provider_endpoint: str | None = None
     price_version: str | None = None

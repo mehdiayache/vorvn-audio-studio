@@ -22,7 +22,6 @@ class StandaloneRecordingResponse(BaseModel):
     duration_ms: int
     size_bytes: int
     audio_url: str | None
-    fidelity: dict[str, Any] | None
     needs_confirmation: bool = False
     requires_review: bool = False
     estimate: float = 0

@@ -5,7 +5,7 @@ import { resolveVoice, type ResolvedVoice } from "@/lib/voice"
 import type { DurableJob, GenerateResult, ProductionPart, VoiceDirectory } from "@/types/domain"
 
 export type SpeechPartAlert = {
-  key: "draft" | "outdated" | "missing" | "fidelity" | "route"
+  key: "draft" | "outdated" | "missing" | "route"
   label: string
   tone: "neutral" | "warning" | "danger"
 }
@@ -41,7 +41,6 @@ export type SpeechPartCardFacts = {
 
 const FAMILY_LABELS: Record<string, string> = {
   audio: "Qwen Audio",
-  omni: "Qwen Omni",
   qwen_tts: "Qwen3 TTS",
 }
 
@@ -151,7 +150,6 @@ export function speechPartCardFacts({ part, speechJob, captionJob, directory }: 
   if (!recorded) alerts.push({ key: "draft", label: "Not recorded", tone: "neutral" })
   if (part.outdated) alerts.push({ key: "outdated", label: "Recording outdated", tone: "warning" })
   if (part.missing) alerts.push({ key: "missing", label: "Missing audio", tone: "danger" })
-  if (part.fidelity && part.fidelity.status !== "pass") alerts.push({ key: "fidelity", label: "Check wording", tone: "warning" })
   if (part.binding_resolution_status === "unresolved") alerts.push({ key: "route", label: "Historical route unavailable", tone: "warning" })
   return {
     recorded,

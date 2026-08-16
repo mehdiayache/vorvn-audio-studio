@@ -70,7 +70,7 @@ def main() -> int:
     alibaba_speech = AlibabaSpeechProvider()
     speech_provider = ExactSpeechProviderRegistry({
         ("alibaba", adapter_key): alibaba_speech
-        for adapter_key in ("audio", "omni", "qwen_tts")
+        for adapter_key in ("audio", "qwen_tts")
     })
     provider_operations = ProviderOperationService(ProviderOperationRepository())
     service.register("speech", SpeechJobHandler(SpeechGenerationService(
@@ -101,7 +101,7 @@ def main() -> int:
     alibaba_enrollment = AlibabaVoiceCloningProvider()
     enrollment_provider = ExactEnrollmentProviderRegistry({
         ("alibaba", adapter_key): alibaba_enrollment
-        for adapter_key in ("audio", "omni", "qwen_tts")
+        for adapter_key in ("audio", "qwen_tts")
     })
     voice_cloning = VoiceCloningService(
         VoicePackageRepository(), enrollment_provider,

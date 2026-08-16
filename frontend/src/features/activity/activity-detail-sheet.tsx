@@ -19,13 +19,10 @@ function ProviderDiagnostics({ diagnostics }: { diagnostics: ActivityRun["provid
     <h3>Provider sections</h3>
     <p>{diagnostics.length} provider request{diagnostics.length === 1 ? "" : "s"}. Replaced sections were billed but excluded from the final audio.</p>
     <div>{diagnostics.map((item, index) => {
-      const fidelity = item.fidelity && typeof item.fidelity === "object" ? item.fidelity as Record<string, unknown> : null
       const status = String(item.status || "unknown")
       return <details key={`${String(item.path || index)}:${String(item.request_id || index)}`} className={status}>
-        <summary><b>Section {String(item.path || index + 1)}</b><span>{status}</span><small>{fidelity?.coverage !== undefined ? `${Math.round(Number(fidelity.coverage) * 100)}% words` : "No comparison"}</small></summary>
+        <summary><b>Section {String(item.path || index + 1)}</b><span>{status}</span><small>{item.characters ? `${String(item.characters)} characters` : "Provider request"}</small></summary>
         <dl><Field label="Finish reason">{String(item.finish_reason || "Not reported")}</Field><Field label="Request ID">{String(item.request_id || "Not reported")}</Field><Field label="Stream events">{String(item.event_count ?? "Not reported")}</Field><Field label="Depth">{String(item.depth ?? 0)}</Field></dl>
-        {Boolean(item.requested_text) && <><h4>Requested</h4><pre dir="auto">{String(item.requested_text)}</pre></>}
-        {Boolean(item.returned_text) && <><h4>Provider returned</h4><pre dir="auto">{String(item.returned_text)}</pre></>}
         {Boolean(item.error) && <p className="provider-diagnostic-error">{String(item.error)}</p>}
       </details>
     })}</div>

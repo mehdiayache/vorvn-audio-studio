@@ -13,10 +13,6 @@ PACKAGE_LABELS = {
         "Exact narration",
         "Installed exact-reading capabilities for this identity.",
     ),
-    "omni": (
-        "Natural performance",
-        "Installed natural-performance capabilities.",
-    ),
 }
 
 
@@ -67,9 +63,6 @@ def plan(language: str, installed_methods: list[dict],
         selected = [route for route in creatable
                     if set(route["capability_ids"])
                     & {"expressive_tags", "exact_longform"}]
-    elif package == "omni":
-        selected = [route for route in creatable
-                    if "natural_performance" in route["capability_ids"]]
     else:
         package = "complete"
         selected = creatable
@@ -79,9 +72,6 @@ def plan(language: str, installed_methods: list[dict],
             [route for route in creatable if set(route["capability_ids"])
              & {"expressive_tags", "exact_longform"}]
             if key == "exact"
-            else [route for route in creatable
-                  if "natural_performance" in route["capability_ids"]]
-            if key == "omni"
             else creatable
         )
         packages.append({

@@ -111,7 +111,6 @@ class ProductionDocumentRepository:
             "duration_ms": row[12], "cost": _float(row[13]),
             "language": row[14], "usage": row[15] or {},
             "cost_basis": row[16] or "unknown",
-            "fidelity": (row[17] or {}).get("fidelity"),
             "failures": (row[17] or {}).get("failures", []),
             "voice_identity_id": row[18],
             "voice": row[19] or snapshot.get("voice") or "",
@@ -359,8 +358,6 @@ class ProductionDocumentRepository:
                 "filename": row[24] or row[34] or "",
                 "size_bytes": int(row[25] or 0), "cost": _float(row[26]),
                 "spent": _float(row[33]), "cost_basis": row[28],
-                "provider_text": diagnostics.get("provider_text"),
-                "fidelity": diagnostics.get("fidelity") or None,
                 "capability_id": ((row[31] or snapshot.get("capability_id")) if has_clip else
                                  job_payload.get("capability_id")),
                 "capability_name": ((row[82] or snapshot.get("capability_name")) if has_clip else

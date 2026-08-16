@@ -13,7 +13,7 @@ export function PartInspectorDetails({ part, directory }: { part: ProductionPart
   const draft = part.kind === "draft"
   const silence = part.kind === "silence"
   const asset = part.kind === "asset"
-  const diagnostics = { provider_attempt_id: part.provider_attempt_id, provider_attempt_status: part.provider_attempt_status, fidelity: part.fidelity, delivery: part.clip_delivery, usage: part.clip_usage, segmentation: part.clip_segmentation }
+  const diagnostics = { provider_attempt_id: part.provider_attempt_id, provider_attempt_status: part.provider_attempt_status, delivery: part.clip_delivery, usage: part.clip_usage, segmentation: part.clip_segmentation }
 
   return <div className="inspector-panel inspector-details-panel">
     {recorded && <>

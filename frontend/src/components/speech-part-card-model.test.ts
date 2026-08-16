@@ -71,10 +71,10 @@ describe("speechPartCardFacts", () => {
       result: { ambiguous: true, requires_review: true },
     }
     const facts = speechPartCardFacts({
-      part: part({ outdated: true, missing: true, fidelity: { status: "warning", score: null, coverage: null, requested_words: 10, returned_words: 9, message: "Check wording" }, binding_resolution_status: "unresolved" }),
+      part: part({ outdated: true, missing: true, binding_resolution_status: "unresolved" }),
       speechJob: job, directory,
     })
-    expect(facts.alerts.map((item) => item.key)).toEqual(["outdated", "missing", "fidelity", "route"])
+    expect(facts.alerts.map((item) => item.key)).toEqual(["outdated", "missing", "route"])
     expect(facts.operation).toMatchObject({ kind: "review", label: "RECORDING · REVIEW REQUIRED", canRetry: false })
     expect(facts.methodLine).toContain("Expressive + tags")
   })

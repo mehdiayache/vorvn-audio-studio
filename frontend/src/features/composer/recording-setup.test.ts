@@ -13,7 +13,7 @@ const directory = {
       tier: "flash", model_id: "qwen-audio-3.0-tts-flash", status: "ready",
       capabilities: [{ id: "expressive_tags", name: "Expressive", description: "", controls: {}, ui_metadata: {} }],
     }],
-    models: [], presets: [], source: { provider: "Alibaba", verified_at: "", audio_url: "", omni_url: "" },
+    models: [], presets: [], source: { provider: "Alibaba", verified_at: "", audio_url: "" },
   },
 } as unknown as VoiceDirectory
 

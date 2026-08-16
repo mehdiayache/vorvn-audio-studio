@@ -1987,19 +1987,6 @@ export interface components {
             /** Enabled */
             enabled: boolean;
         };
-        /** FidelityResponse */
-        FidelityResponse: {
-            /** Message */
-            message?: string | null;
-            /** Requested Words */
-            requested_words?: number | null;
-            /** Returned Words */
-            returned_words?: number | null;
-            /** Status */
-            status: string;
-        } & {
-            [key: string]: unknown;
-        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2653,7 +2640,6 @@ export interface components {
             editorial_status?: string | null;
             /** Engine */
             engine?: string | null;
-            fidelity?: components["schemas"]["FidelityResponse"] | null;
             /** Filename */
             filename?: string | null;
             /** Format */
@@ -2689,8 +2675,6 @@ export interface components {
             provider_attempt_status?: string | null;
             /** Provider Region */
             provider_region?: string | null;
-            /** Provider Text */
-            provider_text?: string | null;
             /** Public Id */
             public_id: string;
             /** Rate */
@@ -3456,10 +3440,6 @@ export interface components {
              * @default 0
              */
             estimate: number;
-            /** Fidelity */
-            fidelity: {
-                [key: string]: unknown;
-            } | null;
             /** Finished At */
             finished_at: string | null;
             /** Id */
@@ -4372,7 +4352,7 @@ export interface components {
              * Id
              * @enum {string}
              */
-            id: "complete" | "exact" | "omni";
+            id: "complete" | "exact";
             /** Models */
             models: string[];
             /** Name */
@@ -4392,7 +4372,7 @@ export interface components {
              * Package
              * @enum {string}
              */
-            package: "complete" | "exact" | "omni";
+            package: "complete" | "exact";
             /** Packages */
             packages: components["schemas"]["VoicePackageOptionResponse"][];
             /** Region */
@@ -4646,8 +4626,6 @@ export interface components {
         VoiceRegistrySourceResponse: {
             /** Audio Url */
             audio_url: string;
-            /** Omni Url */
-            omni_url: string;
             /** Provider */
             provider: string;
             /** Verified At */

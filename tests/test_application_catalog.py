@@ -85,7 +85,7 @@ class CatalogServiceTests(unittest.TestCase):
         self.assertEqual(result["prefs"]["out_dir"], "/durable/media")
         self.assertEqual(result["spend"], {"today": 1.25})
         self.assertEqual(result["storage"]["bucket"], "audio")
-        self.assertEqual(result["clone_languages"]["ar"], "Arabic")
+        self.assertNotIn("ar", result["clone_languages"])
         self.assertEqual(result["clone_languages"]["de"], "German")
         self.assertNotIn("chunk_size", result)
         self.assertEqual(
@@ -94,9 +94,7 @@ class CatalogServiceTests(unittest.TestCase):
         self.assertEqual(
             result["segmentation"]["qwen_tts"]["provider_token_limit"],
             512)
-        self.assertEqual(
-            result["segmentation"]["omni"]["mode"],
-            "authored_paragraphs_with_fidelity_recovery")
+        self.assertEqual(set(result["segmentation"]), {"audio", "qwen_tts"})
 
     def test_voice_reads_are_delegated_without_mutation(self):
         self.assertIs(self.service.voice_metadata(), self.voices.metadata)

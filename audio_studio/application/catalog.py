@@ -143,17 +143,17 @@ class CatalogService:
             item.setdefault("region", "intl")
             item.setdefault("provider", "alibaba")
             item.setdefault("capabilities", [{
-                "id": {"audio": "expressive_tags", "omni": "natural_performance",
+                "id": {"audio": "expressive_tags",
                        "qwen_tts": "exact_longform"}[item["engine"]],
-                "name": {"audio": "Expressive + tags", "omni": "Natural performance",
+                "name": {"audio": "Expressive + tags",
                          "qwen_tts": "Exact long reading"}[item["engine"]],
             }])
         for item in catalogue:
             item.setdefault("region", "intl")
             item.setdefault("capabilities", [{
                 "id": "expressive_tags" if item["engine"] == "audio"
-                      else "natural_performance",
+                      else "exact_longform",
                 "name": "Expressive + tags" if item["engine"] == "audio"
-                        else "Natural performance",
+                        else "Exact long reading",
             }])
         return voice_routing.resolve(payload, bindings, catalogue).payload()

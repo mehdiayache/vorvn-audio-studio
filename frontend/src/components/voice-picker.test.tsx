@@ -47,7 +47,7 @@ describe("VoicePicker", () => {
       identityId: "voice-serinity", name: "Serinity", source: "owned", editorialLanguage: "en",
       routes: [
         { ...identity().routes[0]!, id: "serinity-audio", identityId: "voice-serinity", name: "Serinity", source: "owned", model: "flash" },
-        { ...identity().routes[0]!, id: "serinity-omni", identityId: "voice-serinity", name: "Serinity", source: "owned", engine: "omni" },
+        { ...identity().routes[0]!, id: "serinity-qwen-tts", identityId: "voice-serinity", name: "Serinity", source: "owned", engine: "qwen_tts", model: "vc" },
       ],
     })
     render(<VoicePicker identities={[serenity]} value="" directory={directory} playerPlaying={false} onChange={onChange} onPlay={vi.fn()} />)

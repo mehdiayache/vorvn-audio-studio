@@ -154,8 +154,8 @@ class TimelineServiceTests(unittest.TestCase):
     def test_draft_preserves_composer_settings_without_provider_work(self):
         self.service.add_draft(6, {
             "text": "  Rest now  ", "voice": "custom:serenity",
-            "voice_identity_id": "voice-1", "engine": "omni",
-            "model": "plus",
+            "voice_identity_id": "voice-1", "engine": "audio",
+            "model": "flash",
             "insert_before_part_id": "part-before",
         })
         _, values, before_part_id = self.records.created[0]

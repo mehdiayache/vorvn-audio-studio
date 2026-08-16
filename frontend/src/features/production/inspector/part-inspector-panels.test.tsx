@@ -15,7 +15,7 @@ const part = {
   kind: "speech", text: "Canonical words", revision: 4, clip_id: 8,
   recording_text_state: "raw",
   clip_public_id: "clip-public", clip_raw_text: "Canonical words",
-  clip_spoken_text: "Provider wording", provider_text: "Provider wording",
+  clip_spoken_text: "Recorded wording",
   voice: "provider-voice", voice_name: "Sarah", cost: 0.04, spent: 0.08,
   provider: "alibaba", provider_region: "intl", model: "qwen-model",
   tier: "plus", binding_id: "binding-public", reference_id: "reference-public",
@@ -23,13 +23,12 @@ const part = {
 } as ProductionPart
 
 describe("Part Inspector panels", () => {
-  it("separates canonical Part script from active recording wording", () => {
+  it("separates canonical Part script from immutable recorded wording", () => {
     render(<PartInspectorScript part={part} directory={directory} currentPlaying={false} onPlay={vi.fn()} onRecordPart={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
     expect(screen.getByText("Canonical Part script")).toBeTruthy()
     expect(screen.getAllByText("Canonical words")).toHaveLength(2)
-    expect(screen.getByText("Provider returned wording")).toBeTruthy()
-    expect(screen.getByText("Provider wording")).toBeTruthy()
-    expect(screen.queryByText("Alibaba returned")).toBeNull()
+    expect(screen.getByRole("heading", { name: "Recorded wording" })).toBeTruthy()
+    expect(screen.getByText("Recorded wording")).toBeTruthy()
   })
 
   it("shows exact immutable route and ProviderAttempt evidence", () => {

@@ -7,26 +7,26 @@ function binding(id: string, engine: string, tier: string, source: "system" | "c
   return { identity_id: `${source}:${id}`, provider_voice_id: id, name: id, description: "", gender: id === "Sarah" ? "female" : "", languages: ["English"], source, provider, region: "intl", adapter_key: engine, engine, tier, model_id: `${engine}-${tier}`, status: "active", estimate_rate_per_million_chars: 0, capabilities: [{ id: `${engine}_mode`, name: `${engine} mode`, description: "Provider capability" }] }
 }
 
-const bindings = [binding("Tina", "omni", "plus", "system"), binding("Tina", "omni", "flash", "system"), binding("Mehdi", "omni", "plus", "custom"), binding("Lingxin", "audio", "plus", "system"), binding("Sarah", "audio", "flash", "custom")]
+const bindings = [binding("Lingxin", "audio", "plus", "system"), binding("Lingxin", "audio", "flash", "system"), binding("Mehdi", "qwen_tts", "vc", "custom"), binding("Sarah", "audio", "flash", "custom")]
 const registry: VoiceRegistry = {
   bindings,
-  models: ["audio", "omni"].flatMap((engine) => ["plus", "flash"].map((tier) => { const found = bindings.filter((item) => item.engine === engine && item.tier === tier); return { engine: engine as "audio" | "omni", tier: tier as "plus" | "flash", model_id: `${engine}-${tier}`, label: engine, system_count: found.filter((item) => item.source === "system").length, custom_count: found.filter((item) => item.source === "custom").length, total_count: found.length, clone_supported: tier === "flash" || engine === "omni" } })),
-  presets: [], source: { provider: "Alibaba", verified_at: "2026-08-07", audio_url: "", omni_url: "" },
+  models: ["plus", "flash"].map((tier) => { const found = bindings.filter((item) => item.engine === "audio" && item.tier === tier); return { engine: "audio", tier, model_id: `audio-${tier}`, label: "audio", system_count: found.filter((item) => item.source === "system").length, custom_count: found.filter((item) => item.source === "custom").length, total_count: found.length, clone_supported: tier === "flash" } }),
+  presets: [], source: { provider: "Alibaba", verified_at: "2026-08-07", audio_url: "" },
 }
 
 describe("voice-first routing", () => {
   it("groups provider bindings into one human identity", () => {
     const identities = getVoiceIdentities(registry)
-    const tina = identities.find((item) => item.name === "Tina")!
-    expect(tina.routes).toHaveLength(2)
-    expect(identities.filter((item) => item.name === "Tina")).toHaveLength(1)
+    const lingxin = identities.find((item) => item.name === "Lingxin")!
+    expect(lingxin.routes).toHaveLength(2)
+    expect(identities.filter((item) => item.name === "Lingxin")).toHaveLength(1)
   })
 
   it("preserves complete route capability data for the Composer", () => {
-    const tina = getVoiceIdentities(registry).find((item) => item.name === "Tina")!
-    expect(tina.routes[0]).toMatchObject({
-      provider: "alibaba", region: "intl", adapterKey: "omni",
-      capabilities: [{ id: "omni_mode", name: "omni mode", description: "Provider capability" }],
+    const mehdi = getVoiceIdentities(registry).find((item) => item.name === "Mehdi")!
+    expect(mehdi.routes[0]).toMatchObject({
+      provider: "alibaba", region: "intl", adapterKey: "qwen_tts",
+      capabilities: [{ id: "qwen_tts_mode", name: "qwen_tts mode", description: "Provider capability" }],
     })
   })
 
@@ -50,8 +50,8 @@ describe("voice-first routing", () => {
 
   it("keeps provider catalogue coverage informational too", () => {
     const lingxin = getVoiceIdentities(registry).find((item) => item.name === "Lingxin")!
-    expect(routesForIdentity(lingxin, "English")).toHaveLength(1)
-    expect(routesForIdentity(lingxin, "Arabic")).toHaveLength(1)
+    expect(routesForIdentity(lingxin, "English")).toHaveLength(2)
+    expect(routesForIdentity(lingxin, "Arabic")).toHaveLength(2)
   })
 
   it("never casts a binding whose provider creation is not ready", () => {

@@ -79,12 +79,6 @@ def _truncation_warning(prepared: PreparedSpeech,
     return f"The model may have stopped early — {detail}. Listen before using this recording."
 
 
-def _fidelity_warning(result: SynthesizedSpeech) -> str | None:
-    if result.fidelity.get("status") in {"warning", "failed", "unverified"}:
-        return str(result.fidelity.get("message") or "Review the returned script.")
-    return None
-
-
 def _record(prepared: PreparedSpeech, result: SynthesizedSpeech,
             saved: StoredAudio, values: dict) -> dict[str, Any]:
     return {
@@ -110,8 +104,7 @@ def _record(prepared: PreparedSpeech, result: SynthesizedSpeech,
         "cost": round(float(result.cost), 6),
         "kind": "audio", "title": values.get("title"),
         "usage": result.usage, "cost_basis": result.cost_basis,
-        "provider_text": result.returned_text,
-        "fidelity": result.fidelity, "failures": result.failures,
+        "failures": result.failures,
         "binding_id": prepared.binding_id,
         "catalogue_voice_id": prepared.catalogue_voice_id,
         "reference_id": prepared.reference_id,
@@ -125,7 +118,6 @@ def _record(prepared: PreparedSpeech, result: SynthesizedSpeech,
         "segmentation": {"requests": prepared.request_count},
         "diagnostics": {"provider": result.diagnostics,
                         "request_ids": result.request_ids,
-                        "fidelity": result.fidelity,
                         "failures": result.failures},
     }
 
@@ -301,8 +293,6 @@ class SpeechGenerationService:
                     "audio_sha256": hashlib.sha256(made.audio).hexdigest(),
                     "size_bytes": len(made.audio),
                     "format": prepared.output_format,
-                    "returned_text": made.returned_text,
-                    "fidelity": made.fidelity,
                     "provider_region": made.provider_region,
                     "provider_endpoint": made.provider_endpoint,
                 })
@@ -383,8 +373,7 @@ class SpeechGenerationService:
                    "The paid provider result remains in Activity evidence but "
                    "was not attached to the Part."
                    if mutation.get("attached") == 0 else
-                   _fidelity_warning(made) or _truncation_warning(
-                       prepared, saved.duration_ms))
+                   _truncation_warning(prepared, saved.duration_ms))
         request_ids = list(made.request_ids)
         return {
             "id": created_part_id,
@@ -399,8 +388,7 @@ class SpeechGenerationService:
             "cost": round(float(made.cost), 6),
             "estimated_cost": estimate, "cost_basis": made.cost_basis,
             "usage": made.usage, "failures": made.failures,
-            "warning": warning, "returned_text": made.returned_text,
-            "fidelity": made.fidelity, "voice_route": prepared.voice_route,
+            "warning": warning, "voice_route": prepared.voice_route,
             "pronunciations": prepared.pronunciations,
             "rewrites": [{"from": before, "to": after}
                          for before, after in prepared.rewrites],

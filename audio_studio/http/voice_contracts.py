@@ -29,7 +29,7 @@ class VoicePackageRouteResponse(BaseModel):
 
 
 class VoicePackageOptionResponse(BaseModel):
-    id: Literal["complete", "exact", "omni"]
+    id: Literal["complete", "exact"]
     name: str
     description: str
     models: list[str]
@@ -40,7 +40,7 @@ class VoicePackagePlanResponse(BaseModel):
     region: str
     region_label: str
     language: str
-    package: Literal["complete", "exact", "omni"]
+    package: Literal["complete", "exact"]
     routes: list[VoicePackageRouteResponse]
     available_routes: list[VoicePackageRouteResponse]
     packages: list[VoicePackageOptionResponse]

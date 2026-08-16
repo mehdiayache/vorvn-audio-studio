@@ -15,7 +15,6 @@ export function productionHealth(parts: ProductionPart[]) {
     if (part.missing) issues.push({ part, title: "Missing media", detail: "The selected source file is unavailable.", severity: "blocking" })
     if (part.outdated) issues.push({ part, title: "Recording outdated", detail: "The Part changed after this recording was generated.", severity: "review" })
     if (part.subtitles_stale) issues.push({ part, title: "Captions need review", detail: "Refresh captions after replacing the recording.", severity: "review" })
-    if (part.fidelity && part.fidelity.status !== "pass") issues.push({ part, title: "Wording review", detail: part.fidelity.message || "The provider result differs from the script.", severity: "review" })
     if (part.speech_job && ["blocked", "failed", "lost", "cancelled"].includes(part.speech_job.status)) issues.push({ part, title: operationStatusLabel(part.speech_job.status, part.speech_job.result), detail: part.speech_job.error || part.speech_job.detail || "Review the durable operation.", severity: part.speech_job.status === "blocked" && part.speech_job.result?.requires_review ? "review" : "blocking" })
     return issues
   })

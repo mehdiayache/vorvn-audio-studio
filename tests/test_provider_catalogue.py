@@ -51,9 +51,9 @@ class ProviderCatalogueTests(unittest.TestCase):
                            if item["engine"] == "audio"
                            and item["tier"] == "flash")
         self.assertEqual(audio_route["estimate_rate_per_million_chars"], 15.0)
-        aiden = next(item for item in persisted
-                     if item["provider_voice_id"] == "Aiden")
-        self.assertEqual(aiden["gender"], "male")
+        male_voice = next(item for item in persisted
+                          if item["provider_voice_id"] == "longchuanshu_v3.6")
+        self.assertEqual(male_voice["gender"], "male")
         audio_method = next(
             item for item in repository.enrollment_methods()
             if item["provider_model_id"]

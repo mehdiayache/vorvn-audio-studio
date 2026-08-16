@@ -7,13 +7,9 @@ from audio_studio.domain.provider_catalog import (
     AUDIO_CLONE_LANGUAGES,
     AUDIO_SYSTEM_VOICES,
     CAPABILITIES,
-    OMNI_CLONE_LANGUAGES,
-    OMNI_SYSTEM_VOICES,
     QWEN_TTS_CLONE_LANGUAGES,
     model_id,
     normalise_engine,
-    omni_usage_cost,
-    recommended_engine,
 )
 
 
@@ -51,20 +47,16 @@ def enrollment_url() -> str:
 
 
 def compatible_base_url() -> str:
-    """Regional OpenAI-compatible URL whose Omni stream returns audio data."""
+    """Regional OpenAI-compatible endpoint for text-model requests."""
     host = ("dashscope.aliyuncs.com" if region() == "beijing"
             else "dashscope-intl.aliyuncs.com")
     return f"https://{host}/compatible-mode/v1"
 
 
 def workspace_compatible_base_url() -> str:
-    """Workspace URL for text models, independent from Omni audio routing."""
+    """Workspace-scoped OpenAI-compatible endpoint for text models."""
     environment = alibaba_environment()
     if environment.workspace_id:
         zone = "cn-beijing" if environment.region == "beijing" else "ap-southeast-1"
         return f"https://{environment.workspace_id}.{zone}.maas.aliyuncs.com/compatible-mode/v1"
     return compatible_base_url()
-
-
-def compatible_chat_url() -> str:
-    return compatible_base_url() + "/chat/completions"

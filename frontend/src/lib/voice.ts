@@ -78,23 +78,22 @@ export function resolveVoice(id: string | undefined, directory: VoiceDirectory, 
     || item.catalogue_voice_id === technicalId
     || item.provider_voice_id === technicalId)
   const cloned = directory.cloned.find((item) => voiceKey(cloneId(item)) === key)
-  const omniDescription = directory.config?.capabilities.omni?.system_voices?.[technicalId]
   const cloneMatch = /^qwen[\w.-]*?-tts-(?:plus|flash)-([a-z0-9_-]+)-[0-9a-f]{16,}$/i.exec(technicalId)
-  const isClone = Boolean(cloned || cloneMatch || /qwen-omni-vc-/i.test(technicalId))
+  const isClone = Boolean(cloned || cloneMatch)
   const fallbackCloneName = cloneMatch?.[1] || cloned?.name || key.replace(/-[0-9a-f]{16,}$/i, "")
   const configDescription = Object.values(directory.config?.voices || {}).map((tier) => tier[technicalId] || Object.entries(tier).find(([voice]) => voiceKey(voice) === key)?.[1]).find(Boolean)
   const ownedSnapshotName = identityId
     ? /^(?:qwen|cosyvoice)[-_]/i.test(technicalId) ? "Owned voice" : humanize(technicalId)
     : ""
-  const name = identity?.name || meta?.name || binding?.name || cloned?.name || catalogue?.name || ownedSnapshotName || (omniDescription ? technicalId : isClone ? `${humanize(fallbackCloneName)} · your voice` : stockFallbackName(key || "Unknown voice"))
+  const name = identity?.name || meta?.name || binding?.name || cloned?.name || catalogue?.name || ownedSnapshotName || (isClone ? `${humanize(fallbackCloneName)} · your voice` : stockFallbackName(key || "Unknown voice"))
   const editorialLanguage = identity?.metadata.editorial_language
   const gender = identity?.metadata.gender || binding?.gender || catalogue?.gender || meta?.gender
   const identityDetail = [editorialLanguage ? `${languageFlag(String(editorialLanguage))} ${languageDisplay(String(editorialLanguage))} focus` : "", identity?.metadata.trait, identity?.metadata.accent].filter(Boolean).join(" · ")
   const detail = identity ? identityDetail || "Your cloned voice" : isClone
-    ? [meta?.languages ? `Speaks ${languageDisplay(meta.languages)}` : "Cloned voice", cloned?.engine === "omni" || /omni/i.test(technicalId) ? "Qwen Omni" : "Qwen Audio"].filter(Boolean).join(" · ")
-    : binding?.description || omniDescription || [catalogue?.gender, catalogue?.age, catalogue?.trait].filter(Boolean).join(", ") || configDescription || meta?.note || "Voice"
+    ? [meta?.languages ? `Speaks ${languageDisplay(meta.languages)}` : "Cloned voice", "Qwen Audio"].filter(Boolean).join(" · ")
+    : binding?.description || [catalogue?.gender, catalogue?.age, catalogue?.trait].filter(Boolean).join(", ") || configDescription || meta?.note || "Voice"
   const knownInConfig = Object.values(directory.config?.voices || {}).some((tier) => Object.keys(tier).some((voice) => voiceKey(voice) === key))
-  const unavailable = Boolean(technicalId && !identity && !isClone && !binding && !catalogue && !omniDescription && !knownInConfig)
+  const unavailable = Boolean(technicalId && !identity && !isClone && !binding && !catalogue && !knownInConfig)
   const made = directory.usage?.[key]?.latest_preview
   const previewFilename = identity?.usage?.preview_filename
   const preview = previewFilename ? `/audio/${encodeURIComponent(previewFilename)}` : catalogue?.sample ? `/samples/${encodeURIComponent(catalogue.sample)}` : made ? `/audio/${encodeURIComponent(made)}` : undefined

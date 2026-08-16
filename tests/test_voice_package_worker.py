@@ -29,11 +29,11 @@ ROOT = Path(__file__).resolve().parents[1]
 def package_job(**changes):
     values = {
         "id": "vjob_test", "identity_id": "voice_test",
-        "reference_id": "ref_test", "model_id": "qwen3.5-omni-flash",
+        "reference_id": "ref_test", "model_id": "qwen-audio-3.0-tts-flash",
         "provider": "alibaba", "region": "intl",
-        "provider_model_id": "alibaba:intl:qwen3.5-omni-flash",
-        "adapter_key": "omni",
-        "engine": "omni", "tier": "flash", "attempts": 1,
+        "provider_model_id": "alibaba:intl:qwen-audio-3.0-tts-flash",
+        "adapter_key": "audio",
+        "engine": "audio", "tier": "flash", "attempts": 1,
         "output_languages": ["English", "Arabic"],
         "name": "Test Voice", "metadata": {"language": "en"},
     }
@@ -175,7 +175,7 @@ class VoicePackageWorkerTests(unittest.TestCase):
                         "audio_studio.providers.alibaba.voice_cloning.storage.upload",
                         return_value="https://storage.test/reference.wav"), \
                     patch(
-                        "audio_studio.providers.alibaba.voice_cloning.omni.create_voice",
+                        "audio_studio.providers.alibaba.voice_cloning.qwen_tts.create_voice",
                         return_value="qwen3-tts-vc-fixture") as create:
                 binding = AlibabaVoiceCloningProvider().create(job, local)
         self.assertEqual(binding.provider_voice_id, "qwen3-tts-vc-fixture")
@@ -217,7 +217,7 @@ class VoicePackageWorkerTests(unittest.TestCase):
 
     def test_exact_enrollment_registry_never_falls_back(self):
         provider = FakeProvider()
-        registry = ExactEnrollmentProviderRegistry({("alibaba", "omni"): provider})
+        registry = ExactEnrollmentProviderRegistry({("alibaba", "audio"): provider})
         self.assertEqual(registry.estimated_cost(package_job()), .01)
         with self.assertRaisesRegex(ValueError, "No enrollment adapter"):
             registry.estimated_cost(package_job(adapter_key="missing"))
@@ -327,10 +327,10 @@ class VoicePackageWorkerTests(unittest.TestCase):
             normalized_path=f"{marker}-24k.wav")
         identity_id = None
         route = {
-            "provider_model_id": "alibaba:intl:qwen3.5-omni-flash",
+            "provider_model_id": "alibaba:intl:qwen-audio-3.0-tts-flash",
             "provider": "alibaba", "region": "intl",
-            "model_id": "qwen3.5-omni-flash", "adapter_key": "omni",
-            "engine": "omni", "tier": "flash", "language": "en",
+            "model_id": "qwen-audio-3.0-tts-flash", "adapter_key": "audio",
+            "engine": "audio", "tier": "flash", "language": "en",
         }
         try:
             identity_id, queued = repository.create_package(

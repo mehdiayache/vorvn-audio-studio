@@ -65,10 +65,9 @@ class FakeRepository:
 
 
 class FakeProvider:
-    def __init__(self, *, configured=True, failures=None, fidelity=None):
+    def __init__(self, *, configured=True, failures=None):
         self.configured = configured
         self.failures = failures or []
-        self.fidelity = fidelity or {}
         self.prepared = []
         self.calls = []
 
@@ -101,8 +100,7 @@ class FakeProvider:
             audio=b"generated-audio", cost=.0015,
             cost_basis="catalog_characters",
             usage={"generated_characters": len(prepared.spoken_text)},
-            failures=self.failures, returned_text="fixture transcript",
-            fidelity=self.fidelity, provider_region="intl",
+            failures=self.failures, provider_region="intl",
             provider_endpoint="wss://provider.test",
             price_version="fixture-price",
         )
@@ -122,7 +120,7 @@ class RoutedFakeProvider(AlibabaSpeechProvider):
         return SynthesizedSpeech(
             audio=b"generated-audio", cost=.001,
             cost_basis="catalog_characters", usage={}, failures=[],
-            returned_text=None, fidelity={}, provider_region="intl",
+            provider_region="intl",
             provider_endpoint="provider.test", price_version="fixture",
         )
 
@@ -381,8 +379,7 @@ class SpeechGenerationTests(unittest.TestCase):
 
     def test_partial_provider_result_is_never_saved_as_a_clip(self):
         provider = FakeProvider(
-            failures=[{"index": 1, "text": "world", "error": "timeout"}],
-            fidelity={"status": "warning", "message": "Review this Clip."})
+            failures=[{"index": 1, "text": "world", "error": "timeout"}])
         service, repository, _, workspace = self.service(provider=provider)
         with self.assertRaisesRegex(JobFailed, "No incomplete recording") as caught:
             service.run(payload())
@@ -422,20 +419,20 @@ class SpeechGenerationTests(unittest.TestCase):
     def test_http_contract_is_canonical_and_strict(self):
         cleared = SpeechJobCreate(
             text="Hello", voice_identity_id=None,
-            catalogue_voice_id="alibaba:intl:qwen3.5-omni-plus:Tina")
+            catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry")
         self.assertIn("voice_identity_id", cleared.model_dump(exclude_unset=True))
         SpeechJobCreate(
             text="Hello",
-            catalogue_voice_id="alibaba:intl:qwen3.5-omni-plus:Tina",
+            catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
             production_id=7, part_id=8)
         anchor = uuid4()
         anchored = SpeechJobCreate(
             text="Hello",
-            catalogue_voice_id="alibaba:intl:qwen3.5-omni-plus:Tina",
+            catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
             production_id=7, insert_before_part_id=anchor)
         self.assertEqual(anchored.insert_before_part_id, anchor)
         for changes in (
-            {"voice": "Tina"}, {"engine": "omni"}, {"model": "plus"},
+            {"voice": "Cherry"}, {"engine": "audio"}, {"model": "plus"},
             {"rate": 3}, {"volume": 101},
             {"operation": "render_draft", "production_id": 7, "part_id": 8},
             {"insert_at": 2}, {"project_id": 7},
@@ -444,7 +441,7 @@ class SpeechGenerationTests(unittest.TestCase):
              "insert_before_part_id": anchor},
         ):
             values = {"text": "Hello",
-                      "catalogue_voice_id": "alibaba:intl:qwen3.5-omni-plus:Tina",
+                      "catalogue_voice_id": "alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
                       **changes}
             with self.assertRaises(ValueError):
                 SpeechJobCreate(**values)

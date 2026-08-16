@@ -1678,53 +1678,6 @@
         "title": "EnabledBody",
         "type": "object"
       },
-      "FidelityResponse": {
-        "additionalProperties": true,
-        "properties": {
-          "message": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Message"
-          },
-          "requested_words": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Requested Words"
-          },
-          "returned_words": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Returned Words"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "status"
-        ],
-        "title": "FidelityResponse",
-        "type": "object"
-      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -3830,16 +3783,6 @@
             ],
             "title": "Engine"
           },
-          "fidelity": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/FidelityResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "filename": {
             "anyOf": [
               {
@@ -3991,17 +3934,6 @@
               }
             ],
             "title": "Provider Region"
-          },
-          "provider_text": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Text"
           },
           "public_id": {
             "title": "Public Id",
@@ -6202,18 +6134,6 @@
             "title": "Estimate",
             "type": "number"
           },
-          "fidelity": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Fidelity"
-          },
           "finished_at": {
             "anyOf": [
               {
@@ -6283,8 +6203,7 @@
           "cost_basis",
           "duration_ms",
           "size_bytes",
-          "audio_url",
-          "fidelity"
+          "audio_url"
         ],
         "title": "StandaloneRecordingResponse",
         "type": "object"
@@ -8767,8 +8686,7 @@
           "id": {
             "enum": [
               "complete",
-              "exact",
-              "omni"
+              "exact"
             ],
             "title": "Id",
             "type": "string"
@@ -8823,8 +8741,7 @@
           "package": {
             "enum": [
               "complete",
-              "exact",
-              "omni"
+              "exact"
             ],
             "title": "Package",
             "type": "string"
@@ -9626,10 +9543,6 @@
             "title": "Audio Url",
             "type": "string"
           },
-          "omni_url": {
-            "title": "Omni Url",
-            "type": "string"
-          },
           "provider": {
             "title": "Provider",
             "type": "string"
@@ -9642,8 +9555,7 @@
         "required": [
           "provider",
           "verified_at",
-          "audio_url",
-          "omni_url"
+          "audio_url"
         ],
         "title": "VoiceRegistrySourceResponse",
         "type": "object"

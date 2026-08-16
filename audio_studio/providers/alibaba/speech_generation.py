@@ -6,8 +6,7 @@ import json
 import os
 
 from audio_studio.domain import delivery_tags, provider_catalog, speech_text, voice_routing
-from audio_studio.providers.alibaba import audio_tts, config, omni, qwen_tts
-from audio_studio.domain import speech_fidelity as alibaba_fidelity
+from audio_studio.providers.alibaba import audio_tts, config, qwen_tts
 from audio_studio.domain.provider_pricing import PRICE_VERSION, qwen_audio_tts_cost
 
 from audio_studio.domain.speech import (
@@ -28,8 +27,8 @@ def synthesize(plan, options, on_progress=None):
     elif options.engine == "qwen_tts":
         texts = list(plan.segments)
     else:
-        texts = list(plan)
-    if options.engine in {"omni", "qwen_tts"} and any(
+        raise ValueError(f"Unsupported Alibaba speech engine: {options.engine}")
+    if options.engine == "qwen_tts" and any(
         tag.casefold() in delivery_tags.KNOWN_TAGS
         for text in texts for tag in delivery_tags.TAG_RE.findall(text)
     ):
@@ -38,10 +37,6 @@ def synthesize(plan, options, on_progress=None):
             "does not support inline delivery tags. Choose Raw or Spoken "
             "text, or use a Qwen Audio voice."
         )
-    if options.engine == "omni":
-        audio, failures, transcripts, usage, request_ids, diagnostics = omni.synthesize(
-            plan, options, on_progress)
-        return audio, failures, transcripts, usage, request_ids, diagnostics
     if options.engine == "qwen_tts":
         return qwen_tts.synthesize(
             plan, options, on_progress=on_progress)
@@ -53,12 +48,13 @@ def _plan(text: str, options):
         return audio_tts.plan(text)
     if options.engine == "qwen_tts":
         return qwen_tts.plan(text)
-    return tuple(omni.plan_passages(text))
+    raise ValueError(f"Unsupported Alibaba speech engine: {options.engine}")
 
 
 def _request_count(plan, engine: str) -> int:
-    return int(plan.request_count) if engine in {"audio", "qwen_tts"} \
-        else len(plan)
+    if engine not in {"audio", "qwen_tts"}:
+        raise ValueError(f"Unsupported Alibaba speech engine: {engine}")
+    return int(plan.request_count)
 
 
 class _Options:
@@ -80,10 +76,8 @@ class _Options:
         self.capability_name = route.capability_name
         self.provider = route.provider
         self.provider_region = route.region
-        self.voice = route.provider_voice_id or (
-            "Tina" if route.engine == "omni"
-            else provider_catalog.AUDIO_DEFAULT_VOICES.get(
-                route.tier, provider_catalog.AUDIO_DEFAULT_VOICES["plus"]))
+        self.voice = route.provider_voice_id or provider_catalog.AUDIO_DEFAULT_VOICES.get(
+            route.tier, provider_catalog.AUDIO_DEFAULT_VOICES["plus"])
         self.engine = route.engine
         self.model = route.tier
         self.model_id = route.model_id
@@ -137,7 +131,7 @@ class AlibabaSpeechProvider(BaseTTSProvider):
         options = _Options(values, bindings, catalogue, pronunciations, preferences)
         tagged = [tag for tag in delivery_tags.TAG_RE.findall(text)
                   if tag.casefold() in delivery_tags.KNOWN_TAGS]
-        if options.engine in {"omni", "qwen_tts"} and tagged:
+        if options.engine == "qwen_tts" and tagged:
             raise ValueError(
                 f"{provider_catalog.CAPABILITIES[options.engine]['label']} "
                 "does not support inline delivery tags. Choose Raw or Spoken "
@@ -173,47 +167,13 @@ class AlibabaSpeechProvider(BaseTTSProvider):
 
     def synthesize(self, prepared: PreparedSpeech,
                    on_progress=None) -> SynthesizedSpeech:
-        try:
-            planned = getattr(
-                prepared.context, "synthesis_plan", prepared.spoken_text)
-            audio, failures, transcripts, usage, request_ids, diagnostics = synthesize(
-                planned, prepared.context, on_progress=on_progress)
-        except omni.OmniSynthesisError as exc:
-            actual = config.omni_usage_cost(exc.usage, prepared.tier)
-            cost = actual if actual is not None else prepared.estimated_cost
-            raise SpeechSynthesisError(
-                "Alibaba returned incomplete speech for one verified passage.",
-                {
-                    "cost": cost,
-                    "cost_basis": ("actual_tokens" if actual is not None
-                                   else "estimate"),
-                    "usage": exc.usage,
-                    "failures": [item._asdict() for item in exc.failures],
-                    "provider_diagnostics": exc.diagnostics,
-                    "request_ids": exc.request_ids,
-                    "provider_request_id": (exc.request_ids[0]
-                                            if len(exc.request_ids) == 1
-                                            else None),
-                    "provider_region": config.region(),
-                    "provider_endpoint": config.compatible_base_url(),
-                    "price_version": PRICE_VERSION,
-                },
-            ) from exc
+        planned = getattr(
+            prepared.context, "synthesis_plan", prepared.spoken_text)
+        audio, failures, _transcripts, usage, request_ids, diagnostics = synthesize(
+            planned, prepared.context, on_progress=on_progress)
         failure_rows = [item._asdict() for item in failures]
-        provider_text = " ".join(
-            item.strip() for item in transcripts if item.strip()) or None
-        compared = (speech_text.strip_known_tags(prepared.spoken_text)
-                    if prepared.engine == "omni" else prepared.spoken_text)
-        fidelity = (alibaba_fidelity.assess(compared, provider_text or "")
-                    if prepared.engine == "omni" else {})
         measured_usage = dict(usage or {})
-        if prepared.engine == "omni":
-            actual = config.omni_usage_cost(measured_usage, prepared.tier)
-            cost = actual if actual is not None else prepared.estimated_cost
-            basis = "actual_tokens" if actual is not None else "estimate"
-            endpoint = config.compatible_base_url()
-            rate = None
-        elif prepared.engine == "audio":
+        if prepared.engine == "audio":
             generated_characters = sum(
                 int(item.get("characters") or 0) for item in diagnostics
                 if item.get("status") == "accepted")
@@ -269,7 +229,6 @@ class AlibabaSpeechProvider(BaseTTSProvider):
         return SynthesizedSpeech(
             audio=audio, cost=cost, cost_basis=basis,
             usage=measured_usage, failures=failure_rows,
-            returned_text=provider_text, fidelity=fidelity,
             provider_region=config.region(), provider_endpoint=endpoint,
             price_version=PRICE_VERSION, catalog_rate=rate,
             request_ids=request_ids, diagnostics=diagnostics,

@@ -18,10 +18,10 @@ describe("SpeechRouteLabel", () => {
 
   it("supports a resolved Composer route without treating its tier as a model ID", () => {
     render(<SpeechRouteLabel route={{
-      engine: "omni", model: "plus", model_id: "qwen3.5-omni-plus",
+      engine: "qwen_tts", model: "vc", model_id: "qwen3-tts-vc-2026-01-22",
     }} />)
 
-    expect(screen.getByText("Qwen 3.5 Omni · Plus")).toBeTruthy()
-    expect(screen.getByText("qwen3.5-omni-plus")).toBeTruthy()
+    expect(screen.getByText("Qwen3 TTS Voice Clone · Voice Clone")).toBeTruthy()
+    expect(screen.getByText("qwen3-tts-vc-2026-01-22")).toBeTruthy()
   })
 })

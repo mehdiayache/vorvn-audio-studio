@@ -23,7 +23,6 @@ function humanize(value?: string | null) {
 
 export function speechProductName(engine?: string | null, provider?: string | null, config?: StudioConfig | null) {
   if (engine === "audio") return "Qwen Audio 3.0 TTS"
-  if (engine === "omni") return "Qwen 3.5 Omni"
   if (engine === "qwen_tts") return "Qwen3 TTS Voice Clone"
   if (engine === "text") return "Qwen Text"
   return String(config?.capabilities?.[String(engine || "")]?.label || humanize(engine) || humanize(provider) || "Model")
@@ -38,7 +37,6 @@ export function speechTierName(tier?: string | null) {
 
 function inferEngine(modelId: string) {
   if (modelId.startsWith("qwen-audio-")) return "audio"
-  if (modelId.startsWith("qwen3.5-omni-")) return "omni"
   if (modelId.startsWith("qwen3-tts-vc-")) return "qwen_tts"
   if (modelId.startsWith("qwen")) return "text"
   return ""

@@ -63,6 +63,58 @@ def plan(text: str) -> QwenTtsPlan:
         text, budget=TOKEN_BUDGET)))
 
 
+def _enrollment_request(payload: dict) -> dict:
+    key = os.getenv("DASHSCOPE_API_KEY", "").strip()
+    if not key:
+        raise RuntimeError("DASHSCOPE_API_KEY is not set")
+    request = urllib.request.Request(
+        config.enrollment_url(),
+        data=json.dumps(payload).encode(),
+        headers={
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response:
+            result = json.load(response)
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode(errors="replace")[:1000]
+        raise RuntimeError(
+            f"Alibaba Qwen3 TTS voice enrollment failed "
+            f"({exc.code}): {detail}") from exc
+    if result.get("code") or (
+            result.get("message") and not result.get("output")):
+        raise RuntimeError(str(result.get("message") or result.get("code")))
+    return result
+
+
+def create_voice(target_model: str, preferred_name: str, audio_url: str,
+                 language: str | None = None,
+                 transcript: str | None = None) -> str:
+    """Create one Qwen3 TTS cloned voice from the preserved source."""
+    body = {
+        "model": "qwen-voice-enrollment",
+        "input": {
+            "action": "create",
+            "target_model": target_model,
+            "preferred_name": preferred_name,
+            "audio": {"data": audio_url},
+        },
+    }
+    if language:
+        body["input"]["language"] = language
+    if transcript:
+        body["input"]["text"] = transcript
+    result = _enrollment_request(body)
+    try:
+        return str(result["output"]["voice"])
+    except (KeyError, TypeError) as exc:
+        raise RuntimeError(
+            "Alibaba returned no Qwen3 TTS cloned voice ID") from exc
+
+
 def _language_type(language: str | None) -> str:
     """Use an explicit label only when Qwen-TTS documents that language."""
     requested = str(language or "").casefold()

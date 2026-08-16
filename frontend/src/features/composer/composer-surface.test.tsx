@@ -19,7 +19,7 @@ const directory = {
       { binding_id: "binding-sarah", identity_id: "identity-sarah", provider_voice_id: "sarah-provider", name: "Sarah", description: "", languages: ["English"], source: "custom", provider: "alibaba", region: "intl", adapter_key: "audio", engine: "audio", tier: "flash", model_id: "qwen-audio-flash", status: "ready", capabilities: [{ id: "expressive_tags", name: "Expressive + tags", description: "Expressive speech", controls: { delivery_tags: true, natural_direction: true, rate: true, pitch: true, volume: true }, ui_metadata: { direction_label: "Voice direction" } }] },
       { binding_id: "binding-maya", identity_id: "identity-maya", provider_voice_id: "maya-provider", name: "Maya", description: "", languages: ["English"], source: "custom", provider: "alibaba", region: "intl", adapter_key: "audio", engine: "audio", tier: "flash", model_id: "qwen-audio-flash", status: "ready", capabilities: [{ id: "expressive_tags", name: "Expressive + tags", description: "Expressive speech", controls: { delivery_tags: true, natural_direction: true, rate: true, pitch: true, volume: true }, ui_metadata: { direction_label: "Voice direction" } }] },
     ],
-    models: [], presets: [], source: { provider: "Alibaba", verified_at: "", audio_url: "", omni_url: "" },
+    models: [], presets: [], source: { provider: "Alibaba", verified_at: "", audio_url: "" },
   },
 } as unknown as VoiceDirectory
 

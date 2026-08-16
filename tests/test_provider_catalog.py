@@ -17,16 +17,15 @@ class ProviderCatalogTests(unittest.TestCase):
             for tier, voices in provider_catalog.AUDIO_SYSTEM_VOICES.items()
         }
         self.assertEqual(actual_audio, expected_audio)
-        self.assertEqual(set(provider_catalog.OMNI_SYSTEM_VOICES),
-                         {voice["id"] for voice in snapshot["omni"]})
+        self.assertEqual(set(snapshot), {"source", "audio"})
 
-    def test_model_and_language_routing_contract_is_unchanged(self):
+    def test_only_installed_exact_text_models_resolve(self):
         self.assertEqual(provider_catalog.model_id("audio", "flash"),
                          "qwen-audio-3.0-tts-flash")
-        self.assertEqual(provider_catalog.model_id("omni", "plus"),
-                         "qwen3.5-omni-plus")
-        self.assertEqual(provider_catalog.recommended_engine("Arabic"), "omni")
-        self.assertEqual(provider_catalog.recommended_engine("English"), "audio")
+        self.assertEqual(provider_catalog.model_id("qwen_tts", "vc"),
+                         "qwen3-tts-vc-2026-01-22")
+        with self.assertRaisesRegex(ValueError, "Unknown speech engine"):
+            provider_catalog.model_id("removed", "plus")
 
     def test_each_provider_owns_its_real_segmentation_contract(self):
         self.assertEqual(
@@ -38,9 +37,8 @@ class ProviderCatalogTests(unittest.TestCase):
         self.assertEqual(
             provider_catalog.SEGMENTATION["qwen_tts"]
             ["provider_token_limit"], 512)
-        self.assertEqual(
-            provider_catalog.SEGMENTATION["omni"]["mode"],
-            "authored_paragraphs_with_fidelity_recovery")
+        self.assertEqual(set(provider_catalog.SEGMENTATION),
+                         {"audio", "qwen_tts"})
 
 
 if __name__ == "__main__":

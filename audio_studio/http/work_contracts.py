@@ -256,15 +256,6 @@ class VentureAssetLibraryEnvelope(BaseModel):
     data: VentureAssetLibraryResponse
 
 
-class FidelityResponse(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    status: str
-    message: str | None = None
-    requested_words: int | None = None
-    returned_words: int | None = None
-
-
 class PartSpeechJobResponse(BaseModel):
     id: str
     type: Literal["speech"] = "speech"
@@ -362,8 +353,6 @@ class ProductionPartResponse(BaseModel):
     asset_collection: str | None = None
     speech_mode: str | None = None
     cost_basis: str | None = None
-    provider_text: str | None = None
-    fidelity: FidelityResponse | None = None
     subtitled: bool = False
     subtitles_stale: bool = False
     caption_source_language: str | None = None

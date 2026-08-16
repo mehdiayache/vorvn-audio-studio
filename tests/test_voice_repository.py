@@ -29,11 +29,11 @@ class VoiceRepositoryTests(unittest.TestCase):
         repository = VoiceRepository()
         marker = uuid4().hex
         identity_id = f"voice_repo_{marker}"
-        provider_id = f"qwen-omni-vc-repo-{marker}"
+        provider_id = f"qwen-audio-3.0-tts-flash-repo-{marker}"
         model_id = f"fixture-model-{marker}"
         reference_id = f"ref_repo_{marker}"
         second_reference_id = f"ref_repo_second_{marker}"
-        second_provider_id = f"qwen-omni-vc-repo-second-{marker}"
+        second_provider_id = f"qwen-audio-3.0-tts-flash-repo-second-{marker}"
         metadata_id = f"qwen-audio-3.0-tts-plus-repo-{marker}"
         part_id = None
         try:
@@ -64,7 +64,7 @@ class VoiceRepositoryTests(unittest.TestCase):
                         INSERT INTO voice_bindings
                             (provider_voice_id, model_id, identity_id, engine,
                              tier, languages, reference_id)
-                        VALUES (%s, %s, %s, 'omni', 'plus', '["English"]'::jsonb,
+                        VALUES (%s, %s, %s, 'audio', 'flash', '["English"]'::jsonb,
                                 %s)
                         RETURNING id
                     """, (provider_id, model_id, identity_id, reference_id))
@@ -73,7 +73,7 @@ class VoiceRepositoryTests(unittest.TestCase):
                         INSERT INTO voice_bindings
                             (provider_voice_id, model_id, identity_id, engine,
                              tier, languages, reference_id)
-                        VALUES (%s, %s, %s, 'omni', 'plus', '["English"]'::jsonb,
+                        VALUES (%s, %s, %s, 'audio', 'flash', '["English"]'::jsonb,
                                 %s)
                     """, (second_provider_id, model_id, identity_id,
                           second_reference_id))

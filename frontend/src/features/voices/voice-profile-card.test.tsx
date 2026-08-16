@@ -23,7 +23,7 @@ const profile: VoiceProfile = {
   usage: { uses: 0, productions: 0, spend: 0, last_used: null, preview_filename: "" },
   available_routes: [
     { provider_model_id: "alibaba:intl:audio-flash", provider: "alibaba", region: "intl", adapter_key: "audio", engine: "audio", tier: "flash", model_id: "audio-flash", label: "Qwen Audio · Flash", role: "Exact production", language: "en", source_language_documented: true, documented_output_languages: ["English", "French"], estimated_creation_cost: 0 },
-    { provider_model_id: "alibaba:intl:omni-plus", provider: "alibaba", region: "intl", adapter_key: "omni", engine: "omni", tier: "plus", model_id: "omni-plus", label: "Qwen Omni · Plus", role: "Best-quality performance", language: "en", source_language_documented: true, documented_output_languages: ["English", "Arabic"], estimated_creation_cost: .01 },
+    { provider_model_id: "alibaba:intl:qwen3-tts", provider: "alibaba", region: "intl", adapter_key: "qwen_tts", engine: "qwen_tts", tier: "vc", model_id: "qwen3-tts-vc-2026-01-22", label: "Qwen3 TTS Voice Clone", role: "Exact long reading", language: "en", source_language_documented: true, documented_output_languages: ["English", "French"], estimated_creation_cost: .01 },
   ],
 }
 

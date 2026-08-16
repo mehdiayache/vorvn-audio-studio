@@ -64,7 +64,6 @@ class RecordingHistoryRepository:
                 "duration_ms": int(row[11] or result.get("duration_ms") or 0),
                 "size_bytes": int(row[12] or 0),
                 "audio_url": f"/audio/{quote(str(filename))}" if filename else None,
-                "fidelity": result.get("fidelity") or None,
                 "needs_confirmation": bool(result.get("needs_confirmation")),
                 "requires_review": bool(result.get("requires_review")
                                         or result.get("ambiguous")),

@@ -122,7 +122,6 @@ class VoiceRegistrySourceResponse(BaseModel):
     provider: str
     verified_at: str
     audio_url: str
-    omni_url: str
 
 
 class VoiceRegistryResponse(BaseModel):

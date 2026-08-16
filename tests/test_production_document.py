@@ -134,8 +134,6 @@ class ProductionDocumentTests(unittest.TestCase):
         parts = self.repository.parts(first_id)
         self.assertEqual([item["id"] for item in parts], [draft["id"], silence["id"]])
         self.assertEqual([item["position"] for item in parts], [0, 1])
-        self.assertIsNone(parts[0]["fidelity"])
-
         linked = self.timeline.insert_asset(first_id, intro["id"])
         linked_part = next(item for item in self.repository.parts(first_id)
                            if item["id"] == linked["id"])
@@ -176,10 +174,10 @@ class ProductionDocumentTests(unittest.TestCase):
                          model_id, tier, raw_text, spoken_text, filename, path,
                          cost, cost_basis, snapshot)
                     SELECT id, revision, encode(digest('Archived opening','sha256'),'hex'),
-                           'alibaba','intl','Tina','qwen3.5-omni-plus','plus',
+                           'alibaba','intl','Cherry','qwen-audio-3.0-tts-plus','plus',
                            'Archived opening','Archived opening',%s,%s,
                            0.123,'actual_usage',
-                           '{"engine":"omni","format":"mp3","text_state":"raw"}'::jsonb
+                           '{"engine":"audio","format":"mp3","text_state":"raw"}'::jsonb
                       FROM production_parts WHERE id=%s
                     RETURNING id
                 """, (f"retained-{self.marker}.mp3",
@@ -210,8 +208,8 @@ class ProductionDocumentTests(unittest.TestCase):
                         (job_id,operation,provider,payload_fingerprint,status,
                          error,diagnostics)
                     VALUES (%s,'speech','alibaba','private-fingerprint',
-                            'succeeded','{"provider_text":"private"}'::jsonb,
-                            '{"returned_text":"private"}'::jsonb)
+                            'succeeded','{"private_detail":"private"}'::jsonb,
+                            '{"private_diagnostic":"private"}'::jsonb)
                     RETURNING id
                 """, (content_job_id,))
                 provider_attempt_id = int(cursor.fetchone()[0])
@@ -226,11 +224,10 @@ class ProductionDocumentTests(unittest.TestCase):
         recording = next(item for item in self.repository.parts(first_id)
                          if item["id"] == draft["id"])
         self.assertEqual(recording["clip_id"], clip_id)
-        self.assertEqual(recording["engine"], "omni")
-        self.assertEqual(recording["model"], "qwen3.5-omni-plus")
+        self.assertEqual(recording["engine"], "audio")
+        self.assertEqual(recording["model"], "qwen-audio-3.0-tts-plus")
         self.assertEqual(recording["tier"], "plus")
         self.assertEqual(recording["recording_text_state"], "raw")
-        self.assertIsNone(recording["fidelity"])
         self.assertEqual(self.repository.generation(draft["id"])["text"],
                          "A quiet opening")
 
@@ -354,9 +351,9 @@ class ProductionDocumentTests(unittest.TestCase):
                          model_id, tier, raw_text, spoken_text, filename, path,
                          snapshot)
                     VALUES (%s,%s,encode(digest('Original words','sha256'),'hex'),
-                            'alibaba','intl','Tina','qwen3.5-omni-plus','plus',
+                            'alibaba','intl','Cherry','qwen-audio-3.0-tts-plus','plus',
                             'Original words','Original words','','',
-                            '{"engine":"omni","format":"mp3"}'::jsonb)
+                            '{"engine":"audio","format":"mp3"}'::jsonb)
                     RETURNING id
                 """, (draft["id"], part["revision"]))
                 clip_id = int(cursor.fetchone()[0])
@@ -389,7 +386,7 @@ class ProductionDocumentTests(unittest.TestCase):
         part = self.repository.part(production_id, draft["id"])
         filename = f"recording-{self.marker}.mp3"
         snapshot = {
-            "engine": "omni", "model": "qwen3.5-omni-plus",
+            "engine": "qwen_tts", "model": "qwen3-tts-vc-2026-01-22",
             "voice_name": "Maya", "text_state": "shaped",
             "language": "English", "capability_id": "expressive-tags",
         }
@@ -458,7 +455,7 @@ class ProductionDocumentTests(unittest.TestCase):
                          "<happy>Tagged words</happy>")
         self.assertEqual(projected["text_state"], "shaped")
         self.assertEqual(projected["voice_name"], "Maya")
-        self.assertEqual(projected["model"], "qwen3.5-omni-plus")
+        self.assertEqual(projected["model"], "qwen3-tts-vc-2026-01-22")
         self.assertEqual(projected["language"], "English")
         self.assertEqual(projected["caption_job"]["id"],
                          str(selected_caption.public_id))

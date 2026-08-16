@@ -10,7 +10,7 @@ import time
 from typing import Callable
 
 from audio_studio.infrastructure import object_storage as storage
-from audio_studio.providers.alibaba import config, omni, sdk_runtime
+from audio_studio.providers.alibaba import config, qwen_tts, sdk_runtime
 from audio_studio.domain.provider_pricing import PRICE_VERSION
 
 from audio_studio.domain.voice_packages import (
@@ -24,7 +24,7 @@ _REFERENCE_URL_LOCK = threading.Lock()
 
 
 def _prefix(name: str, engine: str) -> str:
-    qwen_enrollment = engine in {"omni", "qwen_tts"}
+    qwen_enrollment = engine == "qwen_tts"
     limit = 16 if qwen_enrollment else 10
     pattern = r"[^a-z0-9_]" if qwen_enrollment else r"[^a-z0-9]"
     clean = re.sub(pattern, "", name.casefold())
@@ -78,14 +78,9 @@ class AlibabaVoiceCloningProvider:
         url = self._reference_url(job, local)
         language = str(job.metadata.get("language") or "").strip() or None
         prefix = _prefix(job.name, job.engine)
-        if job.engine == "omni":
+        if job.engine == "qwen_tts":
             on_sent()
-            provider_voice_id = omni.create_voice(
-                job.model_id, prefix, url, language=language)
-            endpoint = config.compatible_base_url()
-        elif job.engine == "qwen_tts":
-            on_sent()
-            provider_voice_id = omni.create_voice(
+            provider_voice_id = qwen_tts.create_voice(
                 job.model_id, prefix, url,
                 language=language,
                 transcript=str(job.metadata.get("transcript") or "").strip()

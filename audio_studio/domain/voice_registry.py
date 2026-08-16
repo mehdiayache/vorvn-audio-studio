@@ -16,7 +16,6 @@ ROOT = Path(__file__).parent
 CAPABILITY_IDS = {
     "audio": "expressive_tags",
     "qwen_tts": "exact_longform",
-    "omni": "natural_performance",
 }
 
 
@@ -56,27 +55,6 @@ def system_bindings() -> list[dict]:
                 }],
                 "status": "active",
             })
-    omni_languages = config.CAPABILITIES["omni"]["system_languages"]
-    for voice in data["omni"]:
-        for tier, model_id in config.CAPABILITIES["omni"]["models"].items():
-            bindings.append({
-                "catalogue_voice_id": f"alibaba:intl:{model_id}:{voice['id']}",
-                "identity_id": f"alibaba:omni:{voice['id']}",
-                "provider_voice_id": voice["id"],
-                "name": voice["id"],
-                "description": voice.get("description") or "",
-                "gender": voice.get("gender") or "",
-                "languages": omni_languages,
-                "source": "system", "provider": "alibaba",
-                "region": "intl",
-                "engine": "omni", "adapter_key": "omni",
-                "tier": tier, "model_id": model_id,
-                "capabilities": [{
-                    "id": CAPABILITY_IDS["omni"],
-                    "name": config.CAPABILITIES["omni"]["operator_title"],
-                }],
-                "status": "active",
-            })
     return bindings
 
 
@@ -90,8 +68,9 @@ def assemble(custom_voices: list[dict], metadata: dict, references: dict,
         if not provider_voice_id:
             continue
         saved = metadata.get(provider_voice_id.casefold(), {})
-        engine = item.get("engine") or saved.get("engine") or (
-            "omni" if provider_voice_id.startswith("qwen-omni-vc-") else "audio")
+        engine = item.get("engine") or saved.get("engine") or "audio"
+        if engine not in config.CAPABILITIES:
+            continue
         model_id = item.get("target_model") or item.get("targetModel") or saved.get("target_model") or ""
         capability = config.CAPABILITIES.get(str(engine), {})
         tier = item.get("tier") or next((

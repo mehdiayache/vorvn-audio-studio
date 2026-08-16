@@ -40,8 +40,7 @@ def _output_ids(kind: str, result: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _requested_model(kind: str, payload: dict[str, Any]) -> str | None:
-    if kind == "speech" and payload.get("engine") in {
-            "audio", "omni", "qwen_tts"}:
+    if kind == "speech" and payload.get("engine") in {"audio", "qwen_tts"}:
         return alibaba_config.model_id(str(payload["engine"]), str(payload.get("model") or "plus"))
     if kind == "transcribe":
         return FUN_MODEL if payload.get("vocabulary_id") else QWEN_MODEL

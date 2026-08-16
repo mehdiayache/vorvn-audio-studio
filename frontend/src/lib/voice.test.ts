@@ -10,12 +10,11 @@ const directory: VoiceDirectory = {
     formats: ["mp3"],
     languages: ["Auto"],
     has_key: true,
-    capabilities: { omni: { label: "Omni", purpose: "Performance", models: { plus: "qwen3.5-omni-plus", flash: "qwen3.5-omni-flash" }, system_languages: ["Arabic"], system_voices: { Tina: "Warm female voice" }, exact_text: false, estimate_rates_per_million_chars: { plus: 0, flash: 0 } } },
+    capabilities: { audio: { label: "Qwen Audio", purpose: "Speech", models: { plus: "qwen-audio-plus", flash: "qwen-audio-flash" }, system_languages: ["English"], estimate_rates_per_million_chars: { plus: 0, flash: 0 } } },
   },
   cloned: [],
   meta: {
     "mehdi1-06ca5c1ad8d44b1daa5510448cd0e6da": { image: "/icon/mehdi.png" },
-    "qwen-omni-vc-mehdi_ar-voice-20260804171956804-9ab9": { name: "Mehdi Ayache", languages: "ar" },
   },
   catalog: [],
 }
@@ -44,10 +43,6 @@ describe("voice identity", () => {
     expect(resolveVoice("provider:region:model:aiden", withRegistry)).toMatchObject({
       name: "Aiden", detail: "Friendly young voice", gender: "male", unavailable: false,
     })
-  })
-
-  it("prefers a saved name for an Omni clone", () => {
-    expect(resolveVoice("qwen-omni-vc-mehdi_ar-voice-20260804171956804-9ab9", directory).name).toBe("Mehdi Ayache")
   })
 
   it("uses the stable identity for historical provider ids", () => {

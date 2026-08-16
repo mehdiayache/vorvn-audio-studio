@@ -117,8 +117,6 @@ export type ProductionPart = {
   asset_collection?: string | null
   speech_mode?: "exact" | "directed" | string
   cost_basis?: string
-  provider_text?: string | null
-  fidelity?: FidelityResult
   subtitled?: boolean
   subtitles_stale?: boolean
   caption_source_language?: string | null
@@ -236,10 +234,8 @@ export type StudioConfig = {
     system_voices?: Record<string, string>
     clone_tiers?: string[]
     clone_languages?: Record<string, string>
-    exact_text: boolean
     inline_tags?: boolean
     instruction_control?: boolean
-    fidelity_check?: boolean
     estimate_rates_per_million_chars: Record<string, number>
   }>
 }
@@ -427,8 +423,6 @@ export type GenerateResult = components["schemas"]["SpeechGenerateResultResponse
   cost?: number
   cost_basis?: string
   warning?: string
-  returned_text?: string
-  fidelity?: FidelityResult
   failures?: Array<{ index: number; text: string; error: string }>
   needs_confirmation?: boolean
   requires_review?: boolean
@@ -452,7 +446,6 @@ export type RecordingAttempt = {
   duration_ms: number
   size_bytes: number
   audio_url?: string | null
-  fidelity?: FidelityResult | null
   needs_confirmation: boolean
   requires_review: boolean
   estimate: number
@@ -462,16 +455,6 @@ export type RecordingAttempt = {
 export type RecordingHistory = {
   recordings: RecordingAttempt[]
   total_cost: number
-}
-
-export type FidelityResult = {
-  status: "pass" | "warning" | "failed" | "unverified" | "unknown"
-  score: number | null
-  coverage: number | null
-  precision?: number | null
-  requested_words: number
-  returned_words: number
-  message: string
 }
 
 export type TextDifference = { kind: "same" | "added" | "removed" | string; text: string }

@@ -54,20 +54,21 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()["data"]
         self.assertIn("audio", payload["capabilities"])
-        self.assertIn("omni", payload["capabilities"])
+        self.assertIn("qwen_tts", payload["capabilities"])
+        self.assertEqual(set(payload["capabilities"]), {"audio", "qwen_tts"})
         self.assertIn(payload["workspace"]["region"], {"intl", "beijing"})
 
     def test_voice_catalogue_contracts_are_live(self):
         registry = self.client.get("/api/v1/voice-registry")
         catalogue = next(item for item in registry.json()["data"]["bindings"]
                          if item["catalogue_voice_id"]
-                         and item["engine"] == "omni"
+                         and item["engine"] == "audio"
                          and item["tier"] == "plus")
         metadata = self.client.get("/api/v1/voice-meta")
         usage = self.client.get("/api/v1/voice-usage")
         route = self.client.post("/api/v1/voice-routes/resolve", json={
             "catalogue_voice_id": catalogue["catalogue_voice_id"],
-            "language": "Arabic", "text": "مرحبا",
+            "language": "English", "text": "Hello",
         })
 
         for response in (registry, metadata, usage, route):
@@ -76,7 +77,7 @@ class NativeHttpTests(unittest.TestCase):
         self.assertIsInstance(metadata.json()["data"], dict)
         self.assertIsInstance(usage.json()["data"], dict)
         resolved = route.json()["data"]
-        self.assertEqual(resolved["engine"], "omni")
+        self.assertEqual(resolved["engine"], "audio")
         self.assertEqual(resolved["catalogue_voice_id"],
                          catalogue["catalogue_voice_id"])
         self.assertTrue(resolved["provider_voice_id"])
@@ -124,7 +125,7 @@ class NativeHttpTests(unittest.TestCase):
         self.assertIsInstance(history.json()["data"], list)
         package = plan.json()["data"]
         self.assertEqual(package["region"], "intl")
-        self.assertEqual(len(package["available_routes"]), 4)
+        self.assertEqual(len(package["available_routes"]), 2)
 
     def test_media_is_typed_seekable_and_security_hardened(self):
         with TemporaryDirectory() as directory:
