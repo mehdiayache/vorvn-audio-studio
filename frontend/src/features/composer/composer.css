@@ -331,6 +331,47 @@
   box-shadow: none;
 }
 
+.spoken-split-action {
+  display: inline-flex;
+  align-items: center;
+}
+
+.spoken-split-action > button:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.spoken-split-action [data-slot="dropdown-menu-trigger"] {
+  width: 28px;
+  border-left: 1px solid var(--border);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.spoken-method-menu {
+  width: 330px;
+}
+
+.spoken-method-menu [data-slot="dropdown-menu-item"] {
+  min-height: 54px;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.spoken-method-menu [data-slot="dropdown-menu-item"] > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.spoken-method-menu small {
+  color: var(--muted-foreground);
+  font-size: var(--type-caption);
+  font-weight: 400;
+}
+
+.spoken-method-menu svg {
+  color: var(--primary);
+}
+
 .script-editor-shell {
   min-width: 0;
   min-height: 260px;

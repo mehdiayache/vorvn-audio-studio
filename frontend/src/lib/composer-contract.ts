@@ -2,6 +2,7 @@ import type { GeneratePayload, ProductionPart } from "@/types/domain"
 import type { VoiceChoice } from "@/lib/voice-options"
 
 export type TextState = "raw" | "shaped" | "tagged"
+export type SpokenProfile = "spoken_1" | "spoken_2"
 
 export type CompositionContext =
   | { kind: "standalone" }
@@ -87,10 +88,12 @@ export type ComposerOutput = { format: GeneratePayload["format"]; language: stri
 export type TextReviewReference = {
   jobId: string
   kind: "shape" | "tag"
+  spokenProfile?: SpokenProfile | null
 }
 
 export type ComposerTextPreparation = {
   tagDensity: "none" | "light" | "normal" | "heavy"
+  spokenProfile: SpokenProfile
   pendingReview: TextReviewReference | null
 }
 
@@ -122,6 +125,7 @@ export type SpeechGenerationCommand = {
   route: RouteSelection
   voiceIdentityId: string | null
   text: ComposerText
+  textPreparation: ComposerTextPreparation
   delivery: ComposerDelivery
   output: ComposerOutput
   editorialPatch: EditorialPatch
@@ -194,6 +198,7 @@ export function buildSpeechCommand(input: {
     route: input.draft.route,
     voiceIdentityId: input.draft.voiceIdentityId,
     text: input.draft.text,
+    textPreparation: input.draft.textPreparation,
     delivery: input.draft.delivery,
     output: input.draft.output,
     editorialPatch: input.draft.editorialPatch,
@@ -211,6 +216,7 @@ export function toGeneratePayload(command: SpeechGenerationCommand): GeneratePay
     text_shaped: command.text.shaped || null,
     text_tagged: command.text.tagged || null,
     text_state: command.text.active,
+    spoken_profile: command.textPreparation.spokenProfile,
     ...(production ? { production_id: production.productionId } : {}),
     insert_before_part_id: production?.insertion?.partId ?? null,
     binding_id: command.route.kind === "owned" ? command.route.bindingId : null,

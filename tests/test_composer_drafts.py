@@ -55,7 +55,8 @@ def state():
         "text": {"raw": "Hello", "shaped": "", "tagged": "",
                  "active": "raw"},
         "text_preparation": {
-            "tag_density": "normal", "pending_review": None},
+            "tag_density": "normal", "spoken_profile": "spoken_1",
+            "pending_review": None},
         "delivery": {"mode_id": "exact", "instruction": "", "rate": 1,
                      "pitch": 1, "volume": 50, "seed": 0,
                      "enable_ssml": False},
@@ -115,8 +116,10 @@ class ComposerDraftTests(unittest.TestCase):
         pending = state()
         pending["text_preparation"] = {
             "tag_density": "heavy",
+            "spoken_profile": "spoken_2",
             "pending_review": {
-                "job_id": review_job_id, "kind": "tag"},
+                "job_id": review_job_id, "kind": "shape",
+                "spoken_profile": "spoken_2"},
         }
         payload = DraftWrite(
             context={"kind": "standalone"},
@@ -126,6 +129,9 @@ class ComposerDraftTests(unittest.TestCase):
         self.assertEqual(prepared["pending_review"]["job_id"],
                          str(review_job_id))
         self.assertIsInstance(prepared["pending_review"]["job_id"], str)
+        self.assertEqual(prepared["spoken_profile"], "spoken_2")
+        self.assertEqual(
+            prepared["pending_review"]["spoken_profile"], "spoken_2")
         self.assertNotIn("result", prepared["pending_review"])
 
 

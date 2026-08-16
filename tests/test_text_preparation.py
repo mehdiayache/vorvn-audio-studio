@@ -8,6 +8,7 @@ from audio_studio.application.text_preparation import (
     MODEL,
     TextPreparationJobHandler,
     TextPreparationService,
+    assert_prosody_fidelity,
 )
 from audio_studio.application.provider_operations import ProviderOperationService
 from audio_studio.domain.jobs import Job, JobStatus
@@ -95,6 +96,29 @@ class TextPreparationTests(unittest.TestCase):
         self.assertEqual(result["cost_basis"], "actual_tokens")
         self.assertEqual(result["cost"], .000008)
         self.assertIn("estimated_cost", result)
+
+    def test_spoken_2_uses_prosody_prompt_and_preserves_lexical_content(self):
+        provider = FakeProvider("HELLO, there... we continue!")
+        result = self.service(provider=provider).prepare(
+            operation="shape", text="Hello there we continue",
+            spoken_profile="spoken_2", capability_id="exact_longform")
+        prompt = provider.calls[0]["messages"][0]["content"]
+        self.assertIn("prosody compiler, not a writer", prompt)
+        self.assertIn("Treat the lexical content of the input as locked", prompt)
+        self.assertEqual(result["spoken_profile"], "spoken_2")
+        self.assertEqual(result["after"], "HELLO, there... we continue!")
+
+    def test_spoken_2_rejects_added_removed_or_reordered_words(self):
+        with self.assertRaisesRegex(ValueError, "Spoken 2 changed the words"):
+            assert_prosody_fidelity("Keep every word", "Keep each word")
+
+    def test_spoken_1_retains_existing_rewrite_semantics(self):
+        provider = FakeProvider("A more natural spoken rewrite.")
+        result = self.service(provider=provider).prepare(
+            operation="shape", text="Awkward original",
+            spoken_profile="spoken_1", capability_id="exact_longform")
+        self.assertEqual(result["after"], "A more natural spoken rewrite.")
+        self.assertEqual(result["spoken_profile"], "spoken_1")
 
     def test_tag_rejects_a_capability_without_delivery_tags_before_provider(self):
         provider = FakeProvider()
@@ -191,6 +215,16 @@ class TextPreparationTests(unittest.TestCase):
         self.assertNotIn("production_id", values)
         self.assertNotIn("part_id", values)
         self.assertEqual(values["operation"], "tag")
+
+    def test_http_contract_accepts_only_known_spoken_profiles(self):
+        payload = TextJobCreate(
+            operation="shape", text="Hello", spoken_profile="spoken_2",
+            capability_id="exact_longform")
+        self.assertEqual(payload.spoken_profile, "spoken_2")
+        with self.assertRaises(ValueError):
+            TextJobCreate(operation="shape", text="Hello",
+                          spoken_profile="spoken_99",
+                          capability_id="exact_longform")
 
     def test_legacy_text_execution_routes_are_removed(self):
         legacy_jobs = ROOT / "audio_studio/infrastructure/legacy_jobs.py"

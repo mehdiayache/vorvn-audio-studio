@@ -1,8 +1,9 @@
-import { AudioLines, Check, Columns2, Copy, Maximize2, Minimize2, WandSparkles } from "lucide-react"
+import { AudioLines, Check, ChevronDown, Columns2, Copy, Maximize2, Minimize2, WandSparkles } from "lucide-react"
 import { useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -35,6 +36,8 @@ export function ComposerWords() {
   const compareView = candidateView || savedCompareView
   const compareText = text.review?.result.after || (compareView ? text.states[compareView] : "")
   const displayedText = text.review?.result.after || text.text
+  const spokenLabel = text.spokenProfile === "spoken_2" ? "Prosody only" : "Natural phrasing"
+  const textToolDisabled = !composer.currentRoute || !text.text.trim() || Boolean(text.busy) || composer.recovery.status === "loading"
 
   const copy = async () => {
     await navigator.clipboard?.writeText(displayedText)
@@ -54,7 +57,13 @@ export function ComposerWords() {
     <div className="script-command-row">
       <div className="speech-states" role="tablist" aria-label="Script versions">{states.map((state) => <Button key={state} role="tab" aria-selected={text.view === state && !text.review} variant="ghost" size="sm" className={text.view === state && !text.review ? "active" : ""} disabled={Boolean(text.review) || (state !== "raw" && !text.states[state])} onClick={() => text.select(state)}>{textLabel(state)}{state === text.view && !text.review && <small>Recording input</small>}</Button>)}</div>
       {!text.review && <div className="text-tools" aria-label="Text tools">
-        <Button variant="ghost" size="sm" disabled={!composer.currentRoute || !text.text.trim() || Boolean(text.busy) || composer.recovery.status === "loading"} onClick={() => void text.run("shape")}><AudioLines />{text.busy === "shape" ? "Rewriting…" : "Make spoken"}</Button>
+        <div className="spoken-split-action">
+          <Button variant="ghost" size="sm" disabled={textToolDisabled} onClick={() => void text.run("shape", false, text.spokenProfile)}><AudioLines />{text.busy === "shape" ? "Preparing…" : `Make spoken · ${spokenLabel}`}</Button>
+          <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Choose Spoken preparation method" disabled={textToolDisabled}><ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="spoken-method-menu">
+            <DropdownMenuItem onSelect={() => void text.run("shape", false, "spoken_1")}><span><b>Spoken 1 · Natural phrasing</b><small>Reshapes sentences for comfortable listening.</small></span>{text.spokenProfile === "spoken_1" && <Check />}</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => void text.run("shape", false, "spoken_2")}><span><b>Spoken 2 · Prosody only</b><small>Locks the words; controls punctuation and cadence.</small></span>{text.spokenProfile === "spoken_2" && <Check />}</DropdownMenuItem>
+          </DropdownMenuContent></DropdownMenu>
+        </div>
         {composer.capabilityControls.deliveryTags && <>
           <Select value={text.density} onValueChange={text.setDensity}><SelectTrigger aria-label="Tag density"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="light">Light tags</SelectItem><SelectItem value="normal">Normal tags</SelectItem><SelectItem value="heavy">Heavy tags</SelectItem></SelectContent></Select>
           <Button variant="ghost" size="sm" disabled={!text.text.trim() || Boolean(text.busy) || composer.recovery.status === "loading"} onClick={() => void text.run("tag")}><WandSparkles />{text.busy === "tag" ? "Tagging…" : "Add tags"}</Button>
@@ -65,7 +74,7 @@ export function ComposerWords() {
     <div className={cn("script-editor-shell", text.review && "is-reviewing")}>
       {text.review ? <>
         <div className="candidate-toolbar">
-          <div><span className="eyebrow">{text.review.kind === "shape" ? "Spoken candidate" : "Tagged candidate"}</span><b>Review the prepared words where you write</b><small>{formatMicroMoney(Number(text.review.result.cost || 0))} · {text.review.result.cost_basis === "actual_tokens" ? "actual provider tokens" : "estimated"}</small></div>
+          <div><span className="eyebrow">{text.review.kind === "shape" ? `${text.review.result.spoken_profile === "spoken_2" ? "Spoken 2 · Prosody only" : "Spoken 1 · Natural phrasing"} candidate` : "Tagged candidate"}</span><b>Review the prepared words where you write</b><small>{formatMicroMoney(Number(text.review.result.cost || 0))} · {text.review.result.cost_basis === "actual_tokens" ? "actual provider tokens" : "estimated"}</small></div>
           <Button variant="outline" size="sm" onClick={() => setCompareOpen(true)}><Columns2 /> Compare with Original</Button>
         </div>
         <Textarea className="candidate-editor" dir="auto" aria-label={`${text.review.kind === "shape" ? "Spoken" : "Tagged"} candidate`} value={text.review.result.after || ""} readOnly />

@@ -156,7 +156,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     voiceIdentityId: selectedIdentity?.identityId || null,
     route,
     text: { raw: textSession.states.raw, shaped: textSession.states.shaped, tagged: textSession.states.tagged, active: textSession.view },
-    textPreparation: { tagDensity: textSession.density, pendingReview: textReviewReference },
+    textPreparation: { tagDensity: textSession.density, spokenProfile: textSession.spokenProfile, pendingReview: textReviewReference },
     delivery: { modeId: deliveryMode, instruction: capabilityControls.naturalDirection ? instruction : "", rate, pitch, volume, seed, enableSsml: capabilityControls.ssml && enableSsml },
     output: { format, language: language || "Auto" },
     editorialPatch: {
@@ -172,7 +172,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
       setIdentityId(saved.voiceIdentityId || "")
       setRoute(saved.route)
       setTextReviewReference(saved.textPreparation.pendingReview)
-      textSession.restore(saved.text, saved.textPreparation.tagDensity)
+      textSession.restore(saved.text, saved.textPreparation.tagDensity, saved.textPreparation.spokenProfile)
       setDeliveryModeRequest(saved.delivery.modeId || "exact")
       setInstruction(saved.delivery.instruction)
       setRate(saved.delivery.rate)
@@ -187,7 +187,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   })
   persistTextPreparationRef.current = async (reference, nextText) => {
     const current = latestRecoverableDraftRef.current
-    const next = { ...current, text: nextText || current.text, textPreparation: { tagDensity: textSession.density, pendingReview: reference } }
+    const next = { ...current, text: nextText || current.text, textPreparation: { tagDensity: textSession.density, spokenProfile: textSession.spokenProfile, pendingReview: reference } }
     latestRecoverableDraftRef.current = next
     await recovery.saveNow(next)
   }

@@ -95,6 +95,7 @@ class SpeechJobCreate(BaseModel):
     text_shaped: str | None = Field(default=None, max_length=500_000)
     text_tagged: str | None = Field(default=None, max_length=500_000)
     text_state: Literal["raw", "shaped", "tagged"] = "raw"
+    spoken_profile: Literal["spoken_1", "spoken_2"] = "spoken_1"
     production_id: int | None = Field(default=None, gt=0)
     insert_before_part_id: UUID | None = None
     voice_identity_id: str | None = Field(default=None, max_length=120)
@@ -174,6 +175,7 @@ class TextJobCreate(BaseModel):
     production_id: int | None = Field(default=None, gt=0)
     part_id: int | None = Field(default=None, gt=0)
     density: Literal["none", "light", "normal", "heavy"] = "normal"
+    spoken_profile: Literal["spoken_1", "spoken_2"] = "spoken_1"
     capability_id: str = Field(min_length=1, max_length=120)
     confirmed: bool = False
 

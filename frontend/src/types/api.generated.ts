@@ -3334,6 +3334,12 @@ export interface components {
              * @default exact
              */
             speech_mode: string;
+            /**
+             * Spoken Profile
+             * @default spoken_1
+             * @enum {string}
+             */
+            spoken_profile: "spoken_1" | "spoken_2";
             /** Text */
             text: string;
             /** Text Raw */
@@ -3817,12 +3823,24 @@ export interface components {
             part_id?: number | null;
             /** Production Id */
             production_id?: number | null;
+            /**
+             * Spoken Profile
+             * @default spoken_1
+             * @enum {string}
+             */
+            spoken_profile: "spoken_1" | "spoken_2";
             /** Text */
             text: string;
         };
         /** TextPreparationState */
         TextPreparationState: {
             pending_review?: components["schemas"]["TextReviewReference"] | null;
+            /**
+             * Spoken Profile
+             * @default spoken_1
+             * @enum {string}
+             */
+            spoken_profile: "spoken_1" | "spoken_2";
             /**
              * Tag Density
              * @default normal
@@ -3842,6 +3860,8 @@ export interface components {
              * @enum {string}
              */
             kind: "shape" | "tag";
+            /** Spoken Profile */
+            spoken_profile?: ("spoken_1" | "spoken_2") | null;
         };
         /** TextState */
         TextState: {

@@ -390,10 +390,10 @@ type SpeechJobCreateRequest = components["schemas"]["SpeechJobCreate"]
 
 export type GeneratePayload = Omit<
   SpeechJobCreateRequest,
-  "part_id" | "confirmed" | "text_state" | "enable_ssml"
+  "part_id" | "confirmed" | "text_state" | "spoken_profile" | "enable_ssml"
 > & Partial<Pick<
   SpeechJobCreateRequest,
-  "confirmed" | "text_state" | "enable_ssml"
+  "confirmed" | "text_state" | "spoken_profile" | "enable_ssml"
 >>
 
 export type ResolvedGeneratePayload = GeneratePayload & {
@@ -476,6 +476,7 @@ export type TextPassResult = {
   provider_endpoint?: string | null
   cost_basis?: string
   price_version?: string
+  spoken_profile?: "spoken_1" | "spoken_2" | null
 }
 
 export type CaptionMutationResult = Transcript & {

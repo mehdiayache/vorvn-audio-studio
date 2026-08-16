@@ -18,7 +18,7 @@ function emptyDraft(): RecoverableCompositionDraft {
   return {
     voiceIdentityId: null, route: null,
     text: { raw: "", shaped: "", tagged: "", active: "raw" },
-    textPreparation: { tagDensity: "normal", pendingReview: null },
+    textPreparation: { tagDensity: "normal", spokenProfile: "spoken_1", pendingReview: null },
     delivery: { modeId: null, instruction: "", rate: 1, pitch: 1, volume: 50, seed: 0, enableSsml: false },
     output: { format: "mp3", language: "Auto" },
   }
@@ -66,7 +66,7 @@ describe("useComposerDraftRecovery", () => {
     const context = { kind: "standalone" as const }
     const { result } = renderHook(() => useComposerDraftRecovery({ context, draft: emptyDraft(), onRestore: vi.fn() }))
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
-    const next = { ...emptyDraft(), textPreparation: { tagDensity: "normal" as const, pendingReview: { jobId: "22222222-2222-4222-8222-222222222222", kind: "shape" as const } } }
+    const next = { ...emptyDraft(), textPreparation: { tagDensity: "normal" as const, spokenProfile: "spoken_2" as const, pendingReview: { jobId: "22222222-2222-4222-8222-222222222222", kind: "shape" as const, spokenProfile: "spoken_2" as const } } }
     await act(async () => { await result.current.saveNow(next) })
     expect(api.saveComposerDraft).toHaveBeenCalledWith(context, next, null)
     expect(result.current.status).toBe("saved")

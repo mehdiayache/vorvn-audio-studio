@@ -70,11 +70,13 @@ class TextReviewReference(BaseModel):
     model_config = ConfigDict(extra="forbid")
     job_id: UUID
     kind: Literal["shape", "tag"]
+    spoken_profile: Literal["spoken_1", "spoken_2"] | None = None
 
 
 class TextPreparationState(BaseModel):
     model_config = ConfigDict(extra="forbid")
     tag_density: Literal["none", "light", "normal", "heavy"] = "normal"
+    spoken_profile: Literal["spoken_1", "spoken_2"] = "spoken_1"
     pending_review: TextReviewReference | None = None
 
 

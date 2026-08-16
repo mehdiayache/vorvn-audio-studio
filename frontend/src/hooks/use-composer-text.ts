@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { studioApi } from "@/lib/api"
 import type { ProductionPart, TextPassResult } from "@/types/domain"
-import { composerTextFromPart, type ComposerText, type TextReviewReference } from "@/lib/composer-contract"
+import { composerTextFromPart, type ComposerText, type SpokenProfile, type TextReviewReference } from "@/lib/composer-contract"
 
 export type TextView = "raw" | "shaped" | "tagged"
 export type TagDensity = "none" | "light" | "normal" | "heavy"
@@ -15,6 +15,11 @@ type PreparationOptions = {
 function initial(part?: ProductionPart | null) {
   const { active: _active, ...states } = composerTextFromPart(part)
   return states
+}
+
+function recordedSpokenProfile(part?: ProductionPart | null): SpokenProfile {
+  const profile = part?.speech_job?.request?.spoken_profile
+  return profile === "spoken_2" ? "spoken_2" : "spoken_1"
 }
 
 export function useComposerText(
@@ -30,6 +35,7 @@ export function useComposerText(
   const [busy, setBusy] = useState<"shape" | "tag" | null>(null)
   const [error, setError] = useState("")
   const [density, setDensityState] = useState<TagDensity>("normal")
+  const [spokenProfile, setSpokenProfile] = useState<SpokenProfile>(recordedSpokenProfile(part))
   const [activeReference, setActiveReference] = useState<TextReviewReference | null>(options.reviewReference || null)
   const referenceChangeRef = useRef(options.onReviewReferenceChange)
   referenceChangeRef.current = options.onReviewReferenceChange
@@ -43,6 +49,7 @@ export function useComposerText(
     setStates(next)
     setView(nextView)
     setReview(null); setPending(null); setError("")
+    setSpokenProfile(recordedSpokenProfile(part))
     setActiveReference(options.reviewReference || null)
   // The parent restores the persisted reference separately from Part identity.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -96,14 +103,15 @@ export function useComposerText(
     return true
   }
 
-  function restore(next: ComposerText, nextDensity: TagDensity = "normal") {
+  function restore(next: ComposerText, nextDensity: TagDensity = "normal", nextSpokenProfile: SpokenProfile = "spoken_1") {
     setStates({ raw: next.raw, shaped: next.shaped, tagged: next.tagged })
     setView(next[next.active] || next.active === "raw" ? next.active : "raw")
     setDensityState(nextDensity)
+    setSpokenProfile(nextSpokenProfile)
     setReview(null); setPending(null); setError("")
   }
 
-  async function run(kind: "shape" | "tag", confirmed = false) {
+  async function run(kind: "shape" | "tag", confirmed = false, requestedProfile: SpokenProfile = spokenProfile) {
     const before = text.trim()
     if (!before) { setError("Write something first."); return }
     if (!capabilityId) { setError("Choose an exact recording route first."); return }
@@ -114,10 +122,11 @@ export function useComposerText(
         ...(productionId ? { production_id: productionId } : {}),
         ...(part?.id ? { part_id: part.id } : {}),
         density,
+        ...(kind === "shape" ? { spoken_profile: requestedProfile } : {}),
         capability_id: capabilityId,
         confirmed,
       })
-      const reference = { jobId: job.id, kind } satisfies TextReviewReference
+      const reference = { jobId: job.id, kind, ...(kind === "shape" ? { spokenProfile: requestedProfile } : {}) } satisfies TextReviewReference
       setReview(null)
       setActiveReference(reference)
       await referenceChangeRef.current?.(reference)
@@ -143,6 +152,7 @@ export function useComposerText(
       if (part && productionId) await studioApi.saveTextStates(productionId, part.id, { text: after, text_raw: nextStates.raw || null, text_shaped: nextStates.shaped || null, text_tagged: nextStates.tagged || null, text_state: nextView })
       await referenceChangeRef.current?.(null, nextText)
       setStates(nextStates); setView(nextView); setReview(null); setActiveReference(null)
+      if (accepted.kind === "shape") setSpokenProfile(accepted.result.spoken_profile === "spoken_2" ? "spoken_2" : "spoken_1")
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "The prepared text could not be accepted.")
     } finally {
@@ -177,7 +187,7 @@ export function useComposerText(
     }
   }
 
-  return { text, states, view, review, pending, busy, error, density,
+  return { text, states, view, review, pending, busy, error, density, spokenProfile,
     setDensity: (value: string) => {
       if (["none", "light", "normal", "heavy"].includes(value)) setDensityState(value as TagDensity)
     },

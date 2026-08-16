@@ -76,6 +76,7 @@ describe("shared Composer contract", () => {
     await waitFor(() => expect(screen.getAllByText("Sarah").length).toBeGreaterThan(0))
     expect(screen.getAllByText("Expressive + tags").length).toBeGreaterThan(0)
     expect(screen.getByRole("button", { name: /Generate Part/ }).hasAttribute("disabled")).toBe(false)
+    expect(screen.getByRole("button", { name: "Choose Spoken preparation method" })).toBeTruthy()
   })
 
   it("labels an existing recording as one safe replacement action", async () => {

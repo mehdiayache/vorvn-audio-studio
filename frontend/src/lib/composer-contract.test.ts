@@ -40,7 +40,7 @@ function draft(route: CompositionDraft["route"]): CompositionDraft {
     voiceIdentityId: "identity-1",
     route,
     text: { raw: "Hello", shaped: "", tagged: "", active: "raw" },
-    textPreparation: { tagDensity: "normal", pendingReview: null },
+    textPreparation: { tagDensity: "normal", spokenProfile: "spoken_1", pendingReview: null },
     delivery: { modeId: "exact", instruction: "", rate: 1, pitch: 1, volume: 50, seed: 0, enableSsml: false },
     output: { format: "mp3", language: "English" },
     editorialPatch: {},
@@ -88,6 +88,7 @@ describe("provider-neutral Composer contract", () => {
     expect(payload).toMatchObject({
       binding_id: "binding-1",
       catalogue_voice_id: null,
+      spoken_profile: "spoken_1",
     })
     expect(payload).not.toHaveProperty("voice")
     expect(payload).not.toHaveProperty("engine")

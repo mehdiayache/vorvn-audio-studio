@@ -27,6 +27,7 @@ PRICE_VERSION = "qwen3.7-text-estimate-v1"
 INPUT_PRICE_PER_MILLION = 0.4
 OUTPUT_PRICE_PER_MILLION = 1.2
 DENSITIES = ("none", "light", "normal", "heavy")
+SPOKEN_PROFILES = ("spoken_1", "spoken_2")
 
 DEFAULTS = {
     "shape": (
@@ -41,6 +42,80 @@ DEFAULTS = {
         "- spell out anything a reader would stumble over\n"
         "- do not add new information, do not summarise, do not add tags\n"
         "Reply with the rewritten text only, nothing else."
+    ),
+    "shape_2": (
+        "You are a prosody compiler, not a writer.\n\n"
+        "Your task is to convert the supplied text into a performance-control "
+        "version for text-to-speech.\n\n"
+        "The words carry the content.\n\n"
+        "Punctuation, segmentation, spacing, capitalization, and supported "
+        "speech-control notation carry the performance.\n\n"
+        "Do not improve the writing.\n"
+        "Do not humanize the writing.\n"
+        "Do not make it conversational.\n"
+        "Do not paraphrase.\n"
+        "Do not summarize.\n"
+        "Do not beautify.\n"
+        "Do not add literary style.\n"
+        "Do not replace awkward language merely because better wording exists.\n\n"
+        "Treat the lexical content of the input as locked.\n\n"
+        "Your primary operation is to alter the delivery layer around the words.\n\n"
+        "You may control:\n\n"
+        "- sentence boundaries\n"
+        "- clause boundaries\n"
+        "- commas\n"
+        "- periods\n"
+        "- question marks\n"
+        "- exclamation marks\n"
+        "- colons\n"
+        "- semicolons\n"
+        "- dashes\n"
+        "- ellipses\n"
+        "- line breaks\n"
+        "- paragraph breaks\n"
+        "- capitalization when it materially affects vocal emphasis\n"
+        "- orthographic rendering only when required to obtain the intended pronunciation\n"
+        "- native TTS control notation when the active synthesis format supports it\n\n"
+        "Infer the intended vocal performance from meaning and context.\n\n"
+        "For every passage, determine internally:\n\n"
+        "- where the speaker actually completes a thought\n"
+        "- where the voice continues without fully stopping\n"
+        "- where a micro-pause belongs\n"
+        "- where a stronger pause belongs\n"
+        "- which words receive natural emphasis\n"
+        "- where tempo should tighten\n"
+        "- where tempo should relax\n"
+        "- where hesitation is genuinely implied\n"
+        "- where certainty, tension, intimacy, excitement, restraint, or emotional weight changes the delivery\n"
+        "- where the TTS would otherwise group words incorrectly\n"
+        "- where written punctuation would cause an unnatural spoken interpretation\n\n"
+        "Then encode those decisions into the text using the smallest effective intervention.\n\n"
+        "Do not mechanically insert pauses.\n\n"
+        "Do not decorate the text.\n\n"
+        "Do not apply a repeating punctuation pattern.\n\n"
+        "Do not use ellipses as a generic naturalness effect.\n\n"
+        "Do not fragment every sentence.\n\n"
+        "Do not exaggerate emphasis.\n\n"
+        "Do not add speech mannerisms merely to simulate humanity.\n\n"
+        "Every intervention must have a specific acoustic purpose.\n\n"
+        "The output is not prose for a reader.\n\n"
+        "It is a control surface for a speech synthesizer.\n\n"
+        "Optimize for the resulting audio, even when the resulting text looks "
+        "unusual, inelegant, fragmented, or undesirable on a page.\n\n"
+        "Preserve the original sequence of lexical content as strictly as possible.\n\n"
+        "Unless pronunciation absolutely requires otherwise, words must not be "
+        "added, deleted, substituted, reordered, or rewritten.\n\n"
+        "Before returning the result, compare input and output internally.\n\n"
+        "If a lexical change was made merely to improve style, fluency, elegance, "
+        "naturalness, grammar, or readability, undo it.\n\n"
+        "Then simulate the likely TTS rendering internally and revise only the "
+        "performance layer wherever phrasing, emphasis, pausing, grouping, cadence, "
+        "or emotional delivery would likely be wrong.\n\n"
+        "Return only the TTS-ready text.\n\n"
+        "No explanation.\n"
+        "No analysis.\n"
+        "No headings.\n"
+        "No commentary."
     ),
     "tag": (
         "You add inline delivery tags to text that is about to be spoken by a "
@@ -127,9 +202,11 @@ def _with_style(prompt: str, style: str, kept: dict) -> str:
     return prompt + "\n\n" + _fill(kept["style_line"], {"style": style})
 
 
-def shape_prompt(style: str = "", saved: dict | None = None) -> str:
+def shape_prompt(style: str = "", saved: dict | None = None,
+                 profile: str = "spoken_1") -> str:
     kept = templates(saved)
-    return _with_style(_fill(kept["shape"]), style, kept)
+    key = "shape_2" if profile == "spoken_2" else "shape"
+    return _with_style(_fill(kept[key]), style, kept)
 
 
 def tag_prompt(density: str = "normal", style: str = "",
@@ -170,6 +247,21 @@ def assert_tag_fidelity(before: str, tagged: str) -> None:
         )
 
 
+def _lexical_sequence(text: str) -> list[str]:
+    normalized = unicodedata.normalize("NFKC", text).replace("’", "'")
+    return [token.casefold() for token in re.findall(
+        r"[^\W_]+(?:'[^\W_]+)*", normalized, flags=re.UNICODE)]
+
+
+def assert_prosody_fidelity(before: str, shaped: str) -> None:
+    """Spoken 2 may alter performance notation, never lexical content."""
+    if _lexical_sequence(before) != _lexical_sequence(shaped):
+        raise ValueError(
+            "Spoken 2 changed the words. Audio Studio rejected that version "
+            "so the supplied script stays exact."
+        )
+
+
 def difference(before: str, after: str) -> list[dict[str, str]]:
     split = lambda value: re.findall(r"\S+\s*", value or "")
     old, new = split(before), split(after)
@@ -199,6 +291,7 @@ class TextPreparationService:
     def prepare(self, *, operation: str, text: str,
                 production_id: int | None = None,
                 part_id: int | None = None, density: str = "normal",
+                spoken_profile: str = "spoken_1",
                 capability_id: str, confirmed: bool = False,
                 source_job_id: int | None = None) -> dict:
         before = (text or "").strip()
@@ -206,6 +299,8 @@ class TextPreparationService:
             raise ValueError("There's nothing to work on.")
         if operation not in {"shape", "tag"}:
             raise ValueError("Unknown text operation.")
+        if spoken_profile not in SPOKEN_PROFILES:
+            raise ValueError("Unknown Spoken preparation method.")
         capability_controls = self.repository.capability_controls(capability_id)
         if operation == "tag" and capability_controls.get("delivery_tags") is not True:
             raise ValueError(
@@ -227,7 +322,7 @@ class TextPreparationService:
 
         style = self.repository.style_for(production_id) if production_id else ""
         saved = self.repository.prompt_settings()
-        prompt = (shape_prompt(style, saved) if operation == "shape"
+        prompt = (shape_prompt(style, saved, spoken_profile) if operation == "shape"
                   else tag_prompt(density, style, saved))
         reservation_id = None
         attempt_id = None
@@ -272,6 +367,8 @@ class TextPreparationService:
                 })
         if operation == "shape":
             after = completion.text
+            if spoken_profile == "spoken_2":
+                assert_prosody_fidelity(before, after)
         else:
             after = strip_unknown(completion.text)
             assert_tag_fidelity(before, after)
@@ -286,6 +383,7 @@ class TextPreparationService:
             "style_used": bool(style),
             "part": part_id or 0,
             "model": MODEL,
+            "spoken_profile": spoken_profile if operation == "shape" else None,
             "usage": completion.usage,
             "provider_request_id": completion.request_id,
             "provider_region": completion.provider_region,
@@ -311,6 +409,7 @@ class TextPreparationJobHandler:
             production_id=job.payload.get("production_id"),
             part_id=job.payload.get("part_id"),
             density=str(job.payload.get("density") or "normal"),
+            spoken_profile=str(job.payload.get("spoken_profile") or "spoken_1"),
             capability_id=str(job.payload.get("capability_id") or ""),
             confirmed=bool(job.payload.get("confirmed")),
             source_job_id=job.id,

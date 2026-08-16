@@ -19,6 +19,7 @@ from audio_studio.application.provider_operations import ProviderOperationServic
 PLAUSIBLE_CHARACTERS_PER_SECOND = 25
 _SETTING_FIELDS = (
     "text", "text_raw", "text_shaped", "text_tagged", "text_state",
+    "spoken_profile",
     "voice", "voice_identity_id", "binding_id", "catalogue_voice_id",
     "capability_id", "engine", "model", "format", "language",
     "instruction", "speech_mode", "rate", "pitch", "volume", "seed",
@@ -55,7 +56,8 @@ class SpeechWorkspace(Protocol):
 def _defaults(values: dict) -> dict:
     return {
         "text": "", "text_raw": None, "text_shaped": None,
-        "text_tagged": None, "text_state": "raw", "voice": "",
+        "text_tagged": None, "text_state": "raw",
+        "spoken_profile": "spoken_1", "voice": "",
         "voice_identity_id": None, "binding_id": None,
         "catalogue_voice_id": None, "capability_id": None,
         "engine": "audio", "model": "plus",
@@ -88,6 +90,7 @@ def _record(prepared: PreparedSpeech, result: SynthesizedSpeech,
         "text_shaped": values.get("text_shaped"),
         "text_tagged": values.get("text_tagged"),
         "text_state": values.get("text_state") or "raw",
+        "spoken_profile": values.get("spoken_profile") or "spoken_1",
         "voice": prepared.voice,
         "voice_name": prepared.voice_name,
         "voice_identity_id": prepared.voice_identity_id,

@@ -5808,6 +5808,15 @@
             "title": "Speech Mode",
             "type": "string"
           },
+          "spoken_profile": {
+            "default": "spoken_1",
+            "enum": [
+              "spoken_1",
+              "spoken_2"
+            ],
+            "title": "Spoken Profile",
+            "type": "string"
+          },
           "text": {
             "maxLength": 500000,
             "minLength": 1,
@@ -7142,6 +7151,15 @@
             ],
             "title": "Production Id"
           },
+          "spoken_profile": {
+            "default": "spoken_1",
+            "enum": [
+              "spoken_1",
+              "spoken_2"
+            ],
+            "title": "Spoken Profile",
+            "type": "string"
+          },
           "text": {
             "minLength": 1,
             "title": "Text",
@@ -7168,6 +7186,15 @@
                 "type": "null"
               }
             ]
+          },
+          "spoken_profile": {
+            "default": "spoken_1",
+            "enum": [
+              "spoken_1",
+              "spoken_2"
+            ],
+            "title": "Spoken Profile",
+            "type": "string"
           },
           "tag_density": {
             "default": "normal",
@@ -7199,6 +7226,21 @@
             ],
             "title": "Kind",
             "type": "string"
+          },
+          "spoken_profile": {
+            "anyOf": [
+              {
+                "enum": [
+                  "spoken_1",
+                  "spoken_2"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spoken Profile"
           }
         },
         "required": [

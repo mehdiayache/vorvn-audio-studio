@@ -13,7 +13,7 @@ export type ComposerDraftWireRecord = {
     voice_identity_id: string | null
     route: { kind: "owned" | "catalogue"; binding_id: string | null; catalogue_voice_id: string | null; capability_id: string | null } | null
     text: RecoverableCompositionDraft["text"]
-    text_preparation: { tag_density: RecoverableCompositionDraft["textPreparation"]["tagDensity"]; pending_review: { job_id: string; kind: "shape" | "tag" } | null }
+    text_preparation: { tag_density: RecoverableCompositionDraft["textPreparation"]["tagDensity"]; spoken_profile: RecoverableCompositionDraft["textPreparation"]["spokenProfile"]; pending_review: { job_id: string; kind: "shape" | "tag"; spoken_profile?: RecoverableCompositionDraft["textPreparation"]["spokenProfile"] | null } | null }
     delivery: { mode_id: string | null; instruction: string; rate: number; pitch: number; volume: number; seed: number; enable_ssml?: boolean }
     output: RecoverableCompositionDraft["output"]
   }
@@ -57,8 +57,9 @@ export function draftWire(draft: RecoverableCompositionDraft): ComposerDraftWire
     text: draft.text,
     text_preparation: {
       tag_density: draft.textPreparation.tagDensity,
+      spoken_profile: draft.textPreparation.spokenProfile,
       pending_review: draft.textPreparation.pendingReview
-        ? { job_id: draft.textPreparation.pendingReview.jobId, kind: draft.textPreparation.pendingReview.kind }
+        ? { job_id: draft.textPreparation.pendingReview.jobId, kind: draft.textPreparation.pendingReview.kind, spoken_profile: draft.textPreparation.pendingReview.spokenProfile }
         : null,
     },
     delivery: {
@@ -85,8 +86,9 @@ export function draftFromWire(record: ComposerDraftWireRecord): ComposerDraftRec
       text: record.state.text,
       textPreparation: {
         tagDensity: record.state.text_preparation.tag_density,
+        spokenProfile: record.state.text_preparation.spoken_profile || "spoken_1",
         pendingReview: record.state.text_preparation.pending_review
-          ? { jobId: record.state.text_preparation.pending_review.job_id, kind: record.state.text_preparation.pending_review.kind }
+          ? { jobId: record.state.text_preparation.pending_review.job_id, kind: record.state.text_preparation.pending_review.kind, spokenProfile: record.state.text_preparation.pending_review.spoken_profile }
           : null,
       },
       delivery: {
@@ -108,6 +110,7 @@ export function meaningfulDraft(draft: RecoverableCompositionDraft) {
     draft.voiceIdentityId || draft.route
     || draft.text.raw || draft.text.shaped || draft.text.tagged
     || draft.textPreparation.pendingReview || draft.textPreparation.tagDensity !== "normal"
+    || draft.textPreparation.spokenProfile !== "spoken_1"
     || draft.delivery.instruction || draft.delivery.modeId
     || draft.delivery.rate !== 1 || draft.delivery.pitch !== 1
     || draft.delivery.volume !== 50 || draft.delivery.seed || draft.delivery.enableSsml

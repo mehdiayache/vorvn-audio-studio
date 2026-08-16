@@ -34,6 +34,7 @@ describe("useComposerText text preparation contract", () => {
 
     expect(studioApi.enqueueTextPass).toHaveBeenCalledWith(operation, {
       text: "مرحبا", density: "normal", capability_id: "expressive_tags", confirmed: false,
+      ...(operation === "shape" ? { spoken_profile: "spoken_1" } : {}),
     })
     await waitFor(() => expect(result.current.review?.kind).toBe(operation))
   })
@@ -57,6 +58,22 @@ describe("useComposerText text preparation contract", () => {
     expect(studioApi.enqueueTextPass).toHaveBeenCalledWith("tag", expect.objectContaining({
       production_id: 28, part_id: 121,
     }))
+  })
+
+  it("sends Spoken 2 explicitly and adopts it only after acceptance", async () => {
+    vi.mocked(studioApi.textPassResult).mockResolvedValue({
+      before: "Keep every word", after: "Keep every word...",
+      difference: [], cost: 0, spoken_profile: "spoken_2",
+    })
+    const { result } = renderHook(() => useComposerText(undefined, undefined, "expressive_tags"))
+    act(() => result.current.updateText("Keep every word"))
+    await act(async () => { await result.current.run("shape", false, "spoken_2") })
+    expect(studioApi.enqueueTextPass).toHaveBeenCalledWith("shape", expect.objectContaining({
+      spoken_profile: "spoken_2",
+    }))
+    await waitFor(() => expect(result.current.review).not.toBeNull())
+    await act(async () => { await result.current.accept() })
+    expect(result.current.spokenProfile).toBe("spoken_2")
   })
 
   it("re-observes a persisted paid text Job after the Composer remounts", async () => {
@@ -106,6 +123,7 @@ describe("useComposerText text preparation contract", () => {
     await act(async () => { await result.current.run("shape") })
     expect(onReviewReferenceChange).toHaveBeenCalledWith({
       jobId: "11111111-1111-4111-8111-111111111111", kind: "shape",
+      spokenProfile: "spoken_1",
     })
     expect(result.current.busy).toBe("shape")
   })

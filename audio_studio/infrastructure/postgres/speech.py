@@ -198,6 +198,7 @@ class SpeechRepository:
             "text_raw": values.get("text_raw"),
             "text_shaped": values.get("text_shaped"),
             "text_tagged": values.get("text_tagged"),
+            "spoken_profile": values.get("spoken_profile") or "spoken_1",
         }
         cursor.execute("""
             INSERT INTO clips
