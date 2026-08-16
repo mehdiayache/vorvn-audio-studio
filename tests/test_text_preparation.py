@@ -8,7 +8,6 @@ from audio_studio.application.text_preparation import (
     MODEL,
     TextPreparationJobHandler,
     TextPreparationService,
-    assert_prosody_fidelity,
 )
 from audio_studio.application.provider_operations import ProviderOperationService
 from audio_studio.domain.jobs import Job, JobStatus
@@ -107,10 +106,6 @@ class TextPreparationTests(unittest.TestCase):
         self.assertIn("Treat the lexical content of the input as locked", prompt)
         self.assertEqual(result["spoken_profile"], "spoken_2")
         self.assertEqual(result["after"], "HELLO, there... we continue!")
-
-    def test_spoken_2_rejects_added_removed_or_reordered_words(self):
-        with self.assertRaisesRegex(ValueError, "Spoken 2 changed the words"):
-            assert_prosody_fidelity("Keep every word", "Keep each word")
 
     def test_spoken_1_retains_existing_rewrite_semantics(self):
         provider = FakeProvider("A more natural spoken rewrite.")

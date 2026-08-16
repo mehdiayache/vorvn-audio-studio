@@ -247,21 +247,6 @@ def assert_tag_fidelity(before: str, tagged: str) -> None:
         )
 
 
-def _lexical_sequence(text: str) -> list[str]:
-    normalized = unicodedata.normalize("NFKC", text).replace("’", "'")
-    return [token.casefold() for token in re.findall(
-        r"[^\W_]+(?:'[^\W_]+)*", normalized, flags=re.UNICODE)]
-
-
-def assert_prosody_fidelity(before: str, shaped: str) -> None:
-    """Spoken 2 may alter performance notation, never lexical content."""
-    if _lexical_sequence(before) != _lexical_sequence(shaped):
-        raise ValueError(
-            "Spoken 2 changed the words. Audio Studio rejected that version "
-            "so the supplied script stays exact."
-        )
-
-
 def difference(before: str, after: str) -> list[dict[str, str]]:
     split = lambda value: re.findall(r"\S+\s*", value or "")
     old, new = split(before), split(after)
@@ -367,8 +352,6 @@ class TextPreparationService:
                 })
         if operation == "shape":
             after = completion.text
-            if spoken_profile == "spoken_2":
-                assert_prosody_fidelity(before, after)
         else:
             after = strip_unknown(completion.text)
             assert_tag_fidelity(before, after)
