@@ -87,7 +87,17 @@ class _CosyVoiceCollector(ResultCallback):
     def __init__(self):
         self.audio = bytearray()
         self.error: str | None = None
-        self.word_timestamps: list[dict] = []
+        self._word_timestamps: dict[tuple, dict] = {}
+
+    @property
+    def word_timestamps(self) -> list[dict]:
+        return sorted(
+            self._word_timestamps.values(),
+            key=lambda item: (
+                int(item.get("begin_index") or 0),
+                int(item.get("begin_time") or 0),
+            ),
+        )
 
     def on_data(self, data: bytes) -> None:
         self.audio.extend(data)
@@ -100,7 +110,14 @@ class _CosyVoiceCollector(ResultCallback):
             payload = json.loads(message) if isinstance(message, str) else message
         except (TypeError, json.JSONDecodeError):
             return
-        self.word_timestamps.extend(_word_rows(payload))
+        # Result-generated events are cumulative and may revise a word's end
+        # timing. Keep one latest provider row per script span instead of
+        # persisting every intermediate repetition.
+        for row in _word_rows(payload):
+            key = (
+                row.get("begin_index"), row.get("end_index"), row.get("text"),
+            )
+            self._word_timestamps[key] = row
 
 
 def _language_hints(language: str | None) -> list[str] | None:

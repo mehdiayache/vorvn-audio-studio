@@ -58,8 +58,17 @@ class CosyVoiceTests(unittest.TestCase):
                 "begin_index": 0, "end_index": 5,
             }]}}
         })
+        collector.on_event({
+            "output": {"sentence": {"words": [
+                {"text": "Hello", "begin_time": 0, "end_time": 440,
+                 "begin_index": 0, "end_index": 5},
+                {"text": " world", "begin_time": 480, "end_time": 900,
+                 "begin_index": 5, "end_index": 11},
+            ]}}
+        })
+        self.assertEqual(len(collector.word_timestamps), 2)
         self.assertEqual(collector.word_timestamps[0]["text"], "Hello")
-        self.assertEqual(collector.word_timestamps[0]["end_time"], 420)
+        self.assertEqual(collector.word_timestamps[0]["end_time"], 440)
 
     def test_transport_failure_is_not_automatically_retried(self):
         planned = cosyvoice.CosyVoicePlan((("hello",),))
