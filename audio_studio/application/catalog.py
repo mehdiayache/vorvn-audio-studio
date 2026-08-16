@@ -99,7 +99,6 @@ class CatalogService:
                 "region_label": environment.region_label,
                 "http_base": environment.native_http_base,
             },
-            "instruction_max": 100,
             "text_preparation": {
                 "model": TEXT_PREPARATION_MODEL,
                 "reasoning": False,

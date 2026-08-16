@@ -34,10 +34,10 @@ function exactFields(value: Record<string, unknown>, allowed: Set<string>, label
   if (extra.length) throw new Error(`${label}: unsupported field “${extra[0]}”.`)
 }
 
-function string(value: unknown, label: string, maximum: number, allowBlank = false) {
+function string(value: unknown, label: string, maximum?: number, allowBlank = false) {
   if (typeof value !== "string") throw new Error(`${label} must be text.`)
   if (!allowBlank && !value.trim()) throw new Error(`${label} cannot be blank.`)
-  if (value.length > maximum) throw new Error(`${label} cannot exceed ${maximum.toLocaleString()} characters.`)
+  if (maximum !== undefined && value.length > maximum) throw new Error(`${label} cannot exceed ${maximum.toLocaleString()} characters.`)
   return value
 }
 
@@ -98,7 +98,7 @@ export function parseProductionImportText(source: string): ParsedProductionImpor
       text: string(item.text, `Item ${itemNumber}: text`, 500_000),
       language: string(item.language, `Item ${itemNumber}: language`, 80),
       speech_mode: speechMode as "exact" | "directed",
-      instruction: string(item.instruction, `Item ${itemNumber}: instruction`, 100, true),
+      instruction: string(item.instruction, `Item ${itemNumber}: instruction`, undefined, true),
       rate: number(item.rate, `Item ${itemNumber}: rate`, 0.5, 2),
       pitch: number(item.pitch, `Item ${itemNumber}: pitch`, 0.5, 2),
       volume: integer(item.volume, `Item ${itemNumber}: volume`, 0, 100),

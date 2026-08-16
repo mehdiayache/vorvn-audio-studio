@@ -234,6 +234,30 @@ class ProductionImportHttpTests(unittest.TestCase):
         self.assertIn("provider", location)
         rejected.assert_not_called()
 
+    def test_endpoint_accepts_long_creative_direction(self):
+        client = TestClient(app)
+        document = json.loads(FIXTURE.read_text())
+        document["items"][0]["instruction"] = (
+            "Warm, intimate bedtime narration with natural pauses and "
+            "restrained cinematic tension. " * 30
+        )
+        roles = {role: f"voice-{role}" for role in
+                 {item["role"] for item in document["items"]
+                  if item["type"] == "speech"}}
+        with patch.object(
+                timeline_router.timeline_service, "import_document",
+                return_value={"items": 10, "speech": 7, "silence": 3}) as run:
+            response = client.post(
+                "/api/v1/productions/7/import",
+                json={"document": document, "role_voices": roles},
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(
+            run.call_args.args[1]["items"][0]["instruction"],
+            document["items"][0]["instruction"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

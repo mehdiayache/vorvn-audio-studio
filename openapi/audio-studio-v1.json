@@ -1988,7 +1988,6 @@
             "type": "string"
           },
           "instruction": {
-            "maxLength": 100,
             "title": "Instruction",
             "type": "string"
           },
@@ -5780,7 +5779,6 @@
           },
           "instruction": {
             "default": "",
-            "maxLength": 100,
             "title": "Instruction",
             "type": "string"
           },
@@ -6526,10 +6524,6 @@
             "title": "Has Key",
             "type": "boolean"
           },
-          "instruction_max": {
-            "title": "Instruction Max",
-            "type": "integer"
-          },
           "languages": {
             "items": {
               "type": "string"
@@ -6682,7 +6676,6 @@
           "performance_presets",
           "clone_languages",
           "workspace",
-          "instruction_max",
           "text_preparation",
           "rates",
           "synth_flags",

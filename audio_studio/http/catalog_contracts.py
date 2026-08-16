@@ -50,7 +50,6 @@ class StudioConfigResponse(BaseModel):
     performance_presets: list[PerformancePresetResponse]
     clone_languages: dict[str, str]
     workspace: WorkspaceResponse
-    instruction_max: int
     text_preparation: dict[str, Any]
     rates: dict[str, float]
     synth_flags: dict[str, Any]

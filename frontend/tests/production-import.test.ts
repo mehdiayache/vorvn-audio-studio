@@ -34,4 +34,13 @@ describe("Production import parser", () => {
     expect(() => parseProductionImportText(JSON.stringify(invalid)))
       .toThrow("Item 3: unsupported field “provider”")
   })
+
+  it("preserves long creative direction without imposing a character limit", () => {
+    const longDirection = "Warm, intimate bedtime narration with natural pauses and restrained cinematic tension. ".repeat(30)
+    const authored = structuredClone(document)
+    authored.items[0]!.instruction = longDirection
+
+    expect(parseProductionImportText(JSON.stringify(authored)).document.items[0])
+      .toMatchObject({ instruction: longDirection })
+  })
 })

@@ -212,7 +212,6 @@ export type StudioConfig = {
   formats: string[]
   languages: string[]
   clone_languages?: Record<string, string>
-  instruction_max: number
   text_preparation?: {
     model: string
     reasoning: boolean

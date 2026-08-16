@@ -3589,8 +3589,6 @@ export interface components {
             formats: string[];
             /** Has Key */
             has_key: boolean;
-            /** Instruction Max */
-            instruction_max: number;
             /** Languages */
             languages: string[];
             /** Models */

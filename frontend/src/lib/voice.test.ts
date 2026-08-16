@@ -9,7 +9,6 @@ const directory: VoiceDirectory = {
     default_voice: { plus: "longanlingxin", flash: "loongeva_v3.6" },
     formats: ["mp3"],
     languages: ["Auto"],
-    instruction_max: 100,
     has_key: true,
     capabilities: { omni: { label: "Omni", purpose: "Performance", models: { plus: "qwen3.5-omni-plus", flash: "qwen3.5-omni-flash" }, system_languages: ["Arabic"], system_voices: { Tina: "Warm female voice" }, exact_text: false, estimate_rates_per_million_chars: { plus: 0, flash: 0 } } },
   },

@@ -103,7 +103,7 @@ class SpeechJobCreate(BaseModel):
     capability_id: str | None = Field(default=None, max_length=120)
     format: Literal["mp3", "mp3-24k", "wav", "opus"] = "mp3"
     language: str = Field(default="Auto", max_length=80)
-    instruction: str = Field(default="", max_length=100)
+    instruction: str = ""
     speech_mode: str = Field(default="exact", min_length=1, max_length=120)
     rate: float = Field(default=1, ge=.5, le=2)
     pitch: float = Field(default=1, ge=.5, le=2)

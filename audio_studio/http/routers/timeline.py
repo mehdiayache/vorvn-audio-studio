@@ -79,7 +79,7 @@ class ImportSpeechItem(BaseModel):
     text: str = Field(min_length=1, max_length=500_000)
     language: str = Field(min_length=1, max_length=80)
     speech_mode: Literal["exact", "directed"]
-    instruction: str = Field(max_length=100)
+    instruction: str
     rate: float = Field(ge=.5, le=2)
     pitch: float = Field(ge=.5, le=2)
     volume: int = Field(ge=0, le=100)
