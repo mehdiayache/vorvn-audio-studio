@@ -109,8 +109,7 @@ export function SpeechPartCard({ part, job, captionJob, index, count, playing, p
             <DropdownMenuItem onSelect={openPart}><Info />Details</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => actions.duplicate(part)}><Copy />Duplicate</DropdownMenuItem>
             <DropdownMenuSeparator />
-            {facts.recorded && actions.deleteRecording && <DropdownMenuItem variant="destructive" onSelect={() => actions.deleteRecording?.(part)}><Trash2 />Delete recording</DropdownMenuItem>}
-            <DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}><Trash2 />Delete part</DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}><Trash2 />Delete Part permanently</DropdownMenuItem>
           </DropdownMenuContent></DropdownMenu>
         </div>
       </header>

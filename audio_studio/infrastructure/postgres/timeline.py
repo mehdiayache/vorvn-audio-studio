@@ -83,9 +83,6 @@ class PostgresTimelineRecords:
     def delete(self, production_id: int, ids: list[int]) -> list[str] | None:
         return self.documents.delete(production_id, ids)
 
-    def delete_clip(self, production_id: int, part_id: int) -> str | None:
-        return self.documents.delete_clip(production_id, part_id)
-
     def move(
         self, source_production_id: int, ids: list[int],
         destination_production_id: int,

@@ -38,13 +38,15 @@ class _TranscriptState:
 
 
 class _Workspace:
+    def __init__(self):
+        self.discarded: list[str] = []
+
     @staticmethod
     def duplicate(_filename: str) -> str:
         return ""
 
-    @staticmethod
-    def discard(_filename: str) -> None:
-        pass
+    def discard(self, filename: str) -> None:
+        self.discarded.append(filename)
 
 
 class ProductionDocumentTests(unittest.TestCase):
@@ -73,10 +75,11 @@ class ProductionDocumentTests(unittest.TestCase):
         self.repository = ProductionDocumentRepository()
         self.asset_repository = VentureAssetRepository()
         self.transcripts = _TranscriptState()
+        self.workspace = _Workspace()
         self.timeline = TimelineService(
             PostgresTimelineRecords(
                 documents=self.repository, assets=self.asset_repository),
-            _Workspace(), self.transcripts)
+            self.workspace, self.transcripts)
 
     def tearDown(self):
         venture_id = int(self.venture["id"])
@@ -187,6 +190,38 @@ class ProductionDocumentTests(unittest.TestCase):
                        SET kind='speech'
                      WHERE id=%s
                 """, (draft["id"],))
+                cursor.execute("""
+                    INSERT INTO jobs
+                        (kind,status,cost,production_id,part_id,clip_id,
+                         payload,result,detail)
+                    VALUES ('speech','ok',0,%s,%s,%s,
+                            '{"text":"private authored words"}'::jsonb,
+                            '{"filename":"orphan-part-output.mp3"}'::jsonb,
+                            'private authored words')
+                    RETURNING id
+                """, (first_id, draft["id"], clip_id))
+                content_job_id = int(cursor.fetchone()[0])
+                cursor.execute("""
+                    INSERT INTO job_events (job_id,kind,detail)
+                    VALUES (%s,'completed','{"text":"private authored words"}'::jsonb)
+                """, (content_job_id,))
+                cursor.execute("""
+                    INSERT INTO provider_attempts
+                        (job_id,operation,provider,payload_fingerprint,status,
+                         error,diagnostics)
+                    VALUES (%s,'speech','alibaba','private-fingerprint',
+                            'succeeded','{"provider_text":"private"}'::jsonb,
+                            '{"returned_text":"private"}'::jsonb)
+                    RETURNING id
+                """, (content_job_id,))
+                provider_attempt_id = int(cursor.fetchone()[0])
+                cursor.execute("""
+                    INSERT INTO transcripts
+                        (name,text,srt,vtt,part_id,clip_id,source_job_id)
+                    VALUES ('private caption','private authored words',
+                            'private authored words','private authored words',
+                            %s,%s,%s)
+                """, (draft["id"], clip_id, content_job_id))
             database.commit()
         recording = next(item for item in self.repository.parts(first_id)
                          if item["id"] == draft["id"])
@@ -233,33 +268,57 @@ class ProductionDocumentTests(unittest.TestCase):
         before_delete = accounting.one(first_id)
         self.timeline.delete_parts(first_id, [draft["id"]])
         after_delete = accounting.one(first_id)
-        self.assertEqual(after_delete["retained_generation_cost"],
-                         before_delete["retained_generation_cost"])
+        self.assertLess(after_delete["retained_generation_cost"],
+                        before_delete["retained_generation_cost"])
         self.assertEqual(after_delete["historical_spend"],
                          before_delete["historical_spend"])
         self.assertLess(after_delete["current_sequence_cost"],
                         before_delete["current_sequence_cost"])
+        self.assertIn(f"retained-{self.marker}.mp3", self.workspace.discarded)
+        self.assertIn("orphan-part-output.mp3", self.workspace.discarded)
         with psycopg.connect(settings.database_url) as database:
             with database.cursor() as cursor:
                 cursor.execute("""
-                    SELECT archived_at IS NOT NULL, position,
-                           archived_position
-                      FROM production_parts WHERE id=%s
+                    SELECT 1 FROM production_parts WHERE id=%s
                 """, (draft["id"],))
-                archived, position, archived_position = cursor.fetchone()
-                self.assertTrue(archived)
-                self.assertIsNone(position)
-                self.assertIsNotNone(archived_position)
+                self.assertIsNone(cursor.fetchone())
                 cursor.execute("""
-                    SELECT filename, cost FROM clips WHERE id=%s
+                    SELECT 1 FROM clips WHERE id=%s
                 """, (clip_id,))
-                retained_filename, retained_cost = cursor.fetchone()
-                self.assertEqual(retained_filename,
-                                 f"retained-{self.marker}.mp3")
-                self.assertEqual(float(retained_cost), 0.123)
+                self.assertIsNone(cursor.fetchone())
+                cursor.execute("""
+                    SELECT part_id, clip_id, payload, result, cost, detail
+                      FROM jobs
+                     WHERE production_id=%s
+                       AND cost_basis='historical_deleted_part'
+                     ORDER BY id DESC LIMIT 1
+                """, (first_id,))
+                spend_job = cursor.fetchone()
+                self.assertIsNotNone(spend_job)
+                self.assertEqual(spend_job[:4], (None, None, {}, {}))
+                self.assertEqual(float(spend_job[4]), 0.123)
+                self.assertEqual(spend_job[5], "Deleted Part provider spend")
+                cursor.execute("""
+                    SELECT part_id, clip_id, payload, result, chars, detail, error
+                      FROM jobs WHERE id=%s
+                """, (content_job_id,))
+                sanitized_job = cursor.fetchone()
+                self.assertEqual(
+                    sanitized_job,
+                    (None, None, {}, {}, 0, "Deleted Part activity", None),
+                )
+                cursor.execute("SELECT 1 FROM job_events WHERE job_id=%s",
+                               (content_job_id,))
+                self.assertIsNone(cursor.fetchone())
+                cursor.execute("""
+                    SELECT error, diagnostics FROM provider_attempts WHERE id=%s
+                """, (provider_attempt_id,))
+                self.assertEqual(cursor.fetchone(), ({}, {}))
+                cursor.execute("SELECT 1 FROM transcripts WHERE source_job_id=%s",
+                               (content_job_id,))
+                self.assertIsNone(cursor.fetchone())
 
-        # Reusing the archived slot must commit cleanly; this is the exact
-        # regression that previously returned HTTP 500 before provider work.
+        # New Parts reuse the contiguous sequence after physical deletion.
         first_active = self.repository.parts(first_id)[0]
         replacement = self.timeline.add_silence(
             first_id, 1, first_active["public_id"])
@@ -320,53 +379,6 @@ class ProductionDocumentTests(unittest.TestCase):
             {"script": "Revised words"})
         self.assertEqual((unchanged["changed"], unchanged["outdated"]),
                          (False, True))
-
-    def test_delete_recording_restores_an_editable_draft_snapshot(self):
-        production_id = int(self.first["id"])
-        draft = self.timeline.add_draft(production_id, {
-            "text": "Speak these authored words",
-            "voice_identity_id": None,
-            "language": "English",
-        })
-        with psycopg.connect(settings.database_url) as database:
-            with database.cursor() as cursor:
-                cursor.execute("""
-                    INSERT INTO clips
-                        (part_id, source_part_revision, source_script_hash,
-                         provider, provider_region, provider_voice_id,
-                         model_id, tier, language, raw_text, spoken_text,
-                         tagged_text, delivery, filename, path, duration_ms,
-                         snapshot)
-                    VALUES (%s,1,encode(digest(%s,'sha256'),'hex'),
-                            'alibaba','intl','voice-esther','model','flash',
-                            'English',%s,%s,%s,%s::jsonb,%s,%s,4200,%s::jsonb)
-                """, (
-                    draft["id"], "Speak these authored words",
-                    "Speak these authored words", "Speak these spoken words",
-                    "<calm>Speak these tagged words</calm>",
-                    json.dumps({"instruction": "Calm and assured", "rate": .9}),
-                    f"delete-{self.marker}.mp3",
-                    f"/durable/delete-{self.marker}.mp3",
-                    json.dumps({"format": "mp3", "text_state": "tagged"}),
-                ))
-                cursor.execute("""
-                    UPDATE production_parts
-                       SET kind='speech', editorial_status='ready',
-                           duration_ms=4200
-                     WHERE id=%s
-                """, (draft["id"],))
-            database.commit()
-
-        filename = self.repository.delete_clip(production_id, draft["id"])
-        self.assertEqual(filename, f"delete-{self.marker}.mp3")
-        restored = self.repository.parts(production_id)[0]
-        self.assertEqual((restored["kind"], restored["clip_id"],
-                          restored["duration_ms"]), ("draft", None, 0))
-        self.assertEqual(restored["text_tagged"],
-                         "<calm>Speak these tagged words</calm>")
-        self.assertEqual(restored["text_state"], "tagged")
-        self.assertEqual(restored["instruction"], "Calm and assured")
-        self.assertEqual(restored["rate"], .9)
 
     def test_active_recording_projection_is_immutable_and_caption_relevant(self):
         production_id = int(self.first["id"])

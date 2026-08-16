@@ -6,7 +6,6 @@ export type SequenceActions = {
   play: (source: PlayerSource) => void
   duplicate: (part: ProductionPart) => void
   remove: (part: ProductionPart) => void
-  deleteRecording?: (part: ProductionPart) => void
   move: (part: ProductionPart, direction: -1 | 1) => void
   moveToPosition: (part: ProductionPart) => void
   editSilence: (part: ProductionPart, seconds: number) => void

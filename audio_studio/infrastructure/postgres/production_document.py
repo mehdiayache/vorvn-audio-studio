@@ -825,24 +825,139 @@ class ProductionDocumentRepository:
             return new_id
 
     def delete(self, production_id: int, ids: list[int]) -> list[str] | None:
+        """Permanently delete complete Parts and their owned creative state.
+
+        Provider spend remains as content-free Job evidence. Reusable Venture
+        assets are referenced by Asset Parts, so deleting their placement never
+        deletes the library asset or its file.
+        """
         ids = [int(item) for item in ids]
         with transaction() as cursor:
             cursor.execute("""
-                SELECT id FROM production_parts
+                SELECT id, public_id::text, kind, legacy_generation_id
+                  FROM production_parts
                  WHERE production_id=%s AND id=ANY(%s) AND archived_at IS NULL FOR UPDATE
             """, (production_id, ids))
-            if {int(row[0]) for row in cursor.fetchall()} != set(ids):
+            parts = cursor.fetchall()
+            if {int(row[0]) for row in parts} != set(ids):
                 return None
+
+            part_public_ids = [str(row[1]) for row in parts]
+            owned_generation_ids = [
+                int(row[3]) for row in parts
+                if row[3] is not None and str(row[2]) not in {"asset", "silence"}
+            ]
             cursor.execute("""
-                SELECT filename FROM clips WHERE part_id=ANY(%s) AND filename<>''
+                SELECT id, part_id, filename, cost, provider_attempt_id
+                  FROM clips WHERE part_id=ANY(%s)
             """, (ids,))
-            files = [row[0] for row in cursor.fetchall()]
+            clips = cursor.fetchall()
+            clip_ids = [int(row[0]) for row in clips]
+            clip_attempt_ids = [int(row[4]) for row in clips if row[4]]
+            files = [str(row[2]) for row in clips if row[2]]
+
+            if owned_generation_ids:
+                cursor.execute("""
+                    SELECT filename FROM generations
+                     WHERE (id=ANY(%s) OR version_of=ANY(%s)) AND filename<>''
+                """, (owned_generation_ids, owned_generation_ids))
+                files.extend(str(row[0]) for row in cursor.fetchall() if row[0])
+
             cursor.execute("""
-                UPDATE production_parts
-                   SET archived_position=position, position=NULL,
-                       archived_at=now(), updated_at=now()
-                 WHERE id=ANY(%s)
-            """, (ids,))
+                SELECT DISTINCT job.id
+                  FROM jobs job
+                 WHERE job.part_id=ANY(%s)
+                    OR job.clip_id=ANY(%s)
+                    OR job.legacy_generation_id=ANY(%s)
+            """, (ids, clip_ids, owned_generation_ids))
+            job_ids = [int(row[0]) for row in cursor.fetchall()]
+
+            # Older clips may predate durable Jobs. Materialize only their
+            # untracked cost as anonymous, content-free spend evidence before
+            # the recording snapshot is erased.
+            for clip_id, part_id, _filename, clip_cost, _attempt_id in clips:
+                cursor.execute("""
+                    WITH attempt_costs AS (
+                      SELECT job_id, count(*) AS attempt_count,
+                             sum(CASE WHEN status='ambiguous'
+                                 THEN greatest(estimated_cost,coalesce(cost,0))
+                                 ELSE coalesce(cost,0) END) AS provider_cost
+                        FROM provider_attempts GROUP BY job_id
+                    )
+                    SELECT coalesce(sum(
+                        CASE WHEN attempt.attempt_count > 0
+                             THEN attempt.provider_cost ELSE job.cost END
+                    ), 0)
+                      FROM jobs job
+                      LEFT JOIN attempt_costs attempt ON attempt.job_id=job.id
+                     WHERE job.kind='speech'
+                       AND (job.part_id=%s OR job.clip_id=%s)
+                """, (part_id, clip_id))
+                tracked_cost = float(cursor.fetchone()[0] or 0)
+                legacy_gap = max(0.0, float(clip_cost or 0) - tracked_cost)
+                if legacy_gap > 0.0000005:
+                    cursor.execute("""
+                        INSERT INTO jobs
+                            (kind, status, estimated, cost, production_id,
+                             detail, cost_basis, payload, result, finished_at)
+                        VALUES ('speech','ok',%s,%s,%s,
+                                'Deleted Part provider spend',
+                                'historical_deleted_part','{}'::jsonb,
+                                '{}'::jsonb,now())
+                    """, (legacy_gap, legacy_gap, production_id))
+
+            if job_ids:
+                cursor.execute("""
+                    SELECT result->>'name', result->>'filename', result->>'url'
+                      FROM jobs WHERE id=ANY(%s)
+                """, (job_ids,))
+                for row in cursor.fetchall():
+                    files.extend(str(value) for value in row if value)
+                cursor.execute("""
+                    DELETE FROM transcripts
+                     WHERE part_id=ANY(%s) OR clip_id=ANY(%s)
+                        OR source_job_id=ANY(%s)
+                        OR legacy_generation_id=ANY(%s)
+                """, (ids, clip_ids, job_ids, owned_generation_ids))
+                cursor.execute("DELETE FROM job_events WHERE job_id=ANY(%s)",
+                               (job_ids,))
+                cursor.execute("""
+                    UPDATE provider_attempts
+                       SET error='{}'::jsonb, diagnostics='{}'::jsonb
+                     WHERE job_id=ANY(%s) OR id=ANY(%s)
+                """, (job_ids, clip_attempt_ids))
+                cursor.execute("""
+                    UPDATE jobs
+                       SET part_id=NULL, clip_id=NULL,
+                           legacy_generation_id=NULL, payload='{}'::jsonb,
+                           result='{}'::jsonb, output_ids='[]'::jsonb,
+                           chars=0, detail='Deleted Part activity', error=NULL
+                     WHERE id=ANY(%s)
+                """, (job_ids,))
+            else:
+                cursor.execute("""
+                    DELETE FROM transcripts
+                     WHERE part_id=ANY(%s) OR clip_id=ANY(%s)
+                        OR legacy_generation_id=ANY(%s)
+                """, (ids, clip_ids, owned_generation_ids))
+                if clip_attempt_ids:
+                    cursor.execute("""
+                        UPDATE provider_attempts
+                           SET error='{}'::jsonb, diagnostics='{}'::jsonb
+                         WHERE id=ANY(%s)
+                    """, (clip_attempt_ids,))
+
+            cursor.execute("""
+                DELETE FROM audit_records
+                 WHERE resource_type='production_part'
+                   AND resource_id=ANY(%s)
+            """, (part_public_ids,))
+            cursor.execute("DELETE FROM production_parts WHERE id=ANY(%s)",
+                           (ids,))
+            if owned_generation_ids:
+                cursor.execute("""
+                    DELETE FROM generations WHERE id=ANY(%s)
+                """, (owned_generation_ids,))
             cursor.execute("""
                 WITH ranked AS (
                     SELECT id, row_number() OVER (ORDER BY position, created_at, id)-1 AS next
@@ -852,60 +967,6 @@ class ProductionDocumentRepository:
                   FROM ranked WHERE part.id=ranked.id
             """, (production_id,))
             return list(dict.fromkeys(files))
-
-    def delete_clip(self, production_id: int, part_id: int) -> str | None:
-        """Delete one recording while preserving its editable Speech Part."""
-        with transaction() as cursor:
-            row = self._part_row(cursor, production_id, part_id, lock=True)
-            if not row:
-                return None
-            cursor.execute("""
-                SELECT id, filename, raw_text, spoken_text, tagged_text,
-                       delivery, snapshot, voice_identity_id, binding_id,
-                       catalogue_voice_id, capability_id, language
-                  FROM clips WHERE part_id=%s FOR UPDATE
-            """, (part_id,))
-            clip = cursor.fetchone()
-            if not clip:
-                return None
-            delivery = clip[5] or {}
-            snapshot = clip[6] or {}
-            text_state = str(snapshot.get("text_state") or "raw")
-            text_values = {
-                "text": str(row[5] or ""),
-                "text_raw": snapshot.get("text_raw") or clip[2],
-                "text_shaped": snapshot.get("text_shaped") or clip[3],
-                "text_tagged": snapshot.get("text_tagged") or clip[4],
-                "text_state": text_state,
-                "voice_identity_id": clip[7],
-                "binding_id": str(clip[8]) if clip[8] else None,
-                "catalogue_voice_id": clip[9],
-                "capability_id": clip[10],
-                "language": clip[11] or "Auto",
-                "instruction": delivery.get("instruction", ""),
-                "speech_mode": delivery.get("speech_mode", "exact"),
-                "rate": delivery.get("rate", 1),
-                "pitch": delivery.get("pitch", 1),
-                "volume": delivery.get("volume", 50),
-                "seed": delivery.get("seed", 0),
-                "format": snapshot.get("format", "mp3"),
-            }
-            cursor.execute("""
-                INSERT INTO composition_drafts (part_id, production_id, state)
-                VALUES (%s,%s,%s::jsonb)
-                ON CONFLICT (part_id) DO UPDATE SET
-                    state=EXCLUDED.state, updated_at=now()
-            """, (part_id, production_id, json.dumps(text_values)))
-            cursor.execute("DELETE FROM transcripts WHERE part_id=%s",
-                           (part_id,))
-            cursor.execute("DELETE FROM clips WHERE id=%s", (clip[0],))
-            cursor.execute("""
-                UPDATE production_parts
-                   SET kind='draft', editorial_status='draft', duration_ms=0,
-                       updated_at=now()
-                 WHERE id=%s
-            """, (part_id,))
-            return str(clip[1] or "")
 
     def move(self, source_production_id: int, ids: list[int],
              destination_production_id: int) -> bool:

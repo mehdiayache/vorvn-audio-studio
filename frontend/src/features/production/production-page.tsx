@@ -239,6 +239,18 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     actions.invalidatePreview()
     await refresh()
   }, [actions, activeCaptionPart, player, refresh])
+  const requestPartDeletion = useCallback((part: ProductionPart) => {
+    setConfirmAction({
+      title: "Delete this Part permanently?",
+      description: "This permanently removes the entire card, including its text, recording and captions. Provider charges already incurred remain in Spend and Activity. Reusable Venture audio remains in its library.",
+      confirmLabel: "Delete Part permanently",
+      action: () => {
+        if (player.source?.key === `part:${part.id}`) player.pause()
+        setActiveStage(null)
+        void actions.deletePart(part)
+      },
+    })
+  }, [actions, player])
 
   const stageContent = stageMode === "part" ? <PartInspectorContent
     productionId={production.id}
@@ -254,11 +266,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       await refresh()
     }}
     onDuplicate={(part) => void actions.duplicatePart(part)}
-    onDelete={(part) => setConfirmAction({
-      title: "Delete this part?",
-      description: "The Part leaves the active Sequence. Its provider evidence, generated audio and recorded spend remain recoverable history.",
-      action: () => { setActiveStage(null); void actions.deletePart(part) },
-    })}
+    onDelete={requestPartDeletion}
     onRecordPart={openSpeechComposer}
     initialTab={detailTab}
     onTabChange={(tab) => setActiveStage((current) => current?.mode === "part" ? { ...current, tab } : current)}
@@ -267,23 +275,14 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const sequenceActions: SequenceActions = useMemo(() => ({
     play: (source) => void playSource(source),
     duplicate: (part) => void actions.duplicatePart(part),
-    remove: (part) => setConfirmAction({ title: "Delete this part?", description: "It will be removed from this Production. The reusable Venture source, if any, is not deleted.", action: () => void actions.deletePart(part) }),
-    deleteRecording: (part) => setConfirmAction({
-      title: "Delete this recording permanently?",
-      description: "The audio file and its captions will be permanently deleted. The Speech Part, script, role and Voice setup will remain so you can record it again. Provider charges already incurred cannot be undone.",
-      confirmLabel: "Delete recording",
-      action: () => {
-        if (player.source?.key === `part:${part.id}`) player.pause()
-        void actions.deleteClip(part)
-      },
-    }),
+    remove: requestPartDeletion,
     move: actions.movePart,
     moveToPosition: setMovePositionPart,
     editSilence: (part, seconds) => void actions.editSilence(part, seconds),
     setEnabled: (part, enabled) => void actions.setPartEnabled(part, enabled),
     openPart,
     editSpeech: openSpeechComposer,
-  }), [actions, openPart, openSpeechComposer, playSource])
+  }), [actions, openPart, openSpeechComposer, playSource, requestPartDeletion])
 
   return <>
     <ProductionEditorCanvas
@@ -383,11 +382,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
           await refresh()
         }}
         onDuplicate={(part) => void actions.duplicatePart(part)}
-        onDeleteDetail={(part) => setConfirmAction({
-          title: "Delete this part?",
-          description: "The Part leaves the active Sequence. Its provider evidence, generated audio and recorded spend remain recoverable history.",
-          action: () => { setActiveStage(null); void actions.deletePart(part) },
-        })}
+        onDeleteDetail={requestPartDeletion}
         onRecordPart={openSpeechComposer}
         onConfirmAction={setConfirmAction}
       />

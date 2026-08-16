@@ -102,13 +102,14 @@ describe("SpeechPartCard", () => {
     expect(screen.queryByText("Direct voice")).toBeNull()
   })
 
-  it("offers permanent recording deletion separately from Part deletion", () => {
-    const deleteRecording = vi.fn()
+  it("offers one permanent Part deletion and no separate recording deletion", () => {
     const sourcePart = part()
-    renderCard(<SpeechPartCard part={sourcePart} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={{ ...actions(), deleteRecording }} />)
+    const actionSet = actions()
+    renderCard(<SpeechPartCard part={sourcePart} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
     fireEvent.pointerDown(screen.getByRole("button", { name: "Part actions" }), { button: 0, ctrlKey: false })
-    fireEvent.click(screen.getByRole("menuitem", { name: "Delete recording" }))
-    expect(deleteRecording).toHaveBeenCalledWith(sourcePart)
+    expect(screen.queryByRole("menuitem", { name: "Delete recording" })).toBeNull()
+    fireEvent.click(screen.getByRole("menuitem", { name: "Delete Part permanently" }))
+    expect(actionSet.remove).toHaveBeenCalledWith(sourcePart)
   })
 
   it("uses the same zero-padded Part label in the card and floating player source", () => {

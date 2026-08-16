@@ -256,8 +256,6 @@ export const studioApi = {
   deletePart: (productionId: number, id: number) =>
     request<TimelineDeleteEnvelope>(`/api/v1/productions/${productionId}/parts`, { method: "DELETE", body: JSON.stringify({ ids: [id] }) }).then((response) => response.data),
   deleteParts: (productionId: number, ids: number[]) => request<TimelineDeleteEnvelope>(`/api/v1/productions/${productionId}/parts`, { method: "DELETE", body: JSON.stringify({ ids }) }).then((response) => response.data),
-  deleteClip: (productionId: number, partId: number) =>
-    request<{ data: { deleted: boolean; part_id: number } }>(`/api/v1/productions/${productionId}/parts/${partId}/clip`, { method: "DELETE" }).then((response) => response.data),
   moveParts: (sourceProductionId: number, ids: number[], destinationProductionId: number) => request<TimelineMoveEnvelope>(`/api/v1/productions/${sourceProductionId}/parts/move`, { method: "POST", body: JSON.stringify({ ids, destination_production_id: destinationProductionId }) }).then((response) => response.data),
   setMusic: (id: number, settings: Partial<MusicBed>) =>
     request<{ data: MusicBed }>(`/api/v1/productions/${id}/music`, { method: "PATCH", body: JSON.stringify(settings) }).then((response) => response.data),

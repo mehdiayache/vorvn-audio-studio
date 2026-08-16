@@ -17,7 +17,7 @@ class Records:
         self.enabled_values = []
         self.allow_asset = True
         self.duplicate_id = 8
-        self.deleted_clip = None
+        self.deleted = []
 
     @staticmethod
     def production(production_id):
@@ -70,13 +70,9 @@ class Records:
         self.duplicated.append((production_id, part_id, filename))
         return self.duplicate_id
 
-    @staticmethod
-    def delete(_production_id, _ids):
-        return []
-
-    def delete_clip(self, production_id, part_id):
-        self.deleted_clip = (production_id, part_id)
-        return "part.mp3"
+    def delete(self, production_id, ids):
+        self.deleted.append((production_id, ids))
+        return ["part.mp3"]
 
     @staticmethod
     def move(_source, _ids, _destination):
@@ -201,18 +197,13 @@ class TimelineServiceTests(unittest.TestCase):
             self.service.duplicate(6, 7)
         self.assertEqual(self.workspace.discarded, ["part-copy.mp3"])
 
-    def test_delete_clip_keeps_part_and_discards_owned_audio(self):
-        self.records.parts[7]["clip_id"] = 77
+    def test_delete_part_discards_its_owned_audio(self):
         self.assertEqual(
-            self.service.delete_clip(6, 7),
-            {"deleted": True, "part_id": 7},
+            self.service.delete_parts(6, [7]),
+            {"deleted": 1},
         )
-        self.assertEqual(self.records.deleted_clip, (6, 7))
+        self.assertEqual(self.records.deleted, [(6, [7])])
         self.assertEqual(self.workspace.discarded, ["part.mp3"])
-
-    def test_delete_clip_rejects_a_part_without_a_recording(self):
-        with self.assertRaisesRegex(TimelineError, "no recording"):
-            self.service.delete_clip(6, 7)
 
     def test_captions_share_injected_transcript_state(self):
         self.assertEqual(self.service.captions(6, 7), [{"part_id": 7}])

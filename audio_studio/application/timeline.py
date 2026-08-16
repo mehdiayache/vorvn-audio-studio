@@ -38,7 +38,6 @@ class TimelineRecords(Protocol):
         self, production_id: int, part_id: int, filename: str,
     ) -> int | None: ...
     def delete(self, production_id: int, ids: list[int]) -> list[str] | None: ...
-    def delete_clip(self, production_id: int, part_id: int) -> str | None: ...
     def move(
         self, source_production_id: int, ids: list[int],
         destination_production_id: int,
@@ -329,24 +328,12 @@ class TimelineService:
             raise TimelineError("Choose at least one Part.")
         for part_id in selected:
             self._part(production_id, part_id)
-        # Persistence materializes any pre-ledger cost before deletion. Paid
-        # media stays recoverable; removing a card is not permission to erase
-        # its files or historical spend.
-        if self.records.delete(production_id, selected) is None:
+        files = self.records.delete(production_id, selected)
+        if files is None:
             raise TimelineError("Those Parts could not be deleted.")
+        for filename in files:
+            self.workspace.discard(filename)
         return {"deleted": len(selected)}
-
-    def delete_clip(
-        self, production_id: int, part_id: int,
-    ) -> dict[str, Any]:
-        part = self._part(production_id, part_id)
-        if not part.get("clip_id"):
-            raise TimelineError("That Speech Part has no recording to delete.")
-        filename = self.records.delete_clip(production_id, part_id)
-        if filename is None:
-            raise TimelineError("That recording could not be deleted.")
-        self.workspace.discard(filename)
-        return {"deleted": True, "part_id": part_id}
 
     def move_parts(
         self, source_production_id: int, ids: list[int],
