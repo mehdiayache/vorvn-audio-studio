@@ -1159,6 +1159,11 @@
       "DeliveryState": {
         "additionalProperties": false,
         "properties": {
+          "enable_ssml": {
+            "default": false,
+            "title": "Enable Ssml",
+            "type": "boolean"
+          },
           "instruction": {
             "default": "",
             "title": "Instruction",

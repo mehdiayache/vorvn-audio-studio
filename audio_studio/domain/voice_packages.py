@@ -15,6 +15,10 @@ PACKAGE_LABELS = {
     ),
 }
 
+EXACT_CAPABILITIES = {
+    "controlled_exact", "exact_longform", "expressive_tags",
+}
+
 
 def language_code(value: str) -> str:
     value = (value or "").strip().lower()
@@ -62,7 +66,7 @@ def plan(language: str, installed_methods: list[dict],
     if package == "exact":
         selected = [route for route in creatable
                     if set(route["capability_ids"])
-                    & {"expressive_tags", "exact_longform"}]
+                    & EXACT_CAPABILITIES]
     else:
         package = "complete"
         selected = creatable
@@ -70,7 +74,7 @@ def plan(language: str, installed_methods: list[dict],
     for key, (name, description) in PACKAGE_LABELS.items():
         routes = (
             [route for route in creatable if set(route["capability_ids"])
-             & {"expressive_tags", "exact_longform"}]
+             & EXACT_CAPABILITIES]
             if key == "exact"
             else creatable
         )

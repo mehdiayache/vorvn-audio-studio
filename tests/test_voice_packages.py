@@ -27,6 +27,17 @@ methods = [
      "estimated_creation_cost": .02},
 ]
 
+cosyvoice = {
+    "provider_model_id": "alibaba:intl:cosyvoice-v3-plus",
+    "provider": "alibaba", "region": "intl",
+    "model_id": "cosyvoice-v3-plus", "tier": "plus",
+    "adapter_key": "cosyvoice", "label": "CosyVoice V3 Plus",
+    "role": "Exact", "capability_ids": ["controlled_exact"],
+    "enrollment_languages": ["en", "fr"],
+    "output_languages": ["English", "French"],
+    "estimated_creation_cost": 0,
+}
+
 english = voice_packages.plan("English", methods)
 assert [route["model_id"] for route in english["routes"]] == [
     "audio", "qwen-tts", "cosy-v3"]
@@ -44,5 +55,11 @@ assert all(route["classification"] == "experimental"
 assert {item["id"] for item in exact_arabic["packages"]} == {
     "complete", "exact"}
 assert any(route["provider"] == "cosy" for route in english["routes"])
+
+controlled_exact = voice_packages.plan("English", [cosyvoice], "exact")
+assert [route["model_id"] for route in controlled_exact["routes"]] == [
+    "cosyvoice-v3-plus"]
+assert next(item for item in controlled_exact["packages"]
+            if item["id"] == "exact")["available"] is True
 
 print("voice package contracts passed")

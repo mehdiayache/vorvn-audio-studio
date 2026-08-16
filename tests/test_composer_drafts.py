@@ -57,7 +57,8 @@ def state():
         "text_preparation": {
             "tag_density": "normal", "pending_review": None},
         "delivery": {"mode_id": "exact", "instruction": "", "rate": 1,
-                     "pitch": 1, "volume": 50, "seed": 0},
+                     "pitch": 1, "volume": 50, "seed": 0,
+                     "enable_ssml": False},
         "output": {"format": "mp3", "language": "English"},
     }
 
@@ -102,6 +103,12 @@ class ComposerDraftTests(unittest.TestCase):
         self.assertNotIn("editorial_patch", dumped["state"])
         self.assertNotIn("job", dumped["state"])
         self.assertNotIn("ui", dumped["state"])
+
+    def test_write_contract_persists_ssml_delivery_choice(self):
+        ssml = state()
+        ssml["delivery"]["enable_ssml"] = True
+        payload = DraftWrite(context={"kind": "standalone"}, state=ssml)
+        self.assertTrue(_state(payload)["delivery"]["enable_ssml"])
 
     def test_paid_text_review_persists_only_a_durable_job_pointer(self):
         review_job_id = uuid4()

@@ -86,6 +86,7 @@ class DeliveryState(BaseModel):
     pitch: float = Field(default=1, ge=.25, le=4)
     volume: int = Field(default=50, ge=0, le=100)
     seed: int = 0
+    enable_ssml: bool = False
 
 
 class OutputState(BaseModel):

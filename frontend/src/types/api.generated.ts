@@ -1795,6 +1795,11 @@ export interface components {
         /** DeliveryState */
         DeliveryState: {
             /**
+             * Enable Ssml
+             * @default false
+             */
+            enable_ssml: boolean;
+            /**
              * Instruction
              * @default
              */
