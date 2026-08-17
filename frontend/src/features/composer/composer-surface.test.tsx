@@ -17,6 +17,7 @@ const directory = {
   registry: {
     bindings: [
       { binding_id: "binding-sarah", identity_id: "identity-sarah", provider_voice_id: "sarah-provider", name: "Sarah", description: "", languages: ["English"], source: "custom", provider: "alibaba", region: "intl", adapter_key: "audio", engine: "audio", tier: "flash", model_id: "qwen-audio-flash", status: "ready", capabilities: [{ id: "expressive_tags", name: "Expressive + tags", description: "Expressive speech", controls: { delivery_tags: true, natural_direction: true, rate: true, pitch: true, volume: true }, ui_metadata: { direction_label: "Voice direction" } }] },
+      { binding_id: "binding-eva-cosy", identity_id: "identity-eva", provider_voice_id: "eva-cosy-provider", name: "Eva", description: "", languages: ["English"], source: "custom", provider: "alibaba", region: "intl", adapter_key: "cosyvoice", engine: "cosyvoice", tier: "plus", model_id: "cosyvoice-v3-plus", status: "ready", capabilities: [{ id: "controlled_exact", name: "Controlled exact reading", description: "Exact speech with SSML", controls: { delivery_tags: false, natural_direction: false, direction_modes: ["exact"], rate: true, pitch: true, volume: true, seed: true, ssml: true, word_timestamps: true }, ui_metadata: { output_note: "Supports SSML and captured word timing." } }] },
       { binding_id: "binding-maya", identity_id: "identity-maya", provider_voice_id: "maya-provider", name: "Maya", description: "", languages: ["English"], source: "custom", provider: "alibaba", region: "intl", adapter_key: "audio", engine: "audio", tier: "flash", model_id: "qwen-audio-flash", status: "ready", capabilities: [{ id: "expressive_tags", name: "Expressive + tags", description: "Expressive speech", controls: { delivery_tags: true, natural_direction: true, rate: true, pitch: true, volume: true }, ui_metadata: { direction_label: "Voice direction" } }] },
     ],
     models: [], presets: [], source: { provider: "Alibaba", verified_at: "", audio_url: "" },
@@ -83,6 +84,64 @@ describe("shared Composer contract", () => {
     const part = { id: 7, kind: "speech", text: "Hello", text_raw: "Hello", clip_id: 44, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
     render(<ComposerSurface {...common} productionId={3} part={part} />)
     await waitFor(() => expect(screen.getByRole("button", { name: "Generate again" }).hasAttribute("disabled")).toBe(false))
+  })
+
+  it("converts plain recording input into a valid SSML document before generation", async () => {
+    const onGenerate = vi.fn().mockResolvedValue({ id: "job-ssml" })
+    const onUpdateEditorial = vi.fn().mockResolvedValue(undefined)
+    const part = {
+      id: 74,
+      kind: "draft",
+      text: "Stay <still> & breathe.",
+      text_raw: "Stay <still> & breathe.",
+      revision: 1,
+      cost: 0,
+      created_at: "",
+      position: 0,
+      voice_identity_id: "identity-eva",
+      binding_id: "binding-eva-cosy",
+      capability_id: "controlled_exact",
+    } as ProductionPart
+    render(<ComposerSurface {...common} productionId={3} part={part} onGenerate={onGenerate} onUpdateEditorial={onUpdateEditorial} />)
+
+    fireEvent.click(await screen.findByRole("button", { name: "Convert to SSML" }))
+    expect((screen.getByRole("textbox", { name: "Original SSML document" }) as HTMLTextAreaElement).value)
+      .toBe("<speak>\nStay &lt;still&gt; &amp; breathe.\n</speak>")
+    expect(screen.getByText("Valid SSML document")).toBeTruthy()
+    expect(screen.queryByText("SSML script")).toBeNull()
+
+    fireEvent.click(screen.getByRole("button", { name: /Generate Part/ }))
+    fireEvent.click(screen.getByRole("button", { name: "Update Part and generate" }))
+    await waitFor(() => expect(onGenerate).toHaveBeenCalledWith(expect.objectContaining({
+      text: "<speak>\nStay &lt;still&gt; &amp; breathe.\n</speak>",
+      enable_ssml: true,
+      binding_id: "binding-eva-cosy",
+      capability_id: "controlled_exact",
+    })))
+  })
+
+  it("blocks malformed SSML before a Job or provider call can be created", async () => {
+    const onGenerate = vi.fn().mockResolvedValue({ id: "must-not-run" })
+    const part = {
+      id: 75,
+      kind: "draft",
+      text: "<speak>Broken",
+      text_raw: "<speak>Broken",
+      enable_ssml: true,
+      revision: 1,
+      cost: 0,
+      created_at: "",
+      position: 0,
+      voice_identity_id: "identity-eva",
+      binding_id: "binding-eva-cosy",
+      capability_id: "controlled_exact",
+    } as ProductionPart
+    render(<ComposerSurface {...common} productionId={3} part={part} onGenerate={onGenerate} />)
+
+    expect(await screen.findByText(/Invalid SSML:/)).toBeTruthy()
+    expect(screen.getByRole("button", { name: /Generate Part/ }).hasAttribute("disabled")).toBe(true)
+    fireEvent.click(screen.getByRole("button", { name: /Generate Part/ }))
+    expect(onGenerate).not.toHaveBeenCalled()
   })
 
   it("shows and edits the authored story role as Part metadata", async () => {

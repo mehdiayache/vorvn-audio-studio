@@ -1,5 +1,4 @@
 import { SpeechModelIdentity } from "@/components/speech-model-identity"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useComposer } from "./composer-controller"
 
@@ -14,6 +13,5 @@ export function ComposerOutput() {
     <div className="composer-fine-grid">
       <label><span>File type</span><Select value={composer.format} onValueChange={(value) => composer.setFormat(value as typeof composer.format)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{composer.formatOptions.map((item) => <SelectItem key={item} value={item}>{item}{item === composer.format && !composer.outputFormatSupported ? " · imported" : ""}</SelectItem>)}</SelectContent></Select></label>
     </div>
-    {controls.ssml && <label className="composer-output-option"><Checkbox checked={composer.enableSsml} onCheckedChange={(value) => composer.setEnableSsml(value === true)} /><span><b>SSML script</b><small>Treat this script as one valid &lt;speak&gt; document. Word timings are captured automatically.</small></span></label>}
   </section>
 }

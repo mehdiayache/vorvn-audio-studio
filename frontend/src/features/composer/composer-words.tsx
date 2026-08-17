@@ -1,8 +1,8 @@
-import { AudioLines, Check, ChevronDown, Columns2, Copy, Maximize2, Minimize2, WandSparkles } from "lucide-react"
+import { AudioLines, Check, ChevronDown, CircleAlert, Code2, Columns2, Copy, FileText, Maximize2, Minimize2, WandSparkles } from "lucide-react"
 import { useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -30,6 +30,7 @@ export function ComposerWords() {
   const [compareOpen, setCompareOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [focusMode, setFocusMode] = useState(false)
+  const [plainTextConfirmOpen, setPlainTextConfirmOpen] = useState(false)
   const states = ["raw", "shaped", ...(composer.capabilityControls.deliveryTags ? ["tagged" as const] : [])] as TextView[]
   const savedCompareView = text.view === "raw" ? (text.states.tagged ? "tagged" : text.states.shaped ? "shaped" : null) : text.view
   const candidateView: TextView | null = text.review?.kind === "shape" ? "shaped" : text.review?.kind === "tag" ? "tagged" : null
@@ -71,6 +72,15 @@ export function ComposerWords() {
     </div>
     <div className="script-content-stack">
       {composer.currentRoute && composer.taggedIncompatible && <div className="composer-warning"><b>Inline tags are not available with {composer.methodLabel}.</b><span>Your words remain unchanged until you choose what to do.</span><div>{text.states.shaped && <Button size="sm" variant="outline" onClick={() => text.select("shaped")}>Use Spoken version</Button>}{composer.hasInlineDeliveryTag && <Button size="sm" variant="outline" onClick={composer.removeInlineTags}>Remove inline tags</Button>}</div></div>}
+      {composer.capabilityControls.ssml && !text.review && <div className="ssml-mode-row" aria-label="Script format">
+        <div className="ssml-mode-actions">
+          <Button variant={composer.enableSsml ? "ghost" : "secondary"} size="sm" aria-pressed={!composer.enableSsml} onClick={() => { if (composer.enableSsml) setPlainTextConfirmOpen(true) }}><FileText />Plain text</Button>
+          <Button variant={composer.enableSsml ? "secondary" : "ghost"} size="sm" aria-pressed={composer.enableSsml} onClick={() => { if (!composer.enableSsml) composer.enableSsmlDocument() }}><Code2 />{composer.enableSsml ? "SSML document" : "Convert to SSML"}</Button>
+        </div>
+        {composer.enableSsml
+          ? <span className={cn("ssml-status", composer.ssmlValidation.valid ? "is-valid" : "is-invalid")} role="status">{composer.ssmlValidation.valid ? <Check /> : <CircleAlert />}{composer.ssmlValidation.message}</span>
+          : <span className="ssml-mode-help">Advanced provider markup for pauses and pronunciation.</span>}
+      </div>}
       <div className={cn("script-editor-shell", text.review && "is-reviewing")}>
         {text.review ? <>
           <div className="candidate-toolbar">
@@ -79,9 +89,9 @@ export function ComposerWords() {
           </div>
           <Textarea className="candidate-editor" dir="auto" aria-label={`${text.review.kind === "shape" ? "Spoken" : "Tagged"} candidate`} value={text.review.result.after || ""} readOnly />
           <div className="candidate-actions"><Button variant="ghost" disabled={Boolean(text.busy)} onClick={() => void text.reject()}>Reject</Button><Button disabled={Boolean(text.busy)} onClick={() => void text.accept()}><Check />{text.busy ? "Accepting…" : `Accept ${text.review.kind === "shape" ? "Spoken" : "Tagged"}`}</Button></div>
-        </> : text.view === "tagged"
+        </> : text.view === "tagged" && !composer.enableSsml
           ? <TaggedScriptEditor value={text.text} onChange={text.updateText} autoFocus={Boolean(composer.currentRoute)} />
-          : <Textarea dir="auto" aria-label={`${textLabel(text.view)} script`} value={text.text} onChange={(event) => text.updateText(event.target.value)} placeholder="Type or paste what should be said…" autoFocus={Boolean(composer.currentRoute)} />}
+          : <Textarea dir="auto" aria-label={composer.enableSsml ? `${textLabel(text.view)} SSML document` : `${textLabel(text.view)} script`} value={text.text} onChange={(event) => text.updateText(event.target.value)} placeholder={composer.enableSsml ? "Write one <speak> document…" : "Type or paste what should be said…"} autoFocus={Boolean(composer.currentRoute)} />}
       </div>
     </div>
     <div className="script-meta-row">
@@ -91,6 +101,7 @@ export function ComposerWords() {
       <span>Text tools · {composer.config?.text_preparation?.model || "Qwen text"} · about {formatMicroMoney(composer.textPassEstimate)}</span>
     </div>
     {text.error && <p className="composer-warning">{text.error}</p>}
-    <Dialog open={compareOpen} onOpenChange={setCompareOpen}><DialogContent className="composer-compare-dialog"><DialogHeader><DialogTitle>Compare script versions</DialogTitle><DialogDescription>Original editorial words beside the prepared version. Both remain plain, copyable text.</DialogDescription></DialogHeader><div className="composer-compare-grid"><section><b>Original</b><pre>{text.states.raw}</pre></section><section><b>{compareView ? textLabel(compareView) : "Prepared"}</b><pre>{compareText}</pre></section></div></DialogContent></Dialog>
+    <Dialog open={plainTextConfirmOpen} onOpenChange={setPlainTextConfirmOpen}><DialogContent><DialogHeader><DialogTitle>Return to plain text?</DialogTitle><DialogDescription>SSML markup and controls will be removed. Only the readable words remain in this script version.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setPlainTextConfirmOpen(false)}>Keep SSML</Button><Button onClick={() => { composer.usePlainText(); setPlainTextConfirmOpen(false) }}>Use plain text</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog open={compareOpen} onOpenChange={setCompareOpen}><DialogContent className="composer-compare-dialog"><DialogHeader><DialogTitle>Compare script versions</DialogTitle><DialogDescription>Original editorial words beside the prepared version.</DialogDescription></DialogHeader><div className="composer-compare-grid"><section><b>Original</b><pre>{text.states.raw}</pre></section><section><b>{compareView ? textLabel(compareView) : "Prepared"}</b><pre>{compareText}</pre></section></div></DialogContent></Dialog>
   </section>
 }

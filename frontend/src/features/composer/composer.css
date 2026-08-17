@@ -317,6 +317,49 @@
   flex: 1 1 auto;
 }
 
+.ssml-mode-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: -2px;
+  color: var(--muted-foreground);
+  font-size: var(--type-caption);
+}
+
+.ssml-mode-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.ssml-mode-actions button[aria-pressed="true"] {
+  color: var(--primary);
+}
+
+.ssml-status,
+.ssml-mode-help {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-align: right;
+}
+
+.ssml-status svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ssml-status.is-valid {
+  color: var(--success);
+}
+
+.ssml-status.is-invalid {
+  color: var(--destructive);
+}
+
 .speech-states {
   min-width: 0;
   display: flex;
@@ -620,21 +663,6 @@
 
 .composer-fine-grid label b {
   color: var(--foreground);
-}
-
-.composer-output-option {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.composer-output-option > span {
-  display: grid;
-  gap: 2px;
-}
-
-.composer-output-option small {
-  color: var(--muted-foreground);
 }
 
 .composer-performance-controls {

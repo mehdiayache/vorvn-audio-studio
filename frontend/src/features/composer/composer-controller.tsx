@@ -21,6 +21,7 @@ import { composerCapabilityControls, resolvedDeliveryMode, selectedRouteCapabili
 import { formatAuthoredRole, formatPartNumber } from "@/lib/format"
 import { outputLanguageOptions } from "@/lib/voice-capabilities"
 import { getVoiceIdentities, routesForIdentity, type VoiceChoice, type VoiceIdentityChoice } from "@/lib/voice-options"
+import { ssmlToPlainText, validateSsmlDocument, wrapPlainTextAsSsml } from "@/lib/ssml"
 import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
 
 export type ComposerSurfaceProps = {
@@ -147,7 +148,18 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   const hasInlineDeliveryTag = Array.from(textSession.text.matchAll(/\[([^\[\]]{1,40})\]/g))
     .some((match) => documentedTags.has((match[1] || "").toLocaleLowerCase()))
   const taggedIncompatible = Boolean(currentRoute) && !capabilityControls.deliveryTags && (textSession.view === "tagged" || hasInlineDeliveryTag)
+  const ssmlValidation = enableSsml
+    ? validateSsmlDocument(textSession.text)
+    : { valid: true, message: "Plain text" }
   const removeInlineTags = () => textSession.updateText(textSession.text.replace(/\[([^\[\]]{1,40})\]\s*/g, (match, tag: string) => documentedTags.has(tag.toLocaleLowerCase()) ? "" : match))
+  const enableSsmlDocument = () => {
+    textSession.updateText(wrapPlainTextAsSsml(textSession.text))
+    setEnableSsml(true)
+  }
+  const usePlainText = () => {
+    textSession.updateText(ssmlToPlainText(textSession.text))
+    setEnableSsml(false)
+  }
   const estimate = textSession.text.length * Number(currentRoute?.estimateRatePerMillionCharacters || 0) / 1_000_000
   const textPassEstimate = textSession.text.length * Number(config?.text_preparation?.estimated_price_per_million_characters || 0) / 1_000_000
   const destination = !productionId
@@ -223,6 +235,10 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   }
 
   async function executeGeneration(next: SpeechGenerationCommand, updateEditorial: boolean) {
+    if (next.delivery.enableSsml) {
+      const validation = validateSsmlDocument(next.text[next.text.active] || "")
+      if (!validation.valid) throw new Error(validation.message)
+    }
     setBusy("generate")
     try {
       if (updateEditorial && baseline && onUpdateEditorial) {
@@ -288,11 +304,11 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     busy, roleBusy, authoredRole, confirmationEstimate, pendingCommand, editorialCommand, textReviewReference,
     identities, selectedIdentity, compatibleRoutes, visibleRoutes, currentRoute, selectedCapability, capabilityControls, deliveryMode,
     formatOptions, outputFormatSupported,
-    textSession, languageOptions, taggedIncompatible, hasInlineDeliveryTag, estimate, textPassEstimate, destination,
+    textSession, languageOptions, taggedIncompatible, hasInlineDeliveryTag, ssmlValidation, estimate, textPassEstimate, destination,
     recovery, performancePresets, methodLabel,
     setLanguage, setFormat, setDeliveryModeRequest, setInstruction, setRate, setPitch, setVolume, setSeed, setEnableSsml,
     setConfirmationEstimate, setPendingCommand, setEditorialCommand,
-    applyRoute, selectIdentity, removeInlineTags, payload, saveDraft, saveRole, executeGeneration, continueGeneration, generate,
+    applyRoute, selectIdentity, removeInlineTags, enableSsmlDocument, usePlainText, payload, saveDraft, saveRole, executeGeneration, continueGeneration, generate,
   }
 }
 
