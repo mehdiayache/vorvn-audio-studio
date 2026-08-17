@@ -21,9 +21,6 @@ from audio_studio.domain.speech import (
 from audio_studio.providers.base import BaseTTSProvider
 
 
-INSTRUCTION_MAX = 100
-
-
 def synthesize(plan, options, on_progress=None):
     """Route speech through the Alibaba product selected by one voice route."""
     if options.engine == "audio":
@@ -98,8 +95,10 @@ class _Options:
         instruction = str(values.get("instruction") or "").strip()
         supports_instruction = bool(
             provider_catalog.CAPABILITIES[route.engine]["instruction_control"])
-        self.instruction = (instruction[:INSTRUCTION_MAX] or None) \
-            if supports_instruction else None
+        # Keep authored direction intact in domain state. A route that does
+        # not support direction simply omits it from the provider request;
+        # supported routes must never receive silently truncated text.
+        self.instruction = (instruction or None) if supports_instruction else None
         # Capability mode IDs are open provider metadata, not a closed
         # exact/directed enum. Individual adapters may interpret known modes,
         # but the chosen ID must survive unchanged into evidence and Clips.

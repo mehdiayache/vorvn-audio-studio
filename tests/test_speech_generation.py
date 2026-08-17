@@ -209,6 +209,17 @@ def existing(kind="audio"):
 
 
 class SpeechGenerationTests(unittest.TestCase):
+    def test_supported_instruction_is_never_silently_truncated(self):
+        provider = AlibabaSpeechProvider()
+        direction = "Deliver this as an intimate story with deliberate breath and emotional restraint. " * 3
+        prepared = provider.prepare(
+            text="The room became quiet.",
+            values=payload(instruction=direction),
+            bindings=FakeRepository().voice_bindings(), catalogue=[],
+            pronunciations=[], preferences={},
+        )
+        self.assertEqual(prepared.instruction, direction.strip())
+
     def test_empty_qwen_tts_result_keeps_the_provider_failure_evidence(self):
         prepared = PreparedSpeech(
             original_text="مرحبا", spoken_text="مرحبا",

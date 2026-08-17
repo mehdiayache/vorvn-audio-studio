@@ -26,6 +26,7 @@ class WorkRepositoryTests(unittest.TestCase):
         self.marker = uuid4().hex[:12]
         self.created_project_rows: list[int] = []
         self.receipt_resource_ids: list[str] = []
+        self.preserved_job_ids: list[int] = []
         self.venture = work.create(
             "ventures", None, f"Work fixture {self.marker}", "Fixture Venture")
         self.assertIsNotNone(self.venture)
@@ -61,6 +62,11 @@ class WorkRepositoryTests(unittest.TestCase):
                          WHERE action='production.deleted'
                            AND resource_id=ANY(%s)
                     """, (self.receipt_resource_ids,))
+                if self.preserved_job_ids:
+                    cursor.execute("DELETE FROM provider_attempts WHERE job_id=ANY(%s)",
+                                   (self.preserved_job_ids,))
+                    cursor.execute("DELETE FROM jobs WHERE id=ANY(%s)",
+                                   (self.preserved_job_ids,))
             database.commit()
 
     def test_hierarchy_overviews_and_series_lifecycle_remain_consistent(self):
@@ -147,6 +153,32 @@ class WorkRepositoryTests(unittest.TestCase):
                 VALUES ('private caption','private deleted script',
                         'private deleted script','private deleted script',%s)
             """, (part_id,))
+            job_id, job_public_id = database.execute("""
+                INSERT INTO jobs
+                    (kind,status,estimated,cost,project_id,production_id,
+                     part_id,model,voice,detail,error,payload,result,
+                     output_ids,chars,cost_basis,finished_at)
+                VALUES ('speech','ok',0.125,0.125,%s,%s,%s,
+                        'qwen-audio-3.0-tts-flash','private-voice',
+                        'private deleted detail','private deleted error',
+                        '{"text":"private deleted script"}'::jsonb,
+                        '{"filename":"private-output.mp3"}'::jsonb,
+                        '["private-output.mp3"]'::jsonb,22,
+                        'catalog_characters',now())
+                RETURNING id,public_id::text
+            """, (production["id"], production["id"], part_id)).fetchone()
+            self.preserved_job_ids.append(int(job_id))
+            database.execute("""
+                INSERT INTO provider_attempts
+                    (job_id,operation,provider,provider_region,route,
+                     payload_fingerprint,status,estimated_cost,cost,cost_basis,
+                     error,diagnostics,finished_at)
+                VALUES (%s,'speech.generate','alibaba','intl',
+                        '{"model_id":"qwen-audio-3.0-tts-flash"}'::jsonb,
+                        'content-free-fingerprint','succeeded',0.125,0.125,
+                        'catalog_characters','{"private":"error"}'::jsonb,
+                        '{"private":"diagnostic"}'::jsonb,now())
+            """, (job_id,))
             database.commit()
 
         deleted = work.remove("productions", production["id"])
@@ -171,9 +203,25 @@ class WorkRepositoryTests(unittest.TestCase):
             self.assertEqual(receipt, (
                 "production.deleted", "production", {
                     "permanent": True, "parts": 1, "recordings": 0,
-                    "captions": 1, "exports": 0,
+                    "captions": 1, "exports": 0, "operations": 1,
+                    "provider_attempts": 1, "retained_spend": 0.125,
                 },
             ))
+            retained = database.execute("""
+                SELECT production_id,project_id,part_id,clip_id,
+                       legacy_generation_id,payload,result,output_ids,chars,
+                       detail,error,cost
+                  FROM jobs WHERE id=%s
+            """, (job_id,)).fetchone()
+            self.assertEqual(retained, (
+                None, None, None, None, None, {}, {}, [], 0,
+                "Deleted Production activity", None, 0.125,
+            ))
+            attempt = database.execute("""
+                SELECT job_id,cost,error,diagnostics
+                  FROM provider_attempts WHERE job_id=%s
+            """, (job_id,)).fetchone()
+            self.assertEqual(attempt, (job_id, 0.125, {}, {}))
 
         activity = ActivityRepository().snapshot(
             kind="production_deleted", limit=10)
@@ -183,6 +231,11 @@ class WorkRepositoryTests(unittest.TestCase):
                          ("audit", "Production deleted", 0.0))
         self.assertNotIn(production["name"], str(run))
         self.assertNotIn("private deleted script", str(run))
+        retained_run = next(item for item in ActivityRepository().snapshot(
+            limit=50)["runs_list"] if item["id"] == job_public_id)
+        self.assertEqual(retained_run["cost"], 0.125)
+        self.assertEqual(retained_run["detail"], "Deleted Production activity")
+        self.assertNotIn("private deleted", str(retained_run))
 
 
 if __name__ == "__main__":

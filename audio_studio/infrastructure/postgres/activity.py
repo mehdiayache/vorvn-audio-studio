@@ -104,6 +104,7 @@ def _deletion_receipt(row) -> dict[str, Any]:
         f"{int(receipt.get('recordings') or 0)} recordings",
         f"{int(receipt.get('captions') or 0)} captions",
         f"{int(receipt.get('exports') or 0)} exports",
+        f"{int(receipt.get('operations') or 0)} operations retained",
     ))
     return {
         "id": str(public_id), "internal_id": int(internal_id),

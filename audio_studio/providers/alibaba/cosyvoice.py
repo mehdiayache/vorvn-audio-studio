@@ -161,9 +161,15 @@ def _synthesizer(options, *, callback: ResultCallback,
 def _render_session(session: tuple[str, ...], options, *, ssml: bool):
     collector = _CosyVoiceCollector()
     synthesizer = _synthesizer(options, callback=collector, ssml=ssml)
-    for text in session:
-        synthesizer.streaming_call(text)
-    synthesizer.streaming_complete()
+    if ssml:
+        # Alibaba's Python SDK supports SSML through call(), which becomes
+        # unidirectional streaming when a callback is present. The duplex
+        # streaming_call() path is for plain text and is not an SSML API.
+        synthesizer.call(session[0])
+    else:
+        for text in session:
+            synthesizer.streaming_call(text)
+        synthesizer.streaming_complete()
     if collector.error:
         raise RuntimeError(collector.error)
     if not collector.audio:

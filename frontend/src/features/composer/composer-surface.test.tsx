@@ -144,6 +144,34 @@ describe("shared Composer contract", () => {
     expect(onGenerate).not.toHaveBeenCalled()
   })
 
+  it("keeps authored direction in recovery when the chosen route does not use it", async () => {
+    vi.spyOn(studioApi, "composerDraft").mockResolvedValue(null)
+    const saveDraft = vi.spyOn(studioApi, "saveComposerDraft").mockResolvedValue({ id: "draft-direction", state: {} as never, version: 1, updatedAt: "now" })
+    const direction = "Begin intimately, then let the final sentence land with quiet certainty."
+    const part = {
+      id: 76,
+      kind: "draft",
+      text: "The room became quiet.",
+      text_raw: "The room became quiet.",
+      instruction: direction,
+      revision: 1,
+      cost: 0,
+      created_at: "",
+      position: 0,
+      voice_identity_id: "identity-eva",
+      binding_id: "binding-eva-cosy",
+      capability_id: "controlled_exact",
+    } as ProductionPart
+
+    render(<ComposerSurface {...common} productionId={3} part={part} />)
+
+    await waitFor(() => expect(studioApi.composerDraft).toHaveBeenCalled())
+    fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "The room became very quiet." } })
+    await waitFor(() => expect(saveDraft).toHaveBeenCalled())
+    expect(saveDraft.mock.calls.some(([, saved]) => saved.delivery.instruction === direction)).toBe(true)
+    expect(screen.queryByLabelText("Voice direction")).toBeNull()
+  })
+
   it("shows and edits the authored story role as Part metadata", async () => {
     const onUpdateEditorial = vi.fn().mockResolvedValue(undefined)
     const part = { id: 7, kind: "speech", text: "Hello", text_raw: "Hello", authored_role: "narrator", revision: 3, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart

@@ -3,7 +3,7 @@
 from types import SimpleNamespace
 import json
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from audio_studio.providers.alibaba import cosyvoice
 
@@ -131,6 +131,33 @@ class CosyVoiceTests(unittest.TestCase):
         self.assertEqual(audio, b"")
         self.assertEqual(len(failures), 1)
         self.assertEqual(render.call_count, 1)
+
+    def test_ssml_uses_documented_unidirectional_call(self):
+        synthesizer = MagicMock()
+        synthesizer.get_last_request_id.return_value = "request-ssml"
+        with patch.object(cosyvoice, "_synthesizer", return_value=synthesizer):
+            with self.assertRaisesRegex(RuntimeError, "no audio"):
+                cosyvoice._render_session(
+                    ('<speak>Hello <break time="300ms"/>world.</speak>',),
+                    options(), ssml=True)
+        synthesizer.call.assert_called_once_with(
+            '<speak>Hello <break time="300ms"/>world.</speak>')
+        synthesizer.streaming_call.assert_not_called()
+        synthesizer.streaming_complete.assert_not_called()
+
+    def test_plain_text_keeps_documented_duplex_streaming(self):
+        synthesizer = MagicMock()
+        with patch.object(cosyvoice, "_synthesizer", return_value=synthesizer):
+            with self.assertRaisesRegex(RuntimeError, "no audio"):
+                cosyvoice._render_session(
+                    ("First sentence.", "Second sentence."),
+                    options(), ssml=False)
+        self.assertEqual(
+            [call.args[0] for call in synthesizer.streaming_call.call_args_list],
+            ["First sentence.", "Second sentence."],
+        )
+        synthesizer.streaming_complete.assert_called_once_with()
+        synthesizer.call.assert_not_called()
 
     def test_session_diagnostics_include_measured_pcm_duration(self):
         planned = cosyvoice.CosyVoicePlan((("hello",), ("again",)))

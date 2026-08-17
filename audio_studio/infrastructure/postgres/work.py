@@ -610,6 +610,34 @@ def delete_production(resource_id: int) -> list[str] | None:
             "exports": int(production[5] or 0),
         }
         cur.execute("""
+            SELECT job.id, job.public_id::text,
+                   CASE WHEN count(attempt.id) > 0
+                        THEN coalesce(sum(CASE WHEN attempt.status='ambiguous'
+                            THEN greatest(attempt.estimated_cost,
+                                          coalesce(attempt.cost,0))
+                            ELSE coalesce(attempt.cost,0) END),0)
+                        ELSE coalesce(job.cost,0) END AS retained_cost
+              FROM jobs job
+              LEFT JOIN provider_attempts attempt ON attempt.job_id=job.id
+             WHERE job.production_id=%s OR job.project_id=%s
+                OR job.part_id IN (
+                    SELECT id FROM production_parts WHERE production_id=%s)
+             GROUP BY job.id, job.public_id, job.cost
+        """, (resource_id, legacy_container_id, resource_id))
+        job_rows = cur.fetchall()
+        job_ids = [int(row[0]) for row in job_rows]
+        job_public_ids = [str(row[1]) for row in job_rows]
+        receipt["operations"] = len(job_ids)
+        receipt["retained_spend"] = round(sum(
+            float(row[2] or 0) for row in job_rows), 6)
+        if job_ids:
+            cur.execute("""
+                SELECT count(*) FROM provider_attempts WHERE job_id=ANY(%s)
+            """, (job_ids,))
+            receipt["provider_attempts"] = int(cur.fetchone()[0] or 0)
+        else:
+            receipt["provider_attempts"] = 0
+        cur.execute("""
             SELECT filename FROM clips
              WHERE part_id IN (
                 SELECT id FROM production_parts WHERE production_id=%s)
@@ -651,21 +679,28 @@ def delete_production(resource_id: int) -> list[str] | None:
                             SELECT id FROM production_parts
                              WHERE production_id=%s))
         """, (resource_id, resource_id, legacy_container_id, resource_id))
-        cur.execute("""
-            DELETE FROM provider_attempts
-             WHERE job_id IN (
-                SELECT id FROM jobs
-                 WHERE production_id=%s OR project_id=%s
-                    OR part_id IN (
-                        SELECT id FROM production_parts
-                         WHERE production_id=%s))
-        """, (resource_id, legacy_container_id, resource_id))
-        cur.execute("""
-            DELETE FROM jobs
-             WHERE production_id=%s OR project_id=%s
-                OR part_id IN (
-                    SELECT id FROM production_parts WHERE production_id=%s)
-        """, (resource_id, legacy_container_id, resource_id))
+        if job_ids:
+            cur.execute("DELETE FROM job_events WHERE job_id=ANY(%s)",
+                        (job_ids,))
+            cur.execute("""
+                UPDATE provider_attempts
+                   SET error='{}'::jsonb, diagnostics='{}'::jsonb
+                 WHERE job_id=ANY(%s)
+            """, (job_ids,))
+            cur.execute("""
+                UPDATE audit_records SET detail='{}'::jsonb
+                 WHERE resource_type='job'
+                   AND resource_id=ANY(%s)
+            """, (job_public_ids,))
+            cur.execute("""
+                UPDATE jobs
+                   SET production_id=NULL, project_id=NULL, part_id=NULL,
+                       clip_id=NULL, legacy_generation_id=NULL,
+                       payload='{}'::jsonb, result='{}'::jsonb,
+                       output_ids='[]'::jsonb, chars=0,
+                       detail='Deleted Production activity', error=NULL
+                 WHERE id=ANY(%s)
+            """, (job_ids,))
         cur.execute("DELETE FROM generations WHERE project_id=%s",
                     (legacy_container_id,))
         cur.execute("DELETE FROM productions WHERE id=%s", (resource_id,))
