@@ -20,38 +20,42 @@ describe("ProductionEditorCanvas timing", () => {
   it("does not mount or decode the timing surface while its section is collapsed", () => {
     const props = {
       production: { id: 7, key: "production", title: "Production", parts: [] },
+      view: "sequence",
       tree: null, music: {}, directory: {}, liveJobs: {}, duration: 0,
       stageMode: null, stageTitle: "Production", stageContent: null,
       explorerOpen: false,
       healthOpen: false, commandsOpen: false, selected: new Set(), playerPlaying: false,
       previewing: false, productionPlaying: false, productionLoaded: false,
       productionCurrentTime: 0,
-      onOpenMixExport: vi.fn(), onCloseStage: vi.fn(), onExplorerOpen: vi.fn(),
+      onViewChange: vi.fn(), onOpenMixExport: vi.fn(), onCloseStage: vi.fn(), onExplorerOpen: vi.fn(),
       onHealthOpen: vi.fn(), onCommandsOpen: vi.fn(), onMusicOpen: vi.fn(),
       onTool: vi.fn(), onSelected: vi.fn(), onPreview: vi.fn(), onLocate: vi.fn(),
       onSeekProduction: vi.fn(), onPlay: vi.fn(),
       onChooseMusic: vi.fn(), onRetryJob: vi.fn(),
       onConfirmJob: vi.fn(), onReplaceAsset: vi.fn(), sequenceActions: {},
     } as unknown as ComponentProps<typeof ProductionEditorCanvas>
-    render(<ProductionEditorCanvas {...props} />)
+    const { rerender } = render(<ProductionEditorCanvas {...props} />)
     expect(timing).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole("button", { name: "Timing" }))
+    expect(props.onViewChange).toHaveBeenCalledWith("timing")
+    rerender(<ProductionEditorCanvas {...props} view="timing" />)
     expect(screen.getByText("Timing mounted")).toBeTruthy()
-    expect(screen.getByText("Sequence mounted")).toBeTruthy()
+    expect(screen.queryByText("Sequence mounted")).toBeNull()
     expect(timing).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByRole("button", { name: "Timing" }))
-    expect(screen.queryByText("Timing mounted")).toBeNull()
+    expect(props.onViewChange).toHaveBeenLastCalledWith("sequence")
   })
 
   it("restores the full sequence before locating a search result", async () => {
     const onLocate = vi.fn()
     const props = {
       production: { id: 7, key: "production", title: "Production", parts: [{ id: 17, kind: "draft", text: "Harbor ending" }] },
+      view: "sequence",
       tree: null, music: {}, directory: {}, liveJobs: {}, duration: 0,
       stageMode: null, stageTitle: "Production", stageContent: null,
       explorerOpen: false, healthOpen: false, commandsOpen: false, selected: new Set(), playerPlaying: false,
       previewing: false, productionPlaying: false, productionLoaded: false, productionCurrentTime: 0,
-      onOpenMixExport: vi.fn(), onCloseStage: vi.fn(), onExplorerOpen: vi.fn(),
+      onViewChange: vi.fn(), onOpenMixExport: vi.fn(), onCloseStage: vi.fn(), onExplorerOpen: vi.fn(),
       onHealthOpen: vi.fn(), onCommandsOpen: vi.fn(), onMusicOpen: vi.fn(),
       onTool: vi.fn(), onSelected: vi.fn(), onPreview: vi.fn(), onLocate,
       onSeekProduction: vi.fn(), onPlay: vi.fn(), onChooseMusic: vi.fn(), onRetryJob: vi.fn(),

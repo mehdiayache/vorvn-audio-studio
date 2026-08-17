@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import type { ToolKind } from "@/components/production-tools"
 import type { PartDetailTab, SequenceActions } from "@/components/sequence-actions"
 import { ProductionEditorCanvas } from "@/features/production/production-editor-canvas"
+import type { ProductionCanvasView } from "@/features/production/production-sequence-toolbar"
 import { DeleteProductionDialog } from "@/components/delete-production-dialog"
 import { MovePartPositionDialog } from "@/features/production/move-part-position-dialog"
 import type { ConfirmAction } from "@/features/production/production-overlays"
@@ -74,6 +75,9 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const [captionPart, setCaptionPart] = useState<ProductionPart | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
   const [deleteProductionOpen, setDeleteProductionOpen] = useState(false)
+  const [canvasView, setCanvasView] = useState<ProductionCanvasView>(() => (
+    typeof window !== "undefined" && new URL(window.location.href).searchParams.get("view") === "timing" ? "timing" : "sequence"
+  ))
   const stageOrigin = useRef<HTMLElement | null>(null)
   const mobile = useMediaQuery("(max-width: 48rem)")
   const player = useGlobalPlayer()
@@ -145,6 +149,13 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     }
     window.history.replaceState(window.history.state, "", url)
   }, [activeDetail, detailTab])
+
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (canvasView === "timing") url.searchParams.set("view", "timing")
+    else url.searchParams.delete("view")
+    window.history.replaceState(window.history.state, "", url)
+  }, [canvasView])
 
   const rememberStageOrigin = useCallback(() => {
     stageOrigin.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -309,6 +320,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   return <>
     <ProductionEditorCanvas
       production={production}
+      view={canvasView}
       tree={tree}
       music={music}
       directory={directory}
@@ -329,6 +341,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       productionLoaded={actions.productionLoaded}
       productionCurrentTime={actions.productionLoaded ? player.currentTime : 0}
       previewPlayingPartId={previewPlayingPartId}
+      onViewChange={setCanvasView}
       onExplorerOpen={setExplorerOpen}
       onMusicOpen={openMusicStage}
       onHealthOpen={openHealthStage}

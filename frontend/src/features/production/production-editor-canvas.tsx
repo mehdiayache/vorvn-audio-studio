@@ -20,8 +20,9 @@ import type { DurableJob, GenerateResult, HierarchyNode, MusicBed, PlayerSource,
 
 import "@/features/production/production-workspace.css"
 
-export function ProductionEditorCanvas({ production, tree, music, directory, liveJobs, duration, stageMode, stageTitle, stageDescription, stageContent, explorerOpen, healthOpen, commandsOpen, activePartId, playingKey, playerPlaying, previewing, productionPlaying, productionLoaded, productionCurrentTime, previewPlayingPartId, onExplorerOpen, onMusicOpen, onHealthOpen, onCommandsOpen, onTool, onPreview, onOpenMixExport, onDeleteProduction, onCloseStage, onLocate, onSeekProduction, onPlay, onChooseMusic, onRetryJob, onConfirmJob, onReplaceAsset, onOpenCaptions, onOpenCaptionContext, sequenceActions }: {
+export function ProductionEditorCanvas({ production, view, tree, music, directory, liveJobs, duration, stageMode, stageTitle, stageDescription, stageContent, explorerOpen, healthOpen, commandsOpen, activePartId, playingKey, playerPlaying, previewing, productionPlaying, productionLoaded, productionCurrentTime, previewPlayingPartId, onViewChange, onExplorerOpen, onMusicOpen, onHealthOpen, onCommandsOpen, onTool, onPreview, onOpenMixExport, onDeleteProduction, onCloseStage, onLocate, onSeekProduction, onPlay, onChooseMusic, onRetryJob, onConfirmJob, onReplaceAsset, onOpenCaptions, onOpenCaptionContext, sequenceActions }: {
   production: Production
+  view: ProductionCanvasView
   tree: HierarchyNode[] | null
   music: MusicBed
   directory: VoiceDirectory
@@ -42,6 +43,7 @@ export function ProductionEditorCanvas({ production, tree, music, directory, liv
   productionLoaded: boolean
   productionCurrentTime: number
   previewPlayingPartId?: number | null
+  onViewChange: (view: ProductionCanvasView) => void
   onExplorerOpen: (open: boolean) => void
   onMusicOpen: () => void
   onHealthOpen: (open: boolean) => void
@@ -62,7 +64,6 @@ export function ProductionEditorCanvas({ production, tree, music, directory, liv
   onOpenCaptionContext: (partId: number) => void
   sequenceActions: SequenceActions
 }) {
-  const [view, setView] = useState<ProductionCanvasView>("sequence")
   const [filters, setFilters] = useState<SequenceFilters>(EMPTY_SEQUENCE_FILTERS)
   const [pendingLocateId, setPendingLocateId] = useState<number | null>(null)
   const issues = productionHealth(production.parts)
@@ -88,16 +89,21 @@ export function ProductionEditorCanvas({ production, tree, music, directory, liv
   }, [filtersActive, onLocate, pendingLocateId])
 
   const timingOpen = view === "timing"
+  const locateFromTiming = (id: number) => {
+    onViewChange("sequence")
+    window.requestAnimationFrame(() => onLocate(id))
+  }
   const canvas = <main className={`production-main${timingOpen ? " has-timing-workspace" : ""}`}>
-    <ProductionMusicLane music={music} playingKey={playingKey} playing={playerPlaying} previewReady={productionLoaded} onPlay={onPlay} onAdd={onChooseMusic} onEdit={onMusicOpen} />
-    <ProductionSequenceToolbar view={view} partCount={sourceParts.length} visiblePartCount={filtersActive ? visibleParts.length : undefined} duration={duration} navigator={<ProductionSequenceSearch parts={production.parts} issuePartIds={issuePartIds} value={filters} onChange={setFilters} onLocate={revealPart} />} onViewChange={setView} onAdd={(kind) => onTool(kind)} />
-    <SequenceWorkspace parts={production.parts} liveJobs={liveJobs} visiblePartIds={filtersActive ? new Set(visibleParts.map((part) => part.id)) : undefined} filtersActive={filtersActive} activePartId={activePartId} playingKey={playingKey} playerPlaying={playerPlaying} previewPlayingPartId={previewPlayingPartId} directory={directory} onClearFilters={() => setFilters(EMPTY_SEQUENCE_FILTERS)} onInsert={(kind: InsertKind, beforePartId) => onTool(kind, beforePartId)} onRetryJob={onRetryJob} onConfirmJob={onConfirmJob} onReplaceAsset={onReplaceAsset} onOpenCaptions={onOpenCaptions} actions={sequenceActions} />
-    {timingOpen && <div className="production-timing-drawer"><TimingOverview parts={production.parts} music={music} playingKey={playingKey} productionLoaded={productionLoaded} productionCurrentTime={productionCurrentTime} onLocate={onLocate} onSeekProduction={onSeekProduction} onClose={() => setView("sequence")} /></div>}
+    {!timingOpen && <ProductionMusicLane music={music} playingKey={playingKey} playing={playerPlaying} previewReady={productionLoaded} onPlay={onPlay} onAdd={onChooseMusic} onEdit={onMusicOpen} />}
+    <ProductionSequenceToolbar view={view} partCount={sourceParts.length} visiblePartCount={filtersActive ? visibleParts.length : undefined} duration={duration} navigator={<ProductionSequenceSearch parts={production.parts} issuePartIds={issuePartIds} value={filters} onChange={setFilters} onLocate={revealPart} />} onViewChange={onViewChange} onAdd={(kind) => onTool(kind)} />
+    {timingOpen
+      ? <div className="production-timing-workspace"><TimingOverview parts={production.parts} music={music} playingKey={playingKey} previewing={previewing} productionLoaded={productionLoaded} productionCurrentTime={productionCurrentTime} onLocate={locateFromTiming} onSeekProduction={onSeekProduction} onClose={() => onViewChange("sequence")} /></div>
+      : <SequenceWorkspace parts={production.parts} liveJobs={liveJobs} visiblePartIds={filtersActive ? new Set(visibleParts.map((part) => part.id)) : undefined} filtersActive={filtersActive} activePartId={activePartId} playingKey={playingKey} playerPlaying={playerPlaying} previewPlayingPartId={previewPlayingPartId} directory={directory} onClearFilters={() => setFilters(EMPTY_SEQUENCE_FILTERS)} onInsert={(kind: InsertKind, beforePartId) => onTool(kind, beforePartId)} onRetryJob={onRetryJob} onConfirmJob={onConfirmJob} onReplaceAsset={onReplaceAsset} onOpenCaptions={onOpenCaptions} actions={sequenceActions} />}
   </main>
 
   return (
     <div className="production-page">
-      <ProductionHeader production={production} duration={duration} mixExportOpen={stageMode === "mix-export"} productionPlaying={productionPlaying} issueCount={issues.length} onExplorer={() => onExplorerOpen(true)} onCommands={() => onCommandsOpen(true)} onHealth={() => onHealthOpen(true)} onPreview={onPreview} onAdd={(kind) => onTool(kind)} onRelease={onOpenMixExport} onDelete={onDeleteProduction} />
+      <ProductionHeader production={production} duration={duration} mixExportOpen={stageMode === "mix-export"} previewing={previewing} productionPlaying={productionPlaying} issueCount={issues.length} onExplorer={() => onExplorerOpen(true)} onCommands={() => onCommandsOpen(true)} onHealth={() => onHealthOpen(true)} onPreview={onPreview} onAdd={(kind) => onTool(kind)} onRelease={onOpenMixExport} onDelete={onDeleteProduction} />
       <ProductionStage mode={stageMode} title={stageTitle} description={stageDescription} onClose={onCloseStage} canvas={canvas} previewStale={Boolean(playingKey?.startsWith("preview:") && !productionLoaded)} onRefreshPreview={onPreview} onOpenCaptionContext={onOpenCaptionContext}>{stageContent}</ProductionStage>
       {tree && <ProductionExplorerSheet open={explorerOpen} nodes={tree} activeKey={production.key} onOpenChange={onExplorerOpen} />}
       <ProductionHealthSheet open={healthOpen && stageMode !== "health"} issues={issues} onOpenChange={onHealthOpen} onLocate={revealPart} />

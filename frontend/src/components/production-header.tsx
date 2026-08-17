@@ -1,4 +1,4 @@
-import { ArrowLeft, CircleAlert, Command, FileJson2, Folder, MoreHorizontal, Pause, Play, Plus, SlidersHorizontal, Trash2 } from "lucide-react"
+import { ArrowLeft, CircleAlert, Command, FileJson2, Folder, LoaderCircle, MoreHorizontal, Pause, Play, Plus, SlidersHorizontal, Trash2 } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
@@ -7,10 +7,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { formatDuration, formatMoney } from "@/lib/format"
 import type { Production } from "@/types/domain"
 
-export function ProductionHeader({ production, duration, mixExportOpen, productionPlaying, issueCount, onExplorer, onCommands, onHealth, onPreview, onAdd, onRelease, onDelete }: {
+export function ProductionHeader({ production, duration, mixExportOpen, previewing, productionPlaying, issueCount, onExplorer, onCommands, onHealth, onPreview, onAdd, onRelease, onDelete }: {
   production: Production
   duration: number
   mixExportOpen: boolean
+  previewing: boolean
   productionPlaying: boolean
   issueCount: number
   onExplorer: () => void
@@ -31,7 +32,7 @@ export function ProductionHeader({ production, duration, mixExportOpen, producti
         </div>
         <div className="production-context-actions">
           {issueCount > 0 && <Button className="production-health-summary" variant="outline" size="sm" aria-label={`${issueCount} Production issue${issueCount === 1 ? "" : "s"}`} onClick={onHealth}><CircleAlert /> <b>{issueCount}</b><span className="production-health-label">issue{issueCount === 1 ? "" : "s"}</span></Button>}
-            <Button variant="outline" size="sm" onClick={onPreview}>{productionPlaying ? <Pause /> : <Play />} {productionPlaying ? "Pause" : "Preview"}</Button>
+            <Button variant="outline" size="sm" disabled={previewing} onClick={onPreview}>{previewing ? <LoaderCircle className="animate-spin" /> : productionPlaying ? <Pause /> : <Play />} {previewing ? "Preparing…" : productionPlaying ? "Pause" : "Preview"}</Button>
             <Button className="mix-export-action" variant={mixExportOpen ? "secondary" : "outline"} size="sm" aria-pressed={mixExportOpen} onClick={onRelease}><SlidersHorizontal /> Mix & Export</Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button size="sm"><Plus /> Add part</Button></DropdownMenuTrigger>

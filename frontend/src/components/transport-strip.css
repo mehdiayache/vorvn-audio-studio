@@ -45,6 +45,8 @@
   padding-inline: var(--space-4);
   pointer-events: none;
 }
+.production-transport-host:has(.transport-strip) { animation: production-transport-arrive 220ms cubic-bezier(.2, .8, .2, 1); }
+@keyframes production-transport-arrive { from { transform: translateY(18px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .transport-strip.is-production {
   position: static;
   grid-template-columns: 2.5rem minmax(9rem, 14rem) 2.5rem auto minmax(11rem, 1fr) auto 2.75rem 2.5rem 2.5rem 2.5rem;

@@ -40,6 +40,21 @@
 .timeline-empty { position: relative; z-index: 2; height: 100%; display: flex; align-items: center; padding: 0 11px; color: var(--muted-foreground); font-size: var(--type-small); }
 .timeline-hint { padding: 8px 14px 10px; color: var(--muted-foreground); font-size: var(--type-small); }
 
+.production-timing-workspace .timeline-toolbar { min-height: 64px; padding-inline: 24px; }
+.production-timing-workspace .timeline-canvas { height: 100%; display: grid; grid-template-rows: 36px minmax(0, 1fr); padding: 0 24px 0 116px; }
+.production-timing-workspace .timeline-ruler { height: 36px; }
+.production-timing-workspace .timeline-lanes { min-height: 0; height: 100%; grid-template-rows: minmax(92px, 1.4fr) minmax(68px, 1fr) minmax(68px, 1fr); gap: 0; padding-top: 0; }
+.production-timing-workspace .timeline-lane-row { min-height: 0; height: 100%; }
+.production-timing-workspace .timeline-lane-label { width: 86px; }
+.production-timing-workspace .timeline-track { height: 100%; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: color-mix(in oklab, var(--surface-subtle) 68%, transparent); }
+.production-timing-workspace .timeline-lane-row:last-child .timeline-track { border-bottom: 1px solid var(--border); }
+.production-timing-workspace .sfx-track { background: color-mix(in oklab, var(--asset-soft) 28%, transparent); }
+.production-timing-workspace .music-track { background: color-mix(in oklab, var(--series-soft) 32%, transparent); }
+.production-timing-workspace .timeline-clip { inset-block: 8px; }
+.production-timing-workspace .timeline-clip .audio-waveform { inset-block: 10px; height: calc(100% - 20px); }
+.production-timing-workspace .timeline-playhead { top: 5px; bottom: 5px; transition: left 100ms linear, opacity 180ms ease; }
+.production-timing-workspace .timeline-hint { min-height: 40px; padding: 10px 24px 12px; border-top: 1px solid var(--border); }
+
 @media (max-width: 700px) {
   .timeline-canvas { padding-left: 86px; }
   .timeline-lane-label { width: 62px; font-size: var(--type-caption); }
