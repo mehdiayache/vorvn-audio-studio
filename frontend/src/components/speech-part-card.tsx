@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react"
-import { AudioLines, Captions, ChevronDown, ChevronUp, CircleAlert, Copy, GripVertical, Info, MoreHorizontal, Pause, Pencil, Play, Trash2, Volume2, VolumeX } from "lucide-react"
+import { ArrowUpDown, AudioLines, Captions, ChevronDown, ChevronUp, CircleAlert, Copy, Info, MoreHorizontal, Pause, Pencil, Play, Trash2, Volume2, VolumeX } from "lucide-react"
 
 import { AudioWaveform } from "@/components/audio-waveform"
 import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
@@ -44,12 +44,11 @@ function useRenderedScriptOverflow(text: string, expanded: boolean) {
   return { ref, overflowing }
 }
 
-export function SpeechPartCard({ part, job, captionJob, index, count, playing, playingPreview = false, directory, onRetryJob, onConfirmJob, onOpenCaptions, actions }: {
+export function SpeechPartCard({ part, job, captionJob, index, playing, playingPreview = false, directory, onRetryJob, onConfirmJob, onOpenCaptions, actions }: {
   part: ProductionPart
   job: DurableJob<GenerateResult> | null
   captionJob?: DurableJob<unknown> | null
   index: number
-  count: number
   playing: boolean
   playingPreview?: boolean
   directory: VoiceDirectory
@@ -79,11 +78,6 @@ export function SpeechPartCard({ part, job, captionJob, index, count, playing, p
       <div className="speech-part-number">
         <span>{formatPartNumber(index)}</span>
       </div>
-      <Button className="speech-part-grip" variant="ghost" size="icon-sm" onClick={() => actions.moveToPosition(part)} aria-label={`Move part ${index + 1} to position`}><GripVertical /></Button>
-      <div className="speech-part-move-controls" aria-label={`Move part ${index + 1}`}>
-        <Button variant="ghost" size="icon-sm" disabled={index === 0} onClick={() => actions.move(part, -1)} aria-label="Move earlier"><ChevronUp /></Button>
-        <Button variant="ghost" size="icon-sm" disabled={index === count - 1} onClick={() => actions.move(part, 1)} aria-label="Move later"><ChevronDown /></Button>
-      </div>
     </div>
 
     <div className="speech-part-body">
@@ -109,6 +103,7 @@ export function SpeechPartCard({ part, job, captionJob, index, count, playing, p
           <Button variant="outline" size="sm" className="speech-part-edit" onClick={editSpeech} aria-label={`Edit part ${index + 1}`}><Pencil /> Edit</Button>
           <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Part actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={openPart}><Info />Details</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => actions.moveToPosition(part)}><ArrowUpDown />Move to position…</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => actions.duplicate(part)}><Copy />Duplicate</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}><Trash2 />Delete Part permanently</DropdownMenuItem>

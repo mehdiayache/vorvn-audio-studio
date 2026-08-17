@@ -14,13 +14,8 @@
 .speech-part-card.is-disabled { --speech-identity-color: var(--muted-foreground); background: var(--surface-subtle); filter: grayscale(1); }
 
 .speech-part-identity-rail { position: absolute; z-index: 2; left: 0; top: 0; bottom: 0; width: 3px; background: var(--speech-identity-color); }
-.speech-part-order { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 15px 5px 10px; border-right: 1px solid var(--border); color: var(--muted-foreground); background: var(--surface-subtle); }
+.speech-part-order { min-width: 0; display: flex; justify-content: center; align-items: flex-start; padding: 17px 5px 10px; border-right: 1px solid var(--border); color: var(--muted-foreground); background: var(--surface-subtle); }
 .speech-part-number { display: flex; align-items: center; gap: 5px; color: var(--foreground); font-size: var(--type-small); font-weight: 750; font-variant-numeric: tabular-nums; }
-.speech-part-grip { width: 28px; height: 25px; color: var(--muted-foreground); }
-.speech-part-grip svg { width: 15px; height: 15px; }
-.speech-part-move-controls { display: flex; align-items: center; gap: 1px; }
-.speech-part-move-controls button { width: 22px; height: 22px; color: var(--muted-foreground); }
-.speech-part-move-controls svg { width: 13px; height: 13px; }
 
 .speech-part-body { min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
 .speech-part-main-header { min-height: 56px; display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 13px 12px 5px 16px; }

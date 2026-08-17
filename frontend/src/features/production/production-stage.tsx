@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from "react"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, PanelRightClose } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { ProductionFloatingTransport } from "@/features/production/production-floating-transport"
@@ -24,6 +24,7 @@ export function ProductionStage({ mode, title, description, onClose, children, c
 }) {
   const titleId = useId()
   const backRef = useRef<HTMLButtonElement>(null)
+  const docked = mode === "part" || mode === "composer"
   useEffect(() => {
     if (!mode) return
     const frame = window.requestAnimationFrame(() => backRef.current?.focus())
@@ -39,12 +40,12 @@ export function ProductionStage({ mode, title, description, onClose, children, c
     }
   }, [mode, onClose])
 
-  return <section className="production-workstation">
-    <div className="production-canvas" aria-hidden={Boolean(mode)} inert={mode ? true : undefined}>{canvas}</div>
+  return <section className="production-workstation" data-stage-layout={docked ? "docked" : mode ? "overlay" : "canvas"} data-stage-mode={mode || undefined}>
+    <div className="production-canvas" aria-hidden={Boolean(mode && !docked)} inert={mode && !docked ? true : undefined}>{canvas}</div>
     {mode && <section className="production-stage" data-mode={mode} aria-labelledby={titleId}>
       <header className="production-stage-header">
         <div className="production-stage-header-inner">
-          <Button ref={backRef} variant="ghost" size="icon" onClick={onClose} aria-label="Back to Production sequence"><ArrowLeft /></Button>
+          <Button ref={backRef} variant="ghost" size="icon" onClick={onClose} aria-label={docked ? "Close Production panel" : "Back to Production sequence"}>{docked ? <PanelRightClose /> : <ArrowLeft />}</Button>
           <div><span className="eyebrow">Production</span><h2 id={titleId}>{title}</h2>{description && <p>{description}</p>}</div>
         </div>
       </header>

@@ -12,12 +12,13 @@ import { useProductionActions } from "@/hooks/use-production-actions"
 import { useProductionSpeechJobs } from "@/features/production/use-production-speech-jobs"
 import { MixExportWorkspace } from "@/features/production/mix-export-workspace"
 import { MusicWorkbench } from "@/features/production/music-workbench"
+import { ProductionComposerStage } from "@/features/composer/production-composer-host"
 import { PartInspectorContent, partInspectorTitle } from "@/features/production/inspector/part-inspector"
 import { PartCaptionsDialog } from "@/features/production/part-captions-dialog"
 import { productionHealth, ProductionHealthContent } from "@/features/production/production-health-sheet"
 import type { ProductionStageMode } from "@/features/production/production-stage"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { partDurationMs } from "@/lib/format"
+import { formatAuthoredRole, formatPartNumber, partDurationMs } from "@/lib/format"
 import { studioApi } from "@/lib/api"
 import { audioStudioBase } from "@/lib/links"
 import { loadPartCaptionTracks, loadProductionCaptionTracks } from "@/lib/production-caption-tracks"
@@ -129,7 +130,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const detailTab = activeStage?.mode === "part" ? activeStage.tab : "script"
   const healthOpen = activeStage?.mode === "health"
   const assetCollectionIds = Object.fromEntries(assetCollections.map((collection) => [collection.name, collection.id]))
-  const modalTool = tool
+  const modalTool = tool === "speech" && !mobile ? null : tool
   const modalDetail = mobile ? activeDetail : null
   const overlaysOpen = Boolean(modalTool || modalDetail || confirmAction)
 
@@ -162,8 +163,9 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     rememberStageOrigin(); setActiveStage(null); setCaptionPart(null); setInsertBeforePartId(null); setComposerPart(null); setReplacingAsset(part); setTool("asset")
   }, [rememberStageOrigin])
   const openSpeechComposer = useCallback((part: ProductionPart) => {
+    rememberStageOrigin()
     setActiveStage(null); setCaptionPart(null); setInsertBeforePartId(null); setComposerPart(part); setTool("speech")
-  }, [])
+  }, [rememberStageOrigin])
   const openPart = useCallback((part: ProductionPart, tab: PartDetailTab = "script") => {
     rememberStageOrigin(); closeTool(); setCaptionPart(null); setActiveStage({ mode: "part", part, tab })
   }, [closeTool, rememberStageOrigin])
@@ -209,11 +211,13 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
   const openCommands = useCallback(() => setCommandsOpen(true), [])
   usePlayerShortcuts({ hasSource: Boolean(player.source), currentTime: player.currentTime, toggle: player.toggle, seek: player.seek }, closeTransientUi, openCommands)
 
-  const stageMode: ProductionStageMode | null = mobile ? null : activeStage?.mode || null
+  const stageMode: ProductionStageMode | null = mobile ? null : tool === "speech" ? "composer" : activeStage?.mode || null
   const composerInsertAt = insertBeforePartId ? Math.max(0, sourceParts.findIndex((part) => part.public_id === insertBeforePartId)) : null
   const healthIssues = useMemo(() => productionHealth(production.parts), [production.parts])
-  const stageTitle = stageMode === "part" ? partInspectorTitle(activeDetail) : stageMode === "music" ? "Music Bed" : stageMode === "health" ? "Production health" : stageMode === "mix-export" ? "Mix & Export" : "Production"
-  const stageDescription = stageMode === "part" && activeDetail ? `Revision ${activeDetail.revision || 1}${activeDetail.clip_id ? " · active recording" : ""}` : stageMode === "music" ? music.filename ? "Parallel mix lane · reusable Venture source" : "Narration only · no Music Bed" : stageMode === "health" ? `${healthIssues.length} current issue${healthIssues.length === 1 ? "" : "s"} · release evidence` : stageMode === "mix-export" ? "Preview the current mix and create immutable output." : undefined
+  const composerTitle = composerPart ? `Edit ${formatAuthoredRole(composerPart.authored_role) || "speech"} · Part ${formatPartNumber(composerPart.position ?? 0)}` : "Add speech"
+  const composerDescription = composerPart?.clip_id ? "Change the words, Voice or delivery, then replace the current recording." : composerPart ? "Finish this Draft and create its first recording." : insertBeforePartId ? "Insert at the selected Sequence position." : `Add as Part ${sourceParts.length + 1}.`
+  const stageTitle = stageMode === "composer" ? composerTitle : stageMode === "part" ? partInspectorTitle(activeDetail) : stageMode === "music" ? "Music Bed" : stageMode === "health" ? "Production health" : stageMode === "mix-export" ? "Mix & Export" : "Production"
+  const stageDescription = stageMode === "composer" ? composerDescription : stageMode === "part" && activeDetail ? `Revision ${activeDetail.revision || 1}${activeDetail.clip_id ? " · active recording" : ""}` : stageMode === "music" ? music.filename ? "Parallel mix lane · reusable Venture source" : "Narration only · no Music Bed" : stageMode === "health" ? `${healthIssues.length} current issue${healthIssues.length === 1 ? "" : "s"} · release evidence` : stageMode === "mix-export" ? "Preview the current mix and create immutable output." : undefined
   const previewPlayingPartId = useMemo(() => {
     if (!actions.productionPlaying) return null
     const position = player.currentTime * 1000
@@ -225,10 +229,11 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     return activeSourceParts.at(-1)?.id || null
   }, [actions.productionPlaying, activeSourceParts, player.currentTime])
   const closeStage = useCallback(() => {
-    setActiveStage(null)
+    if (tool === "speech") closeTool()
+    else setActiveStage(null)
     const origin = stageOrigin.current
     window.requestAnimationFrame(() => origin?.focus())
-  }, [])
+  }, [closeTool, tool])
   const closeCaptions = useCallback(() => {
     setCaptionPart(null)
     const origin = stageOrigin.current
@@ -252,7 +257,24 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
     })
   }, [actions, player])
 
-  const stageContent = stageMode === "part" ? <PartInspectorContent
+  const stageContent = stageMode === "composer" ? <ProductionComposerStage
+    productionId={production.id}
+    nextPartNumber={sourceParts.length + 1}
+    insertAt={composerInsertAt}
+    insertBeforePartId={insertBeforePartId}
+    part={composerPart}
+    config={config}
+    directory={directory}
+    playingKey={player.source?.key}
+    playerPlaying={actions.playerPlaying}
+    onSave={async (payload) => { await actions.saveDraft(payload); closeTool() }}
+    onUpdateEditorial={async (values) => {
+      if (!composerPart) throw new Error("That Part is no longer open.")
+      await actions.updatePartEditorial(composerPart, values)
+    }}
+    onGenerate={queueRender}
+    onPlay={(source) => void playSource(source)}
+  /> : stageMode === "part" ? <PartInspectorContent
     productionId={production.id}
     part={activeDetail}
     directory={directory}
@@ -299,7 +321,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       explorerOpen={explorerOpen}
       healthOpen={healthOpen}
       commandsOpen={commandsOpen}
-      activePartId={activeDetail?.id}
+      activePartId={composerPart?.id || activeDetail?.id}
       playingKey={player.source?.key}
       playerPlaying={actions.playerPlaying}
       previewing={actions.previewing}

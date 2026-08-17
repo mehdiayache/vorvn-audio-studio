@@ -60,7 +60,7 @@ function renderCard(component: ReactNode) {
 
 describe("SpeechPartCard", () => {
   it("keeps the complete long script in the DOM and expands only rendered overflow", () => {
-    renderCard(<SpeechPartCard part={part()} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actions()} />)
+    renderCard(<SpeechPartCard part={part()} job={null} index={0} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actions()} />)
     const script = screen.getByText(longText)
     expect(script.textContent).toBe(longText)
     expect(script.className).not.toContain("is-expanded")
@@ -71,7 +71,7 @@ describe("SpeechPartCard", () => {
 
   it("does not offer expansion when the rendered script fits", () => {
     const shortText = "One compact authored line."
-    renderCard(<SpeechPartCard part={part({ text: shortText, clip_raw_text: shortText })} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actions()} />)
+    renderCard(<SpeechPartCard part={part({ text: shortText, clip_raw_text: shortText })} job={null} index={0} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actions()} />)
     expect(screen.getByText(shortText).textContent).toBe(shortText)
     expect(screen.queryByRole("button", { name: /show more/i })).toBeNull()
   })
@@ -81,13 +81,13 @@ describe("SpeechPartCard", () => {
       text: "Mutable original",
       recording_text_state: "tagged",
       clip_tagged_text: "[whispers] The recorded performance.",
-    })} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actions()} />)
+    })} job={null} index={0} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actions()} />)
     expect(container.querySelector(".speech-part-script-copy")?.textContent).toBe("[whispers] The recorded performance.")
     expect(container.querySelector("mark.inline-delivery-tag")?.textContent).toBe("[whispers]")
   })
 
   it("keeps Voice, factual gender, exact method, duration, captions and spend visible during generation", () => {
-    renderCard(<SpeechPartCard part={part()} job={{ id: "speech-1", type: "speech", status: "running", progress: 68, detail: "Generating", retries: 0, result: {} }} captionJob={{ id: "cc-1", type: "transcribe", status: "running", progress: .2, detail: "Listening", retries: 0, result: {} }} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actions()} />)
+    renderCard(<SpeechPartCard part={part()} job={{ id: "speech-1", type: "speech", status: "running", progress: 68, detail: "Generating", retries: 0, result: {} }} captionJob={{ id: "cc-1", type: "transcribe", status: "running", progress: .2, detail: "Listening", retries: 0, result: {} }} index={0} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actions()} />)
     expect(screen.getByText("Maya")).toBeTruthy()
     expect(screen.getByText("Female")).toBeTruthy()
     expect(screen.getByText("Qwen Audio · Flash · Expressive + tags · EN")).toBeTruthy()
@@ -101,7 +101,7 @@ describe("SpeechPartCard", () => {
 
   it("opens the Composer from Edit and keeps technical details separate", () => {
     const actionSet = actions()
-    const { container } = renderCard(<SpeechPartCard part={part()} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
+    const { container } = renderCard(<SpeechPartCard part={part()} job={null} index={0} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
     const footer = container.querySelector(".speech-part-result")
     expect(footer?.contains(screen.getByRole("button", { name: /play part/i }))).toBe(true)
     fireEvent.click(screen.getByRole("button", { name: "Edit part 1" }))
@@ -109,6 +109,8 @@ describe("SpeechPartCard", () => {
     expect(actionSet.openPart).not.toHaveBeenCalled()
     fireEvent.pointerDown(screen.getByRole("button", { name: "Part actions" }), { button: 0, ctrlKey: false })
     expect(screen.getByRole("menuitem", { name: "Details" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("menuitem", { name: "Move to position…" }))
+    expect(actionSet.moveToPosition).toHaveBeenCalledWith(expect.objectContaining({ id: 7 }))
     expect(container.querySelector(".speech-operation-lane")).toBeNull()
     expect(screen.queryByText("Direct voice")).toBeNull()
   })
@@ -116,7 +118,7 @@ describe("SpeechPartCard", () => {
   it("offers one permanent Part deletion and no separate recording deletion", () => {
     const sourcePart = part()
     const actionSet = actions()
-    renderCard(<SpeechPartCard part={sourcePart} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
+    renderCard(<SpeechPartCard part={sourcePart} job={null} index={0} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
     fireEvent.pointerDown(screen.getByRole("button", { name: "Part actions" }), { button: 0, ctrlKey: false })
     expect(screen.queryByRole("menuitem", { name: "Delete recording" })).toBeNull()
     fireEvent.click(screen.getByRole("menuitem", { name: "Delete Part permanently" }))
@@ -125,7 +127,7 @@ describe("SpeechPartCard", () => {
 
   it("uses the authored role in the card and floating player without hiding the Voice", () => {
     const actionSet = actions()
-    const { container } = renderCard(<SpeechPartCard part={part({ authored_role: "narrator" })} job={null} index={1} count={2} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
+    const { container } = renderCard(<SpeechPartCard part={part({ authored_role: "narrator" })} job={null} index={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
     expect(screen.getByText("02")).toBeTruthy()
     expect(screen.getByText("Narrator")).toBeTruthy()
     expect(container.querySelector(".voice-gender-badge")?.classList.contains("is-female")).toBe(true)
@@ -135,7 +137,7 @@ describe("SpeechPartCard", () => {
 
   it("gives drafts a visible role and direct Edit and Generate actions", () => {
     const actionSet = actions()
-    renderCard(<SpeechPartCard part={part({ kind: "draft", authored_role: "Esther", clip_id: null, filename: "", duration_ms: 9000 })} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
+    renderCard(<SpeechPartCard part={part({ kind: "draft", authored_role: "Esther", clip_id: null, filename: "", duration_ms: 9000 })} job={null} index={0} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={actionSet} />)
     expect(screen.getByText("Not recorded")).toBeTruthy()
     expect(screen.getByText("Esther")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Edit part 1" }))
@@ -149,7 +151,7 @@ describe("SpeechPartCard", () => {
     const actionSet = actions()
     const onOpenCaptions = vi.fn()
     const sourcePart = part()
-    renderCard(<SpeechPartCard part={sourcePart} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} onOpenCaptions={onOpenCaptions} actions={actionSet} />)
+    renderCard(<SpeechPartCard part={sourcePart} job={null} index={0} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} onOpenCaptions={onOpenCaptions} actions={actionSet} />)
 
     fireEvent.click(screen.getByRole("button", { name: /Captions: No captions/ }))
 
@@ -161,7 +163,7 @@ describe("SpeechPartCard", () => {
   it("toggles durable output inclusion without deleting the recording", () => {
     const setEnabled = vi.fn()
     const sourcePart = part({ enabled: false })
-    renderCard(<SpeechPartCard part={sourcePart} job={null} index={0} count={1} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={{ ...actions(), setEnabled }} />)
+    renderCard(<SpeechPartCard part={sourcePart} job={null} index={0} playing={false} directory={directory} onRetryJob={vi.fn()} onConfirmJob={vi.fn()} actions={{ ...actions(), setEnabled }} />)
 
     fireEvent.click(screen.getByRole("button", { name: "Include part 1 in output" }))
     expect(setEnabled).toHaveBeenCalledWith(sourcePart, true)
