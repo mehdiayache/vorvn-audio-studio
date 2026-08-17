@@ -23,12 +23,13 @@ const SettingsPage = lazy(() => import("@/features/settings/settings-page").then
 const SpeakPage = lazy(() => import("@/features/speak/speak-page").then((module) => ({ default: module.SpeakPage })))
 const SubtitlesPage = lazy(() => import("@/features/subtitles/subtitles-page").then((module) => ({ default: module.SubtitlesPage })))
 const ProductionPage = lazy(() => import("@/features/production/production-page").then((module) => ({ default: module.ProductionPage })))
+const ProductionWorkstationPage = lazy(() => import("@/features/production-workstation/production-workstation-page").then((module) => ({ default: module.ProductionWorkstationPage })))
 const ProjectPage = lazy(() => import("@/features/work/project-page").then((module) => ({ default: module.ProjectPage })))
 const SeriesPage = lazy(() => import("@/features/work/series-page").then((module) => ({ default: module.SeriesPage })))
 const VentureDirectoryPage = lazy(() => import("@/features/work/venture-directory-page").then((module) => ({ default: module.VentureDirectoryPage })))
 const VenturePage = lazy(() => import("@/features/work/venture-page").then((module) => ({ default: module.VenturePage })))
 
-function ProductionRoute({ productionId }: { productionId: number }) {
+function ProductionRoute({ productionId, workstation = false }: { productionId: number; workstation?: boolean }) {
   const { production, tree, music, refresh } = useProduction(productionId)
   const resources = useStudioResources(productionId)
   const data = production.data
@@ -39,7 +40,10 @@ function ProductionRoute({ productionId }: { productionId: number }) {
     {data && music.status === "error" && <InlineResourceError message={`Music settings unavailable: ${music.error}`} retry={() => void refresh()} />}
     {data && resources.assetError && <InlineResourceError message={`Asset library unavailable: ${resources.assetError}`} retry={() => void resources.refreshAssets().catch(() => undefined)} />}
     {data && resources.voiceError && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void resources.refreshVoices()} />}
-    {data && <LazyRoute label="Loading Production workspace"><ProductionPage production={data} tree={tree.data || null} music={music.data || {}} assets={resources.assets} assetCollections={resources.assetCollections} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} /></LazyRoute>}
+    {data && <LazyRoute label="Loading Production workspace">{workstation
+      ? <ProductionWorkstationPage production={data} tree={tree.data || null} music={music.data || {}} assets={resources.assets} assetCollections={resources.assetCollections} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} />
+      : <ProductionPage production={data} tree={tree.data || null} music={music.data || {}} assets={resources.assets} assetCollections={resources.assetCollections} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} />
+    }</LazyRoute>}
   </>
 }
 
@@ -67,7 +71,7 @@ function SeriesRoute({ id }: { id: number }) {
   return <>{overview.status === "loading" && !overview.data && <PageLoading label="Loading Series" />}{overview.status === "error" && !overview.data && <ErrorState title="Series unavailable" message={overview.error || "Unable to load this Series."} retry={overview.refresh} />}{overview.data && <LazyRoute label="Loading Series"><SeriesPage data={overview.data} refresh={overview.refresh} /></LazyRoute>}</>
 }
 
-function ResourceRoute({ type }: { type: ResourceType }) {
+function ResourceRoute({ type, workstation = false }: { type: ResourceType; workstation?: boolean }) {
   const { identifier = "" } = useParams()
   const hierarchy = useHierarchy()
   const numericIdentifier = /^\d+$/.test(identifier) ? Number(identifier) : null
@@ -78,7 +82,7 @@ function ResourceRoute({ type }: { type: ResourceType }) {
     if (hierarchy.status === "loading") return <PageLoading label={`Loading ${type}`} />
     return <ErrorState title={`${type[0]?.toUpperCase()}${type.slice(1)} unavailable`} message={hierarchy.error || `That ${type} does not exist.`} retry={hierarchy.refresh} />
   }
-  if (type === "production") return <ProductionRoute productionId={node.id} />
+  if (type === "production") return <ProductionRoute productionId={node.id} workstation={workstation} />
   if (type === "venture") return <VentureRoute id={node.id} />
   if (type === "project") return <ProjectRoute id={node.id} />
   return <SeriesRoute id={node.id} />
@@ -115,6 +119,7 @@ function AudioStudioRoutes({ mode }: { mode: AudioStudioMountMode }) {
         <Route path="projects/:identifier" element={<ResourceRoute type="project" />} />
         <Route path="series/:identifier" element={<ResourceRoute type="series" />} />
         <Route path="productions/:identifier" element={<ResourceRoute type="production" />} />
+        <Route path="productions/:identifier/workstation" element={<ResourceRoute type="production" workstation />} />
         <Route path="workspaces/:identifier" element={<ResourceRoute type="production" />} />
         <Route path="*" element={<ErrorState title="Page unavailable" message="That Audio Studio destination does not exist." retry={() => window.history.back()} />} />
       </Route>
