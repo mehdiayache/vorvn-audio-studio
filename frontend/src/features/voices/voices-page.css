@@ -123,6 +123,12 @@
 .voice-create-heading h3 { margin: 0; font-size: var(--type-heading-md); }.voice-create-heading p { margin: 5px 0 0; color: var(--muted-foreground); font-size: var(--type-small); line-height: 1.5; }
 .voice-create-stage label, .voice-create-stage .file-drop-zone, .voice-recording-guidance, .voice-package-options, .voice-plan-summary, .voice-plan-loading { grid-column: 1 / -1; }
 .voice-create-stage label { display: grid; gap: 7px; }.voice-create-stage label > span { font-size: var(--type-small); font-weight: 650; }.voice-create-stage label small { color: var(--muted-foreground); font-weight: 400; }
+.voice-create-sex { grid-column: 1 / -1; display: grid; gap: 7px; }
+.voice-create-sex > span { font-size: var(--type-small); font-weight: 650; }
+.voice-create-sex > small { color: var(--muted-foreground); font-size: var(--type-caption); }
+.voice-create-sex [data-slot="toggle-group"] { gap: 8px; }
+.voice-create-sex [data-slot="toggle-group-item"] { min-width: 104px; border-left: 1px solid var(--border); border-radius: 9px; background: var(--surface-raised); }
+.voice-create-sex [data-slot="toggle-group-item"][data-state="on"] { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); background: var(--primary-soft); }
 .voice-create-stage textarea { min-height: 88px; resize: vertical; }
 .voice-recording-guidance { display: flex; gap: 8px; flex-wrap: wrap; }.voice-recording-guidance span { display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px; border-radius: 999px; background: var(--muted); color: var(--muted-foreground); font-size: var(--type-caption); }.voice-recording-guidance svg { width: 12px; color: var(--success); }
 .voice-package-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }

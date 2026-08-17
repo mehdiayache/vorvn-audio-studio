@@ -1,0 +1,55 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { afterEach, describe, expect, it, vi } from "vitest"
+
+import { studioApi } from "@/lib/api"
+import { CreateVoiceDialog } from "./create-voice-dialog"
+
+vi.mock("@/lib/api", () => ({ studioApi: {
+  createVoicePackage: vi.fn(),
+  uploadVoiceReference: vi.fn(),
+  voicePackagePreflight: vi.fn(),
+} }))
+
+afterEach(() => { cleanup(); vi.clearAllMocks() })
+
+const route = {
+  provider_model_id: "alibaba:intl:cosyvoice-v3-plus",
+  provider: "alibaba", region: "intl", adapter_key: "cosyvoice",
+  engine: "cosyvoice", tier: "plus", model_id: "cosyvoice-v3-plus",
+  label: "CosyVoice V3 Plus", role: "Controlled exact reading",
+  language: "en", source_language_documented: true,
+  documented_output_languages: ["English"], estimated_creation_cost: 0,
+}
+
+describe("CreateVoiceDialog", () => {
+  it("requires sex during identity setup and sends it with the new voice", async () => {
+    vi.mocked(studioApi.uploadVoiceReference).mockResolvedValue({ reference_id: "ref-new", name: "voice.wav" })
+    vi.mocked(studioApi.voicePackagePreflight).mockResolvedValue({
+      region: "intl", region_label: "Singapore", language: "en",
+      package: "complete", routes: [route], available_routes: [route],
+      packages: [], total_estimated_creation_cost: 0,
+    })
+    vi.mocked(studioApi.createVoicePackage).mockResolvedValue({
+      identity: {} as never, queued: 1,
+      plan: { region: "intl", region_label: "Singapore", language: "en", package: "complete", routes: [route], available_routes: [route], packages: [], total_estimated_creation_cost: 0 },
+    })
+    render(<CreateVoiceDialog open onOpenChange={() => undefined} config={null} onQueued={() => undefined} />)
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Voice name" }), { target: { value: "New narrator" } })
+    fireEvent.change(screen.getByRole("combobox", { name: "Language spoken in this recording" }), { target: { value: "en" } })
+    expect(screen.getByRole("button", { name: "Continue" }).hasAttribute("disabled")).toBe(true)
+
+    fireEvent.click(screen.getByRole("radio", { name: "Female voice" }))
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }))
+    const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]')
+    fireEvent.change(fileInput!, { target: { files: [new File(["voice"], "voice.wav", { type: "audio/wav" })] } })
+    fireEvent.click(screen.getByRole("button", { name: "Review methods" }))
+    await screen.findByText("1 installed versions will be attempted")
+    fireEvent.click(screen.getByRole("button", { name: "Create voice" }))
+
+    await waitFor(() => expect(studioApi.createVoicePackage).toHaveBeenCalledWith(expect.objectContaining({
+      name: "New narrator", gender: "female", language: "en", reference_id: "ref-new",
+    })))
+  })
+})
