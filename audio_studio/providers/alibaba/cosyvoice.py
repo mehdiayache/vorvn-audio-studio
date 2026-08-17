@@ -144,6 +144,7 @@ def _synthesizer(options, *, callback: ResultCallback,
         volume=options.volume,
         seed=options.seed,
         language_hints=_language_hints(options.language),
+        hot_fix=getattr(options, "hot_fix", None),
         additional_params=additional_params,
         callback=callback,
     )

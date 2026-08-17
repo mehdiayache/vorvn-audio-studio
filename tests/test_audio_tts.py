@@ -19,6 +19,15 @@ def options():
 
 
 class AudioTtsTests(unittest.TestCase):
+    def test_qwen_audio_does_not_receive_the_unsupported_hot_fix_option(self):
+        configured = options()
+        configured.hot_fix = {"pronunciation": [{"VORVN": "vor ven"}]}
+        with patch.object(audio_tts, "SpeechSynthesizer") as constructor:
+            audio_tts._synthesizer(
+                configured, callback=audio_tts._PcmCollector())
+        additional = constructor.call_args.kwargs["additional_params"]
+        self.assertFalse(additional and "hot_fix" in additional)
+
     def test_language_labels_become_documented_codes_or_auto_detection(self):
         self.assertEqual(audio_tts._language_hints("English"), ["en"])
         self.assertEqual(audio_tts._language_hints("id"), ["id"])

@@ -120,9 +120,6 @@ def build_additional_params(options) -> dict | None:
         value = getattr(options, flag, None)
         if value is not None:
             params[flag] = bool(value)
-    hot_fix = getattr(options, "hot_fix", None)
-    if hot_fix:
-        params["hot_fix"] = hot_fix
     extra = getattr(options, "extra_params", None)
     if isinstance(extra, dict):
         params.update(extra)

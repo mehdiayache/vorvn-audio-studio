@@ -11,7 +11,7 @@ def options(**changes):
     values = {
         "model": "plus", "voice": "cosyvoice-fixture", "format": "mp3",
         "rate": 1.0, "pitch": 1.0, "volume": 50, "language": "English",
-        "seed": 17,
+        "seed": 17, "hot_fix": None,
     }
     values.update(changes)
     return SimpleNamespace(**values)
@@ -49,6 +49,16 @@ class CosyVoiceTests(unittest.TestCase):
             "word_timestamp_enabled": True, "enable_ssml": True,
         })
         self.assertNotIn("instruction", sent)
+
+    def test_pronunciation_hot_fix_uses_the_documented_native_parameter(self):
+        hot_fix = {"pronunciation": [{"VORVN": "vor ven"}]}
+        with patch.object(cosyvoice, "SpeechSynthesizer") as constructor:
+            cosyvoice._synthesizer(
+                options(hot_fix=hot_fix),
+                callback=cosyvoice._CosyVoiceCollector(), ssml=False)
+        sent = constructor.call_args.kwargs
+        self.assertEqual(sent["hot_fix"], hot_fix)
+        self.assertNotIn("hot_fix", sent["additional_params"])
 
     def test_word_timestamp_events_are_preserved_in_diagnostics(self):
         collector = cosyvoice._CosyVoiceCollector()
