@@ -15,6 +15,17 @@ export type ParsedProductionImport = {
   roles: ProductionImportRole[]
 }
 
+export const PRODUCTION_IMPORT_EXAMPLE = {
+  schema: "audio-studio-production-import",
+  version: 1,
+  title: "Evening story",
+  items: [
+    { type: "speech", role: "Narrator", text: "The room grew quiet as the story began." },
+    { type: "silence", seconds: 1.5 },
+    { type: "speech", role: "Maya", text: "Stay with me. There is one more thing you should know." },
+  ],
+} as const
+
 const TOP_LEVEL_FIELDS = new Set(["schema", "version", "title", "items"])
 const SPEECH_FIELDS = new Set([
   "type", "role", "text", "language", "speech_mode", "instruction",
@@ -53,6 +64,23 @@ function integer(value: unknown, label: string, minimum: number, maximum: number
   return result
 }
 
+function optionalString(value: unknown, label: string, maximum?: number, allowBlank = false) {
+  return value === undefined ? undefined : string(value, label, maximum, allowBlank)
+}
+
+function optionalNumber(value: unknown, label: string, minimum: number, maximum: number) {
+  return value === undefined ? undefined : number(value, label, minimum, maximum)
+}
+
+function optionalInteger(value: unknown, label: string, minimum: number, maximum: number) {
+  return value === undefined ? undefined : integer(value, label, minimum, maximum)
+}
+
+function normalizeRole(value: string) {
+  const label = value.trim().replace(/\s+/g, " ")
+  return { label, key: label.toLocaleLowerCase("en-US") }
+}
+
 export function parseProductionImportText(source: string): ParsedProductionImport {
   let decoded: unknown
   try {
@@ -71,7 +99,7 @@ export function parseProductionImportText(source: string): ParsedProductionImpor
   if (!document.items.length) throw new Error("Document items cannot be empty.")
   if (document.items.length > 1_000) throw new Error("A V1 import can contain at most 1,000 items.")
 
-  const roles = new Map<string, number>()
+  const roles = new Map<string, ProductionImportRole>()
   let speechCount = 0
   let silenceCount = 0
   const items: ProductionImportDocument["items"] = document.items.map((raw, index) => {
@@ -84,26 +112,32 @@ export function parseProductionImportText(source: string): ParsedProductionImpor
     }
     if (item.type !== "speech") throw new Error(`Item ${itemNumber}: type must be “speech” or “silence”.`)
     exactFields(item, SPEECH_FIELDS, `Item ${itemNumber}`)
-    const role = string(item.role, `Item ${itemNumber}: role`, 120)
-    if (role !== role.trim()) throw new Error(`Item ${itemNumber}: role cannot start or end with spaces.`)
+    const role = normalizeRole(string(item.role, `Item ${itemNumber}: role`, 120))
     const speechMode = item.speech_mode
-    if (speechMode !== "exact" && speechMode !== "directed") {
+    if (speechMode !== undefined && speechMode !== "exact" && speechMode !== "directed") {
       throw new Error(`Item ${itemNumber}: speech_mode must be “exact” or “directed”.`)
     }
+    const outputFormat = optionalString(item.format, `Item ${itemNumber}: format`, 24)
+    if (outputFormat !== undefined && !["mp3", "mp3-24k", "wav", "opus"].includes(outputFormat)) {
+      throw new Error(`Item ${itemNumber}: format must be “mp3”, “mp3-24k”, “wav”, or “opus”.`)
+    }
     speechCount += 1
-    roles.set(role, (roles.get(role) || 0) + 1)
+    const knownRole = roles.get(role.key)
+    roles.set(role.key, knownRole
+      ? { ...knownRole, count: knownRole.count + 1 }
+      : { name: role.label, count: 1 })
     return {
       type: "speech" as const,
-      role,
+      role: knownRole?.name || role.label,
       text: string(item.text, `Item ${itemNumber}: text`, 500_000),
-      language: string(item.language, `Item ${itemNumber}: language`, 80),
-      speech_mode: speechMode as "exact" | "directed",
-      instruction: string(item.instruction, `Item ${itemNumber}: instruction`, undefined, true),
-      rate: number(item.rate, `Item ${itemNumber}: rate`, 0.5, 2),
-      pitch: number(item.pitch, `Item ${itemNumber}: pitch`, 0.5, 2),
-      volume: integer(item.volume, `Item ${itemNumber}: volume`, 0, 100),
-      seed: integer(item.seed, `Item ${itemNumber}: seed`, 0, 2_147_483_647),
-      format: string(item.format, `Item ${itemNumber}: format`, 24),
+      language: optionalString(item.language, `Item ${itemNumber}: language`, 80) ?? "Auto",
+      speech_mode: (speechMode ?? "exact") as "exact" | "directed",
+      instruction: optionalString(item.instruction, `Item ${itemNumber}: instruction`, undefined, true) ?? "",
+      rate: optionalNumber(item.rate, `Item ${itemNumber}: rate`, 0.5, 2) ?? 1,
+      pitch: optionalNumber(item.pitch, `Item ${itemNumber}: pitch`, 0.5, 2) ?? 1,
+      volume: optionalInteger(item.volume, `Item ${itemNumber}: volume`, 0, 100) ?? 50,
+      seed: optionalInteger(item.seed, `Item ${itemNumber}: seed`, 0, 2_147_483_647) ?? 0,
+      format: (outputFormat ?? "mp3") as "mp3" | "mp3-24k" | "wav" | "opus",
     }
   })
   return {
@@ -115,6 +149,6 @@ export function parseProductionImportText(source: string): ParsedProductionImpor
     },
     speechCount,
     silenceCount,
-    roles: [...roles].map(([name, count]) => ({ name, count })),
+    roles: [...roles.values()],
   }
 }

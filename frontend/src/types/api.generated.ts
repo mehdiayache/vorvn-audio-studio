@@ -2086,22 +2086,42 @@ export interface components {
         };
         /** ImportSpeechItem */
         ImportSpeechItem: {
-            /** Format */
-            format: string;
-            /** Instruction */
+            /**
+             * Format
+             * @default mp3
+             * @enum {string}
+             */
+            format: "mp3" | "mp3-24k" | "wav" | "opus";
+            /**
+             * Instruction
+             * @default
+             */
             instruction: string;
-            /** Language */
+            /**
+             * Language
+             * @default Auto
+             */
             language: string;
-            /** Pitch */
+            /**
+             * Pitch
+             * @default 1
+             */
             pitch: number;
-            /** Rate */
+            /**
+             * Rate
+             * @default 1
+             */
             rate: number;
             /** Role */
             role: string;
-            /** Seed */
+            /**
+             * Seed
+             * @default 0
+             */
             seed: number;
             /**
              * Speech Mode
+             * @default exact
              * @enum {string}
              */
             speech_mode: "exact" | "directed";
@@ -2112,7 +2132,10 @@ export interface components {
              * @enum {string}
              */
             type: "speech";
-            /** Volume */
+            /**
+             * Volume
+             * @default 50
+             */
             volume: number;
         };
         /** JobCreatedEnvelope */

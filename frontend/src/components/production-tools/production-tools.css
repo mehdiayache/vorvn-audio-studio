@@ -51,6 +51,10 @@
 
 .production-import-tool { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; }
 .production-import-body { min-height: 0; overflow-y: auto; padding: 20px 22px; }
+.production-import-source-actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 8px; }
+.production-import-paste { display: grid; gap: 10px; margin-top: 12px; }
+.production-import-paste textarea { min-height: 180px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--type-caption); line-height: 1.55; }
+.production-import-paste > button { justify-self: end; }
 .production-import-idle { display: flex; align-items: center; gap: 9px; margin: 14px 2px 0; color: var(--muted-foreground); font-size: var(--type-small); }
 .production-import-idle svg { width: 17px; color: var(--primary); }
 .production-import-error { display: flex; align-items: flex-start; gap: 10px; margin-top: 14px; padding: 12px 14px; border-left: 3px solid var(--destructive); background: color-mix(in oklab, var(--destructive) 7%, var(--surface-raised)); color: var(--destructive); }
@@ -61,6 +65,12 @@
 .production-import-summary > svg:last-child { width: 20px; color: var(--success); }
 .production-import-summary h3, .production-import-roles h3 { margin: 2px 0 0; font-size: var(--type-heading-sm); }
 .production-import-summary p, .production-import-roles header p { margin: 4px 0 0; color: var(--muted-foreground); font-size: var(--type-small); }
+.production-import-preview { padding: 14px 2px 4px; }
+.production-import-preview > header { display: flex; justify-content: space-between; gap: 12px; color: var(--muted-foreground); font-size: var(--type-caption); }
+.production-import-preview ol { margin: 8px 0 0; padding: 0; list-style: none; }
+.production-import-preview li { display: grid; grid-template-columns: minmax(90px, 140px) minmax(0, 1fr); gap: 16px; padding: 8px 0; border-top: 1px solid var(--border); font-size: var(--type-small); }
+.production-import-preview li b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.production-import-preview li span { overflow: hidden; color: var(--muted-foreground); text-overflow: ellipsis; white-space: nowrap; }
 .production-import-roles { padding-top: 18px; }
 .production-import-roles > header { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(260px, 1.2fr); align-items: end; gap: 24px; margin-bottom: 8px; }
 .production-import-roles > header p { text-align: right; }

@@ -182,6 +182,40 @@ class ProductionImportTests(unittest.TestCase):
                     [item["role"] for item in speech_items],
                 )
 
+    def test_lean_speech_defaults_and_normalized_roles_are_canonical(self):
+        document = {
+            "schema": "audio-studio-production-import",
+            "version": 1,
+            "title": "Lean story",
+            "items": [
+                {"type": "speech", "role": " Narrator ",
+                 "text": "The room became quiet."},
+                {"type": "speech", "role": "narrator",
+                 "text": "The story began."},
+            ],
+        }
+
+        result = self.timeline.import_document(
+            self.production["id"], document,
+            {"NARRATOR": self.identity_ids["narrator"]},
+        )
+
+        self.assertEqual(result, {"items": 2, "speech": 2, "silence": 0})
+        parts = self.repository.parts(self.production["id"])
+        self.assertEqual([part["authored_role"] for part in parts],
+                         ["Narrator", "Narrator"])
+        for part in parts:
+            self.assertEqual(part["language"], "Auto")
+            self.assertEqual(part["speech_mode"], "exact")
+            self.assertEqual(part["instruction"], "")
+            self.assertEqual(part["rate"], 1)
+            self.assertEqual(part["pitch"], 1)
+            self.assertEqual(part["volume"], 50)
+            self.assertEqual(part["seed"], 0)
+            self.assertEqual(part["format"], "mp3")
+            self.assertEqual(part["voice_identity_id"],
+                             self.identity_ids["narrator"])
+
     def test_invalid_document_and_missing_mapping_mutate_nothing(self):
         invalid = json.loads(json.dumps(self.document))
         invalid["items"][3]["text"] = "   "
@@ -313,6 +347,37 @@ class ProductionImportHttpTests(unittest.TestCase):
             run.call_args.args[1]["items"][0]["instruction"],
             document["items"][0]["instruction"],
         )
+
+    def test_endpoint_applies_studio_defaults_to_lean_speech(self):
+        client = TestClient(app)
+        document = {
+            "schema": "audio-studio-production-import",
+            "version": 1,
+            "title": "Lean story",
+            "items": [{
+                "type": "speech", "role": "Narrator",
+                "text": "The room became quiet.",
+            }],
+        }
+        with patch.object(
+                timeline_router.timeline_service, "import_document",
+                return_value={"items": 1, "speech": 1, "silence": 0}) as run:
+            response = client.post(
+                "/api/v1/productions/7/import",
+                json={"document": document,
+                      "role_voices": {"Narrator": "voice-narrator"}},
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        speech = run.call_args.args[1]["items"][0]
+        self.assertEqual(speech["language"], "Auto")
+        self.assertEqual(speech["speech_mode"], "exact")
+        self.assertEqual(speech["instruction"], "")
+        self.assertEqual(speech["rate"], 1)
+        self.assertEqual(speech["pitch"], 1)
+        self.assertEqual(speech["volume"], 50)
+        self.assertEqual(speech["seed"], 0)
+        self.assertEqual(speech["format"], "mp3")
 
 
 if __name__ == "__main__":

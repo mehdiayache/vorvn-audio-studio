@@ -1,4 +1,4 @@
-import { AlertCircle, Braces, Check, FileJson2 } from "lucide-react"
+import { AlertCircle, Braces, Check, ClipboardPaste, Download, FileJson2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -6,10 +6,12 @@ import { FileDropZone } from "@/components/file-drop-zone"
 import { VoicePicker } from "@/components/voice-picker"
 import { Button } from "@/components/ui/button"
 import { DialogFooter } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 import type { VoiceIdentityChoice } from "@/lib/voice-options"
 import type { PlayerSource, VoiceDirectory } from "@/types/domain"
 import {
   parseProductionImportText,
+  PRODUCTION_IMPORT_EXAMPLE,
   type ParsedProductionImport,
   type ProductionImportCounts,
   type ProductionImportDocument,
@@ -31,9 +33,23 @@ export function ProductionImportTool({ currentPartCount, identities, directory, 
   const [roleVoices, setRoleVoices] = useState<Record<string, string>>({})
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
+  const [pasting, setPasting] = useState(false)
+  const [pastedJson, setPastedJson] = useState("")
+
+  function validate(source: string) {
+    setParsed(null)
+    setRoleVoices({})
+    setError("")
+    try {
+      setParsed(parseProductionImportText(source))
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "This Production document could not be read.")
+    }
+  }
 
   async function choose(next: File) {
     setFile(next)
+    setPasting(false)
     setParsed(null)
     setRoleVoices({})
     setError("")
@@ -45,12 +61,10 @@ export function ProductionImportTool({ currentPartCount, identities, directory, 
       setError("This JSON file is larger than 5 MB.")
       return
     }
-    try {
-      setParsed(parseProductionImportText(await next.text()))
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "This Production document could not be read.")
-    }
+    validate(await next.text())
   }
+
+  const exampleHref = `data:application/json;charset=utf-8,${encodeURIComponent(`${JSON.stringify(PRODUCTION_IMPORT_EXAMPLE, null, 2)}\n`)}`
 
   const allRolesMapped = parsed?.roles.every((role) => Boolean(roleVoices[role.name])) ?? false
   const actionLabel = parsed
@@ -79,6 +93,14 @@ export function ProductionImportTool({ currentPartCount, identities, directory, 
   return <div className="production-import-tool">
     <div className="production-import-body">
       <FileDropZone file={file} accept="application/json,.json" kind="file" emptyLabel="Drop a Production JSON here" chooseLabel="Choose JSON" hint="V1 · Speech Drafts and Silence only · maximum 5 MB" disabled={busy} onFile={(next) => void choose(next)} />
+      <div className="production-import-source-actions">
+        <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => { setPasting((current) => !current); setFile(null); setParsed(null); setRoleVoices({}); setError("") }}><ClipboardPaste /> {pasting ? "Hide paste" : "Paste JSON"}</Button>
+        <Button variant="ghost" size="sm" asChild><a href={exampleHref} download="audio-studio-production-import-v1-example.json"><Download /> Download example</a></Button>
+      </div>
+      {pasting && <div className="production-import-paste">
+        <Textarea aria-label="Paste Production JSON" value={pastedJson} placeholder="Paste the complete Production JSON document…" disabled={busy} onChange={(event) => setPastedJson(event.target.value)} />
+        <Button type="button" size="sm" disabled={!pastedJson.trim() || busy} onClick={() => validate(pastedJson)}>Check JSON</Button>
+      </div>}
       {error && <div className="production-import-error" role="alert"><AlertCircle /><span><b>Import not ready</b>{error}</span></div>}
       {!parsed && !error && <p className="production-import-idle"><Braces /> The file is checked locally first. Nothing is added until you confirm the final button.</p>}
       {parsed && <>
@@ -86,6 +108,13 @@ export function ProductionImportTool({ currentPartCount, identities, directory, 
           <FileJson2 />
           <div><span className="eyebrow">Ready to map</span><h3>{parsed.document.title}</h3><p>{parsed.speechCount} Speech Drafts · {parsed.silenceCount} Silence Parts · {parsed.roles.length} role{parsed.roles.length === 1 ? "" : "s"}</p></div>
           <Check aria-label="Document valid" />
+        </section>
+        <section className="production-import-preview" aria-label="Content preview">
+          <header><span className="eyebrow">First in sequence</span><span>{Math.min(3, parsed.document.items.length)} of {parsed.document.items.length}</span></header>
+          <ol>{parsed.document.items.slice(0, 3).map((item, index) => <li key={index}>
+            <b>{item.type === "speech" ? item.role : "Silence"}</b>
+            <span>{item.type === "speech" ? item.text : `${item.seconds} seconds`}</span>
+          </li>)}</ol>
         </section>
         {parsed.roles.length > 0 && <section className="production-import-roles" aria-label="Role voice mapping">
           <header><div><span className="eyebrow">Voices</span><h3>Map every role</h3></div><p>Choose an existing owned Voice Identity. Recording method stays intentionally unset.</p></header>

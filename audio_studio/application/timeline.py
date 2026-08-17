@@ -180,18 +180,30 @@ class TimelineService:
         """Append validated V1 authoring items to the canonical Production."""
         self._production(production_id)
         items = list(document.get("items") or [])
-        roles = {
-            str(item["role"]): index
-            for index, item in enumerate(items, start=1)
-            if item.get("type") == "speech"
-        }
-        for role, item_number in roles.items():
-            if role != role.strip():
+        roles: dict[str, dict[str, Any]] = {}
+        for index, item in enumerate(items, start=1):
+            if item.get("type") != "speech":
+                continue
+            label = " ".join(str(item["role"]).split())
+            if not label:
+                raise TimelineError(f"Item {index}: role cannot be blank.")
+            key = label.casefold()
+            roles.setdefault(key, {"label": label, "item_number": index})
+
+        mapped_roles: dict[str, tuple[str, str]] = {}
+        for label, identity_id in role_voices.items():
+            normalized_label = " ".join(str(label).split())
+            key = normalized_label.casefold()
+            if key in mapped_roles and mapped_roles[key][1] != identity_id:
                 raise TimelineError(
-                    f"Item {item_number}: role cannot start or end with spaces.")
-        mapped_roles = set(role_voices)
-        missing = sorted(set(roles) - mapped_roles)
-        extra = sorted(mapped_roles - set(roles))
+                    f"Role {normalized_label} has more than one Voice mapping.")
+            mapped_roles[key] = (normalized_label, str(identity_id))
+
+        missing = sorted(
+            roles[key]["label"] for key in set(roles) - set(mapped_roles))
+        extra = sorted(
+            mapped_roles[key][0]
+            for key in set(mapped_roles) - set(roles))
         if missing:
             raise TimelineError(
                 "Map every role before importing. Missing: "
@@ -200,7 +212,7 @@ class TimelineService:
             raise TimelineError(
                 "Remove role mappings that are not in this document: "
                 + ", ".join(extra))
-        for role, identity_id in role_voices.items():
+        for role, identity_id in mapped_roles.values():
             if not str(identity_id).strip():
                 raise TimelineError(f"Choose a Voice for role {role}.")
 
@@ -216,9 +228,11 @@ class TimelineService:
                 })
                 continue
             text = str(item["text"])
-            language = str(item["language"])
-            instruction = str(item["instruction"])
-            output_format = str(item["format"])
+            language = str(item.get("language") or "Auto")
+            instruction = str(item.get("instruction") or "")
+            output_format = str(item.get("format") or "mp3")
+            role_key = " ".join(str(item["role"]).split()).casefold()
+            role = roles[role_key]["label"]
             for label, value in (
                 ("text", text), ("language", language),
                 ("format", output_format),
@@ -228,29 +242,30 @@ class TimelineService:
                         f"Item {number}: {label} cannot be blank.")
             canonical_items.append({
                 "kind": "draft",
-                "authored_role": str(item["role"]),
+                "authored_role": role,
                 "text": text,
                 "text_raw": text,
                 "text_shaped": None,
                 "text_tagged": None,
                 "text_state": "raw",
-                "voice_identity_id": role_voices[str(item["role"])],
+                "voice_identity_id": mapped_roles[role_key][1],
                 "binding_id": None,
                 "catalogue_voice_id": None,
                 "capability_id": None,
                 "language": language,
-                "speech_mode": item["speech_mode"],
+                "speech_mode": item.get("speech_mode") or "exact",
                 "instruction": instruction,
-                "rate": float(item["rate"]),
-                "pitch": float(item["pitch"]),
-                "volume": int(item["volume"]),
-                "seed": int(item["seed"]),
+                "rate": float(item.get("rate", 1)),
+                "pitch": float(item.get("pitch", 1)),
+                "volume": int(item.get("volume", 50)),
+                "seed": int(item.get("seed", 0)),
                 "format": output_format,
                 "duration_ms": 0,
             })
         try:
             result = self.records.import_parts(
-                production_id, canonical_items, set(role_voices.values()))
+                production_id, canonical_items,
+                {identity_id for _, identity_id in mapped_roles.values()})
         except ValueError as exc:
             raise TimelineError(str(exc)) from exc
         if result is None:

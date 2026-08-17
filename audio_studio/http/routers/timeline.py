@@ -77,14 +77,14 @@ class ImportSpeechItem(BaseModel):
     type: Literal["speech"]
     role: str = Field(min_length=1, max_length=120)
     text: str = Field(min_length=1, max_length=500_000)
-    language: str = Field(min_length=1, max_length=80)
-    speech_mode: Literal["exact", "directed"]
-    instruction: str
-    rate: float = Field(ge=.5, le=2)
-    pitch: float = Field(ge=.5, le=2)
-    volume: int = Field(ge=0, le=100)
-    seed: int = Field(ge=0, le=2_147_483_647)
-    format: str = Field(min_length=1, max_length=24)
+    language: str = Field(default="Auto", min_length=1, max_length=80)
+    speech_mode: Literal["exact", "directed"] = "exact"
+    instruction: str = ""
+    rate: float = Field(default=1, ge=.5, le=2)
+    pitch: float = Field(default=1, ge=.5, le=2)
+    volume: int = Field(default=50, ge=0, le=100)
+    seed: int = Field(default=0, ge=0, le=2_147_483_647)
+    format: Literal["mp3", "mp3-24k", "wav", "opus"] = "mp3"
 
 
 class ImportSilenceItem(BaseModel):
