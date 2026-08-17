@@ -77,4 +77,15 @@ describe("PartCaptionPanel durable review state", () => {
     expect(screen.getByText("English is saved with the current captions.")).toBeTruthy()
     expect(screen.queryByText("Arabic is saved with the current captions.")).toBeNull()
   })
+
+  it("explains provider timing without pretending a second transcription ran", () => {
+    render(<PartCaptionPanel
+      captions={[{ id: 8, name: "part", language: "English", duration_ms: 900, is_translation: false, stale: false }]}
+      transcript={{ id: 8, public_id: "caption-8", file: "part.mp3", url: "/audio/part.mp3", text: "Provider timed speech", srt: "", vtt: "", sentences: [], duration_ms: 900, language: "English", created_at: null, cost: 0, cost_basis: "included_with_speech", timing_source: "provider_word_timestamps", model: "cosyvoice-v3-plus", provider_region: "intl", price_version: null, catalog_rate: 0, source_job_id: null }}
+      languages={["English"]} loading={false} busy={null} confirmation={null} job={null}
+      onSelect={vi.fn()} onCreate={vi.fn()} onTranslate={vi.fn()} onConfirm={vi.fn()} onCancel={vi.fn()} onRetryJob={vi.fn()} onDismissJob={vi.fn()}
+    />)
+    expect(screen.getByText(/Word timing captured during CosyVoice generation/)).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Re-transcribe" })).toBeTruthy()
+  })
 })

@@ -65,9 +65,10 @@ class FakeRepository:
 
 
 class FakeProvider:
-    def __init__(self, *, configured=True, failures=None):
+    def __init__(self, *, configured=True, failures=None, diagnostics=None):
         self.configured = configured
         self.failures = failures or []
+        self.diagnostics = diagnostics or []
         self.prepared = []
         self.calls = []
 
@@ -103,6 +104,7 @@ class FakeProvider:
             failures=self.failures, provider_region="intl",
             provider_endpoint="wss://provider.test",
             price_version="fixture-price",
+            diagnostics=self.diagnostics,
         )
 
 
@@ -319,6 +321,33 @@ class SpeechGenerationTests(unittest.TestCase):
 
         self.assertEqual(result["clip_id"], 901)
         self.assertEqual(workspace.discarded, ["previous.mp3"])
+
+    def test_cosyvoice_word_timing_becomes_one_standard_transcript_payload(self):
+        repository = FakeRepository(part=existing("draft"))
+        provider = FakeProvider(diagnostics=[{
+            "session": 1,
+            "status": "accepted",
+            "audio_duration_ms": 4000,
+            "word_timestamps": [
+                {"sentence_index": 0, "text": "Quiet", "begin_time": 100,
+                 "end_time": 700},
+                {"sentence_index": 0, "text": "now.", "begin_time": 760,
+                 "end_time": 1300},
+            ],
+        }])
+        service, _, _, _ = self.service(
+            repository=repository, provider=provider)
+
+        service.run(payload(
+            operation="record", production_id=12, part_id=45,
+            engine="cosyvoice", text="Quiet now.", _job_id=77))
+
+        transcript = repository.replaced[0][3]["_provider_transcript"]
+        self.assertEqual(transcript["timing_source"], "provider_word_timestamps")
+        self.assertEqual(transcript["cost_basis"], "included_with_speech")
+        self.assertEqual(transcript["source_job_id"], 77)
+        self.assertEqual(transcript["sentences"][0]["text"], "Quiet now.")
+        self.assertIn("00:00:00,100", transcript["srt"])
 
     def test_record_uses_the_enqueue_revision_and_script_snapshot(self):
         repository = FakeRepository(part={

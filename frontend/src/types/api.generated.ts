@@ -3770,6 +3770,8 @@ export interface components {
             srt: string;
             /** Text */
             text: string;
+            /** Timing Source */
+            timing_source?: string | null;
             /** Url */
             url: string | null;
             /** Vtt */
@@ -3797,6 +3799,8 @@ export interface components {
             public_id: string;
             /** Source Job Id */
             source_job_id: string | null;
+            /** Timing Source */
+            timing_source?: string | null;
             /** When */
             when: string;
         };

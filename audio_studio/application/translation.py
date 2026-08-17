@@ -299,6 +299,7 @@ class SubtitleTranslationService:
             "catalog_rate": None,
             "catalog_cost": cost,
             "cost_basis": cost_basis,
+            "timing_source": "translated_source_cues",
         })
         return {
             "id": new_id,

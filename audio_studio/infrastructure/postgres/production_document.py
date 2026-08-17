@@ -238,9 +238,10 @@ class ProductionDocumentRepository:
                              FILTER (WHERE transcript.translated_from IS NOT NULL) AS languages,
                            max(transcript.language)
                              FILTER (WHERE transcript.translated_from IS NULL) AS source_language
-                      FROM transcripts transcript
+                     FROM transcripts transcript
                      WHERE transcript.part_id = part.id
-                       AND (transcript.clip_id IS NULL OR transcript.clip_id = clip.id)
+                       AND ((clip.id IS NOT NULL AND transcript.clip_id = clip.id)
+                         OR (clip.id IS NULL AND transcript.clip_id IS NULL))
                   ) captions ON true
                   LEFT JOIN LATERAL (
                     SELECT job.public_id, job.status, job.done, job.total,

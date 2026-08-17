@@ -142,6 +142,7 @@ class TranscriptionService:
             "catalog_rate": cost.catalog_rate,
             "catalog_cost": cost.catalog_cost,
             "cost_basis": cost.cost_basis,
+            "timing_source": "transcription",
         })
         if source.part_id:
             self.repository.finish_part(

@@ -11,6 +11,7 @@ from audio_studio.infrastructure.postgres.provider_catalogue import (
     ProviderCatalogueRepository,
 )
 from audio_studio.infrastructure.postgres.spend import today_provider_spend
+from audio_studio.infrastructure.postgres.transcripts import insert_transcript
 
 
 class SpeechRepository:
@@ -171,6 +172,14 @@ class SpeechRepository:
                 cursor, part_id, int(expected_revision), values,
                 canonical_script=str(current[2] or ""),
                 source_script_hash=values.get("_source_script_hash"))
+            transcript_id = None
+            provider_transcript = values.get("_provider_transcript")
+            if isinstance(provider_transcript, dict):
+                transcript_id = insert_transcript(cursor, {
+                    **provider_transcript,
+                    "part_id": part_id,
+                    "clip_id": clip_id,
+                })
             cursor.execute("""
                 UPDATE production_parts
                    SET kind = 'speech', editorial_status = 'ready',
@@ -181,6 +190,7 @@ class SpeechRepository:
                            (part_id,))
             return {"subtitles_stale": subtitles_stale, "attached": 1,
                     "clip_id": clip_id,
+                    "transcript_id": transcript_id,
                     "replaced_filename": replaced_filename}
 
     @staticmethod

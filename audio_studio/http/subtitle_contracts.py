@@ -19,6 +19,7 @@ class SubtitleSummaryResponse(BaseModel):
     provider_region: str | None
     cost: float
     cost_basis: str | None
+    timing_source: str | None = None
     source_job_id: str | None
 
 
@@ -53,6 +54,7 @@ class SubtitleResponse(BaseModel):
     created_at: str | None
     cost: float
     cost_basis: str
+    timing_source: str | None = None
     model: str | None
     provider_region: str | None
     price_version: str | None

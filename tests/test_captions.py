@@ -80,6 +80,39 @@ class CaptionLayoutTests(unittest.TestCase):
         self.assertGreaterEqual(result["cues"][0]["end"] - result["cues"][0]["start"], 80)
         self.assertEqual(result["cues"][0]["end"], result["cues"][1]["start"])
 
+    def test_provider_sessions_use_actual_audio_duration_as_the_next_offset(self):
+        result = captions.provider_word_transcript([
+            {
+                "session": 1, "status": "accepted", "audio_duration_ms": 1400,
+                "word_timestamps": [
+                    {"sentence_index": 0, "text": "First", "begin_time": 100, "end_time": 500},
+                    {"sentence_index": 0, "text": "line.", "begin_time": 520, "end_time": 1000},
+                ],
+            },
+            {
+                "session": 2, "status": "accepted", "audio_duration_ms": 900,
+                "word_timestamps": [
+                    {"sentence_index": 0, "text": "Second", "begin_time": 50, "end_time": 500},
+                    {"sentence_index": 0, "text": "line.", "begin_time": 520, "end_time": 850},
+                ],
+            },
+        ])
+        self.assertIsNotNone(result)
+        self.assertEqual(result["sentences"][1]["start"], 1450)
+        self.assertEqual(result["sentences"][1]["words"][0]["start"], 1450)
+        self.assertEqual(result["audio_duration_ms"], 2300)
+
+    def test_incomplete_provider_timing_never_becomes_caption_truth(self):
+        for diagnostics in (
+            [{"session": 1, "status": "accepted", "audio_duration_ms": 900,
+              "word_timestamps": []}],
+            [{"session": 1, "status": "accepted", "audio_duration_ms": 900,
+              "word_timestamps": [{"text": "Late", "begin_time": 100, "end_time": 1300}]}],
+            [{"session": 1, "status": "failed", "audio_duration_ms": 900,
+              "word_timestamps": [{"text": "No", "begin_time": 0, "end_time": 200}]}],
+        ):
+            self.assertIsNone(captions.provider_word_transcript(diagnostics))
+
 
 if __name__ == "__main__":
     unittest.main()

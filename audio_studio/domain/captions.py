@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 import json
+import math
 import re
 from typing import Iterable
 
@@ -69,6 +70,83 @@ def _join(tokens: Iterable[dict]) -> str:
         else:
             parts.append(" " + value)
     return "".join(parts).strip()
+
+
+def provider_word_transcript(diagnostics: list[dict]) -> dict | None:
+    """Project complete provider timing into canonical transcript rows.
+
+    Each provider session owns a separate audio clock. Session durations come
+    from the PCM actually returned, so later sessions can be offset without
+    guessing from the final word. Invalid or incomplete timing is ignored so
+    the normal transcription workflow remains the honest fallback.
+    """
+    if not diagnostics:
+        return None
+    accepted = sorted(
+        (item for item in diagnostics if item.get("status") == "accepted"),
+        key=lambda item: int(item.get("session") or 0),
+    )
+    if len(accepted) != len(diagnostics):
+        return None
+    if [int(item.get("session") or 0) for item in accepted] != list(
+            range(1, len(accepted) + 1)):
+        return None
+
+    offset = 0
+    sentences: list[dict] = []
+    for session in accepted:
+        duration_value = session.get("audio_duration_ms")
+        if not isinstance(duration_value, (int, float)) \
+                or not math.isfinite(float(duration_value)):
+            return None
+        duration = round(float(duration_value))
+        rows = session.get("word_timestamps")
+        if duration <= 0 or not isinstance(rows, list) or not rows:
+            return None
+
+        grouped: dict[int, list[dict]] = {}
+        previous_begin = -1
+        for row in rows:
+            if not isinstance(row, dict):
+                return None
+            text = str(row.get("text") or "").strip()
+            begin_value, end_value = row.get("begin_time"), row.get("end_time")
+            if not text or not isinstance(begin_value, (int, float)) \
+                    or not isinstance(end_value, (int, float)) \
+                    or not math.isfinite(float(begin_value)) \
+                    or not math.isfinite(float(end_value)):
+                return None
+            begin, end = round(float(begin_value)), round(float(end_value))
+            if begin < 0 or end <= begin or begin < previous_begin:
+                return None
+            if end > duration + 250:
+                return None
+            previous_begin = begin
+            sentence_index = row.get("sentence_index", 0)
+            if not isinstance(sentence_index, int) or sentence_index < 0:
+                return None
+            grouped.setdefault(sentence_index, []).append({
+                "start": offset + begin,
+                "end": offset + end,
+                "text": text,
+            })
+
+        for words in sorted(grouped.values(), key=lambda value: value[0]["start"]):
+            sentences.append({
+                "start": words[0]["start"],
+                "end": words[-1]["end"],
+                "text": _join(words),
+                "words": words,
+            })
+        offset += duration
+
+    if not sentences:
+        return None
+    return {
+        "text": " ".join(item["text"] for item in sentences),
+        "sentences": sentences,
+        "audio_duration_ms": offset,
+    }
 
 
 def _wrap(text: str, width: int, max_lines: int) -> str:

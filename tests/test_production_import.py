@@ -256,6 +256,18 @@ class ProductionImportTests(unittest.TestCase):
                 "duration_ms": 1200, "format": "mp3",
                 "language": "English", "voice": "fixture-voice",
                 "model": "fixture-model", "tier": "fixture",
+                "_provider_transcript": {
+                    "name": filename, "source_url": f"/audio/{filename}",
+                    "audio_url": f"/audio/{filename}", "language": "English",
+                    "duration_ms": 1200, "text": text, "srt": "fixture srt",
+                    "vtt": "fixture vtt", "model": "fixture-model",
+                    "provider_region": "intl", "catalog_rate": 0,
+                    "catalog_cost": 0, "cost_basis": "included_with_speech",
+                    "timing_source": "provider_word_timestamps",
+                    "sentences": [{"start": 0, "end": 1200, "text": text,
+                                   "words": [{"start": 0, "end": 1200,
+                                              "text": text}]}],
+                },
             }
 
         first = speech.attach_clip(
@@ -267,9 +279,16 @@ class ProductionImportTests(unittest.TestCase):
 
         self.assertEqual(first["replaced_filename"], "")
         self.assertEqual(second["replaced_filename"], "first.mp3")
+        self.assertIsNotNone(first["transcript_id"])
+        self.assertIsNotNone(second["transcript_id"])
         with psycopg.connect(settings.database_url) as database:
             rows = database.execute(
                 "SELECT id,filename,snapshot FROM clips WHERE part_id=%s",
+                (part["id"],),
+            ).fetchall()
+            transcript_rows = database.execute(
+                "SELECT id,clip_id,stale,timing_source FROM transcripts "
+                "WHERE part_id=%s ORDER BY created_at",
                 (part["id"],),
             ).fetchall()
         self.assertEqual([(row[0], row[1]) for row in rows],
@@ -279,6 +298,11 @@ class ProductionImportTests(unittest.TestCase):
         self.assertEqual(rows[0][2]["text_shaped"], part["text"])
         self.assertEqual(rows[0][2]["text_tagged"],
                          f"[serious] {part['text']}")
+        self.assertEqual(
+            [(row[1], row[2], row[3]) for row in transcript_rows],
+            [(None, True, "provider_word_timestamps"),
+             (second["clip_id"], False, "provider_word_timestamps")],
+        )
         recorded = self.repository.parts(self.production["id"])[0]
         self.assertEqual(recorded["authored_role"],
                          self.document["items"][0]["role"])
@@ -287,6 +311,9 @@ class ProductionImportTests(unittest.TestCase):
         self.assertEqual(recorded["text_shaped"], part["text"])
         self.assertEqual(recorded["text_tagged"],
                          f"[serious] {part['text']}")
+        self.assertTrue(recorded["subtitled"])
+        self.assertFalse(recorded["subtitles_stale"])
+        self.assertEqual(recorded["caption_source_language"], "English")
 
 
 class ProductionImportHttpTests(unittest.TestCase):

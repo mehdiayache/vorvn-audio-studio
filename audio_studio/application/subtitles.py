@@ -51,6 +51,7 @@ class SubtitleCatalogueService:
             "created_at": item.get("created_at"),
             "cost": float(item.get("catalog_cost") or 0),
             "cost_basis": item.get("cost_basis") or "unknown",
+            "timing_source": item.get("timing_source"),
             "model": item.get("model"),
             "provider_region": item.get("provider_region"),
             "price_version": item.get("price_version"),

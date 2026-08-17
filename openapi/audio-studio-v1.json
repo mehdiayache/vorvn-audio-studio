@@ -6894,6 +6894,17 @@
             "title": "Text",
             "type": "string"
           },
+          "timing_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timing Source"
+          },
           "url": {
             "anyOf": [
               {
@@ -7002,6 +7013,17 @@
               }
             ],
             "title": "Source Job Id"
+          },
+          "timing_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timing Source"
           },
           "when": {
             "title": "When",

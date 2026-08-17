@@ -6,6 +6,7 @@ import hashlib
 from typing import Any, Callable, Protocol
 from urllib.parse import quote
 
+from audio_studio.domain import captions
 from audio_studio.domain.jobs import Job, JobFailed
 from audio_studio.domain.speech import (
     PreparedSpeech,
@@ -84,7 +85,7 @@ def _truncation_warning(prepared: PreparedSpeech,
 
 def _record(prepared: PreparedSpeech, result: SynthesizedSpeech,
             saved: StoredAudio, values: dict) -> dict[str, Any]:
-    return {
+    row = {
         "text": prepared.original_text,
         "text_raw": values.get("text_raw"),
         "text_shaped": values.get("text_shaped"),
@@ -125,6 +126,30 @@ def _record(prepared: PreparedSpeech, result: SynthesizedSpeech,
                         "request_ids": result.request_ids,
                         "failures": result.failures},
     }
+    timed = (captions.provider_word_transcript(result.diagnostics)
+             if prepared.engine == "cosyvoice" else None)
+    if timed:
+        cues = captions.build_cues(timed["sentences"], "standard")
+        row["_provider_transcript"] = {
+            "name": saved.filename,
+            "source_url": row["file_url"],
+            "audio_url": row["file_url"],
+            "language": prepared.language,
+            "duration_ms": saved.duration_ms,
+            "text": timed["text"],
+            "srt": captions.render_srt(cues),
+            "vtt": captions.render_vtt(cues),
+            "translated_from": None,
+            "model": prepared.model_id,
+            "provider_region": prepared.provider_region or result.provider_region,
+            "price_version": result.price_version,
+            "catalog_rate": 0,
+            "catalog_cost": 0,
+            "cost_basis": "included_with_speech",
+            "timing_source": "provider_word_timestamps",
+            "sentences": timed["sentences"],
+        }
+    return row
 
 
 class SpeechGenerationService:
@@ -329,6 +354,8 @@ class SpeechGenerationService:
         row = _record(prepared, made, saved, effective)
         row["provider_attempt_id"] = int(attempt_id) if attempt_id else None
         row["_source_script_hash"] = values.get("_source_script_hash")
+        if row.get("_provider_transcript"):
+            row["_provider_transcript"]["source_job_id"] = job_id or None
         mutation: dict[str, int] = {}
         try:
             if operation == "create":

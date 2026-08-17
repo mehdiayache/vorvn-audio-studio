@@ -132,6 +132,22 @@ class CosyVoiceTests(unittest.TestCase):
         self.assertEqual(len(failures), 1)
         self.assertEqual(render.call_count, 1)
 
+    def test_session_diagnostics_include_measured_pcm_duration(self):
+        planned = cosyvoice.CosyVoicePlan((("hello",), ("again",)))
+        first = b"\0\0" * 48_000
+        second = b"\0\0" * 24_000
+        with patch.object(cosyvoice, "_render_session", side_effect=[
+            (first, "request-one", [{"text": "hello", "begin_time": 0,
+                                      "end_time": 800, "sentence_index": 0}]),
+            (second, "request-two", [{"text": "again", "begin_time": 0,
+                                       "end_time": 400, "sentence_index": 0}]),
+        ]), patch.object(cosyvoice.audio_codec, "encode_pcm", return_value=b"audio"):
+            _, failures, _, _, _, diagnostics = cosyvoice.synthesize(
+                planned, options())
+        self.assertEqual(failures, [])
+        self.assertEqual(
+            [item["audio_duration_ms"] for item in diagnostics], [1000, 500])
+
     def test_seed_is_bounded_to_the_provider_contract(self):
         with self.assertRaisesRegex(ValueError, "65,535"):
             cosyvoice._synthesizer(

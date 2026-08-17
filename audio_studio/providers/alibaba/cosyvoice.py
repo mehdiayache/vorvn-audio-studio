@@ -204,7 +204,10 @@ def synthesize(plan: CosyVoicePlan, options, on_progress=None):
             "session": index, "request_id": request_id,
             "characters": sum(len(item) for item in session),
             "submissions": len(session), "attempts": 1,
-            "status": "accepted", "word_timestamps": word_timestamps,
+            "status": "accepted",
+            "audio_duration_ms": round(
+                len(audio) * 1000 / (PCM_SAMPLE_RATE * 2)),
+            "word_timestamps": word_timestamps,
         })
     encoded = audio_codec.encode_pcm(
         bytes(pcm), sample_rate=PCM_SAMPLE_RATE,

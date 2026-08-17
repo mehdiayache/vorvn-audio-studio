@@ -12,23 +12,28 @@ TRANSCRIPT_FIELDS = (
     "name", "source_url", "audio_url", "language", "duration_ms", "text",
     "srt", "vtt", "part_id", "clip_id", "translated_from", "source_job_id",
     "model", "provider_region", "price_version", "catalog_rate",
-    "catalog_cost", "cost_basis", "sentences",
+    "catalog_cost", "cost_basis", "timing_source", "sentences",
 )
+
+
+def insert_transcript(cursor, values: dict) -> int:
+    """Insert through one field contract, including inside a caller transaction."""
+    payload = [json.dumps(values.get(field, [])) if field == "sentences"
+               else values.get(field) for field in TRANSCRIPT_FIELDS]
+    cursor.execute(
+        f"INSERT INTO transcripts ({', '.join(TRANSCRIPT_FIELDS)}) "
+        f"VALUES ({', '.join(['%s'] * len(TRANSCRIPT_FIELDS))}) RETURNING id",
+        payload,
+    )
+    return int(cursor.fetchone()[0])
 
 
 class TranscriptRepository:
     """One owner for transcript reads, writes and generation caption state."""
 
     def save(self, values: dict) -> int:
-        payload = [json.dumps(values.get(field, [])) if field == "sentences"
-                   else values.get(field) for field in TRANSCRIPT_FIELDS]
         with transaction() as cursor:
-            cursor.execute(
-                f"INSERT INTO transcripts ({', '.join(TRANSCRIPT_FIELDS)}) "
-                f"VALUES ({', '.join(['%s'] * len(TRANSCRIPT_FIELDS))}) RETURNING id",
-                payload,
-            )
-            return int(cursor.fetchone()[0])
+            return insert_transcript(cursor, values)
 
     def get(self, transcript_id: int) -> dict | None:
         with read_only() as cursor:
@@ -62,7 +67,7 @@ class TranscriptRepository:
                        jsonb_array_length(transcript.sentences),
                        transcript.model, transcript.provider_region,
                        transcript.catalog_cost, transcript.cost_basis,
-                       job.public_id
+                       job.public_id, transcript.timing_source
                   FROM transcripts transcript
                   LEFT JOIN jobs job ON job.id = transcript.source_job_id
                  ORDER BY transcript.created_at DESC LIMIT %s
@@ -75,6 +80,7 @@ class TranscriptRepository:
             "provider_region": row[7], "cost": float(row[8] or 0),
             "cost_basis": row[9],
             "source_job_id": str(row[10]) if row[10] else None,
+            "timing_source": row[11],
         } for row in rows]
 
     def delete(self, transcript_id: int) -> bool:
@@ -87,7 +93,8 @@ class TranscriptRepository:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT id, name, language, duration_ms, translated_from, stale
-                  FROM transcripts WHERE part_id = %s ORDER BY created_at
+                  FROM transcripts WHERE part_id = %s
+                 ORDER BY stale, created_at DESC
             """, (part_id,))
             rows = cursor.fetchall()
         return [{"id": ident, "name": name, "language": language,

@@ -51,6 +51,7 @@ def transcript():
         "created_at": "2026-08-09T00:00:00+00:00",
         "catalog_cost": "0.000035", "catalog_rate": "0.000035",
         "cost_basis": "catalog_duration", "model": "qwen-asr",
+        "timing_source": "transcription",
         "provider_region": "intl", "price_version": "2026-08-07",
         "source_job_public_id": "job-public-id",
     }
@@ -66,6 +67,7 @@ class SubtitleCatalogueTests(unittest.TestCase):
         self.assertEqual(detail["public_id"], "subtitle-public-id")
         self.assertEqual(detail["source_job_id"], "job-public-id")
         self.assertEqual(detail["cost"], 0.000035)
+        self.assertEqual(detail["timing_source"], "transcription")
         self.assertEqual(detail["url"], "/audio/speech.mp3")
         self.assertEqual(media.calls, [("audio", "speech.mp3", None)])
 
