@@ -11,7 +11,8 @@ describe("TimingOverview", () => {
   it("stays a read-only view and does not mount a redundant Player presentation", () => {
     const parts = [{ id: 1, kind: "silence", title: "2.5", duration_ms: 2500 }] as ProductionPart[]
     render(<TimingOverview parts={parts} music={{}} productionCurrentTime={0} productionLoaded={false} onLocate={vi.fn()} onSeekProduction={vi.fn()} />)
-    expect(screen.getByRole("heading", { name: "1 Part · 0:03" })).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "0:03 · 0 voice · 0 SFX" })).toBeTruthy()
+    expect(screen.getByText(/1 deliberate pause · No music/)).toBeTruthy()
     expect(screen.getByText("Timeline blocks")).toBeTruthy()
     expect(screen.queryByRole("button", { name: /production/i })).toBeNull()
   })

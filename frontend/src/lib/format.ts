@@ -60,6 +60,8 @@ export function textDirection(text?: string): "rtl" | "ltr" {
 }
 
 export function partDurationMs(part: { kind: string; duration_ms?: number | null; title?: string | null }) {
+  const recordedDuration = Number(part.duration_ms || 0)
+  if (recordedDuration > 0) return recordedDuration
   if (part.kind === "silence") return Math.max(0, Number(part.title || 0) * 1000)
-  return Math.max(0, Number(part.duration_ms || 0))
+  return 0
 }
