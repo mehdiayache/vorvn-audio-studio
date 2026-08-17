@@ -20,6 +20,8 @@ describe("MusicWorkbench", () => {
     const onChange = vi.fn().mockResolvedValue(undefined)
     const onPlay = vi.fn()
     render(<MusicWorkbench music={music} playing={false} onPlay={onPlay} onChange={onChange} onChoose={vi.fn()} onRemove={vi.fn()} />)
+    expect(screen.getByRole("region", { name: "Music source waveform" })).toBeTruthy()
+    expect(screen.getByText("Source start")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Play music audition" }))
     expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ key: "asset-source:9", kind: "music" }))
     fireEvent.click(screen.getByRole("button", { name: "Music mix level" }))

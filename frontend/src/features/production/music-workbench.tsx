@@ -1,4 +1,4 @@
-import { Headphones, Music2, Pause, Play, RefreshCcw, RotateCcw, Trash2 } from "lucide-react"
+import { Headphones, Music2, Pause, Play, RefreshCcw, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -7,6 +7,7 @@ import { SwitchLike } from "@/components/switch-like"
 import { audioUrl } from "@/lib/api"
 import { formatDuration } from "@/lib/format"
 import type { MusicBed, PlayerSource } from "@/types/domain"
+import { MusicWaveformEditor } from "./music-waveform-editor"
 
 export function MusicWorkbench({ music, playingKey, playing, onPlay, onChange, onChoose, onRemove }: {
   music: MusicBed
@@ -39,6 +40,7 @@ export function MusicWorkbench({ music, playingKey, playing, onPlay, onChange, o
 
   const key = `asset-source:${music.music_of}`
   const active = playing && playingKey === key
+  const sourceDuration = Math.max(Number(music.duration_ms || 0) / 1000, 0.1)
   return <div className="music-workbench-content">
     <section className="music-workbench-source">
       <span className="music-workbench-art"><Music2 /></span>
@@ -48,8 +50,8 @@ export function MusicWorkbench({ music, playingKey, playing, onPlay, onChange, o
 
     <section className="music-workbench-controls">
       <header><div><span className="eyebrow">Current mix</span><h3>Bed placement</h3></div><small>Changes invalidate the current Production preview.</small></header>
+      <MusicWaveformEditor url={audioUrl(music.filename)} duration={sourceDuration} value={start} disabled={Boolean(saving)} onChange={setStart} onCommit={(value) => { setStart(value); void save("source position", { start: value }, () => setStart(music.start ?? 0)) }} />
       <label><span><Headphones /> Mix level <b>{volume}%</b></span><Slider aria-label="Music mix level" disabled={Boolean(saving)} value={[volume]} max={60} step={1} onValueChange={([value = 0]) => setVolume(value)} onValueCommit={([value = volume]) => { setVolume(value); void save("mix level", { volume: value / 100 }, () => setVolume(Math.round((music.volume ?? .1) * 100))) }} /></label>
-      <label><span><RotateCcw /> Source offset <b>{formatDuration(start)}</b></span><Slider aria-label="Music source position" disabled={Boolean(saving)} value={[start]} max={Math.max(Number(music.duration_ms || 0) / 1000, 1)} step={0.1} onValueChange={([value = 0]) => setStart(value)} onValueCommit={([value = start]) => { setStart(value); void save("source position", { start: value }, () => setStart(music.start ?? 0)) }} /></label>
       <div className="music-fade-grid">
         <label><span>Fade in <b>{fadeIn.toFixed(1)}s</b></span><Slider aria-label="Music fade in" disabled={Boolean(saving)} value={[fadeIn]} max={15} step={0.1} onValueChange={([value = 0]) => setFadeIn(value)} onValueCommit={([value = fadeIn]) => { setFadeIn(value); void save("fade in", { fade_in: value }, () => setFadeIn(music.fade_in ?? 2)) }} /></label>
         <label><span>Fade out <b>{fadeOut.toFixed(1)}s</b></span><Slider aria-label="Music fade out" disabled={Boolean(saving)} value={[fadeOut]} max={15} step={0.1} onValueChange={([value = 0]) => setFadeOut(value)} onValueCommit={([value = fadeOut]) => { setFadeOut(value); void save("fade out", { fade_out: value }, () => setFadeOut(music.fade_out ?? 3)) }} /></label>

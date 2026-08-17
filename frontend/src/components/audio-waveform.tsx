@@ -12,9 +12,8 @@ async function fetchWaveform(url: string, bars: number) {
   return payload.data.peaks
 }
 
-export function AudioWaveform({ url, bars = 48 }: { url?: string; bars?: number }) {
+export function useAudioPeaks(url?: string, bars = 48) {
   const [peaks, setPeaks] = useState<number[] | null>(null)
-  const gradientId = useId().replace(/:/g, "")
 
   useEffect(() => {
     let active = true
@@ -25,6 +24,12 @@ export function AudioWaveform({ url, bars = 48 }: { url?: string; bars?: number 
     pending.then((value) => { if (active) setPeaks(value) }).catch(() => { if (active) setPeaks([]) })
     return () => { active = false }
   }, [url, bars])
+  return peaks
+}
+
+export function AudioWaveform({ url, bars = 48 }: { url?: string; bars?: number }) {
+  const peaks = useAudioPeaks(url, bars)
+  const gradientId = useId().replace(/:/g, "")
 
   if (!url || peaks?.length === 0) return <span className="waveform-unavailable" aria-hidden="true" />
   if (!peaks) return <span className="waveform-loading" aria-hidden="true" />

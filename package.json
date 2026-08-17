@@ -24,7 +24,8 @@
     "react-dom": "latest",
     "react-router-dom": "^7.18.2",
     "sonner": "^2.0.7",
-    "tailwind-merge": "latest"
+    "tailwind-merge": "latest",
+    "wavesurfer.js": "7.11.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "latest",
