@@ -1,0 +1,38 @@
+.music-workbench-content { display: grid; gap: var(--space-4); padding: var(--space-4); }
+.music-workbench-empty { display: grid; grid-template-columns: 42px minmax(0, 1fr); align-items: start; gap: var(--space-3); padding: var(--space-5); }
+.music-workbench-empty > svg { width: 38px; height: 38px; padding: 9px; border-radius: var(--radius-md); color: var(--asset); background: var(--asset-soft); }
+.music-workbench-empty > span { display: grid; gap: var(--space-1); }
+.music-workbench-empty p { color: var(--muted-foreground); line-height: 1.5; }
+.music-workbench-empty > button { grid-column: 2; justify-self: start; }
+
+.music-workbench-source { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); padding-bottom: var(--space-4); border-bottom: var(--stroke-hairline) solid var(--border); }
+.music-workbench-art { width: 44px; height: 44px; display: grid; place-items: center; border-radius: var(--radius-md); color: var(--asset); background: var(--asset-soft); }
+.music-workbench-source > div { min-width: 0; }
+.music-workbench-source h3 { overflow: hidden; margin: 2px 0; text-overflow: ellipsis; white-space: nowrap; }
+.music-workbench-source p { color: var(--muted-foreground); font-size: var(--type-caption); }
+
+.music-workbench-controls { display: grid; gap: var(--space-4); }
+.music-workbench-controls > header { display: flex; align-items: end; justify-content: space-between; gap: var(--space-3); }
+.music-workbench-controls > header small { color: var(--muted-foreground); font-size: var(--type-caption); text-align: right; }
+.music-workbench-controls label { display: grid; gap: var(--space-2); }
+.music-workbench-controls label > span { display: flex; align-items: center; gap: var(--space-2); color: var(--muted-foreground); font-size: var(--type-caption); }
+.music-workbench-controls label > span svg { width: 15px; }
+.music-workbench-controls label > span b { margin-left: auto; color: var(--foreground); font-variant-numeric: tabular-nums; }
+
+.music-waveform-editor { display: grid; gap: var(--space-2); padding: var(--space-3); border: var(--stroke-hairline) solid var(--border); border-radius: var(--radius-md); background: var(--surface-subtle); }
+.music-waveform-editor > header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+.music-waveform-editor > header span { display: grid; gap: 2px; }
+.music-waveform-editor > header small { color: var(--muted-foreground); font-size: var(--type-caption); font-weight: var(--weight-body); }
+.music-waveform-editor > header strong { color: var(--primary); font-variant-numeric: tabular-nums; }
+.music-waveform-canvas { position: relative; min-height: 96px; overflow: hidden; border-radius: var(--radius-sm); background: color-mix(in oklab, var(--surface-raised) 86%, var(--primary-soft)); }
+.music-waveform-surface { height: 96px; color: color-mix(in oklab, var(--primary) 64%, var(--muted-foreground)); }
+.music-waveform-loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted-foreground); font-size: var(--type-caption); }
+.music-waveform-offset { position: absolute !important; z-index: 2; inset: 0; }
+.music-waveform-offset [data-slot="slider-track"] { height: 100%; border-radius: 0; background: transparent; }
+.music-waveform-offset [data-slot="slider-range"] { height: 100%; border-right: 2px solid var(--primary); background: color-mix(in oklab, var(--primary) 10%, transparent); }
+.music-waveform-offset [data-slot="slider-thumb"] { width: 18px; height: 18px; border: 2px solid var(--primary); background: var(--surface-raised); box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 14%, transparent); }
+.music-waveform-ruler { display: flex; justify-content: space-between; color: var(--muted-foreground); font-size: var(--type-caption); font-variant-numeric: tabular-nums; }
+.music-fade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+.music-save-state { color: var(--muted-foreground); font-size: var(--type-caption); }
+.music-save-state.is-error { color: var(--destructive); }
+.music-workbench-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding-top: var(--space-3); border-top: var(--stroke-hairline) solid var(--border); }

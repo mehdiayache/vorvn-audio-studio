@@ -9,6 +9,8 @@ import { formatDuration } from "@/lib/format"
 import type { MusicBed, PlayerSource } from "@/types/domain"
 import { MusicWaveformEditor } from "./music-waveform-editor"
 
+import "./music-workbench.css"
+
 export function MusicWorkbench({ music, playingKey, playing, onPlay, onChange, onChoose, onRemove }: {
   music: MusicBed
   playingKey?: string

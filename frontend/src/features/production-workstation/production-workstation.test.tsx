@@ -2,7 +2,7 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
-import type { MusicBed, ProductionPart } from "@/types/domain"
+import type { MusicBed, ProductionPart, VoiceDirectory } from "@/types/domain"
 import { WorkstationOutline } from "./workstation-sequence"
 import { WorkstationSoundDesign } from "./workstation-sound-design"
 
@@ -12,6 +12,8 @@ class ResizeObserverMock {
   disconnect() {}
 }
 globalThis.ResizeObserver = ResizeObserverMock
+
+const directory = { config: null, cloned: [], meta: {}, catalog: [] } as VoiceDirectory
 
 function part(values: Partial<ProductionPart>): ProductionPart {
   return {
@@ -32,7 +34,7 @@ describe("Production Workstation", () => {
     const ready = part({ id: 1, authored_role: "Narrator" })
     const draft = part({ id: 2, position: 1, authored_role: "Esther", kind: "draft", clip_id: null, duration_ms: 0 })
     const select = vi.fn()
-    render(<WorkstationOutline parts={[ready, draft]} selectedId={ready.id} onSelect={select} />)
+    render(<WorkstationOutline parts={[ready, draft]} selectedId={ready.id} directory={directory} onSelect={select} />)
 
     expect(screen.getByRole("button", { name: /01.*Narrator/ }).getAttribute("aria-pressed")).toBe("true")
     fireEvent.click(screen.getByRole("button", { name: "Drafts" }))
@@ -53,5 +55,13 @@ describe("Production Workstation", () => {
     expect(screen.getByRole("generic", { name: "Voice track" }).textContent).toContain("Narrator")
     expect(screen.getByRole("generic", { name: "Sound effects track" }).textContent).toContain("Door closes")
     expect(screen.getByRole("generic", { name: "Music track" }).textContent).toContain("Quiet room")
+  })
+
+  it("sizes the timeline from Production time instead of the raw music source", () => {
+    const story = part({ duration_ms: 120_000 })
+    const music: MusicBed = { filename: "long-source.mp3", name: "Long source", volume: .12, duck: true, duration_ms: 1_500_000 }
+    const { container } = render(<WorkstationSoundDesign parts={[story]} music={music} selection={null} onSelection={vi.fn()} onAddSound={vi.fn()} />)
+
+    expect((container.querySelector(".ws-timeline") as HTMLElement).style.width).toBe("1200px")
   })
 })

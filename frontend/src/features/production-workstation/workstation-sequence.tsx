@@ -1,10 +1,11 @@
-import { useMemo, useState, type CSSProperties } from "react"
+import { useState } from "react"
 import {
   Captions, Check, CircleAlert, CircleDot, Clock3, Edit3, GripVertical,
   Mic2, MoreHorizontal, Pause, Play, Search, Sparkles, Volume2, VolumeX,
 } from "lucide-react"
 
 import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
+import { AudioWaveform } from "@/components/audio-waveform"
 import { VoiceIdentity } from "@/components/voice-identity"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -38,14 +39,10 @@ function captionJob(part: ProductionPart, liveJobs: Record<string, DurableJob<un
   return liveJobs[part.caption_job.id] || part.caption_job
 }
 
-function WaveformMotif({ seed, active }: { seed: number; active: boolean }) {
-  const bars = useMemo(() => Array.from({ length: 42 }, (_, index) => 20 + ((seed * 17 + index * 29) % 74)), [seed])
-  return <span className={cn("ws-waveform", active && "is-active")} aria-hidden="true">{bars.map((height, index) => <i key={index} style={{ "--bar": `${height}%` } as CSSProperties} />)}</span>
-}
-
-export function WorkstationOutline({ parts, selectedId, onSelect }: {
+export function WorkstationOutline({ parts, selectedId, directory, onSelect }: {
   parts: ProductionPart[]
   selectedId: number | null
+  directory: VoiceDirectory
   onSelect: (part: ProductionPart) => void
 }) {
   const [query, setQuery] = useState("")
@@ -71,7 +68,8 @@ export function WorkstationOutline({ parts, selectedId, onSelect }: {
         const role = part.kind === "silence" ? "Pause" : part.kind === "asset" ? "Linked audio" : formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"
         return <button key={part.id} className={cn("ws-outline-item", selectedId === part.id && "is-selected", part.enabled === false && "is-disabled")} aria-pressed={selectedId === part.id} onClick={() => onSelect(part)}>
           <span className="ws-outline-number">{formatPartNumber(part.position ?? index)}</span>
-          <span><b>{role}</b><small>{part.kind === "silence" ? `${partDurationMs(part) / 1000}s silence` : draft ? "Draft · not recorded" : `${Math.round(partDurationMs(part) / 100) / 10}s`}</small></span>
+          <span className="ws-outline-avatar">{part.kind === "silence" ? <Clock3 /> : <VoiceIdentity voice={part.catalogue_voice_id || part.voice || part.voice_name} identityId={part.voice_identity_id} directory={directory} compact showCopy={false} />}</span>
+          <span className="ws-outline-copy"><b>{role}</b><small>{part.kind === "silence" ? `${partDurationMs(part) / 1000}s silence` : draft ? "Draft · not recorded" : `${Math.round(partDurationMs(part) / 100) / 10}s`}</small></span>
           <i className={cn(draft && "is-draft", issue && "is-issue", !draft && !issue && "is-ready")} aria-label={issue ? "Needs attention" : draft ? "Draft" : "Ready"} />
         </button>
       })}
@@ -124,7 +122,7 @@ export function WorkstationSequenceCard({ part, index, selected, playing, liveJo
       {facts.operation.kind !== "idle" && <div className={cn("ws-operation", `is-${facts.operation.kind}`)}><Sparkles className={facts.operation.kind === "active" ? "spin" : ""} /><b>{facts.operation.label}</b><span>{facts.operation.detail}</span>{facts.operation.progress !== null && <i style={{ width: `${facts.operation.progress}%` }} />}</div>}
       <footer className="ws-part-footer">
         {facts.playable ? <Button variant="ghost" size="icon" className="ws-play" aria-label={playing ? "Pause part" : "Play part"} onClick={(event) => { event.stopPropagation(); actions.play(source) }}>{playing ? <Pause /> : <Play />}</Button> : <span className="ws-record-state"><Mic2 /> Not recorded</span>}
-        {facts.playable && <WaveformMotif seed={part.id} active={playing} />}
+        {facts.playable && <span className={cn("ws-waveform", playing && "is-active")}><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={56} /></span>}
         <span className="ws-duration">{facts.durationLabel}</span>
         <button className={cn("ws-caption-state", `is-${facts.captionTone}`)} onClick={(event) => { event.stopPropagation(); actions.captions(part) }}><Captions /> {facts.captionSummary}</button>
         {facts.inputLabel && <span className="ws-input-state"><Check /> {facts.inputLabel}</span>}

@@ -9,7 +9,6 @@ import { Link, useNavigate } from "react-router-dom"
 import { DeleteProductionDialog } from "@/components/delete-production-dialog"
 import { PartCaptionsDialog } from "@/features/production/part-captions-dialog"
 import { ProductionComposerStage } from "@/features/composer/production-composer-host"
-import { PartInspectorContent } from "@/features/production/inspector/part-inspector"
 import { MixExportWorkspace } from "@/features/production/mix-export-workspace"
 import { MusicWorkbench } from "@/features/production/music-workbench"
 import { productionHealth, type ProductionHealthIssue } from "@/features/production/production-health-sheet"
@@ -30,6 +29,7 @@ import type {
   PlayerSource, Production, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory,
 } from "@/types/domain"
 import { WorkstationOutline, WorkstationSequence, type WorkstationPartActions } from "./workstation-sequence"
+import { WorkstationPartInspector } from "./workstation-part-inspector"
 import { SoundDesignOutline, WorkstationSoundDesign, type SoundSelection } from "./workstation-sound-design"
 
 import "./production-workstation.css"
@@ -44,7 +44,13 @@ function initialSelection(production: Production) {
     const found = key && production.parts.find((part) => part.public_id === key || String(part.id) === key)
     if (found) return found.id
   }
-  return production.parts.find((part) => part.kind !== "stitch")?.id || null
+  return null
+}
+
+function partKindLabel(part: ProductionPart) {
+  if (part.kind === "draft") return "Speech draft"
+  if (part.kind === "asset") return "Linked audio"
+  return part.kind.charAt(0).toUpperCase() + part.kind.slice(1).replaceAll("_", " ")
 }
 
 function WorkstationHeader({ production, duration, stage, issueCount, previewing, playing, onStage, onPreview, onAdd, onDelete }: {
@@ -68,9 +74,8 @@ function WorkstationHeader({ production, duration, stage, issueCount, previewing
         <dl><div><dt>Parts</dt><dd>{production.parts.filter((part) => part.kind !== "stitch").length}</dd></div><div><dt>Duration</dt><dd>{formatDuration(duration)}</dd></div><div><dt>Spend</dt><dd>{formatMoney(production.current_sequence_cost)}</dd></div></dl>
       </div>
       <div className="ws-header-actions">
-        {issueCount > 0 && <Button variant="outline" size="sm" onClick={() => onStage("mix")}><CircleAlert className="ws-warning-icon" /> {issueCount}</Button>}
+        {issueCount > 0 && <Button variant="outline" size="sm" onClick={() => onStage("mix")}><CircleAlert className="ws-warning-icon" /> {issueCount} issue{issueCount === 1 ? "" : "s"}</Button>}
         <Button variant="outline" size="sm" disabled={previewing} onClick={onPreview}>{previewing ? <LoaderCircle className="spin" /> : playing ? <Pause /> : <Play />}{previewing ? "Preparing…" : playing ? "Pause" : "Preview"}</Button>
-        <Button variant="outline" size="sm" onClick={() => onStage("mix")}><SlidersHorizontal /> Mix & Export</Button>
         <DropdownMenu><DropdownMenuTrigger asChild><Button size="sm"><Plus /> Add <ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => onAdd("speech")}><AudioLines /> Speech</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("silence")}><Pause /> Silence</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("asset")}><Sparkles /> SFX or linked audio</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("music")}><Music2 /> Music</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => onAdd("import")}><FileJson2 /> Import JSON</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
         <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="More Production actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem asChild><Link to={`/audio-studio/productions/${production.public_id}`}>Open current Production view</Link></DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={onDelete}><Trash2 /> Delete Production permanently</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
       </div>
@@ -130,6 +135,7 @@ export function ProductionWorkstationPage({ production, tree: _tree, music, asse
   const [soundSelection, setSoundSelection] = useState<SoundSelection>(null)
   const [composerOpen, setComposerOpen] = useState(false)
   const [composerPartId, setComposerPartId] = useState<number | null>(null)
+  const [releaseInspectorOpen, setReleaseInspectorOpen] = useState(false)
   const [tool, setTool] = useState<ToolKind>(null)
   const [insertBeforePartId, setInsertBeforePartId] = useState<string | null>(null)
   const [captionPartId, setCaptionPartId] = useState<number | null>(null)
@@ -175,6 +181,14 @@ export function ProductionWorkstationPage({ production, tree: _tree, music, asse
     centerPaneRef.current?.scrollTo({ top: 0, left: 0 })
   }, [stage])
 
+  useEffect(() => {
+    if (stage !== "sequence" || !selectedId) return
+    const frame = requestAnimationFrame(() => {
+      document.getElementById(`ws-part-${selectedId}`)?.scrollIntoView({ block: "nearest" })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [selectedId, stage])
+
   const selectPart = useCallback((part: ProductionPart) => {
     setSelectedId(part.id)
     setComposerOpen(false)
@@ -195,6 +209,11 @@ export function ProductionWorkstationPage({ production, tree: _tree, music, asse
     setTool(null)
   }, [selectedId])
   const closeComposer = useCallback(() => { setComposerOpen(false); setComposerPartId(null); setInsertBeforePartId(null) }, [])
+  const changeStage = useCallback((next: WorkstationStage) => {
+    setStage(next)
+    closeComposer()
+    setReleaseInspectorOpen(next === "mix")
+  }, [closeComposer])
   const queueRender = useCallback((payload: GeneratePayload) => {
     const request = composerPart ? actions.recordPendingPart(composerPart, payload) : actions.generatePart(payload)
     return request.then((job) => { closeComposer(); void refresh().catch(() => undefined); return job })
@@ -225,7 +244,7 @@ export function ProductionWorkstationPage({ production, tree: _tree, music, asse
 
   const soundPart = soundSelection?.kind === "part" ? sourceParts.find((part) => part.id === soundSelection.id) || null : null
   const inspectorTitle = composerOpen ? (composerPart ? `Edit Part ${formatPartNumber(composerPart.position ?? 0)}` : "New speech")
-    : stage === "sequence" && selectedPart ? `${formatAuthoredRole(selectedPart.authored_role) || selectedPart.kind} · Part ${formatPartNumber(selectedPart.position ?? 0)}`
+    : stage === "sequence" && selectedPart ? `Part ${formatPartNumber(selectedPart.position ?? 0)} · ${formatAuthoredRole(selectedPart.authored_role) || partKindLabel(selectedPart)}`
       : stage === "sound" && soundSelection?.kind === "music" ? "Music track"
         : stage === "sound" && soundPart ? `${formatAuthoredRole(soundPart.authored_role) || soundPart.kind} · Sound`
           : stage === "mix" ? "Release checks" : "Inspector"
@@ -237,26 +256,34 @@ export function ProductionWorkstationPage({ production, tree: _tree, music, asse
     onSave={async (payload) => { await actions.saveDraft(payload); closeComposer() }}
     onUpdateEditorial={async (values) => { if (!composerPart) throw new Error("That Part is no longer open."); await actions.updatePartEditorial(composerPart, values) }}
     onGenerate={queueRender} onPlay={(source) => void playSource(source)}
-  /> : stage === "sequence" && selectedPart ? <PartInspectorContent
+  /> : stage === "sequence" && selectedPart ? <WorkstationPartInspector
     productionId={production.id} part={selectedPart} directory={directory} playingKey={player.source?.key} playerPlaying={actions.playerPlaying}
-    onClose={() => setSelectedId(null)} onPlay={(source) => void playSource(source)} onChanged={async () => { actions.invalidatePreview(); await refresh() }}
-    onDuplicate={(part) => void actions.duplicatePart(part)} onDelete={requestPartDeletion} onRecordPart={editPart}
+    onPlay={(source) => void playSource(source)} onChanged={async () => { actions.invalidatePreview(); await refresh() }}
+    onDuplicate={(part) => void actions.duplicatePart(part)} onDelete={requestPartDeletion} onEdit={editPart} onOpenCaptions={(part) => setCaptionPartId(part.id)}
   /> : stage === "sound" && soundSelection?.kind === "music" ? <MusicWorkbench
     music={music} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)} onChange={actions.setMusic}
     onChoose={() => setTool("music")} onRemove={() => setConfirmAction({ title: "Remove this Music Bed?", description: "The library asset remains available. Only this Production placement is removed.", action: () => { void actions.setMusic({ music_of: null }); setSoundSelection(null) } })}
-  /> : stage === "sound" && soundPart ? <PartInspectorContent
+  /> : stage === "sound" && soundPart ? <WorkstationPartInspector
     productionId={production.id} part={soundPart} directory={directory} playingKey={player.source?.key} playerPlaying={actions.playerPlaying}
-    onClose={() => setSoundSelection(null)} onPlay={(source) => void playSource(source)} onChanged={refresh}
-    onDuplicate={(part) => void actions.duplicatePart(part)} onDelete={requestPartDeletion} onRecordPart={editPart}
-  /> : stage === "mix" ? <ReleaseInspector issues={issues} onLocate={(id) => { setStage("sequence"); setSelectedId(id); requestAnimationFrame(() => document.getElementById(`ws-part-${id}`)?.scrollIntoView({ block: "center" })) }} /> : <EmptyInspector stage={stage} />
+    onPlay={(source) => void playSource(source)} onChanged={refresh}
+    onDuplicate={(part) => void actions.duplicatePart(part)} onDelete={requestPartDeletion} onEdit={editPart} onOpenCaptions={(part) => setCaptionPartId(part.id)}
+  /> : stage === "mix" && releaseInspectorOpen ? <ReleaseInspector issues={issues} onLocate={(id) => { setStage("sequence"); setSelectedId(id); setReleaseInspectorOpen(false); requestAnimationFrame(() => document.getElementById(`ws-part-${id}`)?.scrollIntoView({ block: "center" })) }} /> : <EmptyInspector stage={stage} />
+
+  const inspectorOpen = composerOpen || stage === "sequence" && Boolean(selectedPart) || stage === "sound" && Boolean(soundSelection) || stage === "mix" && releaseInspectorOpen
+  const closeInspector = () => {
+    if (composerOpen) { closeComposer(); return }
+    if (stage === "sequence") setSelectedId(null)
+    else if (stage === "sound") setSoundSelection(null)
+    else setReleaseInspectorOpen(false)
+  }
 
   const overlaysOpen = Boolean(tool || confirmAction)
   return <>
-    <section className="production-workstation" data-stage={stage} data-inspector-expanded={composerOpen ? "true" : "false"}>
-      <WorkstationHeader production={production} duration={duration} stage={stage} issueCount={issues.length} previewing={actions.previewing} playing={actions.productionPlaying} onStage={(next) => { setStage(next); setComposerOpen(false) }} onPreview={actions.toggleProduction} onAdd={openTool} onDelete={() => setDeleteProductionOpen(true)} />
+    <section className="production-workstation" data-stage={stage} data-inspector-open={inspectorOpen ? "true" : "false"} data-inspector-expanded={composerOpen ? "true" : "false"}>
+      <WorkstationHeader production={production} duration={duration} stage={stage} issueCount={issues.length} previewing={actions.previewing} playing={actions.productionPlaying} onStage={changeStage} onPreview={actions.toggleProduction} onAdd={openTool} onDelete={() => setDeleteProductionOpen(true)} />
       <div className="ws-body">
         <aside className="ws-left-pane" aria-label={`${stage} navigation`}>
-          {stage === "sequence" && <WorkstationOutline parts={sourceParts} selectedId={selectedId} onSelect={selectPart} />}
+          {stage === "sequence" && <WorkstationOutline parts={sourceParts} selectedId={selectedId} directory={directory} onSelect={selectPart} />}
           {stage === "sound" && <SoundDesignOutline music={music} parts={sourceParts} selection={soundSelection} onSelection={setSoundSelection} onAddSound={() => setTool("asset")} />}
           {stage === "mix" && <MixOutline production={production} music={music} />}
         </aside>
@@ -265,10 +292,10 @@ export function ProductionWorkstationPage({ production, tree: _tree, music, asse
           {stage === "sound" && <WorkstationSoundDesign parts={sourceParts} music={music} selection={soundSelection} onSelection={setSoundSelection} onAddSound={() => setTool("asset")} />}
           {stage === "mix" && <div className="ws-mix-canvas"><MixExportWorkspace production={production} music={music} previewing={actions.previewing} productionPlaying={actions.productionPlaying} previewReady={actions.productionLoaded} previewStale={Boolean(player.source?.kind === "production" && !actions.productionLoaded)} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={() => void actions.exportMp3()} onLocatePart={(id) => { setStage("sequence"); setSelectedId(id) }} onOpenHealth={() => undefined} exporting={actions.exporting} /></div>}
         </main>
-        <aside className="ws-right-pane" aria-label="Contextual inspector">
-          <header><div><span className="ws-kicker">Inspector</span><h2>{inspectorTitle}</h2></div>{composerOpen && <Button variant="ghost" size="icon-sm" aria-label="Close editor" onClick={closeComposer}><X /></Button>}</header>
+        {inspectorOpen && <aside className="ws-right-pane" aria-label="Contextual inspector">
+          <header><div><span className="ws-kicker">Inspector</span><h2>{inspectorTitle}</h2></div><Button variant="ghost" size="icon-sm" aria-label="Close inspector" onClick={closeInspector}><X /></Button></header>
           <div className="ws-inspector-content">{inspector}</div>
-        </aside>
+        </aside>}
       </div>
     </section>
     <DeleteProductionDialog production={production} open={deleteProductionOpen} onOpenChange={setDeleteProductionOpen} onDeleted={() => { player.pause(); navigate(`${audioStudioBase}/projects/${production.project_id}`) }} />
