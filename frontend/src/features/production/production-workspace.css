@@ -36,8 +36,9 @@
 .production-workstation[data-stage-mode="composer"] .production-sequence-toolbar { grid-template-columns: minmax(180px, 1fr) minmax(280px, 1fr); }
 .production-workstation[data-stage-mode="composer"] .production-sequence-summary { display: none; }
 .production-page .production-main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; width: min(1256px, calc(100% - 48px)); margin: 16px auto 126px; }
-.production-page .production-main.has-timing-workspace { width: 100%; height: 100%; grid-template-rows: auto minmax(0, 1fr); gap: 0; margin: 0; overflow: hidden; background: var(--surface-raised); }
-.production-main.has-timing-workspace .production-sequence-toolbar { position: relative; border-top: 0; border-right: 0; border-left: 0; border-radius: 0; box-shadow: none; }
+.production-page .production-main.has-timing-workspace { margin-bottom: 420px; }
+.production-workstation:has(.transport-strip.is-production) .production-main.has-timing-workspace { margin-bottom: 500px; }
+.production-workstation:has(.transport-strip.has-caption-dock) .production-main.has-timing-workspace { margin-bottom: 560px; }
 
 .production-stage {
   position: absolute;
@@ -135,13 +136,15 @@
 .production-timing-header h2 { margin: 2px 0 0; font-size: var(--type-panel-size); }
 .production-timing-header p { margin-top: 2px; color: var(--muted-foreground); font-size: var(--type-caption); }
 .production-timing-actions { display: flex; align-items: center; gap: 8px; }
-.production-timing-workspace { min-height: 0; height: 100%; overflow: hidden; background: var(--surface-raised); transition: padding-bottom 220ms cubic-bezier(.2, .8, .2, 1); }
-.production-workstation:has(.transport-strip.is-production) .production-timing-workspace { padding-bottom: 78px; }
-.production-timing-workspace .production-timing { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); border: 0; border-radius: 0; box-shadow: none; }
-.production-timing-workspace .production-timing-header { min-height: 68px; padding: 10px 24px; border-color: var(--border); }
-.production-timing-workspace .production-timing-header > span { color: var(--primary); background: var(--primary-soft); }
-.production-timing-workspace .timeline-shell { min-height: 0; height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; border: 0; border-radius: 0; }
-.production-timing-workspace .timeline-scroll { min-height: 0; overflow-x: auto; overflow-y: hidden; }
+.production-timing-dock { position: fixed; z-index: 35; right: 0; bottom: 0; left: 0; background: var(--surface-raised); box-shadow: 0 -16px 42px rgb(var(--shadow-color) / 10%); transition: bottom 220ms cubic-bezier(.2, .8, .2, 1); animation: production-timing-arrive 180ms ease-out; }
+.production-workstation:has(.transport-strip.is-production) .production-timing-dock { bottom: calc(max(var(--space-4), var(--safe-bottom)) + 68px); }
+.production-workstation:has(.transport-strip.has-caption-dock) .production-timing-dock { bottom: calc(max(var(--space-4), var(--safe-bottom)) + 128px); }
+.production-timing-dock .production-timing { border: 0; border-top: 1px solid var(--border); border-radius: 0; box-shadow: none; }
+.production-timing-dock .production-timing-header { min-height: 64px; padding: 10px 20px; border-color: var(--border); }
+.production-timing-dock .production-timing-header > span { color: var(--primary); background: var(--primary-soft); }
+.production-timing-dock .timeline-shell { border: 0; border-radius: 0; }
+.production-timing-dock .timeline-scroll { overflow-x: auto; overflow-y: visible; }
+@keyframes production-timing-arrive { from { transform: translateY(14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .timing-preview-state { gap: 5px; transition: color 180ms ease, border-color 180ms ease, background 180ms ease; }
 .timing-preview-state svg { width: 12px; }
 .timing-preview-state.is-preparing { color: var(--primary); border-color: color-mix(in oklab, var(--primary) 30%, var(--border)); background: var(--primary-soft); }

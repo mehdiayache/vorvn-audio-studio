@@ -40,7 +40,7 @@ describe("ProductionEditorCanvas timing", () => {
     expect(props.onViewChange).toHaveBeenCalledWith("timing")
     rerender(<ProductionEditorCanvas {...props} view="timing" />)
     expect(screen.getByText("Timing mounted")).toBeTruthy()
-    expect(screen.queryByText("Sequence mounted")).toBeNull()
+    expect(screen.getByText("Sequence mounted")).toBeTruthy()
     expect(timing).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByRole("button", { name: "Timing" }))
     expect(props.onViewChange).toHaveBeenLastCalledWith("sequence")
