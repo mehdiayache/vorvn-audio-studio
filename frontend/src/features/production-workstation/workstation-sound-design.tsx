@@ -36,7 +36,7 @@ function TrackLabels({ music, voiceParts, sfxParts, selection, onSelection, onAd
   const voiceActive = selectedPartId == null && selection?.kind !== "music" || voiceParts.some((part) => part.id === selectedPartId)
   const sfxActive = sfxParts.some((part) => part.id === selectedPartId)
   return <div className="ws-track-list">
-    <header><span className="ws-kicker">Tracks</span><b>Sound scene</b></header>
+    <header><b>Tracks</b><span>Sound scene</span></header>
     <button className={voiceActive ? "is-active" : ""} onClick={() => onSelection(voiceParts[0] ? { kind: "part", id: voiceParts[0].id } : null)}><span className="ws-track-icon is-voice"><AudioLines /></span><span><b>Voice</b><small>{voiceParts.length} clips</small></span><Volume2 /></button>
     <button className={sfxActive ? "is-active" : ""} onClick={() => sfxParts[0] ? onSelection({ kind: "part", id: sfxParts[0].id }) : onAddSound()}><span className="ws-track-icon is-sfx"><Waves /></span><span><b>SFX</b><small>{sfxParts.length ? `${sfxParts.length} clips` : "Ready for sound"}</small></span><Volume2 /></button>
     <button onClick={onAddSound}><span className="ws-track-icon is-ambience"><Headphones /></span><span><b>Ambience</b><small>No ambience yet</small></span><Volume2 /></button>
@@ -73,7 +73,7 @@ export function WorkstationSoundDesign({ parts, music, selection, onSelection, o
   const marks = timeMarks(total)
   const styleFor = (start: number, duration: number) => ({ left: `${start * zoom}px`, width: `${Math.max(duration * zoom, 18)}px` } as CSSProperties)
   return <div className="ws-sound-canvas">
-    <header className="ws-canvas-heading ws-sound-heading"><div><span className="ws-kicker">Sound Design</span><h2>Shape the space around the story</h2></div><div className="ws-timeline-tools"><Button variant="ghost" size="icon-sm"><Search /></Button><Button variant="ghost" size="icon-sm"><ChevronLeft /></Button><Slider aria-label="Timeline zoom" min={5} max={28} step={1} value={[zoom]} onValueChange={([next = 10]) => setZoom(next)} /><Button variant="ghost" size="icon-sm"><ChevronRight /></Button><span>{zoom}px/s</span></div></header>
+    <header className="ws-canvas-heading ws-sound-heading"><div className="ws-heading-copy"><h2>Sound scene</h2><p>Shape space around the story.</p></div><div className="ws-timeline-tools"><Button variant="ghost" size="icon-sm"><Search /></Button><Button variant="ghost" size="icon-sm"><ChevronLeft /></Button><Slider aria-label="Timeline zoom" min={5} max={28} step={1} value={[zoom]} onValueChange={([next = 10]) => setZoom(next)} /><Button variant="ghost" size="icon-sm"><ChevronRight /></Button><span>{zoom}px/s</span></div></header>
     <div className="ws-timeline-scroll">
       <div className="ws-timeline" style={{ width }}>
         <div className="ws-ruler">{marks.map((mark) => <span key={mark} style={{ left: mark * zoom }}><i />{formatDuration(mark)}</span>)}</div>

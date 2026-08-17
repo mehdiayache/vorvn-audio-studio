@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
 import type { MusicBed, ProductionPart, VoiceDirectory } from "@/types/domain"
+import { InlineProductionName } from "./production-workstation-page"
 import { WorkstationOutline } from "./workstation-sequence"
 import { WorkstationSoundDesign } from "./workstation-sound-design"
 
@@ -30,6 +31,19 @@ function part(values: Partial<ProductionPart>): ProductionPart {
 }
 
 describe("Production Workstation", () => {
+  it("renames a Production inline without introducing a settings flow", async () => {
+    const rename = vi.fn().mockResolvedValue(undefined)
+    render(<InlineProductionName name="Esther story" onRename={rename} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Rename Production Esther story" }))
+    const input = screen.getByRole("textbox", { name: "Production name" })
+    fireEvent.change(input, { target: { value: "Esther — final story" } })
+    fireEvent.blur(input)
+
+    await waitFor(() => expect(rename).toHaveBeenCalledWith("Esther — final story"))
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Production name" })).toBeNull())
+  })
+
   it("keeps story navigation semantic and filters drafts without inventing state", () => {
     const ready = part({ id: 1, authored_role: "Narrator" })
     const draft = part({ id: 2, position: 1, authored_role: "Esther", kind: "draft", clip_id: null, duration_ms: 0 })

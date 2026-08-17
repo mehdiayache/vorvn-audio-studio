@@ -22,7 +22,7 @@ export function VoiceIdentity({ voice, identityId, directory, gender, compact = 
   return (
     <span className={cn("voice-identity", compact && "compact")}>
       <span className="voice-portrait">{resolved.image ? <img src={resolved.image} alt="" /> : resolved.id ? initials : <Mic2 />}</span>
-      {showCopy && <span className="voice-copy"><b className="voice-name-row">{showEditorialFlag && resolved.editorialLanguage && <span className="voice-source-flag" title={`${languageDisplay(resolved.editorialLanguage)} editorial focus`} aria-label={`${languageDisplay(resolved.editorialLanguage)} editorial focus`}>{languageFlag(resolved.editorialLanguage)}</span>}<span>{resolved.name}</span><VoiceGenderBadge gender={gender || resolved.gender} /></b>{showDetail && <small>{resolved.unavailable ? "Unavailable voice · existing recording" : resolved.detail}</small>}</span>}
+      {showCopy && <span className="voice-copy"><b className="voice-name-row">{showEditorialFlag && resolved.editorialLanguage && <span className="voice-source-flag" title={`${languageDisplay(resolved.editorialLanguage)} editorial focus`} aria-label={`${languageDisplay(resolved.editorialLanguage)} editorial focus`}>{languageFlag(resolved.editorialLanguage)}</span>}<span className="voice-display-name">{resolved.name}</span><VoiceGenderBadge gender={gender || resolved.gender} /></b>{showDetail && <small>{resolved.unavailable ? "Unavailable voice · existing recording" : resolved.detail}</small>}</span>}
     </span>
   )
 }

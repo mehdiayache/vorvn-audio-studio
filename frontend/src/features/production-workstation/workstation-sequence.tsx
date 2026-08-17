@@ -56,7 +56,7 @@ export function WorkstationOutline({ parts, selectedId, directory, onSelect }: {
     return true
   })
   return <div className="ws-outline">
-    <header><span className="ws-kicker">Outline</span><b>{parts.length} parts</b></header>
+    <header><b>Outline</b><span>{parts.length} parts</span></header>
     <label className="ws-search"><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a role or line" aria-label="Search Production outline" /></label>
     <div className="ws-filter-row" aria-label="Outline filters">
       {(["all", "ready", "drafts", "issues"] as const).map((value) => <button key={value} aria-pressed={filter === value} onClick={() => setFilter(value)}>{value === "all" ? "All" : value.charAt(0).toUpperCase() + value.slice(1)}</button>)}
@@ -145,7 +145,7 @@ export function WorkstationSequence({ parts, selectedId, playingKey, playerPlayi
   onAddEnd: () => void
 }) {
   return <div className="ws-sequence-canvas" aria-label="Production sequence">
-    <header className="ws-canvas-heading"><div><span className="ws-kicker">Sequence canvas</span><h2>Your story, in order</h2></div><p>Select a part to keep it visible while editing on the right.</p></header>
+    <header className="ws-canvas-heading"><div className="ws-heading-copy"><h2>Story sequence</h2><p>Select a part to inspect or edit it.</p></div></header>
     <div className="ws-sequence-list">
       {parts.map((part, index) => <div className="ws-sequence-slot" key={part.id}>
         <button className="ws-insert-control" aria-label={`Add before part ${index + 1}`} onClick={() => actions.addBefore(part)}>+</button>
