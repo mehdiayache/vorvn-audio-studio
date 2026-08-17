@@ -5,6 +5,7 @@ import type { RecoverableCompositionDraft } from "./composer-contract"
 
 function draft(): RecoverableCompositionDraft {
   return {
+    authoredRole: "Narrator",
     voiceIdentityId: "voice-1",
     route: { kind: "owned", bindingId: "binding-1", capabilityId: null },
     text: { raw: "Hello", shaped: "", tagged: "", active: "raw" },
@@ -32,7 +33,7 @@ describe("Composer Draft persistence", () => {
 
   it("does not persist a pristine Composer", () => {
     const empty = draft()
-    empty.voiceIdentityId = null; empty.route = null; empty.text.raw = ""; empty.output.language = "Auto"
+    empty.authoredRole = ""; empty.voiceIdentityId = null; empty.route = null; empty.text.raw = ""; empty.output.language = "Auto"
     empty.delivery.modeId = null
     expect(meaningfulDraft(empty)).toBe(false)
     expect(meaningfulDraft(draft())).toBe(true)

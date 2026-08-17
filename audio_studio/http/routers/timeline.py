@@ -56,7 +56,9 @@ class DraftBody(BaseModel):
     text_shaped: str | None = None
     text_tagged: str | None = None
     text_state: str = "raw"
+    spoken_profile: Literal["spoken_1", "spoken_2"] = "spoken_1"
     insert_before_part_id: str | None = None
+    authored_role: str | None = Field(default=None, max_length=120)
     voice_identity_id: str | None = None
     binding_id: str | None = None
     catalogue_voice_id: str | None = None
@@ -69,6 +71,7 @@ class DraftBody(BaseModel):
     pitch: float = 1
     volume: int = 50
     seed: int = 0
+    enable_ssml: bool = False
     confirmed: bool = False
 
 

@@ -127,13 +127,22 @@ class ProductionDocumentTests(unittest.TestCase):
         silence = self.timeline.add_silence(first_id, 2)
         silence_public_id = self.repository.part(
             first_id, silence["id"])["public_id"]
+        draft_binding_id = str(uuid4())
         draft = self.timeline.add_draft(first_id, {
             "text": "A quiet opening", "voice": "Tina", "engine": "audio",
-            "model": "plus", "insert_before_part_id": silence_public_id,
+            "model": "plus", "authored_role": "Night Guide",
+            "binding_id": draft_binding_id,
+            "spoken_profile": "spoken_2", "enable_ssml": True,
+            "insert_before_part_id": silence_public_id,
         })
         parts = self.repository.parts(first_id)
         self.assertEqual([item["id"] for item in parts], [draft["id"], silence["id"]])
         self.assertEqual([item["position"] for item in parts], [0, 1])
+        self.assertEqual(parts[0]["authored_role"], "Night Guide")
+        self.assertEqual(
+            (parts[0]["spoken_profile"], parts[0]["enable_ssml"]),
+            ("spoken_2", True))
+        self.assertEqual(parts[0]["binding_id"], draft_binding_id)
         linked = self.timeline.insert_asset(first_id, intro["id"])
         linked_part = next(item for item in self.repository.parts(first_id)
                            if item["id"] == linked["id"])

@@ -18,7 +18,7 @@ function initial(part?: ProductionPart | null) {
 }
 
 function recordedSpokenProfile(part?: ProductionPart | null): SpokenProfile {
-  const profile = part?.speech_job?.request?.spoken_profile
+  const profile = part?.speech_job?.request?.spoken_profile || part?.spoken_profile
   return profile === "spoken_2" ? "spoken_2" : "spoken_1"
 }
 

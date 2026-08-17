@@ -1750,6 +1750,8 @@ export interface components {
         };
         /** ComposerState */
         ComposerState: {
+            /** Authored Role */
+            authored_role?: string | null;
             delivery: components["schemas"]["DeliveryState"];
             output: components["schemas"]["OutputState"];
             route?: components["schemas"]["RouteState"] | null;
@@ -1862,6 +1864,8 @@ export interface components {
         };
         /** DraftBody */
         DraftBody: {
+            /** Authored Role */
+            authored_role?: string | null;
             /** Binding Id */
             binding_id?: string | null;
             /** Capability Id */
@@ -1873,6 +1877,11 @@ export interface components {
              * @default false
              */
             confirmed: boolean;
+            /**
+             * Enable Ssml
+             * @default false
+             */
+            enable_ssml: boolean;
             /**
              * Format
              * @default mp3
@@ -1910,6 +1919,12 @@ export interface components {
              * @default exact
              */
             speech_mode: string;
+            /**
+             * Spoken Profile
+             * @default spoken_1
+             * @enum {string}
+             */
+            spoken_profile: "spoken_1" | "spoken_2";
             /** Text */
             text: string;
             /** Text Raw */
@@ -2312,7 +2327,7 @@ export interface components {
              * @default mp3
              * @enum {string}
              */
-            format: "mp3" | "wav";
+            format: "mp3" | "mp3-24k" | "wav" | "opus";
             /**
              * Language
              * @default Auto
@@ -3301,6 +3316,8 @@ export interface components {
         };
         /** SpeechJobCreate */
         SpeechJobCreate: {
+            /** Authored Role */
+            authored_role?: string | null;
             /** Binding Id */
             binding_id?: string | null;
             /** Capability Id */

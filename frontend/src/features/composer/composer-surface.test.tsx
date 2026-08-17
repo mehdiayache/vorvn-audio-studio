@@ -155,6 +155,30 @@ describe("shared Composer contract", () => {
     await waitFor(() => expect(onUpdateEditorial).toHaveBeenCalledWith({ expected_revision: 3, authored_role: "Esther" }))
   })
 
+  it("carries a new story role into the first Production recording", async () => {
+    vi.spyOn(studioApi, "composerDraft").mockResolvedValue(null)
+    vi.spyOn(studioApi, "saveComposerDraft").mockResolvedValue({ id: "draft-role", state: {} as never, version: 1, updatedAt: "now" })
+    const onGenerate = vi.fn().mockResolvedValue({ id: "job-new-role" })
+    render(<ComposerSurface {...common} presentation="dialog" productionId={3} onGenerate={onGenerate} />)
+
+    fireEvent.click(await screen.findByRole("button", { name: "Add story role" }))
+    fireEvent.change(screen.getByLabelText("Story role"), { target: { value: "  Night   Guide  " } })
+    fireEvent.click(screen.getByRole("button", { name: "Save role" }))
+    expect(await screen.findByRole("button", { name: "Night Guide" })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole("button", { name: "Choose a voice" }))
+    fireEvent.click(screen.getByRole("button", { name: /Sarah.*1 method/ }))
+    await waitFor(() => expect(screen.getByRole("button", { name: "Choose a voice" }).textContent).toContain("Sarah"))
+    fireEvent.click(screen.getByRole("button", { name: "Recording method" }))
+    fireEvent.click(await screen.findByRole("option", { name: /Expressive \+ tags/ }))
+    fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "Let the room settle before the story begins." } })
+    const generate = screen.getByRole("button", { name: /Generate and add Part/ })
+    await waitFor(() => expect(generate.hasAttribute("disabled")).toBe(false))
+    fireEvent.click(generate)
+
+    await waitFor(() => expect(onGenerate).toHaveBeenCalledWith(expect.objectContaining({ authored_role: "Night Guide" })))
+  })
+
   it("compares immutable Original words with the prepared Spoken version", async () => {
     const part = {
       id: 71,

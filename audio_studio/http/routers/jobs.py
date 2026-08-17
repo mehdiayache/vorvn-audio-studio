@@ -98,6 +98,7 @@ class SpeechJobCreate(BaseModel):
     spoken_profile: Literal["spoken_1", "spoken_2"] = "spoken_1"
     production_id: int | None = Field(default=None, gt=0)
     insert_before_part_id: UUID | None = None
+    authored_role: str | None = Field(default=None, max_length=120)
     voice_identity_id: str | None = Field(default=None, max_length=120)
     binding_id: UUID | None = None
     catalogue_voice_id: str | None = Field(default=None, max_length=700)

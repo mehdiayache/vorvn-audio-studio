@@ -17,6 +17,7 @@
 .inspector-part-summary > span svg { width: 18px; }
 .inspector-summary-copy { min-width: 0; }
 .inspector-summary-copy > b { font-size: var(--type-small); }
+.inspector-role-editor { justify-content: flex-start; width: fit-content; max-width: 100%; height: auto; margin: -4px 0 2px -8px; padding: 4px 8px; color: var(--foreground); font-size: 15px; font-weight: 760; }
 .inspector-part-summary p { margin-top: 3px; color: var(--muted-foreground); font-size: var(--type-caption); }
 .inspector-summary-actions { display: flex; align-items: center; gap: var(--space-2); }
 

@@ -155,6 +155,9 @@ class TimelineService:
             "text_shaped": values.get("text_shaped"),
             "text_tagged": values.get("text_tagged"),
             "text_state": values.get("text_state") or "raw",
+            "spoken_profile": values.get("spoken_profile") or "spoken_1",
+            "authored_role": " ".join(
+                str(values.get("authored_role") or "").split()) or None,
             "voice_identity_id": values.get("voice_identity_id"),
             "binding_id": values.get("binding_id"),
             "catalogue_voice_id": values.get("catalogue_voice_id"),
@@ -165,6 +168,7 @@ class TimelineService:
             "speech_mode": values.get("speech_mode") or "exact",
             "rate": values.get("rate", 1), "pitch": values.get("pitch", 1),
             "volume": values.get("volume", 50), "seed": values.get("seed", 0),
+            "enable_ssml": bool(values.get("enable_ssml", False)),
             "filename": "", "path": "", "size_bytes": 0, "duration_ms": 0,
             "chars": len(text), "requests": 0, "cost": 0, "kind": "draft",
             "usage": {}, "cost_basis": "not billed", "failures": [],

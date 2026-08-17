@@ -98,6 +98,7 @@ export type ComposerTextPreparation = {
 }
 
 export type CompositionDraft = {
+  authoredRole?: string
   voiceIdentityId: string | null
   route: RouteSelection | null
   text: ComposerText
@@ -122,6 +123,7 @@ export type ComposerUI = {
 
 export type SpeechGenerationCommand = {
   context: CompositionContext
+  authoredRole?: string
   route: RouteSelection
   voiceIdentityId: string | null
   text: ComposerText
@@ -195,6 +197,7 @@ export function buildSpeechCommand(input: {
   if (!input.draft.route) throw new Error("Choose an exact recording route before generating.")
   return {
     context: input.context,
+    authoredRole: input.draft.authoredRole,
     route: input.draft.route,
     voiceIdentityId: input.draft.voiceIdentityId,
     text: input.draft.text,
@@ -212,6 +215,7 @@ export function toGeneratePayload(command: SpeechGenerationCommand): GeneratePay
   const production = command.context.kind === "production" ? command.context : null
   return {
     text: selectedText,
+    authored_role: command.authoredRole?.trim().replace(/\s+/g, " ") || null,
     text_raw: command.text.raw || null,
     text_shaped: command.text.shaped || null,
     text_tagged: command.text.tagged || null,

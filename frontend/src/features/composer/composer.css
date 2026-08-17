@@ -59,13 +59,7 @@
   gap: 4px;
 }
 
-.composer-role-trigger { max-width: 190px; color: var(--muted-foreground); }
-.composer-role-trigger svg { width: 14px; height: 14px; }
-.composer-role-popover { width: 310px; }
-.composer-role-popover form { display: grid; gap: 10px; }
-.composer-role-popover label { color: var(--foreground); font-size: var(--type-small); font-weight: 700; }
-.composer-role-popover small { color: var(--muted-foreground); font-size: var(--type-caption); line-height: 1.45; }
-.composer-role-popover form > div { display: flex; justify-content: flex-end; gap: 6px; }
+.composer-role-trigger { max-width: 190px; }
 
 /* Editor-first Composer: recording context stays attached to the words. */
 .composer-workspace {

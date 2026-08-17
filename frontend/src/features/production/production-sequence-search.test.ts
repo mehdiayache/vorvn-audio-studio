@@ -6,7 +6,7 @@ import { EMPTY_SEQUENCE_FILTERS, filterProductionParts } from "./production-sequ
 const parts = [
   { id: 1, kind: "speech", text: "The lighthouse keeper checks the eastern window.", authored_role: "Narrator", voice_name: "Samira", clip_id: 10, subtitled: true },
   { id: 2, kind: "draft", text: "A storm warning arrives before midnight." },
-  { id: 3, kind: "speech", text: "Secure the boats before the tide turns.", voice_name: "Mina", clip_id: 12, subtitled: false },
+  { id: 3, kind: "speech", text: "Secure the boats before the tide turns.", voice_name: "Mina", capability_name: "Controlled exact reading", engine: "cosyvoice", language: "French", clip_id: 12, subtitled: false },
 ] as ProductionPart[]
 
 describe("filterProductionParts", () => {
@@ -15,6 +15,8 @@ describe("filterProductionParts", () => {
     expect(filterProductionParts(parts, new Set(), { ...EMPTY_SEQUENCE_FILTERS, query: "narrator" }).map((part) => part.id)).toEqual([1])
     expect(filterProductionParts(parts, new Set(), { ...EMPTY_SEQUENCE_FILTERS, query: "Samira" }).map((part) => part.id)).toEqual([1])
     expect(filterProductionParts(parts, new Set(), { ...EMPTY_SEQUENCE_FILTERS, query: "part 3" }).map((part) => part.id)).toEqual([3])
+    expect(filterProductionParts(parts, new Set(), { ...EMPTY_SEQUENCE_FILTERS, query: "cosyvoice" }).map((part) => part.id)).toEqual([3])
+    expect(filterProductionParts(parts, new Set(), { ...EMPTY_SEQUENCE_FILTERS, query: "French" }).map((part) => part.id)).toEqual([3])
   })
 
   it("combines Draft, issue, and caption filters without changing order", () => {

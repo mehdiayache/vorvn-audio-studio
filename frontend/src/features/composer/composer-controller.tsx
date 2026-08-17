@@ -170,6 +170,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   const context = useMemo(() => compositionContext({ productionId, part, insertBeforePartId }), [insertBeforePartId, part, productionId])
   const baseline = useMemo(() => editorialBaseline(part), [part])
   const draft: CompositionDraft = {
+    authoredRole,
     // Every registry identity is stable enough to restore an operator choice.
     // Generation still projects voice_identity_id only for owned routes.
     voiceIdentityId: selectedIdentity?.identityId || null,
@@ -188,6 +189,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     context,
     draft: recoverableDraft(draft),
     onRestore: (saved) => {
+      setAuthoredRole(saved.authoredRole || "")
       setIdentityId(saved.voiceIdentityId || "")
       setRoute(saved.route)
       setTextReviewReference(saved.textPreparation.pendingReview)
@@ -263,9 +265,13 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   }
 
   async function saveRole(value: string) {
-    if (!part || !baseline || !onUpdateEditorial) return
-    const canonical = value.trim()
-    if (canonical === String(part.authored_role || "").trim()) return
+    const canonical = value.trim().replace(/\s+/g, " ")
+    if (!part) {
+      setAuthoredRole(canonical)
+      return
+    }
+    if (!baseline || !onUpdateEditorial) return
+    if (canonical === String(part.authored_role || "").trim().replace(/\s+/g, " ")) return
     setRoleBusy(true)
     try {
       await onUpdateEditorial({ expected_revision: baseline.revision, authored_role: canonical || null })

@@ -49,6 +49,7 @@ class Store:
 
 def state():
     return {
+        "authored_role": "Narrator",
         "voice_identity_id": "voice-1",
         "route": {"kind": "owned", "binding_id": "binding-1",
                   "catalogue_voice_id": None, "capability_id": None},
@@ -110,6 +111,18 @@ class ComposerDraftTests(unittest.TestCase):
         ssml["delivery"]["enable_ssml"] = True
         payload = DraftWrite(context={"kind": "standalone"}, state=ssml)
         self.assertTrue(_state(payload)["delivery"]["enable_ssml"])
+
+    def test_write_contract_persists_story_role_and_supported_outputs(self):
+        payload = DraftWrite(context={"kind": "standalone"}, state=state())
+        self.assertEqual(_state(payload)["authored_role"], "Narrator")
+        for output_format in ("mp3", "mp3-24k", "wav", "opus"):
+            candidate = state()
+            candidate["output"]["format"] = output_format
+            self.assertEqual(
+                DraftWrite(context={"kind": "standalone"}, state=candidate)
+                .state.output.format,
+                output_format,
+            )
 
     def test_paid_text_review_persists_only_a_durable_job_pointer(self):
         review_job_id = uuid4()

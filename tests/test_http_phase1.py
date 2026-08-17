@@ -253,6 +253,9 @@ class NativeHttpTests(unittest.TestCase):
                 "/api/v1/productions/7/parts/drafts",
                 json={
                     "text": "A deliberate insertion-point Draft.",
+                    "authored_role": "Night Guide",
+                    "spoken_profile": "spoken_2",
+                    "enable_ssml": True,
                     "insert_before_part_id": "part-before",
                 })
         self.assertEqual(draft.status_code, 200)
@@ -260,6 +263,12 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(
             add_draft.call_args.args[1]["insert_before_part_id"],
             "part-before")
+        self.assertEqual(
+            add_draft.call_args.args[1]["authored_role"], "Night Guide")
+        self.assertEqual(
+            (add_draft.call_args.args[1]["spoken_profile"],
+             add_draft.call_args.args[1]["enable_ssml"]),
+            ("spoken_2", True))
 
         with patch.object(
                 timeline_router.timeline_service, "insert_asset",

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { VoiceIdentity } from "@/components/voice-identity"
+import { StoryRoleEditor } from "@/components/story-role-editor"
 import { audioUrl } from "@/lib/api"
 import { formatDuration, formatExactDurationMs, formatMoney, formatPartLabel, textDirection } from "@/lib/format"
 import { resolveVoice } from "@/lib/voice"
@@ -23,10 +24,12 @@ function CopyButton({ value, label = "Copy" }: { value: string; label?: string }
   return <Button variant="ghost" size="sm" disabled={!value} onClick={() => void navigator.clipboard?.writeText(value).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1200) })}>{copied ? <Check /> : <Copy />}{copied ? "Copied" : label}</Button>
 }
 
-export function PartInspectorScript({ part, directory, currentPlaying, onPlay, onRecordPart, onDuplicate, onDelete }: {
+export function PartInspectorScript({ part, directory, currentPlaying, roleBusy = false, onSaveRole, onPlay, onRecordPart, onDuplicate, onDelete }: {
   part: ProductionPart
   directory: VoiceDirectory
   currentPlaying: boolean
+  roleBusy?: boolean
+  onSaveRole?: (value: string) => Promise<void> | void
   onPlay: (source: PlayerSource) => void
   onRecordPart: (part: ProductionPart) => void
   onDuplicate: (part: ProductionPart) => void
@@ -43,7 +46,7 @@ export function PartInspectorScript({ part, directory, currentPlaying, onPlay, o
   return <div className="inspector-panel inspector-text-panel">
     <div className="inspector-part-summary">
       <span>{silence ? <Clock3 /> : asset ? <FileAudio /> : <Mic2 />}</span>
-      <div className="inspector-summary-copy">{silence ? <><b>Intentional silence</b><p>Editorial timing · {formatExactDurationMs(Number(part.duration_ms || 0))}</p></> : asset ? <><b>{part.title || "Venture audio"}</b><p>Linked Venture asset · {formatDuration(Number(part.duration_ms || 0) / 1000)}</p></> : <><VoiceIdentity voice={part.voice} identityId={part.voice_identity_id} directory={directory} compact /><p>{recorded ? `Active recording · ${formatDuration(Number(part.duration_ms || 0) / 1000)} · ${formatMoney(part.spent ?? part.cost)}` : `Draft speech · revision ${part.revision || 1}`}</p></>}</div>
+      <div className="inspector-summary-copy">{silence ? <><b>Intentional silence</b><p>Editorial timing · {formatExactDurationMs(Number(part.duration_ms || 0))}</p></> : asset ? <><b>{part.title || "Venture audio"}</b><p>Linked Venture asset · {formatDuration(Number(part.duration_ms || 0) / 1000)}</p></> : <>{onSaveRole && <StoryRoleEditor className="inspector-role-editor" value={part.authored_role} busy={roleBusy} onSave={onSaveRole} />}<VoiceIdentity voice={part.voice} identityId={part.voice_identity_id} directory={directory} compact /><p>{recorded ? `Active recording · ${formatDuration(Number(part.duration_ms || 0) / 1000)} · ${formatMoney(part.spent ?? part.cost)}` : `Draft speech · revision ${part.revision || 1}`}</p></>}</div>
       <div className="inspector-summary-actions">
         {part.filename && <Button variant="outline" size="icon" aria-label={currentPlaying ? "Pause current part" : "Play current part"} onClick={() => onPlay({ key: currentKey, url: audioUrl(part.filename!), title: formatPartLabel(part.position ?? 0), subtitle: asset ? "Linked Venture asset" : voiceName, kind: asset ? "asset" : "clip" })}>{currentPlaying ? <Pause /> : <Play />}</Button>}
         {!silence && !asset && <Button variant="outline" onClick={() => onRecordPart(part)}><Pencil /> Edit in Composer</Button>}

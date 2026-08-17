@@ -24,7 +24,7 @@ export function filterProductionParts(parts: ProductionPart[], issuePartIds: Set
   const query = filters.query.trim().toLocaleLowerCase()
   const sourceParts = parts.filter((part) => part.kind !== "stitch")
   return sourceParts.filter((part, index) => {
-    const haystack = [`part ${index + 1}`, index + 1, part.authored_role, part.text, part.title, part.voice_name, part.voice].filter(Boolean).join(" ").toLocaleLowerCase()
+    const haystack = [`part ${index + 1}`, index + 1, part.authored_role, part.text, part.title, part.voice_name, part.voice, part.capability_name, part.engine, part.language].filter(Boolean).join(" ").toLocaleLowerCase()
     if (query && !haystack.includes(query)) return false
     if (filters.drafts && !(part.kind === "draft" || (part.kind === "speech" && !part.clip_id))) return false
     if (filters.issues && !issuePartIds.has(part.id)) return false

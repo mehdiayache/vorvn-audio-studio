@@ -98,11 +98,13 @@ class ProductionSpeechCommandRepository:
         cursor.execute("""
             INSERT INTO production_parts
                 (production_id, position, kind, script, title,
-                 editorial_status, revision)
-            VALUES (%s, %s, 'speech', %s, %s, 'draft', 1)
+                 editorial_status, revision, authored_role)
+            VALUES (%s, %s, 'speech', %s, %s, 'draft', 1, %s)
             RETURNING id
         """, (production_id, position, canonical_script,
-              payload.get("title") or ""))
+              payload.get("title") or "",
+              " ".join(str(payload.get("authored_role") or "").split())
+              or None))
         return int(cursor.fetchone()[0]), 1, canonical_script
 
     @staticmethod

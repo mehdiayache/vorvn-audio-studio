@@ -1,0 +1,7 @@
+.story-role-trigger { max-width: 210px; color: var(--muted-foreground); }
+.story-role-trigger svg { width: 14px; height: 14px; }
+.story-role-popover { width: 310px; }
+.story-role-popover form { display: grid; gap: 10px; }
+.story-role-popover label { color: var(--foreground); font-size: var(--type-small); font-weight: 700; }
+.story-role-popover small { color: var(--muted-foreground); font-size: var(--type-caption); line-height: 1.45; }
+.story-role-popover form > div { display: flex; justify-content: flex-end; gap: 6px; }

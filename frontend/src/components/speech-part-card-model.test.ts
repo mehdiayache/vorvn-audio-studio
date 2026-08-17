@@ -59,6 +59,34 @@ describe("speechPartCardFacts", () => {
     expect(facts.exactModel).toBe("")
   })
 
+  it("resolves a saved Draft method from its exact registry route", () => {
+    const routeDirectory = {
+      ...directory,
+      registry: {
+        bindings: [{
+          binding_id: "binding-cosy", catalogue_voice_id: null,
+          provider: "alibaba", engine: "cosyvoice", tier: "plus",
+          model_id: "cosyvoice-v3-plus", capabilities: [{
+            id: "controlled_exact", name: "Controlled exact reading",
+          }],
+        }],
+      },
+    } as unknown as VoiceDirectory
+    const facts = speechPartCardFacts({
+      part: part({
+        kind: "draft", clip_id: null, filename: "", engine: undefined,
+        model: undefined, tier: null, provider: null,
+        binding_id: "binding-cosy", capability_id: "controlled_exact",
+        capability_name: null, language: "English",
+      }),
+      speechJob: null,
+      directory: routeDirectory,
+    })
+
+    expect(facts.methodLine).toBe("CosyVoice V3 Plus · Plus · Controlled exact reading · EN")
+    expect(facts.exactModel).toBe("cosyvoice-v3-plus")
+  })
+
   it("never infers selected input truth from populated text variants", () => {
     const historical = part({ recording_text_state: null, clip_tagged_text: "<happy>Tagged</happy>" })
     const facts = speechPartCardFacts({ part: historical, speechJob: null, directory })

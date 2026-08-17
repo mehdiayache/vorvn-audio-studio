@@ -93,12 +93,13 @@ class DeliveryState(BaseModel):
 
 class OutputState(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    format: Literal["mp3", "wav"] = "mp3"
+    format: Literal["mp3", "mp3-24k", "wav", "opus"] = "mp3"
     language: str = Field(default="Auto", min_length=1, max_length=80)
 
 
 class ComposerState(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    authored_role: str | None = Field(default=None, max_length=120)
     voice_identity_id: str | None = None
     route: RouteState | None = None
     text: TextState

@@ -1,7 +1,7 @@
 import { durableOperationTruth } from "@/lib/operation-language"
 import { resolveSpeechModel } from "@/components/speech-model-identity"
 import { formatMoney, partDurationMs } from "@/lib/format"
-import { resolveVoice, type ResolvedVoice } from "@/lib/voice"
+import { resolveRequestRoute, resolveVoice, type ResolvedVoice } from "@/lib/voice"
 import type { DurableJob, GenerateResult, ProductionPart, VoiceDirectory } from "@/types/domain"
 
 export type SpeechPartAlert = {
@@ -109,6 +109,9 @@ function languageCode(value?: string | null) {
 
 function selectedCapability(part: ProductionPart, directory: VoiceDirectory) {
   if (part.capability_name) return part.capability_name
+  const route = resolveRequestRoute({ binding_id: part.binding_id || null, catalogue_voice_id: part.catalogue_voice_id || null }, directory)
+  const routeCapability = (route?.capabilities || []).find((item) => item.id === part.capability_id)
+  if (routeCapability?.name) return routeCapability.name
   const configured = part.engine ? directory.config?.capabilities?.[part.engine] : null
   return configured?.operator_title || configured?.label || humanize(part.capability_id)
 }
@@ -154,12 +157,13 @@ export function speechPartCardFacts({ part, speechJob, captionJob, directory }: 
 }): SpeechPartCardFacts {
   const recorded = Boolean(part.clip_id)
   const script = displayedScript(part, recorded)
+  const route = resolveRequestRoute({ binding_id: part.binding_id || null, catalogue_voice_id: part.catalogue_voice_id || null }, directory)
   const displayVoice = part.catalogue_voice_id || part.voice || part.voice_name
   const voice = resolveVoice(displayVoice, directory, part.voice_identity_id)
-  const model = resolveSpeechModel({ engine: part.engine, tier: part.tier, model: part.model, config: directory.config })
+  const model = resolveSpeechModel({ provider: part.provider || route?.provider, engine: part.engine || route?.engine, tier: part.tier || route?.tier, model: part.model || route?.model_id, config: directory.config })
   const capability = selectedCapability(part, directory)
   const family = FAMILY_LABELS[String(model.engine || "")] || model.product
-  const hasRecordingMethod = Boolean(part.engine || part.model || part.tier || part.provider || part.binding_id || part.capability_id)
+  const hasRecordingMethod = Boolean(route || part.engine || part.model || part.tier || part.provider || part.binding_id || part.capability_id)
   const methodLine = hasRecordingMethod
     ? [family, model.tierName, capability, languageCode(part.language)].filter(Boolean).join(" · ")
     : ["Recording method not chosen", languageCode(part.language)].filter(Boolean).join(" · ")

@@ -12,6 +12,7 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
   const [transcript, setTranscript] = useState<Transcript | null>(null)
   const [loading, setLoading] = useState(false)
   const [captionBusy, setCaptionBusy] = useState<"transcribe" | "translate" | null>(null)
+  const [roleBusy, setRoleBusy] = useState(false)
   const [captionConfirmation, setCaptionConfirmation] = useState<CaptionConfirmation | null>(null)
   const [message, setMessage] = useState("")
   const [captionJobId, setCaptionJobId] = useJobQuery("part-caption-job")
@@ -115,5 +116,26 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
     else await makeCaptions(captionJobForPart?.context?.language)
   }, [captionJobForPart?.context?.language, captionJobForPart?.context?.target, captionJobForPart?.type, makeCaptions, translate])
 
-  return { captions, transcript, loading, captionBusy, captionConfirmation, captionJob: captionJobForPart, message, selectTranscript, makeCaptions, translate, confirmCaptionAction, cancelCaptionAction: () => setCaptionConfirmation(null), retryCaptionJob, dismissCaptionJob: () => setCaptionJobId(null) }
+  const saveRole = useCallback(async (value: string) => {
+    if (!part) return
+    const authoredRole = value.trim().replace(/\s+/g, " ")
+    if (authoredRole === String(part.authored_role || "").trim().replace(/\s+/g, " ")) return
+    setRoleBusy(true)
+    setMessage("Saving story role…")
+    try {
+      await studioApi.savePartEditorial(productionId, part.id, {
+        expected_revision: part.revision || 1,
+        authored_role: authoredRole || null,
+      })
+      await onChanged()
+      setMessage(authoredRole ? `Story role saved as ${authoredRole}.` : "Story role removed.")
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The story role could not be saved.")
+      throw error
+    } finally {
+      setRoleBusy(false)
+    }
+  }, [onChanged, part, productionId])
+
+  return { captions, transcript, loading, captionBusy, roleBusy, captionConfirmation, captionJob: captionJobForPart, message, selectTranscript, makeCaptions, translate, saveRole, confirmCaptionAction, cancelCaptionAction: () => setCaptionConfirmation(null), retryCaptionJob, dismissCaptionJob: () => setCaptionJobId(null) }
 }

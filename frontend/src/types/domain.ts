@@ -67,6 +67,7 @@ export type ProductionPart = {
   text_shaped?: string
   text_tagged?: string
   text_state?: "raw" | "shaped" | "tagged" | string
+  spoken_profile?: "spoken_1" | "spoken_2" | null
   voice?: string
   voice_name?: string
   clip_public_id?: string | null

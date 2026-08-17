@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { PartInspectorDetails } from "./part-inspector-details"
@@ -23,6 +23,15 @@ const part = {
 } as ProductionPart
 
 describe("Part Inspector panels", () => {
+  it("shows and edits the authored story role as Part metadata", async () => {
+    const onSaveRole = vi.fn().mockResolvedValue(undefined)
+    render(<PartInspectorScript part={{ ...part, authored_role: "Narrator" }} directory={directory} currentPlaying={false} onSaveRole={onSaveRole} onPlay={vi.fn()} onRecordPart={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
+    fireEvent.click(screen.getByRole("button", { name: "Narrator" }))
+    fireEvent.change(screen.getByLabelText("Story role"), { target: { value: "Esther" } })
+    fireEvent.click(screen.getByRole("button", { name: "Save role" }))
+    await waitFor(() => expect(onSaveRole).toHaveBeenCalledWith("Esther"))
+  })
+
   it("separates canonical Part script from immutable recorded wording", () => {
     render(<PartInspectorScript part={part} directory={directory} currentPlaying={false} onPlay={vi.fn()} onRecordPart={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
     expect(screen.getByText("Canonical Part script")).toBeTruthy()

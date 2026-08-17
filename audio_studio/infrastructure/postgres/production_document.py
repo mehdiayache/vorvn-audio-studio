@@ -317,6 +317,11 @@ class ProductionDocumentRepository:
                 "text_tagged": recording_tagged,
                 "text_state": (recording_text_state
                                or draft.get("text_state", "raw")),
+                "spoken_profile": (job_payload.get("spoken_profile")
+                                   if has_clip else
+                                   draft.get("spoken_profile")
+                                   or job_payload.get("spoken_profile")
+                                   or "spoken_1"),
                 "voice_identity_id": (row[18] if has_clip else
                                       draft.get("voice_identity_id") or job_payload.get("voice_identity_id")),
                 "voice": ((row[19] or snapshot.get("voice") or "") if has_clip else
@@ -362,13 +367,16 @@ class ProductionDocumentRepository:
                 "size_bytes": int(row[25] or 0), "cost": _float(row[26]),
                 "spent": _float(row[33]), "cost_basis": row[28],
                 "capability_id": ((row[31] or snapshot.get("capability_id")) if has_clip else
-                                 job_payload.get("capability_id")),
+                                 draft.get("capability_id")
+                                 or job_payload.get("capability_id")),
                 "capability_name": ((row[82] or snapshot.get("capability_name")) if has_clip else
                                    job_payload.get("capability_name")),
                 "binding_id": ((str(row[39]) if row[39] else None) if has_clip else
-                               job_payload.get("binding_id")),
+                               draft.get("binding_id")
+                               or job_payload.get("binding_id")),
                 "catalogue_voice_id": (row[40] if has_clip else
-                                       job_payload.get("catalogue_voice_id")),
+                                       draft.get("catalogue_voice_id")
+                                       or job_payload.get("catalogue_voice_id")),
                 "subtitled": bool(row[36]), "subtitles_stale": bool(row[37]),
                 "languages": sorted(set(row[38] or [])),
                 "caption_source_language": row[83],
@@ -451,14 +459,15 @@ class ProductionDocumentRepository:
             cursor.execute("""
                 INSERT INTO production_parts
                     (production_id, position, kind, script, title,
-                     editorial_status, asset_id, asset_version_id, duration_ms)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     editorial_status, asset_id, asset_version_id, duration_ms,
+                     authored_role)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """, (production_id, position, kind, script,
                   str(values.get("title") or ""),
                   "draft" if kind == "draft" else "ready",
                   values.get("asset_id"), values.get("asset_version_id"),
-                  values.get("duration_ms")))
+                  values.get("duration_ms"), values.get("authored_role")))
             part_id = int(cursor.fetchone()[0])
             if kind == "draft":
                 cursor.execute("""

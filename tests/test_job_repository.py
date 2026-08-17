@@ -110,6 +110,7 @@ class JobRepositoryTests(unittest.TestCase):
                 request = {
                     "text": "Prepared provider text",
                     "text_raw": "Canonical Part script",
+                    "authored_role": "Night Guide",
                     "voice": "Cherry",
                     "catalogue_voice_id":
                         "alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
@@ -129,13 +130,14 @@ class JobRepositoryTests(unittest.TestCase):
                 self.assertIsNotNone(job.part_id)
                 cursor.execute("""
                     SELECT position, kind, script, editorial_status, revision,
+                           authored_role,
                            (SELECT clip.id FROM clips clip
                              WHERE clip.part_id = production_parts.id)
                       FROM production_parts WHERE id=%s
                 """, (job.part_id,))
                 self.assertEqual(cursor.fetchone(), (
                     anchor_position, "speech", "Canonical Part script",
-                    "draft", 1, None))
+                    "draft", 1, "Night Guide", None))
                 cursor.execute(
                     "SELECT position FROM production_parts WHERE id=%s",
                     (anchor_id,))

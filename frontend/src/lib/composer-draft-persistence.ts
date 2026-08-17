@@ -10,6 +10,7 @@ export type ComposerDraftRecord = {
 export type ComposerDraftWireRecord = {
   id: string
   state: {
+    authored_role?: string | null
     voice_identity_id: string | null
     route: { kind: "owned" | "catalogue"; binding_id: string | null; catalogue_voice_id: string | null; capability_id: string | null } | null
     text: RecoverableCompositionDraft["text"]
@@ -52,6 +53,7 @@ function routeFromWire(route: ComposerDraftWireRecord["state"]["route"]): RouteS
 
 export function draftWire(draft: RecoverableCompositionDraft): ComposerDraftWireRecord["state"] {
   return {
+    authored_role: draft.authoredRole?.trim().replace(/\s+/g, " ") || null,
     voice_identity_id: draft.voiceIdentityId,
     route: routeWire(draft.route),
     text: draft.text,
@@ -81,6 +83,7 @@ export function draftFromWire(record: ComposerDraftWireRecord): ComposerDraftRec
     version: record.version,
     updatedAt: record.updated_at,
     state: {
+      authoredRole: record.state.authored_role || "",
       voiceIdentityId: record.state.voice_identity_id,
       route: routeFromWire(record.state.route),
       text: record.state.text,
@@ -107,7 +110,7 @@ export function draftFromWire(record: ComposerDraftWireRecord): ComposerDraftRec
 
 export function meaningfulDraft(draft: RecoverableCompositionDraft) {
   return Boolean(
-    draft.voiceIdentityId || draft.route
+    draft.authoredRole || draft.voiceIdentityId || draft.route
     || draft.text.raw || draft.text.shaped || draft.text.tagged
     || draft.textPreparation.pendingReview || draft.textPreparation.tagDensity !== "normal"
     || draft.textPreparation.spokenProfile !== "spoken_1"

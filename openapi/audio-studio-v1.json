@@ -1020,6 +1020,18 @@
       "ComposerState": {
         "additionalProperties": false,
         "properties": {
+          "authored_role": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authored Role"
+          },
           "delivery": {
             "$ref": "#/components/schemas/DeliveryState"
           },
@@ -1308,6 +1320,18 @@
       "DraftBody": {
         "additionalProperties": false,
         "properties": {
+          "authored_role": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authored Role"
+          },
           "binding_id": {
             "anyOf": [
               {
@@ -1344,6 +1368,11 @@
           "confirmed": {
             "default": false,
             "title": "Confirmed",
+            "type": "boolean"
+          },
+          "enable_ssml": {
+            "default": false,
+            "title": "Enable Ssml",
             "type": "boolean"
           },
           "format": {
@@ -1390,6 +1419,15 @@
           "speech_mode": {
             "default": "exact",
             "title": "Speech Mode",
+            "type": "string"
+          },
+          "spoken_profile": {
+            "default": "spoken_1",
+            "enum": [
+              "spoken_1",
+              "spoken_2"
+            ],
+            "title": "Spoken Profile",
             "type": "string"
           },
           "text": {
@@ -2664,7 +2702,9 @@
             "default": "mp3",
             "enum": [
               "mp3",
-              "wav"
+              "mp3-24k",
+              "wav",
+              "opus"
             ],
             "title": "Format",
             "type": "string"
@@ -5692,6 +5732,18 @@
       "SpeechJobCreate": {
         "additionalProperties": false,
         "properties": {
+          "authored_role": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authored Role"
+          },
           "binding_id": {
             "anyOf": [
               {

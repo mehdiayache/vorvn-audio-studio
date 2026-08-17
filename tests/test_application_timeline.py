@@ -155,14 +155,19 @@ class TimelineServiceTests(unittest.TestCase):
     def test_draft_preserves_composer_settings_without_provider_work(self):
         self.service.add_draft(6, {
             "text": "  Rest now  ", "voice": "custom:serenity",
+            "authored_role": "  Night   Guide  ",
+            "spoken_profile": "spoken_2", "enable_ssml": True,
             "voice_identity_id": "voice-1", "engine": "audio",
             "model": "flash",
             "insert_before_part_id": "part-before",
         })
         _, values, before_part_id = self.records.created[0]
-        self.assertEqual((values["text"], values["voice_identity_id"],
-                          values["kind"], before_part_id),
-                         ("Rest now", "voice-1", "draft", "part-before"))
+        self.assertEqual((values["text"], values["authored_role"],
+                          values["spoken_profile"], values["enable_ssml"],
+                          values["voice_identity_id"], values["kind"],
+                          before_part_id),
+                         ("Rest now", "Night Guide", "spoken_2", True,
+                          "voice-1", "draft", "part-before"))
 
     def test_music_and_clip_enforce_venture_library_semantics(self):
         self.records.allow_asset = False
