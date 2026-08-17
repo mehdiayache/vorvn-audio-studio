@@ -1,6 +1,7 @@
 """CosyVoice V3 Plus contract tests; every provider call is faked."""
 
 from types import SimpleNamespace
+import json
 import unittest
 from unittest.mock import patch
 
@@ -62,23 +63,65 @@ class CosyVoiceTests(unittest.TestCase):
 
     def test_word_timestamp_events_are_preserved_in_diagnostics(self):
         collector = cosyvoice._CosyVoiceCollector()
-        collector.on_event({
-            "output": {"sentence": {"words": [{
-                "text": "Hello", "begin_time": 0, "end_time": 420,
-                "begin_index": 0, "end_index": 5,
-            }]}}
-        })
-        collector.on_event({
-            "output": {"sentence": {"words": [
-                {"text": "Hello", "begin_time": 0, "end_time": 440,
-                 "begin_index": 0, "end_index": 5},
-                {"text": " world", "begin_time": 480, "end_time": 900,
-                 "begin_index": 5, "end_index": 11},
-            ]}}
-        })
+        partial = {
+            "payload": {
+                "output": {
+                    "type": "sentence-synthesis",
+                    "sentence": {
+                        "index": 0,
+                        "words": [{
+                            "text": "Hello", "begin_time": 0,
+                            "end_time": 420,
+                        }],
+                    },
+                },
+            },
+        }
+        final = {
+            "payload": {
+                "output": {
+                    "type": "sentence-end",
+                    "sentence": {
+                        "index": 0,
+                        "words": [
+                            {"text": "Hello", "begin_time": 0,
+                             "end_time": 440},
+                            {"text": "world", "begin_time": 480,
+                             "end_time": 900},
+                        ],
+                    },
+                },
+            },
+        }
+        collector.on_event(partial)
+        collector.on_event(json.dumps(final))
         self.assertEqual(len(collector.word_timestamps), 2)
         self.assertEqual(collector.word_timestamps[0]["text"], "Hello")
         self.assertEqual(collector.word_timestamps[0]["end_time"], 440)
+        self.assertEqual(collector.word_timestamps[1]["word_index"], 1)
+
+    def test_repeated_words_without_character_indexes_are_not_collapsed(self):
+        collector = cosyvoice._CosyVoiceCollector()
+        for sentence_index, begin in ((0, 0), (1, 500)):
+            collector.on_event({"payload": {"output": {
+                "type": "sentence-end", "sentence": {
+                    "index": sentence_index,
+                    "words": [
+                        {"text": "rest", "begin_time": begin,
+                         "end_time": begin + 200},
+                        {"text": "rest", "begin_time": begin + 220,
+                         "end_time": begin + 420},
+                    ],
+                },
+            }}})
+        self.assertEqual(
+            [row["text"] for row in collector.word_timestamps],
+            ["rest", "rest", "rest", "rest"],
+        )
+        self.assertEqual(
+            [row["sentence_index"] for row in collector.word_timestamps],
+            [0, 0, 1, 1],
+        )
 
     def test_transport_failure_is_not_automatically_retried(self):
         planned = cosyvoice.CosyVoicePlan((("hello",),))

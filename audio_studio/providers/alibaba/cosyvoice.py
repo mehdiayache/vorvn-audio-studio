@@ -62,42 +62,19 @@ def plan(text: str, *, ssml: bool = False) -> CosyVoicePlan:
     return CosyVoicePlan(tuple(tuple(session) for session in sessions))
 
 
-def _word_rows(value) -> list[dict]:
-    rows: list[dict] = []
-    if isinstance(value, dict):
-        words = value.get("words")
-        if isinstance(words, list):
-            for word in words:
-                if not isinstance(word, dict):
-                    continue
-                rows.append({
-                    key: word.get(key) for key in
-                    ("text", "begin_time", "end_time", "begin_index", "end_index")
-                    if word.get(key) is not None
-                })
-        for child in value.values():
-            rows.extend(_word_rows(child))
-    elif isinstance(value, list):
-        for child in value:
-            rows.extend(_word_rows(child))
-    return rows
-
-
 class _CosyVoiceCollector(ResultCallback):
     def __init__(self):
         self.audio = bytearray()
         self.error: str | None = None
-        self._word_timestamps: dict[tuple, dict] = {}
+        self._sentences: dict[int, list[dict]] = {}
 
     @property
     def word_timestamps(self) -> list[dict]:
-        return sorted(
-            self._word_timestamps.values(),
-            key=lambda item: (
-                int(item.get("begin_index") or 0),
-                int(item.get("begin_time") or 0),
-            ),
-        )
+        return [
+            row
+            for sentence_index in sorted(self._sentences)
+            for row in self._sentences[sentence_index]
+        ]
 
     def on_data(self, data: bytes) -> None:
         self.audio.extend(data)
@@ -110,14 +87,45 @@ class _CosyVoiceCollector(ResultCallback):
             payload = json.loads(message) if isinstance(message, str) else message
         except (TypeError, json.JSONDecodeError):
             return
-        # Result-generated events are cumulative and may revise a word's end
-        # timing. Keep one latest provider row per script span instead of
-        # persisting every intermediate repetition.
-        for row in _word_rows(payload):
-            key = (
-                row.get("begin_index"), row.get("end_index"), row.get("text"),
-            )
-            self._word_timestamps[key] = row
+        if not isinstance(payload, dict):
+            return
+        envelope = payload.get("payload")
+        if not isinstance(envelope, dict):
+            return
+        output = envelope.get("output")
+        if not isinstance(output, dict):
+            return
+        sentence = output.get("sentence")
+        if not isinstance(sentence, dict) or not isinstance(
+                sentence.get("index"), int):
+            return
+        words = sentence.get("words")
+        if not isinstance(words, list) or not words:
+            return
+        rows = []
+        for word_index, word in enumerate(words):
+            if not isinstance(word, dict):
+                continue
+            begin = word.get("begin_time")
+            end = word.get("end_time")
+            if not isinstance(begin, (int, float)) or not isinstance(
+                    end, (int, float)) or end < begin:
+                continue
+            rows.append({
+                key: value for key, value in {
+                    "text": word.get("text"),
+                    "begin_time": begin,
+                    "end_time": end,
+                    "begin_index": word.get("begin_index"),
+                    "end_index": word.get("end_index"),
+                    "sentence_index": sentence["index"],
+                    "word_index": word_index,
+                }.items() if value is not None
+            })
+        if rows:
+            # Alibaba may emit partial rows before sentence-end. The latest
+            # list for one documented sentence index is the authoritative one.
+            self._sentences[sentence["index"]] = rows
 
 
 def _language_hints(language: str | None) -> list[str] | None:
