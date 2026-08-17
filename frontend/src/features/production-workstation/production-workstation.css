@@ -52,7 +52,7 @@
 .ws-right-pane > header { min-height: 3.15rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .55rem .7rem .55rem 1rem; border-bottom: 1px solid var(--border); }
 .ws-right-pane > header h2 { overflow: hidden; font-size: .84rem; text-overflow: ellipsis; white-space: nowrap; }
 .ws-inspector-content { min-height: 0; overflow: auto; }
-.production-workstation .production-transport-host { right: .75rem; left: calc(var(--ws-left) + 1.4rem); padding-inline: 0; transition: right 200ms ease; }
+.production-workstation .production-transport-host { right: .75rem; bottom: 0; left: calc(var(--ws-left) + 1.4rem); padding-inline: 0; transition: right 200ms ease; }
 .production-workstation[data-inspector-open="true"] .production-transport-host { right: calc(var(--ws-right) + 1.4rem); }
 .production-workstation .transport-strip.is-production { max-width: 100%; }
 .ws-inspector-content .production-composer-stage { min-height: 100%; }

@@ -64,7 +64,15 @@ export function TransportStripView({ source, state, currentTime, duration, volum
     <Volume1 className="transport-strip-volume-icon" aria-hidden="true" />
     <Slider className="transport-strip-volume" value={[volume]} max={1} step={0.02} onValueChange={([value = 0]) => onVolume(value)} aria-label="Playback volume" />
     <Button className="transport-strip-speed" variant="ghost" size="sm" onClick={() => onSpeed(speed >= 2 ? 0.75 : speed + 0.25)} aria-label={`Playback speed ${speed.toFixed(2)} times`}>{speed.toFixed(2).replace(/\.00$/, "")}×</Button>
-    {captionTracks.length > 0 && <Button variant="ghost" size="icon" className={captionsEnabled ? "transport-cc is-on" : "transport-cc"} aria-label={captionsEnabled ? "Hide captions" : "Show captions"} aria-pressed={captionsEnabled} onClick={onToggleCaptions}><Captions /></Button>}
+    <Button
+      variant="ghost"
+      size="icon"
+      className={captionsEnabled ? "transport-cc is-on" : "transport-cc"}
+      aria-label={captionTracks.length ? captionsEnabled ? "Hide captions" : "Show captions" : "Captions unavailable"}
+      aria-pressed={captionTracks.length ? captionsEnabled : undefined}
+      disabled={!captionTracks.length}
+      onClick={onToggleCaptions}
+    ><Captions /></Button>
     {source.kind !== "production" && <Button variant="ghost" size="icon" asChild><a href={source.url} download aria-label={`Download ${source.title}`}><Download /></a></Button>}
     <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close audio player"><X /></Button>
     {state === "error" && <p className="transport-strip-error" role="alert">This audio could not be played.</p>}

@@ -83,6 +83,11 @@ describe("TransportStrip", () => {
     expect(screen.queryByRole("menu")).toBeNull()
   })
 
+  it("keeps the caption control visible but muted when no caption track exists", () => {
+    render(<TransportStripView {...props} />)
+    expect(screen.getByRole("button", { name: "Captions unavailable" }).hasAttribute("disabled")).toBe(true)
+  })
+
   it("keeps language, display mode and cue context inside the caption panel", async () => {
     const onCaptionTrack = vi.fn()
     const onCaptionProfile = vi.fn()
