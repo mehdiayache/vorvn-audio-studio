@@ -8,17 +8,21 @@ import { moveSelectionToPosition } from "@/lib/production-order"
 import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, PartEditorialUpdate, PlayerSource, Production, ProductionPart, VentureAsset } from "@/types/domain"
 
 type Player = ReturnType<typeof usePlayer>
+export type ProductionMutationStatus = "idle" | "saving" | "saved"
 
-export function useProductionActions({ production, music, player, refresh, refreshAssets, preparePlayerSource }: {
+export function useProductionActions({ production, music, player, refresh, refreshAssets, preparePlayerSource, feedbackMode = "toast" }: {
   production: Production
   music: MusicBed
   player: Player
   refresh: () => Promise<void>
   refreshAssets: () => Promise<void>
   preparePlayerSource?: (source: PlayerSource) => Promise<PlayerSource>
+  feedbackMode?: "toast" | "inline"
 }) {
   const [previewing, setPreviewing] = useState(false)
   const [previewRevision, setPreviewRevision] = useState(0)
+  const [mutationStatus, setMutationStatus] = useState<ProductionMutationStatus>("idle")
+  const mutationFeedbackTimer = useRef<number | null>(null)
   const [exportJobId, setExportJobId] = useState<string | null>(production.export_job?.id || null)
   const observedExportJob = useJobExecution<{ url?: string; name?: string; error?: string }>(exportJobId)
   const exportJob = observedExportJob || production.export_job || null
@@ -47,18 +51,31 @@ export function useProductionActions({ production, music, player, refresh, refre
     reportedExportJob.current = null
   }, [production.id])
 
-  const mutate = useCallback(async (action: () => Promise<unknown>, success?: string) => {
+  useEffect(() => () => {
+    if (mutationFeedbackTimer.current !== null) window.clearTimeout(mutationFeedbackTimer.current)
+  }, [])
+
+  const mutate = useCallback(async (action: () => Promise<unknown>, success?: string, announce = false) => {
+    if (feedbackMode === "inline") {
+      if (mutationFeedbackTimer.current !== null) window.clearTimeout(mutationFeedbackTimer.current)
+      setMutationStatus("saving")
+    }
     try {
       await action()
       if (player.source?.kind === "production") player.pause()
       invalidatePreview()
-      if (success) toast.success(success)
+      if (success && (feedbackMode === "toast" || announce)) toast.success(success)
       await refresh()
+      if (feedbackMode === "inline") {
+        setMutationStatus("saved")
+        mutationFeedbackTimer.current = window.setTimeout(() => setMutationStatus("idle"), 1_800)
+      }
     } catch (error) {
+      if (feedbackMode === "inline") setMutationStatus("idle")
       toast.error(error instanceof Error ? error.message : "That change could not be saved.")
       throw error
     }
-  }, [invalidatePreview, player, refresh])
+  }, [feedbackMode, invalidatePreview, player, refresh])
 
   const preview = useCallback(async () => {
     setPreviewing(true)
@@ -69,7 +86,7 @@ export function useProductionActions({ production, music, player, refresh, refre
       const mixLabel = music.filename ? "with Music Bed" : "narration only"
       const source: PlayerSource = { key: previewKey, url: result.url, title: production.name, subtitle: skippedDrafts ? `Recorded mix · ${skippedDrafts} Draft${skippedDrafts === 1 ? "" : "s"} omitted · ${mixLabel}` : `Exact current mix · ${mixLabel}`, kind: "production" }
       await player.toggleSource(preparePlayerSource ? await preparePlayerSource(source) : source)
-      toast.success(skippedDrafts ? `Recorded preview loaded · ${skippedDrafts} Draft${skippedDrafts === 1 ? "" : "s"} omitted` : result.cached ? "Current preview loaded" : "Current preview prepared")
+      if (skippedDrafts) toast.warning(`Preview omits ${skippedDrafts} unrecorded Draft${skippedDrafts === 1 ? "" : "s"}.`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Preview failed.")
     } finally {
@@ -161,21 +178,21 @@ export function useProductionActions({ production, music, player, refresh, refre
 
   const setMusic = useCallback((changes: Partial<MusicBed>) => mutate(() => studioApi.setMusic(production.id, changes), "Music settings saved"), [mutate, production.id])
   const duplicatePart = useCallback((part: ProductionPart) => mutate(() => studioApi.duplicatePart(production.id, part.id), "Part duplicated"), [mutate, production.id])
-  const deletePart = useCallback((part: ProductionPart) => mutate(() => studioApi.deletePart(production.id, part.id), "Part permanently deleted"), [mutate, production.id])
+  const deletePart = useCallback((part: ProductionPart) => mutate(() => studioApi.deletePart(production.id, part.id), "Part permanently deleted", true), [mutate, production.id])
   const editSilence = useCallback((part: ProductionPart, seconds: number) => mutate(() => studioApi.editSilence(production.id, part.id, seconds), "Silence updated"), [mutate, production.id])
   const setPartEnabled = useCallback((part: ProductionPart, enabled: boolean) => mutate(() => studioApi.setPartEnabled(production.id, part.id, enabled), enabled ? "Part included" : "Part excluded"), [mutate, production.id])
-  const deleteParts = useCallback((ids: number[]) => mutate(() => studioApi.deleteParts(production.id, ids), "Parts permanently deleted"), [mutate, production.id])
+  const deleteParts = useCallback((ids: number[]) => mutate(() => studioApi.deleteParts(production.id, ids), "Parts permanently deleted", true), [mutate, production.id])
   const saveDraft = useCallback((payload: Omit<GeneratePayload, "confirmed">) => mutate(() => studioApi.saveDraft(payload), "Draft added"), [mutate])
   const addSilence = useCallback((seconds: number, beforePartId: string | null) => mutate(() => studioApi.addSilence(production.id, seconds, beforePartId), "Silence added"), [mutate, production.id])
   const insertAsset = useCallback((asset: VentureAsset, beforePartId: string | null) => mutate(() => studioApi.insertAsset(production.id, asset.id, beforePartId), "Library audio inserted"), [mutate, production.id])
   const replaceAsset = useCallback((part: ProductionPart, asset: VentureAsset) => mutate(() => studioApi.replaceAsset(production.id, part.id, asset.id), "Venture audio replaced"), [mutate, production.id])
   const setMusicAsset = useCallback((asset: VentureAsset) => mutate(() => studioApi.setMusic(production.id, { music_of: asset.id }), "Music bed selected"), [mutate, production.id])
-  const moveParts = useCallback((ids: number[], targetId: number, targetName: string) => mutate(() => studioApi.moveParts(production.id, ids, targetId), `Moved to ${targetName}`), [mutate, production.id])
+  const moveParts = useCallback((ids: number[], targetId: number, targetName: string) => mutate(() => studioApi.moveParts(production.id, ids, targetId), `Moved to ${targetName}`, true), [mutate, production.id])
   const uploadAsset = useCallback(async (collectionId: number, folder: string, file: File) => {
     await studioApi.uploadAsset(collectionId, file)
     await refreshAssets()
     toast.success(`${file.name} uploaded to ${folder}`)
   }, [refreshAssets])
 
-  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, setMusic, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, moveParts, uploadAsset }
+  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, mutationStatus, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, setMusic, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, moveParts, uploadAsset }
 }

@@ -151,7 +151,6 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   const ssmlValidation = enableSsml
     ? validateSsmlDocument(textSession.text)
     : { valid: true, message: "Plain text" }
-  const removeInlineTags = () => textSession.updateText(textSession.text.replace(/\[([^\[\]]{1,40})\]\s*/g, (match, tag: string) => documentedTags.has(tag.toLocaleLowerCase()) ? "" : match))
   const enableSsmlDocument = () => {
     textSession.updateText(wrapPlainTextAsSsml(textSession.text))
     setEnableSsml(true)
@@ -316,7 +315,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     recovery, performancePresets, methodLabel,
     setLanguage, setFormat, setDeliveryModeRequest, setInstruction, setRate, setPitch, setVolume, setSeed, setEnableSsml,
     setConfirmationEstimate, setPendingCommand, setEditorialCommand,
-    applyRoute, selectIdentity, removeInlineTags, enableSsmlDocument, usePlainText, payload, saveDraft, saveRole, executeGeneration, continueGeneration, generate,
+    applyRoute, selectIdentity, enableSsmlDocument, usePlainText, payload, saveDraft, saveRole, executeGeneration, continueGeneration, generate,
   }
 }
 

@@ -140,7 +140,7 @@ export function App() {
             <AppErrorBoundary>
               <AudioStudioSurface />
             </AppErrorBoundary>
-            <Toaster richColors position="top-right" />
+            <Toaster />
           </GlobalPlayerProvider>
         </ProductReadinessProvider>
       </TooltipProvider>

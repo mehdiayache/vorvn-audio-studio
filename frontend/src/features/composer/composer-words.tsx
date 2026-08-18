@@ -71,7 +71,7 @@ export function ComposerWords() {
       </div>
     </div>
     <div className="script-content-stack">
-      {composer.currentRoute && composer.taggedIncompatible && <div className="composer-warning"><b>Inline tags are not available with {composer.methodLabel}.</b><span>Your words remain unchanged until you choose what to do.</span><div>{text.states.shaped && <Button size="sm" variant="outline" onClick={() => text.select("shaped")}>Use Spoken version</Button>}{composer.hasInlineDeliveryTag && <Button size="sm" variant="outline" onClick={composer.removeInlineTags}>Remove inline tags</Button>}</div></div>}
+      {composer.currentRoute && composer.taggedIncompatible && <div className="composer-warning"><b>This recording method cannot record the current Tagged version.</b><span>Original and Spoken remain available. Nothing will be deleted.</span><div>{text.states.shaped && <Button size="sm" variant="outline" onClick={() => text.select("shaped")}>Use Spoken</Button>}<Button size="sm" variant="outline" onClick={() => { if (text.states.tagged) text.select("tagged"); setFocusMode(true) }}>Review tags</Button></div></div>}
       {composer.capabilityControls.ssml && !text.review && <div className="ssml-mode-row" aria-label="Script format">
         <div className="ssml-mode-actions">
           <Button variant={composer.enableSsml ? "ghost" : "secondary"} size="sm" aria-pressed={!composer.enableSsml} onClick={() => { if (composer.enableSsml) setPlainTextConfirmOpen(true) }}><FileText />Plain text</Button>

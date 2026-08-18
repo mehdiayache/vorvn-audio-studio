@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { toast } from "sonner"
 
 import { studioApi } from "@/lib/api"
 import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, Production, ProductionPart } from "@/types/domain"
@@ -9,7 +10,7 @@ import { useProductionActions } from "./use-production-actions"
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }))
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>()
-  return { ...actual, studioApi: { ...actual.studioApi, preview: vi.fn(), enqueueRecordPart: vi.fn(), savePartEditorial: vi.fn() } }
+  return { ...actual, studioApi: { ...actual.studioApi, preview: vi.fn(), enqueueRecordPart: vi.fn(), savePartEditorial: vi.fn(), editSilence: vi.fn(), deletePart: vi.fn() } }
 })
 
 const payload: GeneratePayload = {
@@ -111,5 +112,29 @@ describe("useProductionActions durable commands", () => {
     act(() => result.current.toggleProduction())
     await waitFor(() => expect(toggleSource).toHaveBeenCalledTimes(1))
     expect(toggleSource.mock.calls[0]?.[0].subtitle).toBe("Recorded mix · 43 Drafts omitted · narration only")
+    expect(toast.warning).toHaveBeenCalledWith("Preview omits 43 unrecorded Drafts.")
+    expect(toast.success).not.toHaveBeenCalled()
+  })
+
+  it("keeps micro-edit confirmation inline while announcing destructive changes", async () => {
+    vi.mocked(studioApi.editSilence).mockResolvedValue({ id: part.id } as never)
+    vi.mocked(studioApi.deletePart).mockResolvedValue({ deleted: true } as never)
+    const player = {
+      source: null, state: "idle", currentTime: 0, duration: 0, volume: 1, speed: 1,
+      toggleSource: vi.fn(), toggle: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      setVolume: vi.fn(), setSpeed: vi.fn(), close: vi.fn(),
+    }
+    const { result } = renderHook(() => useProductionActions({
+      production, music, player: player as never,
+      refresh: vi.fn().mockResolvedValue(undefined), refreshAssets: vi.fn(),
+      feedbackMode: "inline",
+    }))
+
+    await act(async () => { await result.current.editSilence(part, 2.5) })
+    expect(result.current.mutationStatus).toBe("saved")
+    expect(toast.success).not.toHaveBeenCalled()
+
+    await act(async () => { await result.current.deletePart(part) })
+    expect(toast.success).toHaveBeenCalledWith("Part permanently deleted")
   })
 })

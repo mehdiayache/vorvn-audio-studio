@@ -20,8 +20,8 @@ export function ComposerActions() {
     <footer className="composer-footer">
       <div className="composer-cost" role="status" aria-live="polite">
         <CircleDollarSign />
-        <span>{composer.taggedIncompatible ? `${composer.methodLabel} does not use inline tags` : ssmlInvalid ? "SSML needs attention" : `${composer.textSession.text.length.toLocaleString()} characters`}</span>
-        <b>{composer.taggedIncompatible ? "Open Words to remove tags" : ssmlInvalid ? "Fix the document before generating" : !composer.outputFormatSupported ? "Choose a supported file type" : composer.currentRoute ? `about $${composer.estimate.toFixed(4)}` : "Choose an exact route"}</b>
+        <span>{composer.taggedIncompatible ? "Tagged version needs a compatible method" : ssmlInvalid ? "SSML needs attention" : `${composer.textSession.text.length.toLocaleString()} characters`}</span>
+        <b>{composer.taggedIncompatible ? "Use Spoken or review the tags above" : ssmlInvalid ? "Fix the document before generating" : !composer.outputFormatSupported ? "Choose a supported file type" : composer.currentRoute ? `about $${composer.estimate.toFixed(4)}` : "Choose an exact route"}</b>
         {composer.recovery.status === "saving" && <small>Saving preparation…</small>}
         {composer.recovery.status === "saved" && <small>Preparation saved</small>}
         {composer.recovery.status === "conflict" && <span className="composer-conflict"><small className="composer-save-error">Draft changed in another view</small><Button size="sm" variant="outline" onClick={() => void composer.recovery.reload()}>Reload server draft</Button></span>}

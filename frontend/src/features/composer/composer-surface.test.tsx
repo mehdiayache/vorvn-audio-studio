@@ -86,6 +86,38 @@ describe("shared Composer contract", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Generate again" }).hasAttribute("disabled")).toBe(false))
   })
 
+  it("explains a Tagged incompatibility without deleting any script version", async () => {
+    const part = {
+      id: 73,
+      kind: "speech",
+      text: "[calm] The room becomes still.",
+      text_raw: "The room becomes still.",
+      text_shaped: "The room… becomes still.",
+      text_tagged: "[calm] The room becomes still.",
+      text_state: "tagged",
+      recording_text_state: "tagged",
+      clip_raw_text: "The room becomes still.",
+      clip_spoken_text: "The room… becomes still.",
+      clip_tagged_text: "[calm] The room becomes still.",
+      clip_id: 44,
+      revision: 1,
+      cost: 0,
+      created_at: "",
+      position: 0,
+      voice_identity_id: "identity-eva",
+      binding_id: "binding-eva-cosy",
+      capability_id: "controlled_exact",
+    } as ProductionPart
+    render(<ComposerSurface {...common} productionId={3} part={part} />)
+
+    expect(await screen.findByText("This recording method cannot record the current Tagged version.")).toBeTruthy()
+    expect(screen.getByText("Original and Spoken remain available. Nothing will be deleted.")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Generate again" }).hasAttribute("disabled")).toBe(true)
+    fireEvent.click(screen.getByRole("button", { name: "Use Spoken" }))
+    await waitFor(() => expect(screen.getByRole("button", { name: "Generate again" }).hasAttribute("disabled")).toBe(false))
+    expect(screen.getByRole("tab", { name: /Original/ })).toBeTruthy()
+  })
+
   it("converts plain recording input into a valid SSML document before generation", async () => {
     const onGenerate = vi.fn().mockResolvedValue({ id: "job-ssml" })
     const onUpdateEditorial = vi.fn().mockResolvedValue(undefined)
