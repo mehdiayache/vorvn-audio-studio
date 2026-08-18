@@ -240,8 +240,8 @@ export const studioApi = {
     const job = await studioApi.enqueueRender(id, "export")
     return waitForJob<{ url: string; name: string; error?: string }>(job.id)
   },
-  enqueueRender: async (id: number, operation: "preview" | "export") => {
-    const response = await request<{ data: DurableJob<{ url?: string; name?: string; error?: string }> }>("/api/v1/jobs/render", { method: "POST", headers: { "Idempotency-Key": `${operation}-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ production_id: id, operation }) })
+  enqueueRender: async (id: number, operation: "preview" | "export", allowIncomplete = false) => {
+    const response = await request<{ data: DurableJob<{ url?: string; name?: string; error?: string }> }>("/api/v1/jobs/render", { method: "POST", headers: { "Idempotency-Key": `${operation}-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ production_id: id, operation, allow_incomplete: operation === "export" && allowIncomplete }) })
     return registerJob(response.data)
   },
   reorder: (id: number, order: number[]) => request<TimelineReorderEnvelope>(`/api/v1/productions/${id}/parts/reorder`, { method: "POST", body: JSON.stringify({ order }) }).then((response) => response.data),

@@ -114,11 +114,13 @@ describe("Production Workstation", () => {
       part({ id: 2, position: 1, kind: "silence", title: "1.5", duration_ms: 1_500, clip_id: null }),
       part({ id: 3, position: 2, kind: "asset", title: "Door closes", duration_ms: 2_000, clip_id: 30 }),
     ]
-    render(<WorkstationSoundDesign session={sessionFor(scene(parts))} draftCount={0} onAddMusic={vi.fn()} />)
+    render(<WorkstationSoundDesign session={sessionFor(scene(parts))} onAddMusic={vi.fn()} />)
 
     expect(screen.getByRole("generic", { name: "Sequence track" }).textContent).toContain("Narrator")
     expect(screen.getByRole("generic", { name: "Sequence track" }).textContent).toContain("Door closes")
     expect(screen.getByRole("generic", { name: "Music track" }).textContent).toContain("Quiet room")
+    expect(screen.getByRole("button", { name: "Silence 1.5 seconds" }).className).toContain("ws-timeline-silence")
+    expect(screen.getByText("100%")).toBeTruthy()
   })
 
   it("presents linked audio as a reusable Venture asset instead of empty speech", () => {
@@ -143,7 +145,7 @@ describe("Production Workstation", () => {
     const soundScene = scene([story], 1_500_000)
     soundScene.document.tracks[0]!.clips[0]!.asset_name = "Long source"
     soundScene.resolved.tracks[0]!.clips[0]!.asset_name = "Long source"
-    const { container } = render(<WorkstationSoundDesign session={sessionFor(soundScene)} draftCount={0} onAddMusic={vi.fn()} />)
+    const { container } = render(<WorkstationSoundDesign session={sessionFor(soundScene)} onAddMusic={vi.fn()} />)
 
     expect((container.querySelector(".ws-timeline") as HTMLElement).style.width).toBe("1200px")
   })
@@ -151,7 +153,7 @@ describe("Production Workstation", () => {
   it("persists one document after a committed drag, never one update per frame", async () => {
     const soundScene = scene([part({ duration_ms: 120_000 })], 1_500_000)
     const onCommit = vi.fn().mockResolvedValue({ ...soundScene, revision: 2 })
-    const { container } = render(<WorkstationSoundDesign session={sessionFor(soundScene, onCommit)} draftCount={0} onAddMusic={vi.fn()} />)
+    const { container } = render(<WorkstationSoundDesign session={sessionFor(soundScene, onCommit)} onAddMusic={vi.fn()} />)
     const musicClip = container.querySelector(".ws-music-clip") as HTMLElement
     fireEvent.pointerDown(musicClip, { button: 0, clientX: 100 })
     fireEvent.pointerMove(window, { clientX: 120 })
@@ -166,7 +168,7 @@ describe("Production Workstation", () => {
     const onCommit = vi.fn().mockResolvedValue({ ...soundScene, revision: 2 })
     const session = sessionFor(soundScene, onCommit)
     const initialStart = session.currentClip("music", musicClipId)?.start_ms
-    const { container } = render(<WorkstationSoundDesign session={session} draftCount={0} onAddMusic={vi.fn()} />)
+    const { container } = render(<WorkstationSoundDesign session={session} onAddMusic={vi.fn()} />)
     const musicClip = container.querySelector(".ws-music-clip") as HTMLElement
 
     fireEvent.pointerDown(musicClip, { button: 0, clientX: 100 })

@@ -4913,6 +4913,11 @@
       "RenderJobCreate": {
         "additionalProperties": false,
         "properties": {
+          "allow_incomplete": {
+            "default": false,
+            "title": "Allow Incomplete",
+            "type": "boolean"
+          },
           "operation": {
             "enum": [
               "preview",

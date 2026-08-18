@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from audio_studio.domain.rendering import RenderError, silence_duration_seconds
+from audio_studio.domain.sound_scene import audible_sequence
 
 
 class ProjectWorkspace(Protocol):
@@ -15,9 +16,7 @@ def production_scene(editor: dict, sound_scene: dict) -> dict:
     """Project -> Tracks -> Clips view of one playable Production."""
     position = 0.0
     clips = []
-    for part in editor.get("parts") or []:
-        if not part.get("enabled", True) or part.get("kind") in ("draft", "stitch"):
-            continue
+    for part in audible_sequence(editor.get("parts") or []):
         if part.get("kind") == "silence":
             duration = silence_duration_seconds(part)
             file_url = f"silence://{part['id']}"

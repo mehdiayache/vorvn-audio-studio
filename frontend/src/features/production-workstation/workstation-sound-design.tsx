@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
-import { ChevronLeft, ChevronRight, Clock3, Music2, Pause, Play, Plus, Redo2, Undo2, Volume2, VolumeX } from "lucide-react"
+import { Clock3, Minus, Music2, Pause, Play, Plus, Redo2, Undo2, Volume2, VolumeX } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAudioPeaks } from "@/components/audio-waveform"
 import { audioUrl } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -82,7 +83,7 @@ function TrackLabels({ session, onAddMusic }: { session: SoundSceneSession; onAd
     <button className={selection?.kind === "part" ? "is-active" : ""} onClick={() => {
       const first = scene.resolved.sequence_projection.spans[0]
       session.select(first ? { kind: "part", id: first.part_id } : null)
-    }}><span className="ws-track-icon is-voice"><Volume2 /></span><span><b>Sequence</b><small>{scene.resolved.sequence_projection.spans.length} recorded Parts</small></span></button>
+    }}><span className="ws-track-icon is-voice"><Volume2 /></span><span><b>Sequence</b><small>{scene.resolved.sequence_projection.spans.length} audible Parts</small></span></button>
     <button className={selection?.kind === "clip" ? "is-active" : ""} onClick={() => music && musicClip ? session.select({ kind: "clip", trackId: music.id, clipId: musicClip.id }) : onAddMusic()}><span className="ws-track-icon is-music"><Music2 /></span><span><b>Music</b><small>{musicClip?.asset_name || "No music"}</small></span></button>
     {music && <button disabled={saving} className="ws-track-mute" aria-label={music.muted ? "Unmute Music" : "Mute Music"} onClick={() => void session.commitTrackMute(music.id, !music.muted)}>{music.muted ? <VolumeX /> : <Volume2 />}</button>}
     {!musicClip && <Button variant="outline" onClick={onAddMusic}><Plus /> Choose music</Button>}
@@ -100,9 +101,8 @@ export function SoundDesignOutline({ session, onAddMusic, onCollapse }: {
   </div>
 }
 
-export function WorkstationSoundDesign({ session, draftCount, onAddMusic }: {
+export function WorkstationSoundDesign({ session, onAddMusic }: {
   session: SoundSceneSession
-  draftCount: number
   onAddMusic: () => void
 }) {
   const { scene, engine: state, selection, playing, playhead, saving, error } = useSoundSceneSession(session)
@@ -112,7 +112,8 @@ export function WorkstationSoundDesign({ session, draftCount, onAddMusic }: {
   const marks = timeMarks(total)
   const trackById = new Map(state.tracks.map((track) => [track.id, track]))
   const sequence = trackById.get("sequence-projection")
-  const styleFor = (start: number, duration: number) => ({ left: `${start * pixelsPerSecond}px`, width: `${Math.max(duration * pixelsPerSecond, 18)}px` } as CSSProperties)
+  const styleFor = (start: number, duration: number, minimum = 18) => ({ left: `${start * pixelsPerSecond}px`, width: `${Math.max(duration * pixelsPerSecond, minimum)}px` } as CSSProperties)
+  const zoomPercent = Math.round(4_800 / state.samplesPerPixel * 100)
 
   function gesture(event: ReactPointerEvent, trackId: string, clipId: string, mode: "move" | "left" | "right") {
     if (event.button !== 0 || saving) return
@@ -163,17 +164,20 @@ export function WorkstationSoundDesign({ session, draftCount, onAddMusic }: {
 
   return <div className="ws-sound-canvas">
     <header className="ws-canvas-heading ws-sound-heading">
-      <div className="ws-heading-copy"><h2>Sound Design</h2><p>Shape the Music against the canonical Sequence.</p></div>
-      <div className="ws-timeline-tools">
-        <Button variant="ghost" size="icon-sm" onClick={() => void session.undo()} disabled={!scene.can_undo || saving} aria-label="Undo Sound Scene"><Undo2 /></Button>
-        <Button variant="ghost" size="icon-sm" onClick={() => void session.redo()} disabled={!scene.can_redo || saving} aria-label="Redo Sound Scene"><Redo2 /></Button>
-        <Button variant="ghost" size="icon-sm" onClick={() => session.zoomOut()} disabled={!state.canZoomOut} aria-label="Zoom out"><ChevronLeft /></Button>
-        <span>{Math.round(pixelsPerSecond)} px/s</span>
-        <Button variant="ghost" size="icon-sm" onClick={() => session.zoomIn()} disabled={!state.canZoomIn} aria-label="Zoom in"><ChevronRight /></Button>
+      <div className="ws-heading-copy"><h2>Sound Design</h2><p>Shape Music around the recorded Sequence.</p></div>
+      <TooltipProvider><div className="ws-timeline-tools">
+        <div className="ws-history-controls" aria-label="Sound Scene history">
+          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon-sm" onClick={() => void session.undo()} disabled={!scene.can_undo || saving} aria-label="Undo Sound Scene"><Undo2 /></Button></TooltipTrigger><TooltipContent>Undo last Sound edit</TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon-sm" onClick={() => void session.redo()} disabled={!scene.can_redo || saving} aria-label="Redo Sound Scene"><Redo2 /></Button></TooltipTrigger><TooltipContent>Redo Sound edit</TooltipContent></Tooltip>
+        </div>
+        <div className="ws-zoom-controls" aria-label="Timeline zoom">
+          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon-sm" onClick={() => session.zoomOut()} disabled={!state.canZoomOut} aria-label="Zoom out"><Minus /></Button></TooltipTrigger><TooltipContent>Show more time</TooltipContent></Tooltip>
+          <span aria-live="polite">{zoomPercent}%</span>
+          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon-sm" onClick={() => session.zoomIn()} disabled={!state.canZoomIn} aria-label="Zoom in"><Plus /></Button></TooltipTrigger><TooltipContent>Show more detail</TooltipContent></Tooltip>
+        </div>
         <Button onClick={() => void session.togglePlayback()} disabled={!scene.sequence_stem.url}>{playing ? <Pause /> : <Play />}{playing ? "Pause" : "Play scene"}</Button>
-      </div>
+      </div></TooltipProvider>
     </header>
-    {draftCount > 0 && <div className="ws-sound-draft-notice" role="status">{draftCount} unrecorded Draft{draftCount === 1 ? " is" : "s are"} not shown. Timing may expand when {draftCount === 1 ? "it is" : "they are"} recorded.</div>}
     <div className="ws-timeline-scroll">
       <div className="ws-timeline is-engine-backed" style={{ width }} onPointerDown={seek}>
         <div className="ws-ruler">{marks.map((mark) => <span key={mark} style={{ left: mark * pixelsPerSecond }}><i />{formatDuration(mark)}</span>)}</div>
@@ -183,9 +187,15 @@ export function WorkstationSoundDesign({ session, draftCount, onAddMusic }: {
             const enginePart = sequence?.clips.find((clip) => clip.id === `sequence:${span.part_public_id}`)
             const start = (enginePart?.startSample || 0) / 48_000
             const duration = (enginePart?.durationSamples || 0) / 48_000
+            if (span.silence) {
+              const visibleWidth = Math.max(duration * pixelsPerSecond, 2)
+              return <button key={span.part_public_id} className={cn("ws-timeline-silence", selection?.kind === "part" && selection.id === span.part_id && "is-selected")} style={styleFor(start, duration, 2)} aria-label={`Silence ${duration.toFixed(1)} seconds`} title={`Silence · ${duration.toFixed(1)}s`} onPointerDown={(event) => event.stopPropagation()} onClick={() => session.select({ kind: "part", id: span.part_id })}>
+                {visibleWidth >= 16 && <Clock3 aria-hidden="true" />}
+              </button>
+            }
             return <button key={span.part_public_id} className={cn("ws-timeline-clip", `is-${roleColor(span.role)}`, selection?.kind === "part" && selection.id === span.part_id && "is-selected")} style={styleFor(start, duration)} onPointerDown={(event) => event.stopPropagation()} onClick={() => session.select({ kind: "part", id: span.part_id })}>
-              {!span.silence && <CanvasWaveform url={span.filename ? audioUrl(span.filename) : undefined} className="ws-canvas-waveform" />}
-              <span className="ws-timeline-clip-label">{span.silence ? <Clock3 /> : <em>{String(Number(span.position ?? 0) + 1).padStart(2, "0")}</em>}<b>{span.silence ? "Silence" : span.role || span.voice_name || span.title || "Speech"}</b></span>
+              <CanvasWaveform url={span.filename ? audioUrl(span.filename) : undefined} className="ws-canvas-waveform" />
+              <span className="ws-timeline-clip-label"><em>{String(Number(span.position ?? 0) + 1).padStart(2, "0")}</em><b>{span.role || span.voice_name || span.title || "Speech"}</b></span>
             </button>
           })}
         </div>

@@ -47,14 +47,14 @@ describe("MixExportWorkspace", () => {
     expect(screen.queryByText("0% complete")).toBeNull()
   })
 
-  it("locates exact blockers and distinguishes a stale preview", () => {
-    const onLocatePart = vi.fn()
-    const blocked = { ...production, parts: [{ ...production.parts[0], kind: "draft", clip_id: null, filename: undefined }] } as Production
-    render(<MixExportWorkspace production={blocked} soundScene={soundScene} previewing={false} productionPlaying={false} previewReady={false} previewStale exportJob={null} onPreview={vi.fn()} onExport={vi.fn()} onLocatePart={onLocatePart} onOpenHealth={vi.fn()} exporting={false} />)
+  it("keeps planned Drafts nonblocking and makes incomplete export explicit", () => {
+    const onExport = vi.fn()
+    const planned = { ...production, parts: [production.parts[0]!, { ...production.parts[0], id: 13, position: 1, kind: "draft", clip_id: null, filename: undefined }] } as Production
+    render(<MixExportWorkspace production={planned} soundScene={soundScene} previewing={false} productionPlaying={false} previewReady={false} previewStale exportJob={null} onPreview={vi.fn()} onExport={onExport} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting={false} />)
     expect(screen.getByRole("button", { name: /Refresh preview/ })).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: /Part 1 · Speech not recorded/ }))
-    expect(onLocatePart).toHaveBeenCalledWith(12)
-    expect(screen.getByRole("button", { name: /Make MP3/ }).hasAttribute("disabled")).toBe(true)
+    expect(screen.queryByText(/blocking issue/)).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: /Export recorded audio/ }))
+    expect(onExport).toHaveBeenCalledOnce()
   })
 })
 
@@ -71,6 +71,6 @@ describe("productionMixReadiness", () => {
       { ...production.parts[0], id: 13, position: 1, kind: "asset", missing: true },
     ] } as Production)
     expect(result.ready).toBe(false)
-    expect(result.blocking.map((issue) => [issue.number, issue.title])).toEqual([[1, "Speech not recorded"], [2, "Linked media missing"]])
+    expect(result.blocking.map((issue) => [issue.number, issue.title])).toEqual([[2, "Linked media missing"]])
   })
 })

@@ -185,12 +185,13 @@ class RenderJobCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     production_id: int = Field(gt=0)
     operation: Literal["preview", "export"]
+    allow_incomplete: bool = False
 
 
 def _payload(job: Job) -> dict:
     context_keys = {
         "part_id", "production_id", "transcript_id", "target", "language",
-        "operation", "confirmed",
+        "operation", "confirmed", "allow_incomplete",
     }
     return {"id": str(job.public_id), "type": job.kind, "status": job.status,
             "progress": job.progress, "detail": job.detail,

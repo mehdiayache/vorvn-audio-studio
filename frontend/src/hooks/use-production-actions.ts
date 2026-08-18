@@ -9,6 +9,7 @@ import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, 
 
 type Player = ReturnType<typeof usePlayer>
 export type ProductionMutationStatus = "idle" | "saving" | "saved"
+const activeJob = (job: DurableJob<unknown> | null | undefined) => Boolean(job && ["queued", "running", "retrying"].includes(job.status))
 
 export function useProductionActions({ production, soundScene, player, refresh, refreshAssets, preparePlayerSource, feedbackMode = "toast" }: {
   production: Production
@@ -23,9 +24,9 @@ export function useProductionActions({ production, soundScene, player, refresh, 
   const [previewRevision, setPreviewRevision] = useState(0)
   const [mutationStatus, setMutationStatus] = useState<ProductionMutationStatus>("idle")
   const mutationFeedbackTimer = useRef<number | null>(null)
-  const [exportJobId, setExportJobId] = useState<string | null>(production.export_job?.id || null)
+  const [exportJobId, setExportJobId] = useState<string | null>(activeJob(production.export_job) ? production.export_job?.id || null : null)
   const observedExportJob = useJobExecution<{ url?: string; name?: string; error?: string }>(exportJobId)
-  const exportJob = observedExportJob || production.export_job || null
+  const exportJob = observedExportJob || (activeJob(production.export_job) ? production.export_job ?? null : null)
   const reportedExportJob = useRef<string | null>(null)
   const productionFingerprint = JSON.stringify({
     updatedAt: production.updated_at,
@@ -47,8 +48,9 @@ export function useProductionActions({ production, soundScene, player, refresh, 
   }, [invalidatePreview, player.source?.kind, productionFingerprint])
 
   useEffect(() => {
-    setExportJobId(production.export_job?.id || null)
-    reportedExportJob.current = null
+    const historical = production.export_job || null
+    setExportJobId(activeJob(historical) ? historical?.id || null : null)
+    reportedExportJob.current = activeJob(historical) ? null : historical?.id || null
   }, [production.id])
 
   useEffect(() => () => {
@@ -83,12 +85,10 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     try {
       const result = await studioApi.preview(production.id)
       if (!result.url) throw new Error("The preview did not return an audio file.")
-      const skippedDrafts = Number(result.skipped_drafts || 0)
       const music = soundScene.resolved.tracks.find((track) => track.kind === "music")
       const mixLabel = music?.clips.length && !music.muted ? "with Music" : "voice only"
-      const source: PlayerSource = { key: previewKey, url: result.url, title: production.name, subtitle: skippedDrafts ? `Recorded mix · ${skippedDrafts} Draft${skippedDrafts === 1 ? "" : "s"} omitted · ${mixLabel}` : `Exact current mix · ${mixLabel}`, kind: "production" }
+      const source: PlayerSource = { key: previewKey, url: result.url, title: production.name, subtitle: `Current audible mix · ${mixLabel}`, kind: "production" }
       await player.toggleSource(preparePlayerSource ? await preparePlayerSource(source) : source)
-      if (skippedDrafts) toast.warning(`Preview omits ${skippedDrafts} unrecorded Draft${skippedDrafts === 1 ? "" : "s"}.`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Preview failed.")
     } finally {
@@ -103,9 +103,9 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     void preview()
   }, [player, preview, previewKey, previewing])
 
-  const exportMp3 = useCallback(async () => {
+  const exportMp3 = useCallback(async (allowIncomplete = false) => {
     try {
-      const job = await studioApi.enqueueRender(production.id, "export")
+      const job = await studioApi.enqueueRender(production.id, "export", allowIncomplete)
       setExportJobId(job.id)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Export failed.")

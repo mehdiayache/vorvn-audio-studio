@@ -26,7 +26,7 @@ import { useProductionActions } from "@/hooks/use-production-actions"
 import { usePlayerShortcuts } from "@/hooks/use-player-shortcuts"
 import type { ProductionMutationStatus } from "@/hooks/use-production-actions"
 import { audioStudioBase, resourceHref } from "@/lib/links"
-import { formatAuthoredRole, formatDuration, formatMoney, formatPartNumber, partDurationMs } from "@/lib/format"
+import { formatAuthoredRole, formatDuration, formatMoney, formatPartNumber } from "@/lib/format"
 import { loadPartCaptionTracks, loadProductionCaptionTracks } from "@/lib/production-caption-tracks"
 import { studioApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -197,7 +197,7 @@ function MixOutline({ production, soundScene, onCollapse }: { production: Produc
     : linkedSounds ? `${linkedSounds} linked sound${linkedSounds === 1 ? "" : "s"}` : "Voice only"
   return <div className="ws-mix-outline">
     <WorkstationPaneHeader title="Release" meta="Output checklist" onCollapse={onCollapse} />
-    <div className="ws-mix-step is-current"><span>1</span><div><b>Sequence</b><small>{drafts ? `${drafts} recordings missing` : "All speech recorded"}</small></div></div>
+    <div className="ws-mix-step is-current"><span>1</span><div><b>Sequence</b><small>{drafts ? `${drafts} planned for later` : "All speech recorded"}</small></div></div>
     <div className="ws-mix-step"><span>2</span><div><b>Sound</b><small>{soundSummary}</small></div></div>
     <div className="ws-mix-step"><span>3</span><div><b>Quality</b><small>{issues.length ? `${issues.length} items to review` : "Ready to finish"}</small></div></div>
     <div className="ws-mix-step"><span>4</span><div><b>Exports</b><small>{production.exports.length} saved versions</small></div></div>
@@ -216,7 +216,7 @@ function EmptyInspector({ stage }: { stage: WorkstationStage }) {
 function ReleaseInspector({ issues, onLocate }: { issues: ProductionHealthIssue[]; onLocate: (id: number) => void }) {
   const blocking = issues.filter((issue) => issue.severity === "blocking").length
   return <div className="ws-release-inspector">
-    <section className={blocking ? "has-blockers" : "is-clear"}><CircleAlert /><div><span className="ws-kicker">Release status</span><h3>{blocking ? `${blocking} blocking issue${blocking === 1 ? "" : "s"}` : "Ready to export"}</h3><p>{blocking ? "Record missing speech or restore missing media before making the final file." : "No blocking sequence issues remain."}</p></div></section>
+    <section className={blocking ? "has-blockers" : "is-clear"}><CircleAlert /><div><span className="ws-kicker">Release status</span><h3>{blocking ? `${blocking} blocking issue${blocking === 1 ? "" : "s"}` : "Ready to export"}</h3><p>{blocking ? "Restore missing or broken media before making the final file." : "No blocking audio issues remain."}</p></div></section>
     <div className="ws-release-issue-list">{issues.map((issue) => <button key={`${issue.part.id}:${issue.title}`} onClick={() => onLocate(issue.part.id)}><span>{formatPartNumber(issue.part.position ?? 0)}</span><div><b>{issue.title}</b><small>{formatAuthoredRole(issue.part.authored_role) || issue.detail}</small></div><i className={issue.severity} /></button>)}</div>
   </div>
 }
@@ -250,6 +250,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   const centerPaneRef = useRef<HTMLElement | null>(null)
   const sourceParts = useMemo(() => production.parts.filter((part) => part.kind !== "stitch"), [production.parts])
   const activeSourceParts = useMemo(() => sourceParts.filter((part) => part.enabled !== false), [sourceParts])
+  const pendingDraftCount = useMemo(() => activeSourceParts.filter((part) => part.kind === "draft").length, [activeSourceParts])
   const selectedPart = selectedId ? sourceParts.find((part) => part.id === selectedId) || null : null
   const composerPart = composerPartId ? sourceParts.find((part) => part.id === composerPartId) || null : null
   const captionPart = captionPartId ? sourceParts.find((part) => part.id === captionPartId) || null : null
@@ -290,7 +291,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   const soundState = useSoundSceneSession(soundSession)
   useEffect(() => { soundSession.reconcile(soundScene) }, [soundScene, soundSession])
   useEffect(() => () => soundSession.dispose(), [soundSession])
-  const duration = activeSourceParts.reduce((sum, part) => sum + partDurationMs(part), 0) / 1000
+  const duration = soundScene.resolved.sequence_projection.duration_ms / 1000
   const issues = useMemo(() => productionHealth(production.parts), [production.parts])
   const assetCollectionIds = Object.fromEntries(assetCollections.map((collection) => [collection.name, collection.id]))
   const renameProduction = useCallback(async (name: string) => {
@@ -357,6 +358,17 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     kind: "confirm",
     action: () => { if (player.source?.key === `part:${part.id}`) player.pause(); setSelectedId(null); void actions.deletePart(part) },
   }), [actions, player])
+  const requestExport = useCallback(() => {
+    if (!pendingDraftCount) { void actions.exportMp3(); return }
+    setConfirmAction({
+      title: "Export the recorded audio?",
+      description: `${pendingDraftCount} planned Speech Part${pendingDraftCount === 1 ? " has" : "s have"} no recording yet. They stay safely in Sequence and will not be included in this MP3.`,
+      confirmLabel: "Export recorded audio",
+      kind: "confirm",
+      variant: "default",
+      action: () => { void actions.exportMp3(true) },
+    })
+  }, [actions, pendingDraftCount])
   const openTool = useCallback((kind: Exclude<ToolKind, null>) => {
     if (kind === "speech") { openNewSpeech(); return }
     setInsertBeforePartId(null)
@@ -472,8 +484,8 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
         </aside>
         <main className="ws-center-pane" ref={centerPaneRef}>
           {stage === "sequence" && <WorkstationSequence parts={sourceParts} selectedId={selectedId} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} liveJobs={liveJobs} directory={directory} actions={partActions} onAddEnd={() => openNewSpeech()} />}
-          {stage === "sound" && <WorkstationSoundDesign session={soundSession} draftCount={sourceParts.filter((part) => workstationPartState(part) === "draft").length} onAddMusic={() => setTool("music")} />}
-          {stage === "mix" && <div className="ws-mix-canvas"><MixExportWorkspace production={production} soundScene={soundScene} previewing={actions.previewing} productionPlaying={actions.productionPlaying} previewReady={actions.productionLoaded} previewStale={Boolean(player.source?.kind === "production" && !actions.productionLoaded)} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={() => void actions.exportMp3()} onLocatePart={(id) => { setStage("sequence"); setSelectedId(id) }} onOpenHealth={() => setReleaseInspectorOpen(true)} exporting={actions.exporting} /></div>}
+          {stage === "sound" && <WorkstationSoundDesign session={soundSession} onAddMusic={() => setTool("music")} />}
+          {stage === "mix" && <div className="ws-mix-canvas"><MixExportWorkspace production={production} soundScene={soundScene} previewing={actions.previewing} productionPlaying={actions.productionPlaying} previewReady={actions.productionLoaded} previewStale={Boolean(player.source?.kind === "production" && !actions.productionLoaded)} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={requestExport} onLocatePart={(id) => { setStage("sequence"); setSelectedId(id) }} onOpenHealth={() => setReleaseInspectorOpen(true)} exporting={actions.exporting} /></div>}
         </main>
         {inspectorOpen && <aside className="ws-right-pane" aria-label="Contextual inspector">
           <header><h2>{inspectorTitle}</h2><Button variant="ghost" size="icon-sm" aria-label="Close inspector" onClick={closeInspector}><X /></Button></header>

@@ -3145,6 +3145,11 @@ export interface components {
         /** RenderJobCreate */
         RenderJobCreate: {
             /**
+             * Allow Incomplete
+             * @default false
+             */
+            allow_incomplete: boolean;
+            /**
              * Operation
              * @enum {string}
              */

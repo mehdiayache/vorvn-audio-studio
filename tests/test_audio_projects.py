@@ -40,7 +40,9 @@ class AudioProjectTests(unittest.TestCase):
                  "duration_ms": 500},
                 {"id": 3, "kind": "draft", "position": 2,
                  "enabled": True},
-                {"id": 4, "kind": "speech", "position": 3,
+                {"id": 4, "public_id": "future-pause", "kind": "silence",
+                 "position": 3, "enabled": True, "duration_ms": 700},
+                {"id": 5, "kind": "speech", "position": 4,
                  "enabled": False},
             ],
         }, {})

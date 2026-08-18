@@ -84,15 +84,18 @@ class FakeWorkspace:
 
 
 class RenderServiceTests(unittest.TestCase):
-    def test_preview_skips_drafts_and_stitches(self):
+    def test_preview_skips_drafts_their_following_silence_and_stitches(self):
         records = FakeRecords([
             dict(PART), {**PART, "id": 8, "kind": "draft"},
-            {**PART, "id": 9, "kind": "stitch"},
+            {"id": 9, "kind": "silence", "duration_ms": 800},
+            {**PART, "id": 10, "kind": "stitch"},
+            {**PART, "id": 11},
         ])
         workspace = FakeWorkspace()
         result = RenderService(records, workspace).preview(6)
         self.assertEqual(result["skipped_drafts"], 1)
-        self.assertEqual([part["id"] for part in workspace.previews[0][1]], [7])
+        self.assertEqual(
+            [part["id"] for part in workspace.previews[0][1]], [7, 11])
 
     def test_preview_and_export_exclude_disabled_parts_and_drafts(self):
         records = FakeRecords([
@@ -118,6 +121,25 @@ class RenderServiceTests(unittest.TestCase):
                 {**PART, "missing": True},
             ]), workspace).export(6)
         self.assertFalse(workspace.finished)
+
+    def test_confirmed_incomplete_export_omits_draft_and_its_pause(self):
+        records = FakeRecords([
+            dict(PART),
+            {**PART, "id": 8, "kind": "draft"},
+            {"id": 9, "kind": "silence", "duration_ms": 800},
+            {**PART, "id": 10},
+        ])
+        workspace = FakeWorkspace()
+
+        result = RenderService(records, workspace).export(
+            6, allow_incomplete=True)
+
+        self.assertEqual(result["skipped_drafts"], 1)
+        self.assertEqual(workspace.finished[0].part_count, 2)
+        self.assertEqual(
+            [part["id"] for part in workspace.finished[0].manifest["parts"]],
+            [7, 10],
+        )
 
     def test_export_offsets_subtitles_and_records_canonical_identity(self):
         records = FakeRecords([

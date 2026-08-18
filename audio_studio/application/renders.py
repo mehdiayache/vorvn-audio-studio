@@ -10,7 +10,7 @@ from audio_studio.domain.rendering import (
     RenderError,
     silence_duration_seconds,
 )
-from audio_studio.domain.sound_scene import resolve_scene
+from audio_studio.domain.sound_scene import audible_sequence, resolve_scene
 
 
 class RenderRecords(Protocol):
@@ -48,8 +48,7 @@ class RenderService:
         everything = [part for part in self.records.parts(production_id)
                       if part.get("enabled", True)]
         drafts = [part for part in everything if part["kind"] == "draft"]
-        parts = [part for part in everything
-                 if part["kind"] not in ("stitch", "draft")]
+        parts = audible_sequence(everything)
         if not parts:
             raise RenderError("Nothing recorded in this Production yet.")
         broken = [index + 1 for index, part in enumerate(parts)
@@ -99,12 +98,14 @@ class RenderService:
             "vtt": captions.render_vtt(cues) if cues else "",
         }
 
-    def export(self, production_id: int) -> dict:
+    def export(
+        self, production_id: int, *, allow_incomplete: bool = False,
+    ) -> dict:
         production, parts, drafts = self._parts(production_id)
-        if drafts:
+        if drafts and not allow_incomplete:
             raise RenderError(
-                f"{len(drafts)} Part"
-                f"{'s are' if len(drafts) > 1 else ' is'} still a Draft.")
+                f"Confirm export without {len(drafts)} unrecorded Draft"
+                f"{'s' if len(drafts) > 1 else ''}.")
         subtitles = self._subtitles(parts)
         sound_scene = self.records.sound_scene(production_id)
         if not sound_scene:
@@ -133,6 +134,7 @@ class RenderService:
             "music": artifact.mixed,
             "manifest": artifact.manifest_path.name,
             "export_id": recorded["export_id"],
+            "skipped_drafts": len(drafts),
             "srt_url": (f"/audio/{artifact.target.stem}.srt"
                         if subtitles["srt"] else None),
         }
@@ -141,4 +143,8 @@ class RenderService:
         production_id = int(job.payload["production_id"])
         return (self.preview(production_id)
                 if job.payload["operation"] == "preview"
-                else self.export(production_id))
+                else self.export(
+                    production_id,
+                    allow_incomplete=bool(
+                        job.payload.get("allow_incomplete", False)),
+                ))

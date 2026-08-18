@@ -161,15 +161,38 @@ def _part_duration_ms(part: dict[str, Any]) -> int:
     return max(0, _integer(part.get("duration_ms")))
 
 
+def audible_sequence(parts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return the Parts that occupy time in the current audible Sequence.
+
+    Draft Speech has no media and therefore no timeline presence. A Silence
+    immediately following a Draft belongs to that future recording beat and
+    enters the audible projection only once the Draft is recorded.
+    """
+    audible: list[dict[str, Any]] = []
+    omit_following_silence = False
+    for part in parts:
+        if part.get("enabled", True) is False:
+            continue
+        kind = str(part.get("kind") or "")
+        if kind == "stitch":
+            continue
+        if kind == "draft":
+            omit_following_silence = True
+            continue
+        if kind == "silence" and omit_following_silence:
+            omit_following_silence = False
+            continue
+        omit_following_silence = False
+        audible.append(part)
+    return audible
+
+
 def sequence_projection(parts: list[dict[str, Any]]) -> dict[str, Any]:
     """Derive the immutable read model from the canonical Sequence."""
     cursor = 0
     spans: list[dict[str, Any]] = []
     signature_parts: list[dict[str, Any]] = []
-    for part in parts:
-        if (part.get("kind") in {"stitch", "draft"}
-                or part.get("enabled", True) is False):
-            continue
+    for part in audible_sequence(parts):
         duration_ms = _part_duration_ms(part)
         if duration_ms <= 0:
             continue

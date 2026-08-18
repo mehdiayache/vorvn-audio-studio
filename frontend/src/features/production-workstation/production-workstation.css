@@ -236,13 +236,13 @@
 .ws-track-add { margin-top: .5rem; border-top: 1px solid var(--border); color: var(--muted-foreground); }
 .ws-sound-outline > [data-slot="button"] { margin: 0 .75rem; }
 .ws-sound-canvas { height: 100%; min-height: 34rem; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
-.ws-sound-canvas:has(.ws-sound-draft-notice) { grid-template-rows: auto auto minmax(0, 1fr) auto; }
 .ws-sound-heading { align-items: center; padding: .55rem 1rem; border-bottom: 1px solid var(--border); background: white; }
 .ws-sound-heading h2 { font-size: .82rem; }
-.ws-sound-draft-notice { padding: .42rem 1rem; border-bottom: 1px solid color-mix(in oklab, var(--draft) 38%, var(--border)); color: color-mix(in oklab, var(--draft) 66%, var(--foreground)); background: color-mix(in oklab, var(--draft) 8%, white); font-size: .66rem; font-weight: 620; }
 .ws-timeline-tools { display: flex; align-items: center; gap: .35rem; }
-.ws-timeline-tools [data-slot="slider-root"] { width: 7rem; }
-.ws-timeline-tools > span { width: 3rem; color: var(--muted-foreground); font-size: .62rem; }
+.ws-history-controls, .ws-zoom-controls { display: flex; align-items: center; }
+.ws-history-controls { padding-right: .3rem; border-right: 1px solid var(--border); }
+.ws-zoom-controls { gap: .1rem; padding: 0 .2rem; }
+.ws-zoom-controls > span { width: 2.35rem; color: var(--muted-foreground); font: 600 .6rem/1 var(--font-mono); text-align: center; }
 .ws-timeline-scroll { min-height: 0; overflow: auto; background-color: oklch(.975 .003 70); background-image: linear-gradient(90deg, color-mix(in oklab, var(--border) 65%, transparent) 1px, transparent 1px); background-size: 5rem 100%; }
 .ws-timeline { position: relative; min-height: 100%; display: grid; grid-template-rows: 2.35rem repeat(2, 5.75rem); padding-bottom: 4rem; }
 .ws-ruler { position: sticky; z-index: 3; top: 0; border-bottom: 1px solid var(--border); background: color-mix(in oklab, white 92%, transparent); backdrop-filter: blur(8px); }
@@ -263,8 +263,11 @@
 .ws-timeline-clip.is-rose { color: oklch(.45 .14 15); border-color: oklch(.84 .06 15); background: oklch(.96 .035 15); }
 .ws-timeline-clip.is-selected, .ws-music-clip.is-selected { z-index: 2; border-color: var(--primary); box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 18%, transparent), var(--shadow-sm); }
 .ws-timeline-clip.is-disabled { opacity: .35; filter: grayscale(1); }
-.ws-timeline-silence { position: absolute; z-index: 2; top: 50%; height: 1.4rem; min-width: .85rem; display: grid; place-items: center; transform: translateY(-50%); border: 1px dashed var(--border-strong); border-radius: .35rem; color: var(--muted-foreground); background: white; }
-.ws-timeline-silence svg { width: .65rem; }
+.ws-timeline-silence { position: absolute; z-index: 2; top: 50%; height: 1.35rem; min-width: 2px; display: grid; place-items: center; overflow: visible; transform: translateY(-50%); border: 0; border-radius: .2rem; color: color-mix(in oklab, var(--muted-foreground) 72%, white); background: color-mix(in oklab, var(--muted-foreground) 20%, white); cursor: pointer; }
+.ws-timeline-silence::before { position: absolute; top: -.4rem; bottom: -.4rem; left: 50%; width: max(100%, 1.25rem); transform: translateX(-50%); content: ""; }
+.ws-timeline-silence svg { position: relative; z-index: 1; width: .65rem; }
+.ws-timeline-silence:hover { background: color-mix(in oklab, var(--muted-foreground) 30%, white); }
+.ws-timeline-silence.is-selected { z-index: 3; color: var(--primary); background: color-mix(in oklab, var(--primary) 24%, white); box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 24%, transparent); }
 .ws-timeline-clip.is-sfx { color: var(--asset); border-color: color-mix(in oklab, var(--asset) 35%, var(--border)); background: var(--asset-soft); }
 .ws-empty-lane-action { position: absolute; z-index: 1; top: 50%; left: 1rem; display: flex; align-items: center; gap: .4rem; transform: translateY(-50%); padding: .4rem .65rem; border: 1px dashed var(--border-strong); border-radius: .45rem; color: var(--muted-foreground); background: color-mix(in oklab, white 80%, transparent); font-size: .67rem; }
 .ws-empty-lane-action svg { width: .75rem; }

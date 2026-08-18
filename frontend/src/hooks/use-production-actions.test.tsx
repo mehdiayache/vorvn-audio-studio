@@ -96,7 +96,7 @@ describe("useProductionActions durable commands", () => {
     expect(result.current.productionLoaded).toBe(false)
   })
 
-  it("states exactly when a recorded preview omits Draft Parts", async () => {
+  it("previews current audible media without treating planned Drafts as errors", async () => {
     vi.mocked(studioApi.preview).mockResolvedValue({ url: "/audio/current.mp3", skipped_drafts: 43, cached: false })
     const toggleSource = vi.fn().mockResolvedValue(undefined)
     const player = {
@@ -111,8 +111,8 @@ describe("useProductionActions durable commands", () => {
 
     act(() => result.current.toggleProduction())
     await waitFor(() => expect(toggleSource).toHaveBeenCalledTimes(1))
-    expect(toggleSource.mock.calls[0]?.[0].subtitle).toBe("Recorded mix · 43 Drafts omitted · voice only")
-    expect(toast.warning).toHaveBeenCalledWith("Preview omits 43 unrecorded Drafts.")
+    expect(toggleSource.mock.calls[0]?.[0].subtitle).toBe("Current audible mix · voice only")
+    expect(toast.warning).not.toHaveBeenCalled()
     expect(toast.success).not.toHaveBeenCalled()
   })
 
@@ -138,7 +138,7 @@ describe("useProductionActions durable commands", () => {
     expect(toast.success).toHaveBeenCalledWith("Part permanently deleted")
   })
 
-  it("announces a durable export failure once it reaches a terminal state", async () => {
+  it("does not announce a historical export failure when Production opens", async () => {
     const failedExport = {
       id: "export-failed", type: "render", status: "failed", progress: 0.7,
       detail: "FFmpeg could not finish the mix.", error: null, retries: 0, result: {},
@@ -150,12 +150,13 @@ describe("useProductionActions durable commands", () => {
     }
     const failedProduction = { ...production, export_job: failedExport } as Production
 
-    renderHook(() => useProductionActions({
+    const { result } = renderHook(() => useProductionActions({
       production: failedProduction, soundScene, player: player as never,
       refresh: vi.fn(), refreshAssets: vi.fn(),
     }))
 
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("FFmpeg could not finish the mix."))
-    expect(toast.error).toHaveBeenCalledTimes(1)
+    await act(async () => { await Promise.resolve() })
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(result.current.exportJob).toBeNull()
   })
 })

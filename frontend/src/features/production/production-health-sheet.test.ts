@@ -25,6 +25,12 @@ describe("productionHealth", () => {
     ])).toEqual([])
   })
 
+  it("treats active Drafts as planned work instead of release failures", () => {
+    expect(productionHealth([
+      part({ id: 9, kind: "draft", clip_id: null, enabled: true }),
+    ])).toEqual([])
+  })
+
   it("derives editorial, media and durable operation issues from server Parts", () => {
     const issues = productionHealth([
       part({ id: 1, clip_id: null }),
@@ -39,7 +45,7 @@ describe("productionHealth", () => {
     ])
 
     expect(issues.map((issue) => issue.title)).toEqual([
-      "Speech not recorded",
+      "Speech recording missing",
       "Missing media",
       "Recording outdated",
       "Captions need review",

@@ -34,6 +34,33 @@ def anchored_scene(part_public_id: str) -> dict:
 
 
 class SoundSceneDomainTests(unittest.TestCase):
+    def test_draft_and_its_following_silence_do_not_occupy_audible_time(self):
+        before = speech(1, 4_000, 0)
+        first_pause = {
+            "id": 10, "public_id": "00000000-0000-0000-0000-000000000010",
+            "position": 1, "kind": "silence", "duration_ms": 1_000,
+        }
+        draft = {
+            "id": 11, "public_id": "00000000-0000-0000-0000-000000000011",
+            "position": 2, "kind": "draft", "duration_ms": 0,
+        }
+        future_pause = {
+            "id": 12, "public_id": "00000000-0000-0000-0000-000000000012",
+            "position": 3, "kind": "silence", "duration_ms": 1_500,
+        }
+        after = speech(2, 3_000, 4)
+
+        projection = sequence_projection([
+            before, first_pause, draft, future_pause, after,
+        ])
+
+        self.assertEqual(
+            [span["part_id"] for span in projection["spans"]],
+            [1, 10, 2],
+        )
+        self.assertEqual(projection["duration_ms"], 8_000)
+        self.assertEqual(projection["spans"][-1]["start_ms"], 5_000)
+
     def test_sequence_projection_follows_insert_reorder_and_rerecord_duration(self):
         first = speech(1, 4_000, 0)
         later = speech(2, 6_000, 1)

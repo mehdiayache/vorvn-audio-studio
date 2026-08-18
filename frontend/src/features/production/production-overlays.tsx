@@ -7,7 +7,7 @@ import { formatAuthoredRole, formatPartNumber } from "@/lib/format"
 import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
 import type { ProductionImportCounts, ProductionImportDocument } from "@/features/production/production-import"
 
-export type ConfirmAction = { title: string; description: string; action: () => void; confirmLabel?: string; kind?: "confirm" | "delete" }
+export type ConfirmAction = { title: string; description: string; action: () => void; confirmLabel?: string; kind?: "confirm" | "delete"; variant?: "default" | "destructive" }
 
 export default function ProductionOverlays({ tool, productionId, nextPartNumber, insertAt, insertBeforePartId, composerPart, replacingAssetId, initialMusicAssetId, config, directory, assets, assetCollectionIds, playingKey, playerPlaying, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertAsset, onSetMusic, onUploadAsset, onImport, onImported, onPlay, onConfirmAction }: {
   tool: ToolKind
@@ -65,6 +65,6 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
       description={confirmAction.description}
       confirmLabel={confirmAction.confirmLabel || "Delete permanently"}
       onConfirm={() => { const action = confirmAction.action; onConfirmAction(null); action() }}
-    /> : <Dialog open={Boolean(confirmAction)} onOpenChange={(open) => { if (!open) onConfirmAction(null) }}><DialogContent><DialogHeader><DialogTitle>{confirmAction?.title}</DialogTitle><DialogDescription>{confirmAction?.description}</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => onConfirmAction(null)}>Cancel</Button><Button variant="destructive" onClick={() => { const action = confirmAction?.action; onConfirmAction(null); action?.() }}>{confirmAction?.confirmLabel || "Confirm"}</Button></DialogFooter></DialogContent></Dialog>}
+    /> : <Dialog open={Boolean(confirmAction)} onOpenChange={(open) => { if (!open) onConfirmAction(null) }}><DialogContent><DialogHeader><DialogTitle>{confirmAction?.title}</DialogTitle><DialogDescription>{confirmAction?.description}</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => onConfirmAction(null)}>Cancel</Button><Button variant={confirmAction?.variant || "destructive"} onClick={() => { const action = confirmAction?.action; onConfirmAction(null); action?.() }}>{confirmAction?.confirmLabel || "Confirm"}</Button></DialogFooter></DialogContent></Dialog>}
   </>
 }
