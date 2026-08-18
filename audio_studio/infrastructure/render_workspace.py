@@ -225,9 +225,16 @@ class FFmpegRenderWorkspace:
         cached = target.is_file() and target.stat().st_size > 0
         if not cached:
             _sequence(parts, target)
-            for old in _output().glob(f"sequence-stem-{production_id}-*.mp3"):
-                if old != target:
-                    old.unlink(missing_ok=True)
+            # A browser may still be decoding the previous stem while a
+            # Sequence edit produces this one. Keep a small bounded window so
+            # that an in-flight player never receives a transient 404.
+            stems = sorted(
+                _output().glob(f"sequence-stem-{production_id}-*.mp3"),
+                key=lambda path: path.stat().st_mtime,
+                reverse=True,
+            )
+            for old in stems[3:]:
+                old.unlink(missing_ok=True)
             for legacy in _output().glob(f"voice-stem-{production_id}-*.mp3"):
                 legacy.unlink(missing_ok=True)
         return {

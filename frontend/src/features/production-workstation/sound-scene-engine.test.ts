@@ -40,9 +40,53 @@ describe("SoundSceneEngine", () => {
     expect({ gain: clip.gain, fadeIn: clip.fade_in_ms, fadeOut: clip.fade_out_ms, loop: clip.loop }).toEqual({ gain: .35, fadeIn: 900, fadeOut: 1_400, loop: false })
     editor.dispose()
   })
+
+  it("increases timeline detail when zooming in", () => {
+    const editor = new SoundSceneEngine(scene())
+    const initial = editor.state().samplesPerPixel
+    editor.zoomIn()
+    expect(editor.state().samplesPerPixel).toBeLessThan(initial)
+    editor.zoomOut()
+    expect(editor.state().samplesPerPixel).toBe(initial)
+    editor.dispose()
+  })
 })
 
 describe("SoundSceneSession", () => {
+  it("keeps the playing state while a changed Sequence is prepared", async () => {
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(7))
+    vi.stubGlobal("cancelAnimationFrame", vi.fn())
+    const source = scene()
+    let resolveReplace!: () => void
+    const replacement = new Promise<void>((resolve) => { resolveReplace = resolve })
+    const playout = {
+      replace: vi.fn().mockReturnValue(replacement), play: vi.fn().mockResolvedValue(undefined), pause: vi.fn(),
+      seek: vi.fn(), currentTime: vi.fn().mockReturnValue(2),
+      isPlaying: vi.fn().mockReturnValue(true), muteTrack: vi.fn(),
+      setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    }
+    const session = new SoundSceneSession(source, {
+      update: vi.fn().mockResolvedValue(source), undo: vi.fn().mockResolvedValue(source),
+      redo: vi.fn().mockResolvedValue(source),
+    }, playout)
+
+    await session.togglePlayback()
+    const changed = {
+      ...source,
+      revision: 2,
+      resolved: { ...source.resolved, signature: "changed-scene" },
+    }
+    session.reconcile(changed)
+    expect(session.snapshot().playing).toBe(true)
+    resolveReplace()
+    await replacement
+    await Promise.resolve()
+    expect(session.snapshot().playing).toBe(true)
+    expect(session.snapshot().playhead).toBe(2)
+    session.dispose()
+    vi.unstubAllGlobals()
+  })
+
   it("applies gain to live playout during drag and persists exactly once on release", async () => {
     const source = scene()
     const update = vi.fn().mockResolvedValue({ ...source, revision: 2 })

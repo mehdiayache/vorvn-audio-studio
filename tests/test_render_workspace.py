@@ -10,6 +10,27 @@ from audio_studio.infrastructure.render_workspace import FFmpegRenderWorkspace
 
 
 class RenderWorkspaceTests(unittest.TestCase):
+    def test_sequence_stem_keeps_a_bounded_window_for_in_flight_players(self):
+        def sequence(_parts: list[dict], target: Path):
+            target.write_bytes(b"sequence")
+
+        with TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            (root / "voice-stem-6-legacy.mp3").write_bytes(b"legacy")
+            with (
+                patch.object(render_workspace, "_output", return_value=root),
+                patch.object(render_workspace, "_sequence", side_effect=sequence),
+                patch.object(render_workspace, "_measure", return_value=1_000),
+            ):
+                workspace = FFmpegRenderWorkspace()
+                for signature in ("one", "two", "three", "four"):
+                    workspace.sequence_stem(6, [{"id": 7}], signature)
+
+            stems = sorted(path.name for path in root.glob("sequence-stem-6-*.mp3"))
+            self.assertEqual(len(stems), 3)
+            self.assertNotIn("sequence-stem-6-one.mp3", stems)
+            self.assertFalse((root / "voice-stem-6-legacy.mp3").exists())
+
     def test_mix_applies_track_and_clip_gain_and_ducks_only_opted_in_audio(self):
         commands: list[list[str]] = []
 

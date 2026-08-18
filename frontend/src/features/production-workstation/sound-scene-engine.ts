@@ -87,7 +87,7 @@ export class SoundSceneEngine {
     this.engine = new PlaylistEngine({
       sampleRate: SAMPLE_RATE,
       samplesPerPixel: 4_800,
-      zoomLevels: [12_000, 9_600, 7_200, 4_800, 3_200, 2_400, 1_600, 1_200],
+      zoomLevels: [1_200, 1_600, 2_400, 3_200, 4_800, 7_200, 9_600, 12_000],
       undoLimit: 80,
     })
     this.replace(scene)

@@ -20,11 +20,19 @@ export function MusicWaveformEditor({ url, sourceDuration, sourceOffset, usedDur
   const containerRef = useRef<HTMLDivElement>(null)
   const regionRef = useRef<Region | null>(null)
   const syncing = useRef(false)
+  const gestureDirty = useRef(false)
+  const lastWindow = useRef<MusicSourceWindow>({ sourceOffsetMs: sourceOffset * 1000, durationMs: loop ? null : usedDuration * 1000 })
+  const callbacks = useRef({ onChange, onCommit })
+  const interaction = useRef({ disabled: Boolean(disabled), loop })
+  callbacks.current = { onChange, onCommit }
+  interaction.current = { disabled: Boolean(disabled), loop }
   const peaks = useAudioPeaks(url, 1024)
   const boundedSource = Math.max(sourceDuration, .1)
   const boundedOffset = Math.min(Math.max(sourceOffset, 0), Math.max(0, boundedSource - .1))
   const loopWindow = Math.min(Math.max(10, Math.min(30, usedDuration)), boundedSource - boundedOffset)
   const boundedUsed = Math.max(.1, Math.min(loop ? loopWindow : usedDuration, boundedSource - boundedOffset))
+  const desiredRegion = useRef({ start: boundedOffset, end: Math.min(boundedSource, boundedOffset + boundedUsed) })
+  desiredRegion.current = { start: boundedOffset, end: Math.min(boundedSource, boundedOffset + boundedUsed) }
 
   useEffect(() => {
     const container = containerRef.current
@@ -49,50 +57,73 @@ export function MusicWaveformEditor({ url, sourceDuration, sourceOffset, usedDur
       barRadius: 2,
       hideScrollbar: true,
     })
-    const region = regions.addRegion({
-      id: "music-source-window",
-      start: boundedOffset,
-      end: Math.min(boundedSource, boundedOffset + boundedUsed),
-      drag: !disabled,
-      resize: !disabled && !loop,
-      minLength: .1,
-      color: "rgba(109, 40, 217, .18)",
-    })
-    regionRef.current = region
     const value = (current: Region): MusicSourceWindow => ({
       sourceOffsetMs: Math.round(current.start * 1000),
-      durationMs: loop ? null : Math.max(100, Math.round((current.end - current.start) * 1000)),
+      durationMs: interaction.current.loop ? null : Math.max(100, Math.round((current.end - current.start) * 1000)),
     })
+    const changed = (next: MusicSourceWindow) =>
+      next.sourceOffsetMs !== lastWindow.current.sourceOffsetMs || next.durationMs !== lastWindow.current.durationMs
     const stopUpdate = regions.on("region-update", (current) => {
-      if (!syncing.current) onChange(value(current))
+      if (syncing.current) return
+      const next = value(current)
+      if (!changed(next)) return
+      gestureDirty.current = true
+      lastWindow.current = next
+      callbacks.current.onChange(next)
     })
     const stopUpdated = regions.on("region-updated", (current) => {
-      if (!syncing.current) onCommit(value(current))
+      if (syncing.current || !gestureDirty.current) return
+      const next = value(current)
+      gestureDirty.current = false
+      lastWindow.current = next
+      callbacks.current.onCommit(next)
     })
     const stopClick = regions.on("region-clicked", (current, event) => {
       event.stopPropagation()
       current.play(true)
     })
+    const stopReady = waveform.once("ready", () => {
+      const desired = desiredRegion.current
+      regionRef.current = regions.addRegion({
+        id: "music-source-window",
+        start: desired.start,
+        end: desired.end,
+        drag: !interaction.current.disabled,
+        resize: !interaction.current.disabled && !interaction.current.loop,
+        minLength: .1,
+        color: "rgba(109, 40, 217, .18)",
+      })
+    })
     return () => {
       stopUpdate()
       stopUpdated()
       stopClick()
+      stopReady()
       regionRef.current = null
       waveform.destroy()
     }
   // Props are synchronized below without rebuilding the selected-source WaveSurfer.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boundedSource, disabled, loop, peaks, url])
+  }, [boundedSource, peaks, url])
 
   useEffect(() => {
     const region = regionRef.current
     if (!region) return
     const end = Math.min(boundedSource, boundedOffset + boundedUsed)
-    if (Math.abs(region.start - boundedOffset) < .01 && Math.abs(region.end - end) < .01) return
+    const desired = {
+      sourceOffsetMs: Math.round(boundedOffset * 1000),
+      durationMs: loop ? null : Math.max(100, Math.round((end - boundedOffset) * 1000)),
+    }
+    if (!gestureDirty.current) lastWindow.current = desired
     syncing.current = true
-    region.setOptions({ start: boundedOffset, end })
+    region.setOptions({
+      start: boundedOffset,
+      end,
+      drag: !disabled,
+      resize: !disabled && !loop,
+    })
     syncing.current = false
-  }, [boundedOffset, boundedSource, boundedUsed])
+  }, [boundedOffset, boundedSource, boundedUsed, disabled, loop])
 
   return <section className="music-waveform-editor" aria-label="Music source window">
     <header><span><b>{loop ? "Loop start" : "Used source window"}</b><small>{loop ? "Drag the highlighted window to choose where looping begins. Click it to audition." : "Drag the region; resize either edge to choose the exact source window."}</small></span><strong>{formatDuration(boundedOffset)} → {formatDuration(boundedOffset + boundedUsed)}</strong></header>

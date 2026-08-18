@@ -74,9 +74,17 @@ export class SoundSceneSession {
   reconcile(scene: SoundScene) {
     const current = this.snapshotValue.scene
     if (scene.revision === current.revision && scene.resolved.signature === current.resolved.signature) return
+    const wasPlaying = this.snapshotValue.playing
+    if (wasPlaying && this.frame) cancelAnimationFrame(this.frame)
+    if (wasPlaying) this.frame = 0
     this.editor.replace(scene)
     this.set({ scene, engine: this.editor.state() })
-    void this.playout.replace(scene).catch((reason) => this.set({
+    void this.playout.replace(scene).then(() => {
+      if (!wasPlaying) return
+      const playing = this.playout.isPlaying()
+      this.set({ playing, playhead: this.playout.currentTime() })
+      if (playing) this.followPlayhead()
+    }).catch((reason) => this.set({
       error: reason instanceof Error ? reason.message : "The updated Sound Scene could not be prepared.",
       playing: false,
     }))

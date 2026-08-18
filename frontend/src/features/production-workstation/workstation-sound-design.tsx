@@ -173,7 +173,7 @@ export function WorkstationSoundDesign({ session, draftCount, onAddMusic }: {
         <Button onClick={() => void session.togglePlayback()} disabled={!scene.sequence_stem.url}>{playing ? <Pause /> : <Play />}{playing ? "Pause" : "Play scene"}</Button>
       </div>
     </header>
-    {draftCount > 0 && <div className="ws-sound-draft-notice" role="status">{draftCount} unrecorded Draft{draftCount === 1 ? " is" : "s are"} absent from Sound Design and preview.</div>}
+    {draftCount > 0 && <div className="ws-sound-draft-notice" role="status">{draftCount} unrecorded Draft{draftCount === 1 ? " is" : "s are"} not shown. Timing may expand when {draftCount === 1 ? "it is" : "they are"} recorded.</div>}
     <div className="ws-timeline-scroll">
       <div className="ws-timeline is-engine-backed" style={{ width }} onPointerDown={seek}>
         <div className="ws-ruler">{marks.map((mark) => <span key={mark} style={{ left: mark * pixelsPerSecond }}><i />{formatDuration(mark)}</span>)}</div>

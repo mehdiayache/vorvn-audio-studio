@@ -18,6 +18,7 @@ const sessions: SoundSceneSession[] = []
 afterEach(() => { sessions.splice(0).forEach((session) => session.dispose()); cleanup() })
 
 const directory = { config: null, cloned: [], meta: {}, catalog: [] } as VoiceDirectory
+const musicClipId = "78af885c-aeb4-49bf-9edb-d3fc14496b2c"
 
 function part(values: Partial<ProductionPart>): ProductionPart {
   return {
@@ -49,7 +50,7 @@ function scene(parts: ProductionPart[], sourceDurationMs = 60_000): SoundScene {
     cursor += duration
     return span
   })
-  const clip = { id: "78af885c-aeb4-49bf-9edb-d3fc14496b2c", asset_id: 9, start_ms: 0, duration_ms: null, source_offset_ms: 0, gain: .12, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, anchor: { kind: "absolute" as const, position_ms: 0 }, asset_name: "Quiet room", filename: "bed.mp3", source_duration_ms: sourceDurationMs, resolved_start_ms: 0, resolved_duration_ms: cursor }
+  const clip = { id: musicClipId, asset_id: 9, start_ms: 0, duration_ms: null, source_offset_ms: 0, gain: .12, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, anchor: { kind: "absolute" as const, position_ms: 0 }, asset_name: "Quiet room", filename: "bed.mp3", source_duration_ms: sourceDurationMs, resolved_start_ms: 0, resolved_duration_ms: cursor }
   const track = { id: "music", kind: "music" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
   return { production_id: 6, revision: 1, document: { version: 1, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", sequence_projection: { signature: "sequence", duration_ms: cursor, sample_rate: 48_000, spans }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/sequence-stem.mp3", filename: "sequence-stem.mp3", duration_ms: cursor, signature: "sequence", cached: true } }
 }
@@ -158,6 +159,23 @@ describe("Production Workstation", () => {
     expect(onCommit).not.toHaveBeenCalled()
     fireEvent.pointerUp(window, { clientX: 135 })
     await waitFor(() => expect(onCommit).toHaveBeenCalledTimes(1))
+  })
+
+  it("cancels a timeline gesture without persisting when Escape is pressed", async () => {
+    const soundScene = scene([part({ duration_ms: 120_000 })], 1_500_000)
+    const onCommit = vi.fn().mockResolvedValue({ ...soundScene, revision: 2 })
+    const session = sessionFor(soundScene, onCommit)
+    const initialStart = session.currentClip("music", musicClipId)?.start_ms
+    const { container } = render(<WorkstationSoundDesign session={session} draftCount={0} onAddMusic={vi.fn()} />)
+    const musicClip = container.querySelector(".ws-music-clip") as HTMLElement
+
+    fireEvent.pointerDown(musicClip, { button: 0, clientX: 100 })
+    fireEvent.pointerMove(window, { clientX: 160 })
+    fireEvent.keyDown(window, { key: "Escape" })
+    await Promise.resolve()
+
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(session.currentClip("music", musicClipId)?.start_ms).toBe(initialStart)
   })
 
   it("keeps exact positioning available after the legacy Production is removed", () => {
