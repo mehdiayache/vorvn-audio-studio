@@ -18,5 +18,7 @@ describe("DeleteProductionDialog", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Type DELETE to confirm" }), { target: { value: "DELETE" } })
     expect((button as HTMLButtonElement).disabled).toBe(false)
     expect(screen.getByText(/Reusable Venture assets and Voices remain/)).toBeTruthy()
+    expect(screen.getByText(/Content-free provider operation and spend evidence remains in Activity/)).toBeTruthy()
+    expect(screen.queryByText(/local Production activity/)).toBeNull()
   })
 })

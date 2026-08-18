@@ -105,9 +105,10 @@ function ProductionParentSwitcher({ production, tree }: { production: Production
   const parent = production.trail.at(-1)
   if (!parent) return <Link className="ws-parent-link" to={`${audioStudioBase}/projects/${production.project_id}`}>Project</Link>
   const parentNode = tree?.find((item) => item.type === parent.type && item.id === parent.id)
-  const peers = (tree || [])
-    .filter((item) => item.type === parent.type && item.parent_key === parentNode?.parent_key)
-    .sort((left, right) => left.name.localeCompare(right.name))
+  const peers = parentNode
+    ? (tree || []).filter((item) => item.type === parent.type && item.parent_key === parentNode.parent_key)
+      .sort((left, right) => left.name.localeCompare(right.name))
+    : []
   const options = peers.length ? peers : [parent]
   return <DropdownMenu>
     <DropdownMenuTrigger asChild>
@@ -148,7 +149,7 @@ function WorkstationHeader({ production, tree, duration, stage, issueCount, prev
       <ProductionParentSwitcher production={production} tree={tree} />
       <ChevronRight className="ws-breadcrumb-separator" aria-hidden="true" />
       <InlineProductionName name={production.name} onRename={onRename} />
-      <dl><div><dt>Parts</dt><dd>{production.parts.filter((part) => part.kind !== "stitch").length}</dd></div><div><dt>Duration</dt><dd>{formatDuration(duration)}</dd></div><div><dt>Spend</dt><dd>{formatMoney(production.current_sequence_cost)}</dd></div></dl>
+      <dl><div><dt>Parts</dt><dd>{production.parts.filter((part) => part.kind !== "stitch").length}</dd></div><div><dt>Duration</dt><dd>{formatDuration(duration)}</dd></div><div><dt title="Cost of audio currently active in this Sequence">Current cost</dt><dd>{formatMoney(production.current_sequence_cost)}</dd></div></dl>
       {production.status && production.status !== "draft" && <span className="ws-status">{production.status.replaceAll("_", " ")}</span>}
       {mutationStatus !== "idle" && <span className={`ws-save-state is-${mutationStatus}`} role="status" aria-live="polite">{mutationStatus === "saving" ? <LoaderCircle className="spin" /> : <Check />}{mutationStatus === "saving" ? "Saving…" : "Saved"}</span>}
     </div>
@@ -188,10 +189,14 @@ function CollapsedPaneSummary({ label, number, state, playing, onExpand }: {
 function MixOutline({ production, music, onCollapse }: { production: Production; music: MusicBed; onCollapse: () => void }) {
   const issues = productionHealth(production.parts)
   const drafts = production.parts.filter((part) => part.kind === "draft" || part.kind === "speech" && !part.clip_id).length
+  const linkedSounds = production.parts.filter((part) => part.kind === "asset" && part.enabled !== false).length
+  const soundSummary = music.filename
+    ? linkedSounds ? `Music + ${linkedSounds} linked sound${linkedSounds === 1 ? "" : "s"}` : "Music bed included"
+    : linkedSounds ? `${linkedSounds} linked sound${linkedSounds === 1 ? "" : "s"}` : "Voice only"
   return <div className="ws-mix-outline">
     <WorkstationPaneHeader title="Release" meta="Output checklist" onCollapse={onCollapse} />
     <div className="ws-mix-step is-current"><span>1</span><div><b>Sequence</b><small>{drafts ? `${drafts} recordings missing` : "All speech recorded"}</small></div></div>
-    <div className="ws-mix-step"><span>2</span><div><b>Sound</b><small>{music.filename ? "Music bed included" : "Voice only"}</small></div></div>
+    <div className="ws-mix-step"><span>2</span><div><b>Sound</b><small>{soundSummary}</small></div></div>
     <div className="ws-mix-step"><span>3</span><div><b>Quality</b><small>{issues.length ? `${issues.length} items to review` : "Ready to finish"}</small></div></div>
     <div className="ws-mix-step"><span>4</span><div><b>Exports</b><small>{production.exports.length} saved versions</small></div></div>
   </div>

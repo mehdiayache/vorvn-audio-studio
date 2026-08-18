@@ -33,7 +33,7 @@ export function DeleteProductionDialog({ production, open, onOpenChange, onDelet
     open={open}
     onOpenChange={onOpenChange}
     title={`Permanently delete “${production.name}”?`}
-    description="This permanently removes all Parts, recordings, captions, previews, exports and local Production activity. Reusable Venture assets and Voices remain. Provider charges already incurred cannot be undone."
+    description="Creative Production content, recordings, captions, previews and exports are permanently removed. Content-free provider operation and spend evidence remains in Activity. Reusable Venture assets and Voices remain."
     confirmLabel="Delete Production permanently"
     busy={deleting}
     onConfirm={() => void remove()}
