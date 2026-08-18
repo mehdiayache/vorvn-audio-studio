@@ -9,7 +9,7 @@ const clipId = "78af885c-aeb4-49bf-9edb-d3fc14496b2c"
 function scene(): SoundScene {
   const clip = { id: clipId, asset_id: 9, start_ms: 0, duration_ms: null, source_offset_ms: 0, gain: .1, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, anchor: { kind: "absolute" as const, position_ms: 0 }, asset_name: "Night bed", filename: "bed.mp3", source_duration_ms: 60_000, resolved_start_ms: 0, resolved_duration_ms: 10_000 }
   const track = { id: "music", kind: "music" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
-  return { production_id: 6, revision: 1, document: { version: 1, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", sequence_projection: { signature: "sequence", duration_ms: 10_000, sample_rate: 48_000, spans: [{ part_id: 7, part_public_id: "part-7", position: 0, kind: "speech", title: "Opening", role: "Narrator", voice_name: "Eva", filename: "opening.mp3", start_ms: 0, duration_ms: 10_000, silence: false, missing: false }] }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/stem.mp3", filename: "stem.mp3", duration_ms: 10_000, signature: "sequence", cached: true } }
+  return { production_id: 6, revision: 1, document: { version: 1, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", duration_ms: 10_000, sequence_projection: { signature: "sequence", duration_ms: 10_000, sample_rate: 48_000, spans: [{ part_id: 7, part_public_id: "part-7", position: 0, kind: "speech", title: "Opening", role: "Narrator", voice_name: "Eva", filename: "opening.mp3", start_ms: 0, duration_ms: 10_000, silence: false, missing: false }] }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/stem.mp3", filename: "stem.mp3", duration_ms: 10_000, signature: "sequence", cached: true } }
 }
 
 describe("SoundSceneEngine", () => {
@@ -53,6 +53,26 @@ describe("SoundSceneEngine", () => {
 })
 
 describe("SoundSceneSession", () => {
+  it("adds another Music track without replacing the existing placement", async () => {
+    const source = scene()
+    const update = vi.fn().mockResolvedValue({ ...source, revision: 2 })
+    const playout = {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(),
+      seek: vi.fn(), currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(false),
+      muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    }
+    const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, playout)
+
+    await session.addTrack("music", { id: 22, title: "Outro", duration_ms: 8_000 }, 3)
+
+    const document = update.mock.calls[0]![0]
+    expect(document.tracks).toHaveLength(2)
+    expect(document.tracks[0].clips[0].asset_id).toBe(9)
+    expect(document.tracks[1].clips[0].asset_id).toBe(22)
+    expect(document.tracks[1].clips[0].anchor.position_ms).toBe(3_000)
+    session.dispose()
+  })
+
   it("keeps the playing state while a changed Sequence is prepared", async () => {
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(7))
     vi.stubGlobal("cancelAnimationFrame", vi.fn())

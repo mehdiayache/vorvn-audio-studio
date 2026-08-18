@@ -8,6 +8,37 @@ import subprocess
 
 from audio_studio.infrastructure.media_paths import media_root
 
+CANONICAL_BARS = 4096
+
+
+def _read_cache(path: Path, count: int, source: Path) -> list[float] | None:
+    if not path.is_file() or path.stat().st_mtime < source.stat().st_mtime:
+        return None
+    try:
+        values = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(values, list) and len(values) == count:
+            return [float(value) for value in values]
+    except (OSError, ValueError, TypeError):
+        return None
+    return None
+
+
+def _write_cache(path: Path, values: list[float]) -> None:
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(values), encoding="utf-8")
+    temporary.replace(path)
+
+
+def _downsample(values: list[float], count: int) -> list[float]:
+    if count == len(values):
+        return values
+    result: list[float] = []
+    for index in range(count):
+        start = index * len(values) // count
+        end = max(start + 1, (index + 1) * len(values) // count)
+        result.append(round(max(values[start:end], default=0), 4))
+    return result
+
 
 def peaks(filename: str, bars: int) -> list[float]:
     root = media_root().resolve()
@@ -15,14 +46,16 @@ def peaks(filename: str, bars: int) -> list[float]:
     if source.parent != root or not source.is_file():
         raise LookupError("That audio file is unavailable.")
     count = max(8, min(4096, int(bars)))
-    cache = root / f".{source.name}.peaks-{count}.json"
-    if cache.is_file() and cache.stat().st_mtime >= source.stat().st_mtime:
-        try:
-            values = json.loads(cache.read_text(encoding="utf-8"))
-            if isinstance(values, list) and len(values) == count:
-                return [float(value) for value in values]
-        except (OSError, ValueError, TypeError):
-            pass
+    cache = root / f".{source.name}.peaks-v2-{count}.json"
+    cached = _read_cache(cache, count, source)
+    if cached is not None:
+        return cached
+    canonical_cache = root / f".{source.name}.peaks-v2-{CANONICAL_BARS}.json"
+    canonical = _read_cache(canonical_cache, CANONICAL_BARS, source)
+    if canonical is not None:
+        result = _downsample(canonical, count)
+        _write_cache(cache, result)
+        return result
     try:
         done = subprocess.run(
             ["ffmpeg", "-nostdin", "-loglevel", "error", "-i", str(source),
@@ -34,15 +67,16 @@ def peaks(filename: str, bars: int) -> list[float]:
     if done.returncode or not done.stdout:
         raise RuntimeError("The waveform could not be prepared.")
     samples = memoryview(done.stdout).cast("h")
-    stride = max(1, len(samples) // count)
+    stride = max(1, len(samples) // CANONICAL_BARS)
     raw = []
-    for index in range(count):
+    for index in range(CANONICAL_BARS):
         start = index * stride
-        end = len(samples) if index == count - 1 else min(len(samples), start + stride)
+        end = (len(samples) if index == CANONICAL_BARS - 1 else
+               min(len(samples), start + stride))
         raw.append(max((abs(value) for value in samples[start:end]), default=0))
     maximum = max(raw, default=1) or 1
-    result = [round(max(.08, value / maximum), 4) for value in raw]
-    temporary = cache.with_suffix(cache.suffix + ".tmp")
-    temporary.write_text(json.dumps(result), encoding="utf-8")
-    temporary.replace(cache)
+    canonical = [round(value / maximum, 4) for value in raw]
+    _write_cache(canonical_cache, canonical)
+    result = _downsample(canonical, count)
+    _write_cache(cache, result)
     return result

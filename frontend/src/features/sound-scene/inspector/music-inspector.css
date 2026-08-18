@@ -24,6 +24,7 @@
 .music-waveform-editor > header span { display: grid; gap: 2px; }
 .music-waveform-editor > header small { color: var(--muted-foreground); font-size: var(--type-caption); font-weight: var(--weight-body); }
 .music-waveform-editor > header strong { color: var(--primary); font-variant-numeric: tabular-nums; }
+.music-waveform-editor.is-loop [part="region"] { min-width: 3px !important; width: 3px !important; border-radius: 999px; background: var(--primary) !important; }
 .music-waveform-canvas { position: relative; min-height: 112px; overflow: hidden; border-radius: var(--radius-sm); background: color-mix(in oklab, var(--surface-raised) 86%, var(--primary-soft)); }
 .music-waveform-surface { height: 112px; color: color-mix(in oklab, var(--primary) 64%, var(--muted-foreground)); }
 .music-waveform-surface::part(region) { border: 1px solid color-mix(in oklab, var(--primary) 72%, white); border-radius: .35rem; box-shadow: inset 0 0 0 1px color-mix(in oklab, white 55%, transparent); }

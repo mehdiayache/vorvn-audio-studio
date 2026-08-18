@@ -20,6 +20,7 @@ class AudioStudioArchitectureTests(unittest.TestCase):
         imports = {
             path.relative_to(frontend).as_posix(): path.read_text()
             for path in frontend.rglob("*.ts*")
+            if ".test." not in path.name
         }
         dawcore = [name for name, source in imports.items()
                    if "@dawcore/transport" in source]
@@ -27,9 +28,9 @@ class AudioStudioArchitectureTests(unittest.TestCase):
                  if "@waveform-playlist/core" in source
                  or "@waveform-playlist/engine" in source]
         self.assertEqual(dawcore, [
-            "features/production-workstation/sound-scene-playout.ts"])
+            "features/sound-scene/engine/sound-scene-playout.ts"])
         self.assertEqual(naomi, [
-            "features/production-workstation/sound-scene-engine.ts"])
+            "features/sound-scene/engine/sound-scene-engine.ts"])
 
     def test_public_contract_contains_native_product_slices(self):
         paths = app.openapi()["paths"]

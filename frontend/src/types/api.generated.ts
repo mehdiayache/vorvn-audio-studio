@@ -3532,6 +3532,8 @@ export interface components {
         };
         /** SoundSceneResolution */
         SoundSceneResolution: {
+            /** Duration Ms */
+            duration_ms?: number | null;
             /** Orphans */
             orphans: {
                 [key: string]: string;

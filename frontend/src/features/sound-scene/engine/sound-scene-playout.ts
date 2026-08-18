@@ -5,8 +5,7 @@ import type { SoundScene, SoundSceneClip } from "@/types/domain"
 
 const SAMPLE_RATE = 48_000
 const MAX_BUFFER_CACHE = 12
-const DUCKED_SUFFIX = "::ducked"
-const DRY_SUFFIX = "::dry"
+const clipTrackId = (trackId: string, clipId: string) => `${trackId}::clip::${clipId}`
 const toSamples = (seconds: number) => Math.max(0, Math.round(seconds * SAMPLE_RATE))
 
 type PlayoutClip = {
@@ -98,7 +97,9 @@ export class SoundScenePlayout {
   private sequenceAnalyser: AnalyserNode | null = null
   private duckGain: GainNode | null = null
   private duckFrame = 0
-  private subgroupClipIds = new Map<string, string[]>()
+  private childTracks = new Map<string, string[]>()
+  private internalTrackByClip = new Map<string, string>()
+  private liveTrackVolumes = new Map<string, number>()
   private liveClipGains = new Map<string, number>()
   private preparedTrackIds = new Set<string>()
 
@@ -122,7 +123,7 @@ export class SoundScenePlayout {
   }
 
   private duration(scene = this.scene) {
-    return scene.resolved.sequence_projection.duration_ms / 1000
+    return Number(scene.resolved.duration_ms ?? scene.resolved.sequence_projection.duration_ms) / 1000
   }
 
   private getBuffer(url: string) {
@@ -167,7 +168,10 @@ export class SoundScenePlayout {
     gain.gain.value = 1
     for (const track of scene.resolved.tracks) {
       if (track.clips.some((clip) => clip.ducking)) {
-        this.adapter.transport.connectTrackOutput(`${track.id}${DUCKED_SUFFIX}`, gain)
+        for (const clip of track.clips.filter((item) => item.ducking)) {
+          const internalId = this.internalTrackByClip.get(clip.id)
+          if (internalId) this.adapter.transport.connectTrackOutput(internalId, gain)
+        }
       }
     }
     gain.connect(this.adapter.masterOutputNode)
@@ -201,7 +205,9 @@ export class SoundScenePlayout {
       return
     }
     const tracks: PlayoutTrack[] = []
-    const subgroupClipIds = new Map<string, string[]>()
+    const childTracks = new Map<string, string[]>()
+    const internalTrackByClip = new Map<string, string>()
+    const liveTrackVolumes = new Map<string, number>()
     const liveClipGains = new Map<string, number>()
     if (scene.sequence_stem.url) {
       const buffer = await this.getBuffer(scene.sequence_stem.url)
@@ -215,34 +221,38 @@ export class SoundScenePlayout {
     let hasDuckedTracks = false
     for (const track of scene.resolved.tracks) {
       const playable = track.clips.filter((clip) => clip.filename && !clip.orphan && !clip.missing && Number(clip.resolved_duration_ms || 0) > 0)
-      for (const ducked of [false, true]) {
-        const matching = playable.filter((clip) => Boolean(clip.ducking) === ducked)
-        if (!matching.length) continue
-        const subgroupId = `${track.id}${ducked ? DUCKED_SUFFIX : DRY_SUFFIX}`
-        const singleClip = matching.length === 1 ? matching[0]! : null
-        for (const clip of matching) liveClipGains.set(clip.id, Number(clip.gain ?? 1))
-        subgroupClipIds.set(subgroupId, matching.map((clip) => clip.id))
-        const clips = (await Promise.all(matching.map(async (clip) => repeatedClips(
+      liveTrackVolumes.set(track.id, track.volume)
+      const children: string[] = []
+      for (const clip of playable) {
+        const internalId = clipTrackId(track.id, clip.id)
+        const gain = Number(clip.gain ?? 1)
+        liveClipGains.set(clip.id, gain)
+        internalTrackByClip.set(clip.id, internalId)
+        children.push(internalId)
+        const clips = repeatedClips(
           clip,
           await this.getBuffer(audioUrl(clip.filename!)),
-          singleClip ? 1 : undefined,
-        )))).flat()
+          1,
+        )
         tracks.push({
-          id: subgroupId,
+          id: internalId,
           name: track.name,
           muted: track.muted,
           soloed: false,
-          volume: track.volume * (singleClip ? Number(singleClip.gain ?? 1) : 1),
+          volume: track.volume * gain,
           pan: 0,
           clips,
         })
-        hasDuckedTracks ||= ducked
+        hasDuckedTracks ||= Boolean(clip.ducking)
       }
+      childTracks.set(track.id, children)
     }
     if (version !== this.sceneVersion) return this.prepare()
     this.clearDucking()
     this.adapter!.setTracks(tracks)
-    this.subgroupClipIds = subgroupClipIds
+    this.childTracks = childTracks
+    this.internalTrackByClip = internalTrackByClip
+    this.liveTrackVolumes = liveTrackVolumes
     this.liveClipGains = liveClipGains
     this.preparedTrackIds = new Set(tracks.map((track) => track.id))
     this.installDucking(hasDuckedTracks, scene)
@@ -260,17 +270,14 @@ export class SoundScenePlayout {
   currentTime() { return this.adapter?.getCurrentTime() || 0 }
   isPlaying() { return this.adapter?.isPlaying() || false }
   muteTrack(trackId: string, muted: boolean) {
-    for (const suffix of [DUCKED_SUFFIX, DRY_SUFFIX]) {
-      const subgroupId = `${trackId}${suffix}`
-      if (this.preparedTrackIds.has(subgroupId)) this.adapter?.setTrackMute(subgroupId, muted)
-    }
+    for (const internalId of this.childTracks.get(trackId) || [])
+      this.adapter?.setTrackMute(internalId, muted)
   }
   setTrackVolume(trackId: string, volume: number) {
-    for (const suffix of [DUCKED_SUFFIX, DRY_SUFFIX]) {
-      const subgroupId = `${trackId}${suffix}`
-      const clipIds = this.subgroupClipIds.get(subgroupId) || []
-      const clipGain = clipIds.length === 1 ? (this.liveClipGains.get(clipIds[0]!) ?? 1) : 1
-      if (this.preparedTrackIds.has(subgroupId)) this.adapter?.setTrackVolume(subgroupId, volume * clipGain)
+    this.liveTrackVolumes.set(trackId, volume)
+    for (const clip of this.scene.resolved.tracks.find((item) => item.id === trackId)?.clips || []) {
+      const internalId = this.internalTrackByClip.get(clip.id)
+      if (internalId) this.adapter?.setTrackVolume(internalId, volume * (this.liveClipGains.get(clip.id) ?? 1))
     }
   }
   setClipGain(trackId: string, clipId: string, gain: number) {
@@ -278,14 +285,11 @@ export class SoundScenePlayout {
     const clip = track?.clips.find((item) => item.id === clipId)
     if (!track || !clip) return
     this.liveClipGains.set(clipId, Math.max(0, gain))
-    const original = Math.max(.0001, Number(clip.gain || 0))
-    const suffix = clip.ducking ? DUCKED_SUFFIX : DRY_SUFFIX
-    const subgroupId = `${trackId}${suffix}`
-    const clipIds = this.subgroupClipIds.get(subgroupId) || []
-    const liveTrackVolume = clipIds.length === 1
-      ? track.volume * Math.max(0, gain)
-      : Math.min(4, track.volume * Math.max(0, gain) / original)
-    if (this.preparedTrackIds.has(subgroupId)) this.adapter?.setTrackVolume(subgroupId, liveTrackVolume)
+    const internalId = this.internalTrackByClip.get(clipId)
+    if (internalId) this.adapter?.setTrackVolume(
+      internalId,
+      (this.liveTrackVolumes.get(trackId) ?? track.volume) * Math.max(0, gain),
+    )
   }
   dispose() {
     this.clearDucking()
@@ -294,7 +298,9 @@ export class SoundScenePlayout {
     this.adapter = null
     this.context = null
     this.buffers.clear()
-    this.subgroupClipIds.clear()
+    this.childTracks.clear()
+    this.internalTrackByClip.clear()
+    this.liveTrackVolumes.clear()
     this.liveClipGains.clear()
     this.preparedTrackIds.clear()
   }

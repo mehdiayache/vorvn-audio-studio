@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import type { DurableJob, GeneratePayload, GenerateResult, ProductionPart, SoundScene, VoiceDirectory } from "@/types/domain"
 import { InlineProductionName } from "./production-workstation-page"
 import { WorkstationAssetCard, WorkstationOutline, WorkstationSequenceCard, workstationPartState, type WorkstationPartActions } from "./workstation-sequence"
-import { WorkstationSoundDesign } from "./workstation-sound-design"
-import { SoundSceneSession } from "./sound-scene-session"
+import { SoundSceneWorkspace } from "@/features/sound-scene/timeline/sound-scene-workspace"
+import { SoundSceneSession } from "@/features/sound-scene/engine/sound-scene-session"
 
 class ResizeObserverMock {
   observe() {}
@@ -52,7 +52,7 @@ function scene(parts: ProductionPart[], sourceDurationMs = 60_000): SoundScene {
   })
   const clip = { id: musicClipId, asset_id: 9, start_ms: 0, duration_ms: null, source_offset_ms: 0, gain: .12, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, anchor: { kind: "absolute" as const, position_ms: 0 }, asset_name: "Quiet room", filename: "bed.mp3", source_duration_ms: sourceDurationMs, resolved_start_ms: 0, resolved_duration_ms: cursor }
   const track = { id: "music", kind: "music" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
-  return { production_id: 6, revision: 1, document: { version: 1, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", sequence_projection: { signature: "sequence", duration_ms: cursor, sample_rate: 48_000, spans }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/sequence-stem.mp3", filename: "sequence-stem.mp3", duration_ms: cursor, signature: "sequence", cached: true } }
+  return { production_id: 6, revision: 1, document: { version: 1, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", duration_ms: cursor, sequence_projection: { signature: "sequence", duration_ms: cursor, sample_rate: 48_000, spans }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/sequence-stem.mp3", filename: "sequence-stem.mp3", duration_ms: cursor, signature: "sequence", cached: true } }
 }
 
 function sessionFor(soundScene: SoundScene, update = vi.fn().mockImplementation(async () => ({ ...soundScene, revision: soundScene.revision + 1 }))) {
@@ -114,13 +114,12 @@ describe("Production Workstation", () => {
       part({ id: 2, position: 1, kind: "silence", title: "1.5", duration_ms: 1_500, clip_id: null }),
       part({ id: 3, position: 2, kind: "asset", title: "Door closes", duration_ms: 2_000, clip_id: 30 }),
     ]
-    render(<WorkstationSoundDesign session={sessionFor(scene(parts))} onAddMusic={vi.fn()} />)
+    render(<SoundSceneWorkspace session={sessionFor(scene(parts))} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
-    expect(screen.getByRole("generic", { name: "Sequence track" }).textContent).toContain("Narrator")
-    expect(screen.getByRole("generic", { name: "Sequence track" }).textContent).toContain("Door closes")
-    expect(screen.getByRole("generic", { name: "Music track" }).textContent).toContain("Quiet room")
-    expect(screen.getByRole("button", { name: "Silence 1.5 seconds" }).className).toContain("ws-timeline-silence")
-    expect(screen.getByText("100%")).toBeTruthy()
+    expect(screen.getByText("Narrator")).toBeTruthy()
+    expect(screen.getByText("Door closes")).toBeTruthy()
+    expect(screen.getByText("Quiet room")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Silence 1.5 seconds" }).className).toContain("sound-sequence-silence")
   })
 
   it("presents linked audio as a reusable Venture asset instead of empty speech", () => {
@@ -145,16 +144,16 @@ describe("Production Workstation", () => {
     const soundScene = scene([story], 1_500_000)
     soundScene.document.tracks[0]!.clips[0]!.asset_name = "Long source"
     soundScene.resolved.tracks[0]!.clips[0]!.asset_name = "Long source"
-    const { container } = render(<WorkstationSoundDesign session={sessionFor(soundScene)} onAddMusic={vi.fn()} />)
+    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
-    expect((container.querySelector(".ws-timeline") as HTMLElement).style.width).toBe("1200px")
+    expect((container.querySelector(".sound-scene-timeline") as HTMLElement).style.width).toBe("1200px")
   })
 
   it("persists one document after a committed drag, never one update per frame", async () => {
     const soundScene = scene([part({ duration_ms: 120_000 })], 1_500_000)
     const onCommit = vi.fn().mockResolvedValue({ ...soundScene, revision: 2 })
-    const { container } = render(<WorkstationSoundDesign session={sessionFor(soundScene, onCommit)} onAddMusic={vi.fn()} />)
-    const musicClip = container.querySelector(".ws-music-clip") as HTMLElement
+    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene, onCommit)} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const musicClip = container.querySelector(".sound-music-clip") as HTMLElement
     fireEvent.pointerDown(musicClip, { button: 0, clientX: 100 })
     fireEvent.pointerMove(window, { clientX: 120 })
     fireEvent.pointerMove(window, { clientX: 135 })
@@ -168,8 +167,8 @@ describe("Production Workstation", () => {
     const onCommit = vi.fn().mockResolvedValue({ ...soundScene, revision: 2 })
     const session = sessionFor(soundScene, onCommit)
     const initialStart = session.currentClip("music", musicClipId)?.start_ms
-    const { container } = render(<WorkstationSoundDesign session={session} onAddMusic={vi.fn()} />)
-    const musicClip = container.querySelector(".ws-music-clip") as HTMLElement
+    const { container } = render(<SoundSceneWorkspace session={session} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const musicClip = container.querySelector(".sound-music-clip") as HTMLElement
 
     fireEvent.pointerDown(musicClip, { button: 0, clientX: 100 })
     fireEvent.pointerMove(window, { clientX: 160 })

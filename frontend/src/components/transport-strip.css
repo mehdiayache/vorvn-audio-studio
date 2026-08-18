@@ -81,6 +81,7 @@
 .transport-strip.is-production [data-slot="slider-range"] { background: oklch(.69 .2 300); }
 .transport-strip.is-production [data-slot="slider-thumb"] { border-color: oklch(.69 .2 300); background: var(--transport-ink); }
 .transport-strip.is-production .transport-strip-copy > span { display: none; }
+.transport-strip.is-production.is-sound-scene { grid-template-columns: 2.5rem minmax(9rem, 14rem) 2.5rem auto minmax(11rem, 1fr) auto; }
 .transport-strip.is-production .transport-strip-volume-icon,
 .transport-strip.is-production .transport-strip-volume { display: none; }
 .transport-cc.is-on { color: var(--info); background: var(--info-soft); }

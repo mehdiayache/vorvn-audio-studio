@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react"
 
-import type { SoundScene, SoundSceneClip, SoundSceneDocument } from "@/types/domain"
+import type { SoundScene, SoundSceneClip, SoundSceneDocument, SoundSceneTrack, VentureAsset } from "@/types/domain"
 import { SoundSceneEngine, type SoundSceneEngineState } from "./sound-scene-engine"
 import { SoundScenePlayout } from "./sound-scene-playout"
 
@@ -42,6 +42,7 @@ export class SoundSceneSession {
     scene: SoundScene,
     private persistence: SoundScenePersistence,
     playout?: Playout,
+    private beforePlay?: () => void,
   ) {
     this.editor = new SoundSceneEngine(scene)
     this.playout = playout || new SoundScenePlayout(scene)
@@ -70,6 +71,12 @@ export class SoundSceneSession {
   }
 
   select(selection: SoundSelection) { this.set({ selection }) }
+  pause() {
+    this.playout.pause()
+    if (this.frame) cancelAnimationFrame(this.frame)
+    this.frame = 0
+    this.set({ playing: false })
+  }
 
   reconcile(scene: SoundScene) {
     const current = this.snapshotValue.scene
@@ -112,6 +119,73 @@ export class SoundSceneSession {
 
   async commitClip() { await this.persist(this.editor.document()) }
 
+  private nextDocument(transform: (document: SoundSceneDocument) => void) {
+    const document = structuredClone(this.editor.document())
+    transform(document)
+    return document
+  }
+
+  private musicClip(asset: VentureAsset, positionMs: number, followSequence: boolean): SoundSceneClip {
+    const sourceDuration = Math.max(100, Number(asset.duration_ms || 30_000))
+    return {
+      id: crypto.randomUUID(), asset_id: asset.id, asset_version_id: null,
+      start_ms: positionMs, duration_ms: followSequence ? null : sourceDuration,
+      source_offset_ms: 0, gain: followSequence ? .18 : 1,
+      fade_in_ms: followSequence ? 2_000 : 0,
+      fade_out_ms: followSequence ? 3_000 : 0,
+      loop: followSequence, ducking: followSequence,
+      anchor: { kind: "absolute", position_ms: positionMs },
+    }
+  }
+
+  async addTrack(kind: SoundSceneTrack["kind"], asset?: VentureAsset, timelinePosition = 0) {
+    const id = `${kind}-${crypto.randomUUID()}`
+    const clip = asset ? this.musicClip(asset, Math.max(0, Math.round(timelinePosition * 1000)), true) : null
+    await this.persist(this.nextDocument((document) => document.tracks.push({
+      id, kind, name: `${kind === "music" ? "Music" : kind} ${document.tracks.filter((track) => track.kind === kind).length + 1}`,
+      volume: 1, muted: false, clips: clip ? [clip] : [],
+    })))
+    if (clip) this.select({ kind: "clip", trackId: id, clipId: clip.id })
+    return id
+  }
+
+  async removeTrack(trackId: string) {
+    await this.persist(this.nextDocument((document) => {
+      document.tracks = document.tracks.filter((track) => track.id !== trackId)
+    }))
+    this.select(null)
+  }
+
+  async addClip(trackId: string, asset: VentureAsset, timelinePosition = 0) {
+    const clip = this.musicClip(asset, Math.max(0, Math.round(timelinePosition * 1000)), false)
+    await this.persist(this.nextDocument((document) => {
+      const track = document.tracks.find((item) => item.id === trackId)
+      if (!track) throw new Error("That Music track is no longer available.")
+      track.clips.push(clip)
+    }))
+    this.select({ kind: "clip", trackId, clipId: clip.id })
+  }
+
+  async replaceClipSource(trackId: string, clipId: string, asset: VentureAsset) {
+    await this.persist(this.nextDocument((document) => {
+      const clip = document.tracks.find((track) => track.id === trackId)?.clips.find((item) => item.id === clipId)
+      if (!clip) throw new Error("That Music clip is no longer available.")
+      clip.asset_id = asset.id
+      clip.asset_version_id = null
+      clip.source_offset_ms = 0
+      if (!clip.loop) clip.duration_ms = Math.max(100, Number(asset.duration_ms || clip.duration_ms || 30_000))
+    }))
+  }
+
+  async removeClip(trackId: string, clipId: string) {
+    await this.persist(this.nextDocument((document) => {
+      const track = document.tracks.find((item) => item.id === trackId)
+      if (!track) return
+      track.clips = track.clips.filter((clip) => clip.id !== clipId)
+    }))
+    this.select(null)
+  }
+
   setTrackMute(trackId: string, muted: boolean) {
     this.editor.setTrackMute(trackId, muted)
     this.playout.muteTrack(trackId, muted)
@@ -131,6 +205,7 @@ export class SoundSceneSession {
 
   zoomIn() { this.editor.zoomIn() }
   zoomOut() { this.editor.zoomOut() }
+  setZoomLevel(samplesPerPixel: number) { this.editor.setZoomLevel(samplesPerPixel) }
 
   seek(seconds: number) {
     const next = Math.max(0, Math.min(this.duration(), seconds))
@@ -139,8 +214,9 @@ export class SoundSceneSession {
     this.set({ playhead: next })
   }
 
-  private duration() {
-    return this.snapshotValue.scene.resolved.sequence_projection.duration_ms / 1000
+  duration() {
+    const resolved = this.snapshotValue.scene.resolved
+    return Number(resolved.duration_ms ?? resolved.sequence_projection.duration_ms) / 1000
   }
 
   async togglePlayback() {
@@ -153,6 +229,7 @@ export class SoundSceneSession {
     }
     this.set({ error: "" })
     try {
+      this.beforePlay?.()
       await this.playout.play(this.snapshotValue.playhead)
       this.set({ playing: true })
       this.followPlayhead()

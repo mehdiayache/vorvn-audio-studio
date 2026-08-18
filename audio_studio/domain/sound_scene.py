@@ -27,13 +27,7 @@ class SoundSceneRevisionConflict(SoundSceneError):
 
 
 def empty_scene() -> dict[str, Any]:
-    return {
-        "version": 1,
-        "tracks": [{
-            "id": "music", "kind": "music", "name": "Music",
-            "volume": 1, "muted": False, "clips": [],
-        }],
-    }
+    return {"version": 1, "tracks": []}
 
 
 def _number(value: Any, default: float = 0) -> float:
@@ -150,8 +144,6 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
             "muted": bool(raw_track.get("muted", False)),
             "clips": clips,
         })
-    if not any(track["kind"] == "music" for track in tracks):
-        tracks.append(empty_scene()["tracks"][0])
     return {"version": 1, "tracks": tracks}
 
 
@@ -277,10 +269,14 @@ def resolve_scene(
             if start_ms is None:
                 duration_ms = 0
             else:
-                available_scene = max(0, projection["duration_ms"] - start_ms)
-                requested = (available_scene if clip["duration_ms"] is None
-                             else clip["duration_ms"])
-                duration_ms = min(requested, available_scene)
+                # A null duration is the deliberate follow-Sequence bed
+                # contract. Explicitly dimensioned clips are placements of
+                # their own and may form an intro/outro beyond the voice stem.
+                duration_ms = (
+                    max(0, projection["duration_ms"] - start_ms)
+                    if clip["duration_ms"] is None
+                    else clip["duration_ms"]
+                )
                 if not clip["loop"] and source_duration_ms:
                     duration_ms = min(
                         duration_ms,
@@ -303,8 +299,17 @@ def resolve_scene(
                     "reason": orphan_reason,
                 })
         resolved_tracks.append({**track, "clips": resolved_clips})
+    scene_duration_ms = max([
+        projection["duration_ms"],
+        *(int(clip.get("resolved_start_ms") or 0)
+          + int(clip.get("resolved_duration_ms") or 0)
+          for track in resolved_tracks
+          for clip in track["clips"]
+          if not clip.get("orphan") and not clip.get("missing")),
+    ])
     resolution = {
         "version": 1,
+        "duration_ms": scene_duration_ms,
         "sequence_projection": projection,
         "tracks": resolved_tracks,
         "orphans": orphans,

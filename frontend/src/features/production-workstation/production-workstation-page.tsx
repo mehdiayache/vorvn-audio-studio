@@ -12,7 +12,9 @@ import { PartCaptionsDialog } from "@/features/production/part-captions-dialog"
 import { MovePartPositionDialog } from "@/features/production/move-part-position-dialog"
 import { ProductionComposerStage } from "@/features/composer/production-composer-host"
 import { MixExportWorkspace } from "@/features/production/mix-export-workspace"
-import { MusicWorkbench } from "@/features/production/music-workbench"
+import { MusicInspector } from "@/features/sound-scene/inspector/music-inspector"
+import { SoundSceneWorkspace } from "@/features/sound-scene/timeline/sound-scene-workspace"
+import { SoundSceneSession, useSoundSceneSession, type SoundScenePersistence } from "@/features/sound-scene/engine/sound-scene-session"
 import { ProductionFloatingTransport } from "@/features/production/production-floating-transport"
 import { productionHealth, type ProductionHealthIssue } from "@/features/production/production-health-sheet"
 import { useProductionSpeechJobs } from "@/features/production/use-production-speech-jobs"
@@ -36,8 +38,6 @@ import type {
 } from "@/types/domain"
 import { WorkstationOutline, WorkstationSequence, workstationPartState, type WorkstationPartActions, type WorkstationPartState } from "./workstation-sequence"
 import { WorkstationPartInspector } from "./workstation-part-inspector"
-import { SoundDesignOutline, WorkstationSoundDesign } from "./workstation-sound-design"
-import { SoundSceneSession, useSoundSceneSession, type SoundScenePersistence } from "./sound-scene-session"
 import { WorkstationPaneHeader } from "./workstation-pane-header"
 
 import "./production-workstation.css"
@@ -45,6 +45,7 @@ import "./production-workstation.css"
 const ProductionOverlays = lazy(() => import("@/features/production/production-overlays"))
 
 type WorkstationStage = "sequence" | "sound" | "mix"
+type MusicTarget = { mode: "new-track" } | { mode: "add-clip"; trackId: string } | { mode: "replace"; trackId: string; clipId: string }
 
 function initialSelection(production: Production) {
   if (typeof window !== "undefined") {
@@ -241,6 +242,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   const [composerPartId, setComposerPartId] = useState<number | null>(null)
   const [releaseInspectorOpen, setReleaseInspectorOpen] = useState(false)
   const [tool, setTool] = useState<ToolKind>(null)
+  const [musicTarget, setMusicTarget] = useState<MusicTarget | null>(null)
   const [insertBeforePartId, setInsertBeforePartId] = useState<string | null>(null)
   const [captionPartId, setCaptionPartId] = useState<number | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
@@ -248,6 +250,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   const [movePositionPart, setMovePositionPart] = useState<ProductionPart | null>(null)
   const [replacingAsset, setReplacingAsset] = useState<ProductionPart | null>(null)
   const centerPaneRef = useRef<HTMLElement | null>(null)
+  const soundSessionRef = useRef<SoundSceneSession | null>(null)
   const sourceParts = useMemo(() => production.parts.filter((part) => part.kind !== "stitch"), [production.parts])
   const activeSourceParts = useMemo(() => sourceParts.filter((part) => part.enabled !== false), [sourceParts])
   const pendingDraftCount = useMemo(() => activeSourceParts.filter((part) => part.kind === "draft").length, [activeSourceParts])
@@ -271,7 +274,10 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
       return source
     }
   }, [activeSourceParts, production.id, sourceParts])
-  const playSource = useCallback(async (source: PlayerSource) => player.toggleSource(await preparePlayerSource(source)), [player, preparePlayerSource])
+  const playSource = useCallback(async (source: PlayerSource) => {
+    soundSessionRef.current?.pause()
+    await player.toggleSource(await preparePlayerSource(source))
+  }, [player, preparePlayerSource])
   const actions = useProductionActions({ production, soundScene, player, refresh, refreshAssets, preparePlayerSource, feedbackMode: "inline" })
   const soundPersistence = useRef<SoundScenePersistence>({
     update: actions.updateSoundScene,
@@ -287,11 +293,12 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     update: (document) => soundPersistence.current.update(document),
     undo: () => soundPersistence.current.undo(),
     redo: () => soundPersistence.current.redo(),
-  }), [production.id])
+  }, undefined, () => player.pause()), [production.id])
+  soundSessionRef.current = soundSession
   const soundState = useSoundSceneSession(soundSession)
   useEffect(() => { soundSession.reconcile(soundScene) }, [soundScene, soundSession])
   useEffect(() => () => soundSession.dispose(), [soundSession])
-  const duration = soundScene.resolved.sequence_projection.duration_ms / 1000
+  const duration = Number(soundScene.resolved.duration_ms ?? soundScene.resolved.sequence_projection.duration_ms) / 1000
   const issues = useMemo(() => productionHealth(production.parts), [production.parts])
   const assetCollectionIds = Object.fromEntries(assetCollections.map((collection) => [collection.name, collection.id]))
   const renameProduction = useCallback(async (name: string) => {
@@ -339,10 +346,11 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   }, [selectedId])
   const closeComposer = useCallback(() => { setComposerOpen(false); setComposerPartId(null); setInsertBeforePartId(null) }, [])
   const changeStage = useCallback((next: WorkstationStage) => {
+    if (next !== "sound") soundSession.pause()
     setStage(next)
     closeComposer()
     setReleaseInspectorOpen(next === "mix")
-  }, [closeComposer])
+  }, [closeComposer, soundSession])
   const queueRender = useCallback((payload: GeneratePayload) => {
     const request = composerPart ? actions.recordPendingPart(composerPart, payload) : actions.generatePart(payload)
     return request.then((job) => { closeComposer(); void refresh().catch(() => undefined); return job })
@@ -371,6 +379,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   }, [actions, pendingDraftCount])
   const openTool = useCallback((kind: Exclude<ToolKind, null>) => {
     if (kind === "speech") { openNewSpeech(); return }
+    if (kind === "music") setMusicTarget({ mode: "new-track" })
     setInsertBeforePartId(null)
     setTool(kind)
   }, [openNewSpeech])
@@ -408,7 +417,9 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
 
   const soundSelection = soundState.selection
   const soundPart = soundSelection?.kind === "part" ? sourceParts.find((part) => part.id === soundSelection.id) || null : null
-  const resolvedMusicTrack = soundState.scene.resolved.tracks.find((track) => track.kind === "music") || null
+  const resolvedMusicTrack = soundSelection?.kind === "clip"
+    ? soundState.scene.resolved.tracks.find((track) => track.id === soundSelection.trackId) || null
+    : null
   const engineMusicTrack = resolvedMusicTrack ? soundState.engine.tracks.find((track) => track.id === resolvedMusicTrack.id) : null
   const musicTrack = resolvedMusicTrack ? {
     ...resolvedMusicTrack,
@@ -438,11 +449,11 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     productionId={production.id} part={selectedPart} directory={directory} playingKey={player.source?.key} playerPlaying={actions.playerPlaying}
     onPlay={(source) => void playSource(source)} onChanged={async () => { actions.invalidatePreview(); await refresh() }}
     onDuplicate={(part) => void actions.duplicatePart(part)} onDelete={requestPartDeletion} onEdit={editPart} onOpenCaptions={(part) => setCaptionPartId(part.id)} onReplaceAsset={openAssetReplacement}
-  /> : stage === "sound" && soundSelection?.kind === "clip" && musicTrack ? <MusicWorkbench
+  /> : stage === "sound" && soundSelection?.kind === "clip" && musicTrack ? <MusicInspector
     track={musicTrack} clip={musicClip} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)}
     onClipChange={(changes) => { if (musicClip) soundSession.updateClip(musicTrack.id, musicClip.id, changes) }} onClipCommit={() => soundSession.commitClip()}
     onTrackVolumeChange={(volume) => soundSession.setTrackVolume(musicTrack.id, volume)} onTrackVolumeCommit={(volume) => soundSession.commitTrackVolume(musicTrack.id, volume)}
-    onChoose={() => setTool("music")} onRemove={() => setConfirmAction({ title: "Remove this Music clip?", description: "The reusable Venture asset remains available. Only this Sound Scene placement is removed.", action: () => { void actions.removeMusic(); soundSession.select(null) } })}
+    onChoose={() => { setMusicTarget({ mode: "replace", trackId: soundSelection.trackId, clipId: soundSelection.clipId }); setTool("music") }} onRemove={() => setConfirmAction({ title: "Remove this Music clip?", description: "The reusable Venture asset remains available. Only this Sound Scene placement is removed.", action: () => { void soundSession.removeClip(soundSelection.trackId, soundSelection.clipId) } })}
   /> : stage === "sound" && soundPart ? <WorkstationPartInspector
     productionId={production.id} part={soundPart} directory={directory} playingKey={player.source?.key} playerPlaying={actions.playerPlaying}
     onPlay={(source) => void playSource(source)} onChanged={refresh}
@@ -469,22 +480,21 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     () => {
       setTool(null); setConfirmAction(null); setCaptionPartId(null); setMovePositionPart(null); setReplacingAsset(null)
       if (composerOpen) closeComposer()
-    },
+    }, undefined, stage !== "sound",
   )
   return <>
     <section className="production-workstation" data-stage={stage} data-outline-open={outlineOpen ? "true" : "false"} data-inspector-open={inspectorOpen ? "true" : "false"} data-inspector-expanded={composerOpen ? "true" : "false"}>
-      <WorkstationHeader production={production} tree={tree} duration={duration} stage={stage} issueCount={issues.length} previewing={actions.previewing} playing={actions.productionPlaying} mutationStatus={actions.mutationStatus} onStage={changeStage} onPreview={actions.toggleProduction} onAdd={openTool} onDelete={() => setDeleteProductionOpen(true)} onRename={renameProduction} />
+      <WorkstationHeader production={production} tree={tree} duration={duration} stage={stage} issueCount={issues.length} previewing={stage === "sound" ? false : actions.previewing} playing={stage === "sound" ? soundState.playing : actions.productionPlaying} mutationStatus={actions.mutationStatus} onStage={changeStage} onPreview={() => { if (stage === "sound") void soundSession.togglePlayback(); else void actions.toggleProduction() }} onAdd={openTool} onDelete={() => setDeleteProductionOpen(true)} onRename={renameProduction} />
       <div className="ws-body">
-        <aside className={cn("ws-left-pane", !outlineOpen && "is-collapsed")} aria-label={`${stage} navigation`}>
+        {stage !== "sound" && <aside className={cn("ws-left-pane", !outlineOpen && "is-collapsed")} aria-label={`${stage} navigation`}>
           {outlineOpen ? <>
             {stage === "sequence" && <WorkstationOutline parts={sourceParts} selectedId={selectedId} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} directory={directory} onSelect={selectPart} onCollapse={() => setOutlineOpen(false)} />}
-            {stage === "sound" && <SoundDesignOutline session={soundSession} onAddMusic={() => setTool("music")} onCollapse={() => setOutlineOpen(false)} />}
             {stage === "mix" && <MixOutline production={production} soundScene={soundScene} onCollapse={() => setOutlineOpen(false)} />}
           </> : <CollapsedPaneSummary label={outlineLabel} number={collapsedNumber} state={collapsedState} playing={Boolean(playingPart)} onExpand={() => setOutlineOpen(true)} />}
-        </aside>
+        </aside>}
         <main className="ws-center-pane" ref={centerPaneRef}>
           {stage === "sequence" && <WorkstationSequence parts={sourceParts} selectedId={selectedId} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} liveJobs={liveJobs} directory={directory} actions={partActions} onAddEnd={() => openNewSpeech()} />}
-          {stage === "sound" && <WorkstationSoundDesign session={soundSession} onAddMusic={() => setTool("music")} />}
+          {stage === "sound" && <SoundSceneWorkspace session={soundSession} onAddMusic={(target) => { setMusicTarget(target); setTool("music") }} onRemoveClip={({ trackId, clipId }) => setConfirmAction({ title: "Remove this Music clip?", description: "The reusable Venture asset remains available. Only this Sound Scene placement is removed.", action: () => { void soundSession.removeClip(trackId, clipId) } })} onRemoveTrack={(trackId) => setConfirmAction({ title: "Remove this Music track?", description: "Every placement on this track is removed. Reusable Venture assets remain available.", action: () => { void soundSession.removeTrack(trackId) } })} />}
           {stage === "mix" && <div className="ws-mix-canvas"><MixExportWorkspace production={production} soundScene={soundScene} previewing={actions.previewing} productionPlaying={actions.productionPlaying} previewReady={actions.productionLoaded} previewStale={Boolean(player.source?.kind === "production" && !actions.productionLoaded)} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={requestExport} onLocatePart={(id) => { setStage("sequence"); setSelectedId(id) }} onOpenHealth={() => setReleaseInspectorOpen(true)} exporting={actions.exporting} /></div>}
         </main>
         {inspectorOpen && <aside className="ws-right-pane" aria-label="Contextual inspector">
@@ -493,6 +503,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
         </aside>}
       </div>
       <ProductionFloatingTransport
+        soundSession={stage === "sound" ? soundSession : undefined}
         previewStale={Boolean(player.source?.kind === "production" && !actions.productionLoaded)}
         onRefreshPreview={() => void actions.toggleProduction()}
         onOpenCaptionContext={(partId) => {
@@ -508,12 +519,17 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     <MovePartPositionDialog part={movePositionPart} count={sourceParts.length} onClose={() => setMovePositionPart(null)} onMove={actions.movePartToPosition} />
     {overlaysOpen && <Suspense fallback={null}><ProductionOverlays
       tool={tool} productionId={production.id} nextPartNumber={sourceParts.length + 1} insertAt={composerInsertAt} insertBeforePartId={insertBeforePartId}
-      composerPart={null} replacingAssetId={replacingAsset?.asset_id} initialMusicAssetId={musicTrack?.clips[0]?.asset_id} config={config} directory={directory} assets={assets} assetCollectionIds={assetCollectionIds}
+      composerPart={null} replacingAssetId={replacingAsset?.asset_id} initialMusicAssetId={musicClip?.asset_id} config={config} directory={directory} assets={assets} assetCollectionIds={assetCollectionIds}
       playingKey={player.source?.key} playerPlaying={actions.playerPlaying} confirmAction={confirmAction}
-      onCloseTool={() => { setTool(null); setReplacingAsset(null) }} onSaveDraft={actions.saveDraft} onUpdateEditorial={async () => undefined} onGenerate={queueRender}
+      onCloseTool={() => { setTool(null); setReplacingAsset(null); setMusicTarget(null) }} onSaveDraft={actions.saveDraft} onUpdateEditorial={async () => undefined} onGenerate={queueRender}
       onAddSilence={async (seconds) => { await actions.addSilence(seconds, insertBeforePartId); setTool(null) }}
       onInsertAsset={async (asset) => { if (replacingAsset) await actions.replaceAsset(replacingAsset, asset); else await actions.insertAsset(asset, insertBeforePartId); setTool(null); setReplacingAsset(null) }}
-      onSetMusic={async (asset) => { await actions.setMusicAsset(asset); setTool(null); setStage("sound"); soundSession.select(null) }}
+      onSetMusic={async (asset) => {
+        if (musicTarget?.mode === "replace") await soundSession.replaceClipSource(musicTarget.trackId, musicTarget.clipId, asset)
+        else if (musicTarget?.mode === "add-clip") await soundSession.addClip(musicTarget.trackId, asset, soundSession.snapshot().playhead)
+        else await soundSession.addTrack("music", asset, soundSession.snapshot().playhead)
+        setTool(null); setMusicTarget(null); setStage("sound")
+      }}
       onUploadAsset={async (folder, file) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); await actions.uploadAsset(collectionId, folder, file) }}
       onImport={(document, roleVoices) => studioApi.importProduction(production.id, document, roleVoices)} onImported={() => { actions.invalidatePreview(); void refresh().then(() => setTool(null)) }}
       onPlay={(source) => void playSource(source)} onConfirmAction={setConfirmAction}

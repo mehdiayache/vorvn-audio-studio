@@ -6066,6 +6066,17 @@
       },
       "SoundSceneResolution": {
         "properties": {
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
           "orphans": {
             "items": {
               "additionalProperties": {

@@ -104,8 +104,21 @@ class AudioProjectTests(unittest.TestCase):
                 second = peaks("voice.wav", 24)
             self.assertEqual(first, second)
             self.assertEqual(len(first), 24)
-            self.assertTrue(all(.08 <= value <= 1 for value in first))
-            self.assertTrue((root / ".voice.wav.peaks-24.json").is_file())
+            self.assertTrue(all(0 <= value <= 1 for value in first))
+            self.assertTrue((root / ".voice.wav.peaks-v2-24.json").is_file())
+            self.assertTrue((root / ".voice.wav.peaks-v2-4096.json").is_file())
+
+    def test_server_waveform_peaks_reuses_one_canonical_decode(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            (root / "voice.wav").write_bytes(_tone())
+            with patch("audio_studio.infrastructure.audio_peaks.media_root",
+                       return_value=root), patch(
+                           "audio_studio.infrastructure.audio_peaks.subprocess.run",
+                           wraps=__import__("subprocess").run) as decode:
+                peaks("voice.wav", 128)
+                peaks("voice.wav", 2048)
+            self.assertEqual(decode.call_count, 1)
 
     def test_server_waveform_peaks_supports_timeline_resolution(self):
         with TemporaryDirectory() as folder:

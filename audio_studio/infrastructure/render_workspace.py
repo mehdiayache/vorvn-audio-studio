@@ -118,7 +118,8 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
     ]
     scene_duration = max(
         .001,
-        float(scene.get("sequence_projection", {}).get("duration_ms") or
+        float(scene.get("duration_ms") or
+              scene.get("sequence_projection", {}).get("duration_ms") or
               _measure(sequence) or 1) / 1000,
     )
     for _, clip in clips:
@@ -187,7 +188,7 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
         sound_labels.append(dry_label)
     sound_label = mix_group(sound_labels, "sound") or ""
     filters.append(
-        f"{sound_label}[sequence]amix=inputs=2:duration=first:"
+        f"{sound_label}[sequence]amix=inputs=2:duration=longest:"
         f"dropout_transition=0:normalize=0,apad,atrim=duration={scene_duration:.3f},"
         "alimiter=limit=0.98[out]"
     )

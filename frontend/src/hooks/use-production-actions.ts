@@ -5,7 +5,7 @@ import type { usePlayer } from "@/hooks/use-player"
 import { useJobExecution } from "@/hooks/use-job-execution"
 import { studioApi } from "@/lib/api"
 import { moveSelectionToPosition } from "@/lib/production-order"
-import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, Production, ProductionPart, SoundScene, SoundSceneClip, SoundSceneDocument, VentureAsset } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, Production, ProductionPart, SoundScene, SoundSceneDocument, VentureAsset } from "@/types/domain"
 
 type Player = ReturnType<typeof usePlayer>
 export type ProductionMutationStatus = "idle" | "saving" | "saved"
@@ -202,30 +202,6 @@ export function useProductionActions({ production, soundScene, player, refresh, 
   const addSilence = useCallback((seconds: number, beforePartId: string | null) => mutate(() => studioApi.addSilence(production.id, seconds, beforePartId), "Silence added"), [mutate, production.id])
   const insertAsset = useCallback((asset: VentureAsset, beforePartId: string | null) => mutate(() => studioApi.insertAsset(production.id, asset.id, beforePartId), "Library audio inserted"), [mutate, production.id])
   const replaceAsset = useCallback((part: ProductionPart, asset: VentureAsset) => mutate(() => studioApi.replaceAsset(production.id, part.id, asset.id), "Venture audio replaced"), [mutate, production.id])
-  const setMusicAsset = useCallback((asset: VentureAsset) => {
-    const existingTrack = soundScene.document.tracks.find((track) => track.kind === "music")
-    const existing = existingTrack?.clips[0]
-    const clip: SoundSceneClip = existing ? {
-      ...existing, asset_id: asset.id, asset_version_id: null,
-    } : {
-      id: crypto.randomUUID(), asset_id: asset.id, asset_version_id: null,
-      start_ms: 0, duration_ms: null, source_offset_ms: 0,
-      gain: .1, fade_in_ms: 2_000, fade_out_ms: 4_000,
-      loop: true, ducking: true,
-      anchor: { kind: "absolute", position_ms: 0 },
-    }
-    const document: SoundSceneDocument = {
-      version: 1,
-      tracks: existingTrack
-        ? soundScene.document.tracks.map((track) => track.id === existingTrack.id ? { ...track, clips: [clip] } : track)
-        : [...soundScene.document.tracks, { id: "music", kind: "music", name: "Music", volume: 1, muted: false, clips: [clip] }],
-    }
-    return updateSoundScene(document)
-  }, [soundScene.document.tracks, updateSoundScene])
-  const removeMusic = useCallback(() => updateSoundScene({
-    version: 1,
-    tracks: soundScene.document.tracks.map((track) => track.kind === "music" ? { ...track, clips: [] } : track),
-  }), [soundScene.document.tracks, updateSoundScene])
   const moveParts = useCallback((ids: number[], targetId: number, targetName: string) => mutate(() => studioApi.moveParts(production.id, ids, targetId), `Moved to ${targetName}`, true), [mutate, production.id])
   const uploadAsset = useCallback(async (collectionId: number, folder: string, file: File) => {
     await studioApi.uploadAsset(collectionId, file)
@@ -233,5 +209,5 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     toast.success(`${file.name} uploaded to ${folder}`)
   }, [refreshAssets])
 
-  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, mutationStatus, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, updateSoundScene, undoSoundScene, redoSoundScene, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, removeMusic, moveParts, uploadAsset }
+  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, mutationStatus, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, updateSoundScene, undoSoundScene, redoSoundScene, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, moveParts, uploadAsset }
 }

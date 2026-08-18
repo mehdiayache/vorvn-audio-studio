@@ -87,7 +87,7 @@ export class SoundSceneEngine {
     this.engine = new PlaylistEngine({
       sampleRate: SAMPLE_RATE,
       samplesPerPixel: 4_800,
-      zoomLevels: [1_200, 1_600, 2_400, 3_200, 4_800, 7_200, 9_600, 12_000],
+      zoomLevels: [300, 400, 600, 800, 1_200, 1_600, 2_400, 3_200, 4_800, 7_200, 9_600, 12_000],
       undoLimit: 80,
     })
     this.replace(scene)
@@ -147,6 +147,7 @@ export class SoundSceneEngine {
   }
   zoomIn() { this.engine.zoomIn() }
   zoomOut() { this.engine.zoomOut() }
+  setZoomLevel(samplesPerPixel: number) { this.engine.setZoomLevel(samplesPerPixel) }
   seek(seconds: number) { this.engine.seek(seconds) }
   undo() { this.engine.undo() }
   redo() { this.engine.redo() }

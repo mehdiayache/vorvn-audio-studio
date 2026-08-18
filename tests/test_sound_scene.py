@@ -19,7 +19,9 @@ def speech(part_id: int, duration_ms: int, position: int) -> dict:
 
 def anchored_scene(part_public_id: str) -> dict:
     scene = empty_scene()
-    scene["tracks"][0]["clips"] = [{
+    scene["tracks"].append({
+        "id": "music", "kind": "music", "name": "Music",
+        "volume": 1, "muted": False, "clips": [{
         "id": "78af885c-aeb4-49bf-9edb-d3fc14496b2c",
         "asset_id": 9, "asset_version_id": 11,
         "start_ms": 0, "duration_ms": 2_000, "source_offset_ms": 250,
@@ -29,7 +31,8 @@ def anchored_scene(part_public_id: str) -> dict:
                    "edge": "start", "offset_ms": 500},
         "asset_name": "Future transition", "filename": "transition.wav",
         "source_duration_ms": 10_000, "missing": False,
-    }]
+        }],
+    })
     return scene
 
 
@@ -112,21 +115,44 @@ class SoundSceneDomainTests(unittest.TestCase):
 
     def test_follow_duration_tracks_current_production_length(self):
         scene = empty_scene()
-        scene["tracks"][0]["clips"] = [{
+        scene["tracks"].append({
+            "id": "music", "kind": "music", "name": "Music",
+            "volume": 1, "muted": False, "clips": [{
             "id": "78af885c-aeb4-49bf-9edb-d3fc14496b2c",
             "asset_id": 9, "start_ms": 0, "duration_ms": None,
             "source_offset_ms": 0, "gain": .1, "fade_in_ms": 0,
             "fade_out_ms": 0, "loop": True, "ducking": True,
             "anchor": {"kind": "absolute", "position_ms": 0},
-        }]
+            }],
+        })
         first = resolve_scene(scene, [speech(1, 4_000, 0)])
         longer = resolve_scene(scene, [speech(1, 9_000, 0)])
         self.assertEqual(first["tracks"][0]["clips"][0]["resolved_duration_ms"], 4_000)
         self.assertEqual(longer["tracks"][0]["clips"][0]["resolved_duration_ms"], 9_000)
+        self.assertEqual(longer["duration_ms"], 9_000)
+
+    def test_explicit_sound_clip_can_extend_beyond_sequence(self):
+        scene = anchored_scene(speech(1, 4_000, 0)["public_id"])
+        clip = scene["tracks"][0]["clips"][0]
+        clip["anchor"] = {
+            "kind": "part", "part_public_id": speech(1, 4_000, 0)["public_id"],
+            "edge": "end", "offset_ms": 500,
+        }
+        clip["duration_ms"] = 2_000
+
+        resolved = resolve_scene(scene, [speech(1, 4_000, 0)])
+
+        placed = resolved["tracks"][0]["clips"][0]
+        self.assertEqual(placed["resolved_start_ms"], 4_500)
+        self.assertEqual(placed["resolved_duration_ms"], 2_000)
+        self.assertEqual(resolved["duration_ms"], 6_500)
 
     def test_track_volume_is_normalized_separately_from_clip_gain(self):
         scene = empty_scene()
-        scene["tracks"][0]["volume"] = .65
+        scene["tracks"].append({
+            "id": "music", "kind": "music", "name": "Music",
+            "volume": .65, "muted": False, "clips": [],
+        })
         resolved = resolve_scene(scene, [speech(1, 4_000, 0)])
         self.assertEqual(resolved["tracks"][0]["volume"], .65)
 

@@ -7,7 +7,7 @@ export type PlayerShortcutControls = {
   seek: (seconds: number) => void
 }
 
-export function usePlayerShortcuts(controls: PlayerShortcutControls, closeTransientUi: () => void, openCommands?: () => void) {
+export function usePlayerShortcuts(controls: PlayerShortcutControls, closeTransientUi: () => void, openCommands?: () => void, playbackEnabled = true) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const target = event.target
@@ -17,6 +17,7 @@ export function usePlayerShortcuts(controls: PlayerShortcutControls, closeTransi
         openCommands?.()
         return
       }
+      if (!playbackEnabled) return
       if (event.key === "Escape" && !editing) {
         closeTransientUi()
         return
@@ -28,5 +29,5 @@ export function usePlayerShortcuts(controls: PlayerShortcutControls, closeTransi
     }
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [controls, closeTransientUi, openCommands])
+  }, [controls, closeTransientUi, openCommands, playbackEnabled])
 }

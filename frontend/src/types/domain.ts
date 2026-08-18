@@ -234,6 +234,7 @@ export type SoundScene = {
   resolved: {
     version: 1
     signature: string
+    duration_ms: number
     sequence_projection: {
       signature: string
       duration_ms: number

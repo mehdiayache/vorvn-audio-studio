@@ -124,6 +124,10 @@ class ResolvedSoundSceneTrack(BaseModel):
 class SoundSceneResolution(BaseModel):
     version: Literal[1]
     signature: str
+    # New resolvers always provide the full scene duration. Keeping this
+    # nullable at the HTTP boundary lets older persisted/test projections be
+    # read while clients fall back to the canonical Sequence duration.
+    duration_ms: int | None = None
     sequence_projection: SequenceProjection
     tracks: list[ResolvedSoundSceneTrack]
     orphans: list[dict[str, str]]

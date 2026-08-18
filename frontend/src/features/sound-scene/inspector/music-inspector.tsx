@@ -7,11 +7,11 @@ import { SwitchLike } from "@/components/switch-like"
 import { audioUrl } from "@/lib/api"
 import { formatDuration } from "@/lib/format"
 import type { PlayerSource, SoundSceneClip, SoundSceneTrack } from "@/types/domain"
-import { MusicWaveformEditor, type MusicSourceWindow } from "./music-waveform-editor"
+import { MusicSourceEditor, type MusicSourceWindow } from "../source-editor/music-source-editor"
 
-import "./music-workbench.css"
+import "./music-inspector.css"
 
-export function MusicWorkbench({ track, clip, playingKey, playing, onPlay, onClipChange, onClipCommit, onTrackVolumeChange, onTrackVolumeCommit, onChoose, onRemove }: {
+export function MusicInspector({ track, clip, playingKey, playing, onPlay, onClipChange, onClipCommit, onTrackVolumeChange, onTrackVolumeCommit, onChoose, onRemove }: {
   track: SoundSceneTrack
   clip: SoundSceneClip | null
   playingKey?: string
@@ -68,7 +68,7 @@ export function MusicWorkbench({ track, clip, playingKey, playing, onPlay, onCli
 
     <section className="music-workbench-controls">
       <header><div><span className="eyebrow">Current mix</span><h3>Bed placement</h3></div><small>Hear gain changes while dragging. One save happens on release.</small></header>
-      <MusicWaveformEditor
+      <MusicSourceEditor
         url={audioUrl(clip.filename)}
         sourceDuration={sourceDuration}
         sourceOffset={start}
@@ -90,6 +90,6 @@ export function MusicWorkbench({ track, clip, playingKey, playing, onPlay, onCli
       <p className={`music-save-state${error ? " is-error" : ""}`} role={error ? "alert" : "status"} aria-live="polite">{error || (saving ? `Saving ${saving}…` : "Local while dragging · persisted on release.")}</p>
     </section>
 
-    <section className="music-workbench-actions"><Button variant="outline" disabled={Boolean(saving)} onClick={onChoose}><RefreshCcw /> Replace source</Button><Button variant="ghost" className="danger" disabled={Boolean(saving)} onClick={onRemove}><Trash2 /> Remove Music Bed</Button></section>
+    <section className="music-workbench-actions"><Button variant="outline" disabled={Boolean(saving)} onClick={onChoose}><RefreshCcw /> Replace source</Button><Button variant="ghost" className="danger" disabled={Boolean(saving)} onClick={onRemove}><Trash2 /> Remove clip</Button></section>
   </div>
 }

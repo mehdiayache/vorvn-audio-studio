@@ -7,7 +7,7 @@ import { formatDuration } from "@/lib/format"
 
 export type MusicSourceWindow = { sourceOffsetMs: number; durationMs: number | null }
 
-export function MusicWaveformEditor({ url, sourceDuration, sourceOffset, usedDuration, loop, disabled, onChange, onCommit }: {
+export function MusicSourceEditor({ url, sourceDuration, sourceOffset, usedDuration, loop, disabled, onChange, onCommit }: {
   url: string
   sourceDuration: number
   sourceOffset: number
@@ -29,8 +29,7 @@ export function MusicWaveformEditor({ url, sourceDuration, sourceOffset, usedDur
   const peaks = useAudioPeaks(url, 1024)
   const boundedSource = Math.max(sourceDuration, .1)
   const boundedOffset = Math.min(Math.max(sourceOffset, 0), Math.max(0, boundedSource - .1))
-  const loopWindow = Math.min(Math.max(10, Math.min(30, usedDuration)), boundedSource - boundedOffset)
-  const boundedUsed = Math.max(.1, Math.min(loop ? loopWindow : usedDuration, boundedSource - boundedOffset))
+  const boundedUsed = Math.max(.1, Math.min(loop ? .1 : usedDuration, boundedSource - boundedOffset))
   const desiredRegion = useRef({ start: boundedOffset, end: Math.min(boundedSource, boundedOffset + boundedUsed) })
   desiredRegion.current = { start: boundedOffset, end: Math.min(boundedSource, boundedOffset + boundedUsed) }
 
@@ -78,9 +77,8 @@ export function MusicWaveformEditor({ url, sourceDuration, sourceOffset, usedDur
       lastWindow.current = next
       callbacks.current.onCommit(next)
     })
-    const stopClick = regions.on("region-clicked", (current, event) => {
+    const stopClick = regions.on("region-clicked", (_current, event) => {
       event.stopPropagation()
-      current.play(true)
     })
     const stopReady = waveform.once("ready", () => {
       const desired = desiredRegion.current
@@ -125,8 +123,8 @@ export function MusicWaveformEditor({ url, sourceDuration, sourceOffset, usedDur
     syncing.current = false
   }, [boundedOffset, boundedSource, boundedUsed, disabled, loop])
 
-  return <section className="music-waveform-editor" aria-label="Music source window">
-    <header><span><b>{loop ? "Loop start" : "Used source window"}</b><small>{loop ? "Drag the highlighted window to choose where looping begins. Click it to audition." : "Drag the region; resize either edge to choose the exact source window."}</small></span><strong>{formatDuration(boundedOffset)} → {formatDuration(boundedOffset + boundedUsed)}</strong></header>
+  return <section className={`music-waveform-editor${loop ? " is-loop" : ""}`} aria-label="Music source window">
+    <header><span><b>{loop ? "Loop start" : "Used source window"}</b><small>{loop ? "Drag the purple start marker. The first pass begins here; later passes restart at 0:00." : "Drag the region; resize either edge to choose the exact source window."}</small></span><strong>{loop ? formatDuration(boundedOffset) : `${formatDuration(boundedOffset)} → ${formatDuration(boundedOffset + boundedUsed)}`}</strong></header>
     <div className={`music-waveform-canvas${peaks?.length === 0 ? " is-unavailable" : ""}`}>
       <div className="music-waveform-surface" ref={containerRef} />
       {!peaks && <span className="music-waveform-loading">Loading waveform…</span>}
