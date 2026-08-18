@@ -1,4 +1,3 @@
-import { MobilePartInspectorSheet } from "@/features/production/inspector/part-inspector"
 import { ProductionToolDialog, type ToolKind } from "@/components/production-tools"
 import { ProductionComposerDialog } from "@/features/composer/production-composer-host"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
@@ -10,7 +9,7 @@ import type { ProductionImportCounts, ProductionImportDocument } from "@/feature
 
 export type ConfirmAction = { title: string; description: string; action: () => void; confirmLabel?: string; kind?: "confirm" | "delete" }
 
-export default function ProductionOverlays({ tool, productionId, nextPartNumber, insertAt, insertBeforePartId, composerPart, replacingAssetId, initialMusicAssetId, config, directory, assets, assetCollectionIds, playingKey, playerPlaying, activeDetail, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertAsset, onSetMusic, onUploadAsset, onImport, onImported, onPlay, onCloseDetail, onDetailChanged, onDuplicate, onDeleteDetail, onRecordPart, onConfirmAction }: {
+export default function ProductionOverlays({ tool, productionId, nextPartNumber, insertAt, insertBeforePartId, composerPart, replacingAssetId, initialMusicAssetId, config, directory, assets, assetCollectionIds, playingKey, playerPlaying, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertAsset, onSetMusic, onUploadAsset, onImport, onImported, onPlay, onConfirmAction }: {
   tool: ToolKind
   productionId: number
   nextPartNumber: number
@@ -25,7 +24,6 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
   assetCollectionIds: Record<string, number>
   playingKey?: string
   playerPlaying: boolean
-  activeDetail: ProductionPart | null
   confirmAction: ConfirmAction | null
   onCloseTool: () => void
   onSaveDraft: (payload: Omit<GeneratePayload, "confirmed">) => Promise<void>
@@ -38,11 +36,6 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
   onImport: (document: ProductionImportDocument, roleVoices: Record<string, string>) => Promise<ProductionImportCounts>
   onImported: () => void
   onPlay: (source: PlayerSource) => void
-  onCloseDetail: () => void
-  onDetailChanged: () => Promise<void>
-  onDuplicate: (part: ProductionPart) => void
-  onDeleteDetail: (part: ProductionPart) => void
-  onRecordPart: (part: ProductionPart) => void
   onConfirmAction: (action: ConfirmAction | null) => void
 }) {
   return <>
@@ -65,7 +58,6 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
       onPlay={onPlay}
     />}
     <ProductionToolDialog open={tool === "speech" ? null : tool} nextPartNumber={nextPartNumber} beforePartId={insertBeforePartId} replacingAssetId={replacingAssetId} initialMusicAssetId={initialMusicAssetId} assets={assets} assetCollectionIds={assetCollectionIds} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseTool} onAddSilence={onAddSilence} onInsertAsset={onInsertAsset} onSetMusic={onSetMusic} onUploadAsset={onUploadAsset} onImport={onImport} onImported={onImported} onPlay={onPlay} />
-    <MobilePartInspectorSheet productionId={productionId} part={activeDetail} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseDetail} onPlay={onPlay} onChanged={onDetailChanged} onDuplicate={onDuplicate} onDelete={onDeleteDetail} onRecordPart={onRecordPart} />
     {confirmAction?.kind === "delete" ? <DeleteConfirmationDialog
       open
       onOpenChange={(open) => { if (!open) onConfirmAction(null) }}

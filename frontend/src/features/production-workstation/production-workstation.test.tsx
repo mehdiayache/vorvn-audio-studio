@@ -2,9 +2,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
-import type { MusicBed, ProductionPart, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GenerateResult, MusicBed, ProductionPart, VoiceDirectory } from "@/types/domain"
 import { InlineProductionName } from "./production-workstation-page"
-import { WorkstationOutline } from "./workstation-sequence"
+import { WorkstationOutline, WorkstationSequenceCard, type WorkstationPartActions } from "./workstation-sequence"
 import { WorkstationSoundDesign } from "./workstation-sound-design"
 
 class ResizeObserverMock {
@@ -27,6 +27,14 @@ function part(values: Partial<ProductionPart>): ProductionPart {
     duration_ms: 4_000,
     clip_id: 10,
     ...values,
+  }
+}
+
+function partActions(values: Partial<WorkstationPartActions> = {}): WorkstationPartActions {
+  return {
+    select: vi.fn(), edit: vi.fn(), play: vi.fn(), captions: vi.fn(), duplicate: vi.fn(), remove: vi.fn(),
+    move: vi.fn(), moveToPosition: vi.fn(), retry: vi.fn(), confirm: vi.fn(), setEnabled: vi.fn(),
+    editSilence: vi.fn(), addBefore: vi.fn(), ...values,
   }
 }
 
@@ -80,5 +88,27 @@ describe("Production Workstation", () => {
     const { container } = render(<WorkstationSoundDesign parts={[story]} music={music} selection={null} onSelection={vi.fn()} onAddSound={vi.fn()} />)
 
     expect((container.querySelector(".ws-timeline") as HTMLElement).style.width).toBe("1200px")
+  })
+
+  it("keeps exact positioning available after the legacy Production is removed", () => {
+    const moveToPosition = vi.fn()
+    const source = part({ id: 8 })
+    render(<WorkstationSequenceCard part={source} index={0} selected={false} playing={false} liveJobs={{}} directory={directory} actions={partActions({ moveToPosition })} />)
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Part actions" }), { button: 0, ctrlKey: false, pointerType: "mouse" })
+    fireEvent.click(screen.getByRole("menuitem", { name: "Move to position…" }))
+
+    expect(moveToPosition).toHaveBeenCalledWith(source)
+  })
+
+  it("keeps durable failed-generation recovery in the canonical Workstation", () => {
+    const retry = vi.fn()
+    const job = { id: "speech-failed", type: "speech", status: "failed", progress: 0, detail: "Provider request failed", retries: 0, result: {} } as DurableJob<GenerateResult>
+    const source = part({ id: 9, kind: "draft", clip_id: null, speech_job: job })
+    render(<WorkstationSequenceCard part={source} index={0} selected={false} playing={false} liveJobs={{}} directory={directory} actions={partActions({ retry })} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }))
+
+    expect(retry).toHaveBeenCalledWith(source, job)
   })
 })

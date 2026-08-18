@@ -1,7 +1,7 @@
 import { useState } from "react"
 import {
   Captions, Check, CircleAlert, CircleDot, Clock3, Edit3, GripVertical,
-  Mic2, MoreHorizontal, Pause, Play, Search, Sparkles, Volume2, VolumeX,
+  Mic2, MoreHorizontal, Pause, Play, RotateCw, Search, Sparkles, Volume2, VolumeX,
 } from "lucide-react"
 
 import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
@@ -25,6 +25,9 @@ export type WorkstationPartActions = {
   duplicate: (part: ProductionPart) => void
   remove: (part: ProductionPart) => void
   move: (part: ProductionPart, direction: -1 | 1) => void
+  moveToPosition: (part: ProductionPart) => void
+  retry: (part: ProductionPart, job: DurableJob<GenerateResult>) => void
+  confirm: (part: ProductionPart, job: DurableJob<GenerateResult>) => void
   setEnabled: (part: ProductionPart, enabled: boolean) => void
   editSilence: (part: ProductionPart, seconds: number) => void
   addBefore: (part: ProductionPart) => void
@@ -100,7 +103,8 @@ export function WorkstationSequenceCard({ part, index, selected, playing, liveJo
   actions: WorkstationPartActions
 }) {
   if (part.kind === "silence") return <SilenceCard part={part} selected={selected} actions={actions} />
-  const facts = speechPartCardFacts({ part, speechJob: operationJob(part, liveJobs), captionJob: captionJob(part, liveJobs), directory })
+  const speechJob = operationJob(part, liveJobs)
+  const facts = speechPartCardFacts({ part, speechJob, captionJob: captionJob(part, liveJobs), directory })
   const role = formatAuthoredRole(part.authored_role)
   const isDraft = !facts.recorded
   const hasIssue = facts.alerts.some((alert) => alert.tone !== "neutral") || facts.operation.kind === "failed"
@@ -117,11 +121,11 @@ export function WorkstationSequenceCard({ part, index, selected, playing, liveJo
         <div className="ws-part-actions">
           <Button variant="ghost" size="icon-sm" aria-label={part.enabled === false ? "Include part in output" : "Exclude part from output"} onClick={(event) => { event.stopPropagation(); actions.setEnabled(part, part.enabled === false) }}>{part.enabled === false ? <Volume2 /> : <VolumeX />}</Button>
           <Button variant="outline" size="sm" onClick={(event) => { event.stopPropagation(); actions.edit(part) }}><Edit3 /> Edit</Button>
-          <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Part actions" onClick={(event) => event.stopPropagation()}><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => actions.duplicate(part)}>Duplicate</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.move(part, -1)}>Move up</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.move(part, 1)}>Move down</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}>Delete part</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+          <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Part actions" onClick={(event) => event.stopPropagation()}><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => actions.duplicate(part)}>Duplicate</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.move(part, -1)}>Move up</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.move(part, 1)}>Move down</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.moveToPosition(part)}>Move to position…</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}>Delete part</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
         </div>
       </header>
       <p className="ws-part-script" dir={textDirection(facts.script)}>{facts.scriptState === "tagged" ? <InlineDeliveryTags text={facts.script} /> : facts.script}</p>
-      {facts.operation.kind !== "idle" && <div className={cn("ws-operation", `is-${facts.operation.kind}`)}><Sparkles className={facts.operation.kind === "active" ? "spin" : ""} /><b>{facts.operation.label}</b><span>{facts.operation.detail}</span>{facts.operation.progress !== null && <i style={{ width: `${facts.operation.progress}%` }} />}</div>}
+      {facts.operation.kind !== "idle" && <div className={cn("ws-operation", `is-${facts.operation.kind}`)}><Sparkles className={facts.operation.kind === "active" ? "spin" : ""} /><b>{facts.operation.label}</b><span>{facts.operation.detail}</span>{facts.operation.progress !== null && <i style={{ width: `${facts.operation.progress}%` }} />}{speechJob && facts.operation.canConfirm && <Button size="sm" onClick={(event) => { event.stopPropagation(); actions.confirm(part, speechJob) }}>Confirm and continue</Button>}{speechJob && facts.operation.canRetry && <Button size="sm" variant="outline" onClick={(event) => { event.stopPropagation(); actions.retry(part, speechJob) }}><RotateCw /> Retry</Button>}</div>}
       <footer className="ws-part-footer">
         {facts.playable ? <Button variant="ghost" size="icon" className="ws-play" aria-label={playing ? "Pause part" : "Play part"} onClick={(event) => { event.stopPropagation(); actions.play(source) }}>{playing ? <Pause /> : <Play />}</Button> : <span className="ws-record-state"><Mic2 /> Not recorded</span>}
         {facts.playable && <span className={cn("ws-waveform", playing && "is-active")}><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={56} /></span>}

@@ -41,7 +41,7 @@ function Fact({ label, value, mono = false }: { label: string; value?: string | 
   return <div><dt>{label}</dt><dd className={mono ? "is-mono" : undefined}>{value === undefined || value === null || value === "" ? "—" : String(value)}</dd></div>
 }
 
-export function WorkstationPartInspector({ productionId, part, directory, playingKey, playerPlaying, onChanged, onPlay, onEdit, onDuplicate, onDelete, onOpenCaptions }: {
+export function WorkstationPartInspector({ productionId, part, directory, playingKey, playerPlaying, onChanged, onPlay, onEdit, onDuplicate, onDelete, onOpenCaptions, onReplaceAsset }: {
   productionId: number
   part: ProductionPart
   directory: VoiceDirectory
@@ -53,6 +53,7 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
   onDuplicate: (part: ProductionPart) => void
   onDelete: (part: ProductionPart) => void
   onOpenCaptions: (part: ProductionPart) => void
+  onReplaceAsset: (part: ProductionPart) => void
 }) {
   const tabs = useMemo(() => availableTabs(part), [part])
   const [tab, setTab] = useState<InspectorTab>(tabs[0] || "details")
@@ -136,6 +137,7 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
     {data.message && <p className="ws-inspector-message" role="status">{data.message}</p>}
     <footer className="ws-inspector-footer">
       {part.kind !== "silence" && part.kind !== "asset" && <Button onClick={() => onEdit(part)}><Pencil /> Edit in Composer</Button>}
+      {part.kind === "asset" && <Button onClick={() => onReplaceAsset(part)}><FileAudio /> Replace source</Button>}
       <Button variant="outline" onClick={() => onDuplicate(part)}><Copy /> Duplicate</Button>
       <Button variant="ghost" className="is-danger" aria-label="Delete selected part" onClick={() => onDelete(part)}><Trash2 /></Button>
     </footer>
