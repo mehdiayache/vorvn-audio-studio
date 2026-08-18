@@ -20,7 +20,7 @@ import type { ConfirmAction } from "@/features/production/production-overlays"
 import type { ToolKind } from "@/components/production-tools"
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { useProductionActions } from "@/hooks/use-production-actions"
 import { usePlayerShortcuts } from "@/hooks/use-player-shortcuts"
@@ -101,8 +101,35 @@ export function InlineProductionName({ name, onRename }: { name: string; onRenam
   </div>
 }
 
-function WorkstationHeader({ production, duration, stage, issueCount, previewing, playing, mutationStatus, onStage, onPreview, onAdd, onDelete, onRename }: {
+function ProductionParentSwitcher({ production, tree }: { production: Production; tree: HierarchyNode[] | null }) {
+  const parent = production.trail.at(-1)
+  if (!parent) return <Link className="ws-parent-link" to={`${audioStudioBase}/projects/${production.project_id}`}>Project</Link>
+  const parentNode = tree?.find((item) => item.type === parent.type && item.id === parent.id)
+  const peers = (tree || [])
+    .filter((item) => item.type === parent.type && item.parent_key === parentNode?.parent_key)
+    .sort((left, right) => left.name.localeCompare(right.name))
+  const options = peers.length ? peers : [parent]
+  return <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <Button variant="ghost" size="sm" className="ws-parent-switcher" aria-label={`Switch ${parent.type}`}>
+        <span>{parent.name}</span><ChevronDown aria-hidden="true" />
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="start" className="ws-parent-menu">
+      <DropdownMenuLabel>Switch {parent.type}</DropdownMenuLabel>
+      {options.map((item) => {
+        const current = item.id === parent.id
+        return <DropdownMenuItem key={`${item.type}:${item.id}`} asChild>
+          <Link to={resourceHref(item.type, item.public_id)}><span>{item.name}</span>{current && <Check aria-label="Current" />}</Link>
+        </DropdownMenuItem>
+      })}
+    </DropdownMenuContent>
+  </DropdownMenu>
+}
+
+function WorkstationHeader({ production, tree, duration, stage, issueCount, previewing, playing, mutationStatus, onStage, onPreview, onAdd, onDelete, onRename }: {
   production: Production
+  tree: HierarchyNode[] | null
   duration: number
   stage: WorkstationStage
   issueCount: number
@@ -115,18 +142,14 @@ function WorkstationHeader({ production, duration, stage, issueCount, previewing
   onDelete: () => void
   onRename: (name: string) => Promise<void>
 }) {
-  const parent = production.trail.at(-1)
-  const parentHref = parent ? resourceHref(parent.type, parent.public_id) : `${audioStudioBase}/projects/${production.project_id}`
-  const parentName = parent?.name || "Project"
   return <header className="ws-header">
     <div className="ws-header-context">
       <AudioStudioRailToggle className="ws-shell-toggle" tooltipSide="bottom" />
-      <Link className="ws-parent-link" to={parentHref}>{parentName}</Link>
+      <ProductionParentSwitcher production={production} tree={tree} />
       <ChevronRight className="ws-breadcrumb-separator" aria-hidden="true" />
       <InlineProductionName name={production.name} onRename={onRename} />
       {production.status && production.status !== "draft" && <span className="ws-status">{production.status.replaceAll("_", " ")}</span>}
       {mutationStatus !== "idle" && <span className={`ws-save-state is-${mutationStatus}`} role="status" aria-live="polite">{mutationStatus === "saving" ? <LoaderCircle className="spin" /> : <Check />}{mutationStatus === "saving" ? "Saving…" : "Saved"}</span>}
-      <dl><div><dt>Parts</dt><dd>{production.parts.filter((part) => part.kind !== "stitch").length}</dd></div><div><dt>Duration</dt><dd>{formatDuration(duration)}</dd></div><div><dt>Spend</dt><dd>{formatMoney(production.current_sequence_cost)}</dd></div></dl>
     </div>
     <nav className="ws-workflow" aria-label="Production workflow">
       <button className={stage === "sequence" ? "is-active" : ""} onClick={() => onStage("sequence")}><span>1</span><ListMusic /><b>Sequence</b><small>Voice and story</small></button>
@@ -134,10 +157,13 @@ function WorkstationHeader({ production, duration, stage, issueCount, previewing
       <button className={stage === "mix" ? "is-active" : ""} onClick={() => onStage("mix")}><span>3</span><SlidersHorizontal /><b>Mix & Export</b><small>Finish and deliver</small></button>
     </nav>
     <div className="ws-header-actions">
-      {issueCount > 0 && <Button variant="outline" size="sm" onClick={() => onStage("mix")}><CircleAlert className="ws-warning-icon" /> {issueCount} issue{issueCount === 1 ? "" : "s"}</Button>}
-      <Button variant="outline" size="sm" disabled={previewing} onClick={onPreview}>{previewing ? <LoaderCircle className="spin" /> : playing ? <Pause /> : <Play />}{previewing ? "Preparing…" : playing ? "Pause" : "Preview"}</Button>
-      <DropdownMenu><DropdownMenuTrigger asChild><Button size="sm"><Plus /> Add <ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => onAdd("speech")}><AudioLines /> Speech</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("silence")}><Pause /> Silence</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("asset")}><Sparkles /> SFX or linked audio</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("music")}><Music2 /> Music</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => onAdd("import")}><FileJson2 /> Import JSON</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
-      <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="More Production actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem variant="destructive" onSelect={onDelete}><Trash2 /> Delete Production permanently</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+      <dl><div><dt>Parts</dt><dd>{production.parts.filter((part) => part.kind !== "stitch").length}</dd></div><div><dt>Duration</dt><dd>{formatDuration(duration)}</dd></div><div><dt>Spend</dt><dd>{formatMoney(production.current_sequence_cost)}</dd></div></dl>
+      <div className="ws-action-buttons">
+        {issueCount > 0 && <Button variant="outline" size="sm" onClick={() => onStage("mix")}><CircleAlert className="ws-warning-icon" /> {issueCount} issue{issueCount === 1 ? "" : "s"}</Button>}
+        <Button variant="outline" size="sm" disabled={previewing} onClick={onPreview}>{previewing ? <LoaderCircle className="spin" /> : playing ? <Pause /> : <Play />}{previewing ? "Preparing…" : playing ? "Pause" : "Preview"}</Button>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button size="sm"><Plus /> Add <ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => onAdd("speech")}><AudioLines /> Speech</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("silence")}><Pause /> Silence</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("asset")}><Sparkles /> SFX or linked audio</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("music")}><Music2 /> Music</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => onAdd("import")}><FileJson2 /> Import JSON</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="More Production actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem variant="destructive" onSelect={onDelete}><Trash2 /> Delete Production permanently</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+      </div>
     </div>
   </header>
 }
@@ -171,7 +197,7 @@ function ReleaseInspector({ issues, onLocate }: { issues: ProductionHealthIssue[
   </div>
 }
 
-export function ProductionWorkstationPage({ production, tree: _tree, music, assets, assetCollections, config, directory, refresh, refreshAssets }: {
+export function ProductionWorkstationPage({ production, tree, music, assets, assetCollections, config, directory, refresh, refreshAssets }: {
   production: Production
   tree: HierarchyNode[] | null
   music: MusicBed
@@ -368,7 +394,7 @@ export function ProductionWorkstationPage({ production, tree: _tree, music, asse
   )
   return <>
     <section className="production-workstation" data-stage={stage} data-outline-open={outlineOpen ? "true" : "false"} data-inspector-open={inspectorOpen ? "true" : "false"} data-inspector-expanded={composerOpen ? "true" : "false"}>
-      <WorkstationHeader production={production} duration={duration} stage={stage} issueCount={issues.length} previewing={actions.previewing} playing={actions.productionPlaying} mutationStatus={actions.mutationStatus} onStage={changeStage} onPreview={actions.toggleProduction} onAdd={openTool} onDelete={() => setDeleteProductionOpen(true)} onRename={renameProduction} />
+      <WorkstationHeader production={production} tree={tree} duration={duration} stage={stage} issueCount={issues.length} previewing={actions.previewing} playing={actions.productionPlaying} mutationStatus={actions.mutationStatus} onStage={changeStage} onPreview={actions.toggleProduction} onAdd={openTool} onDelete={() => setDeleteProductionOpen(true)} onRename={renameProduction} />
       <div className="ws-body">
         <aside className={cn("ws-left-pane", !outlineOpen && "is-collapsed")} aria-label={`${stage} navigation`}>
           {outlineOpen ? <>
