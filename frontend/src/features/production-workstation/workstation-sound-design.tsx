@@ -9,6 +9,7 @@ import { buildProductionTiming } from "@/lib/production-timing"
 import { cn } from "@/lib/utils"
 import { formatAuthoredRole, formatDuration } from "@/lib/format"
 import type { MusicBed, ProductionPart } from "@/types/domain"
+import { WorkstationPaneHeader } from "./workstation-pane-header"
 
 type SoundSelection = { kind: "part"; id: number } | { kind: "music" } | null
 
@@ -36,7 +37,6 @@ function TrackLabels({ music, voiceParts, sfxParts, selection, onSelection, onAd
   const voiceActive = selectedPartId == null && selection?.kind !== "music" || voiceParts.some((part) => part.id === selectedPartId)
   const sfxActive = sfxParts.some((part) => part.id === selectedPartId)
   return <div className="ws-track-list">
-    <header><b>Tracks</b><span>Sound scene</span></header>
     <button className={voiceActive ? "is-active" : ""} onClick={() => onSelection(voiceParts[0] ? { kind: "part", id: voiceParts[0].id } : null)}><span className="ws-track-icon is-voice"><AudioLines /></span><span><b>Voice</b><small>{voiceParts.length} clips</small></span><Volume2 /></button>
     <button className={sfxActive ? "is-active" : ""} onClick={() => sfxParts[0] ? onSelection({ kind: "part", id: sfxParts[0].id }) : onAddSound()}><span className="ws-track-icon is-sfx"><Waves /></span><span><b>SFX</b><small>{sfxParts.length ? `${sfxParts.length} clips` : "Ready for sound"}</small></span><Volume2 /></button>
     <button onClick={onAddSound}><span className="ws-track-icon is-ambience"><Headphones /></span><span><b>Ambience</b><small>No ambience yet</small></span><Volume2 /></button>
@@ -45,15 +45,17 @@ function TrackLabels({ music, voiceParts, sfxParts, selection, onSelection, onAd
   </div>
 }
 
-export function SoundDesignOutline({ music, parts, selection, onSelection, onAddSound }: {
+export function SoundDesignOutline({ music, parts, selection, onSelection, onAddSound, onCollapse }: {
   music: MusicBed
   parts: ProductionPart[]
   selection: SoundSelection
   onSelection: (selection: SoundSelection) => void
   onAddSound: () => void
+  onCollapse: () => void
 }) {
   const timing = buildProductionTiming(parts)
   return <div className="ws-sound-outline">
+    <WorkstationPaneHeader title="Tracks" meta="Sound scene" onCollapse={onCollapse} />
     <TrackLabels music={music} voiceParts={timing.narration.map(({ part }) => part)} sfxParts={timing.sfx.map(({ part }) => part)} selection={selection} onSelection={onSelection} onAddSound={onAddSound} />
     <Button variant="outline" onClick={onAddSound}><Plus /> Add or choose sound</Button>
   </div>

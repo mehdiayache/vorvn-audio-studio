@@ -260,6 +260,7 @@ export function ProductionPage({ production, tree, music, assets, assetCollectio
       title: "Delete this Part permanently?",
       description: "This permanently removes the entire card, including its text, recording and captions. Provider charges already incurred remain in Spend and Activity. Reusable Venture audio remains in its library.",
       confirmLabel: "Delete Part permanently",
+      kind: "delete",
       action: () => {
         if (player.source?.key === `part:${part.id}`) player.pause()
         setActiveStage(null)

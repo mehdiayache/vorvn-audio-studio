@@ -48,8 +48,11 @@ describe("Production Workstation", () => {
     const ready = part({ id: 1, authored_role: "Narrator" })
     const draft = part({ id: 2, position: 1, authored_role: "Esther", kind: "draft", clip_id: null, duration_ms: 0 })
     const select = vi.fn()
-    render(<WorkstationOutline parts={[ready, draft]} selectedId={ready.id} directory={directory} onSelect={select} />)
+    const collapse = vi.fn()
+    render(<WorkstationOutline parts={[ready, draft]} selectedId={ready.id} directory={directory} onSelect={select} onCollapse={collapse} />)
 
+    fireEvent.click(screen.getByRole("button", { name: "Hide outline" }))
+    expect(collapse).toHaveBeenCalledOnce()
     expect(screen.getByRole("button", { name: /01.*Narrator/ }).getAttribute("aria-pressed")).toBe("true")
     fireEvent.click(screen.getByRole("button", { name: "Drafts" }))
     expect(screen.queryByRole("button", { name: /01.*Narrator/ })).toBeNull()

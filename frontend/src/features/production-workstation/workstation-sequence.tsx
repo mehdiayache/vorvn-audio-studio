@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 import { formatAuthoredRole, formatPartNumber, partDurationMs, textDirection } from "@/lib/format"
 import { audioUrl } from "@/lib/api"
 import type { DurableJob, GenerateResult, PlayerSource, ProductionPart, VoiceDirectory } from "@/types/domain"
+import { WorkstationPaneHeader } from "./workstation-pane-header"
 
 export type WorkstationPartActions = {
   select: (part: ProductionPart) => void
@@ -39,11 +40,12 @@ function captionJob(part: ProductionPart, liveJobs: Record<string, DurableJob<un
   return liveJobs[part.caption_job.id] || part.caption_job
 }
 
-export function WorkstationOutline({ parts, selectedId, directory, onSelect }: {
+export function WorkstationOutline({ parts, selectedId, directory, onSelect, onCollapse }: {
   parts: ProductionPart[]
   selectedId: number | null
   directory: VoiceDirectory
   onSelect: (part: ProductionPart) => void
+  onCollapse: () => void
 }) {
   const [query, setQuery] = useState("")
   const [filter, setFilter] = useState<"all" | "ready" | "drafts" | "issues">("all")
@@ -56,7 +58,7 @@ export function WorkstationOutline({ parts, selectedId, directory, onSelect }: {
     return true
   })
   return <div className="ws-outline">
-    <header><b>Outline</b><span>{parts.length} parts</span></header>
+    <WorkstationPaneHeader title="Outline" meta={`${parts.length} parts`} onCollapse={onCollapse} />
     <label className="ws-search"><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a role or line" aria-label="Search Production outline" /></label>
     <div className="ws-filter-row" aria-label="Outline filters">
       {(["all", "ready", "drafts", "issues"] as const).map((value) => <button key={value} aria-pressed={filter === value} onClick={() => setFilter(value)}>{value === "all" ? "All" : value.charAt(0).toUpperCase() + value.slice(1)}</button>)}

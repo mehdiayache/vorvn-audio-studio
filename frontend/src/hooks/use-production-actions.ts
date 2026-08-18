@@ -117,7 +117,10 @@ export function useProductionActions({ production, music, player, refresh, refre
       toast.success("Final MP3 created", exportJob.result.url ? { action: { label: "Download", onClick: () => { window.location.href = exportJob.result.url! } } } : undefined)
       void refresh()
     }
-    if (["failed", "lost", "cancelled"].includes(exportJob.status)) reportedExportJob.current = exportJob.id
+    if (["failed", "lost", "cancelled"].includes(exportJob.status)) {
+      reportedExportJob.current = exportJob.id
+      toast.error(exportJob.error || exportJob.detail || exportJob.result.error || "Final MP3 could not be created.")
+    }
   }, [exportJob, refresh])
   const exporting = Boolean(exportJob && ["queued", "running", "retrying"].includes(exportJob.status))
 

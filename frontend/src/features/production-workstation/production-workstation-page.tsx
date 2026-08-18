@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import {
   ArrowLeft, AudioLines, Check, ChevronDown, CircleAlert, FileJson2,
   ListMusic, LoaderCircle, MoreHorizontal, Music2, Pause, PencilLine, Play, Plus, Search,
-  SlidersHorizontal, Sparkles, Trash2, X,
+  PanelLeftOpen, SlidersHorizontal, Sparkles, Trash2, X,
 } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 
@@ -34,6 +34,7 @@ import type {
 import { WorkstationOutline, WorkstationSequence, type WorkstationPartActions } from "./workstation-sequence"
 import { WorkstationPartInspector } from "./workstation-part-inspector"
 import { SoundDesignOutline, WorkstationSoundDesign, type SoundSelection } from "./workstation-sound-design"
+import { WorkstationPaneHeader } from "./workstation-pane-header"
 
 import "./production-workstation.css"
 
@@ -133,11 +134,11 @@ function WorkstationHeader({ production, duration, stage, issueCount, previewing
   </header>
 }
 
-function MixOutline({ production, music }: { production: Production; music: MusicBed }) {
+function MixOutline({ production, music, onCollapse }: { production: Production; music: MusicBed; onCollapse: () => void }) {
   const issues = productionHealth(production.parts)
   const drafts = production.parts.filter((part) => part.kind === "draft" || part.kind === "speech" && !part.clip_id).length
   return <div className="ws-mix-outline">
-    <header><b>Release</b><span>Output checklist</span></header>
+    <WorkstationPaneHeader title="Release" meta="Output checklist" onCollapse={onCollapse} />
     <div className="ws-mix-step is-current"><span>1</span><div><b>Sequence</b><small>{drafts ? `${drafts} recordings missing` : "All speech recorded"}</small></div></div>
     <div className="ws-mix-step"><span>2</span><div><b>Sound</b><small>{music.filename ? "Music bed included" : "Voice only"}</small></div></div>
     <div className="ws-mix-step"><span>3</span><div><b>Quality</b><small>{issues.length ? `${issues.length} items to review` : "Ready to finish"}</small></div></div>
@@ -176,6 +177,7 @@ export function ProductionWorkstationPage({ production, tree: _tree, music, asse
   const navigate = useNavigate()
   const player = useGlobalPlayer()
   const [stage, setStage] = useState<WorkstationStage>("sequence")
+  const [outlineOpen, setOutlineOpen] = useState(true)
   const [selectedId, setSelectedId] = useState<number | null>(() => initialSelection(production))
   const [soundSelection, setSoundSelection] = useState<SoundSelection>(null)
   const [composerOpen, setComposerOpen] = useState(false)
@@ -271,6 +273,7 @@ export function ProductionWorkstationPage({ production, tree: _tree, music, asse
     title: "Delete this Part permanently?",
     description: "This removes the whole story part: its text, recording and captions. Previous provider spend remains in Activity.",
     confirmLabel: "Delete Part permanently",
+    kind: "delete",
     action: () => { if (player.source?.key === `part:${part.id}`) player.pause(); setSelectedId(null); void actions.deletePart(part) },
   }), [actions, player])
   const openTool = useCallback((kind: Exclude<ToolKind, null>) => {
@@ -319,6 +322,7 @@ export function ProductionWorkstationPage({ production, tree: _tree, music, asse
   /> : stage === "mix" && releaseInspectorOpen ? <ReleaseInspector issues={issues} onLocate={(id) => { setStage("sequence"); setSelectedId(id); setReleaseInspectorOpen(false); requestAnimationFrame(() => document.getElementById(`ws-part-${id}`)?.scrollIntoView({ block: "center" })) }} /> : <EmptyInspector stage={stage} />
 
   const inspectorOpen = composerOpen || stage === "sequence" && Boolean(selectedPart) || stage === "sound" && Boolean(soundSelection) || stage === "mix" && releaseInspectorOpen
+  const outlineLabel = stage === "sequence" ? "outline" : stage === "sound" ? "tracks" : "release checklist"
   const closeInspector = () => {
     if (composerOpen) { closeComposer(); return }
     if (stage === "sequence") setSelectedId(null)
@@ -328,13 +332,15 @@ export function ProductionWorkstationPage({ production, tree: _tree, music, asse
 
   const overlaysOpen = Boolean(tool || confirmAction)
   return <>
-    <section className="production-workstation" data-stage={stage} data-inspector-open={inspectorOpen ? "true" : "false"} data-inspector-expanded={composerOpen ? "true" : "false"}>
+    <section className="production-workstation" data-stage={stage} data-outline-open={outlineOpen ? "true" : "false"} data-inspector-open={inspectorOpen ? "true" : "false"} data-inspector-expanded={composerOpen ? "true" : "false"}>
       <WorkstationHeader production={production} duration={duration} stage={stage} issueCount={issues.length} previewing={actions.previewing} playing={actions.productionPlaying} mutationStatus={actions.mutationStatus} onStage={changeStage} onPreview={actions.toggleProduction} onAdd={openTool} onDelete={() => setDeleteProductionOpen(true)} onRename={renameProduction} />
       <div className="ws-body">
-        <aside className="ws-left-pane" aria-label={`${stage} navigation`}>
-          {stage === "sequence" && <WorkstationOutline parts={sourceParts} selectedId={selectedId} directory={directory} onSelect={selectPart} />}
-          {stage === "sound" && <SoundDesignOutline music={music} parts={sourceParts} selection={soundSelection} onSelection={setSoundSelection} onAddSound={() => setTool("asset")} />}
-          {stage === "mix" && <MixOutline production={production} music={music} />}
+        <aside className={cn("ws-left-pane", !outlineOpen && "is-collapsed")} aria-label={`${stage} navigation`}>
+          {outlineOpen ? <>
+            {stage === "sequence" && <WorkstationOutline parts={sourceParts} selectedId={selectedId} directory={directory} onSelect={selectPart} onCollapse={() => setOutlineOpen(false)} />}
+            {stage === "sound" && <SoundDesignOutline music={music} parts={sourceParts} selection={soundSelection} onSelection={setSoundSelection} onAddSound={() => setTool("asset")} onCollapse={() => setOutlineOpen(false)} />}
+            {stage === "mix" && <MixOutline production={production} music={music} onCollapse={() => setOutlineOpen(false)} />}
+          </> : <Button className="ws-pane-expand" variant="ghost" size="icon-sm" aria-label={`Show ${outlineLabel}`} title={`Show ${outlineLabel}`} onClick={() => setOutlineOpen(true)}><PanelLeftOpen /></Button>}
         </aside>
         <main className="ws-center-pane" ref={centerPaneRef}>
           {stage === "sequence" && <WorkstationSequence parts={sourceParts} selectedId={selectedId} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} liveJobs={liveJobs} directory={directory} actions={partActions} onAddEnd={() => openNewSpeech()} />}

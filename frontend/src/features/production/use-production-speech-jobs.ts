@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { toast } from "sonner"
 
 import { studioApi } from "@/lib/api"
+import { formatAuthoredRole, formatPartNumber } from "@/lib/format"
 import { jobObserver } from "@/lib/job-observer"
-import type { DurableJob, ProductionPart } from "@/types/domain"
+import type { DurableJob, GenerateResult, ProductionPart } from "@/types/domain"
+
+const activeStatuses = new Set(["queued", "running", "retrying"])
 
 /**
  * Keeps the durable Jobs already attached to server Parts live in the UI.
@@ -10,14 +14,19 @@ import type { DurableJob, ProductionPart } from "@/types/domain"
  * the source of Part identity and the Job observer only projects execution.
  */
 export function useProductionSpeechJobs(parts: ProductionPart[], refresh: () => Promise<void>) {
-  const jobs = useMemo(() => parts.flatMap((part) => [part.speech_job, part.caption_job].filter(Boolean) as DurableJob<unknown>[]), [parts])
-  const jobKey = jobs.map((job) => `${job.id}:${job.status}`).join("|")
+  const jobs = useMemo(() => parts.flatMap((part) => [
+    part.speech_job ? { job: part.speech_job as DurableJob<GenerateResult>, kind: "speech" as const, part } : null,
+    part.caption_job ? { job: part.caption_job as DurableJob<unknown>, kind: "caption" as const, part } : null,
+  ].filter(Boolean) as Array<{ job: DurableJob<unknown>; kind: "speech" | "caption"; part: ProductionPart }>), [parts])
+  const jobKey = jobs.map(({ job }) => `${job.id}:${job.status}`).join("|")
   const [live, setLive] = useState<Record<string, DurableJob<unknown>>>({})
+  const reportedSpeechJobs = useRef(new Set<string>())
 
   useEffect(() => {
     const unsubscribers: Array<() => void> = []
     let active = true
-    for (const job of jobs) {
+    for (const { job, kind, part } of jobs) {
+      const announceCompletion = kind === "speech" && activeStatuses.has(job.status)
       jobObserver.register(job, studioApi.job<unknown>)
       const sync = () => {
         const snapshot = jobObserver.getSnapshot<unknown>(job.id)
@@ -27,6 +36,13 @@ export function useProductionSpeechJobs(parts: ProductionPart[], refresh: () => 
       unsubscribers.push(jobObserver.subscribe(job.id, sync))
       sync()
       void jobObserver.completion<unknown>(job.id)
+        .then(() => {
+          const completed = jobObserver.getSnapshot<GenerateResult>(job.id)
+          if (!active || !announceCompletion || !completed || !["ok", "warning"].includes(completed.status) || reportedSpeechJobs.current.has(job.id)) return
+          reportedSpeechJobs.current.add(job.id)
+          const role = formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"
+          toast.success("Recording ready", { description: `Part ${formatPartNumber(part.position ?? 0)} · ${role}` })
+        })
         .catch(() => undefined)
         .finally(() => { if (active) void refresh().catch(() => undefined) })
     }

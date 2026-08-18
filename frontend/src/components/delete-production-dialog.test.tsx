@@ -9,13 +9,13 @@ vi.mock("@/lib/api", () => ({
 }))
 
 describe("DeleteProductionDialog", () => {
-  it("requires the exact Production name before permanent deletion", () => {
+  it("uses the common DELETE confirmation before permanent deletion", () => {
     render(<DeleteProductionDialog production={{ id: 7, name: "Esther Story" }} open onOpenChange={vi.fn()} onDeleted={vi.fn()} />)
     const button = screen.getByRole("button", { name: "Delete Production permanently" })
     expect((button as HTMLButtonElement).disabled).toBe(true)
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "esther story" } })
+    fireEvent.change(screen.getByRole("textbox", { name: "Type DELETE to confirm" }), { target: { value: "delete" } })
     expect((button as HTMLButtonElement).disabled).toBe(true)
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Esther Story" } })
+    fireEvent.change(screen.getByRole("textbox", { name: "Type DELETE to confirm" }), { target: { value: "DELETE" } })
     expect((button as HTMLButtonElement).disabled).toBe(false)
     expect(screen.getByText(/Reusable Venture assets and Voices remain/)).toBeTruthy()
   })

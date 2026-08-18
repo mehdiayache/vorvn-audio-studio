@@ -137,4 +137,25 @@ describe("useProductionActions durable commands", () => {
     await act(async () => { await result.current.deletePart(part) })
     expect(toast.success).toHaveBeenCalledWith("Part permanently deleted")
   })
+
+  it("announces a durable export failure once it reaches a terminal state", async () => {
+    const failedExport = {
+      id: "export-failed", type: "render", status: "failed", progress: 0.7,
+      detail: "FFmpeg could not finish the mix.", error: null, retries: 0, result: {},
+    } as DurableJob<{ url?: string; name?: string; error?: string }>
+    const player = {
+      source: null, state: "idle", currentTime: 0, duration: 0, volume: 1, speed: 1,
+      toggleSource: vi.fn(), toggle: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      setVolume: vi.fn(), setSpeed: vi.fn(), close: vi.fn(),
+    }
+    const failedProduction = { ...production, export_job: failedExport } as Production
+
+    renderHook(() => useProductionActions({
+      production: failedProduction, music, player: player as never,
+      refresh: vi.fn(), refreshAssets: vi.fn(),
+    }))
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("FFmpeg could not finish the mix."))
+    expect(toast.error).toHaveBeenCalledTimes(1)
+  })
 })
