@@ -11876,7 +11876,7 @@
             "required": false,
             "schema": {
               "default": 48,
-              "maximum": 512,
+              "maximum": 4096,
               "minimum": 8,
               "title": "Bars",
               "type": "integer"

@@ -37,7 +37,7 @@ def get_audio(name: str) -> FileResponse:
 
 @router.get("/api/v1/media/peaks/{name}", operation_id="getAudioPeaks",
             response_model=AudioPeaksEnvelope)
-def get_audio_peaks(name: str, bars: int = Query(48, ge=8, le=512)) -> dict:
+def get_audio_peaks(name: str, bars: int = Query(48, ge=8, le=4096)) -> dict:
     try:
         values = waveform_peaks(name, bars)
     except LookupError as exc:

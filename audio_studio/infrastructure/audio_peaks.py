@@ -14,7 +14,7 @@ def peaks(filename: str, bars: int) -> list[float]:
     source = (root / Path(filename).name).resolve()
     if source.parent != root or not source.is_file():
         raise LookupError("That audio file is unavailable.")
-    count = max(8, min(512, int(bars)))
+    count = max(8, min(4096, int(bars)))
     cache = root / f".{source.name}.peaks-{count}.json"
     if cache.is_file() and cache.stat().st_mtime >= source.stat().st_mtime:
         try:

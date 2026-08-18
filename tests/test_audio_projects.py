@@ -105,11 +105,22 @@ class AudioProjectTests(unittest.TestCase):
             self.assertTrue(all(.08 <= value <= 1 for value in first))
             self.assertTrue((root / ".voice.wav.peaks-24.json").is_file())
 
+    def test_server_waveform_peaks_supports_timeline_resolution(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            (root / "voice.wav").write_bytes(_tone())
+            with patch("audio_studio.infrastructure.audio_peaks.media_root",
+                       return_value=root):
+                values = peaks("voice.wav", 4096)
+            self.assertEqual(len(values), 4096)
+
     def test_openapi_exposes_headless_render_and_peaks(self):
         paths = app.openapi()["paths"]
         self.assertIn("post", paths["/api/v1/projects/render"])
         self.assertIn("get", paths["/api/v1/productions/{production_id}/project-scene"])
         self.assertIn("get", paths["/api/v1/media/peaks/{name}"])
+        bars = paths["/api/v1/media/peaks/{name}"]["get"]["parameters"][1]["schema"]
+        self.assertEqual(bars["maximum"], 4096)
 
 
 if __name__ == "__main__":
