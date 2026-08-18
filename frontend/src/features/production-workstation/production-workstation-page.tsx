@@ -329,9 +329,13 @@ export function ProductionWorkstationPage({ production, tree, music, assets, ass
   }, [actions, closeComposer, composerPart, refresh])
   const requestPartDeletion = useCallback((part: ProductionPart) => setConfirmAction({
     title: "Delete this Part permanently?",
-    description: "This removes the whole story part: its text, recording and captions. Previous provider spend remains in Activity.",
+    description: part.kind === "asset"
+      ? "This removes this linked-audio Part from the Sequence. The reusable Venture asset remains available."
+      : part.kind === "silence"
+        ? "This permanently removes this Silence Part from the Sequence."
+        : "This removes the whole story part: its text, recording and captions. Previous provider spend remains in Activity.",
     confirmLabel: "Delete Part permanently",
-    kind: "delete",
+    kind: "confirm",
     action: () => { if (player.source?.key === `part:${part.id}`) player.pause(); setSelectedId(null); void actions.deletePart(part) },
   }), [actions, player])
   const openTool = useCallback((kind: Exclude<ToolKind, null>) => {
@@ -357,6 +361,7 @@ export function ProductionWorkstationPage({ production, tree, music, assets, ass
   const partActions: WorkstationPartActions = useMemo(() => ({
     select: selectPart,
     edit: editPart,
+    replaceAsset: openAssetReplacement,
     play: (source) => void playSource(source),
     captions: (part) => setCaptionPartId(part.id),
     duplicate: (part) => void actions.duplicatePart(part),
@@ -368,7 +373,7 @@ export function ProductionWorkstationPage({ production, tree, music, assets, ass
     setEnabled: (part, enabled) => void actions.setPartEnabled(part, enabled),
     editSilence: (part, seconds) => void actions.editSilence(part, seconds),
     addBefore: (part) => openNewSpeech(part),
-  }), [actions, confirmJob, editPart, openNewSpeech, playSource, requestPartDeletion, retryJob, selectPart])
+  }), [actions, confirmJob, editPart, openAssetReplacement, openNewSpeech, playSource, requestPartDeletion, retryJob, selectPart])
 
   const soundPart = soundSelection?.kind === "part" ? sourceParts.find((part) => part.id === soundSelection.id) || null : null
   const playingPart = actions.playerPlaying && player.source?.key.startsWith("part:")

@@ -192,6 +192,20 @@
 .ws-card-issue { color: var(--warning); }
 .ws-card-ready { color: var(--success); }
 .ws-part-footer strong { margin-left: auto; color: var(--foreground); font-size: .75rem; font-variant-numeric: tabular-nums; }
+.ws-asset-card { border-color: color-mix(in oklab, var(--asset) 22%, var(--border)); }
+.ws-asset-main { padding-top: .72rem; }
+.ws-asset-identity { min-width: 0; display: flex; align-items: center; gap: .65rem; }
+.ws-asset-identity > span { width: 2.35rem; height: 2.35rem; flex: none; display: grid; place-items: center; border-radius: .6rem; color: var(--asset); background: var(--asset-soft); }
+.ws-asset-identity > span svg { width: 1rem; }
+.ws-asset-identity > div { min-width: 0; display: grid; gap: .12rem; }
+.ws-asset-identity b, .ws-asset-identity small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-asset-identity b { font-size: .82rem; }
+.ws-asset-identity small { color: var(--muted-foreground); font-size: .67rem; }
+.ws-asset-footer { min-height: 3.45rem; margin-top: .72rem; background: color-mix(in oklab, var(--asset-soft) 34%, white); }
+.ws-asset-footer .ws-waveform { max-width: 18rem; color: color-mix(in oklab, var(--asset) 58%, var(--muted-foreground)); }
+.ws-asset-footer .ws-waveform.is-active { color: var(--asset); }
+.ws-asset-source { display: inline-flex; align-items: center; gap: .3rem; color: var(--muted-foreground); }
+.ws-asset-source svg { width: .78rem; color: var(--asset); }
 .ws-add-ending { justify-self: center; margin-top: 1rem; padding: .6rem 1rem; border: 1px dashed color-mix(in oklab, var(--primary) 35%, var(--border)); border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: .75rem; font-weight: 650; }
 
 .ws-silence-card { display: grid; grid-template-columns: 1fr auto auto 1fr; align-items: center; gap: .55rem; padding: .35rem 0; color: var(--muted-foreground); }

@@ -67,7 +67,8 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
   const wording = recordedWording(part)
   const role = formatAuthoredRole(part.authored_role)
   const currentPlaying = playerPlaying && playingKey === `part:${part.id}`
-  const source: PlayerSource = { key: `part:${part.id}`, url: audioUrl(part.filename || ""), title: role || facts.selectedVoiceName, subtitle: `Part ${formatPartNumber(part.position ?? 0)} · ${facts.durationLabel}`, kind: part.kind === "asset" ? "asset" : "clip" }
+  const playable = part.kind === "asset" ? Boolean(part.filename && !part.missing) : facts.playable
+  const source: PlayerSource = { key: `part:${part.id}`, url: audioUrl(part.filename || ""), title: part.kind === "asset" ? part.title || "Linked audio" : role || facts.selectedVoiceName, subtitle: `Part ${formatPartNumber(part.position ?? 0)} · ${facts.durationLabel}`, kind: part.kind === "asset" ? "asset" : "clip" }
 
   useEffect(() => { setTab(tabs[0] || "details") }, [part.id, tabs])
 
@@ -79,14 +80,20 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
         <h3>{part.kind === "silence" ? "Intentional pause" : part.kind === "asset" ? part.title || "Linked audio" : facts.selectedVoiceName}</h3>
         <p>{part.kind === "silence" ? "Editorial timing" : part.kind === "asset" ? "Venture audio asset" : facts.methodLine}</p>
       </div>
-      {facts.playable && <Button variant="outline" size="icon" aria-label={currentPlaying ? "Pause selected part" : "Play selected part"} onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</Button>}
+      {playable && <Button variant="outline" size="icon" aria-label={currentPlaying ? "Pause selected part" : "Play selected part"} onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</Button>}
     </section>
 
     <dl className="ws-inspector-key-facts">
       <Fact label="Duration" value={facts.durationLabel} />
-      <Fact label="Spend" value={facts.spendValue} />
-      <Fact label="Language" value={part.language || "Unknown"} />
-      <Fact label="State" value={facts.recorded ? facts.inputLabel || "Recorded" : "Draft"} />
+      {part.kind === "asset" ? <>
+        <Fact label="Cost" value={part.cost > 0 ? formatMoney(part.cost) : "Free / reuse"} />
+        <Fact label="Collection" value={part.asset_collection || part.asset_kind || "Venture audio"} />
+        <Fact label="State" value={part.missing ? "Missing source" : "Linked"} />
+      </> : <>
+        <Fact label="Spend" value={facts.spendValue} />
+        <Fact label="Language" value={part.language || "Unknown"} />
+        <Fact label="State" value={facts.recorded ? facts.inputLabel || "Recorded" : "Draft"} />
+      </>}
     </dl>
 
     <Tabs value={tab} onValueChange={(value) => setTab(value as InspectorTab)} className="ws-inspector-tabs">
@@ -101,7 +108,11 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
         </TabsContent>
 
         <TabsContent value="recording" className="ws-inspector-tab">
-          {facts.recorded ? <>
+          {part.kind === "asset" ? playable ? <>
+            <div className="ws-inspector-waveform"><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={96} /><button aria-label={currentPlaying ? "Pause linked audio" : "Play linked audio"} onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</button><span><b>{facts.durationLabel}</b><small>Venture source</small></span></div>
+            <div className="ws-inspector-section-heading"><div><span>Reusable audio</span><b>{part.asset_collection || part.asset_kind || "Venture library"}</b></div></div>
+            <p className="ws-inspector-script">This Part links to a reusable Venture audio asset. Replacing the source updates this placement without creating speech or provider spend.</p>
+          </> : <div className="ws-inspector-empty"><FileAudio /><h3>Source unavailable</h3><p>Choose another Venture audio asset for this Part.</p></div> : facts.recorded ? <>
             <div className="ws-inspector-waveform"><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={96} /><button aria-label={currentPlaying ? "Pause recording" : "Play recording"} onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</button><span><b>{facts.durationLabel}</b><small>{wording.label} input</small></span></div>
             <div className="ws-inspector-section-heading"><div><span>Words used for this recording</span><b>{wording.label}</b></div><CopyTextButton text={wording.text} /></div>
             <div className="ws-inspector-script" dir={textDirection(wording.text)}>{wording.text ? wording.label === "Tagged" ? <InlineDeliveryTags text={wording.text} /> : wording.text : "This historical recording does not contain a reliable wording snapshot."}</div>
@@ -119,7 +130,15 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
         </TabsContent>
 
         <TabsContent value="details" className="ws-inspector-tab">
-          <dl className="ws-inspector-details">
+          {part.kind === "asset" ? <dl className="ws-inspector-details">
+            <Fact label="Source" value="Venture audio asset" />
+            <Fact label="Collection" value={part.asset_collection} />
+            <Fact label="Asset kind" value={part.asset_kind} />
+            <Fact label="Filename" value={part.filename} mono />
+            <Fact label="Cost in Sequence" value={part.cost > 0 ? formatMoney(part.cost) : "Free / reuse"} />
+            <Fact label="Asset ID" value={part.asset_id || part.asset_of} mono />
+            <Fact label="Asset version" value={part.asset_version_id} mono />
+          </dl> : <dl className="ws-inspector-details">
             <Fact label="Voice" value={facts.selectedVoiceName} />
             <Fact label="Model" value={facts.exactModel || facts.methodLine} />
             <Fact label="Provider" value={part.provider} />
@@ -128,8 +147,8 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
             <Fact label="Output language" value={part.language || "Unknown"} />
             <Fact label="Format" value={(part.format || "").toUpperCase()} />
             <Fact label="Active recording cost" value={formatMoney(part.cost)} />
-          </dl>
-          <details className="ws-inspector-evidence"><summary>Technical evidence</summary><dl><Fact label="Part ID" value={part.public_id || part.id} mono /><Fact label="Recording ID" value={part.clip_public_id} mono /><Fact label="Binding ID" value={part.binding_id} mono /><Fact label="Provider attempt" value={part.provider_attempt_id} mono /></dl></details>
+          </dl>}
+          <details className="ws-inspector-evidence"><summary>Technical evidence</summary><dl><Fact label="Part ID" value={part.public_id || part.id} mono />{part.kind === "asset" ? <><Fact label="Asset ID" value={part.asset_id || part.asset_of} mono /><Fact label="Asset version" value={part.asset_version_id} mono /></> : <><Fact label="Recording ID" value={part.clip_public_id} mono /><Fact label="Binding ID" value={part.binding_id} mono /><Fact label="Provider attempt" value={part.provider_attempt_id} mono /></>}</dl></details>
         </TabsContent>
       </div>
     </Tabs>

@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, ProductionPart, VoiceDirectory } from "@/types/domain"
 import { InlineProductionName } from "./production-workstation-page"
-import { WorkstationOutline, WorkstationSequenceCard, workstationPartState, type WorkstationPartActions } from "./workstation-sequence"
+import { WorkstationAssetCard, WorkstationOutline, WorkstationSequenceCard, workstationPartState, type WorkstationPartActions } from "./workstation-sequence"
 import { WorkstationSoundDesign } from "./workstation-sound-design"
 
 class ResizeObserverMock {
@@ -13,6 +13,7 @@ class ResizeObserverMock {
   disconnect() {}
 }
 globalThis.ResizeObserver = ResizeObserverMock
+afterEach(cleanup)
 
 const directory = { config: null, cloned: [], meta: {}, catalog: [] } as VoiceDirectory
 
@@ -32,7 +33,7 @@ function part(values: Partial<ProductionPart>): ProductionPart {
 
 function partActions(values: Partial<WorkstationPartActions> = {}): WorkstationPartActions {
   return {
-    select: vi.fn(), edit: vi.fn(), play: vi.fn(), captions: vi.fn(), duplicate: vi.fn(), remove: vi.fn(),
+    select: vi.fn(), edit: vi.fn(), replaceAsset: vi.fn(), play: vi.fn(), captions: vi.fn(), duplicate: vi.fn(), remove: vi.fn(),
     move: vi.fn(), moveToPosition: vi.fn(), retry: vi.fn(), confirm: vi.fn(), setEnabled: vi.fn(),
     editSilence: vi.fn(), addBefore: vi.fn(), ...values,
   }
@@ -93,6 +94,23 @@ describe("Production Workstation", () => {
     expect(screen.getByRole("generic", { name: "Voice track" }).textContent).toContain("Narrator")
     expect(screen.getByRole("generic", { name: "Sound effects track" }).textContent).toContain("Door closes")
     expect(screen.getByRole("generic", { name: "Music track" }).textContent).toContain("Quiet room")
+  })
+
+  it("presents linked audio as a reusable Venture asset instead of empty speech", () => {
+    const replaceAsset = vi.fn()
+    const source = part({ id: 4, position: 3, kind: "asset", title: "Temple door stinger", text: "Temple door stinger", filename: "door.wav", duration_ms: 2_400, clip_id: 40, asset_collection: "Stingers", cost: 0 })
+    render(<WorkstationAssetCard part={source} index={3} selected={false} playing={false} actions={partActions({ replaceAsset })} />)
+
+    expect(screen.getByText("Temple door stinger")).toBeTruthy()
+    expect(screen.getByText("Stingers · Venture source")).toBeTruthy()
+    expect(screen.getByText("0:02.4")).toBeTruthy()
+    expect(screen.getByText("Free · reusable")).toBeTruthy()
+    expect(screen.queryByText("Unknown Voice")).toBeNull()
+    expect(screen.queryByText("Recording method not chosen")).toBeNull()
+    expect(screen.queryByText("No captions")).toBeNull()
+
+    fireEvent.click(screen.getByRole("button", { name: "Replace source" }))
+    expect(replaceAsset).toHaveBeenCalledWith(source)
   })
 
   it("sizes the timeline from Production time instead of the raw music source", () => {

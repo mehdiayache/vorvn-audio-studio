@@ -1,7 +1,7 @@
 import { useState } from "react"
 import {
   Captions, Check, CircleAlert, CircleDot, Clock3, Edit3, GripVertical,
-  Mic2, MoreHorizontal, Pause, Play, RotateCw, Search, Sparkles, Volume2, VolumeX,
+  FileAudio, Mic2, MoreHorizontal, Pause, Play, RotateCw, Search, Sparkles, Volume2, VolumeX,
 } from "lucide-react"
 
 import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
@@ -12,7 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from "@/components/ui/input"
 import { speechPartCardFacts } from "@/components/speech-part-card-model"
 import { cn } from "@/lib/utils"
-import { formatAuthoredRole, formatPartNumber, partDurationMs, textDirection } from "@/lib/format"
+import { formatAuthoredRole, formatMoney, formatPartNumber, partDurationMs, textDirection } from "@/lib/format"
 import { audioUrl } from "@/lib/api"
 import type { DurableJob, GenerateResult, PlayerSource, ProductionPart, VoiceDirectory } from "@/types/domain"
 import { WorkstationPaneHeader } from "./workstation-pane-header"
@@ -20,6 +20,7 @@ import { WorkstationPaneHeader } from "./workstation-pane-header"
 export type WorkstationPartActions = {
   select: (part: ProductionPart) => void
   edit: (part: ProductionPart) => void
+  replaceAsset: (part: ProductionPart) => void
   play: (source: PlayerSource) => void
   captions: (part: ProductionPart) => void
   duplicate: (part: ProductionPart) => void
@@ -82,11 +83,11 @@ export function WorkstationOutline({ parts, selectedId, playingKey, playerPlayin
       {visible.map((part, index) => {
         const state = workstationPartState(part)
         const playing = playerPlaying && playingKey === `part:${part.id}`
-        const role = part.kind === "silence" ? "Pause" : part.kind === "asset" ? "Linked audio" : formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"
-        const detail = part.kind === "silence" ? `${partDurationMs(part) / 1000}s silence` : state === "draft" ? "Draft · not recorded" : `${Math.round(partDurationMs(part) / 100) / 10}s`
+        const role = part.kind === "silence" ? "Pause" : part.kind === "asset" ? part.title || "Linked audio" : formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"
+        const detail = part.kind === "silence" ? `${partDurationMs(part) / 1000}s silence` : part.kind === "asset" ? `${part.asset_collection || part.asset_kind || "Venture audio"} · ${Math.round(partDurationMs(part) / 100) / 10}s` : state === "draft" ? "Draft · not recorded" : `${Math.round(partDurationMs(part) / 100) / 10}s`
         return <button key={part.id} className={cn("ws-outline-item", selectedId === part.id && "is-selected", playing && "is-playing", part.enabled === false && "is-disabled")} aria-pressed={selectedId === part.id} aria-current={playing ? "true" : undefined} onClick={() => onSelect(part)}>
           <span className="ws-outline-number">{formatPartNumber(part.position ?? index)}</span>
-          <span className="ws-outline-avatar">{part.kind === "silence" ? <Clock3 /> : <VoiceIdentity voice={part.catalogue_voice_id || part.voice || part.voice_name} identityId={part.voice_identity_id} directory={directory} compact showCopy={false} />}</span>
+          <span className="ws-outline-avatar">{part.kind === "silence" ? <Clock3 /> : part.kind === "asset" ? <FileAudio /> : <VoiceIdentity voice={part.catalogue_voice_id || part.voice || part.voice_name} identityId={part.voice_identity_id} directory={directory} compact showCopy={false} />}</span>
           <span className="ws-outline-copy"><b>{role}</b><small>{playing ? `Playing · ${detail}` : detail}</small></span>
           <i className={`is-${state}`} aria-label={state === "issue" ? "Needs attention" : state === "draft" ? "Draft" : "Ready"} />
         </button>
@@ -106,6 +107,53 @@ function SilenceCard({ part, selected, actions }: { part: ProductionPart; select
   </article>
 }
 
+function PartActionsMenu({ part, actions }: { part: ProductionPart; actions: WorkstationPartActions }) {
+  return <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Part actions" onClick={(event) => event.stopPropagation()}><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => actions.duplicate(part)}>Duplicate</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.move(part, -1)}>Move up</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.move(part, 1)}>Move down</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.moveToPosition(part)}>Move to position…</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}>Delete part</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+}
+
+function compactAssetDuration(part: ProductionPart) {
+  const totalTenths = Math.max(0, Math.round(partDurationMs(part) / 100))
+  const minutes = Math.floor(totalTenths / 600)
+  const seconds = Math.floor((totalTenths % 600) / 10)
+  return `${minutes}:${String(seconds).padStart(2, "0")}.${totalTenths % 10}`
+}
+
+export function WorkstationAssetCard({ part, index, selected, playing, actions }: {
+  part: ProductionPart
+  index: number
+  selected: boolean
+  playing: boolean
+  actions: WorkstationPartActions
+}) {
+  const title = part.title || part.text || "Linked audio"
+  const collection = part.asset_collection || part.asset_kind || "Venture audio"
+  const duration = compactAssetDuration(part)
+  const playable = Boolean(part.filename && !part.missing)
+  const hasIssue = Boolean(part.missing || !part.filename)
+  const source: PlayerSource = { key: `part:${part.id}`, url: audioUrl(part.filename || ""), title, subtitle: `${collection} · Part ${formatPartNumber(part.position ?? index)}`, kind: "asset" }
+  return <article id={`ws-part-${part.id}`} className={cn("ws-part-card", "ws-asset-card", selected && "is-selected", hasIssue && "has-issue", part.enabled === false && "is-disabled")} onClick={() => actions.select(part)}>
+    <aside className="ws-part-index"><span>{formatPartNumber(part.position ?? index)}</span><GripVertical aria-hidden="true" /></aside>
+    <div className="ws-part-main ws-asset-main">
+      <header className="ws-part-identity">
+        <div className="ws-asset-identity"><span><FileAudio /></span><div><b>{title}</b><small>{collection} · Venture source</small></div></div>
+        <div className="ws-part-actions">
+          <Button variant="ghost" size="icon-sm" aria-label={part.enabled === false ? "Include part in output" : "Exclude part from output"} onClick={(event) => { event.stopPropagation(); actions.setEnabled(part, part.enabled === false) }}>{part.enabled === false ? <Volume2 /> : <VolumeX />}</Button>
+          <Button variant="outline" size="sm" onClick={(event) => { event.stopPropagation(); actions.replaceAsset(part) }}><FileAudio /> Replace source</Button>
+          <PartActionsMenu part={part} actions={actions} />
+        </div>
+      </header>
+      <footer className="ws-part-footer ws-asset-footer">
+        {playable ? <Button variant="ghost" size="icon" className="ws-play" aria-label={playing ? "Pause linked audio" : "Play linked audio"} onClick={(event) => { event.stopPropagation(); actions.play(source) }}>{playing ? <Pause /> : <Play />}</Button> : <span className="ws-record-state"><CircleAlert /> Source missing</span>}
+        {playable && <span className={cn("ws-waveform", playing && "is-active")}><AudioWaveform url={audioUrl(part.filename || "")} bars={72} /></span>}
+        <span className="ws-duration">{duration}</span>
+        <span className="ws-asset-source"><FileAudio /> Reusable Venture audio</span>
+        {hasIssue && <span className="ws-card-issue"><CircleAlert /> Review source</span>}
+        <strong>{part.cost > 0 ? formatMoney(part.cost) : "Free · reusable"}</strong>
+      </footer>
+    </div>
+  </article>
+}
+
 export function WorkstationSequenceCard({ part, index, selected, playing, liveJobs, directory, actions }: {
   part: ProductionPart
   index: number
@@ -116,6 +164,7 @@ export function WorkstationSequenceCard({ part, index, selected, playing, liveJo
   actions: WorkstationPartActions
 }) {
   if (part.kind === "silence") return <SilenceCard part={part} selected={selected} actions={actions} />
+  if (part.kind === "asset") return <WorkstationAssetCard part={part} index={index} selected={selected} playing={playing} actions={actions} />
   const speechJob = operationJob(part, liveJobs)
   const facts = speechPartCardFacts({ part, speechJob, captionJob: captionJob(part, liveJobs), directory })
   const role = formatAuthoredRole(part.authored_role)
@@ -134,7 +183,7 @@ export function WorkstationSequenceCard({ part, index, selected, playing, liveJo
         <div className="ws-part-actions">
           <Button variant="ghost" size="icon-sm" aria-label={part.enabled === false ? "Include part in output" : "Exclude part from output"} onClick={(event) => { event.stopPropagation(); actions.setEnabled(part, part.enabled === false) }}>{part.enabled === false ? <Volume2 /> : <VolumeX />}</Button>
           <Button variant="outline" size="sm" onClick={(event) => { event.stopPropagation(); actions.edit(part) }}><Edit3 /> Edit</Button>
-          <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Part actions" onClick={(event) => event.stopPropagation()}><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => actions.duplicate(part)}>Duplicate</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.move(part, -1)}>Move up</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.move(part, 1)}>Move down</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.moveToPosition(part)}>Move to position…</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}>Delete part</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+          <PartActionsMenu part={part} actions={actions} />
         </div>
       </header>
       <p className="ws-part-script" dir={textDirection(facts.script)}>{facts.scriptState === "tagged" ? <InlineDeliveryTags text={facts.script} /> : facts.script}</p>
