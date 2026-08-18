@@ -2,10 +2,10 @@
   --ws-left: clamp(13.5rem, 15vw, 17rem);
   --ws-left-current: var(--ws-left);
   --ws-right: clamp(23rem, 26vw, 29rem);
-  height: calc(100dvh - var(--studio-deck-height));
+  height: calc(100dvh - var(--studio-standalone-header-height) - var(--studio-local-chrome-height));
   min-height: 42rem;
   display: grid;
-  grid-template-rows: 4.25rem minmax(0, 1fr);
+  grid-template-rows: 3.75rem minmax(0, 1fr);
   overflow: hidden;
   background: oklch(0.972 0.005 72);
 }
@@ -13,7 +13,7 @@
 .production-workstation[data-inspector-expanded="true"] { --ws-right: clamp(34rem, 43vw, 46rem); }
 .ws-kicker { color: var(--muted-foreground); font-size: .675rem; font-weight: 720; letter-spacing: .105em; text-transform: uppercase; }
 
-.ws-header { z-index: 4; min-width: 0; display: grid; grid-template-columns: minmax(20rem, 1fr) auto max-content; align-items: center; gap: .8rem; padding: .5rem .85rem; border-bottom: 1px solid var(--border); background: color-mix(in oklab, var(--surface-raised) 94%, transparent); backdrop-filter: blur(14px); }
+.ws-header { z-index: 4; min-width: 0; display: grid; grid-template-columns: minmax(20rem, 1fr) auto max-content; align-items: center; gap: .8rem; padding: .55rem .85rem .25rem; border: 0; background: transparent; }
 .ws-header-context, .ws-header-actions, .ws-header dl, .ws-header dl > div { display: flex; align-items: center; }
 .ws-header-context { min-width: 0; gap: .55rem; }
 .ws-inline-name { position: relative; min-width: 5rem; max-width: 17rem; }
@@ -46,20 +46,21 @@
 .ws-workflow button:hover { background: var(--surface-subtle); }
 .ws-workflow button.is-active { color: var(--primary); background: var(--surface-raised); box-shadow: var(--shadow-xs); }
 .ws-workflow button.is-active > span { color: var(--primary-foreground); border-color: var(--primary); background: var(--primary); }
-.ws-body { position: relative; min-width: 0; min-height: 0; display: grid; grid-template-columns: var(--ws-left-current) minmax(28rem, 1fr); gap: .65rem; padding: .65rem .75rem .75rem; transition: grid-template-columns 200ms ease; }
+.ws-body { position: relative; min-width: 0; min-height: 0; display: grid; grid-template-columns: var(--ws-left-current) minmax(28rem, 1fr); gap: .65rem; padding: .35rem .75rem .75rem; transition: grid-template-columns 200ms ease; }
 .production-workstation[data-inspector-open="true"] .ws-body { grid-template-columns: var(--ws-left-current) minmax(28rem, 1fr) var(--ws-right); }
 .ws-left-pane, .ws-center-pane, .ws-right-pane { min-width: 0; min-height: 0; overflow: hidden; }
 .ws-left-pane, .ws-center-pane, .ws-right-pane { border: 1px solid var(--border); border-radius: .82rem; background: var(--surface-raised); box-shadow: 0 8px 24px rgb(var(--shadow-color) / 4%); }
-.ws-left-pane { background: color-mix(in oklab, var(--surface-subtle) 55%, white); }
-.ws-left-pane.is-collapsed { display: grid; place-items: start center; padding-top: .5rem; background: color-mix(in oklab, var(--surface-subtle) 72%, white); }
+.ws-left-pane { background: white; }
+.ws-left-pane.is-collapsed { display: grid; place-items: start center; padding-top: .5rem; background: white; }
 .ws-pane-expand svg { width: .9rem; }
-.ws-center-pane { container-type: inline-size; overflow: auto; overscroll-behavior: contain; background: oklch(0.987 0.003 72); }
+.ws-center-pane { container-type: inline-size; overflow: auto; overscroll-behavior: contain; background: white; }
 .ws-right-pane { position: relative; z-index: 3; display: grid; grid-template-rows: auto minmax(0, 1fr); box-shadow: 0 14px 38px rgb(var(--shadow-color) / 10%); animation: ws-inspector-in 180ms ease-out; }
 @keyframes ws-inspector-in { from { opacity: .6; transform: translateX(12px); } }
 .ws-right-pane > header { min-height: 3.15rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .55rem .7rem .55rem 1rem; border-bottom: 1px solid var(--border); }
 .ws-right-pane > header h2 { overflow: hidden; font-size: .84rem; text-overflow: ellipsis; white-space: nowrap; }
 .ws-inspector-content { min-height: 0; overflow: auto; }
 .production-workstation .production-transport-host { right: .75rem; bottom: 0; left: calc(var(--ws-left-current) + 1.4rem); padding-inline: 0; transition: right 200ms ease, left 200ms ease; }
+.studio-app-shell[data-navigation="rail"] .production-workstation .production-transport-host { left: calc(var(--studio-rail-current) + var(--ws-left-current) + 1.4rem); }
 .production-workstation[data-inspector-open="true"] .production-transport-host { right: calc(var(--ws-right) + 1.4rem); }
 .production-workstation .transport-strip.is-production { max-width: 100%; }
 .ws-inspector-content .production-composer-stage { min-height: 100%; }
@@ -346,12 +347,14 @@
   .ws-workflow button > svg { display: none; }
 }
 @media (max-width: 64rem) {
-  .production-workstation { height: auto; min-height: calc(100dvh - var(--studio-deck-height)); grid-template-rows: auto minmax(0, 1fr); overflow: visible; }
+  .production-workstation { height: auto; min-height: calc(100dvh - var(--studio-standalone-header-height) - var(--studio-local-chrome-height)); grid-template-rows: auto minmax(0, 1fr); overflow: visible; }
   .ws-header { min-height: 4rem; grid-template-columns: minmax(0, 1fr) auto; }
   .ws-workflow { grid-column: 1 / -1; justify-self: start; }
   .ws-header dl, .ws-header-actions > [data-slot="button"]:nth-of-type(2) { display: none; }
   .ws-body, .production-workstation[data-inspector-open="true"] .ws-body, .production-workstation[data-inspector-expanded="true"] .ws-body { grid-template-columns: var(--ws-left-current) minmax(28rem, 1fr); }
-  .ws-right-pane { position: fixed; z-index: var(--layer-sheet); top: calc(var(--studio-deck-height) + .5rem); right: .5rem; bottom: .5rem; width: min(32rem, calc(92vw - .5rem)); box-shadow: var(--shadow-lg); }
+  .ws-right-pane { position: fixed; z-index: var(--layer-sheet); top: calc(var(--studio-standalone-header-height) + var(--studio-local-chrome-height) + .5rem); right: .5rem; bottom: .5rem; width: min(32rem, calc(92vw - .5rem)); box-shadow: var(--shadow-lg); }
   .production-workstation .production-transport-host, .production-workstation[data-inspector-open="true"] .production-transport-host { right: .75rem; left: calc(var(--ws-left-current) + 1.4rem); }
+  .studio-app-shell[data-navigation="rail"] .production-workstation .production-transport-host,
+  .studio-app-shell[data-navigation="rail"] .production-workstation[data-inspector-open="true"] .production-transport-host { left: calc(var(--studio-rail-current) + var(--ws-left-current) + 1.4rem); }
   .ws-left-pane, .ws-center-pane { min-height: calc(100dvh - 8rem); }
 }

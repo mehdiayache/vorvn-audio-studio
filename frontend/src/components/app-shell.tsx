@@ -1,7 +1,7 @@
 import { useState } from "react"
 import {
   Activity, AudioLines, Captions, ChevronDown, FolderKanban, Menu, Mic2,
-  Settings2, UsersRound, Wrench,
+  PanelLeftClose, PanelLeftOpen, Settings2, UsersRound, Wrench,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
@@ -18,6 +18,7 @@ import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger,
 } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
 
 export type AudioStudioMountMode = "standalone" | "embedded"
@@ -155,6 +156,58 @@ function PrimaryNavigation() {
   )
 }
 
+function railItemActive(item: StudioNavigationItem, pathname: string) {
+  return item.id === "work"
+    ? activeAudioStudioDestination(pathname) === item.label
+    : pathname === item.href || pathname.startsWith(`${item.href}/`)
+}
+
+function StudioRailLink({ item, pathname }: { item: StudioNavigationItem; pathname: string }) {
+  const Icon = item.icon
+  const active = railItemActive(item, pathname)
+  return <Tooltip>
+    <TooltipTrigger asChild>
+      <Link to={item.href} aria-current={active ? "page" : undefined} className={cn("studio-rail-link", active && "is-active")}>
+        <Icon aria-hidden="true" />
+        <span>{item.label}</span>
+      </Link>
+    </TooltipTrigger>
+    <TooltipContent side="right">{item.label}</TooltipContent>
+  </Tooltip>
+}
+
+function StudioRail({ expanded, onExpandedChange }: { expanded: boolean; onExpandedChange: (expanded: boolean) => void }) {
+  const location = useLocation()
+  const primary = audioStudioNavigation.filter((item) => item.group === "primary")
+  const tools = audioStudioNavigation.filter((item) => item.group === "tools")
+  const settings = audioStudioNavigation.find((item) => item.id === "settings")!
+  return <aside className="studio-rail" aria-label="Audio Studio navigation">
+    <div className="studio-rail-head">
+      <StudioBrand />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon-sm" className="studio-rail-toggle" aria-label={expanded ? "Collapse Audio Studio navigation" : "Expand Audio Studio navigation"} onClick={() => onExpandedChange(!expanded)}>
+            {expanded ? <PanelLeftClose /> : <PanelLeftOpen />}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="right">{expanded ? "Collapse navigation" : "Expand navigation"}</TooltipContent>
+      </Tooltip>
+    </div>
+    <nav className="studio-rail-navigation" aria-label="Audio Studio tools">
+      <div className="studio-rail-group">
+        {primary.map((item) => <StudioRailLink key={item.id} item={item} pathname={location.pathname} />)}
+      </div>
+      <div className="studio-rail-group is-tools">
+        {tools.map((item) => <StudioRailLink key={item.id} item={item} pathname={location.pathname} />)}
+      </div>
+    </nav>
+    <div className="studio-rail-footer">
+      <ReadinessStatus />
+      <StudioRailLink item={settings} pathname={location.pathname} />
+    </div>
+  </aside>
+}
+
 function MobileNavigation({ destination }: { destination: string }) {
   const [open, setOpen] = useState(false)
   return (
@@ -210,10 +263,13 @@ function StudioDeckChrome({ mode, destination }: { mode: AudioStudioMountMode; d
 export function AppShell({ mode = "standalone" }: { mode?: AudioStudioMountMode }) {
   const location = useLocation()
   const activeDestination = activeAudioStudioDestination(location.pathname)
+  const desktop = useMediaQuery("(min-width: 48.01rem)")
+  const [railExpanded, setRailExpanded] = useState(false)
+  const railNavigation = mode === "standalone" && desktop
   return (
-    <div className="studio-app-shell" data-mount-mode={mode} data-presentation="standard">
+    <div className="studio-app-shell" data-mount-mode={mode} data-presentation="standard" data-navigation={railNavigation ? "rail" : "top"} data-rail-expanded={railExpanded ? "true" : "false"}>
       <a className="studio-skip-link" href="#audio-studio-content">Skip to Audio Studio content</a>
-      <StudioDeckChrome mode={mode} destination={activeDestination} />
+      {railNavigation ? <StudioRail expanded={railExpanded} onExpandedChange={setRailExpanded} /> : <StudioDeckChrome mode={mode} destination={activeDestination} />}
       <main id="audio-studio-content" className="audio-studio-viewport" tabIndex={-1}>
         <AppErrorBoundary key={location.pathname}>
           <Outlet />

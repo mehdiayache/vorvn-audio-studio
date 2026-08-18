@@ -4,6 +4,68 @@
   background: var(--background);
 }
 
+.studio-app-shell[data-navigation="rail"] {
+  --studio-standalone-header-height: 0rem;
+  --studio-local-chrome-height: 0rem;
+  --studio-rail-current: 3.75rem;
+  block-size: 100dvh;
+  min-block-size: 0;
+  display: grid;
+  grid-template-columns: var(--studio-rail-current) minmax(0, 1fr);
+  overflow: hidden;
+  background: oklch(0.972 0.005 72);
+  transition: grid-template-columns 180ms ease;
+}
+
+.studio-app-shell[data-navigation="rail"][data-rail-expanded="true"] { --studio-rail-current: 12.5rem; }
+.studio-app-shell[data-navigation="rail"] .audio-studio-viewport { min-block-size: 0; overflow: auto; }
+
+.studio-rail {
+  min-inline-size: 0;
+  min-block-size: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  padding: 0.75rem 0.5rem;
+  border-inline-end: 1px solid color-mix(in oklab, var(--border) 78%, transparent);
+  background: transparent;
+  overflow: hidden;
+}
+
+.studio-rail-head { display: grid; gap: 0.5rem; }
+.studio-rail .studio-deck-brand { min-inline-size: 0; block-size: 2.5rem; padding-inline: 0.1875rem; overflow: hidden; }
+.studio-rail .studio-deck-mark { inline-size: 2.125rem; block-size: 2.125rem; flex: 0 0 2.125rem; }
+.studio-rail .studio-deck-brand > span:last-child,
+.studio-rail-link > span { opacity: 0; transform: translateX(-0.25rem); transition: opacity 120ms ease, transform 160ms ease; }
+.studio-app-shell[data-rail-expanded="true"] .studio-rail .studio-deck-brand > span:last-child,
+.studio-app-shell[data-rail-expanded="true"] .studio-rail-link > span { opacity: 1; transform: translateX(0); }
+.studio-rail-toggle { justify-self: center; color: var(--muted-foreground); }
+.studio-app-shell[data-rail-expanded="true"] .studio-rail-toggle { justify-self: end; }
+.studio-rail-navigation { min-block-size: 0; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+.studio-rail-group { display: grid; gap: 0.25rem; }
+.studio-rail-group.is-tools { padding-block-start: 0.75rem; border-block-start: 1px solid color-mix(in oklab, var(--border) 72%, transparent); }
+.studio-rail-link {
+  min-inline-size: 0;
+  block-size: 2.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  overflow: hidden;
+  padding-inline: 0.625rem;
+  border-radius: 0.625rem;
+  color: var(--muted-foreground);
+  font-size: var(--type-small);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 140ms ease, background 140ms ease;
+}
+.studio-rail-link > svg { inline-size: 1rem; block-size: 1rem; flex: 0 0 1rem; }
+.studio-rail-link:hover { color: var(--foreground); background: color-mix(in oklab, var(--muted) 72%, transparent); }
+.studio-rail-link.is-active { color: var(--primary); background: var(--primary-soft); }
+.studio-rail-footer { display: grid; gap: 0.25rem; }
+.studio-rail-footer .studio-deck-readiness { overflow: hidden; white-space: nowrap; }
+
 .studio-app-shell[data-mount-mode="embedded"] {
   --studio-standalone-header-height: 0rem;
   --studio-local-chrome-height: var(--studio-deck-height);

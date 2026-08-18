@@ -91,13 +91,23 @@ describe("Audio Studio shell", () => {
     expect(studioApi.config).toHaveBeenCalledTimes(1)
   })
 
-  it("keeps the common Audio Studio navigation above desktop Production", () => {
+  it("keeps the common Audio Studio navigation beside desktop Production", () => {
     const { container } = renderShell("standalone", "/audio-studio/productions/production-id", true)
     expect(screen.getByRole("link", { name: "Audio Studio Work" })).toBeTruthy()
     expect(screen.getByRole("navigation", { name: "Audio Studio tools" })).toBeTruthy()
     expect(screen.getByRole("link", { name: "Productions" }).getAttribute("aria-current")).toBe("page")
     expect(screen.getByRole("heading", { name: "Production content" })).toBeTruthy()
     expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
+  })
+
+  it("keeps the desktop navigation rail collapsible inside its own surface", () => {
+    const { container } = renderShell("standalone", "/audio-studio/productions/production-id", true)
+    const shell = container.querySelector(".studio-app-shell")
+    expect(shell?.getAttribute("data-navigation")).toBe("rail")
+    expect(shell?.getAttribute("data-rail-expanded")).toBe("false")
+    fireEvent.click(screen.getByRole("button", { name: "Expand Audio Studio navigation" }))
+    expect(shell?.getAttribute("data-rail-expanded")).toBe("true")
+    expect(screen.getByRole("button", { name: "Collapse Audio Studio navigation" })).toBeTruthy()
   })
 
   it("preserves the normal standalone chrome for mobile Production", () => {
