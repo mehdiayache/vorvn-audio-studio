@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
 import { ChevronLeft, ChevronRight, Clock3, Minus, Music2, PanelLeftClose, PanelLeftOpen, Plus, Redo2, Trash2, Undo2, Volume2, VolumeX } from "lucide-react"
 
 import { useAudioPeaks } from "@/components/audio-waveform"
@@ -224,20 +224,24 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
     })
   }
 
-  function wheel(event: ReactWheelEvent) {
+  useEffect(() => {
     const scroll = scrollRef.current
     if (!scroll) return
-    if (event.ctrlKey) {
-      event.preventDefault()
-      zoomAt(event.clientX, event.deltaY < 0 ? 1 : -1)
-      return
+    const wheel = (event: WheelEvent) => {
+      if (event.ctrlKey) {
+        event.preventDefault()
+        zoomAt(event.clientX, event.deltaY < 0 ? 1 : -1)
+        return
+      }
+      if (event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+        event.preventDefault()
+        scroll.scrollLeft += event.shiftKey ? event.deltaY : event.deltaX
+        setFollowPlayhead(false)
+      }
     }
-    if (event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
-      event.preventDefault()
-      scroll.scrollLeft += event.shiftKey ? event.deltaY : event.deltaX
-      setFollowPlayhead(false)
-    }
-  }
+    scroll.addEventListener("wheel", wheel, { passive: false })
+    return () => scroll.removeEventListener("wheel", wheel)
+  })
 
   useEffect(() => {
     const scroll = scrollRef.current
@@ -284,7 +288,7 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
           <div className="sound-track-mix"><Button variant="ghost" size="icon-sm" aria-label={track.muted ? `Unmute ${track.name}` : `Mute ${track.name}`} onClick={() => void session.commitTrackMute(track.id, !track.muted)}>{track.muted ? <VolumeX /> : <Volume2 />}</Button><Slider aria-label={`${track.name} volume`} value={[Math.round((trackById.get(track.id)?.volume ?? track.volume) * 100)]} max={200} step={1} onValueChange={([value = 0]) => session.setTrackVolume(track.id, value / 100)} onValueCommit={([value = 0]) => void session.commitTrackVolume(track.id, value / 100)} /><Button variant="ghost" size="icon-sm" aria-label={`Add clip to ${track.name}`} onClick={() => onAddMusic({ mode: "add-clip", trackId: track.id })}><Plus /></Button><Button variant="ghost" size="icon-sm" aria-label={`Remove ${track.name}`} onClick={() => onRemoveTrack(track.id)}><Trash2 /></Button></div>
         </div>)}
       </aside>
-      <div className="sound-scene-scroll" ref={scrollRef} onWheel={wheel} onScroll={(event) => { if (controlsRef.current) controlsRef.current.scrollTop = event.currentTarget.scrollTop; if (session.snapshot().playing) setFollowPlayhead(false) }}>
+      <div className="sound-scene-scroll" ref={scrollRef} onScroll={(event) => { if (controlsRef.current) controlsRef.current.scrollTop = event.currentTarget.scrollTop; if (session.snapshot().playing) setFollowPlayhead(false) }}>
         <div className="sound-scene-timeline" ref={timelineRef} style={{ width, gridTemplateRows: rowTemplate }}>
           <div className="sound-scene-grid" aria-hidden="true">{marks.map((mark) => <i key={mark} style={{ left: mark * pixelsPerSecond }} />)}</div>
           <div className="sound-scene-ruler" onPointerDown={seekFromPointer}>{marks.map((mark) => <span key={mark} style={{ left: mark * pixelsPerSecond }}>{formatDuration(mark)}</span>)}</div>
