@@ -4,7 +4,7 @@ import { useState } from "react"
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { AppShell, activeAudioStudioDestination } from "@/components/app-shell"
+import { AppShell, AudioStudioRailToggle, activeAudioStudioDestination } from "@/components/app-shell"
 import { GlobalPlayerProvider } from "@/components/global-player-provider"
 import { ProductReadinessProvider } from "@/components/product-readiness"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -13,6 +13,10 @@ import { studioApi } from "@/lib/api"
 vi.mock("@/lib/api", () => ({ studioApi: { config: vi.fn() } }))
 
 const configured = { has_key: true } as Awaited<ReturnType<typeof studioApi.config>>
+
+function ProductionContent() {
+  return <><AudioStudioRailToggle className="production-header-toggle" /><h1>Production content</h1></>
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -43,7 +47,7 @@ function renderShell(mode: "standalone" | "embedded", path = "/audio-studio/", d
             <Routes>
               <Route path="/audio-studio" element={<AppShell mode={mode} />}>
                 <Route index element={<h1>Work content</h1>} />
-                <Route path="productions/:identifier" element={<h1>Production content</h1>} />
+                <Route path="productions/:identifier" element={<ProductionContent />} />
               </Route>
             </Routes>
           </GlobalPlayerProvider>
@@ -105,9 +109,18 @@ describe("Audio Studio shell", () => {
     const shell = container.querySelector(".studio-app-shell")
     expect(shell?.getAttribute("data-navigation")).toBe("rail")
     expect(shell?.getAttribute("data-rail-expanded")).toBe("false")
+    expect(container.querySelector(".studio-rail .studio-rail-toggle")).toBeNull()
+    expect(container.querySelector(".production-header-toggle")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Expand Audio Studio navigation" }))
     expect(shell?.getAttribute("data-rail-expanded")).toBe("true")
     expect(screen.getByRole("button", { name: "Collapse Audio Studio navigation" })).toBeTruthy()
+  })
+
+  it("keeps Subtitles with primary creation navigation", () => {
+    const { container } = renderShell("standalone", "/audio-studio/", true)
+    const primary = container.querySelector(".studio-rail-group:not(.is-tools)")
+    expect(primary?.textContent).toContain("Subtitles")
+    expect(primary?.textContent).not.toContain("Activity")
   })
 
   it("preserves the normal standalone chrome for mobile Production", () => {

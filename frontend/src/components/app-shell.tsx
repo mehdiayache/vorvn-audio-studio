@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { createContext, useContext, useState } from "react"
 import {
   Activity, AudioLines, Captions, ChevronDown, FolderKanban, Menu, Mic2,
   PanelLeftClose, PanelLeftOpen, Settings2, UsersRound, Wrench,
@@ -23,6 +23,32 @@ import { cn } from "@/lib/utils"
 
 export type AudioStudioMountMode = "standalone" | "embedded"
 
+type AudioStudioShellContextValue = {
+  railNavigation: boolean
+  railExpanded: boolean
+  toggleRail: () => void
+}
+
+const AudioStudioShellContext = createContext<AudioStudioShellContextValue>({
+  railNavigation: false,
+  railExpanded: false,
+  toggleRail: () => undefined,
+})
+
+export function AudioStudioRailToggle({ className, tooltipSide = "right" }: { className?: string; tooltipSide?: "right" | "bottom" }) {
+  const shell = useContext(AudioStudioShellContext)
+  if (!shell.railNavigation) return null
+  const label = shell.railExpanded ? "Collapse Audio Studio navigation" : "Expand Audio Studio navigation"
+  return <Tooltip>
+    <TooltipTrigger asChild>
+      <Button variant="ghost" size="icon-sm" className={className} aria-label={label} onClick={shell.toggleRail}>
+        {shell.railExpanded ? <PanelLeftClose /> : <PanelLeftOpen />}
+      </Button>
+    </TooltipTrigger>
+    <TooltipContent side={tooltipSide}>{shell.railExpanded ? "Collapse navigation" : "Expand navigation"}</TooltipContent>
+  </Tooltip>
+}
+
 type StudioNavigationItem = {
   id: "work" | "speak" | "voices" | "subtitles" | "activity" | "settings"
   label: string
@@ -35,7 +61,7 @@ export const audioStudioNavigation: StudioNavigationItem[] = [
   { id: "work", label: "Productions", icon: FolderKanban, href: "/audio-studio/", group: "primary" },
   { id: "speak", label: "Create", icon: Mic2, href: "/audio-studio/speak", group: "primary" },
   { id: "voices", label: "Voices", icon: UsersRound, href: "/audio-studio/voices", group: "primary" },
-  { id: "subtitles", label: "Subtitles", icon: Captions, href: "/audio-studio/subtitles", group: "tools" },
+  { id: "subtitles", label: "Subtitles", icon: Captions, href: "/audio-studio/subtitles", group: "primary" },
   { id: "activity", label: "Activity", icon: Activity, href: "/audio-studio/activity", group: "tools" },
   { id: "settings", label: "Settings", icon: Settings2, href: "/audio-studio/settings", group: "system" },
 ]
@@ -176,7 +202,7 @@ function StudioRailLink({ item, pathname }: { item: StudioNavigationItem; pathna
   </Tooltip>
 }
 
-function StudioRail({ expanded, onExpandedChange }: { expanded: boolean; onExpandedChange: (expanded: boolean) => void }) {
+function StudioRail({ showToggle }: { showToggle: boolean }) {
   const location = useLocation()
   const primary = audioStudioNavigation.filter((item) => item.group === "primary")
   const tools = audioStudioNavigation.filter((item) => item.group === "tools")
@@ -184,14 +210,7 @@ function StudioRail({ expanded, onExpandedChange }: { expanded: boolean; onExpan
   return <aside className="studio-rail" aria-label="Audio Studio navigation">
     <div className="studio-rail-head">
       <StudioBrand />
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon-sm" className="studio-rail-toggle" aria-label={expanded ? "Collapse Audio Studio navigation" : "Expand Audio Studio navigation"} onClick={() => onExpandedChange(!expanded)}>
-            {expanded ? <PanelLeftClose /> : <PanelLeftOpen />}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="right">{expanded ? "Collapse navigation" : "Expand navigation"}</TooltipContent>
-      </Tooltip>
+      {showToggle && <AudioStudioRailToggle className="studio-rail-toggle" />}
     </div>
     <nav className="studio-rail-navigation" aria-label="Audio Studio tools">
       <div className="studio-rail-group">
@@ -266,16 +285,19 @@ export function AppShell({ mode = "standalone" }: { mode?: AudioStudioMountMode 
   const desktop = useMediaQuery("(min-width: 48.01rem)")
   const [railExpanded, setRailExpanded] = useState(false)
   const railNavigation = mode === "standalone" && desktop
+  const productionWorkspace = /^\/audio-studio\/productions\/[^/]+\/?$/.test(location.pathname)
   return (
-    <div className="studio-app-shell" data-mount-mode={mode} data-presentation="standard" data-navigation={railNavigation ? "rail" : "top"} data-rail-expanded={railExpanded ? "true" : "false"}>
-      <a className="studio-skip-link" href="#audio-studio-content">Skip to Audio Studio content</a>
-      {railNavigation ? <StudioRail expanded={railExpanded} onExpandedChange={setRailExpanded} /> : <StudioDeckChrome mode={mode} destination={activeDestination} />}
-      <main id="audio-studio-content" className="audio-studio-viewport" tabIndex={-1}>
-        <AppErrorBoundary key={location.pathname}>
-          <Outlet />
-        </AppErrorBoundary>
-      </main>
-      <TransportStrip />
-    </div>
+    <AudioStudioShellContext.Provider value={{ railNavigation, railExpanded, toggleRail: () => setRailExpanded((expanded) => !expanded) }}>
+      <div className="studio-app-shell" data-mount-mode={mode} data-presentation="standard" data-navigation={railNavigation ? "rail" : "top"} data-rail-expanded={railExpanded ? "true" : "false"}>
+        <a className="studio-skip-link" href="#audio-studio-content">Skip to Audio Studio content</a>
+        {railNavigation ? <StudioRail showToggle={!productionWorkspace} /> : <StudioDeckChrome mode={mode} destination={activeDestination} />}
+        <main id="audio-studio-content" className="audio-studio-viewport" tabIndex={-1}>
+          <AppErrorBoundary key={location.pathname}>
+            <Outlet />
+          </AppErrorBoundary>
+        </main>
+        <TransportStrip />
+      </div>
+    </AudioStudioShellContext.Provider>
   )
 }

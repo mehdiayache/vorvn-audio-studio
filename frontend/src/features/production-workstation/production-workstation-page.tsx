@@ -1,12 +1,13 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
-  ArrowLeft, AudioLines, Check, ChevronDown, CircleAlert, FileJson2,
+  AudioLines, Check, ChevronDown, ChevronRight, CircleAlert, FileJson2,
   ListMusic, LoaderCircle, MoreHorizontal, Music2, Pause, PencilLine, Play, Plus, Search,
   PanelLeftOpen, SlidersHorizontal, Sparkles, Trash2, X,
 } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 
 import { DeleteProductionDialog } from "@/components/delete-production-dialog"
+import { AudioStudioRailToggle } from "@/components/app-shell"
 import { PartCaptionsDialog } from "@/features/production/part-captions-dialog"
 import { MovePartPositionDialog } from "@/features/production/move-part-position-dialog"
 import { ProductionComposerStage } from "@/features/composer/production-composer-host"
@@ -24,7 +25,7 @@ import { Input } from "@/components/ui/input"
 import { useProductionActions } from "@/hooks/use-production-actions"
 import { usePlayerShortcuts } from "@/hooks/use-player-shortcuts"
 import type { ProductionMutationStatus } from "@/hooks/use-production-actions"
-import { audioStudioBase } from "@/lib/links"
+import { audioStudioBase, resourceHref } from "@/lib/links"
 import { formatAuthoredRole, formatDuration, formatMoney, formatPartNumber, partDurationMs } from "@/lib/format"
 import { loadPartCaptionTracks, loadProductionCaptionTracks } from "@/lib/production-caption-tracks"
 import { studioApi } from "@/lib/api"
@@ -114,11 +115,16 @@ function WorkstationHeader({ production, duration, stage, issueCount, previewing
   onDelete: () => void
   onRename: (name: string) => Promise<void>
 }) {
+  const parent = production.trail.at(-1)
+  const parentHref = parent ? resourceHref(parent.type, parent.public_id) : `${audioStudioBase}/projects/${production.project_id}`
+  const parentName = parent?.name || "Project"
   return <header className="ws-header">
     <div className="ws-header-context">
-      <Button variant="ghost" size="icon-sm" asChild><Link to={`${audioStudioBase}/projects/${production.project_id}`} aria-label="Back to Project"><ArrowLeft /></Link></Button>
+      <AudioStudioRailToggle className="ws-shell-toggle" tooltipSide="bottom" />
+      <Link className="ws-parent-link" to={parentHref}>{parentName}</Link>
+      <ChevronRight className="ws-breadcrumb-separator" aria-hidden="true" />
       <InlineProductionName name={production.name} onRename={onRename} />
-      <span className="ws-status">{production.status.replaceAll("_", " ")}</span>
+      {production.status && production.status !== "draft" && <span className="ws-status">{production.status.replaceAll("_", " ")}</span>}
       {mutationStatus !== "idle" && <span className={`ws-save-state is-${mutationStatus}`} role="status" aria-live="polite">{mutationStatus === "saving" ? <LoaderCircle className="spin" /> : <Check />}{mutationStatus === "saving" ? "Saving…" : "Saved"}</span>}
       <dl><div><dt>Parts</dt><dd>{production.parts.filter((part) => part.kind !== "stitch").length}</dd></div><div><dt>Duration</dt><dd>{formatDuration(duration)}</dd></div><div><dt>Spend</dt><dd>{formatMoney(production.current_sequence_cost)}</dd></div></dl>
     </div>
