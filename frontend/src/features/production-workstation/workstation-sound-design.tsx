@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
 import { ChevronLeft, ChevronRight, Clock3, Music2, Pause, Play, Plus, Redo2, Undo2, Volume2, VolumeX } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -6,15 +6,10 @@ import { useAudioPeaks } from "@/components/audio-waveform"
 import { audioUrl } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { formatDuration } from "@/lib/format"
-import type { SoundScene, SoundSceneDocument } from "@/types/domain"
 import { WorkstationPaneHeader } from "./workstation-pane-header"
-import { SoundSceneEngine, type SoundSceneEngineState } from "./sound-scene-engine"
-import { SoundScenePlayout } from "./sound-scene-playout"
+import { SoundSceneSession, useSoundSceneSession } from "./sound-scene-session"
 
-type SoundSelection =
-  | { kind: "part"; id: number }
-  | { kind: "clip"; trackId: string; clipId: string }
-  | null
+const PEAK_TIERS = [128, 256, 512, 1024, 2048, 4096] as const
 
 function timeMarks(total: number) {
   const step = total > 600 ? 60 : total > 240 ? 30 : total > 90 ? 15 : 10
@@ -28,9 +23,29 @@ function roleColor(role?: string | null) {
   return palette[hash % palette.length]
 }
 
+function tierForWidth(width: number) {
+  return PEAK_TIERS.find((tier) => tier >= width) || PEAK_TIERS.at(-1)!
+}
+
 function CanvasWaveform({ url, className }: { url?: string; className?: string }) {
   const canvas = useRef<HTMLCanvasElement>(null)
-  const peaks = useAudioPeaks(url, 192)
+  const [tier, setTier] = useState<number>(128)
+  const peaks = useAudioPeaks(url, tier)
+
+  useEffect(() => {
+    const node = canvas.current
+    if (!node || typeof ResizeObserver === "undefined") return
+    const observer = new ResizeObserver(([entry]) => {
+      const width = Math.max(1, Math.ceil(entry?.contentRect.width || 1))
+      setTier((current) => {
+        const next = tierForWidth(width)
+        return next === current ? current : next
+      })
+    })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+
   useEffect(() => {
     const node = canvas.current
     if (!node || !peaks?.length) return
@@ -59,155 +74,118 @@ function CanvasWaveform({ url, className }: { url?: string; className?: string }
   return <canvas ref={canvas} className={className} aria-hidden="true" />
 }
 
-function TrackLabels({ scene, selection, onSelection, onAddMusic, onMute }: {
-  scene: SoundScene
-  selection: SoundSelection
-  onSelection: (selection: SoundSelection) => void
-  onAddMusic: () => void
-  onMute: (trackId: string, muted: boolean) => void
-}) {
+function TrackLabels({ session, onAddMusic }: { session: SoundSceneSession; onAddMusic: () => void }) {
+  const { scene, selection, saving } = useSoundSceneSession(session)
   const music = scene.resolved.tracks.find((track) => track.kind === "music")
   const musicClip = music?.clips[0]
   return <div className="ws-track-list">
     <button className={selection?.kind === "part" ? "is-active" : ""} onClick={() => {
-      const first = scene.resolved.voice_projection.spans[0]
-      onSelection(first ? { kind: "part", id: first.part_id } : null)
-    }}><span className="ws-track-icon is-voice"><Volume2 /></span><span><b>Voice</b><small>{scene.resolved.voice_projection.spans.length} Sequence clips</small></span></button>
-    <button className={selection?.kind === "clip" ? "is-active" : ""} onClick={() => music && musicClip ? onSelection({ kind: "clip", trackId: music.id, clipId: musicClip.id }) : onAddMusic()}><span className="ws-track-icon is-music"><Music2 /></span><span><b>Music</b><small>{musicClip?.asset_name || "No music"}</small></span></button>
-    {music && <button className="ws-track-mute" aria-label={music.muted ? "Unmute Music" : "Mute Music"} onClick={() => onMute(music.id, !music.muted)}>{music.muted ? <VolumeX /> : <Volume2 />}</button>}
+      const first = scene.resolved.sequence_projection.spans[0]
+      session.select(first ? { kind: "part", id: first.part_id } : null)
+    }}><span className="ws-track-icon is-voice"><Volume2 /></span><span><b>Sequence</b><small>{scene.resolved.sequence_projection.spans.length} recorded Parts</small></span></button>
+    <button className={selection?.kind === "clip" ? "is-active" : ""} onClick={() => music && musicClip ? session.select({ kind: "clip", trackId: music.id, clipId: musicClip.id }) : onAddMusic()}><span className="ws-track-icon is-music"><Music2 /></span><span><b>Music</b><small>{musicClip?.asset_name || "No music"}</small></span></button>
+    {music && <button disabled={saving} className="ws-track-mute" aria-label={music.muted ? "Unmute Music" : "Mute Music"} onClick={() => void session.commitTrackMute(music.id, !music.muted)}>{music.muted ? <VolumeX /> : <Volume2 />}</button>}
     {!musicClip && <Button variant="outline" onClick={onAddMusic}><Plus /> Choose music</Button>}
   </div>
 }
 
-export function SoundDesignOutline({ scene, selection, onSelection, onAddMusic, onCollapse, onMute }: {
-  scene: SoundScene
-  selection: SoundSelection
-  onSelection: (selection: SoundSelection) => void
+export function SoundDesignOutline({ session, onAddMusic, onCollapse }: {
+  session: SoundSceneSession
   onAddMusic: () => void
   onCollapse: () => void
-  onMute: (trackId: string, muted: boolean) => void
 }) {
   return <div className="ws-sound-outline">
-    <WorkstationPaneHeader title="Tracks" meta="Voice projection + Music" onCollapse={onCollapse} />
-    <TrackLabels scene={scene} selection={selection} onSelection={onSelection} onAddMusic={onAddMusic} onMute={onMute} />
+    <WorkstationPaneHeader title="Tracks" meta="Sequence + Music" onCollapse={onCollapse} />
+    <TrackLabels session={session} onAddMusic={onAddMusic} />
   </div>
 }
 
-export function WorkstationSoundDesign({ scene, selection, onSelection, onAddMusic, onCommit, onUndo, onRedo }: {
-  scene: SoundScene
-  selection: SoundSelection
-  onSelection: (selection: SoundSelection) => void
+export function WorkstationSoundDesign({ session, draftCount, onAddMusic }: {
+  session: SoundSceneSession
+  draftCount: number
   onAddMusic: () => void
-  onCommit: (document: SoundSceneDocument) => Promise<void>
-  onUndo: () => Promise<void>
-  onRedo: () => Promise<void>
 }) {
-  const editor = useMemo(() => new SoundSceneEngine(scene), [scene.revision, scene.resolved.signature])
-  const playout = useMemo(() => new SoundScenePlayout(scene), [scene.production_id])
-  const [state, setState] = useState<SoundSceneEngineState>(() => editor.state())
-  const [playing, setPlaying] = useState(false)
-  const [playhead, setPlayhead] = useState(0)
-  const [saving, setSaving] = useState(false)
-  const [playbackError, setPlaybackError] = useState("")
-
-  useEffect(() => {
-    setState(editor.state())
-    return editor.onChange(setState)
-  }, [editor])
-  useEffect(() => () => editor.dispose(), [editor])
-  useEffect(() => { playout.replace(scene) }, [playout, scene])
-  useEffect(() => () => playout.dispose(), [playout])
-  useEffect(() => {
-    if (!playing) return
-    let frame = 0
-    const update = () => {
-      setPlayhead(playout.currentTime())
-      if (!playout.isPlaying()) { setPlaying(false); return }
-      frame = requestAnimationFrame(update)
-    }
-    frame = requestAnimationFrame(update)
-    return () => cancelAnimationFrame(frame)
-  }, [playing, playout])
-
-  const total = Math.max(scene.resolved.voice_projection.duration_ms / 1000, 1)
+  const { scene, engine: state, selection, playing, playhead, saving, error } = useSoundSceneSession(session)
+  const total = Math.max(scene.resolved.sequence_projection.duration_ms / 1000, 1)
   const width = Math.max(920, Math.ceil(total * 48_000 / state.samplesPerPixel))
   const pixelsPerSecond = width / total
   const marks = timeMarks(total)
   const trackById = new Map(state.tracks.map((track) => [track.id, track]))
-  const voice = trackById.get("voice-projection")
+  const sequence = trackById.get("sequence-projection")
   const styleFor = (start: number, duration: number) => ({ left: `${start * pixelsPerSecond}px`, width: `${Math.max(duration * pixelsPerSecond, 18)}px` } as CSSProperties)
-
-  async function commit(document = editor.document()) {
-    setSaving(true)
-    try { await onCommit(document) } finally { setSaving(false) }
-  }
 
   function gesture(event: ReactPointerEvent, trackId: string, clipId: string, mode: "move" | "left" | "right") {
     if (event.button !== 0 || saving) return
     event.preventDefault()
     event.stopPropagation()
-    onSelection({ kind: "clip", trackId, clipId })
-    editor.beginGesture()
+    session.select({ kind: "clip", trackId, clipId })
+    session.beginGesture()
     let previous = event.clientX
+    let finished = false
+    const cleanup = () => {
+      window.removeEventListener("pointermove", move)
+      window.removeEventListener("pointerup", finish)
+      window.removeEventListener("pointercancel", cancel)
+      window.removeEventListener("blur", cancel)
+      window.removeEventListener("keydown", keydown)
+    }
     const move = (next: PointerEvent) => {
       const delta = next.clientX - previous
       previous = next.clientX
       const deltaSamples = delta * 48_000 / pixelsPerSecond
-      if (mode === "move") editor.moveClip(trackId, clipId, deltaSamples)
-      else editor.trimClip(trackId, clipId, mode, deltaSamples)
+      if (mode === "move") session.moveClip(trackId, clipId, deltaSamples)
+      else session.trimClip(trackId, clipId, mode, deltaSamples)
     }
     const finish = () => {
-      window.removeEventListener("pointermove", move)
-      window.removeEventListener("pointerup", finish)
-      editor.commitGesture()
-      void commit()
+      if (finished) return
+      finished = true
+      cleanup()
+      void session.commitGesture()
     }
+    const cancel = () => {
+      if (finished) return
+      finished = true
+      cleanup()
+      session.cancelGesture()
+    }
+    const keydown = (next: KeyboardEvent) => { if (next.key === "Escape") cancel() }
     window.addEventListener("pointermove", move)
     window.addEventListener("pointerup", finish, { once: true })
-  }
-
-  async function togglePlayback() {
-    if (playing) { playout.pause(); setPlaying(false); return }
-    setPlaybackError("")
-    try { await playout.play(playhead); setPlaying(true) }
-    catch (reason) {
-      setPlaying(false)
-      setPlaybackError(reason instanceof Error ? reason.message : "The Sound Scene could not be played.")
-    }
+    window.addEventListener("pointercancel", cancel, { once: true })
+    window.addEventListener("blur", cancel, { once: true })
+    window.addEventListener("keydown", keydown)
   }
 
   function seek(event: ReactPointerEvent<HTMLDivElement>) {
     const rect = event.currentTarget.getBoundingClientRect()
-    const next = Math.max(0, Math.min(total, (event.clientX - rect.left) / pixelsPerSecond))
-    setPlayhead(next)
-    playout.seek(next)
-    editor.seek(next)
+    session.seek((event.clientX - rect.left) / pixelsPerSecond)
   }
 
   return <div className="ws-sound-canvas">
     <header className="ws-canvas-heading ws-sound-heading">
-      <div className="ws-heading-copy"><h2>Sound scene</h2><p>One projected Voice Stem, one editable Music track.</p></div>
+      <div className="ws-heading-copy"><h2>Sound Design</h2><p>Shape the Music against the canonical Sequence.</p></div>
       <div className="ws-timeline-tools">
-        <Button variant="ghost" size="icon-sm" onClick={() => void onUndo()} disabled={!scene.can_undo || saving} aria-label="Undo Sound Scene"><Undo2 /></Button>
-        <Button variant="ghost" size="icon-sm" onClick={() => void onRedo()} disabled={!scene.can_redo || saving} aria-label="Redo Sound Scene"><Redo2 /></Button>
-        <Button variant="ghost" size="icon-sm" onClick={() => editor.zoomOut()} disabled={!state.canZoomOut} aria-label="Zoom out"><ChevronLeft /></Button>
+        <Button variant="ghost" size="icon-sm" onClick={() => void session.undo()} disabled={!scene.can_undo || saving} aria-label="Undo Sound Scene"><Undo2 /></Button>
+        <Button variant="ghost" size="icon-sm" onClick={() => void session.redo()} disabled={!scene.can_redo || saving} aria-label="Redo Sound Scene"><Redo2 /></Button>
+        <Button variant="ghost" size="icon-sm" onClick={() => session.zoomOut()} disabled={!state.canZoomOut} aria-label="Zoom out"><ChevronLeft /></Button>
         <span>{Math.round(pixelsPerSecond)} px/s</span>
-        <Button variant="ghost" size="icon-sm" onClick={() => editor.zoomIn()} disabled={!state.canZoomIn} aria-label="Zoom in"><ChevronRight /></Button>
-        <Button onClick={() => void togglePlayback()} disabled={!scene.voice_stem.url}>{playing ? <Pause /> : <Play />}{playing ? "Pause" : "Play scene"}</Button>
+        <Button variant="ghost" size="icon-sm" onClick={() => session.zoomIn()} disabled={!state.canZoomIn} aria-label="Zoom in"><ChevronRight /></Button>
+        <Button onClick={() => void session.togglePlayback()} disabled={!scene.sequence_stem.url}>{playing ? <Pause /> : <Play />}{playing ? "Pause" : "Play scene"}</Button>
       </div>
     </header>
+    {draftCount > 0 && <div className="ws-sound-draft-notice" role="status">{draftCount} unrecorded Draft{draftCount === 1 ? " is" : "s are"} absent from Sound Design and preview.</div>}
     <div className="ws-timeline-scroll">
       <div className="ws-timeline is-engine-backed" style={{ width }} onPointerDown={seek}>
         <div className="ws-ruler">{marks.map((mark) => <span key={mark} style={{ left: mark * pixelsPerSecond }}><i />{formatDuration(mark)}</span>)}</div>
         <div className="ws-playhead" style={{ left: playhead * pixelsPerSecond }}><i /></div>
-        <div className="ws-lane is-voice" aria-label="Voice Projection track">
-          {scene.resolved.voice_projection.spans.map((span) => {
-            const enginePart = voice?.clips.find((clip) => clip.id === `voice:${span.part_id}`)
+        <div className="ws-lane is-voice" aria-label="Sequence track">
+          {scene.resolved.sequence_projection.spans.map((span) => {
+            const enginePart = sequence?.clips.find((clip) => clip.id === `sequence:${span.part_public_id}`)
             const start = (enginePart?.startSample || 0) / 48_000
             const duration = (enginePart?.durationSamples || 0) / 48_000
-            return <button key={span.part_id} className={cn("ws-timeline-clip", `is-${roleColor(span.role)}`, selection?.kind === "part" && selection.id === span.part_id && "is-selected")} style={styleFor(start, duration)} onPointerDown={(event) => event.stopPropagation()} onClick={() => onSelection({ kind: "part", id: span.part_id })}>
+            return <button key={span.part_public_id} className={cn("ws-timeline-clip", `is-${roleColor(span.role)}`, selection?.kind === "part" && selection.id === span.part_id && "is-selected")} style={styleFor(start, duration)} onPointerDown={(event) => event.stopPropagation()} onClick={() => session.select({ kind: "part", id: span.part_id })}>
               {!span.silence && <CanvasWaveform url={span.filename ? audioUrl(span.filename) : undefined} className="ws-canvas-waveform" />}
-              <span className="ws-timeline-clip-label">{span.silence ? <Clock3 /> : <em>{String(Number(span.position ?? 0) + 1).padStart(2, "0")}</em>}<b>{span.silence ? "Silence" : span.role || span.voice_name || span.title || "Voice"}</b></span>
+              <span className="ws-timeline-clip-label">{span.silence ? <Clock3 /> : <em>{String(Number(span.position ?? 0) + 1).padStart(2, "0")}</em>}<b>{span.silence ? "Silence" : span.role || span.voice_name || span.title || "Speech"}</b></span>
             </button>
           })}
         </div>
@@ -222,7 +200,7 @@ export function WorkstationSoundDesign({ scene, selection, onSelection, onAddMus
               return <div key={clip.id} role="button" tabIndex={0} className={cn("ws-music-clip", selection?.kind === "clip" && selection.clipId === clip.id && "is-selected")} style={styleFor(start, duration)} onPointerDown={(event) => gesture(event, track.id, clip.id, "move")}>
                 <button className="ws-trim-handle is-start" aria-label="Trim Music start" onPointerDown={(event) => gesture(event, track.id, clip.id, "left")} />
                 <CanvasWaveform url={clip.filename ? audioUrl(clip.filename) : undefined} className="ws-canvas-waveform" />
-                <span className="ws-music-label"><Music2 /><span><b>{clip.asset_name || "Music"}</b><small>{Math.round(clip.gain * 100)}% · {clip.loop ? "Loop" : "Once"}</small></span></span>
+                <span className="ws-music-label"><Music2 /><span><b>{clip.asset_name || "Music"}</b><small>{Math.round(engineMusic.gain * 100)}% clip · {Math.round(track.volume * 100)}% track</small></span></span>
                 <button className="ws-trim-handle is-end" aria-label="Trim Music end" onPointerDown={(event) => gesture(event, track.id, clip.id, "right")} />
               </div>
             })}
@@ -231,8 +209,6 @@ export function WorkstationSoundDesign({ scene, selection, onSelection, onAddMus
         })}
       </div>
     </div>
-    <footer className="ws-sound-status"><span><i className="is-voice" /> Voice Projection</span><span><i className="is-music" /> Music</span><b>{formatDuration(total)} Production</b>{saving && <em>Saving edit…</em>}{playbackError && <em className="is-error" role="alert">{playbackError}</em>}</footer>
+    <footer className="ws-sound-status"><span><i className="is-voice" /> Sequence</span><span><i className="is-music" /> Music</span><b>{formatDuration(total)} Production</b>{saving && <em>Saving edit…</em>}{error && <em className="is-error" role="alert">{error}</em>}</footer>
   </div>
 }
-
-export type { SoundSelection }

@@ -7,36 +7,50 @@ import { SwitchLike } from "@/components/switch-like"
 import { audioUrl } from "@/lib/api"
 import { formatDuration } from "@/lib/format"
 import type { PlayerSource, SoundSceneClip, SoundSceneTrack } from "@/types/domain"
-import { MusicWaveformEditor } from "./music-waveform-editor"
+import { MusicWaveformEditor, type MusicSourceWindow } from "./music-waveform-editor"
 
 import "./music-workbench.css"
 
-export function MusicWorkbench({ track, clip, playingKey, playing, onPlay, onChange, onChoose, onRemove }: {
+export function MusicWorkbench({ track, clip, playingKey, playing, onPlay, onClipChange, onClipCommit, onTrackVolumeChange, onTrackVolumeCommit, onChoose, onRemove }: {
   track: SoundSceneTrack
   clip: SoundSceneClip | null
   playingKey?: string
   playing: boolean
   onPlay: (source: PlayerSource) => void
-  onChange: (changes: Partial<SoundSceneClip>) => Promise<void>
+  onClipChange: (changes: Partial<SoundSceneClip>) => void
+  onClipCommit: () => Promise<void>
+  onTrackVolumeChange: (volume: number) => void
+  onTrackVolumeCommit: (volume: number) => Promise<void>
   onChoose: () => void
   onRemove: () => void
 }) {
   const [volume, setVolume] = useState(Math.round((clip?.gain ?? .1) * 100))
+  const [trackVolume, setTrackVolume] = useState(Math.round((track.volume ?? 1) * 100))
   const [start, setStart] = useState((clip?.source_offset_ms ?? 0) / 1000)
+  const [windowDuration, setWindowDuration] = useState((clip?.duration_ms ?? clip?.resolved_duration_ms ?? 0) / 1000)
   const [fadeIn, setFadeIn] = useState((clip?.fade_in_ms ?? 2000) / 1000)
   const [fadeOut, setFadeOut] = useState((clip?.fade_out_ms ?? 3000) / 1000)
   const [saving, setSaving] = useState("")
   const [error, setError] = useState("")
   useEffect(() => setVolume(Math.round((clip?.gain ?? .1) * 100)), [clip?.gain])
+  useEffect(() => setTrackVolume(Math.round((track.volume ?? 1) * 100)), [track.volume])
   useEffect(() => setStart((clip?.source_offset_ms ?? 0) / 1000), [clip?.source_offset_ms])
+  useEffect(() => setWindowDuration((clip?.duration_ms ?? clip?.resolved_duration_ms ?? 0) / 1000), [clip?.duration_ms, clip?.resolved_duration_ms])
   useEffect(() => setFadeIn((clip?.fade_in_ms ?? 2000) / 1000), [clip?.fade_in_ms])
   useEffect(() => setFadeOut((clip?.fade_out_ms ?? 3000) / 1000), [clip?.fade_out_ms])
 
-  async function save(label: string, changes: Partial<SoundSceneClip>, rollback?: () => void) {
-    setSaving(label); setError("")
-    try { await onChange(changes) }
-    catch (reason) { rollback?.(); setError(reason instanceof Error ? reason.message : "Those music settings could not be saved.") }
+  async function save(label: string, action: () => Promise<void>) {
+    setSaving(label)
+    setError("")
+    try { await action() }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Those music settings could not be saved.") }
     finally { setSaving("") }
+  }
+
+  function sourceWindow(next: MusicSourceWindow) {
+    setStart(next.sourceOffsetMs / 1000)
+    if (next.durationMs !== null) setWindowDuration(next.durationMs / 1000)
+    onClipChange({ source_offset_ms: next.sourceOffsetMs, duration_ms: next.durationMs })
   }
 
   if (!clip?.filename) return <div className="music-workbench-empty"><Music2 /><span><b>No Music</b><p>Add one reusable Venture track to the Sound Scene.</p></span><Button onClick={onChoose}>Choose music</Button></div>
@@ -44,6 +58,7 @@ export function MusicWorkbench({ track, clip, playingKey, playing, onPlay, onCha
   const key = `asset-source:${clip.asset_id}`
   const active = playing && playingKey === key
   const sourceDuration = Math.max(Number(clip.source_duration_ms || 0) / 1000, 0.1)
+  const usedDuration = Math.max(windowDuration, .1)
   return <div className="music-workbench-content">
     <section className="music-workbench-source">
       <span className="music-workbench-art"><Music2 /></span>
@@ -52,17 +67,27 @@ export function MusicWorkbench({ track, clip, playingKey, playing, onPlay, onCha
     </section>
 
     <section className="music-workbench-controls">
-      <header><div><span className="eyebrow">Current mix</span><h3>Bed placement</h3></div><small>Changes invalidate the current Production preview.</small></header>
-      <MusicWaveformEditor url={audioUrl(clip.filename)} duration={sourceDuration} value={start} disabled={Boolean(saving)} onChange={setStart} onCommit={(value) => { setStart(value); void save("source position", { source_offset_ms: Math.round(value * 1000) }, () => setStart((clip.source_offset_ms ?? 0) / 1000)) }} />
-      <label><span><Headphones /> Mix level <b>{volume}%</b></span><Slider aria-label="Music mix level" disabled={Boolean(saving)} value={[volume]} max={100} step={1} onValueChange={([value = 0]) => setVolume(value)} onValueCommit={([value = volume]) => { setVolume(value); void save("mix level", { gain: value / 100 }, () => setVolume(Math.round((clip.gain ?? .1) * 100))) }} /></label>
+      <header><div><span className="eyebrow">Current mix</span><h3>Bed placement</h3></div><small>Hear gain changes while dragging. One save happens on release.</small></header>
+      <MusicWaveformEditor
+        url={audioUrl(clip.filename)}
+        sourceDuration={sourceDuration}
+        sourceOffset={start}
+        usedDuration={usedDuration}
+        loop={Boolean(clip.loop)}
+        disabled={Boolean(saving)}
+        onChange={sourceWindow}
+        onCommit={(next) => { sourceWindow(next); void save("source window", onClipCommit) }}
+      />
+      <label><span><Headphones /> Clip gain <b>{volume}%</b></span><Slider aria-label="Music clip gain" disabled={Boolean(saving)} value={[volume]} max={200} step={1} onValueChange={([value = 0]) => { setVolume(value); onClipChange({ gain: value / 100 }) }} onValueCommit={([value = volume]) => { setVolume(value); onClipChange({ gain: value / 100 }); void save("clip gain", onClipCommit) }} /></label>
+      <label><span><Music2 /> Track volume <b>{trackVolume}%</b></span><Slider aria-label="Music track volume" disabled={Boolean(saving)} value={[trackVolume]} max={200} step={1} onValueChange={([value = 0]) => { setTrackVolume(value); onTrackVolumeChange(value / 100) }} onValueCommit={([value = trackVolume]) => { setTrackVolume(value); void save("track volume", () => onTrackVolumeCommit(value / 100)) }} /></label>
       <div className="music-fade-grid">
-        <label><span>Fade in <b>{fadeIn.toFixed(1)}s</b></span><Slider aria-label="Music fade in" disabled={Boolean(saving)} value={[fadeIn]} max={15} step={0.1} onValueChange={([value = 0]) => setFadeIn(value)} onValueCommit={([value = fadeIn]) => { setFadeIn(value); void save("fade in", { fade_in_ms: Math.round(value * 1000) }, () => setFadeIn((clip.fade_in_ms ?? 0) / 1000)) }} /></label>
-        <label><span>Fade out <b>{fadeOut.toFixed(1)}s</b></span><Slider aria-label="Music fade out" disabled={Boolean(saving)} value={[fadeOut]} max={15} step={0.1} onValueChange={([value = 0]) => setFadeOut(value)} onValueCommit={([value = fadeOut]) => { setFadeOut(value); void save("fade out", { fade_out_ms: Math.round(value * 1000) }, () => setFadeOut((clip.fade_out_ms ?? 0) / 1000)) }} /></label>
+        <label><span>Fade in <b>{fadeIn.toFixed(1)}s</b></span><Slider aria-label="Music fade in" disabled={Boolean(saving)} value={[fadeIn]} max={15} step={0.1} onValueChange={([value = 0]) => { setFadeIn(value); onClipChange({ fade_in_ms: Math.round(value * 1000) }) }} onValueCommit={([value = fadeIn]) => { setFadeIn(value); onClipChange({ fade_in_ms: Math.round(value * 1000) }); void save("fade in", onClipCommit) }} /></label>
+        <label><span>Fade out <b>{fadeOut.toFixed(1)}s</b></span><Slider aria-label="Music fade out" disabled={Boolean(saving)} value={[fadeOut]} max={15} step={0.1} onValueChange={([value = 0]) => { setFadeOut(value); onClipChange({ fade_out_ms: Math.round(value * 1000) }) }} onValueCommit={([value = fadeOut]) => { setFadeOut(value); onClipChange({ fade_out_ms: Math.round(value * 1000) }); void save("fade out", onClipCommit) }} /></label>
       </div>
-      <SwitchLike label="Loop source" checked={Boolean(clip.loop)} disabled={Boolean(saving)} onChange={(loop) => void save("looping", { loop })} />
-      <SwitchLike label="Duck under voice" checked={Boolean(clip.ducking)} disabled={Boolean(saving)} onChange={(ducking) => void save("ducking", { ducking })} />
+      <SwitchLike label="Loop source" checked={Boolean(clip.loop)} disabled={Boolean(saving)} onChange={(loop) => { onClipChange({ loop }); void save("looping", onClipCommit) }} />
+      <SwitchLike label="Duck under Sequence" checked={Boolean(clip.ducking)} disabled={Boolean(saving)} onChange={(ducking) => { onClipChange({ ducking }); void save("ducking", onClipCommit) }} />
       <p className="music-track-state">Starts at {formatDuration(Number(clip.resolved_start_ms || 0) / 1000)} · {track.muted ? "Track muted" : "Track audible"}</p>
-      <p className={`music-save-state${error ? " is-error" : ""}`} role={error ? "alert" : "status"} aria-live="polite">{error || (saving ? `Saving ${saving}…` : "Mix settings save when each control is released.")}</p>
+      <p className={`music-save-state${error ? " is-error" : ""}`} role={error ? "alert" : "status"} aria-live="polite">{error || (saving ? `Saving ${saving}…` : "Local while dragging · persisted on release.")}</p>
     </section>
 
     <section className="music-workbench-actions"><Button variant="outline" disabled={Boolean(saving)} onClick={onChoose}><RefreshCcw /> Replace source</Button><Button variant="ghost" className="danger" disabled={Boolean(saving)} onClick={onRemove}><Trash2 /> Remove Music Bed</Button></section>

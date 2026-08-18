@@ -3,19 +3,21 @@
 from copy import deepcopy
 import unittest
 
-from audio_studio.domain.sound_scene import empty_scene, resolve_scene, voice_projection
+from audio_studio.domain.sound_scene import empty_scene, resolve_scene, sequence_projection
 
 
 def speech(part_id: int, duration_ms: int, position: int) -> dict:
     return {
-        "id": part_id, "public_id": f"part-{part_id}", "position": position,
+        "id": part_id,
+        "public_id": f"00000000-0000-0000-0000-{part_id:012d}",
+        "position": position,
         "kind": "speech", "filename": f"part-{part_id}.mp3",
         "duration_ms": duration_ms, "revision": 1, "clip_id": part_id * 10,
         "authored_role": "Narrator", "missing": False,
     }
 
 
-def anchored_scene(part_id: int) -> dict:
+def anchored_scene(part_public_id: str) -> dict:
     scene = empty_scene()
     scene["tracks"][0]["clips"] = [{
         "id": "78af885c-aeb4-49bf-9edb-d3fc14496b2c",
@@ -23,7 +25,7 @@ def anchored_scene(part_id: int) -> dict:
         "start_ms": 0, "duration_ms": 2_000, "source_offset_ms": 250,
         "gain": .2, "fade_in_ms": 200, "fade_out_ms": 300,
         "loop": False, "ducking": True,
-        "anchor": {"kind": "part", "part_id": part_id,
+        "anchor": {"kind": "part", "part_public_id": part_public_id,
                    "edge": "start", "offset_ms": 500},
         "asset_name": "Future transition", "filename": "transition.wav",
         "source_duration_ms": 10_000, "missing": False,
@@ -32,26 +34,27 @@ def anchored_scene(part_id: int) -> dict:
 
 
 class SoundSceneDomainTests(unittest.TestCase):
-    def test_voice_projection_follows_insert_reorder_and_rerecord_duration(self):
+    def test_sequence_projection_follows_insert_reorder_and_rerecord_duration(self):
         first = speech(1, 4_000, 0)
         later = speech(2, 6_000, 1)
-        initial = voice_projection([first, later])
+        initial = sequence_projection([first, later])
         self.assertEqual(
             [(span["part_id"], span["start_ms"]) for span in initial["spans"]],
             [(1, 0), (2, 4_000)],
         )
 
         inserted = speech(3, 2_000, 1)
-        after_insert = voice_projection([first, inserted, later])
+        after_insert = sequence_projection([first, inserted, later])
         self.assertEqual(after_insert["spans"][2]["start_ms"], 6_000)
 
         rerecorded = {**first, "duration_ms": 7_000, "clip_id": 99}
-        after_record = voice_projection([rerecorded, inserted, later])
+        after_record = sequence_projection([rerecorded, inserted, later])
         self.assertEqual(after_record["spans"][2]["start_ms"], 9_000)
         self.assertNotEqual(initial["signature"], after_record["signature"])
 
     def test_part_anchor_follows_sequence_changes_without_mutating_document(self):
-        original = anchored_scene(2)
+        target_public_id = speech(2, 6_000, 1)["public_id"]
+        original = anchored_scene(target_public_id)
         before = deepcopy(original)
         first = speech(1, 4_000, 0)
         target = speech(2, 6_000, 1)
@@ -66,7 +69,10 @@ class SoundSceneDomainTests(unittest.TestCase):
         self.assertEqual(original, before)
 
     def test_deleted_anchor_is_an_explicit_orphan(self):
-        resolved = resolve_scene(anchored_scene(2), [speech(1, 4_000, 0)])
+        resolved = resolve_scene(
+            anchored_scene(speech(2, 6_000, 1)["public_id"]),
+            [speech(1, 4_000, 0)],
+        )
         clip = resolved["tracks"][0]["clips"][0]
         self.assertTrue(clip["orphan"])
         self.assertIsNone(clip["resolved_start_ms"])
@@ -90,6 +96,12 @@ class SoundSceneDomainTests(unittest.TestCase):
         longer = resolve_scene(scene, [speech(1, 9_000, 0)])
         self.assertEqual(first["tracks"][0]["clips"][0]["resolved_duration_ms"], 4_000)
         self.assertEqual(longer["tracks"][0]["clips"][0]["resolved_duration_ms"], 9_000)
+
+    def test_track_volume_is_normalized_separately_from_clip_gain(self):
+        scene = empty_scene()
+        scene["tracks"][0]["volume"] = .65
+        resolved = resolve_scene(scene, [speech(1, 4_000, 0)])
+        self.assertEqual(resolved["tracks"][0]["volume"], .65)
 
 
 if __name__ == "__main__":

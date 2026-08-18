@@ -69,8 +69,10 @@ def production_scene(editor: dict, sound_scene: dict) -> dict:
         tracks.append({
             "id": str(track["id"]),
             "kind": str(track["kind"]),
-            "volume": 0 if track.get("muted") else float(
-                first_clip.get("gain", 1)),
+            "volume": 0 if track.get("muted") else (
+                float(track.get("volume", 1))
+                * float(first_clip.get("gain", 1))
+            ),
             "loop": bool(first_clip.get("loop", False)),
             "source_offset": float(
                 first_clip.get("source_offset_ms") or 0) / 1000,

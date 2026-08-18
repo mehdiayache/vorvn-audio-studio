@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Annotated, Literal
+from uuid import UUID
 
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field
@@ -30,7 +31,7 @@ class AbsoluteAnchor(BaseModel):
 class PartAnchor(BaseModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["part"]
-    part_id: int = Field(gt=0)
+    part_public_id: UUID
     edge: Literal["start", "end"]
     offset_ms: int = 0
 
@@ -60,6 +61,7 @@ class SoundSceneTrackDocument(BaseModel):
     id: str = Field(min_length=1, max_length=120)
     kind: Literal["music", "sfx", "ambience"]
     name: str = Field(min_length=1, max_length=120)
+    volume: float = Field(default=1, ge=0, le=2)
     muted: bool = False
     clips: list[SoundSceneClipDocument] = Field(max_length=1_000)
 
@@ -76,7 +78,7 @@ class SoundSceneUpdateBody(BaseModel):
     document: SoundSceneDocument
 
 
-class VoiceProjectionSpan(BaseModel):
+class SequenceProjectionSpan(BaseModel):
     part_id: int
     part_public_id: str
     position: int | None = None
@@ -91,11 +93,11 @@ class VoiceProjectionSpan(BaseModel):
     missing: bool
 
 
-class VoiceProjection(BaseModel):
+class SequenceProjection(BaseModel):
     signature: str
     duration_ms: int
     sample_rate: Literal[48000]
-    spans: list[VoiceProjectionSpan]
+    spans: list[SequenceProjectionSpan]
 
 
 class ResolvedSoundSceneClip(SoundSceneClipDocument):
@@ -114,6 +116,7 @@ class ResolvedSoundSceneTrack(BaseModel):
     id: str
     kind: Literal["music", "sfx", "ambience"]
     name: str
+    volume: float
     muted: bool
     clips: list[ResolvedSoundSceneClip]
 
@@ -121,12 +124,12 @@ class ResolvedSoundSceneTrack(BaseModel):
 class SoundSceneResolution(BaseModel):
     version: Literal[1]
     signature: str
-    voice_projection: VoiceProjection
+    sequence_projection: SequenceProjection
     tracks: list[ResolvedSoundSceneTrack]
     orphans: list[dict[str, str]]
 
 
-class VoiceStemResponse(BaseModel):
+class SequenceStemResponse(BaseModel):
     url: str
     filename: str
     duration_ms: int
@@ -143,7 +146,7 @@ class SoundSceneResponse(BaseModel):
     can_redo: bool
     updated_at: str
     resolved: SoundSceneResolution
-    voice_stem: VoiceStemResponse
+    sequence_stem: SequenceStemResponse
 
 
 class SoundSceneEnvelope(BaseModel):

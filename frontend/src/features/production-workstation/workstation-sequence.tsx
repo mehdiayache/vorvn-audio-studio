@@ -1,7 +1,7 @@
 import { useState } from "react"
 import {
-  Captions, Check, CircleAlert, CircleDot, Clock3, Edit3, GripVertical,
-  FileAudio, Mic2, MoreHorizontal, Pause, Play, RotateCw, Search, Sparkles, Volume2, VolumeX,
+  Captions, Check, CircleAlert, CircleCheck, CircleDot, CircleSlash2, Clock3, Edit3, GripVertical,
+  FileAudio, Mic2, MoreHorizontal, Pause, Play, RotateCw, Search, Sparkles,
 } from "lucide-react"
 
 import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
@@ -102,7 +102,7 @@ function SilenceCard({ part, selected, actions }: { part: ProductionPart; select
   return <article id={`ws-part-${part.id}`} className={cn("ws-silence-card", selected && "is-selected", part.enabled === false && "is-disabled")} onClick={() => actions.select(part)}>
     <span className="ws-silence-line" />
     <div><Clock3 /><b>Pause</b><input aria-label="Silence duration" type="number" min="0.1" step="0.1" defaultValue={seconds} onClick={(event) => event.stopPropagation()} onBlur={(event) => actions.editSilence(part, Number(event.target.value))} /><span>seconds</span></div>
-    <Button variant="ghost" size="icon-sm" aria-label={part.enabled === false ? "Include silence" : "Exclude silence"} onClick={(event) => { event.stopPropagation(); actions.setEnabled(part, part.enabled === false) }}>{part.enabled === false ? <Volume2 /> : <VolumeX />}</Button>
+    <Button variant="ghost" size="icon-sm" aria-label={part.enabled === false ? "Include silence in Sequence" : "Exclude silence from Sequence"} onClick={(event) => { event.stopPropagation(); actions.setEnabled(part, part.enabled === false) }}>{part.enabled === false ? <CircleCheck /> : <CircleSlash2 />}</Button>
     <span className="ws-silence-line" />
   </article>
 }
@@ -137,7 +137,7 @@ export function WorkstationAssetCard({ part, index, selected, playing, actions }
       <header className="ws-part-identity">
         <div className="ws-asset-identity"><span><FileAudio /></span><div><b>{title}</b><small>{collection} · Venture source</small></div></div>
         <div className="ws-part-actions">
-          <Button variant="ghost" size="icon-sm" aria-label={part.enabled === false ? "Include part in output" : "Exclude part from output"} onClick={(event) => { event.stopPropagation(); actions.setEnabled(part, part.enabled === false) }}>{part.enabled === false ? <Volume2 /> : <VolumeX />}</Button>
+          <Button variant="ghost" size="icon-sm" aria-label={part.enabled === false ? "Include Part in Sequence" : "Exclude Part from Sequence"} onClick={(event) => { event.stopPropagation(); actions.setEnabled(part, part.enabled === false) }}>{part.enabled === false ? <CircleCheck /> : <CircleSlash2 />}</Button>
           <Button variant="outline" size="sm" onClick={(event) => { event.stopPropagation(); actions.replaceAsset(part) }}><FileAudio /> Replace source</Button>
           <PartActionsMenu part={part} actions={actions} />
         </div>
@@ -181,7 +181,7 @@ export function WorkstationSequenceCard({ part, index, selected, playing, liveJo
           <span className="ws-method-line">{facts.methodLine}</span>
         </div>
         <div className="ws-part-actions">
-          <Button variant="ghost" size="icon-sm" aria-label={part.enabled === false ? "Include part in output" : "Exclude part from output"} onClick={(event) => { event.stopPropagation(); actions.setEnabled(part, part.enabled === false) }}>{part.enabled === false ? <Volume2 /> : <VolumeX />}</Button>
+          <Button variant="ghost" size="icon-sm" aria-label={part.enabled === false ? "Include Part in Sequence" : "Exclude Part from Sequence"} onClick={(event) => { event.stopPropagation(); actions.setEnabled(part, part.enabled === false) }}>{part.enabled === false ? <CircleCheck /> : <CircleSlash2 />}</Button>
           <Button variant="outline" size="sm" onClick={(event) => { event.stopPropagation(); actions.edit(part) }}><Edit3 /> Edit</Button>
           <PartActionsMenu part={part} actions={actions} />
         </div>

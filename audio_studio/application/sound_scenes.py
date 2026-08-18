@@ -26,8 +26,8 @@ class SequenceRecords(Protocol):
     def parts(self, production_id: int) -> list[dict[str, Any]]: ...
 
 
-class VoiceStemWorkspace(Protocol):
-    def voice_stem(
+class SequenceStemWorkspace(Protocol):
+    def sequence_stem(
         self, production_id: int, parts: list[dict[str, Any]],
         signature: str,
     ) -> dict[str, Any]: ...
@@ -36,7 +36,7 @@ class VoiceStemWorkspace(Protocol):
 class SoundSceneService:
     def __init__(
         self, records: SoundSceneRecords, sequence: SequenceRecords,
-        workspace: VoiceStemWorkspace,
+        workspace: SequenceStemWorkspace,
     ):
         self.records = records
         self.sequence = sequence
@@ -49,7 +49,7 @@ class SoundSceneService:
         parts = self.sequence.parts(production_id)
         resolved = resolve_scene(
             scene.get("hydrated_document", scene["document"]), parts)
-        projection = resolved["voice_projection"]
+        projection = resolved["sequence_projection"]
         renderable_ids = {
             span["part_id"] for span in projection["spans"]
         }
@@ -64,12 +64,12 @@ class SoundSceneService:
         stem = ({
             "url": "", "filename": "", "duration_ms": 0,
             "signature": projection["signature"], "cached": False,
-            "unavailable_reason": "Voice Projection contains unavailable audio.",
-        } if unavailable else self.workspace.voice_stem(
+            "unavailable_reason": "Sequence contains unavailable audio.",
+        } if unavailable else self.workspace.sequence_stem(
             production_id, renderable, projection["signature"]))
         return {
             key: value for key, value in {
-                **scene, "resolved": resolved, "voice_stem": stem,
+                **scene, "resolved": resolved, "sequence_stem": stem,
             }.items() if key != "hydrated_document"
         }
 

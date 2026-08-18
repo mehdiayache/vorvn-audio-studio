@@ -9,7 +9,6 @@ const milliseconds = (sampleCount: number) => Math.max(0, Math.round(sampleCount
 
 type ClipOrigin = {
   clip: SoundSceneClip
-  track: SoundSceneTrack
   resolvedStartMs: number
   resolvedDurationMs: number
 }
@@ -31,12 +30,12 @@ function engineClip(id: string, name: string, startMs: number, durationMs: numbe
   }
 }
 
-function voiceTrack(scene: SoundScene): ClipTrack {
+function sequenceTrack(scene: SoundScene): ClipTrack {
   return {
-    ...createTrack({ name: "Voice Projection", color: "#6d28d9" }),
-    id: "voice-projection",
-    clips: scene.resolved.voice_projection.spans.map((span) => engineClip(
-      `voice:${span.part_id}`,
+    ...createTrack({ name: "Sequence", color: "#6d28d9" }),
+    id: "sequence-projection",
+    clips: scene.resolved.sequence_projection.spans.map((span) => engineClip(
+      `sequence:${span.part_public_id}`,
       span.role || span.voice_name || span.title || `Part ${span.position ?? ""}`,
       span.start_ms,
       span.duration_ms,
@@ -50,6 +49,7 @@ function soundTrack(track: SoundSceneTrack): ClipTrack {
     ...createTrack({
       name: track.name,
       muted: track.muted,
+      volume: track.volume,
       color: track.kind === "music" ? "#0f766e" : "#c2410c",
     }),
     id: track.id,
@@ -76,30 +76,37 @@ function soundTrack(track: SoundSceneTrack): ClipTrack {
 
 export class SoundSceneEngine {
   readonly engine: PlaylistEngine
-  private readonly origins = new Map<string, ClipOrigin>()
-  private readonly baseDocument: SoundSceneDocument
+  private scene: SoundScene
+  private origins = new Map<string, ClipOrigin>()
+  private clipOverrides = new Map<string, Partial<SoundSceneClip>>()
+  private baseDocument: SoundSceneDocument
 
-  constructor(readonly scene: SoundScene) {
+  constructor(scene: SoundScene) {
+    this.scene = scene
     this.baseDocument = structuredClone(scene.document)
-    scene.resolved.tracks.forEach((track) => track.clips.forEach((clip) => {
-      const persisted = scene.document.tracks.find((item) => item.id === track.id)?.clips.find((item) => item.id === clip.id)
-      if (persisted) this.origins.set(clip.id, {
-        clip: persisted,
-        track,
-        resolvedStartMs: Number(clip.resolved_start_ms ?? clip.start_ms),
-        resolvedDurationMs: Number(clip.resolved_duration_ms ?? clip.duration_ms ?? 0),
-      })
-    }))
     this.engine = new PlaylistEngine({
       sampleRate: SAMPLE_RATE,
       samplesPerPixel: 4_800,
       zoomLevels: [12_000, 9_600, 7_200, 4_800, 3_200, 2_400, 1_600, 1_200],
       undoLimit: 80,
     })
-    this.engine.setTracks([
-      voiceTrack(scene),
-      ...scene.resolved.tracks.map(soundTrack),
-    ])
+    this.replace(scene)
+  }
+
+  replace(scene: SoundScene) {
+    this.scene = scene
+    this.baseDocument = structuredClone(scene.document)
+    this.origins = new Map()
+    this.clipOverrides = new Map()
+    scene.resolved.tracks.forEach((track) => track.clips.forEach((clip) => {
+      const persisted = scene.document.tracks.find((item) => item.id === track.id)?.clips.find((item) => item.id === clip.id)
+      if (persisted) this.origins.set(clip.id, {
+        clip: persisted,
+        resolvedStartMs: Number(clip.resolved_start_ms ?? clip.start_ms),
+        resolvedDurationMs: Number(clip.resolved_duration_ms ?? clip.duration_ms ?? 0),
+      })
+    }))
+    this.engine.setTracks([sequenceTrack(scene), ...scene.resolved.tracks.map(soundTrack)])
   }
 
   state(): EngineState { return this.engine.getState() }
@@ -118,19 +125,25 @@ export class SoundSceneEngine {
     this.engine.trimClip(trackId, clipId, edge, Math.round(deltaSamples), true)
   }
   setTrackMute(trackId: string, muted: boolean) { this.engine.setTrackMute(trackId, muted) }
-  setClipValue(trackId: string, clipId: string, changes: { gain?: number; fadeInMs?: number; fadeOutMs?: number }) {
+  setTrackVolume(trackId: string, volume: number) { this.engine.setTrackVolume(trackId, volume) }
+  setClipValue(trackId: string, clipId: string, changes: Partial<SoundSceneClip>) {
     const track = this.state().tracks.find((item) => item.id === trackId)
     if (!track) return
-    const next = {
+    this.clipOverrides.set(clipId, {
+      ...this.clipOverrides.get(clipId),
+      ...changes,
+    })
+    this.engine.updateTrack(trackId, {
       ...track,
       clips: track.clips.map((clip) => clip.id === clipId ? {
         ...clip,
         gain: changes.gain ?? clip.gain,
-        fadeIn: changes.fadeInMs === undefined ? clip.fadeIn : changes.fadeInMs ? { duration: changes.fadeInMs / 1000, type: "linear" as const } : undefined,
-        fadeOut: changes.fadeOutMs === undefined ? clip.fadeOut : changes.fadeOutMs ? { duration: changes.fadeOutMs / 1000, type: "linear" as const } : undefined,
+        offsetSamples: changes.source_offset_ms === undefined ? clip.offsetSamples : samples(changes.source_offset_ms),
+        durationSamples: changes.duration_ms === undefined || changes.duration_ms === null ? clip.durationSamples : samples(changes.duration_ms),
+        fadeIn: changes.fade_in_ms === undefined ? clip.fadeIn : changes.fade_in_ms ? { duration: changes.fade_in_ms / 1000, type: "linear" as const } : undefined,
+        fadeOut: changes.fade_out_ms === undefined ? clip.fadeOut : changes.fade_out_ms ? { duration: changes.fade_out_ms / 1000, type: "linear" as const } : undefined,
       } : clip),
-    }
-    this.engine.updateTrack(trackId, next)
+    })
   }
   zoomIn() { this.engine.zoomIn() }
   zoomOut() { this.engine.zoomOut() }
@@ -139,7 +152,7 @@ export class SoundSceneEngine {
   redo() { this.engine.redo() }
   dispose() { this.engine.dispose() }
 
-  document(overrides: Record<string, Partial<SoundSceneClip>> = {}): SoundSceneDocument {
+  document(): SoundSceneDocument {
     const state = this.state()
     return {
       version: 1,
@@ -147,11 +160,12 @@ export class SoundSceneEngine {
         const engineTrack = state.tracks.find((item) => item.id === track.id)
         return {
           ...track,
+          volume: engineTrack?.volume ?? track.volume,
           muted: engineTrack?.muted ?? track.muted,
           clips: track.clips.map((clip) => {
             const current = engineTrack?.clips.find((item) => item.id === clip.id)
             const origin = this.origins.get(clip.id)
-            if (!current || !origin) return { ...clip, ...overrides[clip.id] }
+            if (!current || !origin) return clip
             const currentStart = milliseconds(current.startSample)
             const currentDuration = milliseconds(current.durationSamples)
             const movedBy = currentStart - origin.resolvedStartMs
@@ -159,9 +173,9 @@ export class SoundSceneEngine {
               ? { ...clip.anchor, offset_ms: clip.anchor.offset_ms + movedBy }
               : { kind: "absolute" as const, position_ms: currentStart }
             const unchangedFollowDuration = clip.duration_ms === null && currentDuration === origin.resolvedDurationMs
+            const override = this.clipOverrides.get(clip.id)
             return {
               ...clip,
-              ...overrides[clip.id],
               start_ms: currentStart,
               duration_ms: unchangedFollowDuration ? null : currentDuration,
               source_offset_ms: clip.loop && Number(clip.source_duration_ms || 0) > 0
@@ -171,6 +185,7 @@ export class SoundSceneEngine {
               fade_in_ms: Math.round((current.fadeIn?.duration || 0) * 1000),
               fade_out_ms: Math.round((current.fadeOut?.duration || 0) * 1000),
               anchor,
+              ...override,
             }
           }),
         }

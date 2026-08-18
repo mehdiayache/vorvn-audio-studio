@@ -45,7 +45,7 @@ class Workspace:
     def __init__(self):
         self.calls = []
 
-    def voice_stem(self, production_id, parts, signature):
+    def sequence_stem(self, production_id, parts, signature):
         self.calls.append((production_id, parts, signature))
         return {"url": "/audio/stem.mp3", "filename": "stem.mp3",
                 "duration_ms": 4_000, "signature": signature,
@@ -60,9 +60,9 @@ class SoundSceneServiceTests(unittest.TestCase):
         self.service = SoundSceneService(
             self.records, self.sequence, self.workspace)
 
-    def test_voice_stem_key_changes_with_canonical_sequence_truth(self):
+    def test_sequence_stem_key_changes_with_canonical_sequence_truth(self):
         initial = self.service.get(6)
-        initial_signature = initial["voice_stem"]["signature"]
+        initial_signature = initial["sequence_stem"]["signature"]
         self.sequence.items.insert(0, {
             "id": 5, "public_id": "part-5", "position": 0,
             "kind": "silence", "duration_ms": 2_000, "title": "2",
@@ -70,9 +70,9 @@ class SoundSceneServiceTests(unittest.TestCase):
         })
         inserted = self.service.get(6)
         self.assertNotEqual(
-            initial_signature, inserted["voice_stem"]["signature"])
+            initial_signature, inserted["sequence_stem"]["signature"])
         self.assertEqual(
-            inserted["resolved"]["voice_projection"]["spans"][1]["start_ms"],
+            inserted["resolved"]["sequence_projection"]["spans"][1]["start_ms"],
             2_000,
         )
 
@@ -82,8 +82,8 @@ class SoundSceneServiceTests(unittest.TestCase):
         }
         rerecorded = self.service.get(6)
         self.assertNotEqual(
-            inserted["voice_stem"]["signature"],
-            rerecorded["voice_stem"]["signature"],
+            inserted["sequence_stem"]["signature"],
+            rerecorded["sequence_stem"]["signature"],
         )
 
     def test_missing_voice_audio_keeps_scene_readable_without_bad_stem(self):
@@ -91,8 +91,8 @@ class SoundSceneServiceTests(unittest.TestCase):
             **self.sequence.items[0], "filename": "", "missing": True,
         }
         response = self.service.get(6)
-        self.assertEqual(response["voice_stem"]["url"], "")
-        self.assertIn("unavailable", response["voice_stem"]["unavailable_reason"].lower())
+        self.assertEqual(response["sequence_stem"]["url"], "")
+        self.assertIn("unavailable", response["sequence_stem"]["unavailable_reason"].lower())
         self.assertEqual(self.workspace.calls, [])
 
 

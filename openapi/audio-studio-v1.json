@@ -2643,15 +2643,15 @@
             "title": "Offset Ms",
             "type": "integer"
           },
-          "part_id": {
-            "exclusiveMinimum": 0.0,
-            "title": "Part Id",
-            "type": "integer"
+          "part_public_id": {
+            "format": "uuid",
+            "title": "Part Public Id",
+            "type": "string"
           }
         },
         "required": [
           "kind",
-          "part_id",
+          "part_public_id",
           "edge"
         ],
         "title": "PartAnchor",
@@ -5172,12 +5172,17 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "number"
           }
         },
         "required": [
           "id",
           "kind",
           "name",
+          "volume",
           "muted",
           "clips"
         ],
@@ -5480,6 +5485,156 @@
           "rules"
         ],
         "title": "SavedPronunciationResponse",
+        "type": "object"
+      },
+      "SequenceProjection": {
+        "properties": {
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "sample_rate": {
+            "const": 48000,
+            "title": "Sample Rate",
+            "type": "integer"
+          },
+          "signature": {
+            "title": "Signature",
+            "type": "string"
+          },
+          "spans": {
+            "items": {
+              "$ref": "#/components/schemas/SequenceProjectionSpan"
+            },
+            "title": "Spans",
+            "type": "array"
+          }
+        },
+        "required": [
+          "signature",
+          "duration_ms",
+          "sample_rate",
+          "spans"
+        ],
+        "title": "SequenceProjection",
+        "type": "object"
+      },
+      "SequenceProjectionSpan": {
+        "properties": {
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "missing": {
+            "title": "Missing",
+            "type": "boolean"
+          },
+          "part_id": {
+            "title": "Part Id",
+            "type": "integer"
+          },
+          "part_public_id": {
+            "title": "Part Public Id",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "silence": {
+            "title": "Silence",
+            "type": "boolean"
+          },
+          "start_ms": {
+            "title": "Start Ms",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "voice_name": {
+            "title": "Voice Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "part_id",
+          "part_public_id",
+          "kind",
+          "title",
+          "role",
+          "voice_name",
+          "filename",
+          "start_ms",
+          "duration_ms",
+          "silence",
+          "missing"
+        ],
+        "title": "SequenceProjectionSpan",
+        "type": "object"
+      },
+      "SequenceStemResponse": {
+        "properties": {
+          "cached": {
+            "title": "Cached",
+            "type": "boolean"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "signature": {
+            "title": "Signature",
+            "type": "string"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "filename",
+          "duration_ms",
+          "signature",
+          "cached"
+        ],
+        "title": "SequenceStemResponse",
         "type": "object"
       },
       "SeriesOverviewEnvelope": {
@@ -5916,6 +6071,9 @@
             "title": "Orphans",
             "type": "array"
           },
+          "sequence_projection": {
+            "$ref": "#/components/schemas/SequenceProjection"
+          },
           "signature": {
             "title": "Signature",
             "type": "string"
@@ -5931,15 +6089,12 @@
             "const": 1,
             "title": "Version",
             "type": "integer"
-          },
-          "voice_projection": {
-            "$ref": "#/components/schemas/VoiceProjection"
           }
         },
         "required": [
           "version",
           "signature",
-          "voice_projection",
+          "sequence_projection",
           "tracks",
           "orphans"
         ],
@@ -5970,12 +6125,12 @@
             "title": "Revision",
             "type": "integer"
           },
+          "sequence_stem": {
+            "$ref": "#/components/schemas/SequenceStemResponse"
+          },
           "updated_at": {
             "title": "Updated At",
             "type": "string"
-          },
-          "voice_stem": {
-            "$ref": "#/components/schemas/VoiceStemResponse"
           }
         },
         "required": [
@@ -5986,7 +6141,7 @@
           "can_redo",
           "updated_at",
           "resolved",
-          "voice_stem"
+          "sequence_stem"
         ],
         "title": "SoundSceneResponse",
         "type": "object"
@@ -6027,6 +6182,13 @@
             "minLength": 1,
             "title": "Name",
             "type": "string"
+          },
+          "volume": {
+            "default": 1,
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Volume",
+            "type": "number"
           }
         },
         "required": [
@@ -9841,112 +10003,6 @@
         "title": "VoiceProfileUsageResponse",
         "type": "object"
       },
-      "VoiceProjection": {
-        "properties": {
-          "duration_ms": {
-            "title": "Duration Ms",
-            "type": "integer"
-          },
-          "sample_rate": {
-            "const": 48000,
-            "title": "Sample Rate",
-            "type": "integer"
-          },
-          "signature": {
-            "title": "Signature",
-            "type": "string"
-          },
-          "spans": {
-            "items": {
-              "$ref": "#/components/schemas/VoiceProjectionSpan"
-            },
-            "title": "Spans",
-            "type": "array"
-          }
-        },
-        "required": [
-          "signature",
-          "duration_ms",
-          "sample_rate",
-          "spans"
-        ],
-        "title": "VoiceProjection",
-        "type": "object"
-      },
-      "VoiceProjectionSpan": {
-        "properties": {
-          "duration_ms": {
-            "title": "Duration Ms",
-            "type": "integer"
-          },
-          "filename": {
-            "title": "Filename",
-            "type": "string"
-          },
-          "kind": {
-            "title": "Kind",
-            "type": "string"
-          },
-          "missing": {
-            "title": "Missing",
-            "type": "boolean"
-          },
-          "part_id": {
-            "title": "Part Id",
-            "type": "integer"
-          },
-          "part_public_id": {
-            "title": "Part Public Id",
-            "type": "string"
-          },
-          "position": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Position"
-          },
-          "role": {
-            "title": "Role",
-            "type": "string"
-          },
-          "silence": {
-            "title": "Silence",
-            "type": "boolean"
-          },
-          "start_ms": {
-            "title": "Start Ms",
-            "type": "integer"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          },
-          "voice_name": {
-            "title": "Voice Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "part_id",
-          "part_public_id",
-          "kind",
-          "title",
-          "role",
-          "voice_name",
-          "filename",
-          "start_ms",
-          "duration_ms",
-          "silence",
-          "missing"
-        ],
-        "title": "VoiceProjectionSpan",
-        "type": "object"
-      },
       "VoiceReferenceResponse": {
         "additionalProperties": false,
         "properties": {
@@ -10358,50 +10414,6 @@
           "model_id"
         ],
         "title": "VoiceRouteResponse",
-        "type": "object"
-      },
-      "VoiceStemResponse": {
-        "properties": {
-          "cached": {
-            "title": "Cached",
-            "type": "boolean"
-          },
-          "duration_ms": {
-            "title": "Duration Ms",
-            "type": "integer"
-          },
-          "filename": {
-            "title": "Filename",
-            "type": "string"
-          },
-          "signature": {
-            "title": "Signature",
-            "type": "string"
-          },
-          "unavailable_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unavailable Reason"
-          },
-          "url": {
-            "title": "Url",
-            "type": "string"
-          }
-        },
-        "required": [
-          "url",
-          "filename",
-          "duration_ms",
-          "signature",
-          "cached"
-        ],
-        "title": "VoiceStemResponse",
         "type": "object"
       },
       "VoiceUpdate": {

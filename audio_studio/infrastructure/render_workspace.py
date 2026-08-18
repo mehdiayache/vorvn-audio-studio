@@ -105,21 +105,21 @@ def _sound_clips(scene: dict) -> list[tuple[dict, dict]]:
     ]
 
 
-def _mix_scene(voice: Path, scene: dict, target: Path) -> bool:
+def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
     """Render the same resolved Sound Scene used by browser playout."""
     clips = _sound_clips(scene)
     if not clips:
-        shutil.copyfile(voice, target)
+        shutil.copyfile(sequence, target)
         return False
     root = _output()
     command = [
         "ffmpeg", "-y", "-nostdin", "-loglevel", "error", "-i",
-        str(voice),
+        str(sequence),
     ]
     scene_duration = max(
         .001,
-        float(scene.get("voice_projection", {}).get("duration_ms") or
-              _measure(voice) or 1) / 1000,
+        float(scene.get("sequence_projection", {}).get("duration_ms") or
+              _measure(sequence) or 1) / 1000,
     )
     for _, clip in clips:
         source = (root / Path(clip.get("filename") or "").name).resolve()
@@ -131,15 +131,17 @@ def _mix_scene(voice: Path, scene: dict, target: Path) -> bool:
     filters = [
         "[0:a]aformat=sample_fmts=fltp:sample_rates=48000:"
         "channel_layouts=stereo,aresample=48000:async=1:first_pts=0,"
-        "asetpts=N/SR/TB,apad[voicebase]",
+        "asetpts=N/SR/TB,apad[sequencebase]",
     ]
-    labels: list[str] = []
-    ducking = False
-    for index, (_, clip) in enumerate(clips, 1):
+    ducked_labels: list[str] = []
+    dry_labels: list[str] = []
+    for index, (track, clip) in enumerate(clips, 1):
         duration = int(clip["resolved_duration_ms"]) / 1000
         offset = int(clip.get("source_offset_ms") or 0) / 1000
         start_ms = max(0, int(clip.get("resolved_start_ms") or 0))
-        gain = max(0, min(2, float(clip.get("gain", 1))))
+        track_volume = max(0, min(2, float(track.get("volume", 1))))
+        clip_gain = max(0, min(2, float(clip.get("gain", 1))))
+        gain = track_volume * clip_gain
         fade_in = min(duration, int(clip.get("fade_in_ms") or 0) / 1000)
         fade_out = min(duration, int(clip.get("fade_out_ms") or 0) / 1000)
         chain = [
@@ -155,27 +157,37 @@ def _mix_scene(voice: Path, scene: dict, target: Path) -> bool:
         chain.append(f"adelay={start_ms}|{start_ms}")
         label = f"scene{index}"
         filters.append(f"[{index}:a]{','.join(chain)}[{label}]")
-        labels.append(f"[{label}]")
-        ducking = ducking or bool(clip.get("ducking"))
-    if len(labels) == 1:
-        sound_label = labels[0]
-    else:
+        group = ducked_labels if clip.get("ducking") else dry_labels
+        group.append(f"[{label}]")
+
+    def mix_group(labels: list[str], name: str) -> str | None:
+        if not labels:
+            return None
+        if len(labels) == 1:
+            return labels[0]
         filters.append(
             f"{''.join(labels)}amix=inputs={len(labels)}:duration=longest:"
-            "dropout_transition=0:normalize=0[scene]"
+            f"dropout_transition=0:normalize=0[{name}]"
         )
-        sound_label = "[scene]"
-    if ducking:
-        filters.append("[voicebase]asplit=2[voice][sidechain]")
+        return f"[{name}]"
+
+    ducked_label = mix_group(ducked_labels, "ducked")
+    dry_label = mix_group(dry_labels, "dry")
+    sound_labels: list[str] = []
+    if ducked_label:
+        filters.append("[sequencebase]asplit=2[sequence][detector]")
         filters.append(
-            f"{sound_label}[sidechain]sidechaincompress=threshold=0.015:ratio=20:"
+            f"{ducked_label}[detector]sidechaincompress=threshold=0.015:ratio=20:"
             "attack=20:release=450:makeup=1[under]"
         )
-        sound_label = "[under]"
+        sound_labels.append("[under]")
     else:
-        filters.append("[voicebase]anull[voice]")
+        filters.append("[sequencebase]anull[sequence]")
+    if dry_label:
+        sound_labels.append(dry_label)
+    sound_label = mix_group(sound_labels, "sound") or ""
     filters.append(
-        f"{sound_label}[voice]amix=inputs=2:duration=first:"
+        f"{sound_label}[sequence]amix=inputs=2:duration=first:"
         f"dropout_transition=0:normalize=0,apad,atrim=duration={scene_duration:.3f},"
         "alimiter=limit=0.98[out]"
     )
@@ -198,7 +210,7 @@ def _mix_scene(voice: Path, scene: dict, target: Path) -> bool:
 
 
 class FFmpegRenderWorkspace:
-    def voice_stem(
+    def sequence_stem(
         self, production_id: int, parts: list[dict], signature: str,
     ) -> dict:
         """Cache one normalized serial Sequence file for browser playout."""
@@ -208,14 +220,16 @@ class FFmpegRenderWorkspace:
                 "signature": signature, "cached": True,
             }
         digest = str(signature)[:20]
-        name = f"voice-stem-{production_id}-{digest}.mp3"
+        name = f"sequence-stem-{production_id}-{digest}.mp3"
         target = _output() / name
         cached = target.is_file() and target.stat().st_size > 0
         if not cached:
             _sequence(parts, target)
-            for old in _output().glob(f"voice-stem-{production_id}-*.mp3"):
+            for old in _output().glob(f"sequence-stem-{production_id}-*.mp3"):
                 if old != target:
                     old.unlink(missing_ok=True)
+            for legacy in _output().glob(f"voice-stem-{production_id}-*.mp3"):
+                legacy.unlink(missing_ok=True)
         return {
             "url": f"/audio/{quote(name)}", "filename": name,
             "duration_ms": _measure(target) or 0,
@@ -333,13 +347,13 @@ class FFmpegRenderWorkspace:
         target = _output() / name
         cached = target.is_file() and target.stat().st_size > 0
         if not cached:
-            voice_data = self.voice_stem(
+            sequence_data = self.sequence_stem(
                 production_id, parts,
-                scene.get("voice_projection", {}).get("signature", ""),
+                scene.get("sequence_projection", {}).get("signature", ""),
             )
-            voice = _output() / Path(voice_data["filename"]).name
+            sequence = _output() / Path(sequence_data["filename"]).name
             try:
-                _mix_scene(voice, scene, target)
+                _mix_scene(sequence, scene, target)
             except Exception:
                 target.unlink(missing_ok=True)
                 raise
@@ -368,11 +382,11 @@ class FFmpegRenderWorkspace:
         caption_paths: tuple[Path, ...] = ()
         blended: Path | None = None
         try:
-            voice_data = self.voice_stem(
+            sequence_data = self.sequence_stem(
                 production_id, parts,
-                scene.get("voice_projection", {}).get("signature", ""),
+                scene.get("sequence_projection", {}).get("signature", ""),
             )
-            voice = _output() / Path(voice_data["filename"]).name
+            sequence = _output() / Path(sequence_data["filename"]).name
             manifest_parts = [
                 {
                     "position": index,
@@ -382,9 +396,9 @@ class FFmpegRenderWorkspace:
                     "seconds": (span.get("duration_ms") or 0) / 1000,
                 }
                 for index, span in enumerate(
-                    scene.get("voice_projection", {}).get("spans", []))
+                    scene.get("sequence_projection", {}).get("spans", []))
             ]
-            mixed = _mix_scene(voice, scene, target)
+            mixed = _mix_scene(sequence, scene, target)
             renderer = "ffmpeg-sound-scene-v1"
             size = target.stat().st_size
             duration = _measure(target)

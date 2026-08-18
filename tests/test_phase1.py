@@ -81,8 +81,9 @@ with tempfile.TemporaryDirectory() as directory:
         make_audio(music, 220, 32000, "pcm_s16le")
         mixed = root / "mixed.mp3"
         renders._mix_scene(target, {
-            "voice_projection": {"duration_ms": round(duration * 1000)},
-            "tracks": [{"id": "music", "kind": "music", "muted": False,
+            "sequence_projection": {"duration_ms": round(duration * 1000)},
+            "tracks": [{"id": "music", "kind": "music", "volume": 1,
+                        "muted": False,
                         "clips": [{
                             "filename": music.name, "resolved_start_ms": 0,
                             "resolved_duration_ms": round(duration * 1000),

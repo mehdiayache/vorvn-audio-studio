@@ -31,7 +31,7 @@ def empty_scene() -> dict[str, Any]:
         "version": 1,
         "tracks": [{
             "id": "music", "kind": "music", "name": "Music",
-            "muted": False, "clips": [],
+            "volume": 1, "muted": False, "clips": [],
         }],
     }
 
@@ -103,12 +103,14 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
             if anchor_kind not in ANCHOR_KINDS:
                 raise SoundSceneError("That Sound Scene anchor kind is unsupported.")
             if anchor_kind == "part":
-                part_id = _integer(anchor_raw.get("part_id"))
+                part_public_id = _uuid(
+                    anchor_raw.get("part_public_id"), label="Part public ID")
                 edge = str(anchor_raw.get("edge") or "start").lower()
-                if part_id <= 0 or edge not in ANCHOR_EDGES:
+                if edge not in ANCHOR_EDGES:
                     raise SoundSceneError("That Part anchor is invalid.")
                 anchor = {
-                    "kind": "part", "part_id": part_id, "edge": edge,
+                    "kind": "part", "part_public_id": part_public_id,
+                    "edge": edge,
                     "offset_ms": _integer(anchor_raw.get("offset_ms")),
                 }
             else:
@@ -143,6 +145,8 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
             "id": track_id,
             "kind": kind,
             "name": str(raw_track.get("name") or kind.title())[:120],
+            "volume": max(0, min(2, _number(
+                raw_track.get("volume"), 1))),
             "muted": bool(raw_track.get("muted", False)),
             "clips": clips,
         })
@@ -157,7 +161,7 @@ def _part_duration_ms(part: dict[str, Any]) -> int:
     return max(0, _integer(part.get("duration_ms")))
 
 
-def voice_projection(parts: list[dict[str, Any]]) -> dict[str, Any]:
+def sequence_projection(parts: list[dict[str, Any]]) -> dict[str, Any]:
     """Derive the immutable read model from the canonical Sequence."""
     cursor = 0
     spans: list[dict[str, Any]] = []
@@ -185,8 +189,8 @@ def voice_projection(parts: list[dict[str, Any]]) -> dict[str, Any]:
         }
         spans.append(span)
         signature_parts.append({key: span.get(key) for key in (
-            "part_id", "kind", "filename", "duration_ms", "silence",
-            "missing",
+            "part_id", "part_public_id", "kind", "filename",
+            "duration_ms", "silence", "missing",
         )} | {
             "revision": part.get("revision"),
             "clip_id": part.get("clip_id"),
@@ -224,8 +228,9 @@ def resolve_scene(
     for track in scene["tracks"]:
         for clip in track["clips"]:
             clip.update(source_fields.get(clip["id"], {}))
-    projection = voice_projection(parts)
-    part_spans = {span["part_id"]: span for span in projection["spans"]}
+    projection = sequence_projection(parts)
+    part_spans = {
+        span["part_public_id"]: span for span in projection["spans"]}
     resolved_tracks: list[dict[str, Any]] = []
     orphans: list[dict[str, str]] = []
     for track in scene["tracks"]:
@@ -234,7 +239,7 @@ def resolve_scene(
             anchor = clip["anchor"]
             orphan_reason = ""
             if anchor["kind"] == "part":
-                target = part_spans.get(anchor["part_id"])
+                target = part_spans.get(anchor["part_public_id"])
                 if target is None:
                     start_ms = None
                     orphan_reason = "anchor_part_missing"
@@ -277,7 +282,7 @@ def resolve_scene(
         resolved_tracks.append({**track, "clips": resolved_clips})
     resolution = {
         "version": 1,
-        "voice_projection": projection,
+        "sequence_projection": projection,
         "tracks": resolved_tracks,
         "orphans": orphans,
     }

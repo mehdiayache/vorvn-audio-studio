@@ -6,6 +6,7 @@ import type { DurableJob, GeneratePayload, GenerateResult, ProductionPart, Sound
 import { InlineProductionName } from "./production-workstation-page"
 import { WorkstationAssetCard, WorkstationOutline, WorkstationSequenceCard, workstationPartState, type WorkstationPartActions } from "./workstation-sequence"
 import { WorkstationSoundDesign } from "./workstation-sound-design"
+import { SoundSceneSession } from "./sound-scene-session"
 
 class ResizeObserverMock {
   observe() {}
@@ -13,7 +14,8 @@ class ResizeObserverMock {
   disconnect() {}
 }
 globalThis.ResizeObserver = ResizeObserverMock
-afterEach(cleanup)
+const sessions: SoundSceneSession[] = []
+afterEach(() => { sessions.splice(0).forEach((session) => session.dispose()); cleanup() })
 
 const directory = { config: null, cloned: [], meta: {}, catalog: [] } as VoiceDirectory
 
@@ -48,8 +50,18 @@ function scene(parts: ProductionPart[], sourceDurationMs = 60_000): SoundScene {
     return span
   })
   const clip = { id: "78af885c-aeb4-49bf-9edb-d3fc14496b2c", asset_id: 9, start_ms: 0, duration_ms: null, source_offset_ms: 0, gain: .12, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, anchor: { kind: "absolute" as const, position_ms: 0 }, asset_name: "Quiet room", filename: "bed.mp3", source_duration_ms: sourceDurationMs, resolved_start_ms: 0, resolved_duration_ms: cursor }
-  const track = { id: "music", kind: "music" as const, name: "Music", muted: false, clips: [clip] }
-  return { production_id: 6, revision: 1, document: { version: 1, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", voice_projection: { signature: "voice", duration_ms: cursor, sample_rate: 48_000, spans }, tracks: [track], orphans: [] }, voice_stem: { url: "/audio/voice-stem.mp3", filename: "voice-stem.mp3", duration_ms: cursor, signature: "voice", cached: true } }
+  const track = { id: "music", kind: "music" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
+  return { production_id: 6, revision: 1, document: { version: 1, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", sequence_projection: { signature: "sequence", duration_ms: cursor, sample_rate: 48_000, spans }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/sequence-stem.mp3", filename: "sequence-stem.mp3", duration_ms: cursor, signature: "sequence", cached: true } }
+}
+
+function sessionFor(soundScene: SoundScene, update = vi.fn().mockImplementation(async () => ({ ...soundScene, revision: soundScene.revision + 1 }))) {
+  const session = new SoundSceneSession(soundScene, {
+    update,
+    undo: vi.fn().mockResolvedValue(soundScene),
+    redo: vi.fn().mockResolvedValue(soundScene),
+  })
+  sessions.push(session)
+  return session
 }
 
 describe("Production Workstation", () => {
@@ -101,10 +113,10 @@ describe("Production Workstation", () => {
       part({ id: 2, position: 1, kind: "silence", title: "1.5", duration_ms: 1_500, clip_id: null }),
       part({ id: 3, position: 2, kind: "asset", title: "Door closes", duration_ms: 2_000, clip_id: 30 }),
     ]
-    render(<WorkstationSoundDesign scene={scene(parts)} selection={null} onSelection={vi.fn()} onAddMusic={vi.fn()} onCommit={vi.fn()} onUndo={vi.fn()} onRedo={vi.fn()} />)
+    render(<WorkstationSoundDesign session={sessionFor(scene(parts))} draftCount={0} onAddMusic={vi.fn()} />)
 
-    expect(screen.getByRole("generic", { name: "Voice Projection track" }).textContent).toContain("Narrator")
-    expect(screen.getByRole("generic", { name: "Voice Projection track" }).textContent).toContain("Door closes")
+    expect(screen.getByRole("generic", { name: "Sequence track" }).textContent).toContain("Narrator")
+    expect(screen.getByRole("generic", { name: "Sequence track" }).textContent).toContain("Door closes")
     expect(screen.getByRole("generic", { name: "Music track" }).textContent).toContain("Quiet room")
   })
 
@@ -130,14 +142,15 @@ describe("Production Workstation", () => {
     const soundScene = scene([story], 1_500_000)
     soundScene.document.tracks[0]!.clips[0]!.asset_name = "Long source"
     soundScene.resolved.tracks[0]!.clips[0]!.asset_name = "Long source"
-    const { container } = render(<WorkstationSoundDesign scene={soundScene} selection={null} onSelection={vi.fn()} onAddMusic={vi.fn()} onCommit={vi.fn()} onUndo={vi.fn()} onRedo={vi.fn()} />)
+    const { container } = render(<WorkstationSoundDesign session={sessionFor(soundScene)} draftCount={0} onAddMusic={vi.fn()} />)
 
     expect((container.querySelector(".ws-timeline") as HTMLElement).style.width).toBe("1200px")
   })
 
   it("persists one document after a committed drag, never one update per frame", async () => {
-    const onCommit = vi.fn().mockResolvedValue(undefined)
-    const { container } = render(<WorkstationSoundDesign scene={scene([part({ duration_ms: 120_000 })], 1_500_000)} selection={null} onSelection={vi.fn()} onAddMusic={vi.fn()} onCommit={onCommit} onUndo={vi.fn()} onRedo={vi.fn()} />)
+    const soundScene = scene([part({ duration_ms: 120_000 })], 1_500_000)
+    const onCommit = vi.fn().mockResolvedValue({ ...soundScene, revision: 2 })
+    const { container } = render(<WorkstationSoundDesign session={sessionFor(soundScene, onCommit)} draftCount={0} onAddMusic={vi.fn()} />)
     const musicClip = container.querySelector(".ws-music-clip") as HTMLElement
     fireEvent.pointerDown(musicClip, { button: 0, clientX: 100 })
     fireEvent.pointerMove(window, { clientX: 120 })

@@ -2386,8 +2386,11 @@ export interface components {
              * @default 0
              */
             offset_ms: number;
-            /** Part Id */
-            part_id: number;
+            /**
+             * Part Public Id
+             * Format: uuid
+             */
+            part_public_id: string;
         };
         /** PartCaptionJobResponse */
         PartCaptionJobResponse: {
@@ -3235,6 +3238,8 @@ export interface components {
             muted: boolean;
             /** Name */
             name: string;
+            /** Volume */
+            volume: number;
         };
         /** ResourceCreate */
         ResourceCreate: {
@@ -3322,6 +3327,62 @@ export interface components {
             id: number;
             /** Rules */
             rules: components["schemas"]["PronunciationRuleResponse"][];
+        };
+        /** SequenceProjection */
+        SequenceProjection: {
+            /** Duration Ms */
+            duration_ms: number;
+            /**
+             * Sample Rate
+             * @constant
+             */
+            sample_rate: 48000;
+            /** Signature */
+            signature: string;
+            /** Spans */
+            spans: components["schemas"]["SequenceProjectionSpan"][];
+        };
+        /** SequenceProjectionSpan */
+        SequenceProjectionSpan: {
+            /** Duration Ms */
+            duration_ms: number;
+            /** Filename */
+            filename: string;
+            /** Kind */
+            kind: string;
+            /** Missing */
+            missing: boolean;
+            /** Part Id */
+            part_id: number;
+            /** Part Public Id */
+            part_public_id: string;
+            /** Position */
+            position?: number | null;
+            /** Role */
+            role: string;
+            /** Silence */
+            silence: boolean;
+            /** Start Ms */
+            start_ms: number;
+            /** Title */
+            title: string;
+            /** Voice Name */
+            voice_name: string;
+        };
+        /** SequenceStemResponse */
+        SequenceStemResponse: {
+            /** Cached */
+            cached: boolean;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Filename */
+            filename: string;
+            /** Signature */
+            signature: string;
+            /** Unavailable Reason */
+            unavailable_reason?: string | null;
+            /** Url */
+            url: string;
         };
         /** SeriesOverviewEnvelope */
         SeriesOverviewEnvelope: {
@@ -3470,6 +3531,7 @@ export interface components {
             orphans: {
                 [key: string]: string;
             }[];
+            sequence_projection: components["schemas"]["SequenceProjection"];
             /** Signature */
             signature: string;
             /** Tracks */
@@ -3479,7 +3541,6 @@ export interface components {
              * @constant
              */
             version: 1;
-            voice_projection: components["schemas"]["VoiceProjection"];
         };
         /** SoundSceneResponse */
         SoundSceneResponse: {
@@ -3493,9 +3554,9 @@ export interface components {
             resolved: components["schemas"]["SoundSceneResolution"];
             /** Revision */
             revision: number;
+            sequence_stem: components["schemas"]["SequenceStemResponse"];
             /** Updated At */
             updated_at: string;
-            voice_stem: components["schemas"]["VoiceStemResponse"];
         };
         /** SoundSceneTrackDocument */
         SoundSceneTrackDocument: {
@@ -3515,6 +3576,11 @@ export interface components {
             muted: boolean;
             /** Name */
             name: string;
+            /**
+             * Volume
+             * @default 1
+             */
+            volume: number;
         };
         /** SoundSceneUpdateBody */
         SoundSceneUpdateBody: {
@@ -4854,47 +4920,6 @@ export interface components {
             /** Uses */
             uses: number;
         };
-        /** VoiceProjection */
-        VoiceProjection: {
-            /** Duration Ms */
-            duration_ms: number;
-            /**
-             * Sample Rate
-             * @constant
-             */
-            sample_rate: 48000;
-            /** Signature */
-            signature: string;
-            /** Spans */
-            spans: components["schemas"]["VoiceProjectionSpan"][];
-        };
-        /** VoiceProjectionSpan */
-        VoiceProjectionSpan: {
-            /** Duration Ms */
-            duration_ms: number;
-            /** Filename */
-            filename: string;
-            /** Kind */
-            kind: string;
-            /** Missing */
-            missing: boolean;
-            /** Part Id */
-            part_id: number;
-            /** Part Public Id */
-            part_public_id: string;
-            /** Position */
-            position?: number | null;
-            /** Role */
-            role: string;
-            /** Silence */
-            silence: boolean;
-            /** Start Ms */
-            start_ms: number;
-            /** Title */
-            title: string;
-            /** Voice Name */
-            voice_name: string;
-        };
         /** VoiceReferenceResponse */
         VoiceReferenceResponse: {
             /** Id */
@@ -5026,21 +5051,6 @@ export interface components {
             region: string;
             /** Tier */
             tier: string;
-        };
-        /** VoiceStemResponse */
-        VoiceStemResponse: {
-            /** Cached */
-            cached: boolean;
-            /** Duration Ms */
-            duration_ms: number;
-            /** Filename */
-            filename: string;
-            /** Signature */
-            signature: string;
-            /** Unavailable Reason */
-            unavailable_reason?: string | null;
-            /** Url */
-            url: string;
         };
         /** VoiceUpdate */
         VoiceUpdate: {

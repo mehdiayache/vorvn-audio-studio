@@ -1,9 +1,12 @@
 import { NativePlayoutAdapter } from "@dawcore/transport"
 
 import { audioUrl } from "@/lib/api"
-import type { SoundScene, SoundSceneClip, SoundSceneTrack } from "@/types/domain"
+import type { SoundScene, SoundSceneClip } from "@/types/domain"
 
 const SAMPLE_RATE = 48_000
+const MAX_BUFFER_CACHE = 12
+const DUCKED_SUFFIX = "::ducked"
+const DRY_SUFFIX = "::dry"
 const toSamples = (seconds: number) => Math.max(0, Math.round(seconds * SAMPLE_RATE))
 
 type PlayoutClip = {
@@ -50,11 +53,11 @@ function audioClip(id: string, buffer: AudioBuffer, start: number, duration: num
   }
 }
 
-function repeatedClips(clip: SoundSceneClip, buffer: AudioBuffer): PlayoutClip[] {
+function repeatedClips(clip: SoundSceneClip, buffer: AudioBuffer, gainOverride?: number): PlayoutClip[] {
   const start = Number(clip.resolved_start_ms || 0) / 1000
   let remaining = Number(clip.resolved_duration_ms || 0) / 1000
   const initialOffset = Math.min(Number(clip.source_offset_ms || 0) / 1000, buffer.duration)
-  const gain = Number(clip.gain ?? 1)
+  const gain = gainOverride ?? Number(clip.gain ?? 1)
   const fadeIn = Number(clip.fade_in_ms || 0) / 1000
   const fadeOut = Number(clip.fade_out_ms || 0) / 1000
   const result: PlayoutClip[] = []
@@ -89,53 +92,151 @@ export class SoundScenePlayout {
   private context: AudioContext | null = null
   private adapter: NativePlayoutAdapter | null = null
   private preparedSignature = ""
+  private buffers = new Map<string, Promise<AudioBuffer>>()
+  private duckNodes: AudioNode[] = []
+  private sequenceAnalyser: AnalyserNode | null = null
+  private duckGain: GainNode | null = null
+  private duckFrame = 0
+  private subgroupClipIds = new Map<string, string[]>()
+  private liveClipGains = new Map<string, number>()
 
   constructor(private scene: SoundScene) {}
 
-  replace(scene: SoundScene) {
-    if (scene.resolved.signature === this.scene.resolved.signature) return
-    this.pause()
+  async replace(scene: SoundScene) {
+    if (scene.resolved.signature === this.scene.resolved.signature) {
+      this.scene = scene
+      return
+    }
+    const wasPrepared = Boolean(this.adapter && this.preparedSignature)
+    const wasPlaying = this.isPlaying()
+    const time = this.currentTime()
     this.scene = scene
     this.preparedSignature = ""
+    if (!wasPrepared) return
+    await this.prepare()
+    this.seek(Math.min(time, this.duration()))
+    if (wasPlaying) this.adapter?.play(this.currentTime(), this.duration())
+  }
+
+  private duration() {
+    return this.scene.resolved.sequence_projection.duration_ms / 1000
+  }
+
+  private getBuffer(url: string) {
+    const existing = this.buffers.get(url)
+    if (existing) {
+      this.buffers.delete(url)
+      this.buffers.set(url, existing)
+      return existing
+    }
+    const pending = decode(this.context!, url)
+    this.buffers.set(url, pending)
+    while (this.buffers.size > MAX_BUFFER_CACHE) {
+      const oldest = this.buffers.keys().next().value as string | undefined
+      if (!oldest) break
+      this.buffers.delete(oldest)
+    }
+    pending.catch(() => this.buffers.delete(url))
+    return pending
+  }
+
+  private clearDucking() {
+    if (this.duckFrame) cancelAnimationFrame(this.duckFrame)
+    this.duckFrame = 0
+    for (const node of this.duckNodes) {
+      try { node.disconnect() } catch { /* already disconnected */ }
+    }
+    this.duckNodes = []
+    this.sequenceAnalyser = null
+    this.duckGain = null
+  }
+
+  private installDucking(hasDuckedTracks: boolean) {
+    this.clearDucking()
+    if (!hasDuckedTracks || !this.adapter || !this.context) return
+    const analyser = this.context.createAnalyser()
+    analyser.fftSize = 1024
+    analyser.smoothingTimeConstant = .35
+    this.adapter.transport.connectTrackOutput("sequence-stem", analyser)
+    analyser.connect(this.adapter.masterOutputNode)
+
+    const gain = this.context.createGain()
+    gain.gain.value = 1
+    for (const track of this.scene.resolved.tracks) {
+      if (track.clips.some((clip) => clip.ducking)) {
+        this.adapter.transport.connectTrackOutput(`${track.id}${DUCKED_SUFFIX}`, gain)
+      }
+    }
+    gain.connect(this.adapter.masterOutputNode)
+    this.sequenceAnalyser = analyser
+    this.duckGain = gain
+    this.duckNodes = [analyser, gain]
+
+    const samples = new Float32Array(analyser.fftSize)
+    const follow = () => {
+      if (!this.sequenceAnalyser || !this.duckGain || !this.context) return
+      this.sequenceAnalyser.getFloatTimeDomainData(samples)
+      const rms = Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length)
+      const target = rms > .015 ? Math.max(.14, .015 / rms) : 1
+      const timeConstant = target < this.duckGain.gain.value ? .02 : .45
+      this.duckGain.gain.setTargetAtTime(target, this.context.currentTime, timeConstant)
+      this.duckFrame = requestAnimationFrame(follow)
+    }
+    this.duckFrame = requestAnimationFrame(follow)
   }
 
   private async prepare() {
-    if (this.adapter && this.preparedSignature === this.scene.resolved.signature) {
-      await this.context?.resume()
+    if (!this.context) {
+      this.context = new AudioContext({ sampleRate: SAMPLE_RATE, latencyHint: "interactive" })
+      this.adapter = new NativePlayoutAdapter(this.context, { sampleRate: SAMPLE_RATE })
+      await this.adapter.init()
+    }
+    if (this.preparedSignature === this.scene.resolved.signature) {
+      await this.context.resume()
       return
     }
-    this.adapter?.dispose()
-    await this.context?.close()
-    this.context = new AudioContext({ sampleRate: SAMPLE_RATE, latencyHint: "interactive" })
-    this.adapter = new NativePlayoutAdapter(this.context, { sampleRate: SAMPLE_RATE })
-    const cache = new Map<string, Promise<AudioBuffer>>()
-    const getBuffer = (url: string) => {
-      const pending = cache.get(url) || decode(this.context!, url)
-      cache.set(url, pending)
-      return pending
-    }
     const tracks: PlayoutTrack[] = []
-    if (this.scene.voice_stem.url) {
-      const buffer = await getBuffer(this.scene.voice_stem.url)
+    this.subgroupClipIds.clear()
+    this.liveClipGains.clear()
+    if (this.scene.sequence_stem.url) {
+      const buffer = await this.getBuffer(this.scene.sequence_stem.url)
       tracks.push({
-        id: "voice-stem", name: "Voice", muted: false, soloed: false,
+        id: "sequence-stem", name: "Sequence", muted: false, soloed: false,
         volume: 1, pan: 0, clips: [audioClip(
-          "voice-stem", buffer, 0,
-          this.scene.resolved.voice_projection.duration_ms / 1000,
-          0, 1, 0, 0,
+          "sequence-stem", buffer, 0, this.duration(), 0, 1, 0, 0,
         )],
       })
     }
+    let hasDuckedTracks = false
     for (const track of this.scene.resolved.tracks) {
       const playable = track.clips.filter((clip) => clip.filename && !clip.orphan && !clip.missing && Number(clip.resolved_duration_ms || 0) > 0)
-      const clips = (await Promise.all(playable.map(async (clip) => repeatedClips(clip, await getBuffer(audioUrl(clip.filename!)))))).flat()
-      tracks.push({
-        id: track.id, name: track.name, muted: track.muted,
-        soloed: false, volume: 1, pan: 0, clips,
-      })
+      for (const ducked of [false, true]) {
+        const matching = playable.filter((clip) => Boolean(clip.ducking) === ducked)
+        if (!matching.length) continue
+        const subgroupId = `${track.id}${ducked ? DUCKED_SUFFIX : DRY_SUFFIX}`
+        const singleClip = matching.length === 1 ? matching[0]! : null
+        for (const clip of matching) this.liveClipGains.set(clip.id, Number(clip.gain ?? 1))
+        this.subgroupClipIds.set(subgroupId, matching.map((clip) => clip.id))
+        const clips = (await Promise.all(matching.map(async (clip) => repeatedClips(
+          clip,
+          await this.getBuffer(audioUrl(clip.filename!)),
+          singleClip ? 1 : undefined,
+        )))).flat()
+        tracks.push({
+          id: subgroupId,
+          name: track.name,
+          muted: track.muted,
+          soloed: false,
+          volume: track.volume * (singleClip ? Number(singleClip.gain ?? 1) : 1),
+          pan: 0,
+          clips,
+        })
+        hasDuckedTracks ||= ducked
+      }
     }
-    await this.adapter.init()
-    this.adapter.setTracks(tracks)
+    this.clearDucking()
+    this.adapter!.setTracks(tracks)
+    this.installDucking(hasDuckedTracks)
     this.preparedSignature = this.scene.resolved.signature
     await this.context.resume()
   }
@@ -143,22 +244,46 @@ export class SoundScenePlayout {
   async play(from?: number) {
     await this.prepare()
     if (from !== undefined) this.adapter!.seek(from)
-    this.adapter!.play(
-      this.adapter!.getCurrentTime(),
-      this.scene.resolved.voice_projection.duration_ms / 1000,
-    )
+    this.adapter!.play(this.adapter!.getCurrentTime(), this.duration())
   }
   pause() { this.adapter?.pause() }
   seek(seconds: number) { this.adapter?.seek(seconds) }
   currentTime() { return this.adapter?.getCurrentTime() || 0 }
   isPlaying() { return this.adapter?.isPlaying() || false }
-  muteTrack(trackId: string, muted: boolean) { this.adapter?.setTrackMute(trackId, muted) }
+  muteTrack(trackId: string, muted: boolean) {
+    this.adapter?.setTrackMute(`${trackId}${DUCKED_SUFFIX}`, muted)
+    this.adapter?.setTrackMute(`${trackId}${DRY_SUFFIX}`, muted)
+  }
+  setTrackVolume(trackId: string, volume: number) {
+    for (const suffix of [DUCKED_SUFFIX, DRY_SUFFIX]) {
+      const subgroupId = `${trackId}${suffix}`
+      const clipIds = this.subgroupClipIds.get(subgroupId) || []
+      const clipGain = clipIds.length === 1 ? (this.liveClipGains.get(clipIds[0]!) ?? 1) : 1
+      this.adapter?.setTrackVolume(subgroupId, volume * clipGain)
+    }
+  }
+  setClipGain(trackId: string, clipId: string, gain: number) {
+    const track = this.scene.resolved.tracks.find((item) => item.id === trackId)
+    const clip = track?.clips.find((item) => item.id === clipId)
+    if (!track || !clip) return
+    this.liveClipGains.set(clipId, Math.max(0, gain))
+    const original = Math.max(.0001, Number(clip.gain || 0))
+    const suffix = clip.ducking ? DUCKED_SUFFIX : DRY_SUFFIX
+    const subgroupId = `${trackId}${suffix}`
+    const clipIds = this.subgroupClipIds.get(subgroupId) || []
+    const liveTrackVolume = clipIds.length === 1
+      ? track.volume * Math.max(0, gain)
+      : Math.min(4, track.volume * Math.max(0, gain) / original)
+    this.adapter?.setTrackVolume(subgroupId, liveTrackVolume)
+  }
   dispose() {
+    this.clearDucking()
     this.adapter?.dispose()
     void this.context?.close()
     this.adapter = null
     this.context = null
+    this.buffers.clear()
+    this.subgroupClipIds.clear()
+    this.liveClipGains.clear()
   }
 }
-
-export type { SoundSceneTrack }

@@ -282,7 +282,7 @@ class NativeHttpTests(unittest.TestCase):
 
         document = {"version": 1, "tracks": [{
             "id": "music", "kind": "music", "name": "Music",
-            "muted": False, "clips": [],
+            "volume": 1, "muted": False, "clips": [],
         }]}
         with patch.object(
                 sound_scene_router.sound_scene_service, "update",
@@ -292,13 +292,13 @@ class NativeHttpTests(unittest.TestCase):
                     "can_redo": False, "updated_at": "2026-08-18T00:00:00",
                     "resolved": {
                         "version": 1, "signature": "scene",
-                        "voice_projection": {
+                        "sequence_projection": {
                             "signature": "voice", "duration_ms": 0,
                             "sample_rate": 48000, "spans": [],
                         },
                         "tracks": document["tracks"], "orphans": [],
                     },
-                    "voice_stem": {
+                    "sequence_stem": {
                         "url": "", "filename": "", "duration_ms": 0,
                         "signature": "voice", "cached": True,
                     },

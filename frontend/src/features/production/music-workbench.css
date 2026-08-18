@@ -24,13 +24,11 @@
 .music-waveform-editor > header span { display: grid; gap: 2px; }
 .music-waveform-editor > header small { color: var(--muted-foreground); font-size: var(--type-caption); font-weight: var(--weight-body); }
 .music-waveform-editor > header strong { color: var(--primary); font-variant-numeric: tabular-nums; }
-.music-waveform-canvas { position: relative; min-height: 96px; overflow: hidden; border-radius: var(--radius-sm); background: color-mix(in oklab, var(--surface-raised) 86%, var(--primary-soft)); }
-.music-waveform-surface { height: 96px; color: color-mix(in oklab, var(--primary) 64%, var(--muted-foreground)); }
+.music-waveform-canvas { position: relative; min-height: 112px; overflow: hidden; border-radius: var(--radius-sm); background: color-mix(in oklab, var(--surface-raised) 86%, var(--primary-soft)); }
+.music-waveform-surface { height: 112px; color: color-mix(in oklab, var(--primary) 64%, var(--muted-foreground)); }
+.music-waveform-surface::part(region) { border: 1px solid color-mix(in oklab, var(--primary) 72%, white); border-radius: .35rem; box-shadow: inset 0 0 0 1px color-mix(in oklab, white 55%, transparent); }
+.music-waveform-surface::part(region-handle) { width: .55rem; }
 .music-waveform-loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted-foreground); font-size: var(--type-caption); }
-.music-waveform-offset { position: absolute !important; z-index: 2; inset: 0; }
-.music-waveform-offset [data-slot="slider-track"] { height: 100%; border-radius: 0; background: transparent; }
-.music-waveform-offset [data-slot="slider-range"] { height: 100%; border-right: 2px solid var(--primary); background: color-mix(in oklab, var(--primary) 10%, transparent); }
-.music-waveform-offset [data-slot="slider-thumb"] { width: 18px; height: 18px; border: 2px solid var(--primary); background: var(--surface-raised); box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 14%, transparent); }
 .music-waveform-ruler { display: flex; justify-content: space-between; color: var(--muted-foreground); font-size: var(--type-caption); font-variant-numeric: tabular-nums; }
 .music-fade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
 .music-save-state { color: var(--muted-foreground); font-size: var(--type-caption); }

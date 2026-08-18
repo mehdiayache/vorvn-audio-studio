@@ -172,7 +172,7 @@ export type Production = {
 
 export type SoundSceneAnchor =
   | { kind: "absolute"; position_ms: number }
-  | { kind: "part"; part_id: number; edge: "start" | "end"; offset_ms: number }
+  | { kind: "part"; part_public_id: string; edge: "start" | "end"; offset_ms: number }
 
 export type SoundSceneClip = {
   id: string
@@ -202,13 +202,14 @@ export type SoundSceneTrack = {
   id: string
   kind: "music" | "sfx" | "ambience"
   name: string
+  volume: number
   muted: boolean
   clips: SoundSceneClip[]
 }
 
 export type SoundSceneDocument = { version: 1; tracks: SoundSceneTrack[] }
 
-export type VoiceProjectionSpan = {
+export type SequenceProjectionSpan = {
   part_id: number
   part_public_id: string
   position?: number | null
@@ -233,16 +234,16 @@ export type SoundScene = {
   resolved: {
     version: 1
     signature: string
-    voice_projection: {
+    sequence_projection: {
       signature: string
       duration_ms: number
       sample_rate: number
-      spans: VoiceProjectionSpan[]
+      spans: SequenceProjectionSpan[]
     }
     tracks: SoundSceneTrack[]
     orphans: { track_id: string; clip_id: string; reason: string }[]
   }
-  voice_stem: {
+  sequence_stem: {
     url: string
     filename: string
     duration_ms: number

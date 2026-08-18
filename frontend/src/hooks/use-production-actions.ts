@@ -55,13 +55,13 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     if (mutationFeedbackTimer.current !== null) window.clearTimeout(mutationFeedbackTimer.current)
   }, [])
 
-  const mutate = useCallback(async (action: () => Promise<unknown>, success?: string, announce = false) => {
+  const mutate = useCallback(async <Result,>(action: () => Promise<Result>, success?: string, announce = false): Promise<Result> => {
     if (feedbackMode === "inline") {
       if (mutationFeedbackTimer.current !== null) window.clearTimeout(mutationFeedbackTimer.current)
       setMutationStatus("saving")
     }
     try {
-      await action()
+      const result = await action()
       if (player.source?.kind === "production") player.pause()
       invalidatePreview()
       if (success && (feedbackMode === "toast" || announce)) toast.success(success)
@@ -70,6 +70,7 @@ export function useProductionActions({ production, soundScene, player, refresh, 
         setMutationStatus("saved")
         mutationFeedbackTimer.current = window.setTimeout(() => setMutationStatus("idle"), 1_800)
       }
+      return result
     } catch (error) {
       if (feedbackMode === "inline") setMutationStatus("idle")
       toast.error(error instanceof Error ? error.message : "That change could not be saved.")
@@ -184,20 +185,6 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     () => studioApi.updateSoundScene(production.id, soundScene.revision, document),
     "Sound Scene saved",
   ), [mutate, production.id, soundScene.revision])
-  const updateSoundClip = useCallback((clipId: string, changes: Partial<SoundSceneClip>) => {
-    const document: SoundSceneDocument = {
-      version: 1,
-      tracks: soundScene.document.tracks.map((track) => ({
-        ...track,
-        clips: track.clips.map((clip) => clip.id === clipId ? { ...clip, ...changes } : clip),
-      })),
-    }
-    return updateSoundScene(document)
-  }, [soundScene.document.tracks, updateSoundScene])
-  const setSoundTrackMuted = useCallback((trackId: string, muted: boolean) => updateSoundScene({
-    version: 1,
-    tracks: soundScene.document.tracks.map((track) => track.id === trackId ? { ...track, muted } : track),
-  }), [soundScene.document.tracks, updateSoundScene])
   const undoSoundScene = useCallback(() => mutate(
     () => studioApi.undoSoundScene(production.id), "Sound Scene undone",
   ), [mutate, production.id])
@@ -209,7 +196,9 @@ export function useProductionActions({ production, soundScene, player, refresh, 
   const editSilence = useCallback((part: ProductionPart, seconds: number) => mutate(() => studioApi.editSilence(production.id, part.id, seconds), "Silence updated"), [mutate, production.id])
   const setPartEnabled = useCallback((part: ProductionPart, enabled: boolean) => mutate(() => studioApi.setPartEnabled(production.id, part.id, enabled), enabled ? "Part included" : "Part excluded"), [mutate, production.id])
   const deleteParts = useCallback((ids: number[]) => mutate(() => studioApi.deleteParts(production.id, ids), "Parts permanently deleted", true), [mutate, production.id])
-  const saveDraft = useCallback((payload: Omit<GeneratePayload, "confirmed">) => mutate(() => studioApi.saveDraft(payload), "Draft added"), [mutate])
+  const saveDraft = useCallback(async (payload: Omit<GeneratePayload, "confirmed">): Promise<void> => {
+    await mutate(() => studioApi.saveDraft(payload), "Draft added")
+  }, [mutate])
   const addSilence = useCallback((seconds: number, beforePartId: string | null) => mutate(() => studioApi.addSilence(production.id, seconds, beforePartId), "Silence added"), [mutate, production.id])
   const insertAsset = useCallback((asset: VentureAsset, beforePartId: string | null) => mutate(() => studioApi.insertAsset(production.id, asset.id, beforePartId), "Library audio inserted"), [mutate, production.id])
   const replaceAsset = useCallback((part: ProductionPart, asset: VentureAsset) => mutate(() => studioApi.replaceAsset(production.id, part.id, asset.id), "Venture audio replaced"), [mutate, production.id])
@@ -229,7 +218,7 @@ export function useProductionActions({ production, soundScene, player, refresh, 
       version: 1,
       tracks: existingTrack
         ? soundScene.document.tracks.map((track) => track.id === existingTrack.id ? { ...track, clips: [clip] } : track)
-        : [...soundScene.document.tracks, { id: "music", kind: "music", name: "Music", muted: false, clips: [clip] }],
+        : [...soundScene.document.tracks, { id: "music", kind: "music", name: "Music", volume: 1, muted: false, clips: [clip] }],
     }
     return updateSoundScene(document)
   }, [soundScene.document.tracks, updateSoundScene])
@@ -244,5 +233,5 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     toast.success(`${file.name} uploaded to ${folder}`)
   }, [refreshAssets])
 
-  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, mutationStatus, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, updateSoundScene, updateSoundClip, setSoundTrackMuted, undoSoundScene, redoSoundScene, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, removeMusic, moveParts, uploadAsset }
+  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, mutationStatus, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, updateSoundScene, undoSoundScene, redoSoundScene, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, removeMusic, moveParts, uploadAsset }
 }
