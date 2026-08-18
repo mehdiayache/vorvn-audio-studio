@@ -17,7 +17,6 @@ from audio_studio.infrastructure.postgres.part_positions import (
 )
 
 
-MUSIC_LEVELS = {"discreet": 0.10, "present": 0.20, "loud": 0.34}
 
 
 def script_hash(value: str) -> str:
@@ -587,92 +586,6 @@ class ProductionDocumentRepository:
             """, (asset_id, asset[0], asset[1] or "", asset[1] or "",
                   asset[2], part_id, production_id))
             return cursor.rowcount == 1
-
-    def music(self, production_id: int) -> dict[str, Any]:
-        with read_only() as cursor:
-            cursor.execute("""
-                SELECT mix.music_asset_id, mix.level, mix.fade_in_seconds,
-                       mix.fade_out_seconds, mix.duck, mix.volume,
-                       mix.start_seconds, version.filename, asset.name,
-                       version.duration_ms
-                  FROM production_mixes mix
-                  LEFT JOIN assets asset ON asset.id = mix.music_asset_id
-                  LEFT JOIN LATERAL (
-                    SELECT item.* FROM asset_versions item
-                     WHERE item.asset_id = asset.id ORDER BY item.version DESC LIMIT 1
-                  ) version ON true
-                 WHERE mix.production_id = %s
-            """, (production_id,))
-            row = cursor.fetchone()
-        if not row:
-            return {}
-        return {"music_of": row[0], "level": row[1] or "discreet",
-                "fade_in": _float(row[2]), "fade_out": _float(row[3]),
-                "duck": bool(row[4]), "volume": _float(row[5]),
-                "start": _float(row[6]), "filename": row[7] or "",
-                "name": (row[8] or "")[:80], "duration_ms": row[9]}
-
-    def set_music(self, production_id: int, values: dict[str, Any]) -> bool:
-        aliases = {
-            "music_of": "music_asset_id",
-            "level": "level", "fade_in": "fade_in_seconds",
-            "fade_out": "fade_out_seconds", "duck": "duck",
-            "volume": "volume", "start": "start_seconds",
-            # Persistence-only compatibility for historical callers. These
-            # names are no longer part of the public HTTP contract.
-            "music_level": "level", "music_fade_in": "fade_in_seconds",
-            "music_fade_out": "fade_out_seconds", "music_duck": "duck",
-            "music_volume": "volume", "music_start": "start_seconds",
-        }
-        provided = {aliases[key]: value for key, value in values.items() if key in aliases}
-        if not provided:
-            return False
-        with transaction() as cursor:
-            if not self._production_exists(cursor, production_id, lock=True):
-                return False
-            cursor.execute("""
-                SELECT music_asset_id, level, volume, start_seconds,
-                       fade_in_seconds, fade_out_seconds, duck
-                  FROM production_mixes WHERE production_id = %s FOR UPDATE
-            """, (production_id,))
-            current = cursor.fetchone() or (None, "discreet", .10, 0, 2, 4, True)
-            state = dict(zip(("music_asset_id", "level", "volume", "start_seconds",
-                              "fade_in_seconds", "fade_out_seconds", "duck"), current))
-            state.update(provided)
-            state["volume"] = max(0, min(1, _float(state["volume"], .1)))
-            state["start_seconds"] = max(0, _float(state["start_seconds"]))
-            state["fade_in_seconds"] = max(
-                0, min(120, _float(state["fade_in_seconds"], 2)))
-            state["fade_out_seconds"] = max(
-                0, min(120, _float(state["fade_out_seconds"], 4)))
-            if state["music_asset_id"] not in (None, "", 0, "0"):
-                cursor.execute("""
-                    SELECT 1 FROM assets asset
-                    JOIN productions production ON production.id = %s
-                    JOIN work_projects project ON project.id = production.project_id
-                    WHERE asset.id = %s AND asset.kind = 'music'
-                      AND asset.venture_id = project.venture_id
-                """, (production_id, int(state["music_asset_id"])))
-                if not cursor.fetchone():
-                    return False
-                state["music_asset_id"] = int(state["music_asset_id"])
-            else:
-                state["music_asset_id"] = None
-            cursor.execute("""
-                INSERT INTO production_mixes
-                    (production_id, music_asset_id, level, volume, start_seconds,
-                     fade_in_seconds, fade_out_seconds, duck, updated_at)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,now())
-                ON CONFLICT (production_id) DO UPDATE SET
-                    music_asset_id=EXCLUDED.music_asset_id, level=EXCLUDED.level,
-                    volume=EXCLUDED.volume, start_seconds=EXCLUDED.start_seconds,
-                    fade_in_seconds=EXCLUDED.fade_in_seconds,
-                    fade_out_seconds=EXCLUDED.fade_out_seconds,
-                    duck=EXCLUDED.duck, updated_at=now()
-            """, (production_id, state["music_asset_id"], state["level"],
-                  state["volume"], state["start_seconds"], state["fade_in_seconds"],
-                  state["fade_out_seconds"], state["duck"]))
-            return True
 
     def reorder(self, production_id: int, ordered_ids: list[int]) -> bool:
         ordered_ids = [int(item) for item in ordered_ids]

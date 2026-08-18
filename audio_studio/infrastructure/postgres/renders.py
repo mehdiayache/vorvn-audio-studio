@@ -5,6 +5,7 @@ from audio_studio.infrastructure.postgres import work
 from audio_studio.infrastructure.postgres.exports import ProductionExportRepository
 from audio_studio.infrastructure.postgres.production_document import ProductionDocumentRepository
 from audio_studio.infrastructure.postgres.transcripts import TranscriptRepository
+from audio_studio.infrastructure.postgres.sound_scenes import SoundSceneRepository
 
 
 class PostgresRenderRecords:
@@ -16,6 +17,7 @@ class PostgresRenderRecords:
         self.documents = documents or ProductionDocumentRepository()
         self.exports = exports or ProductionExportRepository()
         self.transcripts = transcripts or TranscriptRepository()
+        self.sound_scenes = SoundSceneRepository()
 
     @staticmethod
     def production(production_id: int) -> dict | None:
@@ -24,8 +26,8 @@ class PostgresRenderRecords:
     def parts(self, production_id: int) -> list[dict]:
         return self.documents.parts(production_id)
 
-    def music(self, production_id: int) -> dict:
-        return self.documents.music(production_id)
+    def sound_scene(self, production_id: int) -> dict | None:
+        return self.sound_scenes.get(production_id)
 
     def transcript(self, part_id: int) -> dict | None:
         return self.transcripts.source_for_part(part_id)

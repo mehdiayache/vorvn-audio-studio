@@ -13,7 +13,6 @@ class Records:
         self.inserted_assets = []
         self.replaced_assets = []
         self.duplicated = []
-        self.music_values = []
         self.enabled_values = []
         self.allow_asset = True
         self.duplicate_id = 8
@@ -26,14 +25,6 @@ class Records:
 
     def part(self, production_id, part_id):
         return self.parts.get(part_id) if production_id == 6 else None
-
-    @staticmethod
-    def music(_production_id):
-        return {"music_of": None}
-
-    def set_music(self, production_id, values):
-        self.music_values.append((production_id, values))
-        return True
 
     @staticmethod
     def reorder(_production_id, _order):
@@ -130,7 +121,7 @@ class TimelineServiceTests(unittest.TestCase):
 
     def test_missing_production_and_part_fail_before_mutation(self):
         with self.assertRaisesRegex(TimelineError, "Production"):
-            self.service.music(404)
+            self.service.add_silence(404, 2)
         with self.assertRaisesRegex(TimelineError, "Part"):
             self.service.duplicate(6, 404)
         self.assertFalse(self.records.duplicated)
@@ -169,11 +160,7 @@ class TimelineServiceTests(unittest.TestCase):
                          ("Rest now", "Night Guide", "spoken_2", True,
                           "voice-1", "draft", "part-before"))
 
-    def test_music_and_clip_enforce_venture_library_semantics(self):
-        self.records.allow_asset = False
-        with self.assertRaisesRegex(TimelineError, "Music library"):
-            self.service.set_music(6, {"music_of": 55})
-        self.assertFalse(self.records.music_values)
+    def test_parallel_music_is_not_inserted_as_a_sequence_asset(self):
         self.records.assets[55] = {
             "filename": "bed.mp3", "context": {"collection": "Music"}}
         with self.assertRaisesRegex(TimelineError, "background bed"):

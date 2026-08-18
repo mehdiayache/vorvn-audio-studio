@@ -1,5 +1,6 @@
 import type {
-  MusicBed,
+  SoundScene,
+  SoundSceneDocument,
   PreviewResult,
   Production,
   ProductionPart,
@@ -229,7 +230,7 @@ export const studioApi = {
     request<{ data: unknown }>(`/api/v1/${type}/${id}${type === "series" ? "?strategy=make_standalone" : ""}`, { method: "DELETE" }),
   deleteProduction: (id: number) =>
     request<{ data: { id: number; type: "production"; deleted: boolean } }>(`/api/v1/productions/${id}`, { method: "DELETE" }).then((response) => response.data),
-  music: (id: number) => v1<MusicBed>(`/api/v1/productions/${id}/music`),
+  soundScene: (id: number) => v1<SoundScene>(`/api/v1/productions/${id}/sound-scene`),
   assets: (id: number) => v1<{ assets?: VentureAsset[]; collections?: AssetCollection[] }>(`/api/v1/productions/${id}/assets`),
   preview: async (id: number) => {
     const response = await request<{ data: DurableJob<PreviewResult> }>("/api/v1/jobs/render", { method: "POST", headers: { "Idempotency-Key": `preview-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ production_id: id, operation: "preview" }) })
@@ -258,8 +259,12 @@ export const studioApi = {
     request<TimelineDeleteEnvelope>(`/api/v1/productions/${productionId}/parts`, { method: "DELETE", body: JSON.stringify({ ids: [id] }) }).then((response) => response.data),
   deleteParts: (productionId: number, ids: number[]) => request<TimelineDeleteEnvelope>(`/api/v1/productions/${productionId}/parts`, { method: "DELETE", body: JSON.stringify({ ids }) }).then((response) => response.data),
   moveParts: (sourceProductionId: number, ids: number[], destinationProductionId: number) => request<TimelineMoveEnvelope>(`/api/v1/productions/${sourceProductionId}/parts/move`, { method: "POST", body: JSON.stringify({ ids, destination_production_id: destinationProductionId }) }).then((response) => response.data),
-  setMusic: (id: number, settings: Partial<MusicBed>) =>
-    request<{ data: MusicBed }>(`/api/v1/productions/${id}/music`, { method: "PATCH", body: JSON.stringify(settings) }).then((response) => response.data),
+  updateSoundScene: (id: number, expectedRevision: number, document: SoundSceneDocument) =>
+    request<{ data: SoundScene }>(`/api/v1/productions/${id}/sound-scene`, { method: "PATCH", body: JSON.stringify({ expected_revision: expectedRevision, document }) }).then((response) => response.data),
+  undoSoundScene: (id: number) =>
+    request<{ data: SoundScene }>(`/api/v1/productions/${id}/sound-scene/undo`, { method: "POST" }).then((response) => response.data),
+  redoSoundScene: (id: number) =>
+    request<{ data: SoundScene }>(`/api/v1/productions/${id}/sound-scene/redo`, { method: "POST" }).then((response) => response.data),
   insertAsset: (productionId: number, assetId: number, beforePartId: string | null) =>
     postV1<{ ok?: boolean; id?: number }>(`/api/v1/productions/${productionId}/parts/assets`, {
       asset_id: assetId,

@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from audio_studio.application.audio_projects import production_scene
 from audio_studio.composition.audio_projects import audio_project_service
-from audio_studio.composition.timeline import timeline_service
+from audio_studio.composition.sound_scenes import sound_scene_service
 from audio_studio.composition.work import work_service
 from audio_studio.domain.rendering import RenderError
 from audio_studio.http.errors import ApiProblem
@@ -84,4 +84,4 @@ def get_production_project_scene(production_id: str) -> dict:
     if not editor:
         raise ApiProblem(404, "production_not_found", "That Production does not exist.")
     return _handle(lambda: production_scene(
-        editor, timeline_service.music(int(editor["id"]))))
+        editor, sound_scene_service.get(int(editor["id"]))))

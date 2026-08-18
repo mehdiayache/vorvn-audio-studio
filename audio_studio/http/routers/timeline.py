@@ -13,7 +13,6 @@ from audio_studio.http.errors import ApiProblem
 from audio_studio.http.timeline_contracts import (
     DeletedPartsEnvelope,
     MovedPartsEnvelope,
-    MusicBedEnvelope,
     OkEnvelope,
     PartCreatedEnvelope,
     ProductionImportEnvelope,
@@ -125,17 +124,6 @@ class DeleteBody(BaseModel):
     ids: list[int]
 
 
-class MusicBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    music_of: int | None = None
-    level: str | None = None
-    fade_in: float | None = Field(default=None, ge=0, le=120)
-    fade_out: float | None = Field(default=None, ge=0, le=120)
-    duck: bool | None = None
-    volume: float | None = Field(default=None, ge=0, le=1)
-    start: float | None = Field(default=None, ge=0, le=86_400)
-
-
 class TextBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     text: str | None = None
@@ -161,21 +149,6 @@ def _run(operation):
         }) from exc
     except TimelineError as exc:
         raise ApiProblem(400, "timeline_error", str(exc)) from exc
-
-
-@router.get("/music", operation_id="getProductionMusic",
-            response_model=MusicBedEnvelope,
-            response_model_exclude_none=True)
-def get_music(production_id: int) -> dict:
-    return _run(lambda: timeline_service.music(production_id))
-
-
-@router.patch("/music", operation_id="updateProductionMusic",
-              response_model=MusicBedEnvelope,
-              response_model_exclude_none=True)
-def update_music(production_id: int, payload: MusicBody) -> dict:
-    return _run(lambda: timeline_service.set_music(
-        production_id, payload.model_dump(exclude_unset=True)))
 
 
 @router.post("/parts/reorder", operation_id="reorderProductionParts",

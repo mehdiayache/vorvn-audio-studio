@@ -13,6 +13,7 @@ from audio_studio.domain.media import MediaFile
 from audio_studio.http.app import app
 from audio_studio.http.routers import media as media_router
 from audio_studio.http.routers import timeline as timeline_router
+from audio_studio.http.routers import sound_scenes as sound_scene_router
 from audio_studio.http.routers import work as work_router
 from audio_studio.http.routers import jobs as jobs_router
 from audio_studio.domain.work import DomainConflict
@@ -279,30 +280,39 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(music.status_code, 400)
         self.assertEqual(music.json()["error"]["code"], "timeline_error")
 
+        document = {"version": 1, "tracks": [{
+            "id": "music", "kind": "music", "name": "Music",
+            "muted": False, "clips": [],
+        }]}
         with patch.object(
-                timeline_router.timeline_service, "set_music",
-                return_value={"music_of": None}) as remove:
+                sound_scene_router.sound_scene_service, "update",
+                return_value={
+                    "production_id": 6, "revision": 2,
+                    "document": document, "can_undo": True,
+                    "can_redo": False, "updated_at": "2026-08-18T00:00:00",
+                    "resolved": {
+                        "version": 1, "signature": "scene",
+                        "voice_projection": {
+                            "signature": "voice", "duration_ms": 0,
+                            "sample_rate": 48000, "spans": [],
+                        },
+                        "tracks": document["tracks"], "orphans": [],
+                    },
+                    "voice_stem": {
+                        "url": "", "filename": "", "duration_ms": 0,
+                        "signature": "voice", "cached": True,
+                    },
+                }) as update:
             response = self.client.patch(
-                "/api/v1/productions/6/music", json={"music_of": None})
+                "/api/v1/productions/6/sound-scene",
+                json={"expected_revision": 1, "document": document})
         self.assertEqual(response.status_code, 200)
-        remove.assert_called_once_with(6, {"music_of": None})
-
-        settings = {
-            "volume": .22, "start": 4.5, "fade_in": 1.2,
-            "fade_out": 3.4, "duck": False,
-        }
-        with patch.object(
-                timeline_router.timeline_service, "set_music",
-                return_value={"music_of": 55, **settings}) as update:
-            response = self.client.patch(
-                "/api/v1/productions/6/music", json=settings)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["data"]["volume"], .22)
-        update.assert_called_once_with(6, settings)
-
-        legacy = self.client.patch(
-            "/api/v1/productions/6/music", json={"music_volume": .4})
-        self.assertEqual(legacy.status_code, 422)
+        self.assertEqual(response.json()["data"]["revision"], 2)
+        update.assert_called_once_with(6, 1, document)
+        self.assertEqual(
+            self.client.patch("/api/v1/productions/6/music", json={}).status_code,
+            404,
+        )
 
 
 if __name__ == "__main__":

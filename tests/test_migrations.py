@@ -63,6 +63,7 @@ class MigrationTests(unittest.TestCase):
                     "036_remove_qwen35_omni.sql",
                     "037_cosyvoice_v3_plus.sql",
                     "038_provider_word_captions.sql",
+                    "039_sound_scenes.sql",
         ])
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:
@@ -72,11 +73,13 @@ class MigrationTests(unittest.TestCase):
                 """).fetchall()}
                 self.assertTrue({
                     "ventures", "work_projects", "series", "productions",
-                    "production_parts", "production_mixes", "assets",
+                    "production_parts", "sound_scenes",
+                    "sound_scene_history", "assets",
                     "asset_versions", "exports", "jobs", "job_events",
                     "audit_records", "transcripts", "schema_migrations",
                     "composer_working_drafts",
                 }.issubset(tables))
+                self.assertNotIn("production_mixes", tables)
                 self.assertTrue({
                     "enrollment_campaigns", "enrollment_campaign_items",
                 }.isdisjoint(tables))

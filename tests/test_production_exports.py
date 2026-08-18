@@ -13,6 +13,7 @@ from audio_studio.application.renders import RenderService
 from audio_studio.composition.work import work_service as work
 from audio_studio.config import settings
 from audio_studio.domain.rendering import FinishedExport
+from audio_studio.domain.sound_scene import empty_scene
 from audio_studio.infrastructure.postgres.exports import ProductionExportRepository
 
 
@@ -104,8 +105,8 @@ class RenderApplicationTests(unittest.TestCase):
                 return [part]
 
             @staticmethod
-            def music(_production_id):
-                return {}
+            def sound_scene(_production_id):
+                return {"document": empty_scene()}
 
             @staticmethod
             def transcript(_generation_id):
@@ -124,7 +125,7 @@ class RenderApplicationTests(unittest.TestCase):
 
             @staticmethod
             def finish_export(
-                    production_id, production_name, parts, music, subtitles):
+                    production_id, production_name, parts, scene, subtitles):
                 target = root / "evening-reset.mp3"
                 target.write_bytes(b"finished mp3")
                 manifest_path = root / "evening-reset.manifest.json"

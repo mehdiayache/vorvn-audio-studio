@@ -11,7 +11,7 @@ class ProjectWorkspace(Protocol):
     def render_project(self, project: dict) -> dict: ...
 
 
-def production_scene(editor: dict, music: dict) -> dict:
+def production_scene(editor: dict, sound_scene: dict) -> dict:
     """Project -> Tracks -> Clips view of one playable Production."""
     position = 0.0
     clips = []
@@ -47,19 +47,34 @@ def production_scene(editor: dict, music: dict) -> dict:
         "source_offset": 0,
         "clips": clips,
     }]
-    if music.get("filename"):
+    for track in sound_scene.get("resolved", {}).get("tracks", []):
+        project_clips = []
+        for clip in track.get("clips", []):
+            if (clip.get("orphan") or clip.get("missing")
+                    or not clip.get("filename")
+                    or float(clip.get("resolved_duration_ms") or 0) <= 0):
+                continue
+            project_clips.append({
+                "id": str(clip["id"]),
+                "start_time": round(
+                    float(clip.get("resolved_start_ms") or 0) / 1000, 3),
+                "duration": round(
+                    float(clip["resolved_duration_ms"]) / 1000, 3),
+                "file_url": f"/audio/{clip['filename']}",
+            })
+        if not project_clips:
+            continue
+        clips_for_track = track.get("clips") or []
+        first_clip = clips_for_track[0] if clips_for_track else {}
         tracks.append({
-            "id": "music",
-            "kind": "music",
-            "volume": float(music.get("volume") or 0),
-            "loop": True,
-            "source_offset": float(music.get("start") or 0),
-            "clips": [{
-                "id": str(music.get("music_of") or "music"),
-                "start_time": 0,
-                "duration": round(position, 3),
-                "file_url": f"/audio/{music['filename']}",
-            }],
+            "id": str(track["id"]),
+            "kind": str(track["kind"]),
+            "volume": 0 if track.get("muted") else float(
+                first_clip.get("gain", 1)),
+            "loop": bool(first_clip.get("loop", False)),
+            "source_offset": float(
+                first_clip.get("source_offset_ms") or 0) / 1000,
+            "clips": project_clips,
         })
     return {
         "id": str(editor.get("public_id") or editor["id"]),

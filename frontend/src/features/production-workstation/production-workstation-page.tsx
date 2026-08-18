@@ -31,8 +31,8 @@ import { loadPartCaptionTracks, loadProductionCaptionTracks } from "@/lib/produc
 import { studioApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import type {
-  AssetCollection, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, MusicBed, PlayerCaptionTrack,
-  PlayerSource, Production, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory,
+  AssetCollection, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, PlayerCaptionTrack,
+  PlayerSource, Production, ProductionPart, SoundScene, StudioConfig, VentureAsset, VoiceDirectory,
 } from "@/types/domain"
 import { WorkstationOutline, WorkstationSequence, workstationPartState, type WorkstationPartActions, type WorkstationPartState } from "./workstation-sequence"
 import { WorkstationPartInspector } from "./workstation-part-inspector"
@@ -186,11 +186,12 @@ function CollapsedPaneSummary({ label, number, state, playing, onExpand }: {
   </div>
 }
 
-function MixOutline({ production, music, onCollapse }: { production: Production; music: MusicBed; onCollapse: () => void }) {
+function MixOutline({ production, soundScene, onCollapse }: { production: Production; soundScene: SoundScene; onCollapse: () => void }) {
   const issues = productionHealth(production.parts)
   const drafts = production.parts.filter((part) => part.kind === "draft" || part.kind === "speech" && !part.clip_id).length
   const linkedSounds = production.parts.filter((part) => part.kind === "asset" && part.enabled !== false).length
-  const soundSummary = music.filename
+  const music = soundScene.resolved.tracks.find((track) => track.kind === "music")
+  const soundSummary = music?.clips.length && !music.muted
     ? linkedSounds ? `Music + ${linkedSounds} linked sound${linkedSounds === 1 ? "" : "s"}` : "Music bed included"
     : linkedSounds ? `${linkedSounds} linked sound${linkedSounds === 1 ? "" : "s"}` : "Voice only"
   return <div className="ws-mix-outline">
@@ -219,10 +220,10 @@ function ReleaseInspector({ issues, onLocate }: { issues: ProductionHealthIssue[
   </div>
 }
 
-export function ProductionWorkstationPage({ production, tree, music, assets, assetCollections, config, directory, refresh, refreshAssets }: {
+export function ProductionWorkstationPage({ production, tree, soundScene, assets, assetCollections, config, directory, refresh, refreshAssets }: {
   production: Production
   tree: HierarchyNode[] | null
-  music: MusicBed
+  soundScene: SoundScene
   assets: VentureAsset[]
   assetCollections: AssetCollection[]
   config: StudioConfig | null
@@ -270,7 +271,7 @@ export function ProductionWorkstationPage({ production, tree, music, assets, ass
     }
   }, [activeSourceParts, production.id, sourceParts])
   const playSource = useCallback(async (source: PlayerSource) => player.toggleSource(await preparePlayerSource(source)), [player, preparePlayerSource])
-  const actions = useProductionActions({ production, music, player, refresh, refreshAssets, preparePlayerSource, feedbackMode: "inline" })
+  const actions = useProductionActions({ production, soundScene, player, refresh, refreshAssets, preparePlayerSource, feedbackMode: "inline" })
   const duration = activeSourceParts.reduce((sum, part) => sum + partDurationMs(part), 0) / 1000
   const issues = useMemo(() => productionHealth(production.parts), [production.parts])
   const assetCollectionIds = Object.fromEntries(assetCollections.map((collection) => [collection.name, collection.id]))
@@ -376,12 +377,16 @@ export function ProductionWorkstationPage({ production, tree, music, assets, ass
   }), [actions, confirmJob, editPart, openAssetReplacement, openNewSpeech, playSource, requestPartDeletion, retryJob, selectPart])
 
   const soundPart = soundSelection?.kind === "part" ? sourceParts.find((part) => part.id === soundSelection.id) || null : null
+  const musicTrack = soundScene.resolved.tracks.find((track) => track.kind === "music") || null
+  const musicClip = soundSelection?.kind === "clip"
+    ? musicTrack?.clips.find((clip) => clip.id === soundSelection.clipId) || null
+    : null
   const playingPart = actions.playerPlaying && player.source?.key.startsWith("part:")
     ? sourceParts.find((part) => part.id === Number(player.source?.key.slice(5))) || null
     : null
   const inspectorTitle = composerOpen ? (composerPart ? `Edit Part ${formatPartNumber(composerPart.position ?? 0)}` : "New speech")
     : stage === "sequence" && selectedPart ? `Part ${formatPartNumber(selectedPart.position ?? 0)} · ${formatAuthoredRole(selectedPart.authored_role) || partKindLabel(selectedPart)}`
-      : stage === "sound" && soundSelection?.kind === "music" ? "Music track"
+      : stage === "sound" && soundSelection?.kind === "clip" ? "Music clip"
         : stage === "sound" && soundPart ? `${formatAuthoredRole(soundPart.authored_role) || soundPart.kind} · Sound`
           : stage === "mix" ? "Release checks" : "Inspector"
   const composerInsertAt = insertBeforePartId ? Math.max(0, sourceParts.findIndex((part) => part.public_id === insertBeforePartId)) : null
@@ -396,9 +401,9 @@ export function ProductionWorkstationPage({ production, tree, music, assets, ass
     productionId={production.id} part={selectedPart} directory={directory} playingKey={player.source?.key} playerPlaying={actions.playerPlaying}
     onPlay={(source) => void playSource(source)} onChanged={async () => { actions.invalidatePreview(); await refresh() }}
     onDuplicate={(part) => void actions.duplicatePart(part)} onDelete={requestPartDeletion} onEdit={editPart} onOpenCaptions={(part) => setCaptionPartId(part.id)} onReplaceAsset={openAssetReplacement}
-  /> : stage === "sound" && soundSelection?.kind === "music" ? <MusicWorkbench
-    music={music} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)} onChange={actions.setMusic}
-    onChoose={() => setTool("music")} onRemove={() => setConfirmAction({ title: "Remove this Music Bed?", description: "The library asset remains available. Only this Production placement is removed.", action: () => { void actions.setMusic({ music_of: null }); setSoundSelection(null) } })}
+  /> : stage === "sound" && soundSelection?.kind === "clip" && musicTrack ? <MusicWorkbench
+    track={musicTrack} clip={musicClip} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)} onChange={(changes) => musicClip ? actions.updateSoundClip(musicClip.id, changes) : Promise.resolve()}
+    onChoose={() => setTool("music")} onRemove={() => setConfirmAction({ title: "Remove this Music clip?", description: "The reusable Venture asset remains available. Only this Sound Scene placement is removed.", action: () => { void actions.removeMusic(); setSoundSelection(null) } })}
   /> : stage === "sound" && soundPart ? <WorkstationPartInspector
     productionId={production.id} part={soundPart} directory={directory} playingKey={player.source?.key} playerPlaying={actions.playerPlaying}
     onPlay={(source) => void playSource(source)} onChanged={refresh}
@@ -434,14 +439,14 @@ export function ProductionWorkstationPage({ production, tree, music, assets, ass
         <aside className={cn("ws-left-pane", !outlineOpen && "is-collapsed")} aria-label={`${stage} navigation`}>
           {outlineOpen ? <>
             {stage === "sequence" && <WorkstationOutline parts={sourceParts} selectedId={selectedId} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} directory={directory} onSelect={selectPart} onCollapse={() => setOutlineOpen(false)} />}
-            {stage === "sound" && <SoundDesignOutline music={music} parts={sourceParts} selection={soundSelection} onSelection={setSoundSelection} onAddSound={() => setTool("asset")} onCollapse={() => setOutlineOpen(false)} />}
-            {stage === "mix" && <MixOutline production={production} music={music} onCollapse={() => setOutlineOpen(false)} />}
+            {stage === "sound" && <SoundDesignOutline scene={soundScene} selection={soundSelection} onSelection={setSoundSelection} onAddMusic={() => setTool("music")} onMute={(trackId, muted) => void actions.setSoundTrackMuted(trackId, muted)} onCollapse={() => setOutlineOpen(false)} />}
+            {stage === "mix" && <MixOutline production={production} soundScene={soundScene} onCollapse={() => setOutlineOpen(false)} />}
           </> : <CollapsedPaneSummary label={outlineLabel} number={collapsedNumber} state={collapsedState} playing={Boolean(playingPart)} onExpand={() => setOutlineOpen(true)} />}
         </aside>
         <main className="ws-center-pane" ref={centerPaneRef}>
           {stage === "sequence" && <WorkstationSequence parts={sourceParts} selectedId={selectedId} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} liveJobs={liveJobs} directory={directory} actions={partActions} onAddEnd={() => openNewSpeech()} />}
-          {stage === "sound" && <WorkstationSoundDesign parts={sourceParts} music={music} selection={soundSelection} onSelection={setSoundSelection} onAddSound={() => setTool("asset")} />}
-          {stage === "mix" && <div className="ws-mix-canvas"><MixExportWorkspace production={production} music={music} previewing={actions.previewing} productionPlaying={actions.productionPlaying} previewReady={actions.productionLoaded} previewStale={Boolean(player.source?.kind === "production" && !actions.productionLoaded)} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={() => void actions.exportMp3()} onLocatePart={(id) => { setStage("sequence"); setSelectedId(id) }} onOpenHealth={() => setReleaseInspectorOpen(true)} exporting={actions.exporting} /></div>}
+          {stage === "sound" && <WorkstationSoundDesign scene={soundScene} selection={soundSelection} onSelection={setSoundSelection} onAddMusic={() => setTool("music")} onCommit={actions.updateSoundScene} onUndo={actions.undoSoundScene} onRedo={actions.redoSoundScene} />}
+          {stage === "mix" && <div className="ws-mix-canvas"><MixExportWorkspace production={production} soundScene={soundScene} previewing={actions.previewing} productionPlaying={actions.productionPlaying} previewReady={actions.productionLoaded} previewStale={Boolean(player.source?.kind === "production" && !actions.productionLoaded)} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={() => void actions.exportMp3()} onLocatePart={(id) => { setStage("sequence"); setSelectedId(id) }} onOpenHealth={() => setReleaseInspectorOpen(true)} exporting={actions.exporting} /></div>}
         </main>
         {inspectorOpen && <aside className="ws-right-pane" aria-label="Contextual inspector">
           <header><h2>{inspectorTitle}</h2><Button variant="ghost" size="icon-sm" aria-label="Close inspector" onClick={closeInspector}><X /></Button></header>
@@ -464,12 +469,12 @@ export function ProductionWorkstationPage({ production, tree, music, assets, ass
     <MovePartPositionDialog part={movePositionPart} count={sourceParts.length} onClose={() => setMovePositionPart(null)} onMove={actions.movePartToPosition} />
     {overlaysOpen && <Suspense fallback={null}><ProductionOverlays
       tool={tool} productionId={production.id} nextPartNumber={sourceParts.length + 1} insertAt={composerInsertAt} insertBeforePartId={insertBeforePartId}
-      composerPart={null} replacingAssetId={replacingAsset?.asset_id} initialMusicAssetId={music.music_of} config={config} directory={directory} assets={assets} assetCollectionIds={assetCollectionIds}
+      composerPart={null} replacingAssetId={replacingAsset?.asset_id} initialMusicAssetId={musicTrack?.clips[0]?.asset_id} config={config} directory={directory} assets={assets} assetCollectionIds={assetCollectionIds}
       playingKey={player.source?.key} playerPlaying={actions.playerPlaying} confirmAction={confirmAction}
       onCloseTool={() => { setTool(null); setReplacingAsset(null) }} onSaveDraft={actions.saveDraft} onUpdateEditorial={async () => undefined} onGenerate={queueRender}
       onAddSilence={async (seconds) => { await actions.addSilence(seconds, insertBeforePartId); setTool(null) }}
       onInsertAsset={async (asset) => { if (replacingAsset) await actions.replaceAsset(replacingAsset, asset); else await actions.insertAsset(asset, insertBeforePartId); setTool(null); setReplacingAsset(null) }}
-      onSetMusic={async (asset) => { await actions.setMusicAsset(asset); setTool(null); setStage("sound"); setSoundSelection({ kind: "music" }) }}
+      onSetMusic={async (asset) => { await actions.setMusicAsset(asset); setTool(null); setStage("sound"); setSoundSelection(null) }}
       onUploadAsset={async (folder, file) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); await actions.uploadAsset(collectionId, folder, file) }}
       onImport={(document, roleVoices) => studioApi.importProduction(production.id, document, roleVoices)} onImported={() => { actions.invalidatePreview(); void refresh().then(() => setTool(null)) }}
       onPlay={(source) => void playSource(source)} onConfirmAction={setConfirmAction}

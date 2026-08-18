@@ -821,5 +821,15 @@ def create_production(project_id: int, name: str, description: str = "",
               settings = EXCLUDED.settings
         """, (ident, project_id, series_id, ident, _slug(clean_name, ident),
               clean_name, description.strip(), series_id))
-        cur.execute("INSERT INTO production_mixes (production_id) VALUES (%s) ON CONFLICT DO NOTHING", (ident,))
+        cur.execute("""
+            INSERT INTO sound_scenes (production_id, document)
+            VALUES (%s, '{"version":1,"tracks":[{"id":"music","kind":"music","name":"Music","muted":false,"clips":[]}]}'::jsonb)
+            ON CONFLICT (production_id) DO NOTHING
+        """, (ident,))
+        cur.execute("""
+            INSERT INTO sound_scene_history (production_id, revision, document)
+            SELECT production_id, revision, document FROM sound_scenes
+             WHERE production_id=%s
+            ON CONFLICT (production_id, revision) DO NOTHING
+        """, (ident,))
     return production_get(ident)

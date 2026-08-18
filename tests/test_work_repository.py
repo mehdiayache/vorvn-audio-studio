@@ -37,12 +37,6 @@ class WorkRepositoryTests(unittest.TestCase):
         with psycopg.connect(settings.database_url) as database:
             with database.cursor() as cursor:
                 cursor.execute("""
-                    DELETE FROM production_mixes
-                     WHERE production_id IN (
-                       SELECT id FROM productions WHERE project_id IN (
-                         SELECT id FROM work_projects WHERE venture_id = %s))
-                """, (venture_id,))
-                cursor.execute("""
                     DELETE FROM productions WHERE project_id IN (
                       SELECT id FROM work_projects WHERE venture_id = %s)
                 """, (venture_id,))

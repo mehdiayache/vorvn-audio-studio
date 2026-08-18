@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react"
 
 import { studioApi } from "@/lib/api"
-import type { HierarchyNode, LoadState, MusicBed, Production } from "@/types/domain"
+import type { HierarchyNode, LoadState, Production, SoundScene } from "@/types/domain"
 
 export function useProduction(id: number | null) {
   const [production, setProduction] = useState<LoadState<Production>>({ status: "loading" })
   const [tree, setTree] = useState<LoadState<HierarchyNode[]>>({ status: "loading" })
-  const [music, setMusic] = useState<LoadState<MusicBed>>({ status: "loading" })
+  const [soundScene, setSoundScene] = useState<LoadState<SoundScene>>({ status: "loading" })
 
   const refresh = useCallback(async () => {
     if (!id) {
@@ -14,13 +14,13 @@ export function useProduction(id: number | null) {
       return
     }
     setProduction((state) => ({ status: "loading", data: state.data }))
-    setMusic((state) => ({ status: "loading", data: state.data }))
+    setSoundScene((state) => ({ status: "loading", data: state.data }))
     const results = await Promise.allSettled([
       studioApi.production(id),
       studioApi.projects(),
-      studioApi.music(id),
+      studioApi.soundScene(id),
     ])
-    const [productionResult, treeResult, musicResult] = results
+    const [productionResult, treeResult, soundSceneResult] = results
     if (productionResult.status === "fulfilled") {
       setProduction({ status: "ready", data: productionResult.value })
     } else {
@@ -31,10 +31,10 @@ export function useProduction(id: number | null) {
     } else {
       setTree((state) => ({ status: "error", data: state.data, error: treeResult.reason?.message || "Unable to load Projects." }))
     }
-    if (musicResult.status === "fulfilled") {
-      setMusic({ status: "ready", data: musicResult.value })
+    if (soundSceneResult.status === "fulfilled") {
+      setSoundScene({ status: "ready", data: soundSceneResult.value })
     } else {
-      setMusic((state) => ({ status: "error", data: state.data, error: musicResult.reason?.message || "Unable to load music." }))
+      setSoundScene((state) => ({ status: "error", data: state.data, error: soundSceneResult.reason?.message || "Unable to load Sound Scene." }))
     }
   }, [id])
 
@@ -42,5 +42,5 @@ export function useProduction(id: number | null) {
     void refresh()
   }, [refresh])
 
-  return { production, tree, music, refresh }
+  return { production, tree, soundScene, refresh }
 }

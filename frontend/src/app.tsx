@@ -29,17 +29,17 @@ const VentureDirectoryPage = lazy(() => import("@/features/work/venture-director
 const VenturePage = lazy(() => import("@/features/work/venture-page").then((module) => ({ default: module.VenturePage })))
 
 function ProductionRoute({ productionId }: { productionId: number }) {
-  const { production, tree, music, refresh } = useProduction(productionId)
+  const { production, tree, soundScene, refresh } = useProduction(productionId)
   const resources = useStudioResources(productionId)
   const data = production.data
   return <>
     {production.status === "loading" && !data && <PageLoading />}
     {!data && production.status === "error" && <ErrorState message={production.error || "Unable to load Production."} retry={() => void refresh()} />}
     {data && tree.status === "error" && <InlineResourceError message={`Production explorer unavailable: ${tree.error}`} retry={() => void refresh()} />}
-    {data && music.status === "error" && <InlineResourceError message={`Music settings unavailable: ${music.error}`} retry={() => void refresh()} />}
+    {data && soundScene.status === "error" && <InlineResourceError message={`Sound Scene unavailable: ${soundScene.error}`} retry={() => void refresh()} />}
     {data && resources.assetError && <InlineResourceError message={`Asset library unavailable: ${resources.assetError}`} retry={() => void resources.refreshAssets().catch(() => undefined)} />}
     {data && resources.voiceError && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void resources.refreshVoices()} />}
-    {data && <LazyRoute label="Loading Production workspace"><ProductionWorkstationPage production={data} tree={tree.data || null} music={music.data || {}} assets={resources.assets} assetCollections={resources.assetCollections} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} /></LazyRoute>}
+    {data && soundScene.data && <LazyRoute label="Loading Production workspace"><ProductionWorkstationPage production={data} tree={tree.data || null} soundScene={soundScene.data} assets={resources.assets} assetCollections={resources.assetCollections} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} /></LazyRoute>}
   </>
 }
 

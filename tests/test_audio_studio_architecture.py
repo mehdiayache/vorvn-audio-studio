@@ -15,12 +15,28 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class AudioStudioArchitectureTests(unittest.TestCase):
+    def test_daw_libraries_are_kept_behind_the_two_sound_scene_boundaries(self):
+        frontend = ROOT / "frontend" / "src"
+        imports = {
+            path.relative_to(frontend).as_posix(): path.read_text()
+            for path in frontend.rglob("*.ts*")
+        }
+        dawcore = [name for name, source in imports.items()
+                   if "@dawcore/transport" in source]
+        naomi = [name for name, source in imports.items()
+                 if "@waveform-playlist/core" in source
+                 or "@waveform-playlist/engine" in source]
+        self.assertEqual(dawcore, [
+            "features/production-workstation/sound-scene-playout.ts"])
+        self.assertEqual(naomi, [
+            "features/production-workstation/sound-scene-engine.ts"])
+
     def test_public_contract_contains_native_product_slices(self):
         paths = app.openapi()["paths"]
         expected = {
             "/api/v1/config",
             "/api/v1/hierarchy",
-            "/api/v1/productions/{production_id}/music",
+            "/api/v1/productions/{production_id}/sound-scene",
             "/api/v1/productions/{production_id}/parts/silence",
             "/api/v1/jobs/speech",
             "/api/v1/jobs/transcription",

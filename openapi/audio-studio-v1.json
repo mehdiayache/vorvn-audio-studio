@@ -1,6 +1,27 @@
 {
   "components": {
     "schemas": {
+      "AbsoluteAnchor": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "absolute",
+            "title": "Kind",
+            "type": "string"
+          },
+          "position_ms": {
+            "minimum": 0.0,
+            "title": "Position Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "position_ms"
+        ],
+        "title": "AbsoluteAnchor",
+        "type": "object"
+      },
       "ActivityDayResponse": {
         "properties": {
           "cost": {
@@ -2354,226 +2375,6 @@
         "title": "MovedPartsResponse",
         "type": "object"
       },
-      "MusicBedEnvelope": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/MusicBedResponse"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "MusicBedEnvelope",
-        "type": "object"
-      },
-      "MusicBedResponse": {
-        "properties": {
-          "duck": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Duck"
-          },
-          "duration_ms": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Duration Ms"
-          },
-          "fade_in": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Fade In"
-          },
-          "fade_out": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Fade Out"
-          },
-          "filename": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Filename"
-          },
-          "level": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Level"
-          },
-          "music_of": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Music Of"
-          },
-          "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
-          },
-          "start": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Start"
-          },
-          "volume": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Volume"
-          }
-        },
-        "title": "MusicBedResponse",
-        "type": "object"
-      },
-      "MusicBody": {
-        "additionalProperties": false,
-        "properties": {
-          "duck": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Duck"
-          },
-          "fade_in": {
-            "anyOf": [
-              {
-                "maximum": 120.0,
-                "minimum": 0.0,
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Fade In"
-          },
-          "fade_out": {
-            "anyOf": [
-              {
-                "maximum": 120.0,
-                "minimum": 0.0,
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Fade Out"
-          },
-          "level": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Level"
-          },
-          "music_of": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Music Of"
-          },
-          "start": {
-            "anyOf": [
-              {
-                "maximum": 86400.0,
-                "minimum": 0.0,
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Start"
-          },
-          "volume": {
-            "anyOf": [
-              {
-                "maximum": 1.0,
-                "minimum": 0.0,
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Volume"
-          }
-        },
-        "title": "MusicBody",
-        "type": "object"
-      },
       "OkEnvelope": {
         "properties": {
           "data": {
@@ -2819,6 +2620,41 @@
           "next_cursor"
         ],
         "title": "PaginationMetaResponse",
+        "type": "object"
+      },
+      "PartAnchor": {
+        "additionalProperties": false,
+        "properties": {
+          "edge": {
+            "enum": [
+              "start",
+              "end"
+            ],
+            "title": "Edge",
+            "type": "string"
+          },
+          "kind": {
+            "const": "part",
+            "title": "Kind",
+            "type": "string"
+          },
+          "offset_ms": {
+            "default": 0,
+            "title": "Offset Ms",
+            "type": "integer"
+          },
+          "part_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Part Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "part_id",
+          "edge"
+        ],
+        "title": "PartAnchor",
         "type": "object"
       },
       "PartCaptionJobResponse": {
@@ -5112,6 +4948,242 @@
         "title": "ReplaceAssetBody",
         "type": "object"
       },
+      "ResolvedSoundSceneClip": {
+        "additionalProperties": false,
+        "properties": {
+          "anchor": {
+            "discriminator": {
+              "mapping": {
+                "absolute": "#/components/schemas/AbsoluteAnchor",
+                "part": "#/components/schemas/PartAnchor"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AbsoluteAnchor"
+              },
+              {
+                "$ref": "#/components/schemas/PartAnchor"
+              }
+            ],
+            "title": "Anchor"
+          },
+          "asset_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Asset Id",
+            "type": "integer"
+          },
+          "asset_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Kind"
+          },
+          "asset_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Name"
+          },
+          "asset_version_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Version Id"
+          },
+          "ducking": {
+            "default": false,
+            "title": "Ducking",
+            "type": "boolean"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "minimum": 100.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "fade_in_ms": {
+            "default": 0,
+            "maximum": 120000.0,
+            "minimum": 0.0,
+            "title": "Fade In Ms",
+            "type": "integer"
+          },
+          "fade_out_ms": {
+            "default": 0,
+            "maximum": 120000.0,
+            "minimum": 0.0,
+            "title": "Fade Out Ms",
+            "type": "integer"
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "gain": {
+            "default": 1,
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Gain",
+            "type": "number"
+          },
+          "id": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "loop": {
+            "default": false,
+            "title": "Loop",
+            "type": "boolean"
+          },
+          "missing": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing"
+          },
+          "orphan": {
+            "title": "Orphan",
+            "type": "boolean"
+          },
+          "orphan_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orphan Reason"
+          },
+          "resolved_duration_ms": {
+            "title": "Resolved Duration Ms",
+            "type": "integer"
+          },
+          "resolved_start_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved Start Ms"
+          },
+          "source_duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Duration Ms"
+          },
+          "source_offset_ms": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Source Offset Ms",
+            "type": "integer"
+          },
+          "start_ms": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Start Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "asset_id",
+          "anchor",
+          "resolved_duration_ms",
+          "orphan"
+        ],
+        "title": "ResolvedSoundSceneClip",
+        "type": "object"
+      },
+      "ResolvedSoundSceneTrack": {
+        "properties": {
+          "clips": {
+            "items": {
+              "$ref": "#/components/schemas/ResolvedSoundSceneClip"
+            },
+            "title": "Clips",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "music",
+              "sfx",
+              "ambience"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "muted": {
+            "title": "Muted",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "muted",
+          "clips"
+        ],
+        "title": "ResolvedSoundSceneTrack",
+        "type": "object"
+      },
       "ResourceCreate": {
         "properties": {
           "description": {
@@ -5686,6 +5758,303 @@
           "seconds"
         ],
         "title": "SilenceBody",
+        "type": "object"
+      },
+      "SoundSceneClipDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "anchor": {
+            "discriminator": {
+              "mapping": {
+                "absolute": "#/components/schemas/AbsoluteAnchor",
+                "part": "#/components/schemas/PartAnchor"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AbsoluteAnchor"
+              },
+              {
+                "$ref": "#/components/schemas/PartAnchor"
+              }
+            ],
+            "title": "Anchor"
+          },
+          "asset_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Asset Id",
+            "type": "integer"
+          },
+          "asset_version_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Version Id"
+          },
+          "ducking": {
+            "default": false,
+            "title": "Ducking",
+            "type": "boolean"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "minimum": 100.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "fade_in_ms": {
+            "default": 0,
+            "maximum": 120000.0,
+            "minimum": 0.0,
+            "title": "Fade In Ms",
+            "type": "integer"
+          },
+          "fade_out_ms": {
+            "default": 0,
+            "maximum": 120000.0,
+            "minimum": 0.0,
+            "title": "Fade Out Ms",
+            "type": "integer"
+          },
+          "gain": {
+            "default": 1,
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Gain",
+            "type": "number"
+          },
+          "id": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "loop": {
+            "default": false,
+            "title": "Loop",
+            "type": "boolean"
+          },
+          "source_offset_ms": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Source Offset Ms",
+            "type": "integer"
+          },
+          "start_ms": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Start Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "asset_id",
+          "anchor"
+        ],
+        "title": "SoundSceneClipDocument",
+        "type": "object"
+      },
+      "SoundSceneDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "tracks": {
+            "items": {
+              "$ref": "#/components/schemas/SoundSceneTrackDocument"
+            },
+            "maxItems": 64,
+            "title": "Tracks",
+            "type": "array"
+          },
+          "version": {
+            "const": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "tracks"
+        ],
+        "title": "SoundSceneDocument",
+        "type": "object"
+      },
+      "SoundSceneEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SoundSceneResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SoundSceneEnvelope",
+        "type": "object"
+      },
+      "SoundSceneResolution": {
+        "properties": {
+          "orphans": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "title": "Orphans",
+            "type": "array"
+          },
+          "signature": {
+            "title": "Signature",
+            "type": "string"
+          },
+          "tracks": {
+            "items": {
+              "$ref": "#/components/schemas/ResolvedSoundSceneTrack"
+            },
+            "title": "Tracks",
+            "type": "array"
+          },
+          "version": {
+            "const": 1,
+            "title": "Version",
+            "type": "integer"
+          },
+          "voice_projection": {
+            "$ref": "#/components/schemas/VoiceProjection"
+          }
+        },
+        "required": [
+          "version",
+          "signature",
+          "voice_projection",
+          "tracks",
+          "orphans"
+        ],
+        "title": "SoundSceneResolution",
+        "type": "object"
+      },
+      "SoundSceneResponse": {
+        "properties": {
+          "can_redo": {
+            "title": "Can Redo",
+            "type": "boolean"
+          },
+          "can_undo": {
+            "title": "Can Undo",
+            "type": "boolean"
+          },
+          "document": {
+            "$ref": "#/components/schemas/SoundSceneDocument"
+          },
+          "production_id": {
+            "title": "Production Id",
+            "type": "integer"
+          },
+          "resolved": {
+            "$ref": "#/components/schemas/SoundSceneResolution"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "voice_stem": {
+            "$ref": "#/components/schemas/VoiceStemResponse"
+          }
+        },
+        "required": [
+          "production_id",
+          "revision",
+          "document",
+          "can_undo",
+          "can_redo",
+          "updated_at",
+          "resolved",
+          "voice_stem"
+        ],
+        "title": "SoundSceneResponse",
+        "type": "object"
+      },
+      "SoundSceneTrackDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "clips": {
+            "items": {
+              "$ref": "#/components/schemas/SoundSceneClipDocument"
+            },
+            "maxItems": 1000,
+            "title": "Clips",
+            "type": "array"
+          },
+          "id": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "music",
+              "sfx",
+              "ambience"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "muted": {
+            "default": false,
+            "title": "Muted",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "clips"
+        ],
+        "title": "SoundSceneTrackDocument",
+        "type": "object"
+      },
+      "SoundSceneUpdateBody": {
+        "additionalProperties": false,
+        "properties": {
+          "document": {
+            "$ref": "#/components/schemas/SoundSceneDocument"
+          },
+          "expected_revision": {
+            "exclusiveMinimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "document"
+        ],
+        "title": "SoundSceneUpdateBody",
         "type": "object"
       },
       "SpeechGenerateResultResponse": {
@@ -9472,6 +9841,112 @@
         "title": "VoiceProfileUsageResponse",
         "type": "object"
       },
+      "VoiceProjection": {
+        "properties": {
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "sample_rate": {
+            "const": 48000,
+            "title": "Sample Rate",
+            "type": "integer"
+          },
+          "signature": {
+            "title": "Signature",
+            "type": "string"
+          },
+          "spans": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceProjectionSpan"
+            },
+            "title": "Spans",
+            "type": "array"
+          }
+        },
+        "required": [
+          "signature",
+          "duration_ms",
+          "sample_rate",
+          "spans"
+        ],
+        "title": "VoiceProjection",
+        "type": "object"
+      },
+      "VoiceProjectionSpan": {
+        "properties": {
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "missing": {
+            "title": "Missing",
+            "type": "boolean"
+          },
+          "part_id": {
+            "title": "Part Id",
+            "type": "integer"
+          },
+          "part_public_id": {
+            "title": "Part Public Id",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "silence": {
+            "title": "Silence",
+            "type": "boolean"
+          },
+          "start_ms": {
+            "title": "Start Ms",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "voice_name": {
+            "title": "Voice Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "part_id",
+          "part_public_id",
+          "kind",
+          "title",
+          "role",
+          "voice_name",
+          "filename",
+          "start_ms",
+          "duration_ms",
+          "silence",
+          "missing"
+        ],
+        "title": "VoiceProjectionSpan",
+        "type": "object"
+      },
       "VoiceReferenceResponse": {
         "additionalProperties": false,
         "properties": {
@@ -9883,6 +10358,50 @@
           "model_id"
         ],
         "title": "VoiceRouteResponse",
+        "type": "object"
+      },
+      "VoiceStemResponse": {
+        "properties": {
+          "cached": {
+            "title": "Cached",
+            "type": "boolean"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "signature": {
+            "title": "Signature",
+            "type": "string"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "filename",
+          "duration_ms",
+          "signature",
+          "cached"
+        ],
+        "title": "VoiceStemResponse",
         "type": "object"
       },
       "VoiceUpdate": {
@@ -11516,98 +12035,6 @@
         ]
       }
     },
-    "/api/v1/productions/{production_id}/music": {
-      "get": {
-        "operationId": "getProductionMusic",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "production_id",
-            "required": true,
-            "schema": {
-              "title": "Production Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MusicBedEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Music",
-        "tags": [
-          "timeline"
-        ]
-      },
-      "patch": {
-        "operationId": "updateProductionMusic",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "production_id",
-            "required": true,
-            "schema": {
-              "title": "Production Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MusicBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MusicBedEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Update Music",
-        "tags": [
-          "timeline"
-        ]
-      }
-    },
     "/api/v1/productions/{production_id}/parts": {
       "delete": {
         "operationId": "deleteProductionParts",
@@ -12366,6 +12793,182 @@
         "summary": "Get Production Project Scene",
         "tags": [
           "audio-projects"
+        ]
+      }
+    },
+    "/api/v1/productions/{production_id}/sound-scene": {
+      "get": {
+        "operationId": "getProductionSoundScene",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SoundSceneEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Sound Scene",
+        "tags": [
+          "sound-scene"
+        ]
+      },
+      "patch": {
+        "operationId": "updateProductionSoundScene",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SoundSceneUpdateBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SoundSceneEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Sound Scene",
+        "tags": [
+          "sound-scene"
+        ]
+      }
+    },
+    "/api/v1/productions/{production_id}/sound-scene/redo": {
+      "post": {
+        "operationId": "redoProductionSoundScene",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SoundSceneEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Redo Sound Scene",
+        "tags": [
+          "sound-scene"
+        ]
+      }
+    },
+    "/api/v1/productions/{production_id}/sound-scene/undo": {
+      "post": {
+        "operationId": "undoProductionSoundScene",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SoundSceneEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Undo Sound Scene",
+        "tags": [
+          "sound-scene"
         ]
       }
     },

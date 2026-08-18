@@ -8,8 +8,6 @@ from typing import Any, Protocol
 class TimelineRecords(Protocol):
     def production(self, production_id: int) -> dict | None: ...
     def part(self, production_id: int, part_id: int) -> dict | None: ...
-    def music(self, production_id: int) -> dict: ...
-    def set_music(self, production_id: int, values: dict) -> bool: ...
     def reorder(self, production_id: int, order: list[int]) -> bool: ...
     def set_enabled(
         self, production_id: int, part_id: int, enabled: bool,
@@ -90,24 +88,6 @@ class TimelineService:
         if not part:
             raise TimelineError("That Part does not exist.")
         return part
-
-    def music(self, production_id: int) -> dict[str, Any]:
-        self._production(production_id)
-        return self.records.music(production_id)
-
-    def set_music(
-        self, production_id: int, values: dict[str, Any],
-    ) -> dict[str, Any]:
-        self._production(production_id)
-        music_of = values.get("music_of")
-        if (music_of not in (None, "", 0, "0")
-                and not self.records.asset_allowed(
-                    production_id, int(music_of), {"music"})):
-            raise TimelineError(
-                "Background music must come from this Venture's Music library.")
-        if not self.records.set_music(production_id, values):
-            raise TimelineError("Those music settings could not be saved.")
-        return self.records.music(production_id)
 
     def reorder(self, production_id: int, order: list[int]) -> bool:
         self._production(production_id)

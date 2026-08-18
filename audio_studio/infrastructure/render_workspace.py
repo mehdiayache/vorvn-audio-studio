@@ -19,7 +19,6 @@ from audio_studio.domain.rendering import (
     silence_duration_seconds,
 )
 from audio_studio.infrastructure.media_paths import media_root
-from audio_studio.infrastructure.postgres.production_document import MUSIC_LEVELS
 
 
 def _output() -> Path:
@@ -95,47 +94,134 @@ def _sequence(parts: list[dict], target: Path) -> tuple[list[dict], str]:
     return manifest, "ffmpeg-normalized-v1"
 
 
-def _mix(voice: Path, music: Path, values: dict, target: Path) -> None:
-    seconds = (_measure(voice) or 0) / 1000
-    if seconds <= 0:
-        raise RenderError("The voice timeline has no measurable duration.")
-    legacy_level = MUSIC_LEVELS.get(
-        values.get("level"), MUSIC_LEVELS["discreet"])
-    level = max(0.0, min(1.0, float(
-        values.get("volume")
-        if values.get("volume") is not None else legacy_level)))
-    start = max(0.0, float(values.get("start") or 0))
-    fade_in = max(0.0, float(values.get("fade_in") or 0))
-    fade_out = max(0.0, float(values.get("fade_out") or 0))
-    bed = [f"atrim=start={start:.3f}:duration={seconds:.3f}",
-           "asetpts=N/SR/TB", f"volume={level:.3f}"]
-    if fade_in:
-        bed.append(f"afade=t=in:st=0:d={fade_in:g}")
-    if fade_out and seconds > fade_out:
-        bed.append(
-            f"afade=t=out:st={seconds - fade_out:.3f}:d={fade_out:g}")
-    chain = f"[1:a]{','.join(bed)}[bed];"
-    if values.get("duck", True):
-        chain += ("[bed][0:a]sidechaincompress=threshold=0.015:ratio=20:"
-                  "attack=20:release=450:makeup=1[under];")
-        mixed = "[under]"
-    else:
-        mixed = "[bed]"
-    chain += (f"{mixed}[0:a]amix=inputs=2:duration=first:"
-              "dropout_transition=0:normalize=0[out]")
-    result = subprocess.run(
-        ["ffmpeg", "-y", "-nostdin", "-loglevel", "error", "-i",
-         str(voice), "-stream_loop", "-1", "-i", str(music),
-         "-filter_complex", chain, "-map", "[out]", "-c:a", "libmp3lame",
-         "-b:a", "192k", str(target)],
-        capture_output=True, timeout=300,
+def _sound_clips(scene: dict) -> list[tuple[dict, dict]]:
+    return [
+        (track, clip)
+        for track in scene.get("tracks", [])
+        if not track.get("muted")
+        for clip in track.get("clips", [])
+        if (not clip.get("orphan") and not clip.get("missing")
+            and int(clip.get("resolved_duration_ms") or 0) > 0)
+    ]
+
+
+def _mix_scene(voice: Path, scene: dict, target: Path) -> bool:
+    """Render the same resolved Sound Scene used by browser playout."""
+    clips = _sound_clips(scene)
+    if not clips:
+        shutil.copyfile(voice, target)
+        return False
+    root = _output()
+    command = [
+        "ffmpeg", "-y", "-nostdin", "-loglevel", "error", "-i",
+        str(voice),
+    ]
+    scene_duration = max(
+        .001,
+        float(scene.get("voice_projection", {}).get("duration_ms") or
+              _measure(voice) or 1) / 1000,
     )
+    for _, clip in clips:
+        source = (root / Path(clip.get("filename") or "").name).resolve()
+        if source.parent != root or not source.is_file():
+            raise RenderError("A Sound Scene source file is missing.")
+        if clip.get("loop"):
+            command.extend(["-stream_loop", "-1"])
+        command.extend(["-i", str(source)])
+    filters = [
+        "[0:a]aformat=sample_fmts=fltp:sample_rates=48000:"
+        "channel_layouts=stereo,aresample=48000:async=1:first_pts=0,"
+        "asetpts=N/SR/TB,apad[voicebase]",
+    ]
+    labels: list[str] = []
+    ducking = False
+    for index, (_, clip) in enumerate(clips, 1):
+        duration = int(clip["resolved_duration_ms"]) / 1000
+        offset = int(clip.get("source_offset_ms") or 0) / 1000
+        start_ms = max(0, int(clip.get("resolved_start_ms") or 0))
+        gain = max(0, min(2, float(clip.get("gain", 1))))
+        fade_in = min(duration, int(clip.get("fade_in_ms") or 0) / 1000)
+        fade_out = min(duration, int(clip.get("fade_out_ms") or 0) / 1000)
+        chain = [
+            "aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo",
+            f"atrim=start={offset:.3f}:duration={duration:.3f}",
+            "asetpts=PTS-STARTPTS", f"volume={gain:.4f}",
+        ]
+        if fade_in:
+            chain.append(f"afade=t=in:st=0:d={fade_in:.3f}")
+        if fade_out and duration > fade_out:
+            chain.append(
+                f"afade=t=out:st={duration - fade_out:.3f}:d={fade_out:.3f}")
+        chain.append(f"adelay={start_ms}|{start_ms}")
+        label = f"scene{index}"
+        filters.append(f"[{index}:a]{','.join(chain)}[{label}]")
+        labels.append(f"[{label}]")
+        ducking = ducking or bool(clip.get("ducking"))
+    if len(labels) == 1:
+        sound_label = labels[0]
+    else:
+        filters.append(
+            f"{''.join(labels)}amix=inputs={len(labels)}:duration=longest:"
+            "dropout_transition=0:normalize=0[scene]"
+        )
+        sound_label = "[scene]"
+    if ducking:
+        filters.append("[voicebase]asplit=2[voice][sidechain]")
+        filters.append(
+            f"{sound_label}[sidechain]sidechaincompress=threshold=0.015:ratio=20:"
+            "attack=20:release=450:makeup=1[under]"
+        )
+        sound_label = "[under]"
+    else:
+        filters.append("[voicebase]anull[voice]")
+    filters.append(
+        f"{sound_label}[voice]amix=inputs=2:duration=first:"
+        f"dropout_transition=0:normalize=0,apad,atrim=duration={scene_duration:.3f},"
+        "alimiter=limit=0.98[out]"
+    )
+    command.extend([
+        "-filter_complex", ";".join(filters), "-map", "[out]", "-vn",
+        "-ar", "48000", "-ac", "2", "-c:a", "libmp3lame", "-b:a",
+        "192k", str(target),
+    ])
+    try:
+        result = subprocess.run(command, capture_output=True, timeout=600)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        target.unlink(missing_ok=True)
+        raise RenderError(f"Sound Scene rendering failed: {exc}") from exc
     if result.returncode or not target.is_file() or target.stat().st_size <= 0:
         target.unlink(missing_ok=True)
-        raise RenderError("The background music could not be mixed.")
+        detail = result.stderr.decode(errors="replace").strip().splitlines()
+        raise RenderError(
+            f"Sound Scene rendering failed: {(detail[-1] if detail else 'no audio')[:300]}")
+    return True
 
 
 class FFmpegRenderWorkspace:
+    def voice_stem(
+        self, production_id: int, parts: list[dict], signature: str,
+    ) -> dict:
+        """Cache one normalized serial Sequence file for browser playout."""
+        if not parts:
+            return {
+                "url": "", "filename": "", "duration_ms": 0,
+                "signature": signature, "cached": True,
+            }
+        digest = str(signature)[:20]
+        name = f"voice-stem-{production_id}-{digest}.mp3"
+        target = _output() / name
+        cached = target.is_file() and target.stat().st_size > 0
+        if not cached:
+            _sequence(parts, target)
+            for old in _output().glob(f"voice-stem-{production_id}-*.mp3"):
+                if old != target:
+                    old.unlink(missing_ok=True)
+        return {
+            "url": f"/audio/{quote(name)}", "filename": name,
+            "duration_ms": _measure(target) or 0,
+            "signature": signature, "cached": cached,
+        }
+
     def render_project(self, project: dict) -> dict:
         """Render a lightweight Tracks/Clips scene without a database Job."""
         tracks = project.get("tracks") or []
@@ -234,17 +320,12 @@ class FFmpegRenderWorkspace:
         return _measure(_output() / filename) or 0
 
     def preview(
-        self, production_id: int, parts: list[dict], music: dict,
+        self, production_id: int, parts: list[dict], scene: dict,
         *, skipped_drafts: int,
     ) -> dict:
         signature = {
-            "renderer": "production-preview-v1",
-            "parts": [{key: part.get(key) for key in
-                       ("id", "kind", "title", "filename", "duration_ms",
-                        "asset_version_id")} for part in parts],
-            "music": {key: music.get(key) for key in
-                      ("music_of", "filename", "duration_ms", "volume",
-                       "start", "fade_in", "fade_out", "duck")},
+            "renderer": "sound-scene-preview-v1",
+            "resolution": scene.get("signature"),
         }
         digest = hashlib.sha256(json.dumps(
             signature, sort_keys=True, default=str).encode()).hexdigest()[:20]
@@ -252,21 +333,14 @@ class FFmpegRenderWorkspace:
         target = _output() / name
         cached = target.is_file() and target.stat().st_size > 0
         if not cached:
-            voice = _output() / (
-                f".preview-{production_id}-{uuid4().hex}-voice.mp3")
+            voice_data = self.voice_stem(
+                production_id, parts,
+                scene.get("voice_projection", {}).get("signature", ""),
+            )
+            voice = _output() / Path(voice_data["filename"]).name
             try:
-                _sequence(parts, voice)
-                if music.get("filename"):
-                    source = (_output() / Path(music["filename"]).name).resolve()
-                    if not source.is_file() or _output() not in source.parents:
-                        raise RenderError(
-                            "The selected background music file is missing.")
-                    _mix(voice, source, music, target)
-                    voice.unlink(missing_ok=True)
-                else:
-                    os.replace(voice, target)
+                _mix_scene(voice, scene, target)
             except Exception:
-                voice.unlink(missing_ok=True)
                 target.unlink(missing_ok=True)
                 raise
             for old in _output().glob(f"preview-{production_id}-*.mp3"):
@@ -275,13 +349,18 @@ class FFmpegRenderWorkspace:
         return {
             "url": f"/audio/{quote(name)}", "name": name,
             "duration_ms": _measure(target), "parts": len(parts),
-            "music": bool(music.get("filename")), "cached": cached,
+            "music": any(
+                track.get("kind") == "music" and track.get("clips")
+                and not track.get("muted")
+                for track in scene.get("tracks", [])
+            ), "cached": cached,
             "skipped_drafts": skipped_drafts,
+            "sound_scene_signature": scene.get("signature"),
         }
 
     def finish_export(
         self, production_id: int, production_name: str, parts: list[dict],
-        music: dict, subtitles: dict,
+        scene: dict, subtitles: dict,
     ) -> FinishedExport:
         name = _name(f"{production_name}-full")
         target = _output() / name
@@ -289,27 +368,34 @@ class FFmpegRenderWorkspace:
         caption_paths: tuple[Path, ...] = ()
         blended: Path | None = None
         try:
-            manifest_parts, renderer = _sequence(parts, target)
-            mixed = False
-            if music.get("filename"):
-                source = (_output() / Path(music["filename"]).name).resolve()
-                if not source.is_file() or _output() not in source.parents:
-                    raise RenderError(
-                        "The selected background music file is missing.")
-                blended = _output() / _name(f"{target.stem}-mixed")
-                _mix(target, source, music, blended)
-                os.replace(blended, target)
-                blended = None
-                mixed = True
+            voice_data = self.voice_stem(
+                production_id, parts,
+                scene.get("voice_projection", {}).get("signature", ""),
+            )
+            voice = _output() / Path(voice_data["filename"]).name
+            manifest_parts = [
+                {
+                    "position": index,
+                    "part_id": span.get("part_id"),
+                    "kind": span.get("kind"),
+                    "filename": span.get("filename") or None,
+                    "seconds": (span.get("duration_ms") or 0) / 1000,
+                }
+                for index, span in enumerate(
+                    scene.get("voice_projection", {}).get("spans", []))
+            ]
+            mixed = _mix_scene(voice, scene, target)
+            renderer = "ffmpeg-sound-scene-v1"
             size = target.stat().st_size
             duration = _measure(target)
             manifest = {
                 "version": 1, "production_id": production_id,
                 "production_name": production_name, "parts": manifest_parts,
-                "background": ({key: music.get(key) for key in
-                                ("music_of", "filename", "level", "volume",
-                                 "start", "fade_in", "fade_out", "duck")}
-                               if mixed else None),
+                "sound_scene": {
+                    "signature": scene.get("signature"),
+                    "tracks": scene.get("tracks", []),
+                    "orphans": scene.get("orphans", []),
+                },
                 "output": {"filename": name, "codec": "mp3",
                            "bitrate": "192k", "sample_rate": 48000,
                            "channels": 2},

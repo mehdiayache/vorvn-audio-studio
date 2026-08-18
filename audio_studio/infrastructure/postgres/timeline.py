@@ -24,12 +24,6 @@ class PostgresTimelineRecords:
     def part(self, production_id: int, part_id: int) -> dict | None:
         return self.documents.part(production_id, part_id)
 
-    def music(self, production_id: int) -> dict:
-        return self.documents.music(production_id)
-
-    def set_music(self, production_id: int, values: dict) -> bool:
-        return self.documents.set_music(production_id, values)
-
     def reorder(self, production_id: int, order: list[int]) -> bool:
         return self.documents.reorder(production_id, order)
 

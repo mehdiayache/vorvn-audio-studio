@@ -10,12 +10,13 @@ from audio_studio.domain.rendering import (
     RenderError,
     silence_duration_seconds,
 )
+from audio_studio.domain.sound_scene import resolve_scene
 
 
 class RenderRecords(Protocol):
     def production(self, production_id: int) -> dict | None: ...
     def parts(self, production_id: int) -> list[dict]: ...
-    def music(self, production_id: int) -> dict: ...
+    def sound_scene(self, production_id: int) -> dict | None: ...
     def transcript(self, part_id: int) -> dict | None: ...
     def create_export(
         self, production_id: int, *, artifact: FinishedExport,
@@ -25,12 +26,12 @@ class RenderRecords(Protocol):
 class RenderWorkspace(Protocol):
     def duration_for_part(self, part: dict) -> int: ...
     def preview(
-        self, production_id: int, parts: list[dict], music: dict,
+        self, production_id: int, parts: list[dict], scene: dict,
         *, skipped_drafts: int,
     ) -> dict: ...
     def finish_export(
         self, production_id: int, production_name: str, parts: list[dict],
-        music: dict, subtitles: dict,
+        scene: dict, subtitles: dict,
     ) -> FinishedExport: ...
     def discard_export(self, artifact: FinishedExport) -> None: ...
 
@@ -62,8 +63,15 @@ class RenderService:
 
     def preview(self, production_id: int) -> dict:
         _, parts, drafts = self._parts(production_id)
+        sound_scene = self.records.sound_scene(production_id)
+        if not sound_scene:
+            raise RenderError("This Production has no Sound Scene.")
+        resolved = resolve_scene(
+            sound_scene.get("hydrated_document", sound_scene["document"]),
+            parts,
+        )
         return self.workspace.preview(
-            production_id, parts, self.records.music(production_id),
+            production_id, parts, resolved,
             skipped_drafts=len(drafts))
 
     def _subtitles(self, parts: list[dict]) -> dict:
@@ -98,9 +106,15 @@ class RenderService:
                 f"{len(drafts)} Part"
                 f"{'s are' if len(drafts) > 1 else ' is'} still a Draft.")
         subtitles = self._subtitles(parts)
+        sound_scene = self.records.sound_scene(production_id)
+        if not sound_scene:
+            raise RenderError("This Production has no Sound Scene.")
+        resolved = resolve_scene(
+            sound_scene.get("hydrated_document", sound_scene["document"]),
+            parts,
+        )
         artifact = self.workspace.finish_export(
-            production_id, production["name"], parts,
-            self.records.music(production_id), subtitles)
+            production_id, production["name"], parts, resolved, subtitles)
         try:
             recorded = self.records.create_export(
                 production_id, artifact=artifact)

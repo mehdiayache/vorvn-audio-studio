@@ -5,6 +5,7 @@ import unittest
 
 from audio_studio.application.renders import RenderService
 from audio_studio.domain.rendering import FinishedExport, RenderError
+from audio_studio.domain.sound_scene import empty_scene
 
 
 PART = {
@@ -29,8 +30,8 @@ class FakeRecords:
         return self.part_items
 
     @staticmethod
-    def music(_production_id):
-        return {}
+    def sound_scene(_production_id):
+        return {"document": empty_scene()}
 
     @staticmethod
     def transcript(generation_id):
@@ -50,6 +51,7 @@ class FakeWorkspace:
     def __init__(self):
         self.previews = []
         self.finished = []
+        self.finished_scenes = []
         self.discarded = []
 
     @staticmethod
@@ -57,22 +59,24 @@ class FakeWorkspace:
         return 1000
 
     def preview(
-            self, production_id, parts, music, *, skipped_drafts):
-        self.previews.append((production_id, parts, music, skipped_drafts))
+            self, production_id, parts, scene, *, skipped_drafts):
+        self.previews.append((production_id, parts, scene, skipped_drafts))
         return {"name": "preview.mp3", "cached": False,
                 "skipped_drafts": skipped_drafts}
 
     def finish_export(
-            self, production_id, production_name, parts, music, subtitles):
+            self, production_id, production_name, parts, scene, subtitles):
         artifact = FinishedExport(
             target=Path("/media/final.mp3"),
             manifest_path=Path("/media/final.manifest.json"),
             caption_paths=(Path("/media/final.srt"),),
             filename="final.mp3", manifest={"parts": parts},
             renderer="fixture", duration_ms=1000, size_bytes=1000,
-            part_count=len(parts), subtitles=subtitles, mixed=bool(music),
+            part_count=len(parts), subtitles=subtitles,
+            mixed=any(track["clips"] for track in scene["tracks"]),
         )
         self.finished.append(artifact)
+        self.finished_scenes.append(scene)
         return artifact
 
     def discard_export(self, artifact):
@@ -135,6 +139,14 @@ class RenderServiceTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "database"):
             RenderService(records, workspace).export(6)
         self.assertEqual(workspace.discarded, workspace.finished)
+
+    def test_preview_and_export_share_the_exact_resolved_scene(self):
+        records = FakeRecords()
+        workspace = FakeWorkspace()
+        service = RenderService(records, workspace)
+        service.preview(6)
+        service.export(6)
+        self.assertEqual(workspace.previews[0][2], workspace.finished_scenes[0])
 
 
 if __name__ == "__main__":

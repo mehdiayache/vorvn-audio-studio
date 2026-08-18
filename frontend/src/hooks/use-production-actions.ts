@@ -5,14 +5,14 @@ import type { usePlayer } from "@/hooks/use-player"
 import { useJobExecution } from "@/hooks/use-job-execution"
 import { studioApi } from "@/lib/api"
 import { moveSelectionToPosition } from "@/lib/production-order"
-import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, PartEditorialUpdate, PlayerSource, Production, ProductionPart, VentureAsset } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, Production, ProductionPart, SoundScene, SoundSceneClip, SoundSceneDocument, VentureAsset } from "@/types/domain"
 
 type Player = ReturnType<typeof usePlayer>
 export type ProductionMutationStatus = "idle" | "saving" | "saved"
 
-export function useProductionActions({ production, music, player, refresh, refreshAssets, preparePlayerSource, feedbackMode = "toast" }: {
+export function useProductionActions({ production, soundScene, player, refresh, refreshAssets, preparePlayerSource, feedbackMode = "toast" }: {
   production: Production
-  music: MusicBed
+  soundScene: SoundScene
   player: Player
   refresh: () => Promise<void>
   refreshAssets: () => Promise<void>
@@ -30,7 +30,7 @@ export function useProductionActions({ production, music, player, refresh, refre
   const productionFingerprint = JSON.stringify({
     updatedAt: production.updated_at,
     parts: production.parts.filter((part) => part.kind !== "stitch").map((part) => [part.id, part.position, part.revision, part.clip_id, part.duration_ms, part.filename, part.missing]),
-    music: [music.filename, music.music_of, music.volume, music.start, music.duck, music.fade_in, music.fade_out],
+    soundScene: [soundScene.revision, soundScene.resolved.signature],
   })
   const previousFingerprint = useRef(productionFingerprint)
   const previewKey = `preview:${production.id}:${previewRevision}`
@@ -83,7 +83,8 @@ export function useProductionActions({ production, music, player, refresh, refre
       const result = await studioApi.preview(production.id)
       if (!result.url) throw new Error("The preview did not return an audio file.")
       const skippedDrafts = Number(result.skipped_drafts || 0)
-      const mixLabel = music.filename ? "with Music Bed" : "narration only"
+      const music = soundScene.resolved.tracks.find((track) => track.kind === "music")
+      const mixLabel = music?.clips.length && !music.muted ? "with Music" : "voice only"
       const source: PlayerSource = { key: previewKey, url: result.url, title: production.name, subtitle: skippedDrafts ? `Recorded mix · ${skippedDrafts} Draft${skippedDrafts === 1 ? "" : "s"} omitted · ${mixLabel}` : `Exact current mix · ${mixLabel}`, kind: "production" }
       await player.toggleSource(preparePlayerSource ? await preparePlayerSource(source) : source)
       if (skippedDrafts) toast.warning(`Preview omits ${skippedDrafts} unrecorded Draft${skippedDrafts === 1 ? "" : "s"}.`)
@@ -92,7 +93,7 @@ export function useProductionActions({ production, music, player, refresh, refre
     } finally {
       setPreviewing(false)
     }
-  }, [music.filename, player, preparePlayerSource, previewKey, production])
+  }, [player, preparePlayerSource, previewKey, production, soundScene.resolved.tracks])
 
   const toggleProduction = useCallback(() => {
     if (previewing) return
@@ -179,7 +180,30 @@ export function useProductionActions({ production, music, player, refresh, refre
     await mutate(() => studioApi.reorder(production.id, next), `${selectedCount} Part${selectedCount === 1 ? "" : "s"} moved to position ${position}`)
   }, [mutate, production.id, production.parts])
 
-  const setMusic = useCallback((changes: Partial<MusicBed>) => mutate(() => studioApi.setMusic(production.id, changes), "Music settings saved"), [mutate, production.id])
+  const updateSoundScene = useCallback((document: SoundSceneDocument) => mutate(
+    () => studioApi.updateSoundScene(production.id, soundScene.revision, document),
+    "Sound Scene saved",
+  ), [mutate, production.id, soundScene.revision])
+  const updateSoundClip = useCallback((clipId: string, changes: Partial<SoundSceneClip>) => {
+    const document: SoundSceneDocument = {
+      version: 1,
+      tracks: soundScene.document.tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) => clip.id === clipId ? { ...clip, ...changes } : clip),
+      })),
+    }
+    return updateSoundScene(document)
+  }, [soundScene.document.tracks, updateSoundScene])
+  const setSoundTrackMuted = useCallback((trackId: string, muted: boolean) => updateSoundScene({
+    version: 1,
+    tracks: soundScene.document.tracks.map((track) => track.id === trackId ? { ...track, muted } : track),
+  }), [soundScene.document.tracks, updateSoundScene])
+  const undoSoundScene = useCallback(() => mutate(
+    () => studioApi.undoSoundScene(production.id), "Sound Scene undone",
+  ), [mutate, production.id])
+  const redoSoundScene = useCallback(() => mutate(
+    () => studioApi.redoSoundScene(production.id), "Sound Scene redone",
+  ), [mutate, production.id])
   const duplicatePart = useCallback((part: ProductionPart) => mutate(() => studioApi.duplicatePart(production.id, part.id), "Part duplicated"), [mutate, production.id])
   const deletePart = useCallback((part: ProductionPart) => mutate(() => studioApi.deletePart(production.id, part.id), "Part permanently deleted", true), [mutate, production.id])
   const editSilence = useCallback((part: ProductionPart, seconds: number) => mutate(() => studioApi.editSilence(production.id, part.id, seconds), "Silence updated"), [mutate, production.id])
@@ -189,7 +213,30 @@ export function useProductionActions({ production, music, player, refresh, refre
   const addSilence = useCallback((seconds: number, beforePartId: string | null) => mutate(() => studioApi.addSilence(production.id, seconds, beforePartId), "Silence added"), [mutate, production.id])
   const insertAsset = useCallback((asset: VentureAsset, beforePartId: string | null) => mutate(() => studioApi.insertAsset(production.id, asset.id, beforePartId), "Library audio inserted"), [mutate, production.id])
   const replaceAsset = useCallback((part: ProductionPart, asset: VentureAsset) => mutate(() => studioApi.replaceAsset(production.id, part.id, asset.id), "Venture audio replaced"), [mutate, production.id])
-  const setMusicAsset = useCallback((asset: VentureAsset) => mutate(() => studioApi.setMusic(production.id, { music_of: asset.id }), "Music bed selected"), [mutate, production.id])
+  const setMusicAsset = useCallback((asset: VentureAsset) => {
+    const existingTrack = soundScene.document.tracks.find((track) => track.kind === "music")
+    const existing = existingTrack?.clips[0]
+    const clip: SoundSceneClip = existing ? {
+      ...existing, asset_id: asset.id, asset_version_id: null,
+    } : {
+      id: crypto.randomUUID(), asset_id: asset.id, asset_version_id: null,
+      start_ms: 0, duration_ms: null, source_offset_ms: 0,
+      gain: .1, fade_in_ms: 2_000, fade_out_ms: 4_000,
+      loop: true, ducking: true,
+      anchor: { kind: "absolute", position_ms: 0 },
+    }
+    const document: SoundSceneDocument = {
+      version: 1,
+      tracks: existingTrack
+        ? soundScene.document.tracks.map((track) => track.id === existingTrack.id ? { ...track, clips: [clip] } : track)
+        : [...soundScene.document.tracks, { id: "music", kind: "music", name: "Music", muted: false, clips: [clip] }],
+    }
+    return updateSoundScene(document)
+  }, [soundScene.document.tracks, updateSoundScene])
+  const removeMusic = useCallback(() => updateSoundScene({
+    version: 1,
+    tracks: soundScene.document.tracks.map((track) => track.kind === "music" ? { ...track, clips: [] } : track),
+  }), [soundScene.document.tracks, updateSoundScene])
   const moveParts = useCallback((ids: number[], targetId: number, targetName: string) => mutate(() => studioApi.moveParts(production.id, ids, targetId), `Moved to ${targetName}`, true), [mutate, production.id])
   const uploadAsset = useCallback(async (collectionId: number, folder: string, file: File) => {
     await studioApi.uploadAsset(collectionId, file)
@@ -197,5 +244,5 @@ export function useProductionActions({ production, music, player, refresh, refre
     toast.success(`${file.name} uploaded to ${folder}`)
   }, [refreshAssets])
 
-  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, mutationStatus, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, setMusic, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, moveParts, uploadAsset }
+  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, mutationStatus, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, updateSoundScene, updateSoundClip, setSoundTrackMuted, undoSoundScene, redoSoundScene, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, setMusicAsset, removeMusic, moveParts, uploadAsset }
 }

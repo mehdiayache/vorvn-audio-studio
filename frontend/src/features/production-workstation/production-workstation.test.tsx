@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, ProductionPart, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, ProductionPart, SoundScene, VoiceDirectory } from "@/types/domain"
 import { InlineProductionName } from "./production-workstation-page"
 import { WorkstationAssetCard, WorkstationOutline, WorkstationSequenceCard, workstationPartState, type WorkstationPartActions } from "./workstation-sequence"
 import { WorkstationSoundDesign } from "./workstation-sound-design"
@@ -37,6 +37,19 @@ function partActions(values: Partial<WorkstationPartActions> = {}): WorkstationP
     move: vi.fn(), moveToPosition: vi.fn(), retry: vi.fn(), confirm: vi.fn(), setEnabled: vi.fn(),
     editSilence: vi.fn(), addBefore: vi.fn(), ...values,
   }
+}
+
+function scene(parts: ProductionPart[], sourceDurationMs = 60_000): SoundScene {
+  let cursor = 0
+  const spans = parts.map((item) => {
+    const duration = Number(item.duration_ms || 0)
+    const span = { part_id: item.id, part_public_id: String(item.id), position: item.position, kind: item.kind, title: item.title || "", role: item.authored_role || "", voice_name: item.voice_name || "", filename: item.filename || "", start_ms: cursor, duration_ms: duration, silence: item.kind === "silence", missing: false }
+    cursor += duration
+    return span
+  })
+  const clip = { id: "78af885c-aeb4-49bf-9edb-d3fc14496b2c", asset_id: 9, start_ms: 0, duration_ms: null, source_offset_ms: 0, gain: .12, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, anchor: { kind: "absolute" as const, position_ms: 0 }, asset_name: "Quiet room", filename: "bed.mp3", source_duration_ms: sourceDurationMs, resolved_start_ms: 0, resolved_duration_ms: cursor }
+  const track = { id: "music", kind: "music" as const, name: "Music", muted: false, clips: [clip] }
+  return { production_id: 6, revision: 1, document: { version: 1, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", voice_projection: { signature: "voice", duration_ms: cursor, sample_rate: 48_000, spans }, tracks: [track], orphans: [] }, voice_stem: { url: "/audio/voice-stem.mp3", filename: "voice-stem.mp3", duration_ms: cursor, signature: "voice", cached: true } }
 }
 
 describe("Production Workstation", () => {
@@ -88,11 +101,10 @@ describe("Production Workstation", () => {
       part({ id: 2, position: 1, kind: "silence", title: "1.5", duration_ms: 1_500, clip_id: null }),
       part({ id: 3, position: 2, kind: "asset", title: "Door closes", duration_ms: 2_000, clip_id: 30 }),
     ]
-    const music: MusicBed = { filename: "bed.mp3", name: "Quiet room", volume: .12, duck: true, duration_ms: 60_000 }
-    render(<WorkstationSoundDesign parts={parts} music={music} selection={null} onSelection={vi.fn()} onAddSound={vi.fn()} />)
+    render(<WorkstationSoundDesign scene={scene(parts)} selection={null} onSelection={vi.fn()} onAddMusic={vi.fn()} onCommit={vi.fn()} onUndo={vi.fn()} onRedo={vi.fn()} />)
 
-    expect(screen.getByRole("generic", { name: "Voice track" }).textContent).toContain("Narrator")
-    expect(screen.getByRole("generic", { name: "Sound effects track" }).textContent).toContain("Door closes")
+    expect(screen.getByRole("generic", { name: "Voice Projection track" }).textContent).toContain("Narrator")
+    expect(screen.getByRole("generic", { name: "Voice Projection track" }).textContent).toContain("Door closes")
     expect(screen.getByRole("generic", { name: "Music track" }).textContent).toContain("Quiet room")
   })
 
@@ -115,10 +127,24 @@ describe("Production Workstation", () => {
 
   it("sizes the timeline from Production time instead of the raw music source", () => {
     const story = part({ duration_ms: 120_000 })
-    const music: MusicBed = { filename: "long-source.mp3", name: "Long source", volume: .12, duck: true, duration_ms: 1_500_000 }
-    const { container } = render(<WorkstationSoundDesign parts={[story]} music={music} selection={null} onSelection={vi.fn()} onAddSound={vi.fn()} />)
+    const soundScene = scene([story], 1_500_000)
+    soundScene.document.tracks[0]!.clips[0]!.asset_name = "Long source"
+    soundScene.resolved.tracks[0]!.clips[0]!.asset_name = "Long source"
+    const { container } = render(<WorkstationSoundDesign scene={soundScene} selection={null} onSelection={vi.fn()} onAddMusic={vi.fn()} onCommit={vi.fn()} onUndo={vi.fn()} onRedo={vi.fn()} />)
 
     expect((container.querySelector(".ws-timeline") as HTMLElement).style.width).toBe("1200px")
+  })
+
+  it("persists one document after a committed drag, never one update per frame", async () => {
+    const onCommit = vi.fn().mockResolvedValue(undefined)
+    const { container } = render(<WorkstationSoundDesign scene={scene([part({ duration_ms: 120_000 })], 1_500_000)} selection={null} onSelection={vi.fn()} onAddMusic={vi.fn()} onCommit={onCommit} onUndo={vi.fn()} onRedo={vi.fn()} />)
+    const musicClip = container.querySelector(".ws-music-clip") as HTMLElement
+    fireEvent.pointerDown(musicClip, { button: 0, clientX: 100 })
+    fireEvent.pointerMove(window, { clientX: 120 })
+    fireEvent.pointerMove(window, { clientX: 135 })
+    expect(onCommit).not.toHaveBeenCalled()
+    fireEvent.pointerUp(window, { clientX: 135 })
+    await waitFor(() => expect(onCommit).toHaveBeenCalledTimes(1))
   })
 
   it("keeps exact positioning available after the legacy Production is removed", () => {

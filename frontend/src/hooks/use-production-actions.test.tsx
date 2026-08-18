@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
 
 import { studioApi } from "@/lib/api"
-import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, Production, ProductionPart } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, Production, ProductionPart, SoundScene } from "@/types/domain"
 import { useProductionActions } from "./use-production-actions"
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }))
@@ -22,7 +22,7 @@ const payload: GeneratePayload = {
 }
 const production = { id: 28, name: "Genesis", parts: [] } as unknown as Production
 const part = { id: 127, position: 0, kind: "audio" } as ProductionPart
-const music = { filename: "" } as MusicBed
+const soundScene = { production_id: 28, revision: 1, document: { version: 1, tracks: [{ id: "music", kind: "music", name: "Music", muted: false, clips: [] }] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", voice_projection: { signature: "voice", duration_ms: 0, sample_rate: 48_000, spans: [] }, tracks: [{ id: "music", kind: "music", name: "Music", muted: false, clips: [] }], orphans: [] }, voice_stem: { url: "", filename: "", duration_ms: 0, signature: "voice", cached: true } } as SoundScene
 
 describe("useProductionActions durable commands", () => {
   beforeEach(() => vi.clearAllMocks())
@@ -40,7 +40,7 @@ describe("useProductionActions durable commands", () => {
       setVolume: vi.fn(), setSpeed: vi.fn(), close: vi.fn(),
     }
     const { result } = renderHook(() => useProductionActions({
-      production, music, player: player as never,
+      production, soundScene, player: player as never,
       refresh: vi.fn(), refreshAssets: vi.fn(),
     }))
 
@@ -64,7 +64,7 @@ describe("useProductionActions durable commands", () => {
     }
     const refresh = vi.fn().mockResolvedValue(undefined)
     const { result } = renderHook(() => useProductionActions({
-      production, music, player: player as never,
+      production, soundScene, player: player as never,
       refresh, refreshAssets: vi.fn(),
     }))
     await act(async () => {
@@ -86,7 +86,7 @@ describe("useProductionActions durable commands", () => {
     }
     let current = { ...production, parts: [{ ...part, revision: 1 }] } as Production
     const { result, rerender } = renderHook(() => useProductionActions({
-      production: current, music, player: player as never,
+      production: current, soundScene, player: player as never,
       refresh: vi.fn(), refreshAssets: vi.fn(),
     }))
     expect(result.current.productionLoaded).toBe(true)
@@ -105,13 +105,13 @@ describe("useProductionActions durable commands", () => {
       setVolume: vi.fn(), setSpeed: vi.fn(), close: vi.fn(),
     }
     const { result } = renderHook(() => useProductionActions({
-      production, music, player: player as never,
+      production, soundScene, player: player as never,
       refresh: vi.fn(), refreshAssets: vi.fn(),
     }))
 
     act(() => result.current.toggleProduction())
     await waitFor(() => expect(toggleSource).toHaveBeenCalledTimes(1))
-    expect(toggleSource.mock.calls[0]?.[0].subtitle).toBe("Recorded mix · 43 Drafts omitted · narration only")
+    expect(toggleSource.mock.calls[0]?.[0].subtitle).toBe("Recorded mix · 43 Drafts omitted · voice only")
     expect(toast.warning).toHaveBeenCalledWith("Preview omits 43 unrecorded Drafts.")
     expect(toast.success).not.toHaveBeenCalled()
   })
@@ -125,7 +125,7 @@ describe("useProductionActions durable commands", () => {
       setVolume: vi.fn(), setSpeed: vi.fn(), close: vi.fn(),
     }
     const { result } = renderHook(() => useProductionActions({
-      production, music, player: player as never,
+      production, soundScene, player: player as never,
       refresh: vi.fn().mockResolvedValue(undefined), refreshAssets: vi.fn(),
       feedbackMode: "inline",
     }))
@@ -151,7 +151,7 @@ describe("useProductionActions durable commands", () => {
     const failedProduction = { ...production, export_job: failedExport } as Production
 
     renderHook(() => useProductionActions({
-      production: failedProduction, music, player: player as never,
+      production: failedProduction, soundScene, player: player as never,
       refresh: vi.fn(), refreshAssets: vi.fn(),
     }))
 

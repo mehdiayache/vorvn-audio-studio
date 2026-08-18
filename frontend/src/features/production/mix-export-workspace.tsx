@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { formatDuration, partDurationMs } from "@/lib/format"
-import type { DurableJob, MusicBed, Production, ProductionPart } from "@/types/domain"
+import type { DurableJob, Production, ProductionPart, SoundScene } from "@/types/domain"
 
 import "@/features/production/mix-export-workspace.css"
 
@@ -38,9 +38,9 @@ function fileSize(bytes: number) {
   return bytes >= 1_000_000 ? `${(bytes / 1_000_000).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1000))} KB`
 }
 
-export function MixExportWorkspace({ production, music, previewing, productionPlaying, previewReady, previewStale, exportJob, onPreview, onExport, onLocatePart, onOpenHealth, exporting }: {
+export function MixExportWorkspace({ production, soundScene, previewing, productionPlaying, previewReady, previewStale, exportJob, onPreview, onExport, onLocatePart, onOpenHealth, exporting }: {
   production: Production
-  music: MusicBed
+  soundScene: SoundScene
   previewing: boolean
   productionPlaying: boolean
   previewReady: boolean
@@ -64,6 +64,8 @@ export function MixExportWorkspace({ production, music, previewing, productionPl
   const exportComplete = Boolean(exportJob && ["ok", "warning"].includes(exportJob.status))
   const exportDetail = exportComplete ? exportJob?.status === "warning" && exportJob.detail ? exportJob.detail : "Finished and recorded as an immutable Production output." : exportJob?.error || exportJob?.detail || `${progress}% complete`
   const previewLabel = previewing ? "Preparing…" : previewStale ? "Refresh preview" : productionPlaying ? "Pause preview" : previewReady ? "Play current preview" : draftCount ? "Preview recorded Parts" : "Prepare current preview"
+  const musicTrack = soundScene.resolved.tracks.find((track) => track.kind === "music")
+  const musicClip = musicTrack?.clips.find((clip) => !clip.orphan)
   return <section className="mix-export-workspace">
     <header className={`mix-readiness ${ready ? "is-ready" : "is-blocked"}`}>
       <span>{ready ? <PackageCheck /> : <CircleAlert />}</span>
@@ -77,7 +79,7 @@ export function MixExportWorkspace({ production, music, previewing, productionPl
         <div><dt><Waves /> Sequence</dt><dd><b>{sequence.length} Parts · {formatDuration(duration / 1000)}</b><span>{draftCount ? `Preview omits ${draftCount} unrecorded Draft${draftCount === 1 ? "" : "s"}; export remains blocked` : "Current canonical order"}</span></dd></div>
         <div className={blocking.some((issue) => issue.title === "Speech not recorded") ? "is-blocking" : "is-clear"}><dt><CheckCircle2 /> Speech</dt><dd><b>{recordedParts} of {speechParts} recorded</b><span>{speechParts - recordedParts ? `${speechParts - recordedParts} still need recording` : "Every Speech Part has one active recording"}</span></dd></div>
         <div className={blocking.some((issue) => issue.title === "Linked media missing") ? "is-blocking" : "is-clear"}><dt><FileAudio /> Linked media</dt><dd><b>{linkedMedia ? `${linkedMedia} Venture asset${linkedMedia === 1 ? "" : "s"}` : "No linked Venture audio"}</b><span>{blocking.some((issue) => issue.title === "Linked media missing") ? "At least one exact source is missing" : "All linked sources are available"}</span></dd></div>
-        <div><dt><Music2 /> Music</dt><dd><b>{music.filename ? music.name || "Music Bed selected" : "Narration only"}</b><span>{music.filename ? `${Math.round(Number(music.volume ?? 0.18) * 100)}% level · ${music.duck ? "ducking on" : "ducking off"}` : "No parallel Music Bed in this mix"}</span></dd></div>
+        <div><dt><Music2 /> Music</dt><dd><b>{musicClip ? musicClip.asset_name || "Music selected" : "Narration only"}</b><span>{musicClip ? `${Math.round(Number(musicClip.gain ?? 1) * 100)}% level · ${musicTrack?.muted ? "muted" : musicClip.loop ? "looping" : "plays once"}` : "No parallel Music clip in this Sound Scene"}</span></dd></div>
         <div className={review.some((issue) => issue.title === "Captions are stale") ? "is-review" : "is-clear"}><dt><Captions /> Captions</dt><dd><b>{captioned} captioned Part{captioned === 1 ? "" : "s"}</b><span>{review.filter((issue) => issue.title === "Captions are stale").length ? "Some caption sets are stale" : "Current caption sets will be packaged when available"}</span></dd></div>
         <div><dt><ShieldCheck /> Output</dt><dd><b>MP3 · 192 kbps · 48 kHz stereo</b><span>Local FFmpeg finishing · immutable output record</span></dd></div>
       </dl>

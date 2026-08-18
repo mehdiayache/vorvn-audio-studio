@@ -80,9 +80,17 @@ with tempfile.TemporaryDirectory() as directory:
         music = root / "music.wav"
         make_audio(music, 220, 32000, "pcm_s16le")
         mixed = root / "mixed.mp3"
-        renders._mix(target, music, {
-            "level": "discreet", "fade_in": 0.05, "fade_out": 0.05,
-            "duck": True,
+        renders._mix_scene(target, {
+            "voice_projection": {"duration_ms": round(duration * 1000)},
+            "tracks": [{"id": "music", "kind": "music", "muted": False,
+                        "clips": [{
+                            "filename": music.name, "resolved_start_ms": 0,
+                            "resolved_duration_ms": round(duration * 1000),
+                            "source_offset_ms": 0, "gain": .1,
+                            "fade_in_ms": 50, "fade_out_ms": 50,
+                            "loop": True, "ducking": True,
+                            "orphan": False, "missing": False,
+                        }]}],
         }, mixed)
         check("background bed mixes with ducking and fades", mixed.exists(),
               "ffmpeg music mix failed")

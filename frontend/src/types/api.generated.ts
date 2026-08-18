@@ -345,24 +345,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/productions/{production_id}/music": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Music */
-        get: operations["getProductionMusic"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update Music */
-        patch: operations["updateProductionMusic"];
-        trace?: never;
-    };
     "/api/v1/productions/{production_id}/parts": {
         parameters: {
             query?: never;
@@ -595,6 +577,58 @@ export interface paths {
         get: operations["getProductionProjectScene"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/productions/{production_id}/sound-scene": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Sound Scene */
+        get: operations["getProductionSoundScene"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Sound Scene */
+        patch: operations["updateProductionSoundScene"];
+        trace?: never;
+    };
+    "/api/v1/productions/{production_id}/sound-scene/redo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Redo Sound Scene */
+        post: operations["redoProductionSoundScene"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/productions/{production_id}/sound-scene/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo Sound Scene */
+        post: operations["undoProductionSoundScene"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1399,6 +1433,16 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AbsoluteAnchor */
+        AbsoluteAnchor: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "absolute";
+            /** Position Ms */
+            position_ms: number;
+        };
         /** ActivityDayResponse */
         ActivityDayResponse: {
             /** Cost */
@@ -2245,50 +2289,6 @@ export interface components {
             /** Moved */
             moved: number;
         };
-        /** MusicBedEnvelope */
-        MusicBedEnvelope: {
-            data: components["schemas"]["MusicBedResponse"];
-        };
-        /** MusicBedResponse */
-        MusicBedResponse: {
-            /** Duck */
-            duck?: boolean | null;
-            /** Duration Ms */
-            duration_ms?: number | null;
-            /** Fade In */
-            fade_in?: number | null;
-            /** Fade Out */
-            fade_out?: number | null;
-            /** Filename */
-            filename?: string | null;
-            /** Level */
-            level?: string | null;
-            /** Music Of */
-            music_of?: number | null;
-            /** Name */
-            name?: string | null;
-            /** Start */
-            start?: number | null;
-            /** Volume */
-            volume?: number | null;
-        };
-        /** MusicBody */
-        MusicBody: {
-            /** Duck */
-            duck?: boolean | null;
-            /** Fade In */
-            fade_in?: number | null;
-            /** Fade Out */
-            fade_out?: number | null;
-            /** Level */
-            level?: string | null;
-            /** Music Of */
-            music_of?: number | null;
-            /** Start */
-            start?: number | null;
-            /** Volume */
-            volume?: number | null;
-        };
         /** OkEnvelope */
         OkEnvelope: {
             data: components["schemas"]["OkResponse"];
@@ -2368,6 +2368,26 @@ export interface components {
             next_cursor: string | null;
             /** Total */
             total: number;
+        };
+        /** PartAnchor */
+        PartAnchor: {
+            /**
+             * Edge
+             * @enum {string}
+             */
+            edge: "start" | "end";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "part";
+            /**
+             * Offset Ms
+             * @default 0
+             */
+            offset_ms: number;
+            /** Part Id */
+            part_id: number;
         };
         /** PartCaptionJobResponse */
         PartCaptionJobResponse: {
@@ -3134,6 +3154,88 @@ export interface components {
             /** Asset Id */
             asset_id: number;
         };
+        /** ResolvedSoundSceneClip */
+        ResolvedSoundSceneClip: {
+            /** Anchor */
+            anchor: components["schemas"]["AbsoluteAnchor"] | components["schemas"]["PartAnchor"];
+            /** Asset Id */
+            asset_id: number;
+            /** Asset Kind */
+            asset_kind?: string | null;
+            /** Asset Name */
+            asset_name?: string | null;
+            /** Asset Version Id */
+            asset_version_id?: number | null;
+            /**
+             * Ducking
+             * @default false
+             */
+            ducking: boolean;
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /**
+             * Fade In Ms
+             * @default 0
+             */
+            fade_in_ms: number;
+            /**
+             * Fade Out Ms
+             * @default 0
+             */
+            fade_out_ms: number;
+            /** Filename */
+            filename?: string | null;
+            /**
+             * Gain
+             * @default 1
+             */
+            gain: number;
+            /** Id */
+            id: string;
+            /**
+             * Loop
+             * @default false
+             */
+            loop: boolean;
+            /** Missing */
+            missing?: boolean | null;
+            /** Orphan */
+            orphan: boolean;
+            /** Orphan Reason */
+            orphan_reason?: string | null;
+            /** Resolved Duration Ms */
+            resolved_duration_ms: number;
+            /** Resolved Start Ms */
+            resolved_start_ms?: number | null;
+            /** Source Duration Ms */
+            source_duration_ms?: number | null;
+            /**
+             * Source Offset Ms
+             * @default 0
+             */
+            source_offset_ms: number;
+            /**
+             * Start Ms
+             * @default 0
+             */
+            start_ms: number;
+        };
+        /** ResolvedSoundSceneTrack */
+        ResolvedSoundSceneTrack: {
+            /** Clips */
+            clips: components["schemas"]["ResolvedSoundSceneClip"][];
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "music" | "sfx" | "ambience";
+            /** Muted */
+            muted: boolean;
+            /** Name */
+            name: string;
+        };
         /** ResourceCreate */
         ResourceCreate: {
             /**
@@ -3299,6 +3401,126 @@ export interface components {
             insert_before_part_id?: string | null;
             /** Seconds */
             seconds: number;
+        };
+        /** SoundSceneClipDocument */
+        SoundSceneClipDocument: {
+            /** Anchor */
+            anchor: components["schemas"]["AbsoluteAnchor"] | components["schemas"]["PartAnchor"];
+            /** Asset Id */
+            asset_id: number;
+            /** Asset Version Id */
+            asset_version_id?: number | null;
+            /**
+             * Ducking
+             * @default false
+             */
+            ducking: boolean;
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /**
+             * Fade In Ms
+             * @default 0
+             */
+            fade_in_ms: number;
+            /**
+             * Fade Out Ms
+             * @default 0
+             */
+            fade_out_ms: number;
+            /**
+             * Gain
+             * @default 1
+             */
+            gain: number;
+            /** Id */
+            id: string;
+            /**
+             * Loop
+             * @default false
+             */
+            loop: boolean;
+            /**
+             * Source Offset Ms
+             * @default 0
+             */
+            source_offset_ms: number;
+            /**
+             * Start Ms
+             * @default 0
+             */
+            start_ms: number;
+        };
+        /** SoundSceneDocument */
+        SoundSceneDocument: {
+            /** Tracks */
+            tracks: components["schemas"]["SoundSceneTrackDocument"][];
+            /**
+             * Version
+             * @constant
+             */
+            version: 1;
+        };
+        /** SoundSceneEnvelope */
+        SoundSceneEnvelope: {
+            data: components["schemas"]["SoundSceneResponse"];
+        };
+        /** SoundSceneResolution */
+        SoundSceneResolution: {
+            /** Orphans */
+            orphans: {
+                [key: string]: string;
+            }[];
+            /** Signature */
+            signature: string;
+            /** Tracks */
+            tracks: components["schemas"]["ResolvedSoundSceneTrack"][];
+            /**
+             * Version
+             * @constant
+             */
+            version: 1;
+            voice_projection: components["schemas"]["VoiceProjection"];
+        };
+        /** SoundSceneResponse */
+        SoundSceneResponse: {
+            /** Can Redo */
+            can_redo: boolean;
+            /** Can Undo */
+            can_undo: boolean;
+            document: components["schemas"]["SoundSceneDocument"];
+            /** Production Id */
+            production_id: number;
+            resolved: components["schemas"]["SoundSceneResolution"];
+            /** Revision */
+            revision: number;
+            /** Updated At */
+            updated_at: string;
+            voice_stem: components["schemas"]["VoiceStemResponse"];
+        };
+        /** SoundSceneTrackDocument */
+        SoundSceneTrackDocument: {
+            /** Clips */
+            clips: components["schemas"]["SoundSceneClipDocument"][];
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "music" | "sfx" | "ambience";
+            /**
+             * Muted
+             * @default false
+             */
+            muted: boolean;
+            /** Name */
+            name: string;
+        };
+        /** SoundSceneUpdateBody */
+        SoundSceneUpdateBody: {
+            document: components["schemas"]["SoundSceneDocument"];
+            /** Expected Revision */
+            expected_revision: number;
         };
         /**
          * SpeechGenerateResultResponse
@@ -4632,6 +4854,47 @@ export interface components {
             /** Uses */
             uses: number;
         };
+        /** VoiceProjection */
+        VoiceProjection: {
+            /** Duration Ms */
+            duration_ms: number;
+            /**
+             * Sample Rate
+             * @constant
+             */
+            sample_rate: 48000;
+            /** Signature */
+            signature: string;
+            /** Spans */
+            spans: components["schemas"]["VoiceProjectionSpan"][];
+        };
+        /** VoiceProjectionSpan */
+        VoiceProjectionSpan: {
+            /** Duration Ms */
+            duration_ms: number;
+            /** Filename */
+            filename: string;
+            /** Kind */
+            kind: string;
+            /** Missing */
+            missing: boolean;
+            /** Part Id */
+            part_id: number;
+            /** Part Public Id */
+            part_public_id: string;
+            /** Position */
+            position?: number | null;
+            /** Role */
+            role: string;
+            /** Silence */
+            silence: boolean;
+            /** Start Ms */
+            start_ms: number;
+            /** Title */
+            title: string;
+            /** Voice Name */
+            voice_name: string;
+        };
         /** VoiceReferenceResponse */
         VoiceReferenceResponse: {
             /** Id */
@@ -4763,6 +5026,21 @@ export interface components {
             region: string;
             /** Tier */
             tier: string;
+        };
+        /** VoiceStemResponse */
+        VoiceStemResponse: {
+            /** Cached */
+            cached: boolean;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Filename */
+            filename: string;
+            /** Signature */
+            signature: string;
+            /** Unavailable Reason */
+            unavailable_reason?: string | null;
+            /** Url */
+            url: string;
         };
         /** VoiceUpdate */
         VoiceUpdate: {
@@ -5606,72 +5884,6 @@ export interface operations {
             };
         };
     };
-    getProductionMusic: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MusicBedEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    updateProductionMusic: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MusicBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MusicBedEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     deleteProductionParts: {
         parameters: {
             query?: never;
@@ -6144,6 +6356,134 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getProductionSoundScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoundSceneEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateProductionSoundScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SoundSceneUpdateBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoundSceneEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    redoProductionSoundScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoundSceneEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    undoProductionSoundScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoundSceneEnvelope"];
                 };
             };
             /** @description Validation Error */

@@ -20,6 +20,7 @@ from audio_studio.infrastructure.postgres.accounting import (
     ProductionAccountingRepository,
 )
 from audio_studio.infrastructure.postgres.timeline import PostgresTimelineRecords
+from audio_studio.infrastructure.postgres.sound_scenes import SoundSceneRepository
 from audio_studio.infrastructure.postgres.venture_assets import (
     VentureAssetRepository,
 )
@@ -240,18 +241,38 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual(self.repository.generation(draft["id"])["text"],
                          "A quiet opening")
 
-        music = self.timeline.set_music(first_id, {
-            "music_of": music_asset["id"],
-            "volume": .25, "start": 1.5,
-            "fade_in": 3, "duck": False,
+        sound_scenes = SoundSceneRepository()
+        current_scene = sound_scenes.get(first_id)
+        sound_clip_id = str(uuid4())
+        saved_scene = sound_scenes.commit(first_id, current_scene["revision"], {
+            "version": 1,
+            "tracks": [{"id": "music", "kind": "music", "name": "Music",
+                        "muted": False, "clips": [{
+                            "id": sound_clip_id, "asset_id": music_asset["id"],
+                            "start_ms": 0, "duration_ms": None,
+                            "source_offset_ms": 1_500, "gain": .25,
+                            "fade_in_ms": 3_000, "fade_out_ms": 4_000,
+                            "loop": True, "ducking": False,
+                            "anchor": {"kind": "absolute", "position_ms": 0},
+                        }]}],
         })
-        self.assertEqual((music["music_of"], music["filename"], music["volume"],
-                          music["start"], music["fade_in"], music["duck"]),
-                         (music_asset["id"], f"music-{self.marker}.wav",
-                          .25, 1.5, 3.0, False))
-        removed_music = self.timeline.set_music(first_id, {"music_of": None})
-        self.assertIsNone(removed_music["music_of"])
-        self.assertEqual(removed_music["filename"], "")
+        music_clip = saved_scene["hydrated_document"]["tracks"][0]["clips"][0]
+        self.assertEqual(
+            (music_clip["asset_id"], music_clip["filename"],
+             music_clip["gain"], music_clip["source_offset_ms"],
+             music_clip["fade_in_ms"], music_clip["ducking"]),
+            (music_asset["id"], f"music-{self.marker}.wav",
+             .25, 1_500, 3_000, False),
+        )
+        undone_scene = sound_scenes.step(first_id, -1)
+        self.assertEqual(undone_scene["document"]["tracks"][0]["clips"], [])
+        self.assertTrue(undone_scene["can_redo"])
+        redone_scene = sound_scenes.step(first_id, 1)
+        self.assertEqual(
+            redone_scene["document"]["tracks"][0]["clips"][0]["id"],
+            sound_clip_id,
+        )
+        self.assertTrue(redone_scene["can_undo"])
 
         moved = self.timeline.move_parts(
             first_id, [duplicate["id"]], second_id)

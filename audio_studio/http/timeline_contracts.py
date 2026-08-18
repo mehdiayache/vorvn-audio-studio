@@ -4,23 +4,6 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
-class MusicBedResponse(BaseModel):
-    music_of: int | None = None
-    level: str | None = None
-    fade_in: float | None = None
-    fade_out: float | None = None
-    duck: bool | None = None
-    volume: float | None = None
-    start: float | None = None
-    filename: str | None = None
-    name: str | None = None
-    duration_ms: int | None = None
-
-
-class MusicBedEnvelope(BaseModel):
-    data: MusicBedResponse
-
-
 class OkResponse(BaseModel):
     ok: bool
     subtitles_stale: int | None = None

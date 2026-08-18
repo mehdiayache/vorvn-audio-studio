@@ -170,17 +170,85 @@ export type Production = {
   total_bytes: number
 }
 
-export type MusicBed = {
-  music_of?: number | null
-  level?: "discreet" | "present" | "loud" | string
-  fade_in?: number
-  fade_out?: number
-  duck?: boolean
-  volume?: number
-  start?: number
+export type SoundSceneAnchor =
+  | { kind: "absolute"; position_ms: number }
+  | { kind: "part"; part_id: number; edge: "start" | "end"; offset_ms: number }
+
+export type SoundSceneClip = {
+  id: string
+  asset_id: number
+  asset_version_id?: number | null
+  start_ms: number
+  duration_ms: number | null
+  source_offset_ms: number
+  gain: number
+  fade_in_ms: number
+  fade_out_ms: number
+  loop: boolean
+  ducking: boolean
+  anchor: SoundSceneAnchor
+  asset_name?: string
+  asset_kind?: string
   filename?: string
-  name?: string
-  duration_ms?: number | null
+  source_duration_ms?: number
+  missing?: boolean
+  resolved_start_ms?: number | null
+  resolved_duration_ms?: number
+  orphan?: boolean
+  orphan_reason?: string | null
+}
+
+export type SoundSceneTrack = {
+  id: string
+  kind: "music" | "sfx" | "ambience"
+  name: string
+  muted: boolean
+  clips: SoundSceneClip[]
+}
+
+export type SoundSceneDocument = { version: 1; tracks: SoundSceneTrack[] }
+
+export type VoiceProjectionSpan = {
+  part_id: number
+  part_public_id: string
+  position?: number | null
+  kind: string
+  title: string
+  role: string
+  voice_name: string
+  filename: string
+  start_ms: number
+  duration_ms: number
+  silence: boolean
+  missing: boolean
+}
+
+export type SoundScene = {
+  production_id: number
+  revision: number
+  document: SoundSceneDocument
+  can_undo: boolean
+  can_redo: boolean
+  updated_at: string
+  resolved: {
+    version: 1
+    signature: string
+    voice_projection: {
+      signature: string
+      duration_ms: number
+      sample_rate: number
+      spans: VoiceProjectionSpan[]
+    }
+    tracks: SoundSceneTrack[]
+    orphans: { track_id: string; clip_id: string; reason: string }[]
+  }
+  voice_stem: {
+    url: string
+    filename: string
+    duration_ms: number
+    signature: string
+    cached: boolean
+  }
 }
 
 export type VentureAsset = {
