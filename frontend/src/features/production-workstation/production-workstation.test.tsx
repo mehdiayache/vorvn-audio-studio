@@ -2,7 +2,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
-import type { DurableJob, GenerateResult, MusicBed, ProductionPart, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, ProductionPart, VoiceDirectory } from "@/types/domain"
 import { InlineProductionName } from "./production-workstation-page"
 import { WorkstationOutline, WorkstationSequenceCard, type WorkstationPartActions } from "./workstation-sequence"
 import { WorkstationSoundDesign } from "./workstation-sound-design"
@@ -103,7 +103,7 @@ describe("Production Workstation", () => {
 
   it("keeps durable failed-generation recovery in the canonical Workstation", () => {
     const retry = vi.fn()
-    const job = { id: "speech-failed", type: "speech", status: "failed", progress: 0, detail: "Provider request failed", retries: 0, result: {} } as DurableJob<GenerateResult>
+    const job = { id: "speech-failed", type: "speech", status: "failed", progress: 0, detail: "Provider request failed", retries: 0, result: {}, request: { text: "A clear story opening." } as GeneratePayload } as DurableJob<GenerateResult> & { request: GeneratePayload }
     const source = part({ id: 9, kind: "draft", clip_id: null, speech_job: job })
     render(<WorkstationSequenceCard part={source} index={0} selected={false} playing={false} liveJobs={{}} directory={directory} actions={partActions({ retry })} />)
 
