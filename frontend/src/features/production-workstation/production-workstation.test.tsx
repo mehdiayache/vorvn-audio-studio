@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import type { DurableJob, GeneratePayload, GenerateResult, MusicBed, ProductionPart, VoiceDirectory } from "@/types/domain"
 import { InlineProductionName } from "./production-workstation-page"
-import { WorkstationOutline, WorkstationSequenceCard, type WorkstationPartActions } from "./workstation-sequence"
+import { WorkstationOutline, WorkstationSequenceCard, workstationPartState, type WorkstationPartActions } from "./workstation-sequence"
 import { WorkstationSoundDesign } from "./workstation-sound-design"
 
 class ResizeObserverMock {
@@ -66,6 +66,19 @@ describe("Production Workstation", () => {
     expect(screen.queryByRole("button", { name: /01.*Narrator/ })).toBeNull()
     fireEvent.click(screen.getByRole("button", { name: /02.*Esther/ }))
     expect(select).toHaveBeenCalledWith(draft)
+  })
+
+  it("keeps playback and the canonical state visible in Outline", () => {
+    const ready = part({ id: 1, authored_role: "Narrator" })
+    const draft = part({ id: 2, position: 1, kind: "draft", clip_id: null, duration_ms: 0 })
+    const issue = part({ id: 3, position: 2, outdated: true })
+    render(<WorkstationOutline parts={[ready, draft, issue]} selectedId={null} playingKey="part:1" playerPlaying directory={directory} onSelect={vi.fn()} onCollapse={vi.fn()} />)
+
+    const playing = screen.getByRole("button", { name: /01.*Narrator.*Playing/ })
+    expect(playing.getAttribute("aria-current")).toBe("true")
+    expect(workstationPartState(ready)).toBe("ready")
+    expect(workstationPartState(draft)).toBe("draft")
+    expect(workstationPartState(issue)).toBe("issue")
   })
 
   it("projects actual Production timing into distinct sound tracks", () => {

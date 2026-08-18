@@ -34,7 +34,7 @@ import type {
   AssetCollection, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, MusicBed, PlayerCaptionTrack,
   PlayerSource, Production, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory,
 } from "@/types/domain"
-import { WorkstationOutline, WorkstationSequence, type WorkstationPartActions } from "./workstation-sequence"
+import { WorkstationOutline, WorkstationSequence, workstationPartState, type WorkstationPartActions, type WorkstationPartState } from "./workstation-sequence"
 import { WorkstationPartInspector } from "./workstation-part-inspector"
 import { SoundDesignOutline, WorkstationSoundDesign, type SoundSelection } from "./workstation-sound-design"
 import { WorkstationPaneHeader } from "./workstation-pane-header"
@@ -148,6 +148,7 @@ function WorkstationHeader({ production, tree, duration, stage, issueCount, prev
       <ProductionParentSwitcher production={production} tree={tree} />
       <ChevronRight className="ws-breadcrumb-separator" aria-hidden="true" />
       <InlineProductionName name={production.name} onRename={onRename} />
+      <dl><div><dt>Parts</dt><dd>{production.parts.filter((part) => part.kind !== "stitch").length}</dd></div><div><dt>Duration</dt><dd>{formatDuration(duration)}</dd></div><div><dt>Spend</dt><dd>{formatMoney(production.current_sequence_cost)}</dd></div></dl>
       {production.status && production.status !== "draft" && <span className="ws-status">{production.status.replaceAll("_", " ")}</span>}
       {mutationStatus !== "idle" && <span className={`ws-save-state is-${mutationStatus}`} role="status" aria-live="polite">{mutationStatus === "saving" ? <LoaderCircle className="spin" /> : <Check />}{mutationStatus === "saving" ? "Saving…" : "Saved"}</span>}
     </div>
@@ -157,7 +158,6 @@ function WorkstationHeader({ production, tree, duration, stage, issueCount, prev
       <button className={stage === "mix" ? "is-active" : ""} onClick={() => onStage("mix")}><span>3</span><SlidersHorizontal /><b>Mix & Export</b><small>Finish and deliver</small></button>
     </nav>
     <div className="ws-header-actions">
-      <dl><div><dt>Parts</dt><dd>{production.parts.filter((part) => part.kind !== "stitch").length}</dd></div><div><dt>Duration</dt><dd>{formatDuration(duration)}</dd></div><div><dt>Spend</dt><dd>{formatMoney(production.current_sequence_cost)}</dd></div></dl>
       <div className="ws-action-buttons">
         {issueCount > 0 && <Button variant="outline" size="sm" onClick={() => onStage("mix")}><CircleAlert className="ws-warning-icon" /> {issueCount} issue{issueCount === 1 ? "" : "s"}</Button>}
         <Button variant="outline" size="sm" disabled={previewing} onClick={onPreview}>{previewing ? <LoaderCircle className="spin" /> : playing ? <Pause /> : <Play />}{previewing ? "Preparing…" : playing ? "Pause" : "Preview"}</Button>
@@ -166,6 +166,23 @@ function WorkstationHeader({ production, tree, duration, stage, issueCount, prev
       </div>
     </div>
   </header>
+}
+
+function CollapsedPaneSummary({ label, number, state, playing, onExpand }: {
+  label: string
+  number: string
+  state: WorkstationPartState
+  playing: boolean
+  onExpand: () => void
+}) {
+  return <div className="ws-collapsed-pane">
+    <Button className="ws-pane-expand" variant="ghost" size="icon-sm" aria-label={`Show ${label}`} title={`Show ${label}`} onClick={onExpand}><PanelLeftOpen /></Button>
+    <span className={cn("ws-collapsed-context", playing && "is-playing")} title={playing ? `${label} ${number} is playing` : `${label} ${number}`}>
+      <b>{number}</b>
+      <i className={`is-${state}`} />
+      {playing && <AudioLines aria-hidden="true" />}
+    </span>
+  </div>
 }
 
 function MixOutline({ production, music, onCollapse }: { production: Production; music: MusicBed; onCollapse: () => void }) {
@@ -349,6 +366,9 @@ export function ProductionWorkstationPage({ production, tree, music, assets, ass
   }), [actions, confirmJob, editPart, openNewSpeech, playSource, requestPartDeletion, retryJob, selectPart])
 
   const soundPart = soundSelection?.kind === "part" ? sourceParts.find((part) => part.id === soundSelection.id) || null : null
+  const playingPart = actions.playerPlaying && player.source?.key.startsWith("part:")
+    ? sourceParts.find((part) => part.id === Number(player.source?.key.slice(5))) || null
+    : null
   const inspectorTitle = composerOpen ? (composerPart ? `Edit Part ${formatPartNumber(composerPart.position ?? 0)}` : "New speech")
     : stage === "sequence" && selectedPart ? `Part ${formatPartNumber(selectedPart.position ?? 0)} · ${formatAuthoredRole(selectedPart.authored_role) || partKindLabel(selectedPart)}`
       : stage === "sound" && soundSelection?.kind === "music" ? "Music track"
@@ -377,6 +397,11 @@ export function ProductionWorkstationPage({ production, tree, music, assets, ass
 
   const inspectorOpen = composerOpen || stage === "sequence" && Boolean(selectedPart) || stage === "sound" && Boolean(soundSelection) || stage === "mix" && releaseInspectorOpen
   const outlineLabel = stage === "sequence" ? "outline" : stage === "sound" ? "tracks" : "release checklist"
+  const collapsedPart = playingPart || (stage === "sequence" ? selectedPart : stage === "sound" ? soundPart : null)
+  const collapsedState = collapsedPart ? workstationPartState(collapsedPart) : issues.length ? "issue" : sourceParts.some((part) => workstationPartState(part) === "draft") ? "draft" : "ready"
+  const collapsedNumber = collapsedPart
+    ? formatPartNumber(collapsedPart.position ?? sourceParts.indexOf(collapsedPart))
+    : String(stage === "sequence" ? sourceParts.length : stage === "sound" ? 3 : issues.length)
   const closeInspector = () => {
     if (composerOpen) { closeComposer(); return }
     if (stage === "sequence") setSelectedId(null)
@@ -398,10 +423,10 @@ export function ProductionWorkstationPage({ production, tree, music, assets, ass
       <div className="ws-body">
         <aside className={cn("ws-left-pane", !outlineOpen && "is-collapsed")} aria-label={`${stage} navigation`}>
           {outlineOpen ? <>
-            {stage === "sequence" && <WorkstationOutline parts={sourceParts} selectedId={selectedId} directory={directory} onSelect={selectPart} onCollapse={() => setOutlineOpen(false)} />}
+            {stage === "sequence" && <WorkstationOutline parts={sourceParts} selectedId={selectedId} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} directory={directory} onSelect={selectPart} onCollapse={() => setOutlineOpen(false)} />}
             {stage === "sound" && <SoundDesignOutline music={music} parts={sourceParts} selection={soundSelection} onSelection={setSoundSelection} onAddSound={() => setTool("asset")} onCollapse={() => setOutlineOpen(false)} />}
             {stage === "mix" && <MixOutline production={production} music={music} onCollapse={() => setOutlineOpen(false)} />}
-          </> : <Button className="ws-pane-expand" variant="ghost" size="icon-sm" aria-label={`Show ${outlineLabel}`} title={`Show ${outlineLabel}`} onClick={() => setOutlineOpen(true)}><PanelLeftOpen /></Button>}
+          </> : <CollapsedPaneSummary label={outlineLabel} number={collapsedNumber} state={collapsedState} playing={Boolean(playingPart)} onExpand={() => setOutlineOpen(true)} />}
         </aside>
         <main className="ws-center-pane" ref={centerPaneRef}>
           {stage === "sequence" && <WorkstationSequence parts={sourceParts} selectedId={selectedId} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} liveJobs={liveJobs} directory={directory} actions={partActions} onAddEnd={() => openNewSpeech()} />}

@@ -43,9 +43,20 @@ function captionJob(part: ProductionPart, liveJobs: Record<string, DurableJob<un
   return liveJobs[part.caption_job.id] || part.caption_job
 }
 
-export function WorkstationOutline({ parts, selectedId, directory, onSelect, onCollapse }: {
+export type WorkstationPartState = "ready" | "draft" | "issue"
+
+export function workstationPartState(part: ProductionPart): WorkstationPartState {
+  const failedOperation = Boolean(part.speech_job && ["failed", "lost", "blocked"].includes(part.speech_job.status))
+  if (part.outdated || part.missing || part.subtitles_stale || failedOperation) return "issue"
+  if (part.kind === "draft" || part.kind === "speech" && !part.clip_id) return "draft"
+  return "ready"
+}
+
+export function WorkstationOutline({ parts, selectedId, playingKey, playerPlaying = false, directory, onSelect, onCollapse }: {
   parts: ProductionPart[]
   selectedId: number | null
+  playingKey?: string
+  playerPlaying?: boolean
   directory: VoiceDirectory
   onSelect: (part: ProductionPart) => void
   onCollapse: () => void
@@ -55,9 +66,10 @@ export function WorkstationOutline({ parts, selectedId, directory, onSelect, onC
   const visible = parts.filter((part) => {
     const matches = !query || `${part.text} ${part.authored_role || ""} ${part.voice_name || part.voice || ""}`.toLocaleLowerCase().includes(query.toLocaleLowerCase())
     if (!matches) return false
-    if (filter === "ready") return Boolean(part.clip_id) && !part.outdated && !part.missing
-    if (filter === "drafts") return part.kind === "draft" || (part.kind === "speech" && !part.clip_id)
-    if (filter === "issues") return Boolean(part.outdated || part.missing || part.subtitles_stale || part.speech_job && ["failed", "lost", "blocked"].includes(part.speech_job.status))
+    const state = workstationPartState(part)
+    if (filter === "ready") return state === "ready"
+    if (filter === "drafts") return state === "draft"
+    if (filter === "issues") return state === "issue"
     return true
   })
   return <div className="ws-outline">
@@ -68,14 +80,15 @@ export function WorkstationOutline({ parts, selectedId, directory, onSelect, onC
     </div>
     <div className="ws-outline-list">
       {visible.map((part, index) => {
-        const draft = part.kind === "draft" || (part.kind === "speech" && !part.clip_id)
-        const issue = Boolean(part.outdated || part.missing || part.subtitles_stale)
+        const state = workstationPartState(part)
+        const playing = playerPlaying && playingKey === `part:${part.id}`
         const role = part.kind === "silence" ? "Pause" : part.kind === "asset" ? "Linked audio" : formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"
-        return <button key={part.id} className={cn("ws-outline-item", selectedId === part.id && "is-selected", part.enabled === false && "is-disabled")} aria-pressed={selectedId === part.id} onClick={() => onSelect(part)}>
+        const detail = part.kind === "silence" ? `${partDurationMs(part) / 1000}s silence` : state === "draft" ? "Draft · not recorded" : `${Math.round(partDurationMs(part) / 100) / 10}s`
+        return <button key={part.id} className={cn("ws-outline-item", selectedId === part.id && "is-selected", playing && "is-playing", part.enabled === false && "is-disabled")} aria-pressed={selectedId === part.id} aria-current={playing ? "true" : undefined} onClick={() => onSelect(part)}>
           <span className="ws-outline-number">{formatPartNumber(part.position ?? index)}</span>
           <span className="ws-outline-avatar">{part.kind === "silence" ? <Clock3 /> : <VoiceIdentity voice={part.catalogue_voice_id || part.voice || part.voice_name} identityId={part.voice_identity_id} directory={directory} compact showCopy={false} />}</span>
-          <span className="ws-outline-copy"><b>{role}</b><small>{part.kind === "silence" ? `${partDurationMs(part) / 1000}s silence` : draft ? "Draft · not recorded" : `${Math.round(partDurationMs(part) / 100) / 10}s`}</small></span>
-          <i className={cn(draft && "is-draft", issue && "is-issue", !draft && !issue && "is-ready")} aria-label={issue ? "Needs attention" : draft ? "Draft" : "Ready"} />
+          <span className="ws-outline-copy"><b>{role}</b><small>{playing ? `Playing · ${detail}` : detail}</small></span>
+          <i className={`is-${state}`} aria-label={state === "issue" ? "Needs attention" : state === "draft" ? "Draft" : "Ready"} />
         </button>
       })}
       {!visible.length && <p className="ws-outline-empty">Nothing matches this view.</p>}
@@ -151,7 +164,6 @@ export function WorkstationSequence({ parts, selectedId, playingKey, playerPlayi
   onAddEnd: () => void
 }) {
   return <div className="ws-sequence-canvas" aria-label="Production sequence">
-    <header className="ws-canvas-heading"><div className="ws-heading-copy"><h2>Story sequence</h2><p>Select a part to inspect or edit it.</p></div></header>
     <div className="ws-sequence-list">
       {parts.map((part, index) => <div className="ws-sequence-slot" key={part.id}>
         <button className="ws-insert-control" aria-label={`Add before part ${index + 1}`} onClick={() => actions.addBefore(part)}>+</button>

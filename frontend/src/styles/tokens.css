@@ -63,11 +63,16 @@
   --surface-inverse: oklch(0.147 0.004 49.3);
   --surface-inverse-soft: oklch(0.27 0.008 43.1);
   --primary-soft: oklch(0.965 0.023 293.5);
-  --success: oklch(0.52 0.15 151);
-  --success-soft: oklch(0.97 0.025 151);
-  --success-border: oklch(0.82 0.075 151);
-  --warning: oklch(0.63 0.15 72);
-  --warning-soft: oklch(0.975 0.035 84);
+  /* Product states: ready, authored Draft, and attention are distinct truths. */
+  --success: rgb(33 186 69);
+  --success-soft: rgb(33 186 69 / 8%);
+  --success-border: rgb(33 186 69 / 34%);
+  --draft: rgb(251 189 8);
+  --draft-soft: rgb(251 189 8 / 10%);
+  --draft-border: rgb(251 189 8 / 38%);
+  --warning: rgb(242 113 28);
+  --warning-soft: rgb(242 113 28 / 9%);
+  --warning-border: rgb(242 113 28 / 36%);
   --danger-soft: oklch(0.97 0.025 27.3);
   --danger-border: oklch(0.84 0.08 27.3);
   --asset: oklch(0.63 0.15 56);
