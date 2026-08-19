@@ -35,6 +35,23 @@ def get_audio(name: str) -> FileResponse:
     return _response(media_service.resolve("audio", name))
 
 
+@router.api_route(
+    "/api/v1/media/segments/{name}", methods=["GET", "HEAD"],
+    include_in_schema=False,
+)
+def get_audio_segment(
+    name: str,
+    offset_ms: int = Query(0, ge=0, le=86_400_000),
+    duration_ms: int = Query(..., ge=100, le=120_000),
+) -> FileResponse:
+    try:
+        item = media_service.audio_segment(
+            name, offset_ms=offset_ms, duration_ms=duration_ms)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return _response(item)
+
+
 @router.get("/api/v1/media/peaks/{name}", operation_id="getAudioPeaks",
             response_model=AudioPeaksEnvelope)
 def get_audio_peaks(name: str, bars: int = Query(48, ge=8, le=4096)) -> dict:

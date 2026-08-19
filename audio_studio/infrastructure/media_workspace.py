@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
+import os
+import shutil
+import subprocess
+from uuid import uuid4
 
 from audio_studio.config import settings
 from audio_studio.domain.media import MediaFile
@@ -47,3 +52,50 @@ class LocalMediaWorkspace:
         root = roots.get(kind)
         path = contained_file(root, name) if root else None
         return MediaFile(path, download_name) if path else None
+
+    def segment(
+        self, name: str, *, offset_ms: int, duration_ms: int,
+    ) -> MediaFile | None:
+        """Return one exact, bounded PCM-decoding source for browser playout."""
+        source = contained_file(self.output, name)
+        if source is None:
+            return None
+        if not shutil.which("ffmpeg"):
+            raise RuntimeError("FFmpeg is required to prepare that audio window.")
+        stat = source.stat()
+        identity = (
+            f"{source.name}:{stat.st_size}:{stat.st_mtime_ns}:"
+            f"{offset_ms}:{duration_ms}"
+        )
+        digest = hashlib.sha256(identity.encode()).hexdigest()[:24]
+        target = self.output / f"segment-{digest}.mp3"
+        if target.is_file() and target.stat().st_size > 0:
+            return MediaFile(target)
+        temporary = target.with_name(f".{target.stem}-{uuid4().hex}.tmp.mp3")
+        command = [
+            "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+            "-ss", f"{offset_ms / 1000:.3f}", "-i", str(source),
+            "-t", f"{duration_ms / 1000:.3f}", "-vn",
+            "-ar", "48000", "-ac", "2", "-c:a", "libmp3lame",
+            "-b:a", "192k", str(temporary),
+        ]
+        try:
+            result = subprocess.run(
+                command, capture_output=True, text=True, timeout=120)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            temporary.unlink(missing_ok=True)
+            raise RuntimeError(f"Audio window preparation failed: {exc}") from exc
+        if (result.returncode or not temporary.is_file()
+                or temporary.stat().st_size <= 0):
+            temporary.unlink(missing_ok=True)
+            detail = (result.stderr or "FFmpeg produced no audio").strip()
+            raise RuntimeError(
+                f"Audio window preparation failed: {detail[-240:]}")
+        os.replace(temporary, target)
+        for old in sorted(
+            self.output.glob("segment-*.mp3"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )[128:]:
+            old.unlink(missing_ok=True)
+        return MediaFile(target)

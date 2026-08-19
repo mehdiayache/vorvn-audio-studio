@@ -18,6 +18,10 @@ class FakeWorkspace:
             return None
         return MediaFile(Path("/safe") / name, download_name)
 
+    def segment(self, name, *, offset_ms, duration_ms):
+        self.lookups.append(("segment", name, offset_ms, duration_ms))
+        return MediaFile(Path("/safe") / f"segment-{name}")
+
 
 class FakeRecords:
     def export(self, export_id):
@@ -49,6 +53,15 @@ class MediaServiceTests(unittest.TestCase):
         self.assertEqual(generated.download_name, "clip.mp3")
         self.assertIsNone(self.service.export_file(404))
         self.assertIsNone(self.service.recording_file(404))
+
+    def test_audio_segment_keeps_source_window_explicit(self):
+        segment = self.service.audio_segment(
+            "long-bed.mp3", offset_ms=37_000, duration_ms=1_400)
+
+        self.assertEqual(segment.path.name, "segment-long-bed.mp3")
+        self.assertEqual(self.workspace.lookups, [
+            ("segment", "long-bed.mp3", 37_000, 1_400),
+        ])
 
 
 if __name__ == "__main__":

@@ -12,6 +12,9 @@ class MediaWorkspace(Protocol):
         self, kind: str, name: str, folder: str | None = None,
         *, download_name: str | None = None,
     ) -> MediaFile | None: ...
+    def segment(
+        self, name: str, *, offset_ms: int, duration_ms: int,
+    ) -> MediaFile | None: ...
 
 
 class MediaRecords(Protocol):
@@ -44,3 +47,9 @@ class MediaService:
         filename = str(item["filename"])
         return self.workspace.resolve(
             "audio", filename, download_name=filename)
+
+    def audio_segment(
+        self, name: str, *, offset_ms: int, duration_ms: int,
+    ) -> MediaFile | None:
+        return self.workspace.segment(
+            name, offset_ms=offset_ms, duration_ms=duration_ms)
