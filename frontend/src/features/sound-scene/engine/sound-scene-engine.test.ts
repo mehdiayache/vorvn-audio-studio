@@ -121,6 +121,24 @@ describe("SoundSceneSession", () => {
     vi.unstubAllGlobals()
   })
 
+  it("never exposes a playhead outside the canonical Scene duration", () => {
+    const source = scene()
+    const playout = {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(),
+      seek: vi.fn(), currentTime: vi.fn().mockReturnValue(42),
+      isPlaying: vi.fn().mockReturnValue(false), muteTrack: vi.fn(),
+      setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    }
+    const session = new SoundSceneSession(source, {
+      update: vi.fn(), undo: vi.fn(), redo: vi.fn(),
+    }, playout)
+
+    session.pause()
+
+    expect(session.snapshot().playhead).toBe(10)
+    session.dispose()
+  })
+
   it("applies gain to live playout during drag and persists exactly once on release", async () => {
     const source = scene()
     const update = vi.fn().mockResolvedValue({ ...source, revision: 2 })

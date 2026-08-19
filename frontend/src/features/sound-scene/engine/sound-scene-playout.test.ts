@@ -115,17 +115,18 @@ describe("SoundScenePlayout", () => {
     vi.unstubAllGlobals()
   })
 
-  it("streams the long Sequence stem and releases every heavy resource", async () => {
+  it.each([10, 30, 60])("streams a %i-minute Sequence without decoded PCM growth and releases every heavy resource", async (minutes) => {
     const source = scene()
     source.sequence_stem.url = "/audio/sequence-stem.mp3"
-    source.sequence_stem.duration_ms = 3_600_000
-    source.resolved.duration_ms = 3_600_000
-    source.resolved.sequence_projection.duration_ms = 3_600_000
+    const durationMs = minutes * 60_000
+    source.sequence_stem.duration_ms = durationMs
+    source.resolved.duration_ms = durationMs
+    source.resolved.sequence_projection.duration_ms = durationMs
     source.resolved.sequence_projection.spans = [{
       part_id: 1, part_public_id: "part-1", position: 0,
       kind: "speech", title: "Opening", role: "Narrator",
       voice_name: "Eva", filename: "part.mp3", start_ms: 0,
-      duration_ms: 3_600_000, silence: false, missing: false,
+      duration_ms: durationMs, silence: false, missing: false,
       mix: { muted: false, gain: 1, fade_in_ms: 0, fade_out_ms: 0, effects: [] },
     }]
     source.document.tracks = []

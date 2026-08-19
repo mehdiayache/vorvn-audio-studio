@@ -103,11 +103,15 @@ export class SoundSceneSession {
     this.pause()
     this.playout.deactivatePlayout?.()
   }
+  private boundedTime(seconds: number) {
+    return Math.max(0, Math.min(this.duration(), Number(seconds) || 0))
+  }
   pause() {
+    const playhead = this.boundedTime(this.playout.currentTime())
     this.playout.pause()
     if (this.frame) cancelAnimationFrame(this.frame)
     this.frame = 0
-    this.set({ playing: false })
+    this.set({ playing: false, playhead })
   }
 
   reconcile(scene: SoundScene) {
@@ -326,10 +330,7 @@ export class SoundSceneSession {
 
   async togglePlayback() {
     if (this.snapshotValue.playing) {
-      this.playout.pause()
-      if (this.frame) cancelAnimationFrame(this.frame)
-      this.frame = 0
-      this.set({ playing: false })
+      this.pause()
       return
     }
     this.set({ error: "" })
@@ -351,10 +352,13 @@ export class SoundSceneSession {
     const update = () => {
       if (!this.playout.isPlaying()) {
         this.frame = 0
-        this.set({ playing: false, playhead: this.playout.currentTime() })
+        this.set({
+          playing: false,
+          playhead: this.boundedTime(this.playout.currentTime()),
+        })
         return
       }
-      this.set({ playhead: this.playout.currentTime() })
+      this.set({ playhead: this.boundedTime(this.playout.currentTime()) })
       this.frame = requestAnimationFrame(update)
     }
     this.frame = requestAnimationFrame(update)
