@@ -156,12 +156,22 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
   function gesture(event: ReactPointerEvent, trackId: string, clipId: string, mode: GestureMode) {
     if (event.button !== 0 || saving) return
     event.stopPropagation()
-    session.selectClip(trackId, clipId, event.shiftKey || event.metaKey || event.ctrlKey)
+    const grabbedWasSelected = selectedRefs.some((ref) => ref.trackId === trackId && ref.clipId === clipId)
+    const preserveGroup = mode === "move" && grabbedWasSelected && selectedRefs.length > 1
+    if (!preserveGroup)
+      session.selectClip(trackId, clipId, event.shiftKey || event.metaKey || event.ctrlKey)
+    const movingRefs = mode === "move"
+      ? (preserveGroup ? selectedRefs : session.selectedClips())
+      : [{ trackId, clipId }]
     const engineTrack = engine.tracks.find((track) => track.id === trackId)
     const initial = engineTrack?.clips.find((clip) => clip.id === clipId)
     const persisted = session.currentClip(trackId, clipId)
     if (!initial || !persisted) return
-    if (persisted.locked && ["move", "left", "right"].includes(mode)) return
+    if (mode === "move" && !session.canMoveClips(movingRefs)) return
+    if (persisted.locked && ["left", "right"].includes(mode)) {
+      session.reportError("Unlock this clip before trimming it.")
+      return
+    }
     const originX = event.clientX
     const originY = event.clientY
     let started = false
@@ -195,7 +205,7 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
       const targetSamples = Math.round(seconds * SAMPLE_RATE)
       const deltaSamples = targetSamples - appliedSamples
       appliedSamples = targetSamples
-      if (mode === "move") session.moveClip(trackId, clipId, deltaSamples)
+      if (mode === "move") session.moveClips(movingRefs, deltaSamples)
       else session.trimClip(trackId, clipId, mode, deltaSamples)
     }
     const cleanup = () => {

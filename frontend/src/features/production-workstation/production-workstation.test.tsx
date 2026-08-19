@@ -179,6 +179,35 @@ describe("Production Workstation", () => {
     expect(screen.getByRole("button", { name: "Duplicate selected clips" })).toBeTruthy()
   })
 
+  it("moves an existing multi-selection together and persists one document", async () => {
+    const soundScene = scene([part({ duration_ms: 120_000 })])
+    const second = {
+      ...soundScene.document.tracks[0]!.clips[0]!,
+      id: "88af885c-aeb4-49bf-9edb-d3fc14496b2c",
+      asset_name: "Rain layer",
+      anchor: { kind: "absolute" as const, position_ms: 20_000 },
+      resolved_start_ms: 20_000,
+    }
+    soundScene.document.tracks[0]!.clips.push(second)
+    const onCommit = vi.fn().mockImplementation(async (document) => ({
+      ...soundScene, revision: 2, document,
+    }))
+    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene, onCommit)} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const clips = container.querySelectorAll(".sound-music-clip")
+    fireEvent.pointerDown(clips[0]!, { button: 0, clientX: 100 })
+    fireEvent.pointerUp(window, { clientX: 100 })
+    fireEvent.pointerDown(clips[1]!, { button: 0, clientX: 200, shiftKey: true })
+    fireEvent.pointerUp(window, { clientX: 200, shiftKey: true })
+
+    fireEvent.pointerDown(clips[0]!, { button: 0, clientX: 100 })
+    fireEvent.pointerMove(window, { clientX: 150, altKey: true })
+    fireEvent.pointerUp(window, { clientX: 150, altKey: true })
+
+    await waitFor(() => expect(onCommit).toHaveBeenCalledTimes(1))
+    const document = onCommit.mock.calls[0]![0]
+    expect(document.tracks[0].clips.map((clip: { anchor: { position_ms: number } }) => clip.anchor.position_ms)).toEqual([5_000, 25_000])
+  })
+
   it("cancels a timeline gesture without persisting when Escape is pressed", async () => {
     const soundScene = scene([part({ duration_ms: 120_000 })], 1_500_000)
     const onCommit = vi.fn().mockResolvedValue({ ...soundScene, revision: 2 })

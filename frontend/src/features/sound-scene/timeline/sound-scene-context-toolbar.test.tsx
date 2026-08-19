@@ -1,10 +1,15 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { SoundSceneContextToolbar } from "./sound-scene-context-toolbar"
 
-afterEach(cleanup)
+beforeEach(() => vi.stubGlobal("ResizeObserver", class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}))
+afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
 describe("SoundSceneContextToolbar", () => {
   it("keeps its context region present before and after selection", () => {
@@ -34,5 +39,25 @@ describe("SoundSceneContextToolbar", () => {
     fireEvent.click(screen.getByRole("button", { name: /Telephone/ }))
 
     expect(onEffects).toHaveBeenCalledWith([expect.objectContaining({ type: "telephone", enabled: true })])
+  })
+
+  it("shows and commits the actual serial effect order", () => {
+    const onEffects = vi.fn()
+    render(<SoundSceneContextToolbar
+      context={{ kind: "sequence", label: "Narrator", muted: false, gain: 1, effects: [
+        { id: "2bc326ca-57ba-4e63-bdfd-6145dfb73181", type: "telephone", enabled: true },
+        { id: "3bc326ca-57ba-4e63-bdfd-6145dfb73181", type: "echo", enabled: true, delay_ms: 180, feedback: .28, mix: .22 },
+      ] }}
+      saving={false} onMute={vi.fn()} onGain={vi.fn()} onEffects={onEffects}
+    />)
+
+    fireEvent.click(screen.getByRole("button", { name: /Effects/ }))
+    expect(screen.getByLabelText("Effect processing order").textContent).toMatch(/1Telephone.*2Echo/)
+    fireEvent.click(screen.getByRole("button", { name: "Move echo up" }))
+
+    expect(onEffects).toHaveBeenLastCalledWith([
+      expect.objectContaining({ type: "echo" }),
+      expect.objectContaining({ type: "telephone" }),
+    ])
   })
 })

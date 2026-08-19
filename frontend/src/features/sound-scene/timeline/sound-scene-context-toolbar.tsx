@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import {
-  Copy, Lock, MoreHorizontal, RadioTower, SlidersHorizontal, Trash2,
+  ArrowDown, ArrowUp, Copy, Lock, MoreHorizontal, RadioTower, SlidersHorizontal, Trash2,
   Unlock, Volume2, VolumeX,
 } from "lucide-react"
 
@@ -17,7 +17,7 @@ type EffectsProps = {
 
 function effectId() { return crypto.randomUUID() }
 
-function SoundEffects({ effects, disabled, onCommit }: EffectsProps) {
+export function SoundEffectsEditor({ effects, disabled, onCommit }: EffectsProps) {
   const [draft, setDraft] = useState(effects)
   useEffect(() => setDraft(effects), [effects])
   const telephone = draft.find((effect) => effect.type === "telephone")
@@ -40,8 +40,27 @@ function SoundEffects({ effects, disabled, onCommit }: EffectsProps) {
     if (commit) onCommit(next)
   }
 
-  return <PopoverContent align="end" className="sound-effects-popover">
+  function move(effectId: string, direction: -1 | 1) {
+    const index = draft.findIndex((effect) => effect.id === effectId)
+    const destination = index + direction
+    if (index < 0 || destination < 0 || destination >= draft.length) return
+    const next = [...draft]
+    ;[next[index], next[destination]] = [next[destination]!, next[index]!]
+    setDraft(next)
+    onCommit(next)
+  }
+
+  const active = draft.filter((effect) => effect.enabled)
+  return <div className="sound-effects-editor">
     <header><span><RadioTower /></span><div><b>Clip effects</b><small>Non-destructive · browser and export</small></div></header>
+    {active.length > 0 && <div className="sound-effect-chain" aria-label="Effect processing order">
+      <span>Processing order</span>
+      <ol>{active.map((effect, index) => <li key={effect.id}>
+        <b>{index + 1}</b><span>{effect.type === "telephone" ? "Telephone" : "Echo"}</span>
+        <Button type="button" variant="ghost" size="icon-sm" disabled={disabled || index === 0} onClick={() => move(effect.id, -1)} aria-label={`Move ${effect.type} up`}><ArrowUp /></Button>
+        <Button type="button" variant="ghost" size="icon-sm" disabled={disabled || index === active.length - 1} onClick={() => move(effect.id, 1)} aria-label={`Move ${effect.type} down`}><ArrowDown /></Button>
+      </li>)}</ol>
+    </div>}
     <button type="button" aria-pressed={Boolean(telephone?.enabled)} disabled={disabled} onClick={() => toggle("telephone")}><span><b>Telephone</b><small>Focused 300–3400 Hz voice band</small></span><i /></button>
     <button type="button" aria-pressed={Boolean(echo?.enabled)} disabled={disabled} onClick={() => toggle("echo")}><span><b>Echo</b><small>Audible tail can overlap the next Part</small></span><i /></button>
     {echo?.enabled && <div className="sound-echo-controls">
@@ -49,7 +68,7 @@ function SoundEffects({ effects, disabled, onCommit }: EffectsProps) {
       <label><span>Feedback <b>{Math.round(echo.feedback * 100)}%</b></span><Slider aria-label="Echo feedback" value={[Math.round(echo.feedback * 100)]} min={0} max={85} step={1} onValueChange={([value = 28]) => changeEcho({ feedback: value / 100 })} onValueCommit={([value = 28]) => changeEcho({ feedback: value / 100 }, true)} /></label>
       <label><span>Mix <b>{Math.round(echo.mix * 100)}%</b></span><Slider aria-label="Echo mix" value={[Math.round(echo.mix * 100)]} min={0} max={100} step={1} onValueChange={([value = 22]) => changeEcho({ mix: value / 100 })} onValueCommit={([value = 22]) => changeEcho({ mix: value / 100 }, true)} /></label>
     </div>}
-  </PopoverContent>
+  </div>
 }
 
 export type SoundContext = {
@@ -82,7 +101,7 @@ export function SoundSceneContextToolbar({ context, saving, onMute, onGain, onEf
     <span className="sound-context-label"><b>{context.label}</b>{context.count && context.count > 1 ? <small>{context.count} clips</small> : null}</span>
     {context.kind !== "silence" && <Button variant="ghost" size="sm" disabled={saving} onClick={onMute}>{context.muted ? <VolumeX /> : <Volume2 />}{context.muted ? "Unmute" : "Mute"}</Button>}
     {context.kind === "sequence" && <Popover><PopoverTrigger asChild><Button variant="ghost" size="sm" disabled={saving}><SlidersHorizontal /> Volume</Button></PopoverTrigger><PopoverContent align="end" className="sound-volume-popover"><span>Part volume <b>{gain}%</b></span><Slider aria-label="Sequence Part volume" value={[gain]} min={0} max={200} step={1} onValueChange={([value = 100]) => setGain(value)} onValueCommit={([value = 100]) => onGain(value / 100)} /></PopoverContent></Popover>}
-    {context.kind !== "silence" && (context.count === undefined || context.count === 1) ? <Popover><PopoverTrigger asChild><Button variant="ghost" size="sm" disabled={saving}><RadioTower /> Effects</Button></PopoverTrigger><SoundEffects effects={context.effects} disabled={saving} onCommit={onEffects} /></Popover> : null}
+    {context.kind !== "silence" && (context.count === undefined || context.count === 1) ? <Popover><PopoverTrigger asChild><Button variant="ghost" size="sm" disabled={saving}><RadioTower /> Effects</Button></PopoverTrigger><PopoverContent align="end" className="sound-effects-popover"><SoundEffectsEditor effects={context.effects} disabled={saving} onCommit={onEffects} /></PopoverContent></Popover> : null}
     {onOptions && <Button variant="ghost" size="sm" disabled={saving} onClick={onOptions}><MoreHorizontal /> Options</Button>}
     {context.kind === "music" && <>
       <Button variant="ghost" size="sm" disabled={saving} onClick={onLock}>{locked ? <Unlock /> : <Lock />}{locked ? "Unlock" : "Lock"}</Button>

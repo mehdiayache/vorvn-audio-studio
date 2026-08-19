@@ -30,7 +30,9 @@ export type SoundScenePersistence = {
 type Playout = Pick<SoundScenePlayout,
   "replace" | "play" | "pause" | "seek" | "currentTime" | "isPlaying" |
   "muteTrack" | "setTrackVolume" | "setClipGain" | "dispose"
-> & Partial<Pick<SoundScenePlayout, "activatePlayout" | "deactivatePlayout">>
+> & Partial<Pick<SoundScenePlayout,
+  "activatePlayout" | "deactivatePlayout" | "previewSequenceMix"
+>>
 
 export class SoundSceneSession {
   readonly editor: SoundSceneEngine
@@ -73,6 +75,7 @@ export class SoundSceneSession {
   }
 
   select(selection: SoundSelection) { this.set({ selection }) }
+  reportError(error: string) { this.set({ error }) }
   selectClip(trackId: string, clipId: string, additive = false) {
     const next = { trackId, clipId }
     if (!additive) { this.select({ kind: "clip", ...next }); return }
@@ -141,6 +144,15 @@ export class SoundSceneSession {
 
   beginGesture() { this.editor.beginGesture() }
   moveClip(trackId: string, clipId: string, deltaSamples: number) { this.editor.moveClip(trackId, clipId, deltaSamples) }
+  canMoveClips(refs: SoundClipRef[]) {
+    const locked = refs.some((ref) => this.currentClip(ref.trackId, ref.clipId)?.locked)
+    if (locked) this.reportError("Unlock every selected clip before moving the group.")
+    return !locked
+  }
+  moveClips(refs: SoundClipRef[], deltaSamples: number) {
+    if (!this.canMoveClips(refs)) return false
+    return this.editor.moveClips(refs, deltaSamples)
+  }
   trimClip(trackId: string, clipId: string, edge: "left" | "right", deltaSamples: number) { this.editor.trimClip(trackId, clipId, edge, deltaSamples) }
   cancelGesture() { this.editor.cancelGesture() }
   async commitGesture() {
@@ -289,6 +301,10 @@ export class SoundSceneSession {
     await this.persist(this.nextDocument((document) => {
       document.sequence_overrides[partPublicId] = { ...span.mix, ...document.sequence_overrides[partPublicId], ...changes }
     }))
+  }
+
+  previewSequenceOverride(partPublicId: string, changes: Partial<SequenceMixOverride>) {
+    this.playout.previewSequenceMix?.(partPublicId, changes)
   }
 
   async removeSequenceOverride(partPublicId: string) {

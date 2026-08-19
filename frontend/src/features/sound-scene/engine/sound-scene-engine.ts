@@ -124,6 +124,26 @@ export class SoundSceneEngine {
     if (this.origins.get(clipId)?.clip.locked) return false
     return this.engine.moveClip(trackId, clipId, Math.round(deltaSamples), true)
   }
+  moveClips(refs: Array<{ trackId: string; clipId: string }>, deltaSamples: number) {
+    if (refs.some((ref) => this.origins.get(ref.clipId)?.clip.locked)) return false
+    const selected = new Set(refs.map((ref) => `${ref.trackId}:${ref.clipId}`))
+    const starts = this.state().tracks.flatMap((track) => track.clips
+      .filter((clip) => selected.has(`${track.id}:${clip.id}`))
+      .map((clip) => clip.startSample))
+    if (!starts.length) return false
+    const delta = Math.max(Math.round(deltaSamples), -Math.min(...starts))
+    for (const trackId of new Set(refs.map((ref) => ref.trackId))) {
+      const track = this.state().tracks.find((candidate) => candidate.id === trackId)
+      if (!track) continue
+      this.engine.updateTrack(trackId, {
+        ...track,
+        clips: track.clips.map((clip) => selected.has(`${trackId}:${clip.id}`)
+          ? { ...clip, startSample: clip.startSample + delta }
+          : clip),
+      })
+    }
+    return true
+  }
   trimClip(trackId: string, clipId: string, edge: "left" | "right", deltaSamples: number) {
     if (this.origins.get(clipId)?.clip.locked) return false
     this.engine.trimClip(trackId, clipId, edge, Math.round(deltaSamples), true)

@@ -145,6 +145,29 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(response.headers["x-frame-options"], "DENY")
         self.assertTrue(response.headers["x-request-id"].startswith("req_"))
 
+    def test_audio_route_honors_byte_ranges_and_head_without_loading_the_body(self):
+        with TemporaryDirectory() as directory:
+            target = Path(directory) / "long-scene.mp3"
+            target.write_bytes(b"0123456789abcdef")
+            with patch.object(
+                    media_router.media_service, "resolve",
+                    return_value=MediaFile(target)):
+                ranged = self.client.get(
+                    "/audio/long-scene.mp3",
+                    headers={"Range": "bytes=4-9"},
+                )
+                head = self.client.head("/audio/long-scene.mp3")
+
+        self.assertEqual(ranged.status_code, 206)
+        self.assertEqual(ranged.content, b"456789")
+        self.assertEqual(ranged.headers["accept-ranges"], "bytes")
+        self.assertEqual(ranged.headers["content-range"], "bytes 4-9/16")
+        self.assertEqual(ranged.headers["content-length"], "6")
+        self.assertEqual(head.status_code, 200)
+        self.assertEqual(head.content, b"")
+        self.assertEqual(head.headers["accept-ranges"], "bytes")
+        self.assertEqual(head.headers["content-length"], "16")
+
     def test_export_and_recording_download_use_canonical_identity(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)

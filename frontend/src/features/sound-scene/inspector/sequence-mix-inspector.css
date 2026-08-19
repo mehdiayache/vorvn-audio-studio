@@ -1,0 +1,15 @@
+.sequence-mix-inspector { display: grid; align-content: start; gap: var(--space-4); padding: var(--space-4); }
+.sequence-mix-identity { display: grid; grid-template-columns: 2.4rem minmax(0, 1fr); align-items: center; gap: var(--space-3); padding-bottom: var(--space-4); border-bottom: 1px solid var(--border); }
+.sequence-mix-identity > span { width: 2.4rem; height: 2.4rem; display: grid; place-items: center; border-radius: var(--radius-md); color: var(--primary); background: var(--primary-soft); }
+.sequence-mix-identity svg { width: 1rem; }
+.sequence-mix-identity div { min-width: 0; }.sequence-mix-identity small, .sequence-mix-identity p { color: var(--muted-foreground); font-size: var(--type-caption); }
+.sequence-mix-identity h3 { overflow: hidden; margin: .1rem 0; text-overflow: ellipsis; white-space: nowrap; }
+.sequence-mix-controls { display: grid; gap: var(--space-4); }
+.sequence-mix-controls > header { display: flex; align-items: flex-start; gap: var(--space-2); }
+.sequence-mix-controls > header > span { color: var(--primary); }.sequence-mix-controls > header svg { width: 1rem; }
+.sequence-mix-controls > header p { margin-top: .15rem; color: var(--muted-foreground); font-size: var(--type-caption); line-height: 1.45; }
+.sequence-mix-controls label { display: grid; gap: var(--space-2); }
+.sequence-mix-controls label > span { display: flex; align-items: center; gap: var(--space-2); color: var(--muted-foreground); font-size: var(--type-caption); }
+.sequence-mix-controls label > span svg { width: .9rem; }.sequence-mix-controls label b { margin-left: auto; color: var(--foreground); font-variant-numeric: tabular-nums; }
+.sequence-mix-fades { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+.sequence-mix-effects { padding-top: var(--space-3); border-top: 1px solid var(--border); }

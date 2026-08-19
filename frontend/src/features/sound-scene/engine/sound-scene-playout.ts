@@ -5,6 +5,8 @@ import type { SequenceMixOverride, SoundScene, SoundSceneClip, SoundSceneEffect 
 import { DecodedAudioCache, planClipSource } from "./sound-source-manager"
 
 const SAMPLE_RATE = 48_000
+const STREAM_PREROLL_SECONDS = 30
+const STREAM_RELEASE_BEHIND_SECONDS = 5
 const clipTrackId = (trackId: string, clipId: string) => `${trackId}::clip::${clipId}`
 const toSamples = (seconds: number) => Math.max(0, Math.round(seconds * SAMPLE_RATE))
 
@@ -39,6 +41,13 @@ type StreamHandle = {
   clip?: SoundSceneClip
   trackVolume: number
   muted: boolean
+}
+
+type StreamDescriptor = {
+  trackId: string
+  trackVolume: number
+  trackMuted: boolean
+  clip: SoundSceneClip
 }
 
 type EchoBus = { key: string; send: GainNode }
@@ -129,6 +138,8 @@ export class SoundScenePlayout {
   private streamFrame = 0
   private sequenceStream: SequenceStream | null = null
   private streams: StreamHandle[] = []
+  private streamDescriptors = new Map<string, StreamDescriptor>()
+  private musicStreams = new Map<string, StreamHandle>()
   private effectNodes: AudioNode[] = []
   private childTracks = new Map<string, string[]>()
   private internalTrackByClip = new Map<string, string>()
@@ -136,6 +147,7 @@ export class SoundScenePlayout {
   private liveClipGains = new Map<string, number>()
   private preparedTrackIds = new Set<string>()
   private duckedBufferedTracks = new Set<string>()
+  private sequenceMixPreviews = new Map<string, Partial<SequenceMixOverride>>()
   private duckLevel = 1
   private visibilityListener = () => {
     if (document.hidden) this.deactivatePlayout()
@@ -181,6 +193,8 @@ export class SoundScenePlayout {
     this.streamFrame = 0
     for (const stream of this.streams) this.releaseStream(stream)
     this.streams = []
+    this.streamDescriptors.clear()
+    this.musicStreams.clear()
     this.sequenceStream = null
     for (const node of this.effectNodes) {
       try { node.disconnect() } catch { /* already disconnected */ }
@@ -205,6 +219,7 @@ export class SoundScenePlayout {
   }
 
   async replace(scene: SoundScene) {
+    this.sequenceMixPreviews.clear()
     if (scene.resolved.signature === this.scene.resolved.signature) {
       this.scene = scene
       return
@@ -348,11 +363,15 @@ export class SoundScenePlayout {
       if (end <= from) continue
       const begin = Math.max(start, from)
       const local = begin - start
-      const base = level(span.mix)
+      const mix = {
+        ...span.mix,
+        ...this.sequenceMixPreviews.get(span.part_public_id),
+      }
+      const base = level(mix)
       const at = now + begin - from
-      parameter.setValueAtTime(valueAt(span.mix, local, duration, base), at)
-      const fadeIn = Math.min(duration, span.mix.fade_in_ms / 1_000)
-      const fadeOut = Math.min(duration, span.mix.fade_out_ms / 1_000)
+      parameter.setValueAtTime(valueAt(mix, local, duration, base), at)
+      const fadeIn = Math.min(duration, mix.fade_in_ms / 1_000)
+      const fadeOut = Math.min(duration, mix.fade_out_ms / 1_000)
       if (fadeIn && begin < start + fadeIn)
         parameter.linearRampToValueAtTime(base, now + start + fadeIn - from)
       if (fadeOut && end - fadeOut > begin)
@@ -385,7 +404,8 @@ export class SoundScenePlayout {
     }
   }
 
-  private createMusicStream(trackId: string, trackVolume: number, trackMuted: boolean, clip: SoundSceneClip) {
+  private createMusicStream(descriptor: StreamDescriptor) {
+    const { trackId, trackVolume, trackMuted, clip } = descriptor
     const element = this.mediaElement(audioUrl(clip.filename!))
     const source = this.context!.createMediaElementSource(element)
     const nodes: AudioNode[] = [source]
@@ -395,10 +415,30 @@ export class SoundScenePlayout {
     const effected = this.fixedEffects(gain, clip.effects, nodes)
     effected.connect(this.streamMaster!)
     nodes.push(gain)
-    this.streams.push({
+    const handle = {
       element, nodes, gain, trackId, clip, trackVolume,
       muted: trackMuted || clip.muted,
-    })
+    }
+    this.streams.push(handle)
+    this.musicStreams.set(clip.id, handle)
+  }
+
+  private materializeRelevantStreams(time: number) {
+    for (const descriptor of this.streamDescriptors.values()) {
+      const clip = descriptor.clip
+      const start = Number(clip.resolved_start_ms || 0) / 1_000
+      const end = start + Number(clip.resolved_duration_ms || 0) / 1_000
+        + Number(clip.effect_tail_ms || 0) / 1_000
+      const relevant = start <= time + STREAM_PREROLL_SECONDS
+        && end >= time - STREAM_RELEASE_BEHIND_SECONDS
+      const existing = this.musicStreams.get(clip.id)
+      if (relevant && !existing) this.createMusicStream(descriptor)
+      if (!relevant && existing) {
+        this.releaseStream(existing)
+        this.musicStreams.delete(clip.id)
+        this.streams = this.streams.filter((stream) => stream !== existing)
+      }
+    }
   }
 
   private installBufferedEffects(trackId: string, clip: SoundSceneClip) {
@@ -423,6 +463,8 @@ export class SoundScenePlayout {
     for (const stream of this.streams) this.releaseStream(stream)
     this.streams = []
     this.sequenceStream = null
+    this.streamDescriptors.clear()
+    this.musicStreams.clear()
     const tracks: PlayoutTrack[] = []
     const childTracks = new Map<string, string[]>()
     const internalTrackByClip = new Map<string, string>()
@@ -444,7 +486,10 @@ export class SoundScenePlayout {
         liveClipGains.set(clip.id, gain)
         const plan = planClipSource(clip, audioUrl(clip.filename!), reservedDecodedBytes)
         if (plan.mode === "stream") {
-          this.createMusicStream(track.id, track.volume, track.muted, clip)
+          this.streamDescriptors.set(clip.id, {
+            trackId: track.id, trackVolume: track.volume,
+            trackMuted: track.muted, clip,
+          })
           continue
         }
         reservedDecodedBytes += plan.decodedBytes
@@ -471,6 +516,7 @@ export class SoundScenePlayout {
     this.liveClipGains = liveClipGains
     this.preparedTrackIds = new Set(tracks.map((track) => track.id))
     this.preparedSignature = scene.resolved.signature
+    this.materializeRelevantStreams(this.playhead)
     await this.context!.resume()
   }
 
@@ -501,6 +547,7 @@ export class SoundScenePlayout {
   }
 
   private syncStreams(time: number, shouldPlay: boolean) {
+    this.materializeRelevantStreams(time)
     const sequence = this.sequenceStream
     if (sequence) {
       if (Math.abs(sequence.element.currentTime - time) > .15)
@@ -574,7 +621,7 @@ export class SoundScenePlayout {
       this.adapter!.play(this.playhead, this.duration())
     this.scheduleSequenceMix(this.playhead)
     this.syncStreams(this.playhead, true)
-    if (this.streams.length) this.followStreams()
+    if (this.streams.length || this.streamDescriptors.size) this.followStreams()
   }
 
   pause() {
@@ -607,6 +654,8 @@ export class SoundScenePlayout {
       this.adapter?.setTrackMute(internalId, muted)
     for (const stream of this.streams)
       if (stream.trackId === trackId) stream.muted = muted || Boolean(stream.clip?.muted)
+    for (const descriptor of this.streamDescriptors.values())
+      if (descriptor.trackId === trackId) descriptor.trackMuted = muted
   }
 
   setTrackVolume(trackId: string, volume: number) {
@@ -618,6 +667,8 @@ export class SoundScenePlayout {
     }
     for (const stream of this.streams)
       if (stream.trackId === trackId) stream.trackVolume = volume
+    for (const descriptor of this.streamDescriptors.values())
+      if (descriptor.trackId === trackId) descriptor.trackVolume = volume
   }
 
   setClipGain(trackId: string, clipId: string, gain: number) {
@@ -629,6 +680,17 @@ export class SoundScenePlayout {
       internalId,
       (this.liveTrackVolumes.get(trackId) ?? track.volume) * Math.max(0, gain),
     )
+  }
+
+  previewSequenceMix(partPublicId: string, changes: Partial<SequenceMixOverride>) {
+    const span = this.scene.resolved.sequence_projection.spans.find(
+      (candidate) => candidate.part_public_id === partPublicId,
+    )
+    if (!span) return
+    this.sequenceMixPreviews.set(partPublicId, {
+      ...this.sequenceMixPreviews.get(partPublicId), ...changes,
+    })
+    this.scheduleSequenceMix(this.currentTime())
   }
 
   diagnostics() {

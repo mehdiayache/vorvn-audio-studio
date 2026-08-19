@@ -220,6 +220,69 @@ describe("SoundSceneSession", () => {
     session.dispose()
   })
 
+  it("moves a multi-track selection in one persisted transaction while preserving anchor kinds", async () => {
+    const source = scene()
+    const second = structuredClone(source.document.tracks[0]!.clips[0]!)
+    second.id = "88af885c-aeb4-49bf-9edb-d3fc14496b2c"
+    second.anchor = { kind: "part", part_public_id: "part-7", edge: "end", offset_ms: 500 }
+    second.duration_ms = 2_000
+    source.document.tracks.push({ id: "music-2", kind: "music", name: "Music 2", volume: 1, muted: false, clips: [second] })
+    source.resolved.tracks.push({
+      ...source.document.tracks[1]!,
+      clips: [{ ...second, resolved_start_ms: 10_500, resolved_duration_ms: 2_000 }],
+    })
+    const update = vi.fn().mockImplementation(async (document) => ({
+      ...source, revision: 2, document,
+    }))
+    const playout = {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(false),
+      muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    }
+    const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, playout)
+    const refs = [{ trackId: "music", clipId }, { trackId: "music-2", clipId: second.id }]
+
+    session.beginGesture()
+    expect(session.moveClips(refs, 48_000)).toBe(true)
+    await session.commitGesture()
+
+    expect(update).toHaveBeenCalledTimes(1)
+    const document = update.mock.calls[0]![0]
+    expect(document.tracks[0].clips[0].anchor).toEqual({ kind: "absolute", position_ms: 1_000 })
+    expect(document.tracks[1].clips[0].anchor).toEqual({
+      kind: "part", part_public_id: "part-7", edge: "end", offset_ms: 1_500,
+    })
+    session.dispose()
+  })
+
+  it("blocks the whole structural group move when one selected clip is locked", () => {
+    const source = scene()
+    const locked = structuredClone(source.document.tracks[0]!.clips[0]!)
+    locked.id = "88af885c-aeb4-49bf-9edb-d3fc14496b2c"
+    locked.locked = true
+    locked.anchor = { kind: "absolute", position_ms: 2_000 }
+    locked.resolved_start_ms = 2_000
+    locked.resolved_duration_ms = 2_000
+    source.document.tracks[0]!.clips.push(locked)
+    const session = new SoundSceneSession(source, {
+      update: vi.fn(), undo: vi.fn(), redo: vi.fn(),
+    }, {
+      replace: vi.fn(), play: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(false),
+      muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    })
+
+    expect(session.moveClips([
+      { trackId: "music", clipId }, { trackId: "music", clipId: locked.id },
+    ], 48_000)).toBe(false)
+    expect(session.editor.document().tracks[0]!.clips.map((clip) => clip.anchor)).toEqual([
+      { kind: "absolute", position_ms: 0 },
+      { kind: "absolute", position_ms: 2_000 },
+    ])
+    expect(session.snapshot().error).toMatch(/Unlock every selected clip/)
+    session.dispose()
+  })
+
   it("keeps obsolete Sequence overrides explicit until the operator removes them", async () => {
     const source = scene()
     source.document.sequence_overrides["00000000-0000-4000-8000-000000000099"] = {

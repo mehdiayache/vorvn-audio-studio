@@ -13,6 +13,7 @@ import { MovePartPositionDialog } from "@/features/production/move-part-position
 import { ProductionComposerStage } from "@/features/composer/production-composer-host"
 import { MixExportWorkspace } from "@/features/production/mix-export-workspace"
 import { MusicInspector } from "@/features/sound-scene/inspector/music-inspector"
+import { SequenceMixInspector } from "@/features/sound-scene/inspector/sequence-mix-inspector"
 import { audibleMusicClips } from "@/features/sound-scene/sound-scene-audibility"
 import { SoundSceneWorkspace } from "@/features/sound-scene/timeline/sound-scene-workspace"
 import { SoundSceneSession, useSoundSceneSession, type SoundScenePersistence } from "@/features/sound-scene/engine/sound-scene-session"
@@ -165,7 +166,7 @@ function WorkstationHeader({ production, tree, duration, stage, issueCount, prev
       <div className="ws-action-buttons">
         {issueCount > 0 && <Button variant="outline" size="sm" onClick={() => onStage("mix")}><CircleAlert className="ws-warning-icon" /> {issueCount} issue{issueCount === 1 ? "" : "s"}</Button>}
         <Button variant="outline" size="sm" disabled={previewing} onClick={onPreview}>{previewing ? <LoaderCircle className="spin" /> : playing ? <Pause /> : <Play />}{previewing ? "Preparing…" : playing ? "Pause" : "Preview"}</Button>
-        <DropdownMenu><DropdownMenuTrigger asChild><Button size="sm"><Plus /> Add <ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => onAdd("speech")}><AudioLines /> Speech</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("silence")}><Pause /> Silence</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("asset")}><Sparkles /> SFX or linked audio</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("music")}><Music2 /> Music</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => onAdd("import")}><FileJson2 /> Import JSON</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button size="sm"><Plus /> Add <ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => onAdd("speech")}><AudioLines /> Speech</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("silence")}><Pause /> Silence</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("asset")}><Sparkles /> Linked audio</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("music")}><Music2 /> Music</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => onAdd("import")}><FileJson2 /> Import JSON</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
         <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="More Production actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem variant="destructive" onSelect={onDelete}><Trash2 /> Delete Production permanently</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
       </div>
     </div>
@@ -434,6 +435,9 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
 
   const soundSelection = soundState.selection
   const soundPart = soundSelection?.kind === "part" ? sourceParts.find((part) => part.id === soundSelection.id) || null : null
+  const soundSpan = soundSelection?.kind === "part"
+    ? soundState.scene.resolved.sequence_projection.spans.find((span) => span.part_id === soundSelection.id) || null
+    : null
   const resolvedMusicTrack = soundSelection?.kind === "clip"
     ? soundState.scene.resolved.tracks.find((track) => track.id === soundSelection.trackId) || null
     : null
@@ -453,7 +457,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     : stage === "sequence" && selectedPart ? `Part ${formatPartNumber(selectedPart.position ?? 0)} · ${formatAuthoredRole(selectedPart.authored_role) || partKindLabel(selectedPart)}`
       : stage === "sound" && soundSelection?.kind === "clip" ? "Music clip"
         : stage === "sound" && soundSelection?.kind === "clips" ? `${soundSelection.clips.length} Music clips`
-        : stage === "sound" && soundPart ? `${formatAuthoredRole(soundPart.authored_role) || soundPart.kind} · Sound`
+        : stage === "sound" && soundSpan ? `${soundSpan.role || soundSpan.voice_name || "Sequence Part"} · Mix`
           : stage === "mix" ? "Release checks" : "Inspector"
   const composerInsertAt = insertBeforePartId ? Math.max(0, sourceParts.findIndex((part) => part.public_id === insertBeforePartId)) : null
 
@@ -472,10 +476,11 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     onClipChange={(changes) => { if (musicClip) soundSession.updateClip(musicTrack.id, musicClip.id, changes) }} onClipCommit={() => soundSession.commitClip()}
     onTrackVolumeChange={(volume) => soundSession.setTrackVolume(musicTrack.id, volume)} onTrackVolumeCommit={(volume) => soundSession.commitTrackVolume(musicTrack.id, volume)}
     onChoose={() => { setMusicTarget({ mode: "replace", trackId: soundSelection.trackId, clipId: soundSelection.clipId }); setTool("music") }} onRemove={() => setConfirmAction({ title: "Remove this Music clip?", description: "The reusable Venture asset remains available. Only this Sound Scene placement is removed.", action: () => { void soundSession.removeClip(soundSelection.trackId, soundSelection.clipId) } })}
-  /> : stage === "sound" && soundPart ? <WorkstationPartInspector
-    productionId={production.id} part={soundPart} directory={directory} playingKey={player.source?.key} playerPlaying={actions.playerPlaying}
-    onPlay={(source) => void playSource(source)} onChanged={refresh}
-    onDuplicate={(part) => void actions.duplicatePart(part)} onDelete={requestPartDeletion} onEdit={editPart} onOpenCaptions={(part) => setCaptionPartId(part.id)} onReplaceAsset={openAssetReplacement}
+  /> : stage === "sound" && soundSpan ? <SequenceMixInspector
+    span={soundSpan} saving={soundState.saving}
+    onPreview={(changes) => soundSession.previewSequenceOverride(soundSpan.part_public_id, changes)}
+    onCommit={(changes) => soundSession.updateSequenceOverride(soundSpan.part_public_id, changes)}
+    onOpenSequence={() => { soundSession.select(null); setStage("sequence"); setSelectedId(soundSpan.part_id) }}
   /> : stage === "mix" && releaseInspectorOpen ? <ReleaseInspector
     issues={issues} staleOverrides={staleOverrides}
     onLocate={(id) => { setStage("sequence"); setSelectedId(id); setReleaseInspectorOpen(false); requestAnimationFrame(() => document.getElementById(`ws-part-${id}`)?.scrollIntoView({ block: "center" })) }}

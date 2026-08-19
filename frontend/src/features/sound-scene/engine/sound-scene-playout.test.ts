@@ -194,4 +194,46 @@ describe("SoundScenePlayout", () => {
     playout.dispose()
     vi.unstubAllGlobals()
   })
+
+  it("materializes only long stream clips near the playhead and releases distant handles on seek", async () => {
+    const source = scene()
+    source.sequence_stem.url = "/audio/sequence-stem.mp3"
+    source.resolved.duration_ms = 60 * 60_000
+    source.resolved.sequence_projection.duration_ms = 60 * 60_000
+    source.resolved.sequence_projection.spans = []
+    const original = source.document.tracks[0]!.clips[0]!
+    const clips = [0, 20, 50].map((minute, index) => ({
+      ...structuredClone(original),
+      id: `78af885c-aeb4-49bf-9edb-d3fc14496b2${index}`,
+      filename: `long-${index}.mp3`,
+      duration_ms: 10 * 60_000, source_duration_ms: 10 * 60_000,
+      resolved_start_ms: minute * 60_000,
+      resolved_duration_ms: 10 * 60_000,
+      anchor: { kind: "absolute" as const, position_ms: minute * 60_000 },
+    }))
+    source.document.tracks[0]!.clips = clips
+    source.resolved.tracks[0]!.clips = clips
+    source.resolved.signature = "lazy-stream-clips"
+    const playout = new SoundScenePlayout(source)
+
+    await playout.activatePlayout()
+    expect(mocks.media.map((item) => item.src)).toEqual([
+      "/audio/sequence-stem.mp3", "/audio/long-0.mp3",
+    ])
+
+    playout.seek(20 * 60)
+    expect(mocks.media.map((item) => item.src)).toEqual([
+      "/audio/sequence-stem.mp3", "/audio/long-0.mp3", "/audio/long-1.mp3",
+    ])
+    expect(mocks.media[1]?.removeAttribute).toHaveBeenCalledWith("src")
+    expect(playout.diagnostics().streamedSources).toBe(2)
+
+    playout.seek(50 * 60)
+    expect(mocks.media[2]?.removeAttribute).toHaveBeenCalledWith("src")
+    expect(mocks.media.at(-1)?.src).toBe("/audio/long-2.mp3")
+    expect(playout.diagnostics().streamedSources).toBe(2)
+
+    playout.dispose()
+    vi.unstubAllGlobals()
+  })
 })
