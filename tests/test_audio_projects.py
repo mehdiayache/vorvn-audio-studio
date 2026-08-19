@@ -53,6 +53,8 @@ class AudioProjectTests(unittest.TestCase):
              "file_url": "/audio/one.wav"},
             {"id": "part-2", "start_time": .8, "duration": .5,
              "file_url": "silence://2"},
+            {"id": "future-pause", "start_time": 1.3, "duration": .7,
+             "file_url": "silence://4"},
         ])
 
     def test_legacy_silence_uses_title_only_without_duration_ms(self):
