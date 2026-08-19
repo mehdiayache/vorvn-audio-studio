@@ -13,6 +13,7 @@ import { MovePartPositionDialog } from "@/features/production/move-part-position
 import { ProductionComposerStage } from "@/features/composer/production-composer-host"
 import { MixExportWorkspace } from "@/features/production/mix-export-workspace"
 import { MusicInspector } from "@/features/sound-scene/inspector/music-inspector"
+import { audibleMusicClips } from "@/features/sound-scene/sound-scene-audibility"
 import { SoundSceneWorkspace } from "@/features/sound-scene/timeline/sound-scene-workspace"
 import { SoundSceneSession, useSoundSceneSession, type SoundScenePersistence } from "@/features/sound-scene/engine/sound-scene-session"
 import { ProductionFloatingTransport } from "@/features/production/production-floating-transport"
@@ -192,9 +193,10 @@ function MixOutline({ production, soundScene, onCollapse }: { production: Produc
   const issues = productionHealth(production.parts)
   const drafts = production.parts.filter((part) => part.kind === "draft" || part.kind === "speech" && !part.clip_id).length
   const linkedSounds = production.parts.filter((part) => part.kind === "asset" && part.enabled !== false).length
-  const music = soundScene.resolved.tracks.find((track) => track.kind === "music")
-  const soundSummary = music?.clips.length && !music.muted
-    ? linkedSounds ? `Music + ${linkedSounds} linked sound${linkedSounds === 1 ? "" : "s"}` : "Music bed included"
+  const musicClips = audibleMusicClips(soundScene).length
+  const musicLabel = `${musicClips} Music clip${musicClips === 1 ? "" : "s"}`
+  const soundSummary = musicClips
+    ? linkedSounds ? `${musicLabel} + ${linkedSounds} linked sound${linkedSounds === 1 ? "" : "s"}` : musicLabel
     : linkedSounds ? `${linkedSounds} linked sound${linkedSounds === 1 ? "" : "s"}` : "Voice only"
   return <div className="ws-mix-outline">
     <WorkstationPaneHeader title="Release" meta="Output checklist" onCollapse={onCollapse} />

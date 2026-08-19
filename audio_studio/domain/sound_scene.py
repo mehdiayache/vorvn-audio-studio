@@ -156,12 +156,10 @@ def _part_duration_ms(part: dict[str, Any]) -> int:
 def audible_sequence(parts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Return the Parts that occupy time in the current audible Sequence.
 
-    Draft Speech has no media and therefore no timeline presence. A Silence
-    immediately following a Draft belongs to that future recording beat and
-    enters the audible projection only once the Draft is recorded.
+    Draft Speech has no media and therefore no timeline presence. Silence is
+    canonical timed media and always remains in the projection.
     """
     audible: list[dict[str, Any]] = []
-    omit_following_silence = False
     for part in parts:
         if part.get("enabled", True) is False:
             continue
@@ -169,12 +167,7 @@ def audible_sequence(parts: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if kind == "stitch":
             continue
         if kind == "draft":
-            omit_following_silence = True
             continue
-        if kind == "silence" and omit_following_silence:
-            omit_following_silence = False
-            continue
-        omit_following_silence = False
         audible.append(part)
     return audible
 
