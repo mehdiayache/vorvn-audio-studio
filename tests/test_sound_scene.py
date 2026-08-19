@@ -3,7 +3,12 @@
 from copy import deepcopy
 import unittest
 
-from audio_studio.domain.sound_scene import empty_scene, resolve_scene, sequence_projection
+from audio_studio.domain.sound_scene import (
+    empty_scene,
+    normalize_scene,
+    resolve_scene,
+    sequence_projection,
+)
 
 
 def speech(part_id: int, duration_ms: int, position: int) -> dict:
@@ -37,6 +42,74 @@ def anchored_scene(part_public_id: str) -> dict:
 
 
 class SoundSceneDomainTests(unittest.TestCase):
+    def test_historical_v1_normalizes_to_one_canonical_document(self):
+        historical = {
+            "version": 1,
+            "tracks": [{
+                "id": "music", "kind": "music", "name": "Music",
+                "volume": 1, "muted": False, "clips": [{
+                    "id": "78af885c-aeb4-49bf-9edb-d3fc14496b2c",
+                    "asset_id": 9, "start_ms": 2_500,
+                    "duration_ms": 2_000, "source_offset_ms": 250,
+                    "gain": .2, "fade_in_ms": 200,
+                    "fade_out_ms": 300, "loop": False,
+                    "ducking": True,
+                }],
+            }],
+        }
+
+        canonical = normalize_scene(historical)
+
+        self.assertEqual(canonical["sequence_overrides"], {})
+        clip = canonical["tracks"][0]["clips"][0]
+        self.assertNotIn("start_ms", clip)
+        self.assertEqual(clip["anchor"], {
+            "kind": "absolute", "position_ms": 2_500,
+        })
+        self.assertFalse(clip["muted"])
+        self.assertFalse(clip["locked"])
+        self.assertEqual(clip["effects"], [])
+        self.assertEqual(normalize_scene(canonical), canonical)
+
+    def test_sequence_override_is_resolved_without_changing_canonical_time(self):
+        part = speech(1, 4_000, 0)
+        scene = empty_scene()
+        scene["sequence_overrides"][part["public_id"]] = {
+            "muted": True, "gain": .82,
+            "fade_in_ms": 5_000, "fade_out_ms": 900,
+            "effects": [{
+                "id": "2bc326ca-57ba-4e63-bdfd-6145dfb73181",
+                "type": "echo", "enabled": True, "delay_ms": 250,
+                "feedback": .35, "mix": .2,
+            }],
+        }
+
+        resolved = resolve_scene(scene, [part])
+
+        self.assertEqual(resolved["sequence_projection"]["duration_ms"], 4_000)
+        mix = resolved["sequence_projection"]["spans"][0]["mix"]
+        self.assertTrue(mix["muted"])
+        self.assertEqual(mix["gain"], .82)
+        self.assertEqual(mix["fade_in_ms"], 4_000)
+        self.assertEqual(mix["fade_out_ms"], 900)
+        self.assertEqual(mix["effects"][0]["type"], "echo")
+
+    def test_missing_sequence_override_is_an_explicit_obsolete_orphan(self):
+        scene = empty_scene()
+        missing = "00000000-0000-0000-0000-000000000099"
+        scene["sequence_overrides"][missing] = {
+            "muted": True, "gain": 1, "fade_in_ms": 0,
+            "fade_out_ms": 0, "effects": [],
+        }
+
+        resolved = resolve_scene(scene, [speech(1, 4_000, 0)])
+
+        self.assertEqual(resolved["orphans"], [{
+            "kind": "sequence_override",
+            "part_public_id": missing,
+            "reason": "override_part_missing",
+        }])
+
     def test_draft_is_absent_but_every_canonical_silence_keeps_its_time(self):
         before = speech(1, 4_000, 0)
         first_pause = {

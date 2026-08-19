@@ -128,12 +128,14 @@ export class SoundSceneSession {
   private musicClip(asset: VentureAsset, positionMs: number, followSequence: boolean): SoundSceneClip {
     const sourceDuration = Math.max(100, Number(asset.duration_ms || 30_000))
     return {
-      id: crypto.randomUUID(), asset_id: asset.id, asset_version_id: null,
-      start_ms: positionMs, duration_ms: followSequence ? null : sourceDuration,
+      id: crypto.randomUUID(), asset_id: asset.id,
+      asset_version_id: Number(asset.version_id) || null,
+      duration_ms: followSequence ? null : sourceDuration,
       source_offset_ms: 0, gain: followSequence ? .18 : 1,
       fade_in_ms: followSequence ? 2_000 : 0,
       fade_out_ms: followSequence ? 3_000 : 0,
       loop: followSequence, ducking: followSequence,
+      muted: false, locked: false, effects: [],
       anchor: { kind: "absolute", position_ms: positionMs },
     }
   }
@@ -171,7 +173,7 @@ export class SoundSceneSession {
       const clip = document.tracks.find((track) => track.id === trackId)?.clips.find((item) => item.id === clipId)
       if (!clip) throw new Error("That Music clip is no longer available.")
       clip.asset_id = asset.id
-      clip.asset_version_id = null
+      clip.asset_version_id = Number(asset.version_id) || null
       clip.source_offset_ms = 0
       if (!clip.loop) clip.duration_ms = Math.max(100, Number(asset.duration_ms || clip.duration_ms || 30_000))
     }))

@@ -7,9 +7,10 @@ import { SoundSceneSession } from "./sound-scene-session"
 const clipId = "78af885c-aeb4-49bf-9edb-d3fc14496b2c"
 
 function scene(): SoundScene {
-  const clip = { id: clipId, asset_id: 9, start_ms: 0, duration_ms: null, source_offset_ms: 0, gain: .1, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, anchor: { kind: "absolute" as const, position_ms: 0 }, asset_name: "Night bed", filename: "bed.mp3", source_duration_ms: 60_000, resolved_start_ms: 0, resolved_duration_ms: 10_000 }
+  const mix = { muted: false, gain: 1, fade_in_ms: 0, fade_out_ms: 0, effects: [] }
+  const clip = { id: clipId, asset_id: 9, duration_ms: null, source_offset_ms: 0, gain: .1, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, muted: false, locked: false, effects: [], anchor: { kind: "absolute" as const, position_ms: 0 }, asset_name: "Night bed", filename: "bed.mp3", source_duration_ms: 60_000, resolved_start_ms: 0, resolved_duration_ms: 10_000 }
   const track = { id: "music", kind: "music" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
-  return { production_id: 6, revision: 1, document: { version: 1, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", duration_ms: 10_000, sequence_projection: { signature: "sequence", duration_ms: 10_000, sample_rate: 48_000, spans: [{ part_id: 7, part_public_id: "part-7", position: 0, kind: "speech", title: "Opening", role: "Narrator", voice_name: "Eva", filename: "opening.mp3", start_ms: 0, duration_ms: 10_000, silence: false, missing: false }] }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/stem.mp3", filename: "stem.mp3", duration_ms: 10_000, signature: "sequence", cached: true } }
+  return { production_id: 6, revision: 1, document: { version: 1, sequence_overrides: {}, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", duration_ms: 10_000, sequence_projection: { signature: "sequence", duration_ms: 10_000, sample_rate: 48_000, spans: [{ part_id: 7, part_public_id: "part-7", position: 0, kind: "speech", title: "Opening", role: "Narrator", voice_name: "Eva", filename: "opening.mp3", start_ms: 0, duration_ms: 10_000, silence: false, missing: false, mix }] }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/stem.mp3", filename: "stem.mp3", duration_ms: 10_000, signature: "sequence", cached: true } }
 }
 
 describe("SoundSceneEngine", () => {
@@ -21,7 +22,7 @@ describe("SoundSceneEngine", () => {
     editor.commitGesture()
 
     const clip = editor.document().tracks[0]!.clips[0]!
-    expect(clip.start_ms).toBe(1_500)
+    expect(clip).not.toHaveProperty("start_ms")
     expect(clip.source_offset_ms).toBe(500)
     expect(clip.duration_ms).toBe(9_500)
     expect(clip.anchor).toEqual({ kind: "absolute", position_ms: 1_500 })

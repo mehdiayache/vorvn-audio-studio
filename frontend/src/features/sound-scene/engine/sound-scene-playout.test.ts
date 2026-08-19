@@ -28,16 +28,17 @@ import type { SoundScene } from "@/types/domain"
 function scene(): SoundScene {
   const clips = ["a", "b"].map((id, index) => ({
     id: `78af885c-aeb4-49bf-9edb-d3fc14496b2${id}`,
-    asset_id: index + 1, start_ms: index * 2_000, duration_ms: 2_000,
+    asset_id: index + 1, duration_ms: 2_000,
     source_offset_ms: 0, gain: index ? .5 : .25, fade_in_ms: 0,
     fade_out_ms: 0, loop: false, ducking: false,
+    muted: false, locked: false, effects: [],
     anchor: { kind: "absolute" as const, position_ms: index * 2_000 },
     filename: `${id}.wav`, source_duration_ms: 2_000,
     resolved_start_ms: index * 2_000, resolved_duration_ms: 2_000,
   }))
   const track = { id: "music", kind: "music" as const, name: "Music", volume: .8, muted: false, clips }
   return {
-    production_id: 1, revision: 1, document: { version: 1, tracks: [track] },
+    production_id: 1, revision: 1, document: { version: 1, sequence_overrides: {}, tracks: [track] },
     can_undo: false, can_redo: false, updated_at: "now",
     resolved: { version: 1, signature: "two-clips", duration_ms: 6_000, sequence_projection: { signature: "sequence", duration_ms: 4_000, sample_rate: 48_000, spans: [] }, tracks: [track], orphans: [] },
     sequence_stem: { url: "", filename: "", duration_ms: 4_000, signature: "sequence", cached: true },

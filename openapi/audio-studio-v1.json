@@ -1702,6 +1702,53 @@
         "title": "DraftWrite",
         "type": "object"
       },
+      "EchoEffect": {
+        "additionalProperties": false,
+        "properties": {
+          "delay_ms": {
+            "default": 180,
+            "maximum": 1000.0,
+            "minimum": 50.0,
+            "title": "Delay Ms",
+            "type": "integer"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "feedback": {
+            "default": 0.28,
+            "maximum": 0.85,
+            "minimum": 0.0,
+            "title": "Feedback",
+            "type": "number"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mix": {
+            "default": 0.22,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Mix",
+            "type": "number"
+          },
+          "type": {
+            "const": "echo",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "EchoEffect",
+        "type": "object"
+      },
       "EditorialBody": {
         "additionalProperties": false,
         "properties": {
@@ -5030,6 +5077,28 @@
             ],
             "title": "Duration Ms"
           },
+          "effects": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "echo": "#/components/schemas/EchoEffect",
+                  "telephone": "#/components/schemas/TelephoneEffect"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TelephoneEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/EchoEffect"
+                }
+              ]
+            },
+            "maxItems": 16,
+            "title": "Effects",
+            "type": "array"
+          },
           "fade_in_ms": {
             "default": 0,
             "maximum": 120000.0,
@@ -5068,6 +5137,11 @@
             "title": "Id",
             "type": "string"
           },
+          "locked": {
+            "default": false,
+            "title": "Locked",
+            "type": "boolean"
+          },
           "loop": {
             "default": false,
             "title": "Loop",
@@ -5083,6 +5157,11 @@
               }
             ],
             "title": "Missing"
+          },
+          "muted": {
+            "default": false,
+            "title": "Muted",
+            "type": "boolean"
           },
           "orphan": {
             "title": "Orphan",
@@ -5129,12 +5208,6 @@
             "default": 0,
             "minimum": 0.0,
             "title": "Source Offset Ms",
-            "type": "integer"
-          },
-          "start_ms": {
-            "default": 0,
-            "minimum": 0.0,
-            "title": "Start Ms",
             "type": "integer"
           }
         },
@@ -5492,6 +5565,61 @@
         "title": "SavedPronunciationResponse",
         "type": "object"
       },
+      "SequenceMixOverride": {
+        "additionalProperties": false,
+        "properties": {
+          "effects": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "echo": "#/components/schemas/EchoEffect",
+                  "telephone": "#/components/schemas/TelephoneEffect"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TelephoneEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/EchoEffect"
+                }
+              ]
+            },
+            "maxItems": 16,
+            "title": "Effects",
+            "type": "array"
+          },
+          "fade_in_ms": {
+            "default": 0,
+            "maximum": 120000.0,
+            "minimum": 0.0,
+            "title": "Fade In Ms",
+            "type": "integer"
+          },
+          "fade_out_ms": {
+            "default": 0,
+            "maximum": 120000.0,
+            "minimum": 0.0,
+            "title": "Fade Out Ms",
+            "type": "integer"
+          },
+          "gain": {
+            "default": 1,
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Gain",
+            "type": "number"
+          },
+          "muted": {
+            "default": false,
+            "title": "Muted",
+            "type": "boolean"
+          }
+        },
+        "title": "SequenceMixOverride",
+        "type": "object"
+      },
       "SequenceProjection": {
         "properties": {
           "duration_ms": {
@@ -5541,6 +5669,9 @@
           "missing": {
             "title": "Missing",
             "type": "boolean"
+          },
+          "mix": {
+            "$ref": "#/components/schemas/SequenceMixOverride"
           },
           "part_id": {
             "title": "Part Id",
@@ -5593,7 +5724,8 @@
           "start_ms",
           "duration_ms",
           "silence",
-          "missing"
+          "missing",
+          "mix"
         ],
         "title": "SequenceProjectionSpan",
         "type": "object"
@@ -5975,6 +6107,28 @@
             ],
             "title": "Duration Ms"
           },
+          "effects": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "echo": "#/components/schemas/EchoEffect",
+                  "telephone": "#/components/schemas/TelephoneEffect"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TelephoneEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/EchoEffect"
+                }
+              ]
+            },
+            "maxItems": 16,
+            "title": "Effects",
+            "type": "array"
+          },
           "fade_in_ms": {
             "default": 0,
             "maximum": 120000.0,
@@ -6002,21 +6156,25 @@
             "title": "Id",
             "type": "string"
           },
+          "locked": {
+            "default": false,
+            "title": "Locked",
+            "type": "boolean"
+          },
           "loop": {
             "default": false,
             "title": "Loop",
+            "type": "boolean"
+          },
+          "muted": {
+            "default": false,
+            "title": "Muted",
             "type": "boolean"
           },
           "source_offset_ms": {
             "default": 0,
             "minimum": 0.0,
             "title": "Source Offset Ms",
-            "type": "integer"
-          },
-          "start_ms": {
-            "default": 0,
-            "minimum": 0.0,
-            "title": "Start Ms",
             "type": "integer"
           }
         },
@@ -6031,6 +6189,14 @@
       "SoundSceneDocument": {
         "additionalProperties": false,
         "properties": {
+          "sequence_overrides": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SequenceMixOverride"
+            },
+            "maxProperties": 10000,
+            "title": "Sequence Overrides",
+            "type": "object"
+          },
           "tracks": {
             "items": {
               "$ref": "#/components/schemas/SoundSceneTrackDocument"
@@ -7667,6 +7833,32 @@
           "worker"
         ],
         "title": "SystemHealthResponse",
+        "type": "object"
+      },
+      "TelephoneEffect": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "telephone",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "TelephoneEffect",
         "type": "object"
       },
       "TextBody": {

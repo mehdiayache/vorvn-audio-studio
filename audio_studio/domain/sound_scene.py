@@ -14,6 +14,7 @@ SAMPLE_RATE = 48_000
 TRACK_KINDS = {"music", "sfx", "ambience"}
 ANCHOR_KINDS = {"absolute", "part"}
 ANCHOR_EDGES = {"start", "end"}
+EFFECT_TYPES = {"telephone", "echo"}
 
 
 class SoundSceneError(ValueError):
@@ -27,7 +28,7 @@ class SoundSceneRevisionConflict(SoundSceneError):
 
 
 def empty_scene() -> dict[str, Any]:
-    return {"version": 1, "tracks": []}
+    return {"version": 1, "sequence_overrides": {}, "tracks": []}
 
 
 def _number(value: Any, default: float = 0) -> float:
@@ -56,6 +57,58 @@ def _uuid(value: Any, *, label: str) -> str:
         raise SoundSceneError(f"{label} is invalid.") from exc
 
 
+def _effects(value: Any) -> list[dict[str, Any]]:
+    if value is None:
+        return []
+    if not isinstance(value, list) or len(value) > 16:
+        raise SoundSceneError("That Sound Scene effect chain is invalid.")
+    effects: list[dict[str, Any]] = []
+    effect_ids: set[str] = set()
+    for raw in value:
+        if not isinstance(raw, dict):
+            raise SoundSceneError("A Sound Scene effect is invalid.")
+        effect_id = _uuid(raw.get("id"), label="Effect ID")
+        if effect_id in effect_ids:
+            raise SoundSceneError("Sound Scene effect IDs must be unique per chain.")
+        effect_ids.add(effect_id)
+        effect_type = str(raw.get("type") or "").strip().lower()
+        if effect_type not in EFFECT_TYPES:
+            raise SoundSceneError("That Sound Scene effect is unsupported.")
+        effect = {
+            "id": effect_id,
+            "type": effect_type,
+            "enabled": bool(raw.get("enabled", True)),
+        }
+        if effect_type == "echo":
+            effect.update({
+                "delay_ms": max(50, min(
+                    1_000, _integer(raw.get("delay_ms"), 180))),
+                "feedback": max(0, min(
+                    .85, _number(raw.get("feedback"), .28))),
+                "mix": max(0, min(1, _number(raw.get("mix"), .22))),
+            })
+        effects.append(effect)
+    return effects
+
+
+def _mix_override(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise SoundSceneError("That Sequence mix override is invalid.")
+    return {
+        "muted": bool(value.get("muted", False)),
+        "gain": max(0, min(2, _number(value.get("gain"), 1))),
+        "fade_in_ms": max(
+            0, min(120_000, _integer(value.get("fade_in_ms")))),
+        "fade_out_ms": max(
+            0, min(120_000, _integer(value.get("fade_out_ms")))),
+        "effects": _effects(value.get("effects")),
+    }
+
+
+def default_mix_override() -> dict[str, Any]:
+    return _mix_override({})
+
+
 def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
     """Return the small persisted contract; reject UI/derived state."""
     if not isinstance(document, dict) or document.get("version") != 1:
@@ -63,6 +116,14 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
     raw_tracks = document.get("tracks")
     if not isinstance(raw_tracks, list) or len(raw_tracks) > 64:
         raise SoundSceneError("Sound Scene tracks are invalid.")
+    raw_overrides = document.get("sequence_overrides", {})
+    if not isinstance(raw_overrides, dict) or len(raw_overrides) > 10_000:
+        raise SoundSceneError("Sound Scene Sequence overrides are invalid.")
+    sequence_overrides = {
+        _uuid(part_public_id, label="Sequence override Part public ID"):
+        _mix_override(value)
+        for part_public_id, value in raw_overrides.items()
+    }
     tracks: list[dict[str, Any]] = []
     track_ids: set[str] = set()
     clip_ids: set[str] = set()
@@ -90,7 +151,15 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
             asset_id = _integer(raw_clip.get("asset_id"))
             if asset_id <= 0:
                 raise SoundSceneError("Every Sound Scene clip needs an Asset.")
-            anchor_raw = raw_clip.get("anchor") or {"kind": "absolute"}
+            # Legacy V1 documents stored both start_ms and anchor. Anchor is
+            # now the sole canonical position; start_ms is only a read input
+            # when an old document has no anchor at all.
+            anchor_raw = raw_clip.get("anchor")
+            if anchor_raw is None:
+                anchor_raw = {
+                    "kind": "absolute",
+                    "position_ms": raw_clip.get("start_ms", 0),
+                }
             if not isinstance(anchor_raw, dict):
                 raise SoundSceneError("That Sound Scene anchor is invalid.")
             anchor_kind = str(anchor_raw.get("kind") or "absolute").lower()
@@ -122,7 +191,6 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
                 "asset_id": asset_id,
                 "asset_version_id": (
                     _integer(raw_clip.get("asset_version_id")) or None),
-                "start_ms": max(0, _integer(raw_clip.get("start_ms"))),
                 "duration_ms": duration_ms,
                 "source_offset_ms": max(
                     0, _integer(raw_clip.get("source_offset_ms"))),
@@ -133,6 +201,9 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
                     0, min(120_000, _integer(raw_clip.get("fade_out_ms")))),
                 "loop": bool(raw_clip.get("loop", False)),
                 "ducking": bool(raw_clip.get("ducking", False)),
+                "muted": bool(raw_clip.get("muted", False)),
+                "locked": bool(raw_clip.get("locked", False)),
+                "effects": _effects(raw_clip.get("effects")),
                 "anchor": anchor,
             })
         tracks.append({
@@ -144,7 +215,11 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
             "muted": bool(raw_track.get("muted", False)),
             "clips": clips,
         })
-    return {"version": 1, "tracks": tracks}
+    return {
+        "version": 1,
+        "sequence_overrides": sequence_overrides,
+        "tracks": tracks,
+    }
 
 
 def _part_duration_ms(part: dict[str, Any]) -> int:
@@ -239,8 +314,29 @@ def resolve_scene(
     projection = sequence_projection(parts)
     part_spans = {
         span["part_public_id"]: span for span in projection["spans"]}
+    for span in projection["spans"]:
+        override = scene["sequence_overrides"].get(span["part_public_id"])
+        span["mix"] = {
+            **default_mix_override(),
+            **(override or {}),
+            "fade_in_ms": min(
+                int((override or {}).get("fade_in_ms", 0)),
+                span["duration_ms"],
+            ),
+            "fade_out_ms": min(
+                int((override or {}).get("fade_out_ms", 0)),
+                span["duration_ms"],
+            ),
+        }
     resolved_tracks: list[dict[str, Any]] = []
     orphans: list[dict[str, str]] = []
+    for part_public_id in scene["sequence_overrides"]:
+        if part_public_id not in part_spans:
+            orphans.append({
+                "kind": "sequence_override",
+                "part_public_id": part_public_id,
+                "reason": "override_part_missing",
+            })
     for track in scene["tracks"]:
         resolved_clips: list[dict[str, Any]] = []
         for clip in track["clips"]:

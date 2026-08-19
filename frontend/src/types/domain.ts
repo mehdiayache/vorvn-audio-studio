@@ -174,11 +174,22 @@ export type SoundSceneAnchor =
   | { kind: "absolute"; position_ms: number }
   | { kind: "part"; part_public_id: string; edge: "start" | "end"; offset_ms: number }
 
+export type SoundSceneEffect =
+  | { id: string; type: "telephone"; enabled: boolean }
+  | { id: string; type: "echo"; enabled: boolean; delay_ms: number; feedback: number; mix: number }
+
+export type SequenceMixOverride = {
+  muted: boolean
+  gain: number
+  fade_in_ms: number
+  fade_out_ms: number
+  effects: SoundSceneEffect[]
+}
+
 export type SoundSceneClip = {
   id: string
   asset_id: number
   asset_version_id?: number | null
-  start_ms: number
   duration_ms: number | null
   source_offset_ms: number
   gain: number
@@ -186,6 +197,9 @@ export type SoundSceneClip = {
   fade_out_ms: number
   loop: boolean
   ducking: boolean
+  muted: boolean
+  locked: boolean
+  effects: SoundSceneEffect[]
   anchor: SoundSceneAnchor
   asset_name?: string
   asset_kind?: string
@@ -207,7 +221,11 @@ export type SoundSceneTrack = {
   clips: SoundSceneClip[]
 }
 
-export type SoundSceneDocument = { version: 1; tracks: SoundSceneTrack[] }
+export type SoundSceneDocument = {
+  version: 1
+  sequence_overrides: Record<string, SequenceMixOverride>
+  tracks: SoundSceneTrack[]
+}
 
 export type SequenceProjectionSpan = {
   part_id: number
@@ -222,6 +240,7 @@ export type SequenceProjectionSpan = {
   duration_ms: number
   silence: boolean
   missing: boolean
+  mix: SequenceMixOverride
 }
 
 export type SoundScene = {
@@ -242,7 +261,13 @@ export type SoundScene = {
       spans: SequenceProjectionSpan[]
     }
     tracks: SoundSceneTrack[]
-    orphans: { track_id: string; clip_id: string; reason: string }[]
+    orphans: {
+      kind?: "sequence_override"
+      track_id?: string
+      clip_id?: string
+      part_public_id?: string
+      reason: string
+    }[]
   }
   sequence_stem: {
     url: string

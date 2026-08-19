@@ -22,7 +22,7 @@ const payload: GeneratePayload = {
 }
 const production = { id: 28, name: "Genesis", parts: [] } as unknown as Production
 const part = { id: 127, position: 0, kind: "audio" } as ProductionPart
-const soundScene = { production_id: 28, revision: 1, document: { version: 1, tracks: [{ id: "music", kind: "music", name: "Music", volume: 1, muted: false, clips: [] }] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", duration_ms: 0, sequence_projection: { signature: "sequence", duration_ms: 0, sample_rate: 48_000, spans: [] }, tracks: [{ id: "music", kind: "music", name: "Music", volume: 1, muted: false, clips: [] }], orphans: [] }, sequence_stem: { url: "", filename: "", duration_ms: 0, signature: "sequence", cached: true } } as SoundScene
+const soundScene = { production_id: 28, revision: 1, document: { version: 1, sequence_overrides: {}, tracks: [{ id: "music", kind: "music", name: "Music", volume: 1, muted: false, clips: [] }] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", duration_ms: 0, sequence_projection: { signature: "sequence", duration_ms: 0, sample_rate: 48_000, spans: [] }, tracks: [{ id: "music", kind: "music", name: "Music", volume: 1, muted: false, clips: [] }], orphans: [] }, sequence_stem: { url: "", filename: "", duration_ms: 0, signature: "sequence", cached: true } } as SoundScene
 
 describe("useProductionActions durable commands", () => {
   beforeEach(() => vi.clearAllMocks())

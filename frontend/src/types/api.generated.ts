@@ -2039,6 +2039,39 @@ export interface components {
             expected_version?: number | null;
             state: components["schemas"]["ComposerState"];
         };
+        /** EchoEffect */
+        EchoEffect: {
+            /**
+             * Delay Ms
+             * @default 180
+             */
+            delay_ms: number;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * Feedback
+             * @default 0.28
+             */
+            feedback: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Mix
+             * @default 0.22
+             */
+            mix: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "echo";
+        };
         /** EditorialBody */
         EditorialBody: {
             /** Authored Role */
@@ -3181,6 +3214,8 @@ export interface components {
             ducking: boolean;
             /** Duration Ms */
             duration_ms?: number | null;
+            /** Effects */
+            effects?: (components["schemas"]["TelephoneEffect"] | components["schemas"]["EchoEffect"])[];
             /**
              * Fade In Ms
              * @default 0
@@ -3201,12 +3236,22 @@ export interface components {
             /** Id */
             id: string;
             /**
+             * Locked
+             * @default false
+             */
+            locked: boolean;
+            /**
              * Loop
              * @default false
              */
             loop: boolean;
             /** Missing */
             missing?: boolean | null;
+            /**
+             * Muted
+             * @default false
+             */
+            muted: boolean;
             /** Orphan */
             orphan: boolean;
             /** Orphan Reason */
@@ -3222,11 +3267,6 @@ export interface components {
              * @default 0
              */
             source_offset_ms: number;
-            /**
-             * Start Ms
-             * @default 0
-             */
-            start_ms: number;
         };
         /** ResolvedSoundSceneTrack */
         ResolvedSoundSceneTrack: {
@@ -3333,6 +3373,31 @@ export interface components {
             /** Rules */
             rules: components["schemas"]["PronunciationRuleResponse"][];
         };
+        /** SequenceMixOverride */
+        SequenceMixOverride: {
+            /** Effects */
+            effects?: (components["schemas"]["TelephoneEffect"] | components["schemas"]["EchoEffect"])[];
+            /**
+             * Fade In Ms
+             * @default 0
+             */
+            fade_in_ms: number;
+            /**
+             * Fade Out Ms
+             * @default 0
+             */
+            fade_out_ms: number;
+            /**
+             * Gain
+             * @default 1
+             */
+            gain: number;
+            /**
+             * Muted
+             * @default false
+             */
+            muted: boolean;
+        };
         /** SequenceProjection */
         SequenceProjection: {
             /** Duration Ms */
@@ -3357,6 +3422,7 @@ export interface components {
             kind: string;
             /** Missing */
             missing: boolean;
+            mix: components["schemas"]["SequenceMixOverride"];
             /** Part Id */
             part_id: number;
             /** Part Public Id */
@@ -3483,6 +3549,8 @@ export interface components {
             ducking: boolean;
             /** Duration Ms */
             duration_ms?: number | null;
+            /** Effects */
+            effects?: (components["schemas"]["TelephoneEffect"] | components["schemas"]["EchoEffect"])[];
             /**
              * Fade In Ms
              * @default 0
@@ -3501,23 +3569,32 @@ export interface components {
             /** Id */
             id: string;
             /**
+             * Locked
+             * @default false
+             */
+            locked: boolean;
+            /**
              * Loop
              * @default false
              */
             loop: boolean;
             /**
+             * Muted
+             * @default false
+             */
+            muted: boolean;
+            /**
              * Source Offset Ms
              * @default 0
              */
             source_offset_ms: number;
-            /**
-             * Start Ms
-             * @default 0
-             */
-            start_ms: number;
         };
         /** SoundSceneDocument */
         SoundSceneDocument: {
+            /** Sequence Overrides */
+            sequence_overrides?: {
+                [key: string]: components["schemas"]["SequenceMixOverride"];
+            };
             /** Tracks */
             tracks: components["schemas"]["SoundSceneTrackDocument"][];
             /**
@@ -4126,6 +4203,24 @@ export interface components {
             /** Version */
             version: string;
             worker: components["schemas"]["WorkerStatusResponse"];
+        };
+        /** TelephoneEffect */
+        TelephoneEffect: {
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "telephone";
         };
         /** TextBody */
         TextBody: {

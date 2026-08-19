@@ -7,7 +7,7 @@ function scene(tracks: SoundSceneTrack[]): SoundScene {
   return {
     production_id: 1,
     revision: 1,
-    document: { version: 1, tracks },
+    document: { version: 1, sequence_overrides: {}, tracks },
     can_undo: false,
     can_redo: false,
     updated_at: "2026-08-19",
@@ -31,9 +31,9 @@ function music(id: string, options: Partial<SoundSceneTrack> = {}): SoundSceneTr
     volume: 1,
     muted: false,
     clips: [{
-      id: `${id}-clip`, asset_id: 1, start_ms: 0, duration_ms: 1_000,
+      id: `${id}-clip`, asset_id: 1, duration_ms: 1_000,
       source_offset_ms: 0, gain: 1, fade_in_ms: 0, fade_out_ms: 0,
-      loop: false, ducking: false,
+      loop: false, ducking: false, muted: false, locked: false, effects: [],
       anchor: { kind: "absolute", position_ms: 0 }, resolved_duration_ms: 1_000,
     }],
     ...options,
@@ -47,13 +47,15 @@ describe("audibleMusicClips", () => {
     const silentTrack = music("Music muted by volume", { volume: 0 })
     const silentClip = music("Music muted by gain")
     silentClip.clips[0]!.gain = 0
+    const mutedClip = music("Music muted by clip")
+    mutedClip.clips[0]!.muted = true
     const missingClip = music("Missing Music")
     missingClip.clips[0]!.missing = true
     const active = music("Music 3")
     active.clips.push({ ...active.clips[0]!, id: "Music 3-second-clip" })
 
     expect(audibleMusicClips(scene([
-      empty, muted, silentTrack, silentClip, missingClip, active,
+      empty, muted, silentTrack, silentClip, mutedClip, missingClip, active,
     ])).map((clip) => clip.id)).toEqual([
       "Music 3-clip",
       "Music 3-second-clip",

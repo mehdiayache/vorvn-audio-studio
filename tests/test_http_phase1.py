@@ -280,7 +280,7 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(music.status_code, 400)
         self.assertEqual(music.json()["error"]["code"], "timeline_error")
 
-        document = {"version": 1, "tracks": [{
+        document = {"version": 1, "sequence_overrides": {}, "tracks": [{
             "id": "music", "kind": "music", "name": "Music",
             "volume": 1, "muted": False, "clips": [],
         }]}

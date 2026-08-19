@@ -62,7 +62,7 @@ function soundTrack(track: SoundSceneTrack): ClipTrack {
       return engineClip(
         clip.id,
         clip.asset_name || track.name,
-        Number(clip.resolved_start_ms ?? clip.start_ms),
+        Number(clip.resolved_start_ms ?? (clip.anchor.kind === "absolute" ? clip.anchor.position_ms : 0)),
         duration,
         editableSource,
         clip.source_offset_ms,
@@ -102,7 +102,9 @@ export class SoundSceneEngine {
       const persisted = scene.document.tracks.find((item) => item.id === track.id)?.clips.find((item) => item.id === clip.id)
       if (persisted) this.origins.set(clip.id, {
         clip: persisted,
-        resolvedStartMs: Number(clip.resolved_start_ms ?? clip.start_ms),
+        resolvedStartMs: Number(clip.resolved_start_ms ?? (
+          clip.anchor.kind === "absolute" ? clip.anchor.position_ms : 0
+        )),
         resolvedDurationMs: Number(clip.resolved_duration_ms ?? clip.duration_ms ?? 0),
       })
     }))
@@ -157,6 +159,7 @@ export class SoundSceneEngine {
     const state = this.state()
     return {
       version: 1,
+      sequence_overrides: structuredClone(this.baseDocument.sequence_overrides),
       tracks: this.baseDocument.tracks.map((track) => {
         const engineTrack = state.tracks.find((item) => item.id === track.id)
         return {
@@ -177,7 +180,6 @@ export class SoundSceneEngine {
             const override = this.clipOverrides.get(clip.id)
             return {
               ...clip,
-              start_ms: currentStart,
               duration_ms: unchangedFollowDuration ? null : currentDuration,
               source_offset_ms: clip.loop && Number(clip.source_duration_ms || 0) > 0
                 ? milliseconds(current.offsetSamples) % Number(clip.source_duration_ms)

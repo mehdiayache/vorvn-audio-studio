@@ -257,12 +257,24 @@ class ProductionDocumentTests(unittest.TestCase):
                         }]}],
         })
         music_clip = saved_scene["hydrated_document"]["tracks"][0]["clips"][0]
+        persisted_music_clip = saved_scene["document"]["tracks"][0]["clips"][0]
         self.assertEqual(
             (music_clip["asset_id"], music_clip["filename"],
              music_clip["gain"], music_clip["source_offset_ms"],
              music_clip["fade_in_ms"], music_clip["ducking"]),
             (music_asset["id"], f"music-{self.marker}.wav",
              .25, 1_500, 3_000, False),
+        )
+        self.assertIsNotNone(persisted_music_clip["asset_version_id"])
+        self.assertNotIn("start_ms", persisted_music_clip)
+        self.assertEqual(persisted_music_clip["anchor"], {
+            "kind": "absolute", "position_ms": 0,
+        })
+        self.assertEqual(
+            (persisted_music_clip["muted"],
+             persisted_music_clip["locked"],
+             persisted_music_clip["effects"]),
+            (False, False, []),
         )
         undone_scene = sound_scenes.step(first_id, -1)
         self.assertEqual(undone_scene["document"]["tracks"][0]["clips"], [])

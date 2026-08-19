@@ -40,12 +40,41 @@ SoundSceneAnchor = Annotated[
     AbsoluteAnchor | PartAnchor, Field(discriminator="kind")]
 
 
+class TelephoneEffect(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: UUID
+    type: Literal["telephone"]
+    enabled: bool = True
+
+
+class EchoEffect(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: UUID
+    type: Literal["echo"]
+    enabled: bool = True
+    delay_ms: int = Field(default=180, ge=50, le=1_000)
+    feedback: float = Field(default=.28, ge=0, le=.85)
+    mix: float = Field(default=.22, ge=0, le=1)
+
+
+SoundSceneEffect = Annotated[
+    TelephoneEffect | EchoEffect, Field(discriminator="type")]
+
+
+class SequenceMixOverride(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    muted: bool = False
+    gain: float = Field(default=1, ge=0, le=2)
+    fade_in_ms: int = Field(default=0, ge=0, le=120_000)
+    fade_out_ms: int = Field(default=0, ge=0, le=120_000)
+    effects: list[SoundSceneEffect] = Field(default_factory=list, max_length=16)
+
+
 class SoundSceneClipDocument(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str = Field(min_length=1, max_length=120)
     asset_id: int = Field(gt=0)
     asset_version_id: int | None = Field(default=None, gt=0)
-    start_ms: int = Field(default=0, ge=0)
     duration_ms: int | None = Field(default=None, ge=100)
     source_offset_ms: int = Field(default=0, ge=0)
     gain: float = Field(default=1, ge=0, le=2)
@@ -53,6 +82,9 @@ class SoundSceneClipDocument(BaseModel):
     fade_out_ms: int = Field(default=0, ge=0, le=120_000)
     loop: bool = False
     ducking: bool = False
+    muted: bool = False
+    locked: bool = False
+    effects: list[SoundSceneEffect] = Field(default_factory=list, max_length=16)
     anchor: SoundSceneAnchor
 
 
@@ -69,6 +101,8 @@ class SoundSceneTrackDocument(BaseModel):
 class SoundSceneDocument(BaseModel):
     model_config = ConfigDict(extra="forbid")
     version: Literal[1]
+    sequence_overrides: dict[str, SequenceMixOverride] = Field(
+        default_factory=dict, max_length=10_000)
     tracks: list[SoundSceneTrackDocument] = Field(max_length=64)
 
 
@@ -91,6 +125,7 @@ class SequenceProjectionSpan(BaseModel):
     duration_ms: int
     silence: bool
     missing: bool
+    mix: SequenceMixOverride
 
 
 class SequenceProjection(BaseModel):

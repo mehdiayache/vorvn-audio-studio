@@ -14,7 +14,7 @@ vi.mock("@/features/sound-scene/source-editor/music-source-editor", () => ({
 
 import { MusicInspector } from "@/features/sound-scene/inspector/music-inspector"
 
-const clip = { id: "78af885c-aeb4-49bf-9edb-d3fc14496b2c", asset_id: 9, filename: "bed.mp3", asset_name: "Bed", source_duration_ms: 60_000, start_ms: 0, duration_ms: null, source_offset_ms: 0, gain: .1, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, anchor: { kind: "absolute" as const, position_ms: 0 } }
+const clip = { id: "78af885c-aeb4-49bf-9edb-d3fc14496b2c", asset_id: 9, filename: "bed.mp3", asset_name: "Bed", source_duration_ms: 60_000, duration_ms: null, source_offset_ms: 0, gain: .1, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, muted: false, locked: false, effects: [], anchor: { kind: "absolute" as const, position_ms: 0 } }
 const track = { id: "music", kind: "music" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
 
 afterEach(cleanup)

@@ -44,15 +44,16 @@ function partActions(values: Partial<WorkstationPartActions> = {}): WorkstationP
 
 function scene(parts: ProductionPart[], sourceDurationMs = 60_000): SoundScene {
   let cursor = 0
+  const mix = { muted: false, gain: 1, fade_in_ms: 0, fade_out_ms: 0, effects: [] }
   const spans = parts.map((item) => {
     const duration = Number(item.duration_ms || 0)
-    const span = { part_id: item.id, part_public_id: String(item.id), position: item.position, kind: item.kind, title: item.title || "", role: item.authored_role || "", voice_name: item.voice_name || "", filename: item.filename || "", start_ms: cursor, duration_ms: duration, silence: item.kind === "silence", missing: false }
+    const span = { part_id: item.id, part_public_id: String(item.id), position: item.position, kind: item.kind, title: item.title || "", role: item.authored_role || "", voice_name: item.voice_name || "", filename: item.filename || "", start_ms: cursor, duration_ms: duration, silence: item.kind === "silence", missing: false, mix }
     cursor += duration
     return span
   })
-  const clip = { id: musicClipId, asset_id: 9, start_ms: 0, duration_ms: null, source_offset_ms: 0, gain: .12, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, anchor: { kind: "absolute" as const, position_ms: 0 }, asset_name: "Quiet room", filename: "bed.mp3", source_duration_ms: sourceDurationMs, resolved_start_ms: 0, resolved_duration_ms: cursor }
+  const clip = { id: musicClipId, asset_id: 9, duration_ms: null, source_offset_ms: 0, gain: .12, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, muted: false, locked: false, effects: [], anchor: { kind: "absolute" as const, position_ms: 0 }, asset_name: "Quiet room", filename: "bed.mp3", source_duration_ms: sourceDurationMs, resolved_start_ms: 0, resolved_duration_ms: cursor }
   const track = { id: "music", kind: "music" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
-  return { production_id: 6, revision: 1, document: { version: 1, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", duration_ms: cursor, sequence_projection: { signature: "sequence", duration_ms: cursor, sample_rate: 48_000, spans }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/sequence-stem.mp3", filename: "sequence-stem.mp3", duration_ms: cursor, signature: "sequence", cached: true } }
+  return { production_id: 6, revision: 1, document: { version: 1, sequence_overrides: {}, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", duration_ms: cursor, sequence_projection: { signature: "sequence", duration_ms: cursor, sample_rate: 48_000, spans }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/sequence-stem.mp3", filename: "sequence-stem.mp3", duration_ms: cursor, signature: "sequence", cached: true } }
 }
 
 function sessionFor(soundScene: SoundScene, update = vi.fn().mockImplementation(async () => ({ ...soundScene, revision: soundScene.revision + 1 }))) {
@@ -166,7 +167,7 @@ describe("Production Workstation", () => {
     const soundScene = scene([part({ duration_ms: 120_000 })], 1_500_000)
     const onCommit = vi.fn().mockResolvedValue({ ...soundScene, revision: 2 })
     const session = sessionFor(soundScene, onCommit)
-    const initialStart = session.currentClip("music", musicClipId)?.start_ms
+    const initialAnchor = session.currentClip("music", musicClipId)?.anchor
     const { container } = render(<SoundSceneWorkspace session={session} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
     const musicClip = container.querySelector(".sound-music-clip") as HTMLElement
 
@@ -176,7 +177,7 @@ describe("Production Workstation", () => {
     await Promise.resolve()
 
     expect(onCommit).not.toHaveBeenCalled()
-    expect(session.currentClip("music", musicClipId)?.start_ms).toBe(initialStart)
+    expect(session.currentClip("music", musicClipId)?.anchor).toEqual(initialAnchor)
   })
 
   it("keeps exact positioning available after the legacy Production is removed", () => {
