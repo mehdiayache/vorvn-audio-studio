@@ -218,6 +218,14 @@ function EmptyInspector({ stage }: { stage: WorkstationStage }) {
   return <div className="ws-empty-inspector"><span><Search /></span><h3>{copy[0]}</h3><p>{copy[1]}</p></div>
 }
 
+function MusicGroupInspector({ count }: { count: number }) {
+  return <div className="ws-empty-inspector">
+    <span><ListMusic /></span>
+    <h3>{count} Music clips selected</h3>
+    <p>Drag any selected clip to move the group together. Shared mute, lock, duplicate and remove actions stay in the toolbar.</p>
+  </div>
+}
+
 function ReleaseInspector({ issues, staleOverrides, onLocate, onRemoveOverride }: {
   issues: ProductionHealthIssue[]
   staleOverrides: string[]
@@ -481,7 +489,8 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     onPreview={(changes) => soundSession.previewSequenceOverride(soundSpan.part_public_id, changes)}
     onCommit={(changes) => soundSession.updateSequenceOverride(soundSpan.part_public_id, changes)}
     onOpenSequence={() => { soundSession.select(null); setStage("sequence"); setSelectedId(soundSpan.part_id) }}
-  /> : stage === "mix" && releaseInspectorOpen ? <ReleaseInspector
+  /> : stage === "sound" && soundSelection?.kind === "clips" ? <MusicGroupInspector count={soundSelection.clips.length} />
+    : stage === "mix" && releaseInspectorOpen ? <ReleaseInspector
     issues={issues} staleOverrides={staleOverrides}
     onLocate={(id) => { setStage("sequence"); setSelectedId(id); setReleaseInspectorOpen(false); requestAnimationFrame(() => document.getElementById(`ws-part-${id}`)?.scrollIntoView({ block: "center" })) }}
     onRemoveOverride={(partPublicId) => { void soundSession.removeSequenceOverride(partPublicId) }}

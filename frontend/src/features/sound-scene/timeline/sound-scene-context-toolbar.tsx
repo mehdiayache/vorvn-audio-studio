@@ -12,12 +12,13 @@ import type { SoundSceneEffect } from "@/types/domain"
 type EffectsProps = {
   effects: SoundSceneEffect[]
   disabled?: boolean
+  subject?: "Clip" | "Part"
   onCommit: (effects: SoundSceneEffect[]) => void
 }
 
 function effectId() { return crypto.randomUUID() }
 
-export function SoundEffectsEditor({ effects, disabled, onCommit }: EffectsProps) {
+export function SoundEffectsEditor({ effects, disabled, subject = "Clip", onCommit }: EffectsProps) {
   const [draft, setDraft] = useState(effects)
   useEffect(() => setDraft(effects), [effects])
   const telephone = draft.find((effect) => effect.type === "telephone")
@@ -52,7 +53,7 @@ export function SoundEffectsEditor({ effects, disabled, onCommit }: EffectsProps
 
   const active = draft.filter((effect) => effect.enabled)
   return <div className="sound-effects-editor">
-    <header><span><RadioTower /></span><div><b>Clip effects</b><small>Non-destructive · browser and export</small></div></header>
+    <header><span><RadioTower /></span><div><b>{subject} effects</b><small>Non-destructive · browser and export</small></div></header>
     {active.length > 0 && <div className="sound-effect-chain" aria-label="Effect processing order">
       <span>Processing order</span>
       <ol>{active.map((effect, index) => <li key={effect.id}>
