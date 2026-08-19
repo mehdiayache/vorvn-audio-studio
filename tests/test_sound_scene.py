@@ -94,6 +94,53 @@ class SoundSceneDomainTests(unittest.TestCase):
         self.assertEqual(mix["fade_out_ms"], 900)
         self.assertEqual(mix["effects"][0]["type"], "echo")
 
+    def test_echo_tail_overlaps_later_parts_and_only_extends_scene_end(self):
+        first = speech(1, 2_000, 0)
+        second = speech(2, 3_000, 1)
+        scene = empty_scene()
+        scene["sequence_overrides"][first["public_id"]] = {
+            "muted": False, "gain": 1, "fade_in_ms": 0,
+            "fade_out_ms": 0, "effects": [{
+                "id": "2bc326ca-57ba-4e63-bdfd-6145dfb73181",
+                "type": "echo", "enabled": True, "delay_ms": 250,
+                "feedback": .5, "mix": .3,
+            }],
+        }
+
+        resolved = resolve_scene(scene, [first, second])
+        spans = resolved["sequence_projection"]["spans"]
+
+        self.assertEqual(spans[1]["start_ms"], 2_000)
+        self.assertGreater(spans[0]["effect_tail_ms"], 0)
+        self.assertEqual(resolved["duration_ms"], 5_000)
+
+        scene["sequence_overrides"] = {
+            second["public_id"]: scene["sequence_overrides"][first["public_id"]]
+        }
+        final_echo = resolve_scene(scene, [first, second])
+        final_span = final_echo["sequence_projection"]["spans"][1]
+        self.assertEqual(
+            final_echo["duration_ms"],
+            5_000 + final_span["effect_tail_ms"],
+        )
+
+    def test_muted_clip_effect_tail_does_not_extend_scene(self):
+        part = speech(1, 2_000, 0)
+        scene = anchored_scene(part["public_id"])
+        clip = scene["tracks"][0]["clips"][0]
+        clip["muted"] = True
+        clip["effects"] = [{
+            "id": "2bc326ca-57ba-4e63-bdfd-6145dfb73181",
+            "type": "echo", "enabled": True, "delay_ms": 500,
+            "feedback": .5, "mix": .3,
+        }]
+
+        resolved = resolve_scene(scene, [part])
+
+        self.assertGreater(
+            resolved["tracks"][0]["clips"][0]["effect_tail_ms"], 0)
+        self.assertEqual(resolved["duration_ms"], 2_000)
+
     def test_missing_sequence_override_is_an_explicit_obsolete_orphan(self):
         scene = empty_scene()
         missing = "00000000-0000-0000-0000-000000000099"

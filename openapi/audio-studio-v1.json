@@ -5077,6 +5077,11 @@
             ],
             "title": "Duration Ms"
           },
+          "effect_tail_ms": {
+            "default": 0,
+            "title": "Effect Tail Ms",
+            "type": "integer"
+          },
           "effects": {
             "items": {
               "discriminator": {
@@ -5656,6 +5661,11 @@
         "properties": {
           "duration_ms": {
             "title": "Duration Ms",
+            "type": "integer"
+          },
+          "effect_tail_ms": {
+            "default": 0,
+            "title": "Effect Tail Ms",
             "type": "integer"
           },
           "filename": {

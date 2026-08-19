@@ -126,6 +126,7 @@ class SequenceProjectionSpan(BaseModel):
     silence: bool
     missing: bool
     mix: SequenceMixOverride
+    effect_tail_ms: int = 0
 
 
 class SequenceProjection(BaseModel):
@@ -145,6 +146,7 @@ class ResolvedSoundSceneClip(SoundSceneClipDocument):
     resolved_duration_ms: int
     orphan: bool
     orphan_reason: str | None = None
+    effect_tail_ms: int = 0
 
 
 class ResolvedSoundSceneTrack(BaseModel):

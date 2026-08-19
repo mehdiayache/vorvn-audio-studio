@@ -3214,6 +3214,11 @@ export interface components {
             ducking: boolean;
             /** Duration Ms */
             duration_ms?: number | null;
+            /**
+             * Effect Tail Ms
+             * @default 0
+             */
+            effect_tail_ms: number;
             /** Effects */
             effects?: (components["schemas"]["TelephoneEffect"] | components["schemas"]["EchoEffect"])[];
             /**
@@ -3416,6 +3421,11 @@ export interface components {
         SequenceProjectionSpan: {
             /** Duration Ms */
             duration_ms: number;
+            /**
+             * Effect Tail Ms
+             * @default 0
+             */
+            effect_tail_ms: number;
             /** Filename */
             filename: string;
             /** Kind */

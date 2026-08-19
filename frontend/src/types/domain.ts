@@ -210,6 +210,7 @@ export type SoundSceneClip = {
   resolved_duration_ms?: number
   orphan?: boolean
   orphan_reason?: string | null
+  effect_tail_ms?: number
 }
 
 export type SoundSceneTrack = {
@@ -241,6 +242,7 @@ export type SequenceProjectionSpan = {
   silence: boolean
   missing: boolean
   mix: SequenceMixOverride
+  effect_tail_ms?: number
 }
 
 export type SoundScene = {

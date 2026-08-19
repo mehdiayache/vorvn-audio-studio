@@ -13,6 +13,7 @@ from urllib.parse import quote, unquote, urlparse
 from uuid import uuid4
 
 from audio_studio.domain import speech_text
+from audio_studio.domain.sound_scene import effect_tail_ms
 from audio_studio.domain.rendering import (
     FinishedExport,
     RenderError,
@@ -98,17 +99,139 @@ def _sound_clips(scene: dict) -> list[tuple[dict, dict]]:
     return [
         (track, clip)
         for track in scene.get("tracks", [])
-        if not track.get("muted")
+        if not track.get("muted") and float(track.get("volume", 1)) > 0
         for clip in track.get("clips", [])
         if (not clip.get("orphan") and not clip.get("missing")
+            and not clip.get("muted") and float(clip.get("gain", 1)) > 0
             and int(clip.get("resolved_duration_ms") or 0) > 0)
     ]
+
+
+def _needs_sequence_processing(scene: dict) -> bool:
+    for span in scene.get("sequence_projection", {}).get("spans", []):
+        mix = span.get("mix") or {}
+        if (mix.get("muted") or float(mix.get("gain", 1)) != 1
+                or int(mix.get("fade_in_ms") or 0)
+                or int(mix.get("fade_out_ms") or 0)
+                or any(effect.get("enabled", True)
+                       for effect in mix.get("effects", []))):
+            return True
+    return False
+
+
+def _append_effects(
+    filters: list[str], source: str, effects: list[dict], prefix: str,
+) -> str:
+    """Build a serial effect chain while keeping echo on stable wet/dry buses."""
+    current = source
+    for index, effect in enumerate(effects):
+        if not effect.get("enabled", True):
+            continue
+        output = f"{prefix}fx{index}"
+        if effect.get("type") == "telephone":
+            filters.append(
+                f"{current}highpass=f=300:p=2,lowpass=f=3400:p=2[{output}]"
+            )
+            current = f"[{output}]"
+            continue
+        if effect.get("type") != "echo":
+            continue
+        delay_ms = max(50, min(1_000, int(effect.get("delay_ms") or 180)))
+        feedback = max(0, min(.85, float(effect.get("feedback") or 0)))
+        mix = max(0, min(1, float(effect.get("mix") or 0)))
+        tail_ms = effect_tail_ms([effect])
+        if feedback <= 0 or mix <= 0 or tail_ms <= 0:
+            continue
+        repeats = max(1, tail_ms // delay_ms)
+        delays = "|".join(str(delay_ms * repeat)
+                          for repeat in range(1, repeats + 1))
+        decays = "|".join(f"{feedback ** repeat:.6f}"
+                          for repeat in range(1, repeats + 1))
+        dry_input = f"{prefix}dryin{index}"
+        echo_input = f"{prefix}echoin{index}"
+        dry = f"{prefix}dry{index}"
+        echo = f"{prefix}echo{index}"
+        filters.extend([
+            f"{current}asplit=2[{dry_input}][{echo_input}]",
+            f"[{dry_input}]volume={1 - mix:.6f}[{dry}]",
+            f"[{echo_input}]aecho=1:1:{delays}:{decays},"
+            f"volume={mix:.6f}[{echo}]",
+            f"[{dry}][{echo}]amix=inputs=2:duration=longest:"
+            f"dropout_transition=0:normalize=0[{output}]",
+        ])
+        current = f"[{output}]"
+    return current
+
+
+def _append_sequence_filters(filters: list[str], scene: dict) -> str:
+    normalize = (
+        "aformat=sample_fmts=fltp:sample_rates=48000:"
+        "channel_layouts=stereo,aresample=48000"
+    )
+    spans = scene.get("sequence_projection", {}).get("spans", [])
+    if not spans or not _needs_sequence_processing(scene):
+        filters.append(
+            f"[0:a]{normalize},asetpts=PTS-STARTPTS[sequencebase]"
+        )
+        return "[sequencebase]"
+
+    filters.append(f"[0:a]{normalize}[sequenceraw]")
+    if len(spans) == 1:
+        span_inputs = ["[sequenceraw]"]
+    else:
+        labels = [f"sequencein{index}" for index in range(len(spans))]
+        filters.append(
+            f"[sequenceraw]asplit={len(spans)}"
+            + "".join(f"[{label}]" for label in labels)
+        )
+        span_inputs = [f"[{label}]" for label in labels]
+
+    span_outputs: list[str] = []
+    for index, (source, span) in enumerate(zip(span_inputs, spans)):
+        start = max(0, int(span.get("start_ms") or 0)) / 1000
+        duration = max(0, int(span.get("duration_ms") or 0)) / 1000
+        mix = span.get("mix") or {}
+        muted = bool(mix.get("muted"))
+        gain = 0 if muted else max(0, min(2, float(mix.get("gain", 1))))
+        fade_in = min(duration, int(mix.get("fade_in_ms") or 0) / 1000)
+        fade_out = min(duration, int(mix.get("fade_out_ms") or 0) / 1000)
+        base = f"sequencepart{index}"
+        chain = [
+            f"atrim=start={start:.3f}:duration={duration:.3f}",
+            "asetpts=PTS-STARTPTS", f"volume={gain:.4f}",
+        ]
+        if fade_in:
+            chain.append(f"afade=t=in:st=0:d={fade_in:.3f}")
+        if fade_out and duration > fade_out:
+            chain.append(
+                f"afade=t=out:st={duration - fade_out:.3f}:d={fade_out:.3f}"
+            )
+        start_ms = max(0, int(span.get("start_ms") or 0))
+        chain.append(f"adelay={start_ms}|{start_ms}")
+        filters.append(f"{source}{','.join(chain)}[{base}]")
+        processed = f"[{base}]"
+        if not muted and gain > 0:
+            processed = _append_effects(
+                filters, processed, mix.get("effects", []), f"seq{index}"
+            )
+        output = f"sequencepartout{index}"
+        filters.append(f"{processed}anull[{output}]")
+        span_outputs.append(f"[{output}]")
+    if len(span_outputs) == 1:
+        filters.append(f"{span_outputs[0]}anull[sequencebase]")
+    else:
+        filters.append(
+            f"{''.join(span_outputs)}amix=inputs={len(span_outputs)}:"
+            "duration=longest:dropout_transition=0:normalize=0[sequencebase]"
+        )
+    return "[sequencebase]"
 
 
 def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
     """Render the same resolved Sound Scene used by browser playout."""
     clips = _sound_clips(scene)
-    if not clips:
+    sequence_processing = _needs_sequence_processing(scene)
+    if not clips and not sequence_processing:
         shutil.copyfile(sequence, target)
         return False
     root = _output()
@@ -129,11 +252,8 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
         if clip.get("loop"):
             command.extend(["-stream_loop", "-1"])
         command.extend(["-i", str(source)])
-    filters = [
-        "[0:a]aformat=sample_fmts=fltp:sample_rates=48000:"
-        "channel_layouts=stereo,aresample=48000:async=1:first_pts=0,"
-        "asetpts=N/SR/TB,apad[sequencebase]",
-    ]
+    filters: list[str] = []
+    _append_sequence_filters(filters, scene)
     ducked_labels: list[str] = []
     dry_labels: list[str] = []
     for index, (track, clip) in enumerate(clips, 1):
@@ -156,8 +276,13 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
             chain.append(
                 f"afade=t=out:st={duration - fade_out:.3f}:d={fade_out:.3f}")
         chain.append(f"adelay={start_ms}|{start_ms}")
+        base = f"scenebase{index}"
+        filters.append(f"[{index}:a]{','.join(chain)}[{base}]")
+        processed = _append_effects(
+            filters, f"[{base}]", clip.get("effects", []), f"clip{index}"
+        )
         label = f"scene{index}"
-        filters.append(f"[{index}:a]{','.join(chain)}[{label}]")
+        filters.append(f"{processed}anull[{label}]")
         group = ducked_labels if clip.get("ducking") else dry_labels
         group.append(f"[{label}]")
 
@@ -186,11 +311,18 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
         filters.append("[sequencebase]anull[sequence]")
     if dry_label:
         sound_labels.append(dry_label)
-    sound_label = mix_group(sound_labels, "sound") or ""
+    sound_label = mix_group(sound_labels, "sound")
+    if sound_label:
+        filters.append(
+            f"{sound_label}[sequence]amix=inputs=2:duration=longest:"
+            "dropout_transition=0:normalize=0[fullscene]"
+        )
+        final_source = "[fullscene]"
+    else:
+        final_source = "[sequence]"
     filters.append(
-        f"{sound_label}[sequence]amix=inputs=2:duration=longest:"
-        f"dropout_transition=0:normalize=0,apad,atrim=duration={scene_duration:.3f},"
-        "alimiter=limit=0.98[out]"
+        f"{final_source}apad=whole_dur={scene_duration:.3f},"
+        f"atrim=duration={scene_duration:.3f}[out]"
     )
     command.extend([
         "-filter_complex", ";".join(filters), "-map", "[out]", "-vn",

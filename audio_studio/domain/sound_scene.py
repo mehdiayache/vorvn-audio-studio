@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from typing import Any
 from uuid import UUID
 
@@ -15,6 +16,7 @@ TRACK_KINDS = {"music", "sfx", "ambience"}
 ANCHOR_KINDS = {"absolute", "part"}
 ANCHOR_EDGES = {"start", "end"}
 EFFECT_TYPES = {"telephone", "echo"}
+ECHO_AUDIBLE_THRESHOLD = .01
 
 
 class SoundSceneError(ValueError):
@@ -107,6 +109,28 @@ def _mix_override(value: Any) -> dict[str, Any]:
 
 def default_mix_override() -> dict[str, Any]:
     return _mix_override({})
+
+
+def effect_tail_ms(effects: list[dict[str, Any]]) -> int:
+    """Return the finite render window for an otherwise recursive effect.
+
+    Browser echo feedback is theoretically infinite. Rendering stops once the
+    repeated signal falls below one percent of the original, which keeps the
+    browser and FFmpeg duration contract deterministic.
+    """
+    tail_ms = 0
+    for effect in effects:
+        if (not effect.get("enabled") or effect.get("type") != "echo"
+                or _number(effect.get("mix")) <= 0):
+            continue
+        feedback = max(0, min(.85, _number(effect.get("feedback"))))
+        if feedback <= 0:
+            continue
+        repeats = max(1, math.ceil(
+            math.log(ECHO_AUDIBLE_THRESHOLD) / math.log(feedback)))
+        tail_ms += max(50, min(1_000, _integer(
+            effect.get("delay_ms"), 180))) * repeats
+    return tail_ms
 
 
 def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
@@ -328,6 +352,7 @@ def resolve_scene(
                 span["duration_ms"],
             ),
         }
+        span["effect_tail_ms"] = effect_tail_ms(span["mix"]["effects"])
     resolved_tracks: list[dict[str, Any]] = []
     orphans: list[dict[str, str]] = []
     for part_public_id in scene["sequence_overrides"]:
@@ -380,6 +405,7 @@ def resolve_scene(
                 "fade_out_ms": min(clip["fade_out_ms"], max(0, duration_ms)),
                 "orphan": bool(orphan_reason),
                 "orphan_reason": orphan_reason or None,
+                "effect_tail_ms": effect_tail_ms(clip["effects"]),
             }
             resolved_clips.append(resolved)
             if orphan_reason:
@@ -388,13 +414,24 @@ def resolve_scene(
                     "reason": orphan_reason,
                 })
         resolved_tracks.append({**track, "clips": resolved_clips})
+    sequence_ends = [
+        int(span["start_ms"]) + int(span["duration_ms"])
+        + int(span["effect_tail_ms"])
+        for span in projection["spans"]
+        if not span["mix"]["muted"] and span["mix"]["gain"] > 0
+    ]
+    sound_ends = [
+        int(clip.get("resolved_start_ms") or 0)
+        + int(clip.get("resolved_duration_ms") or 0)
+        + int(clip.get("effect_tail_ms") or 0)
+        for track in resolved_tracks
+        if not track.get("muted") and track.get("volume", 1) > 0
+        for clip in track["clips"]
+        if (not clip.get("orphan") and not clip.get("missing")
+            and not clip.get("muted") and clip.get("gain", 1) > 0)
+    ]
     scene_duration_ms = max([
-        projection["duration_ms"],
-        *(int(clip.get("resolved_start_ms") or 0)
-          + int(clip.get("resolved_duration_ms") or 0)
-          for track in resolved_tracks
-          for clip in track["clips"]
-          if not clip.get("orphan") and not clip.get("missing")),
+        projection["duration_ms"], *sequence_ends, *sound_ends,
     ])
     resolution = {
         "version": 1,
