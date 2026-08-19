@@ -300,6 +300,10 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   const soundState = useSoundSceneSession(soundSession)
   useEffect(() => { soundSession.reconcile(soundScene) }, [soundScene, soundSession])
   useEffect(() => () => soundSession.dispose(), [soundSession])
+  useEffect(() => {
+    if (stage === "sound") void soundSession.activatePlayout()
+    else soundSession.deactivatePlayout()
+  }, [soundSession, stage])
   const duration = Number(soundScene.resolved.duration_ms ?? soundScene.resolved.sequence_projection.duration_ms) / 1000
   const issues = useMemo(() => productionHealth(production.parts), [production.parts])
   const assetCollectionIds = Object.fromEntries(assetCollections.map((collection) => [collection.name, collection.id]))

@@ -28,7 +28,7 @@ export type SoundScenePersistence = {
 type Playout = Pick<SoundScenePlayout,
   "replace" | "play" | "pause" | "seek" | "currentTime" | "isPlaying" |
   "muteTrack" | "setTrackVolume" | "setClipGain" | "dispose"
->
+> & Partial<Pick<SoundScenePlayout, "activatePlayout" | "deactivatePlayout">>
 
 export class SoundSceneSession {
   readonly editor: SoundSceneEngine
@@ -71,6 +71,19 @@ export class SoundSceneSession {
   }
 
   select(selection: SoundSelection) { this.set({ selection }) }
+  async activatePlayout() {
+    try {
+      await this.playout.activatePlayout?.()
+    } catch (reason) {
+      this.set({
+        error: reason instanceof Error ? reason.message : "Sound Design audio could not be prepared.",
+      })
+    }
+  }
+  deactivatePlayout() {
+    this.pause()
+    this.playout.deactivatePlayout?.()
+  }
   pause() {
     this.playout.pause()
     if (this.frame) cancelAnimationFrame(this.frame)

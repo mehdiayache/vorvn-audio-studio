@@ -1,7 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => {
-  const adapters: Array<{ setTracks: ReturnType<typeof vi.fn>; setTrackVolume: ReturnType<typeof vi.fn> }> = []
+  const adapters: Array<{
+    setTracks: ReturnType<typeof vi.fn>
+    setTrackVolume: ReturnType<typeof vi.fn>
+    dispose: ReturnType<typeof vi.fn>
+  }> = []
+  const media: Array<{
+    src: string; currentTime: number; duration: number; preload: string;
+    play: ReturnType<typeof vi.fn>; pause: ReturnType<typeof vi.fn>;
+    load: ReturnType<typeof vi.fn>; removeAttribute: ReturnType<typeof vi.fn>;
+  }> = []
   class FakeAdapter {
     setTracks = vi.fn()
     setTrackVolume = vi.fn()
@@ -17,7 +26,7 @@ const mocks = vi.hoisted(() => {
     transport = { connectTrackOutput: vi.fn() }
     constructor() { adapters.push(this) }
   }
-  return { adapters, FakeAdapter }
+  return { adapters, media, FakeAdapter }
 })
 
 vi.mock("@dawcore/transport", () => ({ NativePlayoutAdapter: mocks.FakeAdapter }))
@@ -48,12 +57,39 @@ function scene(): SoundScene {
 describe("SoundScenePlayout", () => {
   beforeEach(() => {
     mocks.adapters.length = 0
+    mocks.media.length = 0
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(8)) }))
+    const parameter = () => ({
+      value: 1, setValueAtTime: vi.fn(), cancelScheduledValues: vi.fn(),
+      linearRampToValueAtTime: vi.fn(),
+    })
+    const node = () => ({ connect: vi.fn(), disconnect: vi.fn() })
+    vi.stubGlobal("Audio", class {
+      src = ""
+      currentTime = 0
+      duration = 3_600
+      preload = ""
+      play = vi.fn().mockResolvedValue(undefined)
+      pause = vi.fn()
+      load = vi.fn()
+      removeAttribute = vi.fn()
+      constructor() { mocks.media.push(this) }
+    })
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1))
+    vi.stubGlobal("cancelAnimationFrame", vi.fn())
     vi.stubGlobal("AudioContext", class {
       sampleRate = 48_000
       currentTime = 0
       destination = { connect: vi.fn() }
-      decodeAudioData = vi.fn().mockResolvedValue({ duration: 2, sampleRate: 48_000, length: 96_000 })
+      decodeAudioData = vi.fn().mockResolvedValue({ duration: 2, sampleRate: 48_000, length: 96_000, numberOfChannels: 2 })
+      createGain = vi.fn(() => ({ ...node(), gain: parameter() }))
+      createDelay = vi.fn(() => ({ ...node(), delayTime: parameter() }))
+      createBiquadFilter = vi.fn(() => ({ ...node(), type: "lowpass", frequency: parameter() }))
+      createAnalyser = vi.fn(() => ({
+        ...node(), fftSize: 1024, smoothingTimeConstant: 0,
+        getFloatTimeDomainData: vi.fn(),
+      }))
+      createMediaElementSource = vi.fn(() => node())
       resume = vi.fn().mockResolvedValue(undefined)
       close = vi.fn().mockResolvedValue(undefined)
     })
@@ -75,6 +111,45 @@ describe("SoundScenePlayout", () => {
     expect(adapter.setTrackVolume).toHaveBeenCalledTimes(1)
     expect(adapter.setTrackVolume.mock.calls[0]![0]).toBe("music::clip::78af885c-aeb4-49bf-9edb-d3fc14496b2a")
     expect(adapter.setTrackVolume.mock.calls[0]![1]).toBeCloseTo(.32)
+    playout.dispose()
+    vi.unstubAllGlobals()
+  })
+
+  it("streams the long Sequence stem and releases every heavy resource", async () => {
+    const source = scene()
+    source.sequence_stem.url = "/audio/sequence-stem.mp3"
+    source.sequence_stem.duration_ms = 3_600_000
+    source.resolved.duration_ms = 3_600_000
+    source.resolved.sequence_projection.duration_ms = 3_600_000
+    source.resolved.sequence_projection.spans = [{
+      part_id: 1, part_public_id: "part-1", position: 0,
+      kind: "speech", title: "Opening", role: "Narrator",
+      voice_name: "Eva", filename: "part.mp3", start_ms: 0,
+      duration_ms: 3_600_000, silence: false, missing: false,
+      mix: { muted: false, gain: 1, fade_in_ms: 0, fade_out_ms: 0, effects: [] },
+    }]
+    source.document.tracks = []
+    source.resolved.tracks = []
+    const playout = new SoundScenePlayout(source)
+
+    await playout.activatePlayout()
+
+    expect(playout.diagnostics()).toEqual({
+      active: true, decodedBytes: 0, bufferedSources: 0,
+      streamedSources: 1, sequenceMode: "stream",
+    })
+    expect(fetch).not.toHaveBeenCalled()
+    expect(mocks.media[0]?.src).toBe("/audio/sequence-stem.mp3")
+
+    playout.deactivatePlayout()
+
+    expect(playout.diagnostics()).toEqual({
+      active: false, decodedBytes: 0, bufferedSources: 0,
+      streamedSources: 0, sequenceMode: "none",
+    })
+    expect(mocks.media[0]?.pause).toHaveBeenCalled()
+    expect(mocks.media[0]?.removeAttribute).toHaveBeenCalledWith("src")
+    expect(mocks.adapters[0]?.dispose).toHaveBeenCalled()
     playout.dispose()
     vi.unstubAllGlobals()
   })
