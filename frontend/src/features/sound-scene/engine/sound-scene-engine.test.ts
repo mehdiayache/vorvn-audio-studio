@@ -51,6 +51,19 @@ describe("SoundSceneEngine", () => {
     expect(editor.state().samplesPerPixel).toBe(initial)
     editor.dispose()
   })
+
+  it("enforces clip lock below the UI gesture layer", () => {
+    const source = scene()
+    source.document.tracks[0]!.clips[0]!.locked = true
+    source.resolved.tracks[0]!.clips[0]!.locked = true
+    const editor = new SoundSceneEngine(source)
+
+    expect(editor.moveClip("music", clipId, 48_000)).toBe(false)
+    expect(editor.trimClip("music", clipId, "right", -24_000)).toBe(false)
+    expect(editor.document().tracks[0]!.clips[0]!.anchor).toEqual({ kind: "absolute", position_ms: 0 })
+    expect(editor.document().tracks[0]!.clips[0]!.duration_ms).toBeNull()
+    editor.dispose()
+  })
 })
 
 describe("SoundSceneSession", () => {
@@ -152,6 +165,59 @@ describe("SoundSceneSession", () => {
     await session.commitTrackVolume("music", .65)
     expect(update.mock.calls[0]![0].tracks[0].volume).toBe(.65)
     expect(update.mock.calls[0]![0].tracks[0].clips[0].gain).toBe(.1)
+    session.dispose()
+  })
+
+  it("duplicates a multi-track group after itself while preserving relative Part anchors", async () => {
+    const source = scene()
+    const second = structuredClone(source.document.tracks[0]!.clips[0]!)
+    second.id = "88af885c-aeb4-49bf-9edb-d3fc14496b2c"
+    second.anchor = { kind: "part", part_public_id: "part-7", edge: "end", offset_ms: 500 }
+    second.duration_ms = 2_000
+    delete second.resolved_start_ms
+    delete second.resolved_duration_ms
+    source.document.tracks.push({ id: "music-2", kind: "music", name: "Music 2", volume: 1, muted: false, clips: [second] })
+    source.resolved.tracks.push({
+      ...source.document.tracks[1]!,
+      clips: [{ ...second, resolved_start_ms: 10_500, resolved_duration_ms: 2_000 }],
+    })
+    const update = vi.fn().mockImplementation(async (document) => ({ ...source, revision: 2, document }))
+    const playout = {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(false),
+      muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    }
+    const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, playout)
+
+    session.selectClip("music", clipId)
+    session.selectClip("music-2", second.id, true)
+    await session.duplicateClips()
+
+    const document = update.mock.calls[0]![0]
+    expect(document.tracks[0].clips).toHaveLength(2)
+    expect(document.tracks[1].clips).toHaveLength(2)
+    expect(document.tracks[0].clips[1].anchor).toEqual({ kind: "absolute", position_ms: 12_500 })
+    expect(document.tracks[1].clips[1].anchor).toEqual({ kind: "part", part_public_id: "part-7", edge: "end", offset_ms: 13_000 })
+    expect(session.snapshot().selection?.kind).toBe("clips")
+    session.dispose()
+  })
+
+  it("keeps obsolete Sequence overrides explicit until the operator removes them", async () => {
+    const source = scene()
+    source.document.sequence_overrides["00000000-0000-4000-8000-000000000099"] = {
+      muted: true, gain: 1, fade_in_ms: 0, fade_out_ms: 0, effects: [],
+    }
+    const update = vi.fn().mockImplementation(async (document) => ({ ...source, revision: 2, document }))
+    const playout = {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(false),
+      muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    }
+    const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, playout)
+
+    await session.removeSequenceOverride("00000000-0000-4000-8000-000000000099")
+
+    expect(update.mock.calls[0]![0].sequence_overrides).toEqual({})
     session.dispose()
   })
 })

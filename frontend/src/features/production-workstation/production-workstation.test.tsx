@@ -163,6 +163,22 @@ describe("Production Workstation", () => {
     await waitFor(() => expect(onCommit).toHaveBeenCalledTimes(1))
   })
 
+  it("keeps a stable contextual toolbar while shift-selecting several clips", () => {
+    const soundScene = scene([part({ duration_ms: 120_000 })])
+    const second = { ...soundScene.document.tracks[0]!.clips[0]!, id: "88af885c-aeb4-49bf-9edb-d3fc14496b2c", asset_name: "Rain layer", anchor: { kind: "absolute" as const, position_ms: 20_000 }, resolved_start_ms: 20_000 }
+    soundScene.document.tracks[0]!.clips.push(second)
+    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const clips = container.querySelectorAll(".sound-music-clip")
+
+    fireEvent.pointerDown(clips[0]!, { button: 0, clientX: 100 })
+    fireEvent.pointerDown(clips[1]!, { button: 0, clientX: 200, shiftKey: true })
+
+    expect(screen.getByText("Music selection")).toBeTruthy()
+    expect(screen.getAllByText("2 clips").length).toBeGreaterThan(0)
+    expect(screen.queryByRole("button", { name: /Effects/ })).toBeNull()
+    expect(screen.getByRole("button", { name: "Duplicate selected clips" })).toBeTruthy()
+  })
+
   it("cancels a timeline gesture without persisting when Escape is pressed", async () => {
     const soundScene = scene([part({ duration_ms: 120_000 })], 1_500_000)
     const onCommit = vi.fn().mockResolvedValue({ ...soundScene, revision: 2 })

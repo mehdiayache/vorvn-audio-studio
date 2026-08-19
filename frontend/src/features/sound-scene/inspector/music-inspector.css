@@ -34,4 +34,5 @@
 .music-fade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
 .music-save-state { color: var(--muted-foreground); font-size: var(--type-caption); }
 .music-save-state.is-error { color: var(--destructive); }
+.music-lock-note { padding: .55rem .65rem; border-radius: .42rem; color: var(--muted-foreground); background: var(--muted); font-size: var(--type-caption); }
 .music-workbench-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding-top: var(--space-3); border-top: var(--stroke-hairline) solid var(--border); }

@@ -9,7 +9,7 @@ vi.mock("@/components/ui/slider", () => ({
   },
 }))
 vi.mock("@/features/sound-scene/source-editor/music-source-editor", () => ({
-  MusicSourceEditor: ({ onChange, onCommit }: { onChange: (value: { sourceOffsetMs: number; durationMs: null }) => void; onCommit: (value: { sourceOffsetMs: number; durationMs: null }) => void }) => <section aria-label="Music source window"><button onClick={() => { const value = { sourceOffsetMs: 5_500, durationMs: null as null }; onChange(value); onCommit(value) }}>Move source window</button></section>,
+  MusicSourceEditor: ({ onChange, onCommit, disabled }: { onChange: (value: { sourceOffsetMs: number; durationMs: null }) => void; onCommit: (value: { sourceOffsetMs: number; durationMs: null }) => void; disabled?: boolean }) => <section aria-label="Music source window"><button disabled={disabled} onClick={() => { const value = { sourceOffsetMs: 5_500, durationMs: null as null }; onChange(value); onCommit(value) }}>Move source window</button></section>,
 }))
 
 import { MusicInspector } from "@/features/sound-scene/inspector/music-inspector"
@@ -47,5 +47,16 @@ describe("MusicInspector", () => {
     render(<MusicInspector track={{ ...track, clips: [] }} clip={null} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackVolumeChange={vi.fn()} onTrackVolumeCommit={vi.fn()} onChoose={vi.fn()} onRemove={vi.fn()} />)
     expect(screen.getByText(/Add one reusable Venture track/)).toBeTruthy()
     expect(screen.queryByText(/Clip|Voice/)).toBeNull()
+  })
+
+  it("locks editing geometry without locking mix controls", () => {
+    render(<MusicInspector track={track} clip={{ ...clip, locked: true }} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackVolumeChange={vi.fn()} onTrackVolumeCommit={vi.fn()} onChoose={vi.fn()} onRemove={vi.fn()} />)
+
+    expect(screen.getByRole("button", { name: "Move source window" }).hasAttribute("disabled")).toBe(true)
+    expect(screen.getByRole("button", { name: /Replace source/ }).hasAttribute("disabled")).toBe(true)
+    expect(screen.getByRole("button", { name: /Remove clip/ }).hasAttribute("disabled")).toBe(true)
+    expect(screen.getByRole("button", { name: "Music fade in" }).hasAttribute("disabled")).toBe(true)
+    expect(screen.getByRole("button", { name: "Music clip gain" }).hasAttribute("disabled")).toBe(false)
+    expect(screen.getByText(/Mix, volume and effects remain available/)).toBeTruthy()
   })
 })

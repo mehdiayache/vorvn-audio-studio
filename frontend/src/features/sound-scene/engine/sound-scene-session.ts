@@ -1,12 +1,14 @@
 import { useSyncExternalStore } from "react"
 
-import type { SoundScene, SoundSceneClip, SoundSceneDocument, SoundSceneTrack, VentureAsset } from "@/types/domain"
+import type { SequenceMixOverride, SoundScene, SoundSceneClip, SoundSceneDocument, SoundSceneTrack, VentureAsset } from "@/types/domain"
 import { SoundSceneEngine, type SoundSceneEngineState } from "./sound-scene-engine"
 import { SoundScenePlayout } from "./sound-scene-playout"
 
+export type SoundClipRef = { trackId: string; clipId: string }
 export type SoundSelection =
   | { kind: "part"; id: number }
   | { kind: "clip"; trackId: string; clipId: string }
+  | { kind: "clips"; clips: SoundClipRef[] }
   | null
 
 export type SoundSceneSessionSnapshot = {
@@ -71,6 +73,23 @@ export class SoundSceneSession {
   }
 
   select(selection: SoundSelection) { this.set({ selection }) }
+  selectClip(trackId: string, clipId: string, additive = false) {
+    const next = { trackId, clipId }
+    if (!additive) { this.select({ kind: "clip", ...next }); return }
+    const current = this.selectedClips()
+    const exists = current.some((clip) => clip.trackId === trackId && clip.clipId === clipId)
+    const clips = exists
+      ? current.filter((clip) => clip.trackId !== trackId || clip.clipId !== clipId)
+      : [...current, next]
+    this.select(clips.length === 0 ? null : clips.length === 1
+      ? { kind: "clip", ...clips[0]! }
+      : { kind: "clips", clips })
+  }
+  selectedClips(): SoundClipRef[] {
+    const selection = this.snapshotValue.selection
+    if (selection?.kind === "clip") return [{ trackId: selection.trackId, clipId: selection.clipId }]
+    return selection?.kind === "clips" ? selection.clips : []
+  }
   async activatePlayout() {
     try {
       await this.playout.activatePlayout?.()
@@ -185,6 +204,7 @@ export class SoundSceneSession {
     await this.persist(this.nextDocument((document) => {
       const clip = document.tracks.find((track) => track.id === trackId)?.clips.find((item) => item.id === clipId)
       if (!clip) throw new Error("That Music clip is no longer available.")
+      if (clip.locked) throw new Error("Unlock this clip before replacing its source.")
       clip.asset_id = asset.id
       clip.asset_version_id = Number(asset.version_id) || null
       clip.source_offset_ms = 0
@@ -196,9 +216,79 @@ export class SoundSceneSession {
     await this.persist(this.nextDocument((document) => {
       const track = document.tracks.find((item) => item.id === trackId)
       if (!track) return
+      const clip = track.clips.find((item) => item.id === clipId)
+      if (clip?.locked) throw new Error("Unlock this clip before deleting it.")
       track.clips = track.clips.filter((clip) => clip.id !== clipId)
     }))
     this.select(null)
+  }
+
+  async removeClips(refs = this.selectedClips()) {
+    if (!refs.length) return
+    await this.persist(this.nextDocument((document) => {
+      for (const ref of refs) {
+        const clip = document.tracks.find((track) => track.id === ref.trackId)?.clips.find((item) => item.id === ref.clipId)
+        if (clip?.locked) throw new Error("Unlock every selected clip before deleting the group.")
+      }
+      for (const track of document.tracks) {
+        const ids = new Set(refs.filter((ref) => ref.trackId === track.id).map((ref) => ref.clipId))
+        track.clips = track.clips.filter((clip) => !ids.has(clip.id))
+      }
+    }))
+    this.select(null)
+  }
+
+  async duplicateClips(refs = this.selectedClips()) {
+    if (!refs.length) return
+    const resolved = refs.flatMap((ref) => {
+      const clip = this.currentClip(ref.trackId, ref.clipId)
+      return clip ? [{ ref, clip }] : []
+    })
+    if (resolved.some(({ clip }) => clip.locked))
+      throw new Error("Unlock every selected clip before duplicating the group.")
+    const groupStart = Math.min(...resolved.map(({ clip }) => Number(clip.resolved_start_ms || 0)))
+    const groupEnd = Math.max(...resolved.map(({ clip }) =>
+      Number(clip.resolved_start_ms || 0) + Number(clip.resolved_duration_ms || clip.duration_ms || 0)))
+    const delta = Math.max(100, groupEnd - groupStart)
+    const created: SoundClipRef[] = []
+    await this.persist(this.nextDocument((document) => {
+      for (const { ref } of resolved) {
+        const track = document.tracks.find((item) => item.id === ref.trackId)
+        const source = track?.clips.find((item) => item.id === ref.clipId)
+        if (!track || !source) continue
+        const copy = structuredClone(source)
+        copy.id = crypto.randomUUID()
+        copy.anchor = copy.anchor.kind === "part"
+          ? { ...copy.anchor, offset_ms: copy.anchor.offset_ms + delta }
+          : { ...copy.anchor, position_ms: copy.anchor.position_ms + delta }
+        track.clips.push(copy)
+        created.push({ trackId: track.id, clipId: copy.id })
+      }
+    }))
+    this.select(created.length === 1 ? { kind: "clip", ...created[0]! } : { kind: "clips", clips: created })
+  }
+
+  async commitClipChanges(trackId: string, clipId: string, changes: Partial<SoundSceneClip>) {
+    this.updateClip(trackId, clipId, changes)
+    await this.commitClip()
+  }
+
+  async commitSelectedClipChanges(changes: Partial<SoundSceneClip>, refs = this.selectedClips()) {
+    if (!refs.length) return
+    for (const ref of refs) this.updateClip(ref.trackId, ref.clipId, changes)
+    await this.commitClip()
+  }
+
+  async updateSequenceOverride(partPublicId: string, changes: Partial<SequenceMixOverride>) {
+    const span = this.snapshotValue.scene.resolved.sequence_projection.spans.find((item) => item.part_public_id === partPublicId)
+    if (!span) throw new Error("That Sequence Part is no longer available.")
+    await this.persist(this.nextDocument((document) => {
+      document.sequence_overrides[partPublicId] = { ...span.mix, ...document.sequence_overrides[partPublicId], ...changes }
+    }))
+  }
+
+  async removeSequenceOverride(partPublicId: string) {
+    await this.persist(this.nextDocument((document) => { delete document.sequence_overrides[partPublicId] }))
   }
 
   setTrackMute(trackId: string, muted: boolean) {

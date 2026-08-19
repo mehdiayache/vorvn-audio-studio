@@ -305,15 +305,19 @@
 .ws-release-inspector h3 { margin: .15rem 0 .2rem; font-size: .9rem; }
 .ws-release-inspector p { color: var(--muted-foreground); font-size: .7rem; line-height: 1.5; }
 .ws-release-issue-list { display: grid; gap: .3rem; }
-.ws-release-issue-list button { min-width: 0; display: grid; grid-template-columns: 1.9rem minmax(0, 1fr) .45rem; align-items: center; gap: .5rem; padding: .6rem .55rem; border: 0; border-radius: .55rem; color: var(--foreground); background: transparent; text-align: left; }
-.ws-release-issue-list button:hover { background: var(--surface-subtle); }
-.ws-release-issue-list button > span { font: 700 .66rem/1 var(--font-mono); color: var(--muted-foreground); }
-.ws-release-issue-list button > div { min-width: 0; display: grid; }
-.ws-release-issue-list button b, .ws-release-issue-list button small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ws-release-issue-list button b { font-size: .72rem; }
-.ws-release-issue-list button small { color: var(--muted-foreground); font-size: .64rem; }
-.ws-release-issue-list button > i { width: .4rem; height: .4rem; border-radius: 999px; background: var(--warning); }
-.ws-release-issue-list button > i.blocking { background: var(--destructive); }
+.ws-release-issue-list > button { min-width: 0; display: grid; grid-template-columns: 1.9rem minmax(0, 1fr) .45rem; align-items: center; gap: .5rem; padding: .6rem .55rem; border: 0; border-radius: .55rem; color: var(--foreground); background: transparent; text-align: left; }
+.ws-release-issue-list > button:hover { background: var(--surface-subtle); }
+.ws-release-issue-list > button > span { font: 700 .66rem/1 var(--font-mono); color: var(--muted-foreground); }
+.ws-release-issue-list > button > div { min-width: 0; display: grid; }
+.ws-release-issue-list > button b, .ws-release-issue-list > button small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-release-issue-list > button b { font-size: .72rem; }
+.ws-release-issue-list > button small { color: var(--muted-foreground); font-size: .64rem; }
+.ws-release-issue-list > button > i { width: .4rem; height: .4rem; border-radius: 999px; background: var(--warning); }
+.ws-release-issue-list > button > i.blocking { background: var(--destructive); }
+.ws-release-stale-override { min-width: 0; display: grid; grid-template-columns: 1.9rem minmax(0, 1fr) auto; align-items: center; gap: .5rem; padding: .6rem .55rem; border-radius: .55rem; background: var(--warning-soft); }
+.ws-release-stale-override > span { width: 1.65rem; height: 1.65rem; display: grid; place-items: center; border-radius: .4rem; color: var(--warning); background: white; }
+.ws-release-stale-override > span svg { width: .78rem; }.ws-release-stale-override > div { min-width: 0; display: grid; }
+.ws-release-stale-override b { font-size: .7rem; }.ws-release-stale-override small { color: var(--muted-foreground); font-size: .61rem; line-height: 1.35; }
 
 @media (max-width: 80rem) {
   .production-workstation { --ws-left: 12.5rem; --ws-right: 22rem; }

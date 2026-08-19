@@ -3,9 +3,30 @@
 .sound-scene-toolbar { display: flex; align-items: center; gap: .3rem; padding: .35rem .55rem; border-bottom: 1px solid var(--border); }
 .sound-scene-toolbar svg { width: .85rem; }
 .sound-scene-toolbar-title { color: var(--foreground); font-size: .75rem; font-weight: 720; }
-.sound-scene-history { display: flex; margin-left: auto; padding-right: .25rem; border-right: 1px solid var(--border); }
+.sound-scene-history { display: flex; padding-right: .25rem; border-right: 1px solid var(--border); }
 .sound-scene-zoom { display: flex; align-items: center; gap: .05rem; }
 .sound-scene-zoom > span { width: 3rem; color: var(--muted-foreground); font: 600 .58rem/1 var(--font-mono); text-align: center; }
+.sound-scene-context { min-width: 35rem; min-height: 2rem; display: flex; align-items: center; justify-content: flex-end; gap: .12rem; margin-left: auto; padding-left: .55rem; border-left: 1px solid var(--border); }
+.sound-scene-context.is-empty { color: var(--muted-foreground); font-size: .62rem; }
+.sound-scene-context [data-slot="button"] { flex: none; }
+.sound-context-label { min-width: 6rem; max-width: 10rem; display: grid; margin-right: .25rem; overflow: hidden; }
+.sound-context-label b, .sound-context-label small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sound-context-label b { font-size: .66rem; }.sound-context-label small { color: var(--muted-foreground); font-size: .56rem; }
+.sound-volume-popover, .sound-effects-popover { width: 19rem; padding: .8rem; }
+.sound-volume-popover > span, .sound-effects-popover label > span { display: flex; justify-content: space-between; gap: .8rem; margin-bottom: .65rem; color: var(--muted-foreground); font-size: .67rem; }
+.sound-volume-popover b, .sound-effects-popover label b { color: var(--foreground); font-variant-numeric: tabular-nums; }
+.sound-effects-popover { display: grid; gap: .45rem; }
+.sound-effects-popover > header { display: flex; align-items: center; gap: .6rem; padding: .15rem .1rem .55rem; border-bottom: 1px solid var(--border); }
+.sound-effects-popover > header > span { width: 1.8rem; height: 1.8rem; display: grid; place-items: center; border-radius: .45rem; color: var(--primary); background: var(--primary-soft); }
+.sound-effects-popover > header svg { width: .85rem; }.sound-effects-popover > header div { display: grid; }
+.sound-effects-popover > header b { font-size: .72rem; }.sound-effects-popover > header small { color: var(--muted-foreground); font-size: .58rem; }
+.sound-effects-popover > button { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .55rem .6rem; border: 0; border-radius: .42rem; background: transparent; text-align: left; }
+.sound-effects-popover > button:hover { background: var(--muted); }.sound-effects-popover > button > span { display: grid; }
+.sound-effects-popover > button b { font-size: .68rem; }.sound-effects-popover > button small { color: var(--muted-foreground); font-size: .57rem; }
+.sound-effects-popover > button i { width: .55rem; height: .55rem; border: 1px solid var(--border-strong); border-radius: 999px; background: white; }
+.sound-effects-popover > button[aria-pressed="true"] i { border-color: var(--primary); background: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.sound-echo-controls { display: grid; gap: .8rem; padding: .65rem .6rem .25rem; border-top: 1px solid var(--border); }
+.sound-echo-controls label { display: grid; }
 .sound-scene-editor { min-height: 0; display: grid; grid-template-columns: var(--track-column) minmax(0, 1fr); transition: grid-template-columns 180ms ease; }
 .sound-scene-track-controls { z-index: 7; min-height: 100%; display: grid; overflow: hidden; border-right: 1px solid var(--border); background: white; }
 .sound-scene-track-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; padding: 0 .8rem; border-bottom: 1px solid var(--border); color: var(--muted-foreground); background: white; font-size: .62rem; font-weight: 720; text-transform: uppercase; }
@@ -49,6 +70,8 @@
 .sound-sequence-silence svg { width: .62rem; }
 .sound-music-clip { padding: .4rem .65rem; border: 1px solid var(--success-border); color: oklch(.38 .1 152); background: var(--success-soft); cursor: grab; touch-action: none; }
 .sound-music-clip:active { cursor: grabbing; }
+.sound-music-clip.is-locked { cursor: default; }
+.sound-music-clip.is-locked::after { position: absolute; z-index: 4; right: .4rem; bottom: .35rem; padding: .12rem .3rem; border-radius: .25rem; color: color-mix(in oklab, var(--foreground) 75%, transparent); background: color-mix(in oklab, white 82%, transparent); font: 700 .5rem/1 var(--font-mono); content: "LOCKED"; }
 .sound-music-label { right: 1.1rem; }
 .sound-music-label > svg { width: .82rem; flex: none; }
 .sound-music-label > span { min-width: 0; display: grid; }
@@ -76,3 +99,8 @@
 .sound-follow { margin-left: auto; display: flex; align-items: center; }
 .sound-follow > button:not([data-slot="button"]) { padding: .25rem .4rem; border: 0; border-radius: .35rem; color: var(--muted-foreground); background: transparent; font-size: .6rem; }
 .sound-follow > button[aria-pressed="true"] { color: var(--primary); background: var(--primary-soft); }
+@media (max-width: 1180px) {
+  .sound-scene-context { min-width: 0; }.sound-context-label { display: none; }
+  .sound-scene-context [data-slot="button"] { padding-inline: .45rem; }
+  .sound-scene-context [data-slot="button"] { font-size: 0; }.sound-scene-context [data-slot="button"] svg { margin: 0; }
+}

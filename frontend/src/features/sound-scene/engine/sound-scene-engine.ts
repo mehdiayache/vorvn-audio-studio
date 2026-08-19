@@ -121,10 +121,13 @@ export class SoundSceneEngine {
   commitGesture() { this.engine.commitTransaction() }
   cancelGesture() { this.engine.abortTransaction() }
   moveClip(trackId: string, clipId: string, deltaSamples: number) {
+    if (this.origins.get(clipId)?.clip.locked) return false
     return this.engine.moveClip(trackId, clipId, Math.round(deltaSamples), true)
   }
   trimClip(trackId: string, clipId: string, edge: "left" | "right", deltaSamples: number) {
+    if (this.origins.get(clipId)?.clip.locked) return false
     this.engine.trimClip(trackId, clipId, edge, Math.round(deltaSamples), true)
+    return true
   }
   setTrackMute(trackId: string, muted: boolean) { this.engine.setTrackMute(trackId, muted) }
   setTrackVolume(trackId: string, volume: number) { this.engine.setTrackVolume(trackId, volume) }
