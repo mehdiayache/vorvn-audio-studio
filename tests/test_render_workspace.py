@@ -88,7 +88,7 @@ class RenderWorkspaceTests(unittest.TestCase):
         filters = commands[0][commands[0].index("-filter_complex") + 1]
         self.assertIn("volume=0.2000", filters)
         self.assertIn("volume=0.4000", filters)
-        self.assertIn("[scene1][detector]sidechaincompress", filters)
+        self.assertIn("[scene1][sequencedetector]sidechaincompress", filters)
         self.assertIn("[under][scene2]amix=inputs=2", filters)
 
     def test_mix_builds_sequence_effect_buses_and_keeps_the_echo_tail(self):
@@ -137,8 +137,85 @@ class RenderWorkspaceTests(unittest.TestCase):
         self.assertIn("highpass=f=300:p=2,lowpass=f=3400:p=2", filters)
         self.assertIn("asplit=2[seq0dryin1][seq0echoin1]", filters)
         self.assertIn("aecho=1:1:250|500|750", filters)
+        self.assertIn(":1.000000|0.500000|0.250000", filters)
         self.assertIn("adelay=0|0[sequencepart0]", filters)
         self.assertIn("atrim=duration=3.750", filters)
+
+    def test_feedback_zero_renders_one_wet_hit_and_preserves_dry_wet_mix(self):
+        filters: list[str] = []
+        output = render_workspace._append_effects(filters, "[input]", [{
+            "id": "echo", "type": "echo", "enabled": True,
+            "delay_ms": 200, "feedback": 0, "mix": .25,
+        }], "test")
+
+        graph = ";".join(filters)
+        self.assertEqual(output, "[testfx0]")
+        self.assertIn("volume=0.750000[testdry0]", graph)
+        self.assertIn("aecho=1:1:200:1.000000", graph)
+        self.assertIn("volume=0.250000[testecho0]", graph)
+
+    def test_ducking_detector_uses_audible_pre_effect_sequence_mix(self):
+        commands: list[list[str]] = []
+
+        def run(command, **_kwargs):
+            commands.append(command)
+            Path(command[-1]).write_bytes(b"mixed")
+            return type("Result", (), {"returncode": 0, "stderr": b""})()
+
+        with TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            sequence = root / "sequence.mp3"
+            music = root / "music.mp3"
+            sequence.write_bytes(b"sequence")
+            music.write_bytes(b"music")
+            scene = {
+                "duration_ms": 2_500,
+                "sequence_projection": {
+                    "duration_ms": 2_000,
+                    "spans": [
+                        {"start_ms": 0, "duration_ms": 1_000, "mix": {
+                            "muted": True, "gain": 1, "fade_in_ms": 0,
+                            "fade_out_ms": 0, "effects": [{
+                                "id": "echo", "type": "echo", "enabled": True,
+                                "delay_ms": 250, "feedback": 0, "mix": .5,
+                            }],
+                        }},
+                        {"start_ms": 1_000, "duration_ms": 1_000, "mix": {
+                            "muted": False, "gain": .8, "fade_in_ms": 0,
+                            "fade_out_ms": 0, "effects": [],
+                        }},
+                    ],
+                },
+                "tracks": [{
+                    "id": "music", "kind": "music", "volume": 1,
+                    "muted": False, "clips": [{
+                        "filename": "music.mp3", "gain": 1,
+                        "resolved_start_ms": 0, "resolved_duration_ms": 2_000,
+                        "source_offset_ms": 0, "fade_in_ms": 0,
+                        "fade_out_ms": 0, "loop": False, "ducking": True,
+                        "orphan": False, "missing": False, "effects": [],
+                    }],
+                }],
+            }
+            with (
+                patch.object(render_workspace, "_output", return_value=root),
+                patch.object(render_workspace.subprocess, "run", side_effect=run),
+            ):
+                self.assertTrue(render_workspace._mix_scene(
+                    sequence, scene, root / "mixed.mp3"))
+
+        graph = commands[0][commands[0].index("-filter_complex") + 1]
+        self.assertIn("volume=0.0000", graph)
+        self.assertIn("volume=0.8000", graph)
+        self.assertIn(
+            "[sequencepart0]asplit=2[sequenceeffectpart0][sequencedetectorpart0]",
+            graph,
+        )
+        self.assertIn(
+            "[sequencedetectorpart0][sequencedetectorpart1]amix=inputs=2",
+            graph,
+        )
+        self.assertIn("[scene1][sequencedetector]sidechaincompress", graph)
 
     def test_muted_sound_clip_never_enters_the_render_graph(self):
         scene = {
@@ -191,6 +268,43 @@ class RenderWorkspaceTests(unittest.TestCase):
             self.assertIsNotNone(duration_ms)
             self.assertGreaterEqual(duration_ms or 0, 2_700)
             self.assertLessEqual(duration_ms or 0, 2_850)
+
+    @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"),
+                         "FFmpeg is required for the render acceptance.")
+    def test_real_ffmpeg_feedback_zero_keeps_first_delayed_echo(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            sequence = root / "sequence.wav"
+            target = root / "mixed.mp3"
+            subprocess.run([
+                "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                "-f", "lavfi", "-i", "sine=frequency=440:duration=1",
+                "-ar", "48000", "-ac", "2", str(sequence),
+            ], check=True)
+            scene = {
+                "duration_ms": 1_200,
+                "sequence_projection": {
+                    "duration_ms": 1_000,
+                    "spans": [{
+                        "start_ms": 0, "duration_ms": 1_000,
+                        "mix": {
+                            "muted": False, "gain": 1,
+                            "fade_in_ms": 0, "fade_out_ms": 0,
+                            "effects": [{
+                                "id": "echo", "type": "echo",
+                                "enabled": True, "delay_ms": 200,
+                                "feedback": 0, "mix": .5,
+                            }],
+                        },
+                    }],
+                },
+                "tracks": [],
+            }
+
+            self.assertTrue(render_workspace._mix_scene(sequence, scene, target))
+            duration_ms = render_workspace._measure(target)
+            self.assertGreaterEqual(duration_ms or 0, 1_150)
+            self.assertLessEqual(duration_ms or 0, 1_300)
 
     def test_failed_sound_scene_mix_removes_incomplete_output(self):
         def sequence(_parts: list[dict], target: Path):

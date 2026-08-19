@@ -66,6 +66,7 @@ def _effects(value: Any) -> list[dict[str, Any]]:
         raise SoundSceneError("That Sound Scene effect chain is invalid.")
     effects: list[dict[str, Any]] = []
     effect_ids: set[str] = set()
+    effect_types: set[str] = set()
     for raw in value:
         if not isinstance(raw, dict):
             raise SoundSceneError("A Sound Scene effect is invalid.")
@@ -76,6 +77,11 @@ def _effects(value: Any) -> list[dict[str, Any]]:
         effect_type = str(raw.get("type") or "").strip().lower()
         if effect_type not in EFFECT_TYPES:
             raise SoundSceneError("That Sound Scene effect is unsupported.")
+        if effect_type in effect_types:
+            raise SoundSceneError(
+                f"A Sound Scene effect chain can contain only one {effect_type} effect."
+            )
+        effect_types.add(effect_type)
         effect = {
             "id": effect_id,
             "type": effect_type,
@@ -124,9 +130,9 @@ def effect_tail_ms(effects: list[dict[str, Any]]) -> int:
                 or _number(effect.get("mix")) <= 0):
             continue
         feedback = max(0, min(.85, _number(effect.get("feedback"))))
-        if feedback <= 0:
-            continue
-        repeats = max(1, math.ceil(
+        # The first delayed hit exists independently of feedback. Feedback
+        # controls only the subsequent recursively decaying repeats.
+        repeats = 1 if feedback <= 0 else max(1, math.ceil(
             math.log(ECHO_AUDIBLE_THRESHOLD) / math.log(feedback)))
         tail_ms += max(50, min(1_000, _integer(
             effect.get("delay_ms"), 180))) * repeats

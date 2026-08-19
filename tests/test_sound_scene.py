@@ -4,6 +4,8 @@ from copy import deepcopy
 import unittest
 
 from audio_studio.domain.sound_scene import (
+    SoundSceneError,
+    effect_tail_ms,
     empty_scene,
     normalize_scene,
     resolve_scene,
@@ -42,6 +44,31 @@ def anchored_scene(part_public_id: str) -> dict:
 
 
 class SoundSceneDomainTests(unittest.TestCase):
+    def test_echo_feedback_zero_keeps_exactly_one_delayed_hit(self):
+        effect = {
+            "id": "2bc326ca-57ba-4e63-bdfd-6145dfb73181",
+            "type": "echo", "enabled": True, "delay_ms": 240,
+            "feedback": 0, "mix": .4,
+        }
+
+        self.assertEqual(effect_tail_ms([effect]), 240)
+        effect["mix"] = 0
+        self.assertEqual(effect_tail_ms([effect]), 0)
+
+    def test_effect_chain_rejects_duplicate_effect_types(self):
+        scene = empty_scene()
+        scene["sequence_overrides"][speech(1, 1_000, 0)["public_id"]] = {
+            "effects": [
+                {"id": "2bc326ca-57ba-4e63-bdfd-6145dfb73181",
+                 "type": "telephone", "enabled": True},
+                {"id": "3bc326ca-57ba-4e63-bdfd-6145dfb73181",
+                 "type": "telephone", "enabled": True},
+            ],
+        }
+
+        with self.assertRaisesRegex(SoundSceneError, "only one telephone"):
+            normalize_scene(scene)
+
     def test_historical_v1_normalizes_to_one_canonical_document(self):
         historical = {
             "version": 1,

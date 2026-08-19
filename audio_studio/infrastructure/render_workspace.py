@@ -140,13 +140,15 @@ def _append_effects(
         feedback = max(0, min(.85, float(effect.get("feedback") or 0)))
         mix = max(0, min(1, float(effect.get("mix") or 0)))
         tail_ms = effect_tail_ms([effect])
-        if feedback <= 0 or mix <= 0 or tail_ms <= 0:
+        if mix <= 0 or tail_ms <= 0:
             continue
         repeats = max(1, tail_ms // delay_ms)
         delays = "|".join(str(delay_ms * repeat)
                           for repeat in range(1, repeats + 1))
+        # aecho's first delayed tap is the wet signal itself. Feedback starts
+        # affecting only the taps after that first hit.
         decays = "|".join(f"{feedback ** repeat:.6f}"
-                          for repeat in range(1, repeats + 1))
+                          for repeat in range(repeats))
         dry_input = f"{prefix}dryin{index}"
         echo_input = f"{prefix}echoin{index}"
         dry = f"{prefix}dry{index}"
@@ -163,16 +165,20 @@ def _append_effects(
     return current
 
 
-def _append_sequence_filters(filters: list[str], scene: dict) -> str:
+def _append_sequence_filters(
+    filters: list[str], scene: dict, *, include_detector: bool,
+) -> str:
     normalize = (
         "aformat=sample_fmts=fltp:sample_rates=48000:"
         "channel_layouts=stereo,aresample=48000"
     )
     spans = scene.get("sequence_projection", {}).get("spans", [])
     if not spans or not _needs_sequence_processing(scene):
-        filters.append(
-            f"[0:a]{normalize},asetpts=PTS-STARTPTS[sequencebase]"
-        )
+        base = f"[0:a]{normalize},asetpts=PTS-STARTPTS"
+        if include_detector:
+            filters.append(f"{base},asplit=2[sequencebase][sequencedetector]")
+        else:
+            filters.append(f"{base}[sequencebase]")
         return "[sequencebase]"
 
     filters.append(f"[0:a]{normalize}[sequenceraw]")
@@ -187,6 +193,7 @@ def _append_sequence_filters(filters: list[str], scene: dict) -> str:
         span_inputs = [f"[{label}]" for label in labels]
 
     span_outputs: list[str] = []
+    detector_outputs: list[str] = []
     for index, (source, span) in enumerate(zip(span_inputs, spans)):
         start = max(0, int(span.get("start_ms") or 0)) / 1000
         duration = max(0, int(span.get("duration_ms") or 0)) / 1000
@@ -210,6 +217,14 @@ def _append_sequence_filters(filters: list[str], scene: dict) -> str:
         chain.append(f"adelay={start_ms}|{start_ms}")
         filters.append(f"{source}{','.join(chain)}[{base}]")
         processed = f"[{base}]"
+        if include_detector:
+            detector = f"sequencedetectorpart{index}"
+            effect_input = f"sequenceeffectpart{index}"
+            filters.append(
+                f"[{base}]asplit=2[{effect_input}][{detector}]"
+            )
+            processed = f"[{effect_input}]"
+            detector_outputs.append(f"[{detector}]")
         if not muted and gain > 0:
             processed = _append_effects(
                 filters, processed, mix.get("effects", []), f"seq{index}"
@@ -224,6 +239,14 @@ def _append_sequence_filters(filters: list[str], scene: dict) -> str:
             f"{''.join(span_outputs)}amix=inputs={len(span_outputs)}:"
             "duration=longest:dropout_transition=0:normalize=0[sequencebase]"
         )
+    if include_detector:
+        if len(detector_outputs) == 1:
+            filters.append(f"{detector_outputs[0]}anull[sequencedetector]")
+        else:
+            filters.append(
+                f"{''.join(detector_outputs)}amix=inputs={len(detector_outputs)}:"
+                "duration=longest:dropout_transition=0:normalize=0[sequencedetector]"
+            )
     return "[sequencebase]"
 
 
@@ -253,7 +276,10 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
             command.extend(["-stream_loop", "-1"])
         command.extend(["-i", str(source)])
     filters: list[str] = []
-    _append_sequence_filters(filters, scene)
+    include_detector = any(clip.get("ducking") for _, clip in clips)
+    _append_sequence_filters(
+        filters, scene, include_detector=include_detector,
+    )
     ducked_labels: list[str] = []
     dry_labels: list[str] = []
     for index, (track, clip) in enumerate(clips, 1):
@@ -301,9 +327,9 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
     dry_label = mix_group(dry_labels, "dry")
     sound_labels: list[str] = []
     if ducked_label:
-        filters.append("[sequencebase]asplit=2[sequence][detector]")
+        filters.append("[sequencebase]anull[sequence]")
         filters.append(
-            f"{ducked_label}[detector]sidechaincompress=threshold=0.015:ratio=20:"
+            f"{ducked_label}[sequencedetector]sidechaincompress=threshold=0.015:ratio=20:"
             "attack=20:release=450:makeup=1[under]"
         )
         sound_labels.append("[under]")

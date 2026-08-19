@@ -11,6 +11,12 @@ const mocks = vi.hoisted(() => {
     play: ReturnType<typeof vi.fn>; pause: ReturnType<typeof vi.fn>;
     load: ReturnType<typeof vi.fn>; removeAttribute: ReturnType<typeof vi.fn>;
   }> = []
+  const gains: Array<{
+    gain: { value: number; setValueAtTime: ReturnType<typeof vi.fn>;
+      cancelScheduledValues: ReturnType<typeof vi.fn>;
+      linearRampToValueAtTime: ReturnType<typeof vi.fn> }
+    connect: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn>
+  }> = []
   class FakeAdapter {
     setTracks = vi.fn()
     setTrackVolume = vi.fn()
@@ -26,7 +32,7 @@ const mocks = vi.hoisted(() => {
     transport = { connectTrackOutput: vi.fn() }
     constructor() { adapters.push(this) }
   }
-  return { adapters, media, FakeAdapter }
+  return { adapters, media, gains, FakeAdapter }
 })
 
 vi.mock("@dawcore/transport", () => ({ NativePlayoutAdapter: mocks.FakeAdapter }))
@@ -58,6 +64,7 @@ describe("SoundScenePlayout", () => {
   beforeEach(() => {
     mocks.adapters.length = 0
     mocks.media.length = 0
+    mocks.gains.length = 0
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(8)) }))
     const parameter = () => ({
       value: 1, setValueAtTime: vi.fn(), cancelScheduledValues: vi.fn(),
@@ -82,7 +89,11 @@ describe("SoundScenePlayout", () => {
       currentTime = 0
       destination = { connect: vi.fn() }
       decodeAudioData = vi.fn().mockResolvedValue({ duration: 2, sampleRate: 48_000, length: 96_000, numberOfChannels: 2 })
-      createGain = vi.fn(() => ({ ...node(), gain: parameter() }))
+      createGain = vi.fn(() => {
+        const gain = { ...node(), gain: parameter() }
+        mocks.gains.push(gain)
+        return gain
+      })
       createDelay = vi.fn(() => ({ ...node(), delayTime: parameter() }))
       createBiquadFilter = vi.fn(() => ({ ...node(), type: "lowpass", frequency: parameter() }))
       createAnalyser = vi.fn(() => ({
@@ -151,6 +162,35 @@ describe("SoundScenePlayout", () => {
     expect(mocks.media[0]?.pause).toHaveBeenCalled()
     expect(mocks.media[0]?.removeAttribute).toHaveBeenCalledWith("src")
     expect(mocks.adapters[0]?.dispose).toHaveBeenCalled()
+    playout.dispose()
+    vi.unstubAllGlobals()
+  })
+
+  it("uses conventional dry/wet Echo mix and leaves its tail bus open after a streamed clip ends", async () => {
+    const source = scene()
+    const clip = source.document.tracks[0]!.clips[0]!
+    Object.assign(clip, {
+      duration_ms: 60_000, source_duration_ms: 60_000,
+      resolved_duration_ms: 60_000, effects: [{
+        id: "2bc326ca-57ba-4e63-bdfd-6145dfb73181",
+        type: "echo", enabled: true, delay_ms: 200, feedback: 0, mix: .25,
+      }],
+    })
+    source.document.tracks[0]!.clips = [clip]
+    source.resolved.tracks[0]!.clips = [clip]
+    source.resolved.duration_ms = 60_200
+    source.resolved.signature = "streamed-echo"
+    const playout = new SoundScenePlayout(source)
+
+    await playout.play(0)
+
+    expect(mocks.gains.some((node) => node.gain.value === .75)).toBe(true)
+    expect(mocks.gains.some((node) => node.gain.value === .25)).toBe(true)
+    playout.seek(60.1)
+    expect(playout.currentTime()).toBeCloseTo(60.1)
+    expect(mocks.gains.some((node) => node.gain.value === .75)).toBe(true)
+    expect(mocks.gains.some((node) => node.gain.value === .25)).toBe(true)
+
     playout.dispose()
     vi.unstubAllGlobals()
   })
