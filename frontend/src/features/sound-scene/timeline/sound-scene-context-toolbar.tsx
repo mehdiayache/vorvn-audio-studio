@@ -42,8 +42,8 @@ export function SoundEffectsEditor({ effects, disabled, subject = "Clip", onPrev
   function changeEcho(changes: Partial<Extract<SoundSceneEffect, { type: "echo" }>>, commit = false) {
     const next = draft.map((effect) => effect.type === "echo" ? { ...effect, ...changes } : effect)
     setDraft(next)
-    onPreview?.(next)
     if (commit) onCommit(next)
+    else onPreview?.(next)
   }
 
   function move(effectId: string, direction: -1 | 1) {

@@ -8,9 +8,18 @@ const mocks = vi.hoisted(() => {
     setTrackMute: ReturnType<typeof vi.fn>
     updateTrack: ReturnType<typeof vi.fn>
     dispose: ReturnType<typeof vi.fn>
+    play: ReturnType<typeof vi.fn>
+    pause: ReturnType<typeof vi.fn>
+    seek: ReturnType<typeof vi.fn>
+    transport: {
+      connectMasterOutput: ReturnType<typeof vi.fn>
+      connectTrackOutput: ReturnType<typeof vi.fn>
+      disconnectTrackOutput: ReturnType<typeof vi.fn>
+    }
   }> = []
   const media: Array<{
     src: string; currentTime: number; duration: number; preload: string; readyState: number;
+    paused: boolean;
     play: ReturnType<typeof vi.fn>; pause: ReturnType<typeof vi.fn>;
     load: ReturnType<typeof vi.fn>; removeAttribute: ReturnType<typeof vi.fn>;
     dispatch: (event: string) => void
@@ -21,6 +30,8 @@ const mocks = vi.hoisted(() => {
       linearRampToValueAtTime: ReturnType<typeof vi.fn> }
     connect: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn>
   }> = []
+  const contexts: Array<{ currentTime: number }> = []
+  const state = { deferSeek: false }
   class FakeAdapter {
     setTracks = vi.fn()
     setTrackVolume = vi.fn()
@@ -34,10 +45,13 @@ const mocks = vi.hoisted(() => {
     getCurrentTime = vi.fn().mockReturnValue(0)
     dispose = vi.fn()
     masterOutputNode = { connect: vi.fn() }
-    transport = { connectTrackOutput: vi.fn(), disconnectTrackOutput: vi.fn() }
+    transport = {
+      connectMasterOutput: vi.fn(), connectTrackOutput: vi.fn(),
+      disconnectTrackOutput: vi.fn(),
+    }
     constructor() { adapters.push(this) }
   }
-  return { adapters, media, gains, FakeAdapter }
+  return { adapters, media, gains, contexts, state, FakeAdapter }
 })
 
 vi.mock("@dawcore/transport", () => ({ NativePlayoutAdapter: mocks.FakeAdapter }))
@@ -70,6 +84,8 @@ describe("SoundScenePlayout", () => {
     mocks.adapters.length = 0
     mocks.media.length = 0
     mocks.gains.length = 0
+    mocks.contexts.length = 0
+    mocks.state.deferSeek = false
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(8)) }))
     const parameter = () => ({
       value: 1, setValueAtTime: vi.fn(), cancelScheduledValues: vi.fn(),
@@ -83,13 +99,14 @@ describe("SoundScenePlayout", () => {
       get currentTime() { return this.time }
       set currentTime(value: number) {
         this.time = value
-        queueMicrotask(() => this.dispatch("seeked"))
+        if (!mocks.state.deferSeek) queueMicrotask(() => this.dispatch("seeked"))
       }
       duration = 3_600
       preload = ""
       readyState = 4
+      paused = true
       play = vi.fn().mockResolvedValue(undefined)
-      pause = vi.fn()
+      pause = vi.fn(() => { this.paused = true })
       load = vi.fn()
       removeAttribute = vi.fn()
       addEventListener = vi.fn((event: string, listener: () => void) => {
@@ -101,6 +118,7 @@ describe("SoundScenePlayout", () => {
         this.listeners.get(event)?.delete(listener)
       })
       dispatch = (event: string) => {
+        if (event === "playing") this.paused = false
         for (const listener of this.listeners.get(event) || []) listener()
       }
       constructor() { mocks.media.push(this) }
@@ -126,6 +144,7 @@ describe("SoundScenePlayout", () => {
       createMediaElementSource = vi.fn(() => node())
       resume = vi.fn().mockResolvedValue(undefined)
       close = vi.fn().mockResolvedValue(undefined)
+      constructor() { mocks.contexts.push(this) }
     })
   })
 
@@ -134,6 +153,8 @@ describe("SoundScenePlayout", () => {
     const playout = new SoundScenePlayout(source)
     await playout.play(0)
     const adapter = mocks.adapters[0]!
+    const master = mocks.gains[0]!
+    expect(adapter.transport.connectMasterOutput).toHaveBeenCalledWith(master)
     const tracks = adapter.setTracks.mock.calls[0]![0]
     expect(tracks.map((track: { id: string }) => track.id)).toEqual([
       "music::clip::78af885c-aeb4-49bf-9edb-d3fc14496b2a",
@@ -221,7 +242,7 @@ describe("SoundScenePlayout", () => {
     vi.unstubAllGlobals()
   })
 
-  it("prepares every active long stream and keeps the stream master silent until all starts resolve", async () => {
+  it("prepares every active long stream and keeps the common master silent until all starts resolve", async () => {
     const source = scene()
     const durationMs = 60 * 60_000
     source.sequence_stem = {
@@ -262,14 +283,99 @@ describe("SoundScenePlayout", () => {
     await playing
 
     expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 0)
-    mocks.media[0]!.currentTime = 12.5
+    mocks.contexts[0]!.currentTime = 12.5
     expect(playout.currentTime()).toBe(12.5)
 
     mocks.media.forEach((media) => media.play.mockResolvedValue(undefined))
     playout.seek(3_000)
-    expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 0)
-    await vi.waitFor(() => expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 0))
+    expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 12.5)
+    await vi.waitFor(() => expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 12.5))
     expect(mocks.media.map((media) => media.currentTime)).toEqual([3_000, 3_000, 3_000])
+    playout.dispose()
+    vi.unstubAllGlobals()
+  })
+
+  it("starts Sequence automation at audible zero and gates buffered output through a delayed seek", async () => {
+    const source = scene()
+    const durationMs = 60 * 60_000
+    source.sequence_stem = {
+      url: "/audio/sequence-stem.mp3", filename: "sequence-stem.mp3",
+      duration_ms: durationMs, signature: "sequence", cached: true,
+    }
+    source.resolved.duration_ms = durationMs
+    source.resolved.sequence_projection.duration_ms = durationMs
+    source.resolved.sequence_projection.spans = [
+      {
+        part_id: 1, part_public_id: "part-fade", position: 0, kind: "speech",
+        title: "Fade", role: "Narrator", voice_name: "Eva", filename: "part.mp3",
+        start_ms: 0, duration_ms: 3_000, silence: false, missing: false,
+        mix: { muted: false, gain: 1, fade_in_ms: 2_000, fade_out_ms: 0, effects: [] },
+      },
+      {
+        part_id: 2, part_public_id: "part-muted", position: 1, kind: "speech",
+        title: "Muted", role: "Narrator", voice_name: "Eva", filename: "part.mp3",
+        start_ms: 3_000, duration_ms: durationMs - 3_000, silence: false, missing: false,
+        mix: { muted: true, gain: 1, fade_in_ms: 0, fade_out_ms: 0, effects: [] },
+      },
+    ]
+    const original = source.document.tracks[0]!.clips[0]!
+    const clips = [
+      {
+        ...structuredClone(original), id: "78af885c-aeb4-49bf-9edb-d3fc14496b31",
+        filename: "long.mp3", duration_ms: durationMs, source_duration_ms: durationMs,
+        resolved_start_ms: 0, resolved_duration_ms: durationMs,
+      },
+      {
+        ...structuredClone(original), id: "78af885c-aeb4-49bf-9edb-d3fc14496b32",
+        filename: "cue.wav", duration_ms: 100, source_duration_ms: 100,
+        resolved_start_ms: 3_000, resolved_duration_ms: 100,
+        anchor: { kind: "absolute" as const, position_ms: 3_000 },
+      },
+    ]
+    source.document.tracks[0]!.clips = clips
+    source.resolved.tracks[0]!.clips = clips
+    source.resolved.signature = "delayed-hybrid-boundary"
+    const playout = new SoundScenePlayout(source)
+    await playout.activatePlayout()
+    const starts: Array<() => void> = []
+    for (const media of mocks.media)
+      media.play.mockImplementation(() => new Promise<void>((resolve) => starts.push(resolve)))
+
+    const playing = playout.play(0)
+    await vi.waitFor(() => expect(starts).toHaveLength(2))
+    const adapter = mocks.adapters[0]!
+    const master = mocks.gains[0]!
+    const sequenceDry = mocks.gains[1]!
+    mocks.contexts[0]!.currentTime = 5
+
+    expect(sequenceDry.gain.setValueAtTime).not.toHaveBeenCalled()
+    expect(adapter.play).not.toHaveBeenCalled()
+    starts.forEach((resolve) => resolve())
+    mocks.media.forEach((media) => media.dispatch("playing"))
+    await playing
+
+    expect(sequenceDry.gain.linearRampToValueAtTime).toHaveBeenCalledWith(1, 7)
+    expect(adapter.play).toHaveBeenCalledWith(0, 3_600)
+    expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 5)
+
+    mocks.media.forEach((media) => media.play.mockResolvedValue(undefined))
+    mocks.state.deferSeek = true
+    mocks.contexts[0]!.currentTime = 10
+    const seekCalls = adapter.seek.mock.calls.length
+    playout.seek(3)
+
+    expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 10)
+    expect(adapter.seek).toHaveBeenCalledTimes(seekCalls)
+    expect(sequenceDry.gain.setValueAtTime).not.toHaveBeenCalledWith(0, 10)
+
+    await vi.waitFor(() => expect(mocks.media.map((media) => media.currentTime)).toEqual([3, 3]))
+    mocks.media.forEach((media) => media.dispatch("seeked"))
+    await vi.waitFor(() => expect(adapter.seek).toHaveBeenLastCalledWith(3))
+    expect(sequenceDry.gain.setValueAtTime).toHaveBeenCalledWith(0, 10)
+    expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 10)
+    expect(adapter.seek.mock.invocationCallOrder.at(-1))
+      .toBeLessThan(master.gain.setValueAtTime.mock.invocationCallOrder.at(-1)!)
+
     playout.dispose()
     vi.unstubAllGlobals()
   })

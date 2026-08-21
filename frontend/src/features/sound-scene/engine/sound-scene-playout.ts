@@ -140,13 +140,14 @@ export class SoundScenePlayout {
   private adapter: NativePlayoutAdapter | null = null
   private adapterInitialization: Promise<void> | null = null
   private cache: DecodedAudioCache | null = null
-  private streamMaster: GainNode | null = null
+  private audibleMaster: GainNode | null = null
   private preparedSignature = ""
   private sceneVersion = 0
   private active = false
   private playing = false
   private playhead = 0
   private startedAt = 0
+  private synchronizing = false
   private streamFrame = 0
   private seekGeneration = 0
   private sequenceStream: SequenceStream | null = null
@@ -179,7 +180,7 @@ export class SoundScenePlayout {
   }
 
   private async ensureActive() {
-    if (this.context && this.adapter && this.cache && this.streamMaster) return true
+    if (this.context && this.adapter && this.cache && this.audibleMaster) return true
     const context = new AudioContext({ sampleRate: SAMPLE_RATE, latencyHint: "interactive" })
     const adapter = new NativePlayoutAdapter(context, { sampleRate: SAMPLE_RATE })
     if (!this.active) {
@@ -190,9 +191,10 @@ export class SoundScenePlayout {
     this.context = context
     this.adapter = adapter
     this.cache = new DecodedAudioCache(context)
-    this.streamMaster = context.createGain()
-    this.streamMaster.gain.value = 0
-    this.streamMaster.connect(context.destination)
+    this.audibleMaster = context.createGain()
+    this.audibleMaster.gain.value = 0
+    this.audibleMaster.connect(context.destination)
+    adapter.transport.connectMasterOutput(this.audibleMaster)
     return true
   }
 
@@ -230,7 +232,7 @@ export class SoundScenePlayout {
     this.adapterInitialization = null
     this.context = null
     this.cache = null
-    this.streamMaster = null
+    this.audibleMaster = null
     this.preparedSignature = ""
     this.childTracks.clear()
     this.internalTrackByClip.clear()
@@ -356,9 +358,9 @@ export class SoundScenePlayout {
     rawGain.gain.value = 0
     telephoneGain.gain.value = 0
     source.connect(rawGain)
-    rawGain.connect(this.streamMaster!)
+    rawGain.connect(this.audibleMaster!)
     telephoneSource.connect(telephoneGain)
-    telephoneGain.connect(this.streamMaster!)
+    telephoneGain.connect(this.audibleMaster!)
     nodes.push(rawGain, telephoneGain)
 
     const echoBuses: EchoBus[] = []
@@ -384,7 +386,7 @@ export class SoundScenePlayout {
         delay.connect(feedback)
         feedback.connect(delay)
         const output = after ? this.telephone(delay, nodes) : delay
-        output.connect(this.streamMaster!)
+        output.connect(this.audibleMaster!)
         nodes.push(send, delay, feedback)
         echoBuses.push({ key, send })
       })
@@ -398,7 +400,7 @@ export class SoundScenePlayout {
     source.connect(detectorGain)
     detectorGain.connect(analyser)
     analyser.connect(silentTap)
-    silentTap.connect(this.streamMaster!)
+    silentTap.connect(this.audibleMaster!)
     nodes.push(detectorGain, analyser, silentTap)
     const handle: SequenceStream = {
       element, nodes, gain: rawGain, trackVolume: 1, muted: false,
@@ -406,7 +408,6 @@ export class SoundScenePlayout {
     }
     this.streams.push(handle)
     this.sequenceStream = handle
-    this.scheduleSequenceMix(this.playhead)
   }
 
   private scheduleParameter(
@@ -472,7 +473,7 @@ export class SoundScenePlayout {
     const gain = this.context!.createGain()
     gain.gain.value = 0
     source.connect(gain)
-    this.rebuildEffectRoute(clip.id, gain, this.streamMaster!, clip.effects)
+    this.rebuildEffectRoute(clip.id, gain, this.audibleMaster!, clip.effects)
     nodes.push(gain)
     const handle = {
       element, nodes, gain, trackId, clip, trackVolume,
@@ -619,11 +620,11 @@ export class SoundScenePlayout {
       return Promise.resolve()
     return new Promise<void>((resolve) => {
       const finish = () => {
-        window.clearTimeout(timeout)
+        globalThis.clearTimeout(timeout)
         element.removeEventListener(event, finish)
         resolve()
       }
-      const timeout = window.setTimeout(finish, STREAM_READY_TIMEOUT_MS)
+      const timeout = globalThis.setTimeout(finish, STREAM_READY_TIMEOUT_MS)
       element.addEventListener(event, finish, { once: true })
     })
   }
@@ -659,8 +660,7 @@ export class SoundScenePlayout {
           () => Number(element.readyState) >= HAVE_METADATA,
         )
       }
-      if (Math.abs(element.currentTime - sourceTime) > .01)
-        element.currentTime = sourceTime
+      await this.seekStream(element, sourceTime)
       await this.waitForMedia(
         element, "canplay",
         () => Number(element.readyState) >= HAVE_FUTURE_DATA,
@@ -686,11 +686,11 @@ export class SoundScenePlayout {
       return Promise.resolve()
     return new Promise<void>((resolve) => {
       const finish = () => {
-        window.clearTimeout(timeout)
+        globalThis.clearTimeout(timeout)
         element.removeEventListener("playing", finish)
         resolve()
       }
-      const timeout = window.setTimeout(finish, STREAM_READY_TIMEOUT_MS)
+      const timeout = globalThis.setTimeout(finish, STREAM_READY_TIMEOUT_MS)
       element.addEventListener("playing", finish, { once: true })
     })
   }
@@ -703,11 +703,11 @@ export class SoundScenePlayout {
     }
     return new Promise<void>((resolve) => {
       const finish = () => {
-        window.clearTimeout(timeout)
+        globalThis.clearTimeout(timeout)
         element.removeEventListener("seeked", finish)
         resolve()
       }
-      const timeout = window.setTimeout(finish, STREAM_READY_TIMEOUT_MS)
+      const timeout = globalThis.setTimeout(finish, STREAM_READY_TIMEOUT_MS)
       element.addEventListener("seeked", finish, { once: true })
       element.currentTime = time
     })
@@ -730,6 +730,20 @@ export class SoundScenePlayout {
         seeks.push(this.seekStream(stream.element, this.sourceTime(clip, elapsed)))
     }
     await Promise.all(seeks)
+  }
+
+  private closeAudibleMaster() {
+    if (!this.context || !this.audibleMaster) return
+    const now = this.context.currentTime
+    this.audibleMaster.gain.cancelScheduledValues(now)
+    this.audibleMaster.gain.setValueAtTime(0, now)
+  }
+
+  private openAudibleMaster() {
+    if (!this.context || !this.audibleMaster) return
+    const now = this.context.currentTime
+    this.audibleMaster.gain.cancelScheduledValues(now)
+    this.audibleMaster.gain.setValueAtTime(1, now)
   }
 
   private syncStreams(time: number, shouldPlay: boolean) {
@@ -802,22 +816,28 @@ export class SoundScenePlayout {
   async play(from?: number) {
     await this.activatePlayout()
     if (!await this.initializeAdapter()) return
-    if (from !== undefined) this.seek(from)
+    if (from !== undefined) {
+      this.playhead = Math.max(0, Math.min(this.duration(), from))
+      this.adapter!.seek(this.playhead)
+      this.syncStreams(this.playhead, false)
+    }
     await this.context!.resume()
-    this.streamMaster!.gain.setValueAtTime(0, this.context!.currentTime)
+    this.closeAudibleMaster()
     await this.prepareStreams(this.playhead)
     this.playing = true
-    this.scheduleSequenceMix(this.playhead)
+    this.synchronizing = true
     const playbackStarts = this.activeStreamElements(this.playhead)
       .map((element) => this.waitForPlaybackStart(element))
     await Promise.all(this.syncStreams(this.playhead, true))
     await Promise.all(playbackStarts)
     await this.alignStreams(this.playhead)
     if (!this.playing || !this.active) return
+    this.scheduleSequenceMix(this.playhead)
     this.startedAt = this.context!.currentTime
     if (this.preparedTrackIds.size)
       this.adapter!.play(this.playhead, this.duration())
-    this.streamMaster!.gain.setValueAtTime(1, this.context!.currentTime)
+    this.synchronizing = false
+    this.openAudibleMaster()
     if (this.streams.length || this.streamDescriptors.size) this.followStreams()
   }
 
@@ -830,17 +850,21 @@ export class SoundScenePlayout {
     await Promise.all(playbackStarts)
     await this.alignStreams(time)
     if (!this.playing || !this.active || generation !== this.seekGeneration) return
+    this.adapter?.seek(time)
+    this.scheduleSequenceMix(time)
+    this.playhead = time
     this.startedAt = this.context!.currentTime
-    this.streamMaster!.gain.setValueAtTime(1, this.context!.currentTime)
+    this.synchronizing = false
+    this.openAudibleMaster()
   }
 
   pause() {
     this.seekGeneration += 1
     if (this.playing) this.playhead = this.currentTime()
     this.playing = false
+    this.synchronizing = false
     this.adapter?.pause()
-    if (this.streamMaster && this.context)
-      this.streamMaster.gain.setValueAtTime(0, this.context.currentTime)
+    this.closeAudibleMaster()
     this.syncStreams(this.playhead, false)
     if (this.streamFrame) cancelAnimationFrame(this.streamFrame)
     this.streamFrame = 0
@@ -848,22 +872,19 @@ export class SoundScenePlayout {
 
   seek(seconds: number) {
     this.playhead = Math.max(0, Math.min(this.duration(), seconds))
-    if (this.playing && this.context) this.startedAt = this.context.currentTime
-    this.adapter?.seek(this.playhead)
-    this.scheduleSequenceMix(this.playhead)
-    if (this.playing && this.context && this.streamMaster) {
+    if (this.playing && this.context && this.audibleMaster) {
       const generation = ++this.seekGeneration
-      this.streamMaster.gain.setValueAtTime(0, this.context.currentTime)
+      this.synchronizing = true
+      this.closeAudibleMaster()
       void this.resynchronizeAfterSeek(this.playhead, generation)
     } else {
+      this.adapter?.seek(this.playhead)
       this.syncStreams(this.playhead, false)
     }
   }
 
   currentTime() {
-    if (!this.playing || !this.context) return this.playhead
-    if (this.sequenceStream && !this.sequenceStream.element.paused)
-      return Math.min(this.duration(), this.sequenceStream.element.currentTime)
+    if (!this.playing || !this.context || this.synchronizing) return this.playhead
     return Math.min(this.duration(), this.playhead + this.context.currentTime - this.startedAt)
   }
   isPlaying() { return this.playing }

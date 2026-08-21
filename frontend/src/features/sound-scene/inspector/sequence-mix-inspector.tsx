@@ -54,7 +54,13 @@ export function SequenceMixInspector({ span, saving, onPreview, onCommit, onOpen
     </section>
 
     <section className="sequence-mix-effects">
-      <SoundEffectsEditor subject="Part" effects={span.mix.effects} disabled={saving} onCommit={(effects) => void onCommit({ effects })} />
+      <SoundEffectsEditor
+        subject="Part"
+        effects={span.mix.effects}
+        disabled={saving}
+        onPreview={(effects) => onPreview({ effects })}
+        onCommit={(effects) => void onCommit({ effects })}
+      />
     </section>
 
     <Button variant="outline" onClick={onOpenSequence}><ExternalLink /> Open in Sequence</Button>

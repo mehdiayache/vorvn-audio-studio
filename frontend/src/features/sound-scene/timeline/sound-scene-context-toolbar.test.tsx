@@ -2,6 +2,17 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+vi.mock("@/components/ui/slider", () => ({
+  Slider: ({ "aria-label": label, onValueChange, onValueCommit }: {
+    "aria-label"?: string
+    onValueChange?: (value: number[]) => void
+    onValueCommit?: (value: number[]) => void
+  }) => <button type="button" aria-label={label} onClick={() => {
+    const value = label === "Echo delay" ? 440 : label === "Echo feedback" ? 60 : 75
+    onValueChange?.([value]); onValueCommit?.([value])
+  }} />,
+}))
+
 import { SoundSceneContextToolbar } from "./sound-scene-context-toolbar"
 
 beforeEach(() => vi.stubGlobal("ResizeObserver", class {
@@ -70,6 +81,32 @@ describe("SoundSceneContextToolbar", () => {
     expect(onEffects).toHaveBeenLastCalledWith([
       expect.objectContaining({ type: "echo" }),
       expect.objectContaining({ type: "telephone" }),
+    ])
+  })
+
+  it("previews Music Echo parameters during change and commits once on release", () => {
+    const onEffectsPreview = vi.fn()
+    const onEffects = vi.fn()
+    render(<SoundSceneContextToolbar
+      context={{ kind: "music", label: "Night bed", muted: false, gain: .2, effects: [{
+        id: "3bc326ca-57ba-4e63-bdfd-6145dfb73181", type: "echo",
+        enabled: true, delay_ms: 180, feedback: .28, mix: .22,
+      }] }}
+      saving={false} onMute={vi.fn()} onGain={vi.fn()}
+      onEffectsPreview={onEffectsPreview} onEffects={onEffects}
+      onLock={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()}
+    />)
+
+    fireEvent.click(screen.getByRole("button", { name: /Effects/ }))
+    fireEvent.click(screen.getByRole("button", { name: "Echo mix" }))
+
+    expect(onEffectsPreview).toHaveBeenCalledOnce()
+    expect(onEffectsPreview).toHaveBeenCalledWith([
+      expect.objectContaining({ type: "echo", mix: .75 }),
+    ])
+    expect(onEffects).toHaveBeenCalledOnce()
+    expect(onEffects).toHaveBeenCalledWith([
+      expect.objectContaining({ type: "echo", mix: .75 }),
     ])
   })
 })
