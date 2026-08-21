@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 
 import type { SoundScene } from "@/types/domain"
-import { SoundSceneEngine } from "./sound-scene-engine"
+import { SOUND_SCENE_ZOOM_LEVELS, SoundSceneEngine, soundSceneZoomIndex, soundSceneZoomLevel } from "./sound-scene-engine"
 import { SoundSceneSession } from "./sound-scene-session"
 
 const clipId = "78af885c-aeb4-49bf-9edb-d3fc14496b2c"
@@ -49,6 +49,19 @@ describe("SoundSceneEngine", () => {
     expect(editor.state().samplesPerPixel).toBeLessThan(initial)
     editor.zoomOut()
     expect(editor.state().samplesPerPixel).toBe(initial)
+    editor.dispose()
+  })
+
+  it("uses one dense zoom scale for slider, buttons and engine state", () => {
+    const editor = new SoundSceneEngine(scene())
+    const initial = editor.state().samplesPerPixel
+    const initialIndex = soundSceneZoomIndex(initial)
+    const next = soundSceneZoomLevel(initialIndex + 1)
+
+    expect(SOUND_SCENE_ZOOM_LEVELS.length).toBeGreaterThan(20)
+    expect((initial - next) / initial).toBeLessThan(.2)
+    editor.setZoomLevel(next)
+    expect(soundSceneZoomIndex(editor.state().samplesPerPixel)).toBe(initialIndex + 1)
     editor.dispose()
   })
 

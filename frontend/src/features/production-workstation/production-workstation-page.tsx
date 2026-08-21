@@ -547,13 +547,13 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
                 return clip ? [clip.asset_name || "Music clip"] : []
               })
               setConfirmAction({
-                title: clips.length === 1 ? `Remove “${names[0] || "Music clip"}”?` : `Remove ${clips.length} selected Music clips?`,
+                title: clips.length === 1 ? `Remove this clip: “${names[0] || "Music clip"}”?` : `Remove ${clips.length} selected Music clips?`,
                 description: "Reusable Venture assets remain available. Only the selected Sound Scene placements are removed.",
                 action: () => { void soundSession.removeClips(clips) },
               })
             }}
             onRemoveTrack={(track) => setConfirmAction({
-              title: `Remove “${track.name}”?`,
+              title: `Remove this track: “${track.name}”?`,
               description: `This removes the track and its ${track.clips.length} placement${track.clips.length === 1 ? "" : "s"}. Reusable Venture assets remain available.`,
               action: () => { void soundSession.removeTrack(track.id) },
             })}

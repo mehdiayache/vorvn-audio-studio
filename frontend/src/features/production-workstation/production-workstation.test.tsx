@@ -202,6 +202,49 @@ describe("Production Workstation", () => {
     expect(screen.getByRole("button", { name: "Duplicate selected clips" })).toBeTruthy()
   })
 
+  it("shows durable lock and effect states directly on a Music clip", () => {
+    const soundScene = scene([part({ duration_ms: 120_000 })])
+    const source = soundScene.document.tracks[0]!.clips[0]!
+    source.locked = true
+    source.effects = [{ id: "2bc326ca-57ba-4e63-bdfd-6145dfb73181", type: "telephone", enabled: true }]
+
+    render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+
+    expect(screen.getByTitle("Locked")).toBeTruthy()
+    expect(screen.getByTitle("1 active effect")).toBeTruthy()
+  })
+
+  it("treats a partly locked multi-selection as locked instead of enabling destructive actions", () => {
+    const soundScene = scene([part({ duration_ms: 120_000 })])
+    const second = { ...soundScene.document.tracks[0]!.clips[0]!, id: "88af885c-aeb4-49bf-9edb-d3fc14496b2c", locked: true, anchor: { kind: "absolute" as const, position_ms: 20_000 }, resolved_start_ms: 20_000 }
+    soundScene.document.tracks[0]!.clips.push(second)
+    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const clips = container.querySelectorAll(".sound-music-clip")
+
+    fireEvent.pointerDown(clips[0]!, { button: 0, clientX: 100 })
+    fireEvent.pointerUp(window, { clientX: 100 })
+    fireEvent.pointerDown(clips[1]!, { button: 0, clientX: 200, shiftKey: true })
+    fireEvent.pointerUp(window, { clientX: 200, shiftKey: true })
+
+    expect(screen.getByRole("button", { name: "Lock all" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Duplicate selected clips" }).hasAttribute("disabled")).toBe(true)
+    expect(screen.getByRole("button", { name: "Delete selected clips" }).hasAttribute("disabled")).toBe(true)
+  })
+
+  it("pans the viewport by dragging unused timeline space", () => {
+    const soundScene = scene([part({ duration_ms: 120_000 })])
+    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const scroll = container.querySelector(".sound-scene-scroll") as HTMLElement
+    const lane = container.querySelector(".sound-scene-lane.is-music") as HTMLElement
+    scroll.scrollLeft = 100
+
+    fireEvent.pointerDown(lane, { button: 0, clientX: 500 })
+    fireEvent.pointerMove(window, { clientX: 400 })
+    fireEvent.pointerUp(window, { clientX: 400 })
+
+    expect(scroll.scrollLeft).toBe(200)
+  })
+
   it("moves an existing multi-selection together and persists one document", async () => {
     const soundScene = scene([part({ duration_ms: 120_000 })])
     const second = {

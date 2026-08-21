@@ -12,15 +12,14 @@ beforeEach(() => vi.stubGlobal("ResizeObserver", class {
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
 describe("SoundSceneContextToolbar", () => {
-  it("keeps its context region present before and after selection", () => {
+  it("shows contextual actions only while an object is selected", () => {
     const { container, rerender } = render(<SoundSceneContextToolbar
       context={null} saving={false} onMute={vi.fn()} onGain={vi.fn()} onEffects={vi.fn()}
     />)
-    expect(container.querySelector(".sound-scene-context")).toBeTruthy()
-    expect(screen.getByText("No selection")).toBeTruthy()
+    expect(container.querySelector(".sound-scene-context")).toBeNull()
 
     rerender(<SoundSceneContextToolbar
-      context={{ kind: "music", label: "Night bed", muted: false, locked: false, gain: .2, effects: [] }}
+      context={{ kind: "music", label: "Night bed", muted: false, lockState: "unlocked", gain: .2, effects: [] }}
       saving={false} onMute={vi.fn()} onGain={vi.fn()} onEffects={vi.fn()}
       onLock={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()}
     />)

@@ -68,7 +68,7 @@ export function MusicInspector({ track, clip, playingKey, playing, onPlay, onCli
     </section>
 
     <section className="music-workbench-controls">
-      <header><div><span className="eyebrow">Current mix</span><h3>Bed placement</h3></div><small>Hear gain changes while dragging. One save happens on release.</small></header>
+      <header className="music-placement-header"><h3>Placement</h3><small>Live preview</small></header>
       <MusicSourceEditor
         url={audioUrl(clip.filename)}
         sourceDuration={sourceDuration}
@@ -79,8 +79,8 @@ export function MusicInspector({ track, clip, playingKey, playing, onPlay, onCli
         onChange={sourceWindow}
         onCommit={(next) => { sourceWindow(next); void save("source window", onClipCommit) }}
       />
-      <label><span><Headphones /> Clip gain <b>{volume}%</b></span><Slider aria-label="Music clip gain" disabled={Boolean(saving)} value={[volume]} max={200} step={1} onValueChange={([value = 0]) => { setVolume(value); onClipChange({ gain: value / 100 }) }} onValueCommit={([value = volume]) => { setVolume(value); onClipChange({ gain: value / 100 }); void save("clip gain", onClipCommit) }} /></label>
-      <label><span><Music2 /> Track volume <b>{trackVolume}%</b></span><Slider aria-label="Music track volume" disabled={Boolean(saving)} value={[trackVolume]} max={200} step={1} onValueChange={([value = 0]) => { setTrackVolume(value); onTrackVolumeChange(value / 100) }} onValueCommit={([value = trackVolume]) => { setTrackVolume(value); void save("track volume", () => onTrackVolumeCommit(value / 100)) }} /></label>
+      <label title="Changes only this Music placement"><span><Headphones /> Clip level <b>{volume}%</b></span><Slider aria-label="Music clip level" disabled={Boolean(saving)} value={[volume]} max={200} step={1} onValueChange={([value = 0]) => { setVolume(value); onClipChange({ gain: value / 100 }) }} onValueCommit={([value = volume]) => { setVolume(value); onClipChange({ gain: value / 100 }); void save("clip level", onClipCommit) }} /></label>
+      <label title={`Changes every clip on ${track.name}`}><span><Music2 /> Track level <b>{trackVolume}%</b></span><Slider aria-label="Music track level" disabled={Boolean(saving)} value={[trackVolume]} max={200} step={1} onValueChange={([value = 0]) => { setTrackVolume(value); onTrackVolumeChange(value / 100) }} onValueCommit={([value = trackVolume]) => { setTrackVolume(value); void save("track level", () => onTrackVolumeCommit(value / 100)) }} /></label>
       <div className="music-fade-grid">
         <label><span>Fade in <b>{fadeIn.toFixed(1)}s</b></span><Slider aria-label="Music fade in" disabled={Boolean(saving) || geometryLocked} value={[fadeIn]} max={15} step={0.1} onValueChange={([value = 0]) => { setFadeIn(value); onClipChange({ fade_in_ms: Math.round(value * 1000) }) }} onValueCommit={([value = fadeIn]) => { setFadeIn(value); onClipChange({ fade_in_ms: Math.round(value * 1000) }); void save("fade in", onClipCommit) }} /></label>
         <label><span>Fade out <b>{fadeOut.toFixed(1)}s</b></span><Slider aria-label="Music fade out" disabled={Boolean(saving) || geometryLocked} value={[fadeOut]} max={15} step={0.1} onValueChange={([value = 0]) => { setFadeOut(value); onClipChange({ fade_out_ms: Math.round(value * 1000) }) }} onValueCommit={([value = fadeOut]) => { setFadeOut(value); onClipChange({ fade_out_ms: Math.round(value * 1000) }); void save("fade out", onClipCommit) }} /></label>
@@ -88,10 +88,10 @@ export function MusicInspector({ track, clip, playingKey, playing, onPlay, onCli
       <SwitchLike label="Loop source" checked={Boolean(clip.loop)} disabled={Boolean(saving) || geometryLocked} onChange={(loop) => { onClipChange({ loop }); void save("looping", onClipCommit) }} />
       <SwitchLike label="Duck under Sequence" checked={Boolean(clip.ducking)} disabled={Boolean(saving)} onChange={(ducking) => { onClipChange({ ducking }); void save("ducking", onClipCommit) }} />
       <p className="music-track-state">Starts at {formatDuration(Number(clip.resolved_start_ms || 0) / 1000)} · {track.muted ? "Track muted" : "Track audible"}</p>
-      <p className={`music-save-state${error ? " is-error" : ""}`} role={error ? "alert" : "status"} aria-live="polite">{error || (saving ? `Saving ${saving}…` : "Local while dragging · persisted on release.")}</p>
+      <p className={`music-save-state${error ? " is-error" : ""}`} role={error ? "alert" : "status"} aria-live="polite">{error || (saving ? `Saving ${saving}…` : "Saved on release")}</p>
     </section>
 
-    {geometryLocked && <p className="music-lock-note">Editing geometry is locked. Mix, volume and effects remain available.</p>}
+    {geometryLocked && <p className="music-lock-note">Editing geometry is locked. Levels and effects remain available.</p>}
     <section className="music-workbench-actions"><Button variant="outline" disabled={Boolean(saving) || geometryLocked} onClick={onChoose}><RefreshCcw /> Replace source</Button><Button variant="ghost" className="danger" disabled={Boolean(saving) || geometryLocked} onClick={onRemove}><Trash2 /> Remove clip</Button></section>
   </div>
 }

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@/components/ui/slider", () => ({
   Slider: ({ "aria-label": label, onValueChange, onValueCommit, disabled }: { "aria-label"?: string; onValueChange?: (value: number[]) => void; onValueCommit?: (value: number[]) => void; disabled?: boolean }) => {
-    const value = label === "Music clip gain" ? 24 : label === "Music track volume" ? 70 : label === "Music fade in" ? 1.5 : 3.5
+    const value = label === "Music clip level" ? 24 : label === "Music track level" ? 70 : label === "Music fade in" ? 1.5 : 3.5
     return <button type="button" aria-label={label} disabled={disabled} onClick={() => { onValueChange?.([value]); onValueCommit?.([value]) }} />
   },
 }))
@@ -28,7 +28,7 @@ describe("MusicInspector", () => {
     expect(screen.getByRole("region", { name: "Music source window" })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Play music audition" }))
     expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ key: "asset-source:9", kind: "music" }))
-    fireEvent.click(screen.getByRole("button", { name: "Music clip gain" }))
+    fireEvent.click(screen.getByRole("button", { name: "Music clip level" }))
     expect(onClipChange).toHaveBeenCalledWith({ gain: .24 })
     await waitFor(() => expect(onClipCommit).toHaveBeenCalledTimes(1))
     fireEvent.click(screen.getByRole("button", { name: "Move source window" }))
@@ -56,7 +56,7 @@ describe("MusicInspector", () => {
     expect(screen.getByRole("button", { name: /Replace source/ }).hasAttribute("disabled")).toBe(true)
     expect(screen.getByRole("button", { name: /Remove clip/ }).hasAttribute("disabled")).toBe(true)
     expect(screen.getByRole("button", { name: "Music fade in" }).hasAttribute("disabled")).toBe(true)
-    expect(screen.getByRole("button", { name: "Music clip gain" }).hasAttribute("disabled")).toBe(false)
-    expect(screen.getByText(/Mix, volume and effects remain available/)).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Music clip level" }).hasAttribute("disabled")).toBe(false)
+    expect(screen.getByText(/Levels and effects remain available/)).toBeTruthy()
   })
 })
