@@ -15,7 +15,7 @@ export type SoundSceneSessionSnapshot = {
   scene: SoundScene
   engine: SoundSceneEngineState
   selection: SoundSelection
-  playing: boolean
+  playback: "idle" | "preparing" | "playing"
   playhead: number
   saving: boolean
   error: string
@@ -54,7 +54,7 @@ export class SoundSceneSession {
       scene,
       engine: this.editor.state(),
       selection: null,
-      playing: false,
+      playback: "idle",
       playhead: 0,
       saving: false,
       error: "",
@@ -114,13 +114,13 @@ export class SoundSceneSession {
     this.playout.pause()
     if (this.frame) cancelAnimationFrame(this.frame)
     this.frame = 0
-    this.set({ playing: false, playhead })
+    this.set({ playback: "idle", playhead })
   }
 
   reconcile(scene: SoundScene) {
     const current = this.snapshotValue.scene
     if (scene.revision === current.revision && scene.resolved.signature === current.resolved.signature) return
-    const wasPlaying = this.snapshotValue.playing
+    const wasPlaying = this.snapshotValue.playback === "playing"
     if (wasPlaying && this.frame) cancelAnimationFrame(this.frame)
     if (wasPlaying) this.frame = 0
     this.editor.replace(scene)
@@ -128,11 +128,11 @@ export class SoundSceneSession {
     void this.playout.replace(scene).then(() => {
       if (!wasPlaying) return
       const playing = this.playout.isPlaying()
-      this.set({ playing, playhead: this.playout.currentTime() })
+      this.set({ playback: playing ? "playing" : "idle", playhead: this.playout.currentTime() })
       if (playing) this.followPlayhead()
     }).catch((reason) => this.set({
       error: reason instanceof Error ? reason.message : "The updated Sound Scene could not be prepared.",
-      playing: false,
+      playback: "idle",
     }))
   }
 
@@ -345,19 +345,20 @@ export class SoundSceneSession {
   }
 
   async togglePlayback() {
-    if (this.snapshotValue.playing) {
+    if (this.snapshotValue.playback === "playing") {
       this.pause()
       return
     }
-    this.set({ error: "" })
+    if (this.snapshotValue.playback === "preparing") return
+    this.set({ error: "", playback: "preparing" })
     try {
       this.beforePlay?.()
       await this.playout.play(this.snapshotValue.playhead)
-      this.set({ playing: true })
+      this.set({ playback: "playing" })
       this.followPlayhead()
     } catch (reason) {
       this.set({
-        playing: false,
+        playback: "idle",
         error: reason instanceof Error ? reason.message : "The Sound Scene could not be played.",
       })
     }
@@ -369,7 +370,7 @@ export class SoundSceneSession {
       if (!this.playout.isPlaying()) {
         this.frame = 0
         this.set({
-          playing: false,
+          playback: "idle",
           playhead: this.boundedTime(this.playout.currentTime()),
         })
         return
@@ -402,12 +403,18 @@ export class SoundSceneSession {
     if (this.snapshotValue.saving) return
     this.set({ saving: true, error: "" })
     try { this.reconcile(await this.persistence.undo()) }
+    catch (reason) {
+      this.set({ error: reason instanceof Error ? reason.message : "The last Sound Design edit could not be undone." })
+    }
     finally { this.set({ saving: false }) }
   }
   async redo() {
     if (this.snapshotValue.saving) return
     this.set({ saving: true, error: "" })
     try { this.reconcile(await this.persistence.redo()) }
+    catch (reason) {
+      this.set({ error: reason instanceof Error ? reason.message : "The Sound Design edit could not be restored." })
+    }
     finally { this.set({ saving: false }) }
   }
 

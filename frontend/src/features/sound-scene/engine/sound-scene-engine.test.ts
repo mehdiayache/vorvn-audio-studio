@@ -133,14 +133,56 @@ describe("SoundSceneSession", () => {
       resolved: { ...source.resolved, signature: "changed-scene" },
     }
     session.reconcile(changed)
-    expect(session.snapshot().playing).toBe(true)
+    expect(session.snapshot().playback).toBe("playing")
     resolveReplace()
     await replacement
     await Promise.resolve()
-    expect(session.snapshot().playing).toBe(true)
+    expect(session.snapshot().playback).toBe("playing")
     expect(session.snapshot().playhead).toBe(2)
     session.dispose()
     vi.unstubAllGlobals()
+  })
+
+  it("shows that playback is preparing and suppresses duplicate play requests", async () => {
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(7))
+    vi.stubGlobal("cancelAnimationFrame", vi.fn())
+    const source = scene()
+    let releasePlay!: () => void
+    const pendingPlay = new Promise<void>((resolve) => { releasePlay = resolve })
+    const playout = {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn().mockReturnValue(pendingPlay), pause: vi.fn(),
+      seek: vi.fn(), currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(true),
+      muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    }
+    const session = new SoundSceneSession(source, {
+      update: vi.fn(), undo: vi.fn(), redo: vi.fn(),
+    }, playout)
+
+    const playback = session.togglePlayback()
+    expect(session.snapshot().playback).toBe("preparing")
+    await session.togglePlayback()
+    expect(playout.play).toHaveBeenCalledOnce()
+    releasePlay()
+    await playback
+    expect(session.snapshot().playback).toBe("playing")
+    session.dispose()
+    vi.unstubAllGlobals()
+  })
+
+  it("keeps undo failures visible without leaving the session busy", async () => {
+    const source = scene()
+    const playout = {
+      replace: vi.fn(), play: vi.fn(), pause: vi.fn(), seek: vi.fn(), currentTime: vi.fn().mockReturnValue(0),
+      isPlaying: vi.fn(), muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    }
+    const session = new SoundSceneSession(source, {
+      update: vi.fn(), undo: vi.fn().mockRejectedValue(new Error("Undo is unavailable")), redo: vi.fn(),
+    }, playout)
+
+    await session.undo()
+    expect(session.snapshot().saving).toBe(false)
+    expect(session.snapshot().error).toBe("Undo is unavailable")
+    session.dispose()
   })
 
   it("never exposes a playhead outside the canonical Scene duration", () => {

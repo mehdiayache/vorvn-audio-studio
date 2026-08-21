@@ -384,7 +384,7 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
 
   useEffect(() => {
     const scroll = scrollRef.current
-    if (!followPlayhead || !scroll || !session.snapshot().playing) return
+    if (!followPlayhead || !scroll || session.snapshot().playback !== "playing") return
     const x = playhead * pixelsPerSecond
     if (x < scroll.scrollLeft + 80 || x > scroll.scrollLeft + scroll.clientWidth - 100)
       scroll.scrollTo({ left: Math.max(0, x - scroll.clientWidth * .32), behavior: "smooth" })
@@ -440,7 +440,7 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
           onRemove={() => onRemoveTrack(track)}
         />)}
       </aside>
-      <div className="sound-scene-scroll" ref={scrollRef} onScroll={(event) => { if (controlsRef.current) controlsRef.current.scrollTop = event.currentTarget.scrollTop; if (session.snapshot().playing) setFollowPlayhead(false) }}>
+      <div className="sound-scene-scroll" ref={scrollRef} onScroll={(event) => { if (controlsRef.current) controlsRef.current.scrollTop = event.currentTarget.scrollTop; if (session.snapshot().playback === "playing") setFollowPlayhead(false) }}>
         <div className="sound-scene-timeline" ref={timelineRef} style={{ width, gridTemplateRows: rowTemplate }} onPointerDown={panTimeline}>
           <div className="sound-scene-grid" aria-hidden="true">{marks.map((mark) => <i key={mark} style={{ left: mark * pixelsPerSecond }} />)}</div>
           <div className="sound-scene-ruler" onPointerDown={seekFromPointer}>{marks.map((mark) => <span key={mark} style={{ left: mark * pixelsPerSecond }}>{formatDuration(mark)}</span>)}</div>
