@@ -2,6 +2,7 @@ import { Check, FileAudio, Music2, Pause, Play, Search, Upload } from "lucide-re
 import { useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { ActionButton } from "@/components/operator-action"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -85,7 +86,7 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, playin
         }) : <div className="asset-empty"><Upload /><b>No matching {folder} audio</b><p>Upload a reusable file here. Uploading does not call a speech provider.</p></div>}
       </ScrollArea>
     </div>
-    <footer className="asset-explorer-footer"><div>{selected ? <><span className="asset-footer-mark"><FileAudio /></span><span><b>{selected.title || selected.text || "Untitled asset"}</b><small>{formatDuration(Number(selected.duration_ms || 0) / 1000)} · selected, not yet inserted</small></span></> : <span><b>Select an asset</b><small>Auditioning never inserts or changes the Production.</small></span>}</div>{error && <p role="alert">{error}</p>}<Button disabled={!selected || choosing} onClick={() => void choose()}>{mode === "music" ? "Use as Music Bed" : chooseLabel || "Insert selected asset"}</Button></footer>
+    <footer className="asset-explorer-footer"><div>{selected ? <><span className="asset-footer-mark"><FileAudio /></span><span><b>{selected.title || selected.text || "Untitled asset"}</b><small>{formatDuration(Number(selected.duration_ms || 0) / 1000)} · selected, not yet inserted</small></span></> : <span><b>Select an asset</b><small>Auditioning never inserts or changes the Production.</small></span>}</div>{error && <p role="alert">{error}</p>}<ActionButton busy={choosing} busyLabel={mode === "music" ? "Adding Music…" : "Inserting asset…"} disabled={!selected} onClick={() => void choose()}>{mode === "music" ? "Use as Music Bed" : chooseLabel || "Insert selected asset"}</ActionButton></footer>
     {dragging && <div className="asset-drop-overlay"><Upload /><b>Drop into {folder}</b><span>This stays in the Venture library.</span></div>}
   </div>
 }
