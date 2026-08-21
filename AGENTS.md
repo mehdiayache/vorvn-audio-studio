@@ -75,11 +75,16 @@ For every Audio Studio UI/UX task, use the installed
 - Use restrained purple as the functional accent for primary action, active
   selection, generation, focus, playhead, and track identity. Semantic success,
   warning, and failure colors remain distinct.
-- Use Tailwind CSS 4.x and start the new token language from shadcn preset
-  `b6FUDGQoi`. Query the shadcn MCP before recreating a generic primitive.
-- Use local shadcn/ui plus Base UI/Radix for behavior, Lucide for icons, Motion
-  only for purposeful transitions, and wavesurfer.js for genuinely interactive
-  waveform/timeline work. Do not add another general UI kit.
+- Prefer the established Tailwind CSS 4.x tokens and local shadcn/Base UI/Radix
+  primitives when they solve the interaction cleanly. Treat shadcn preset
+  `b6FUDGQoi` as a baseline, not a ceiling, and query the shadcn MCP for likely
+  generic primitives without letting registry availability dictate the product.
+- Build focused local audio controls when generic primitives weaken the
+  interaction. A specialized dependency is allowed for a demonstrated product
+  need when its maintenance cost is justified. Avoid importing an entire UI kit
+  for one control, but never preserve stack purity at the expense of the operator
+  experience. Prefer Lucide, Motion and wavesurfer.js where they remain the right
+  tools; they are informed defaults rather than product constraints.
 - Retire VORVN UI imports and tokens as redesigned surfaces replace them. Never
   use VORVN as the new visual reference.
 - Composer and timing workflows must expose their required creative controls,

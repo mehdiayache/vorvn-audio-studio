@@ -1,5 +1,6 @@
 .sound-scene-workspace { --track-column: 13rem; height: 100%; min-height: 32rem; display: grid; grid-template-rows: 2.75rem minmax(0, 1fr) 2.75rem; overflow: hidden; background: white; }
 .sound-scene-workspace.tracks-collapsed { --track-column: 3.25rem; }
+.sound-scene-toolbar, .sound-scene-track-controls, .sound-scene-scroll, .sound-scene-context-bar { -webkit-user-select: none; user-select: none; }
 .sound-scene-toolbar { display: flex; align-items: center; gap: .3rem; padding: .35rem .55rem; border-bottom: 1px solid var(--border); }
 .sound-scene-toolbar svg { width: .85rem; }
 .sound-scene-toolbar-title { min-width: 0; display: flex; align-items: baseline; gap: .45rem; color: var(--foreground); }
@@ -24,7 +25,9 @@
 .sound-context-group + .sound-context-group { border-left: 1px solid var(--border); }
 .sound-context-group.is-identity { min-width: 11rem; padding-inline: .65rem; }
 .sound-context-group.is-object { margin-left: 0; }
-.sound-scene-context [data-slot="button"] { flex: none; color: var(--foreground); font-size: .65rem; font-weight: 600; }
+.sound-scene-context [data-slot="button"] { flex: none; color: var(--foreground); }
+.sound-scene-context .sound-context-command { height: 2rem; gap: .38rem; padding-inline: .58rem; border: 0; border-radius: .35rem; font-size: .65rem; font-weight: 600; line-height: 1; box-shadow: none; }
+.sound-scene-context .sound-context-command > svg { width: .78rem; height: .78rem; margin: 0; stroke-width: 1.8; }
 .sound-scene-context [data-slot="button"]:not(:disabled):hover { color: var(--foreground); background: var(--muted); }
 .sound-scene-context [data-slot="button"].is-active { color: var(--primary); background: var(--primary-soft); }
 .sound-scene-context [data-slot="button"].danger { color: var(--destructive); }
