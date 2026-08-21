@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 
 import type { SoundScene } from "@/types/domain"
-import { SOUND_SCENE_ZOOM_LEVELS, SoundSceneEngine, soundSceneZoomIndex, soundSceneZoomLevel } from "./sound-scene-engine"
+import { SOUND_SCENE_ZOOM_LEVELS, SoundSceneEngine, soundSceneFitZoomIndex, soundSceneZoomIndex, soundSceneZoomLevel } from "./sound-scene-engine"
 import { SoundSceneSession } from "./sound-scene-session"
 
 const clipId = "78af885c-aeb4-49bf-9edb-d3fc14496b2c"
@@ -63,6 +63,15 @@ describe("SoundSceneEngine", () => {
     editor.setZoomLevel(next)
     expect(soundSceneZoomIndex(editor.state().samplesPerPixel)).toBe(initialIndex + 1)
     editor.dispose()
+  })
+
+  it("fits a long Production inside the actual timeline viewport", () => {
+    const viewport = 1_040
+    const duration = 7 * 60 + 21
+    const samplesPerPixel = soundSceneZoomLevel(soundSceneFitZoomIndex(duration, viewport))
+
+    expect(duration * 48_000 / samplesPerPixel).toBeLessThanOrEqual(viewport)
+    expect(duration * 48_000 / soundSceneZoomLevel(soundSceneFitZoomIndex(duration, 700))).toBeLessThanOrEqual(700)
   })
 
   it("enforces clip lock below the UI gesture layer", () => {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
-import { ChevronLeft, ChevronRight, Lock, Minus, MoreHorizontal, Music2, PanelLeftClose, PanelLeftOpen, Pause, Plus, RadioTower, Redo2, Trash2, Undo2, Volume1, Volume2, VolumeX } from "lucide-react"
+import { ChevronLeft, ChevronRight, LocateFixed, Lock, Maximize2, Minus, MoreHorizontal, Music2, PanelLeftClose, PanelLeftOpen, Pause, Plus, RadioTower, Redo2, Trash2, Undo2, Volume1, Volume2, VolumeX } from "lucide-react"
 
 import { useAudioPeaks } from "@/components/audio-waveform"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,7 @@ import { audioUrl } from "@/lib/api"
 import { formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { SoundSceneClip, SoundSceneTrack } from "@/types/domain"
-import { SOUND_SCENE_ZOOM_LEVELS, soundSceneZoomIndex, soundSceneZoomLevel } from "../engine/sound-scene-engine"
+import { SOUND_SCENE_ZOOM_LEVELS, soundSceneFitZoomIndex, soundSceneZoomIndex, soundSceneZoomLevel } from "../engine/sound-scene-engine"
 import { SoundSceneSession, useSoundSceneSession, type SoundClipRef } from "../engine/sound-scene-session"
 import { SoundSceneContextToolbar, type SoundContext } from "./sound-scene-context-toolbar"
 
@@ -136,6 +136,7 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
   const [snapGuide, setSnapGuide] = useState<number | null>(null)
   const [followPlayhead, setFollowPlayhead] = useState(true)
   const [panning, setPanning] = useState(false)
+  const [timelineViewportWidth, setTimelineViewportWidth] = useState(920)
   const scrollRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<HTMLElement>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
@@ -143,7 +144,7 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
   const total = Math.max(Number(scene.resolved.duration_ms ?? scene.resolved.sequence_projection.duration_ms) / 1000, 1)
   const pixelsPerSecond = SAMPLE_RATE / engine.samplesPerPixel
   const zoomIndex = soundSceneZoomIndex(engine.samplesPerPixel)
-  const width = Math.max(920, Math.ceil(total * pixelsPerSecond))
+  const width = Math.max(timelineViewportWidth, Math.ceil(total * pixelsPerSecond))
   const step = tickStep(pixelsPerSecond)
   const marks = useMemo(() => Array.from({ length: Math.floor(total / step) + 1 }, (_, index) => index * step), [step, total])
   const tracks = scene.resolved.tracks
@@ -167,7 +168,7 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
   const lockedClipCount = selectedClips.filter(({ clip }) => clip.locked).length
   const context: SoundContext | null = selectedPart ? {
     kind: selectedPart.silence ? "silence" : "sequence",
-    label: selectedPart.silence ? `Silence · ${formatDuration(selectedPart.duration_ms / 1000)}` : selectedPart.role || selectedPart.voice_name || `Part ${Number(selectedPart.position ?? 0) + 1}`,
+    label: selectedPart.silence ? `Silence · ${formatDuration(selectedPart.duration_ms / 1000)}` : selectedPart.role || selectedPart.voice_name || selectedPart.title || `Part ${Number(selectedPart.position ?? 0) + 1}`,
     muted: selectedPart.mix.muted, gain: selectedPart.mix.gain, effects: selectedPart.mix.effects,
   } : selectedClips.length ? {
     kind: "music", label: selectedClips.length === 1
@@ -321,6 +322,14 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
     setZoomAt(rect.left + rect.width / 2, nextIndex)
   }
 
+  function fitTimeline() {
+    const scroll = scrollRef.current
+    if (!scroll) return
+    session.setZoomLevel(soundSceneZoomLevel(soundSceneFitZoomIndex(total, scroll.clientWidth)))
+    setFollowPlayhead(false)
+    requestAnimationFrame(() => { scroll.scrollLeft = 0 })
+  }
+
   function panTimeline(event: ReactPointerEvent) {
     const scroll = scrollRef.current
     if (!scroll || activeCancel.current || event.button !== 0 || event.target !== event.currentTarget) return
@@ -344,6 +353,14 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
     window.addEventListener("pointercancel", finish, { once: true })
     window.addEventListener("blur", finish, { once: true })
   }
+
+  useEffect(() => {
+    const scroll = scrollRef.current
+    if (!scroll) return
+    const resize = new ResizeObserver(([entry]) => setTimelineViewportWidth(Math.max(1, Math.floor(entry?.contentRect.width || scroll.clientWidth))))
+    resize.observe(scroll)
+    return () => resize.disconnect()
+  }, [])
 
   useEffect(() => {
     const scroll = scrollRef.current
@@ -396,9 +413,16 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
   return <section className={cn("sound-scene-workspace", tracksCollapsed && "tracks-collapsed", panning && "is-panning")}>
     <div className="sound-scene-toolbar">
       <Button variant="ghost" size="icon-sm" onClick={() => setTracksCollapsed((value) => !value)} aria-label={tracksCollapsed ? "Show track controls" : "Hide track controls"}>{tracksCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button>
-      <span className="sound-scene-toolbar-title">Sound Design</span>
+      <span className="sound-scene-toolbar-title"><b>Sound Design</b><small>{tracks.length} track{tracks.length === 1 ? "" : "s"} · {formatDuration(total)}</small></span>
       <div className="sound-scene-history"><Button variant="ghost" size="sm" disabled={!scene.can_undo || saving} onClick={() => void session.undo()} aria-label="Undo Sound edit" title="Undo the last Sound Design edit"><Undo2 /><span>Undo</span></Button><Button variant="ghost" size="sm" disabled={!scene.can_redo || saving} onClick={() => void session.redo()} aria-label="Redo Sound edit" title="Redo the last undone Sound Design edit"><Redo2 /><span>Redo</span></Button></div>
-      <div className="sound-scene-zoom"><Button variant="ghost" size="icon-sm" disabled={zoomIndex === 0} onClick={() => setCenteredZoom(zoomIndex - 1)} aria-label="Zoom out"><Minus /></Button><Slider aria-label="Timeline zoom" aria-valuetext={`${Math.round(pixelsPerSecond)} pixels per second`} value={[zoomIndex]} min={0} max={SOUND_SCENE_ZOOM_LEVELS.length - 1} step={1} onValueChange={([value = zoomIndex]) => setCenteredZoom(value)} /><Button variant="ghost" size="icon-sm" disabled={zoomIndex === SOUND_SCENE_ZOOM_LEVELS.length - 1} onClick={() => setCenteredZoom(zoomIndex + 1)} aria-label="Zoom in"><Plus /></Button></div>
+      <div className="sound-scene-viewport-tools">
+        <Button variant="ghost" size="icon-sm" aria-label="Previous view" title="Previous view" onClick={() => { if (scrollRef.current) { scrollRef.current.scrollLeft -= scrollRef.current.clientWidth * .6; setFollowPlayhead(false) } }}><ChevronLeft /></Button>
+        <div className="sound-scene-zoom"><Button variant="ghost" size="icon-sm" disabled={zoomIndex === 0} onClick={() => setCenteredZoom(zoomIndex - 1)} aria-label="Zoom out"><Minus /></Button><Slider aria-label="Timeline zoom" aria-valuetext={`${Math.round(pixelsPerSecond)} pixels per second`} value={[zoomIndex]} min={0} max={SOUND_SCENE_ZOOM_LEVELS.length - 1} step={1} onValueChange={([value = zoomIndex]) => setCenteredZoom(value)} /><Button variant="ghost" size="icon-sm" disabled={zoomIndex === SOUND_SCENE_ZOOM_LEVELS.length - 1} onClick={() => setCenteredZoom(zoomIndex + 1)} aria-label="Zoom in"><Plus /></Button></div>
+        <Button variant="ghost" size="icon-sm" aria-label="Next view" title="Next view" onClick={() => { if (scrollRef.current) { scrollRef.current.scrollLeft += scrollRef.current.clientWidth * .6; setFollowPlayhead(false) } }}><ChevronRight /></Button>
+        <Button variant="ghost" size="sm" onClick={fitTimeline} aria-label="Fit entire timeline" title="Fit the entire Production in view"><Maximize2 /><span>Fit</span></Button>
+        <Button variant="ghost" size="sm" className={followPlayhead ? "is-active" : undefined} aria-pressed={followPlayhead} onClick={() => setFollowPlayhead((value) => !value)} title="Keep the playhead visible during playback"><LocateFixed /><span>Follow</span></Button>
+      </div>
+      <span className="sound-scene-save-state">{saving && <b>Saving…</b>}{error && <b className="is-error" role="alert">{error}</b>}</span>
       <Button variant="outline" size="sm" onClick={() => onAddMusic({ mode: "new-track" })}><Plus /> Music track</Button>
     </div>
     <div className="sound-scene-editor">
@@ -471,7 +495,7 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
         </div>
       </div>
     </div>
-    <footer className="sound-scene-status"><span className="sound-status-summary"><span>{tracks.length} sound track{tracks.length === 1 ? "" : "s"}</span><span>{formatDuration(total)}</span>{saving && <b>Saving…</b>}{error && <b className="is-error" role="alert">{error}</b>}</span><SoundSceneContextToolbar
+    <footer className="sound-scene-context-bar">{context ? <SoundSceneContextToolbar
       context={context} saving={saving}
       onMute={() => {
         if (selectedPart) void session.updateSequenceOverride(selectedPart.part_public_id, { muted: !selectedPart.mix.muted })
@@ -487,6 +511,6 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
       onDelete={() => onRemoveClip({ clips: selectedRefs })}
       onOptions={selectedClips.length === 1 || selectedPart ? () => document.querySelector(".ws-right-pane")?.scrollIntoView({ block: "nearest" }) : undefined}
       onOpenSequence={selectedPart ? () => onOpenSequence?.(selectedPart.part_id) : undefined}
-    /><span className="sound-follow"><Button variant="ghost" size="icon-sm" aria-label="Previous view" onClick={() => { if (scrollRef.current) scrollRef.current.scrollLeft -= scrollRef.current.clientWidth * .6 }}><ChevronLeft /></Button><button aria-pressed={followPlayhead} onClick={() => setFollowPlayhead((value) => !value)}>Follow playhead</button><Button variant="ghost" size="icon-sm" aria-label="Next view" onClick={() => { if (scrollRef.current) scrollRef.current.scrollLeft += scrollRef.current.clientWidth * .6 }}><ChevronRight /></Button></span></footer>
+    /> : <span className="sound-context-empty">Select a clip or Sequence Part to edit it</span>}</footer>
   </section>
 }

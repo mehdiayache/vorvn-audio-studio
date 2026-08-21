@@ -101,16 +101,18 @@ export function SoundSceneContextToolbar({ context, saving, onMute, onGain, onEf
   const hasLockedClips = lockState !== "unlocked"
   const activeEffectCount = context.effects.filter((effect) => effect.enabled).length
   return <div className="sound-scene-context" aria-label={`${context.label} actions`}>
-    <span className="sound-context-label"><b>{context.label}</b>{context.count && context.count > 1 ? <small>{context.count} clips</small> : null}</span>
-    {context.kind !== "silence" && <Button variant="ghost" size="sm" disabled={saving} onClick={onMute}>{context.muted ? <VolumeX /> : <Volume2 />}{context.muted ? "Unmute" : "Mute"}</Button>}
-    {context.kind === "sequence" && <Popover><PopoverTrigger asChild><Button variant="ghost" size="sm" disabled={saving}><SlidersHorizontal /> Volume</Button></PopoverTrigger><PopoverContent align="end" className="sound-volume-popover"><span>Part volume <b>{gain}%</b></span><Slider aria-label="Sequence Part volume" value={[gain]} min={0} max={200} step={1} onValueChange={([value = 100]) => setGain(value)} onValueCommit={([value = 100]) => onGain(value / 100)} /></PopoverContent></Popover>}
-    {context.kind !== "silence" && (context.count === undefined || context.count === 1) ? <Popover><PopoverTrigger asChild><Button variant="ghost" size="sm" className={activeEffectCount ? "is-active" : undefined} disabled={saving}><RadioTower /> Effects{activeEffectCount ? <small>{activeEffectCount}</small> : null}</Button></PopoverTrigger><PopoverContent align="end" className="sound-effects-popover"><SoundEffectsEditor effects={context.effects} disabled={saving} onCommit={onEffects} /></PopoverContent></Popover> : null}
-    {onOptions && <Button variant="ghost" size="sm" disabled={saving} onClick={onOptions}><MoreHorizontal /> Options</Button>}
-    {context.kind === "music" && <>
+    <div className="sound-context-group is-identity"><span className="sound-context-label"><b>{context.label}</b>{context.count && context.count > 1 ? <small>{context.count} clips</small> : <small>{context.kind === "music" ? "Music clip" : context.kind === "silence" ? "Sequence pause" : "Sequence Part"}</small>}</span></div>
+    {context.kind !== "silence" && <div className="sound-context-group is-mix">
+      <Button variant="ghost" size="sm" disabled={saving} onClick={onMute}>{context.muted ? <VolumeX /> : <Volume2 />}{context.muted ? "Unmute" : "Mute"}</Button>
+      {context.kind === "sequence" && <Popover><PopoverTrigger asChild><Button variant="ghost" size="sm" disabled={saving}><SlidersHorizontal /> Volume</Button></PopoverTrigger><PopoverContent align="end" className="sound-volume-popover"><span>Part volume <b>{gain}%</b></span><Slider aria-label="Sequence Part volume" value={[gain]} min={0} max={200} step={1} onValueChange={([value = 100]) => setGain(value)} onValueCommit={([value = 100]) => onGain(value / 100)} /></PopoverContent></Popover>}
+      {(context.count === undefined || context.count === 1) ? <Popover><PopoverTrigger asChild><Button variant="ghost" size="sm" className={activeEffectCount ? "is-active" : undefined} disabled={saving}><RadioTower /> Effects{activeEffectCount ? <small>{activeEffectCount}</small> : null}</Button></PopoverTrigger><PopoverContent align="end" className="sound-effects-popover"><SoundEffectsEditor effects={context.effects} disabled={saving} onCommit={onEffects} /></PopoverContent></Popover> : null}
+      {onOptions && <Button variant="ghost" size="sm" disabled={saving} onClick={onOptions}><MoreHorizontal /> Options</Button>}
+    </div>}
+    {context.kind === "music" && <div className="sound-context-group is-object">
       <Button variant="ghost" size="sm" className={hasLockedClips ? "is-active" : undefined} disabled={saving} onClick={onLock}>{lockState === "locked" ? <Unlock /> : <Lock />}{lockState === "locked" ? "Unlock" : lockState === "mixed" ? "Lock all" : "Lock"}</Button>
-      <Button variant="ghost" size="icon-sm" disabled={saving || hasLockedClips} onClick={onDuplicate} aria-label="Duplicate selected clips"><Copy /></Button>
-      <Button variant="ghost" size="icon-sm" className="danger" disabled={saving || hasLockedClips} onClick={onDelete} aria-label="Delete selected clips"><Trash2 /></Button>
-    </>}
-    {(context.kind === "sequence" || context.kind === "silence") && onOpenSequence && <Button variant="outline" size="sm" disabled={saving} onClick={onOpenSequence}>Open Sequence</Button>}
+      <Button variant="ghost" size="sm" disabled={saving || hasLockedClips} onClick={onDuplicate} aria-label="Duplicate selected clips"><Copy /> Duplicate</Button>
+      <Button variant="ghost" size="sm" className="danger" disabled={saving || hasLockedClips} onClick={onDelete} aria-label="Delete selected clips"><Trash2 /> Delete</Button>
+    </div>}
+    {(context.kind === "sequence" || context.kind === "silence") && onOpenSequence && <div className="sound-context-group is-object"><Button variant="outline" size="sm" disabled={saving} onClick={onOpenSequence}>Open Sequence</Button></div>}
   </div>
 }

@@ -6,7 +6,8 @@ import type { SoundScene, SoundSceneClip, SoundSceneDocument, SoundSceneTrack } 
 const SAMPLE_RATE = 48_000
 const MIN_SAMPLES_PER_PIXEL = 300
 const DEFAULT_SAMPLES_PER_PIXEL = 4_800
-const MAX_SAMPLES_PER_PIXEL = 12_000
+const MIN_TIMELINE_PIXELS_PER_SECOND = .5
+const MAX_SAMPLES_PER_PIXEL = SAMPLE_RATE / MIN_TIMELINE_PIXELS_PER_SECOND
 const ZOOM_STEP_RATIO = 1.14
 
 function buildZoomLevels() {
@@ -33,6 +34,16 @@ export function soundSceneZoomIndex(samplesPerPixel: number) {
 export function soundSceneZoomLevel(index: number) {
   const bounded = Math.max(0, Math.min(SOUND_SCENE_ZOOM_LEVELS.length - 1, Math.round(index)))
   return SOUND_SCENE_ZOOM_LEVELS[SOUND_SCENE_ZOOM_LEVELS.length - 1 - bounded]!
+}
+
+export function soundSceneFitZoomIndex(durationSeconds: number, viewportPixels: number) {
+  const target = Math.max(
+    MIN_SAMPLES_PER_PIXEL,
+    Math.max(0, durationSeconds) * SAMPLE_RATE / Math.max(1, viewportPixels),
+  )
+  const level = SOUND_SCENE_ZOOM_LEVELS.find((candidate) => candidate >= target)
+    ?? SOUND_SCENE_ZOOM_LEVELS[SOUND_SCENE_ZOOM_LEVELS.length - 1]!
+  return SOUND_SCENE_ZOOM_LEVELS.length - 1 - SOUND_SCENE_ZOOM_LEVELS.indexOf(level)
 }
 
 const samples = (milliseconds: number) => Math.max(0, Math.round(milliseconds * SAMPLE_RATE / 1000))
