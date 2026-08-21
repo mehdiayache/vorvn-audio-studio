@@ -7,7 +7,7 @@ import { formatAuthoredRole, formatPartNumber } from "@/lib/format"
 import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
 import type { ProductionImportCounts, ProductionImportDocument } from "@/features/production/production-import"
 
-export type ConfirmAction = { title: string; description: string; action: () => void; confirmLabel?: string; kind?: "confirm" | "delete"; variant?: "default" | "destructive" }
+export type ConfirmAction = { title: string; description: string; action: () => void | Promise<void>; confirmLabel?: string; kind?: "confirm" | "delete"; variant?: "default" | "destructive" }
 
 export default function ProductionOverlays({ tool, productionId, nextPartNumber, insertAt, insertBeforePartId, composerPart, replacingAssetId, initialMusicAssetId, config, directory, assets, assetCollectionIds, playingKey, playerPlaying, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertAsset, onSetMusic, onUploadAsset, onImport, onImported, onPlay, onConfirmAction }: {
   tool: ToolKind
@@ -38,6 +38,19 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
   onPlay: (source: PlayerSource) => void
   onConfirmAction: (action: ConfirmAction | null) => void
 }) {
+  const [confirmBusy, setConfirmBusy] = useState(false)
+  const confirm = async () => {
+    if (!confirmAction || confirmBusy) return
+    setConfirmBusy(true)
+    try {
+      await confirmAction.action()
+      onConfirmAction(null)
+    } catch {
+      // The originating action owns its human-readable error and retry path.
+    } finally {
+      setConfirmBusy(false)
+    }
+  }
   return <>
     {tool === "speech" && <ProductionComposerDialog
       title={composerPart ? `Edit ${formatAuthoredRole(composerPart.authored_role) || "speech"} · Part ${formatPartNumber(composerPart.position ?? 0)}` : "Add speech"}
@@ -60,11 +73,15 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
     <ProductionToolDialog open={tool === "speech" ? null : tool} nextPartNumber={nextPartNumber} beforePartId={insertBeforePartId} replacingAssetId={replacingAssetId} initialMusicAssetId={initialMusicAssetId} assets={assets} assetCollectionIds={assetCollectionIds} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseTool} onAddSilence={onAddSilence} onInsertAsset={onInsertAsset} onSetMusic={onSetMusic} onUploadAsset={onUploadAsset} onImport={onImport} onImported={onImported} onPlay={onPlay} />
     {confirmAction?.kind === "delete" ? <DeleteConfirmationDialog
       open
-      onOpenChange={(open) => { if (!open) onConfirmAction(null) }}
+      onOpenChange={(open) => { if (!open && !confirmBusy) onConfirmAction(null) }}
       title={confirmAction.title}
       description={confirmAction.description}
       confirmLabel={confirmAction.confirmLabel || "Delete permanently"}
-      onConfirm={() => { const action = confirmAction.action; onConfirmAction(null); action() }}
-    /> : <Dialog open={Boolean(confirmAction)} onOpenChange={(open) => { if (!open) onConfirmAction(null) }}><DialogContent><DialogHeader><DialogTitle>{confirmAction?.title}</DialogTitle><DialogDescription>{confirmAction?.description}</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => onConfirmAction(null)}>Cancel</Button><Button variant={confirmAction?.variant || "destructive"} onClick={() => { const action = confirmAction?.action; onConfirmAction(null); action?.() }}>{confirmAction?.confirmLabel || "Confirm"}</Button></DialogFooter></DialogContent></Dialog>}
+      busy={confirmBusy}
+      onConfirm={() => void confirm()}
+    /> : <Dialog open={Boolean(confirmAction)} onOpenChange={(open) => { if (!open && !confirmBusy) onConfirmAction(null) }}><DialogContent><DialogHeader><DialogTitle>{confirmAction?.title}</DialogTitle><DialogDescription>{confirmAction?.description}</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" disabled={confirmBusy} onClick={() => onConfirmAction(null)}>Cancel</Button><ActionButton variant={confirmAction?.variant || "destructive"} busy={confirmBusy} busyLabel="Working…" onClick={() => void confirm()}>{confirmAction?.confirmLabel || "Confirm"}</ActionButton></DialogFooter></DialogContent></Dialog>}
   </>
 }
+import { useState } from "react"
+
+import { ActionButton } from "@/components/operator-action"

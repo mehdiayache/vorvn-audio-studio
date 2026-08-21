@@ -1,11 +1,12 @@
 import { useState } from "react"
 import {
   Captions, Check, CircleAlert, Clock3, Edit3, GripVertical,
-  FileAudio, Mic2, Minus, MoreHorizontal, Pause, Play, Plus, RotateCw, Search, Sparkles,
+  FileAudio, LoaderCircle, Mic2, Minus, MoreHorizontal, Pause, Play, Plus, RotateCw, Search, Sparkles,
 } from "lucide-react"
 
 import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
 import { AudioWaveform } from "@/components/audio-waveform"
+import { ActionButton, OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { VoiceIdentity } from "@/components/voice-identity"
 import { Button } from "@/components/ui/button"
@@ -33,6 +34,7 @@ export type WorkstationPartActions = {
   setEnabled: (part: ProductionPart, enabled: boolean) => void
   editSilence: (part: ProductionPart, seconds: number) => void
   addBefore: (part: ProductionPart) => void
+  isPending: (part: ProductionPart, action: "enabled" | "duplicate" | "move" | "silence" | "delete" | "replace") => boolean
 }
 
 function operationJob(part: ProductionPart, liveJobs: Record<string, DurableJob<unknown>>) {
@@ -73,10 +75,11 @@ function PartInclusionButton({ part, actions, noun = "Part" }: { part: Productio
   const detail = skipped
     ? "Restores it to preview and export using its existing content."
     : "Keeps its content, but removes its duration from preview and export."
-  return <OperatorTooltip label={label} detail={detail}>
-    <Button className="ws-part-inclusion" variant="ghost" size="sm" aria-label={label} onClick={(event) => { event.stopPropagation(); actions.setEnabled(part, skipped) }}>
+  const busy = actions.isPending(part, "enabled")
+  return <OperatorTooltip label={busy ? `${skipped ? "Including" : "Skipping"} ${noun}…` : label} detail={detail} disabledTrigger={busy}>
+    <ActionButton className="ws-part-inclusion" variant="ghost" size="sm" busy={busy} busyLabel={`${skipped ? "Including" : "Skipping"}…`} aria-label={label} onClick={(event) => { event.stopPropagation(); actions.setEnabled(part, skipped) }}>
       {skipped ? <Plus /> : <Minus />}{skipped ? "Include" : "Skip"}
-    </Button>
+    </ActionButton>
   </OperatorTooltip>
 }
 
@@ -132,14 +135,18 @@ function SilenceCard({ part, selected, actions }: { part: ProductionPart; select
   const state = workstationPartState(part)
   return <article id={`ws-part-${part.id}`} className={cn("ws-silence-card", selected && "is-selected", part.enabled === false && "is-disabled")} onClick={() => actions.select(part)}>
     <span className="ws-silence-line" />
-    <div><Clock3 /><b>Pause</b><input aria-label="Silence duration" type="number" min="0.1" step="0.1" defaultValue={seconds} onClick={(event) => event.stopPropagation()} onBlur={(event) => actions.editSilence(part, Number(event.target.value))} /><span>seconds</span><PartStateIndicator state={state} /></div>
+    <div><Clock3 /><b>Pause</b><input aria-label="Silence duration" aria-busy={actions.isPending(part, "silence") || undefined} disabled={actions.isPending(part, "silence")} type="number" min="0.1" step="0.1" defaultValue={seconds} onClick={(event) => event.stopPropagation()} onBlur={(event) => actions.editSilence(part, Number(event.target.value))} />{actions.isPending(part, "silence") ? <span><LoaderCircle className="spin" /> Saving…</span> : <span>seconds</span>}<PartStateIndicator state={state} /></div>
     <PartInclusionButton part={part} actions={actions} noun="Pause" />
     <span className="ws-silence-line" />
   </article>
 }
 
 function PartActionsMenu({ part, actions }: { part: ProductionPart; actions: WorkstationPartActions }) {
-  return <DropdownMenu><OperatorTooltip label="More Part actions" detail="Duplicate, move, or permanently delete this Part."><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Part actions" onClick={(event) => event.stopPropagation()}><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => actions.duplicate(part)}>Duplicate</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.move(part, -1)}>Move up</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.move(part, 1)}>Move down</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.moveToPosition(part)}>Move to position…</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}>Delete part</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+  const duplicating = actions.isPending(part, "duplicate")
+  const moving = actions.isPending(part, "move")
+  const deleting = actions.isPending(part, "delete")
+  const busy = duplicating || moving || deleting
+  return <DropdownMenu><OperatorTooltip label={busy ? "Saving Part change…" : "More Part actions"} detail="Duplicate, move, or permanently delete this Part." disabledTrigger={busy}><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" disabled={busy} aria-label={busy ? "Saving Part change" : "Part actions"} aria-busy={busy || undefined} onClick={(event) => event.stopPropagation()}>{busy ? <LoaderCircle className="spin" /> : <MoreHorizontal />}</Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent align="end"><DropdownMenuItem disabled={busy} onSelect={() => actions.duplicate(part)}>Duplicate</DropdownMenuItem><DropdownMenuItem disabled={busy} onSelect={() => actions.move(part, -1)}>Move up</DropdownMenuItem><DropdownMenuItem disabled={busy} onSelect={() => actions.move(part, 1)}>Move down</DropdownMenuItem><DropdownMenuItem disabled={busy} onSelect={() => actions.moveToPosition(part)}>Move to position…</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem disabled={busy} variant="destructive" onSelect={() => actions.remove(part)}>Delete part</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
 }
 
 function compactAssetDuration(part: ProductionPart) {
@@ -175,7 +182,7 @@ export function WorkstationAssetCard({ part, index, selected, playing, actions }
         </div>
       </header>
       <footer className="ws-part-footer ws-asset-footer">
-        {playable ? <Button variant="ghost" size="icon" className="ws-play" aria-label={playing ? "Pause linked audio" : "Play linked audio"} onClick={(event) => { event.stopPropagation(); actions.play(source) }}>{playing ? <Pause /> : <Play />}</Button> : <span className="ws-record-state"><CircleAlert /> Source missing</span>}
+        {playable ? <OperatorIconButton label={playing ? "Pause linked audio" : "Play linked audio"} variant="ghost" size="icon" className="ws-play" onClick={(event) => { event.stopPropagation(); actions.play(source) }}>{playing ? <Pause /> : <Play />}</OperatorIconButton> : <span className="ws-record-state"><CircleAlert /> Source missing</span>}
         {playable && <span className={cn("ws-waveform", playing && "is-active")}><AudioWaveform url={audioUrl(part.filename || "")} bars={72} /></span>}
         <span className="ws-duration">{duration}</span>
         <span className="ws-asset-source"><FileAudio /> Reusable Venture audio</span>
@@ -223,7 +230,7 @@ export function WorkstationSequenceCard({ part, index, selected, playing, liveJo
       <p className="ws-part-script" dir={textDirection(facts.script)}>{facts.scriptState === "tagged" ? <InlineDeliveryTags text={facts.script} /> : facts.script}</p>
       {facts.operation.kind !== "idle" && <div className={cn("ws-operation", `is-${facts.operation.kind}`)}><Sparkles className={facts.operation.kind === "active" ? "spin" : ""} /><b>{facts.operation.label}</b><span>{facts.operation.detail}</span>{facts.operation.progress !== null && <i style={{ width: `${facts.operation.progress}%` }} />}{speechJob && facts.operation.canConfirm && <Button size="sm" onClick={(event) => { event.stopPropagation(); actions.confirm(part, speechJob) }}>Confirm and continue</Button>}{speechJob && facts.operation.canRetry && <Button size="sm" variant="outline" onClick={(event) => { event.stopPropagation(); actions.retry(part, speechJob) }}><RotateCw /> Retry</Button>}</div>}
       <footer className="ws-part-footer">
-        {facts.playable ? <Button variant="ghost" size="icon" className="ws-play" aria-label={playing ? "Pause part" : "Play part"} onClick={(event) => { event.stopPropagation(); actions.play(source) }}>{playing ? <Pause /> : <Play />}</Button> : <span className="ws-record-state"><Mic2 /> Not recorded</span>}
+        {facts.playable ? <OperatorIconButton label={playing ? "Pause part" : "Play part"} variant="ghost" size="icon" className="ws-play" onClick={(event) => { event.stopPropagation(); actions.play(source) }}>{playing ? <Pause /> : <Play />}</OperatorIconButton> : <span className="ws-record-state"><Mic2 /> Not recorded</span>}
         {facts.playable && <span className={cn("ws-waveform", playing && "is-active")}><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={56} /></span>}
         <span className="ws-duration">{facts.durationLabel}</span>
         <button className={cn("ws-caption-state", `is-${facts.captionTone}`)} onClick={(event) => { event.stopPropagation(); actions.captions(part) }}><Captions /> {facts.captionSummary}</button>

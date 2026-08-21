@@ -33,9 +33,8 @@ describe("operator actions", () => {
     const testing = result.current.run("test", test)
     expect(save).toHaveBeenCalledOnce()
     expect(test).toHaveBeenCalledOnce()
-    await expect(duplicate).resolves.toBeUndefined()
     await testing
     release()
-    await saving
+    await Promise.all([saving, duplicate])
   })
 })

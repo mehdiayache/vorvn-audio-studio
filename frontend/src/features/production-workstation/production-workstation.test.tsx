@@ -38,7 +38,7 @@ function partActions(values: Partial<WorkstationPartActions> = {}): WorkstationP
   return {
     select: vi.fn(), edit: vi.fn(), replaceAsset: vi.fn(), play: vi.fn(), captions: vi.fn(), duplicate: vi.fn(), remove: vi.fn(),
     move: vi.fn(), moveToPosition: vi.fn(), retry: vi.fn(), confirm: vi.fn(), setEnabled: vi.fn(),
-    editSilence: vi.fn(), addBefore: vi.fn(), ...values,
+    editSilence: vi.fn(), addBefore: vi.fn(), isPending: vi.fn().mockReturnValue(false), ...values,
   }
 }
 

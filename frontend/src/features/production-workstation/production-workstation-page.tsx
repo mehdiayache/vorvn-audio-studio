@@ -398,7 +398,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
         : "This removes the whole story part: its text, recording and captions. Previous provider spend remains in Activity.",
     confirmLabel: "Delete Part permanently",
     kind: "confirm",
-    action: () => { if (player.source?.key === `part:${part.id}`) player.pause(); setSelectedId(null); void actions.deletePart(part) },
+    action: async () => { if (player.source?.key === `part:${part.id}`) player.pause(); await actions.deletePart(part); setSelectedId(null) },
   }), [actions, player])
   const requestExport = useCallback(() => {
     if (!pendingDraftCount) { void actions.exportMp3(); return }
@@ -408,7 +408,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
       confirmLabel: "Export recorded audio",
       kind: "confirm",
       variant: "default",
-      action: () => { void actions.exportMp3(true) },
+      action: () => actions.exportMp3(true),
     })
   }, [actions, pendingDraftCount])
   const openTool = useCallback((kind: Exclude<ToolKind, null>) => {
@@ -447,6 +447,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     setEnabled: (part, enabled) => void actions.setPartEnabled(part, enabled),
     editSilence: (part, seconds) => void actions.editSilence(part, seconds),
     addBefore: (part) => openNewSpeech(part),
+    isPending: (part, action) => actions.isActionPending(`part:${part.id}:${action}`),
   }), [actions, confirmJob, editPart, openAssetReplacement, openNewSpeech, playSource, requestPartDeletion, retryJob, selectPart])
 
   const soundSelection = soundState.selection
@@ -492,7 +493,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     track={musicTrack} clip={musicClip} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)}
     onClipChange={(changes) => { if (musicClip) soundSession.updateClip(musicTrack.id, musicClip.id, changes) }} onClipCommit={() => soundSession.commitClip()}
     onTrackVolumeChange={(volume) => soundSession.setTrackVolume(musicTrack.id, volume)} onTrackVolumeCommit={(volume) => soundSession.commitTrackVolume(musicTrack.id, volume)}
-    onChoose={() => { setMusicTarget({ mode: "replace", trackId: soundSelection.trackId, clipId: soundSelection.clipId }); setTool("music") }} onRemove={() => setConfirmAction({ title: `Remove “${musicClipName}”?`, description: "The reusable Venture asset remains available. Only this Sound Scene placement is removed.", action: () => { void soundSession.removeClip(soundSelection.trackId, soundSelection.clipId) } })}
+    onChoose={() => { setMusicTarget({ mode: "replace", trackId: soundSelection.trackId, clipId: soundSelection.clipId }); setTool("music") }} onRemove={() => setConfirmAction({ title: `Remove “${musicClipName}”?`, description: "The reusable Venture asset remains available. Only this Sound Scene placement is removed.", action: () => soundSession.removeClip(soundSelection.trackId, soundSelection.clipId) })}
   /> : stage === "sound" && soundSpan ? <SequenceMixInspector
     span={soundSpan} saving={soundState.saving}
     onPreview={(changes) => soundSession.previewSequenceOverride(soundSpan.part_public_id, changes)}
@@ -502,7 +503,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     : stage === "mix" && releaseInspectorOpen ? <ReleaseInspector
     issues={issues} staleOverrides={staleOverrides}
     onLocate={(id) => { setStage("sequence"); setSelectedId(id); setReleaseInspectorOpen(false); requestAnimationFrame(() => document.getElementById(`ws-part-${id}`)?.scrollIntoView({ block: "center" })) }}
-    onRemoveOverride={(partPublicId) => { void soundSession.removeSequenceOverride(partPublicId) }}
+      onRemoveOverride={(partPublicId) => { void soundSession.removeSequenceOverride(partPublicId) }}
   /> : <EmptyInspector stage={stage} />
 
   const inspectorOpen = composerOpen || stage === "sequence" && Boolean(selectedPart) || stage === "sound" && Boolean(soundSelection) || stage === "mix" && releaseInspectorOpen
@@ -550,13 +551,13 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
               setConfirmAction({
                 title: clips.length === 1 ? `Remove this clip: “${names[0] || "Music clip"}”?` : `Remove ${clips.length} selected Music clips?`,
                 description: "Reusable Venture assets remain available. Only the selected Sound Scene placements are removed.",
-                action: () => { void soundSession.removeClips(clips) },
+                action: () => soundSession.removeClips(clips),
               })
             }}
             onRemoveTrack={(track) => setConfirmAction({
               title: `Remove this track: “${track.name}”?`,
               description: `This removes the track and its ${track.clips.length} placement${track.clips.length === 1 ? "" : "s"}. Reusable Venture assets remain available.`,
-              action: () => { void soundSession.removeTrack(track.id) },
+              action: () => soundSession.removeTrack(track.id),
             })}
             onOpenSequence={(partId) => { setStage("sequence"); setSelectedId(partId) }}
           />}
