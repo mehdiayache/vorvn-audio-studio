@@ -8,6 +8,7 @@ import { Link, useNavigate } from "react-router-dom"
 
 import { DeleteProductionDialog } from "@/components/delete-production-dialog"
 import { AudioStudioRailToggle } from "@/components/app-shell"
+import { OperatorTooltip } from "@/components/operator-tooltip"
 import { PartCaptionsDialog } from "@/features/production/part-captions-dialog"
 import { MovePartPositionDialog } from "@/features/production/move-part-position-dialog"
 import { ProductionComposerStage } from "@/features/composer/production-composer-host"
@@ -174,7 +175,7 @@ function WorkstationHeader({ production, tree, duration, stage, issueCount, prev
         {issueCount > 0 && <Button variant="outline" size="sm" onClick={() => onStage("mix")}><CircleAlert className="ws-warning-icon" /> {issueCount} issue{issueCount === 1 ? "" : "s"}</Button>}
         <Button variant="outline" size="sm" disabled={previewing} onClick={onPreview}>{previewing ? <LoaderCircle className="spin" /> : playing ? <Pause /> : <Play />}{previewing ? "Preparing…" : playing ? "Pause" : "Preview"}</Button>
         <DropdownMenu><DropdownMenuTrigger asChild><Button size="sm"><Plus /> Add <ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => onAdd("speech")}><AudioLines /> Speech</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("silence")}><Pause /> Silence</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("asset")}><Sparkles /> Linked audio</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("music")}><Music2 /> Music</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => onAdd("import")}><FileJson2 /> Import JSON</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
-        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="More Production actions"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem variant="destructive" onSelect={onDelete}><Trash2 /> Delete Production permanently</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+        <DropdownMenu><OperatorTooltip label="More Production actions" detail="Contains permanent Production deletion."><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="More Production actions"><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent align="end"><DropdownMenuItem variant="destructive" onSelect={onDelete}><Trash2 /> Delete Production permanently</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
       </div>
     </div>
   </header>
@@ -188,7 +189,7 @@ function CollapsedPaneSummary({ label, number, state, playing, onExpand }: {
   onExpand: () => void
 }) {
   return <div className="ws-collapsed-pane">
-    <Button className="ws-pane-expand" variant="ghost" size="icon-sm" aria-label={`Show ${label}`} title={`Show ${label}`} onClick={onExpand}><PanelLeftOpen /></Button>
+    <OperatorTooltip label={`Show ${label}`} side="right"><Button className="ws-pane-expand" variant="ghost" size="icon-sm" aria-label={`Show ${label}`} onClick={onExpand}><PanelLeftOpen /></Button></OperatorTooltip>
     <span className={cn("ws-collapsed-context", playing && "is-playing")} title={playing ? `${label} ${number} is playing` : `${label} ${number}`}>
       <b>{number}</b>
       <i className={`is-${state}`} />

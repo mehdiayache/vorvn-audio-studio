@@ -5,6 +5,7 @@ import {
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider"
 import type { SoundSceneEffect } from "@/types/domain"
@@ -100,10 +101,16 @@ export function SoundSceneContextToolbar({ context, saving, onMute, onGain, onEf
   const lockState = context.lockState || "unlocked"
   const hasLockedClips = lockState !== "unlocked"
   const activeEffectCount = context.effects.filter((effect) => effect.enabled).length
+  const muteLabel = context.kind === "sequence"
+    ? context.muted ? "Unmute Part audio" : "Mute Part audio"
+    : context.muted ? "Unmute Music clip" : "Mute Music clip"
+  const muteDetail = context.kind === "sequence"
+    ? "Keeps this Part in the Sequence with the same position and duration."
+    : "Keeps this Music placement and timing, but removes its sound from the mix."
   return <div className="sound-scene-context" aria-label={`${context.label} actions`}>
     <div className="sound-context-group is-identity"><span className="sound-context-label"><b>{context.label}</b>{context.count && context.count > 1 ? <small>{context.count} clips</small> : <small>{context.kind === "music" ? "Music clip" : context.kind === "silence" ? "Sequence pause" : "Sequence Part"}</small>}</span></div>
     {context.kind !== "silence" && <div className="sound-context-group is-mix">
-      <Button className="sound-context-command" variant="ghost" size="sm" disabled={saving} onClick={onMute}>{context.muted ? <VolumeX /> : <Volume2 />}{context.muted ? "Unmute" : "Mute"}</Button>
+      <OperatorTooltip label={muteLabel} detail={muteDetail}><Button className="sound-context-command" variant="ghost" size="sm" disabled={saving} aria-label={muteLabel} onClick={onMute}>{context.muted ? <VolumeX /> : <Volume2 />}{context.muted ? "Unmute" : "Mute"}</Button></OperatorTooltip>
       {context.kind === "sequence" && <Popover><PopoverTrigger asChild><Button className="sound-context-command" variant="ghost" size="sm" disabled={saving}><SlidersHorizontal /> Volume</Button></PopoverTrigger><PopoverContent align="end" className="sound-volume-popover"><span>Part volume <b>{gain}%</b></span><Slider aria-label="Sequence Part volume" value={[gain]} min={0} max={200} step={1} onValueChange={([value = 100]) => setGain(value)} onValueCommit={([value = 100]) => onGain(value / 100)} /></PopoverContent></Popover>}
       {(context.count === undefined || context.count === 1) ? <Popover><PopoverTrigger asChild><Button className={`sound-context-command${activeEffectCount ? " is-active" : ""}`} variant="ghost" size="sm" disabled={saving}><RadioTower /> Effects{activeEffectCount ? <small>{activeEffectCount}</small> : null}</Button></PopoverTrigger><PopoverContent align="end" className="sound-effects-popover"><SoundEffectsEditor effects={context.effects} disabled={saving} onCommit={onEffects} /></PopoverContent></Popover> : null}
       {onOptions && <Button className="sound-context-command" variant="ghost" size="sm" disabled={saving} onClick={onOptions}><MoreHorizontal /> Options</Button>}

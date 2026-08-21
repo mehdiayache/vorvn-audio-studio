@@ -43,6 +43,7 @@ describe("SequenceMixInspector", () => {
     expect(onPreview).toHaveBeenCalledWith({ gain: expect.closeTo(.501, 2) })
     expect(onCommit).toHaveBeenCalledTimes(1)
     expect(onCommit).toHaveBeenCalledWith({ gain: expect.closeTo(.501, 2) })
+    expect(screen.getByRole("switch", { name: "Mute Part audio" })).toBeTruthy()
     expect(screen.getByRole("button", { name: /Open in Sequence/ })).toBeTruthy()
   })
 })

@@ -1,11 +1,12 @@
 import { useState } from "react"
 import {
-  Captions, Check, CircleAlert, CircleCheck, CircleDot, CircleSlash2, Clock3, Edit3, GripVertical,
-  FileAudio, Mic2, MoreHorizontal, Pause, Play, RotateCw, Search, Sparkles,
+  Captions, Check, CircleAlert, Clock3, Edit3, GripVertical,
+  FileAudio, Mic2, Minus, MoreHorizontal, Pause, Play, Plus, RotateCw, Search, Sparkles,
 } from "lucide-react"
 
 import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
 import { AudioWaveform } from "@/components/audio-waveform"
+import { OperatorTooltip } from "@/components/operator-tooltip"
 import { VoiceIdentity } from "@/components/voice-identity"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -44,13 +45,39 @@ function captionJob(part: ProductionPart, liveJobs: Record<string, DurableJob<un
   return liveJobs[part.caption_job.id] || part.caption_job
 }
 
-export type WorkstationPartState = "ready" | "draft" | "issue"
+export type WorkstationPartState = "ready" | "draft" | "issue" | "skipped"
 
-export function workstationPartState(part: ProductionPart): WorkstationPartState {
+function workstationPartReadiness(part: ProductionPart): Exclude<WorkstationPartState, "skipped"> {
   const failedOperation = Boolean(part.speech_job && ["failed", "lost", "blocked"].includes(part.speech_job.status))
-  if (part.outdated || part.missing || part.subtitles_stale || failedOperation) return "issue"
+  if (part.outdated || part.missing || part.subtitles_stale || part.binding_resolution_status === "unresolved" || part.kind === "asset" && !part.filename || failedOperation) return "issue"
   if (part.kind === "draft" || part.kind === "speech" && !part.clip_id) return "draft"
   return "ready"
+}
+
+export function workstationPartState(part: ProductionPart): WorkstationPartState {
+  return part.enabled === false ? "skipped" : workstationPartReadiness(part)
+}
+
+function partStateLabel(state: WorkstationPartState) {
+  if (state === "issue") return "Attention"
+  return state.charAt(0).toUpperCase() + state.slice(1)
+}
+
+function PartStateIndicator({ state }: { state: WorkstationPartState }) {
+  return <span className={cn("ws-part-state", `is-${state}`)}><i />{partStateLabel(state)}</span>
+}
+
+function PartInclusionButton({ part, actions, noun = "Part" }: { part: ProductionPart; actions: WorkstationPartActions; noun?: string }) {
+  const skipped = part.enabled === false
+  const label = skipped ? `Include ${noun}` : `Skip ${noun}`
+  const detail = skipped
+    ? "Restores it to preview and export using its existing content."
+    : "Keeps its content, but removes its duration from preview and export."
+  return <OperatorTooltip label={label} detail={detail}>
+    <Button className="ws-part-inclusion" variant="ghost" size="sm" aria-label={label} onClick={(event) => { event.stopPropagation(); actions.setEnabled(part, skipped) }}>
+      {skipped ? <Plus /> : <Minus />}{skipped ? "Include" : "Skip"}
+    </Button>
+  </OperatorTooltip>
 }
 
 export function WorkstationOutline({ parts, selectedId, playingKey, playerPlaying = false, directory, onSelect, onCollapse }: {
@@ -63,7 +90,7 @@ export function WorkstationOutline({ parts, selectedId, playingKey, playerPlayin
   onCollapse: () => void
 }) {
   const [query, setQuery] = useState("")
-  const [filter, setFilter] = useState<"all" | "ready" | "drafts" | "issues">("all")
+  const [filter, setFilter] = useState<"all" | "ready" | "drafts" | "issues" | "skipped">("all")
   const visible = parts.filter((part) => {
     const matches = !query || `${part.text} ${part.authored_role || ""} ${part.voice_name || part.voice || ""}`.toLocaleLowerCase().includes(query.toLocaleLowerCase())
     if (!matches) return false
@@ -71,25 +98,28 @@ export function WorkstationOutline({ parts, selectedId, playingKey, playerPlayin
     if (filter === "ready") return state === "ready"
     if (filter === "drafts") return state === "draft"
     if (filter === "issues") return state === "issue"
+    if (filter === "skipped") return state === "skipped"
     return true
   })
   return <div className="ws-outline">
     <WorkstationPaneHeader title="Outline" meta={`${parts.length} parts`} onCollapse={onCollapse} />
     <label className="ws-search"><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a role or line" aria-label="Search Production outline" /></label>
     <div className="ws-filter-row" aria-label="Outline filters">
-      {(["all", "ready", "drafts", "issues"] as const).map((value) => <button key={value} aria-pressed={filter === value} onClick={() => setFilter(value)}>{value === "all" ? "All" : value.charAt(0).toUpperCase() + value.slice(1)}</button>)}
+      {(["all", "ready", "drafts", "issues", "skipped"] as const).map((value) => <button key={value} aria-pressed={filter === value} onClick={() => setFilter(value)}>{value === "all" ? "All" : value.charAt(0).toUpperCase() + value.slice(1)}</button>)}
     </div>
     <div className="ws-outline-list">
       {visible.map((part, index) => {
         const state = workstationPartState(part)
         const playing = playerPlaying && playingKey === `part:${part.id}`
         const role = part.kind === "silence" ? "Pause" : part.kind === "asset" ? part.title || "Linked audio" : formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"
-        const detail = part.kind === "silence" ? `${partDurationMs(part) / 1000}s silence` : part.kind === "asset" ? `${part.asset_collection || part.asset_kind || "Venture audio"} · ${Math.round(partDurationMs(part) / 100) / 10}s` : state === "draft" ? "Draft · not recorded" : `${Math.round(partDurationMs(part) / 100) / 10}s`
+        const readiness = workstationPartReadiness(part)
+        const normalDetail = part.kind === "silence" ? `${partDurationMs(part) / 1000}s silence` : part.kind === "asset" ? `${part.asset_collection || part.asset_kind || "Venture audio"} · ${Math.round(partDurationMs(part) / 100) / 10}s` : readiness === "draft" ? "Draft · not recorded" : `${Math.round(partDurationMs(part) / 100) / 10}s`
+        const detail = state === "skipped" ? `Skipped · ${readiness === "ready" ? "content ready" : readiness === "draft" ? "not recorded" : "needs attention"}` : normalDetail
         return <button key={part.id} className={cn("ws-outline-item", selectedId === part.id && "is-selected", playing && "is-playing", part.enabled === false && "is-disabled")} aria-pressed={selectedId === part.id} aria-current={playing ? "true" : undefined} onClick={() => onSelect(part)}>
           <span className="ws-outline-number">{formatPartNumber(part.position ?? index)}</span>
           <span className="ws-outline-avatar">{part.kind === "silence" ? <Clock3 /> : part.kind === "asset" ? <FileAudio /> : <VoiceIdentity voice={part.catalogue_voice_id || part.voice || part.voice_name} identityId={part.voice_identity_id} directory={directory} compact showCopy={false} />}</span>
           <span className="ws-outline-copy"><b>{role}</b><small>{playing ? `Playing · ${detail}` : detail}</small></span>
-          <i className={`is-${state}`} aria-label={state === "issue" ? "Needs attention" : state === "draft" ? "Draft" : "Ready"} />
+          <i className={`is-${state}`} aria-label={partStateLabel(state)} />
         </button>
       })}
       {!visible.length && <p className="ws-outline-empty">Nothing matches this view.</p>}
@@ -99,16 +129,17 @@ export function WorkstationOutline({ parts, selectedId, playingKey, playerPlayin
 
 function SilenceCard({ part, selected, actions }: { part: ProductionPart; selected: boolean; actions: WorkstationPartActions }) {
   const seconds = partDurationMs(part) / 1000
+  const state = workstationPartState(part)
   return <article id={`ws-part-${part.id}`} className={cn("ws-silence-card", selected && "is-selected", part.enabled === false && "is-disabled")} onClick={() => actions.select(part)}>
     <span className="ws-silence-line" />
-    <div><Clock3 /><b>Pause</b><input aria-label="Silence duration" type="number" min="0.1" step="0.1" defaultValue={seconds} onClick={(event) => event.stopPropagation()} onBlur={(event) => actions.editSilence(part, Number(event.target.value))} /><span>seconds</span></div>
-    <Button variant="ghost" size="icon-sm" aria-label={part.enabled === false ? "Include silence in Sequence" : "Exclude silence from Sequence"} onClick={(event) => { event.stopPropagation(); actions.setEnabled(part, part.enabled === false) }}>{part.enabled === false ? <CircleCheck /> : <CircleSlash2 />}</Button>
+    <div><Clock3 /><b>Pause</b><input aria-label="Silence duration" type="number" min="0.1" step="0.1" defaultValue={seconds} onClick={(event) => event.stopPropagation()} onBlur={(event) => actions.editSilence(part, Number(event.target.value))} /><span>seconds</span><PartStateIndicator state={state} /></div>
+    <PartInclusionButton part={part} actions={actions} noun="Pause" />
     <span className="ws-silence-line" />
   </article>
 }
 
 function PartActionsMenu({ part, actions }: { part: ProductionPart; actions: WorkstationPartActions }) {
-  return <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Part actions" onClick={(event) => event.stopPropagation()}><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => actions.duplicate(part)}>Duplicate</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.move(part, -1)}>Move up</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.move(part, 1)}>Move down</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.moveToPosition(part)}>Move to position…</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}>Delete part</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+  return <DropdownMenu><OperatorTooltip label="More Part actions" detail="Duplicate, move, or permanently delete this Part."><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Part actions" onClick={(event) => event.stopPropagation()}><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => actions.duplicate(part)}>Duplicate</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.move(part, -1)}>Move up</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.move(part, 1)}>Move down</DropdownMenuItem><DropdownMenuItem onSelect={() => actions.moveToPosition(part)}>Move to position…</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={() => actions.remove(part)}>Delete part</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
 }
 
 function compactAssetDuration(part: ProductionPart) {
@@ -125,11 +156,12 @@ export function WorkstationAssetCard({ part, index, selected, playing, actions }
   playing: boolean
   actions: WorkstationPartActions
 }) {
+  const state = workstationPartState(part)
   const title = part.title || part.text || "Linked audio"
   const collection = part.asset_collection || part.asset_kind || "Venture audio"
   const duration = compactAssetDuration(part)
   const playable = Boolean(part.filename && !part.missing)
-  const hasIssue = Boolean(part.missing || !part.filename)
+  const hasIssue = state === "issue"
   const source: PlayerSource = { key: `part:${part.id}`, url: audioUrl(part.filename || ""), title, subtitle: `${collection} · Part ${formatPartNumber(part.position ?? index)}`, kind: "asset" }
   return <article id={`ws-part-${part.id}`} className={cn("ws-part-card", "ws-asset-card", selected && "is-selected", hasIssue && "has-issue", part.enabled === false && "is-disabled")} onClick={() => actions.select(part)}>
     <aside className="ws-part-index"><span>{formatPartNumber(part.position ?? index)}</span><GripVertical aria-hidden="true" /></aside>
@@ -137,7 +169,7 @@ export function WorkstationAssetCard({ part, index, selected, playing, actions }
       <header className="ws-part-identity">
         <div className="ws-asset-identity"><span><FileAudio /></span><div><b>{title}</b><small>{collection} · Venture source</small></div></div>
         <div className="ws-part-actions">
-          <Button variant="ghost" size="icon-sm" aria-label={part.enabled === false ? "Include Part in Sequence" : "Exclude Part from Sequence"} onClick={(event) => { event.stopPropagation(); actions.setEnabled(part, part.enabled === false) }}>{part.enabled === false ? <CircleCheck /> : <CircleSlash2 />}</Button>
+          <PartInclusionButton part={part} actions={actions} />
           <Button variant="outline" size="sm" onClick={(event) => { event.stopPropagation(); actions.replaceAsset(part) }}><FileAudio /> Replace source</Button>
           <PartActionsMenu part={part} actions={actions} />
         </div>
@@ -148,6 +180,7 @@ export function WorkstationAssetCard({ part, index, selected, playing, actions }
         <span className="ws-duration">{duration}</span>
         <span className="ws-asset-source"><FileAudio /> Reusable Venture audio</span>
         {hasIssue && <span className="ws-card-issue"><CircleAlert /> Review source</span>}
+        <PartStateIndicator state={state} />
         <strong>{part.cost > 0 ? formatMoney(part.cost) : "Free · reusable"}</strong>
       </footer>
     </div>
@@ -168,8 +201,9 @@ export function WorkstationSequenceCard({ part, index, selected, playing, liveJo
   const speechJob = operationJob(part, liveJobs)
   const facts = speechPartCardFacts({ part, speechJob, captionJob: captionJob(part, liveJobs), directory })
   const role = formatAuthoredRole(part.authored_role)
-  const isDraft = !facts.recorded
-  const hasIssue = facts.alerts.some((alert) => alert.tone !== "neutral") || facts.operation.kind === "failed"
+  const state = workstationPartState(part)
+  const isDraft = state === "draft"
+  const hasIssue = state === "issue"
   const source: PlayerSource = { key: `part:${part.id}`, url: audioUrl(part.filename || ""), title: role || facts.selectedVoiceName, subtitle: `Part ${formatPartNumber(part.position ?? index)} · ${facts.durationLabel}`, kind: "clip" }
   return <article id={`ws-part-${part.id}`} className={cn("ws-part-card", selected && "is-selected", isDraft && "is-draft", hasIssue && "has-issue", part.enabled === false && "is-disabled")} onClick={() => actions.select(part)}>
     <aside className="ws-part-index"><span>{formatPartNumber(part.position ?? index)}</span><GripVertical aria-hidden="true" /></aside>
@@ -181,7 +215,7 @@ export function WorkstationSequenceCard({ part, index, selected, playing, liveJo
           <span className="ws-method-line">{facts.methodLine}</span>
         </div>
         <div className="ws-part-actions">
-          <Button variant="ghost" size="icon-sm" aria-label={part.enabled === false ? "Include Part in Sequence" : "Exclude Part from Sequence"} onClick={(event) => { event.stopPropagation(); actions.setEnabled(part, part.enabled === false) }}>{part.enabled === false ? <CircleCheck /> : <CircleSlash2 />}</Button>
+          <PartInclusionButton part={part} actions={actions} />
           <Button variant="outline" size="sm" onClick={(event) => { event.stopPropagation(); actions.edit(part) }}><Edit3 /> Edit</Button>
           <PartActionsMenu part={part} actions={actions} />
         </div>
@@ -194,8 +228,7 @@ export function WorkstationSequenceCard({ part, index, selected, playing, liveJo
         <span className="ws-duration">{facts.durationLabel}</span>
         <button className={cn("ws-caption-state", `is-${facts.captionTone}`)} onClick={(event) => { event.stopPropagation(); actions.captions(part) }}><Captions /> {facts.captionSummary}</button>
         {facts.inputLabel && <span className="ws-input-state"><Check /> {facts.inputLabel}</span>}
-        {hasIssue && <span className="ws-card-issue"><CircleAlert /> Review</span>}
-        {!hasIssue && facts.recorded && <span className="ws-card-ready"><CircleDot /> Ready</span>}
+        <PartStateIndicator state={state} />
         <strong>{facts.spendValue}</strong>
       </footer>
     </div>

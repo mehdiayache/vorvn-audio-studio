@@ -3,6 +3,7 @@ import { AudioLines, Captions, Download, LoaderCircle, Pause, Play, RefreshCw, V
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import type { TransportHost } from "@/components/global-player-provider"
 import { TransportCaptionPanel } from "@/components/transport-caption-panel"
+import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import type { PlayerState } from "@/hooks/use-player"
@@ -57,14 +58,14 @@ export function TransportStripView({ source, state, currentTime, duration, volum
     {previewStale && <div className="transport-preview-stale" role="status"><span>Preview out of date</span><Button variant="ghost" size="sm" onClick={onRefreshPreview}><RefreshCw /> Refresh</Button></div>}
     <span className="transport-strip-art" aria-hidden="true">{source.artwork ? <img src={source.artwork} alt="" /> : <AudioLines />}</span>
     <div className="transport-strip-copy"><small>{sourceLabels[source.kind]}</small><b title={source.title}>{source.title}</b>{source.subtitle && <span title={source.subtitle}>{source.subtitle}</span>}</div>
-    <Button className="transport-strip-play" size="icon" onClick={onToggle} aria-label={playLabel}>{state === "loading" ? <LoaderCircle className="spin" /> : state === "playing" ? <Pause /> : <Play />}</Button>
+    <OperatorTooltip label={playLabel}><Button className="transport-strip-play" size="icon" onClick={onToggle} aria-label={playLabel}>{state === "loading" ? <LoaderCircle className="spin" /> : state === "playing" ? <Pause /> : <Play />}</Button></OperatorTooltip>
     <span className="transport-strip-time">{formatDuration(currentTime)}</span>
     <Slider className="transport-strip-seek" value={[currentTime]} max={Math.max(duration, 1)} step={0.1} onValueChange={([value = 0]) => onSeek(value)} aria-label="Playback position" />
     <span className="transport-strip-time">{formatDuration(duration)}</span>
     <Volume1 className="transport-strip-volume-icon" aria-hidden="true" />
     <Slider className="transport-strip-volume" value={[volume]} max={1} step={0.02} onValueChange={([value = 0]) => onVolume(value)} aria-label="Playback volume" />
     <Button className="transport-strip-speed" variant="ghost" size="sm" onClick={() => onSpeed(speed >= 2 ? 0.75 : speed + 0.25)} aria-label={`Playback speed ${speed.toFixed(2)} times`}>{speed.toFixed(2).replace(/\.00$/, "")}×</Button>
-    <Button
+    <OperatorTooltip label={captionTracks.length ? captionsEnabled ? "Hide captions" : "Show captions" : "Captions unavailable"} detail={captionTracks.length ? "Shows timed captions above the player." : "Create captions for this recording to enable the reader."} disabledTrigger={!captionTracks.length}><Button
       variant="ghost"
       size="icon"
       className={captionsEnabled ? "transport-cc is-on" : "transport-cc"}
@@ -72,9 +73,9 @@ export function TransportStripView({ source, state, currentTime, duration, volum
       aria-pressed={captionTracks.length ? captionsEnabled : undefined}
       disabled={!captionTracks.length}
       onClick={onToggleCaptions}
-    ><Captions /></Button>
-    {source.kind !== "production" && <Button variant="ghost" size="icon" asChild><a href={source.url} download aria-label={`Download ${source.title}`}><Download /></a></Button>}
-    <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close audio player"><X /></Button>
+    ><Captions /></Button></OperatorTooltip>
+    {source.kind !== "production" && <OperatorTooltip label={`Download ${source.title}`}><Button variant="ghost" size="icon" asChild><a href={source.url} download aria-label={`Download ${source.title}`}><Download /></a></Button></OperatorTooltip>}
+    <OperatorTooltip label="Close audio player"><Button variant="ghost" size="icon" onClick={onClose} aria-label="Close audio player"><X /></Button></OperatorTooltip>
     {state === "error" && <p className="transport-strip-error" role="alert">This audio could not be played.</p>}
   </section>
 }

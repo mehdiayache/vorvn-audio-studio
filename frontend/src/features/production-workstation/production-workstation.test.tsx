@@ -109,6 +109,28 @@ describe("Production Workstation", () => {
     expect(workstationPartState(issue)).toBe("issue")
   })
 
+  it("presents a skipped Part as a fourth operator state without losing its recording", () => {
+    const skipped = part({ id: 4, position: 3, authored_role: "Guide", enabled: false, clip_id: 40, filename: "guide.mp3" })
+    const setEnabled = vi.fn()
+    render(<WorkstationSequenceCard part={skipped} index={3} selected={false} playing={false} liveJobs={{}} directory={directory} actions={partActions({ setEnabled })} />)
+
+    expect(workstationPartState(skipped)).toBe("skipped")
+    expect(screen.getByText("Skipped")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Include Part" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Include Part" }))
+    expect(setEnabled).toHaveBeenCalledWith(skipped, true)
+  })
+
+  it("filters skipped Parts separately from readiness", () => {
+    const ready = part({ id: 1, authored_role: "Narrator" })
+    const skipped = part({ id: 2, position: 1, authored_role: "Guide", enabled: false })
+    render(<WorkstationOutline parts={[ready, skipped]} selectedId={null} directory={directory} onSelect={vi.fn()} onCollapse={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Skipped" }))
+    expect(screen.queryByRole("button", { name: /01.*Narrator/ })).toBeNull()
+    expect(screen.getByRole("button", { name: /02.*Guide.*Skipped/ })).toBeTruthy()
+  })
+
   it("projects actual Production timing into distinct sound tracks", () => {
     const parts = [
       part({ id: 1, authored_role: "Narrator", duration_ms: 8_000 }),
@@ -122,8 +144,8 @@ describe("Production Workstation", () => {
     expect(screen.getByText("Quiet room")).toBeTruthy()
     expect(screen.getByText("2 audio · 1 pause")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Pause Part 02 · 1.5 seconds" }).className).toContain("sound-sequence-silence")
-    expect(screen.getByTitle("Undo the last Sound Design edit")).toBeTruthy()
-    expect(screen.getByTitle("Redo the last undone Sound Design edit")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Undo Sound edit" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Redo Sound edit" })).toBeTruthy()
   })
 
   it("keeps essential track mixing available in the compact rail", () => {

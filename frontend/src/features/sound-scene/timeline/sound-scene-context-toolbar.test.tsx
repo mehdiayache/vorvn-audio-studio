@@ -40,6 +40,17 @@ describe("SoundSceneContextToolbar", () => {
     expect(onEffects).toHaveBeenCalledWith([expect.objectContaining({ type: "telephone", enabled: true })])
   })
 
+  it("names Sequence mute as a mix-only audio action", () => {
+    const onMute = vi.fn()
+    render(<SoundSceneContextToolbar
+      context={{ kind: "sequence", label: "Narrator", muted: false, gain: 1, effects: [] }}
+      saving={false} onMute={onMute} onGain={vi.fn()} onEffects={vi.fn()}
+    />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Mute Part audio" }))
+    expect(onMute).toHaveBeenCalledOnce()
+  })
+
   it("shows and commits the actual serial effect order", () => {
     const onEffects = vi.fn()
     render(<SoundSceneContextToolbar
