@@ -7,6 +7,9 @@ import { DecodedAudioCache, planClipSource } from "./sound-source-manager"
 const SAMPLE_RATE = 48_000
 const STREAM_PREROLL_SECONDS = 30
 const STREAM_RELEASE_BEHIND_SECONDS = 5
+const STREAM_READY_TIMEOUT_MS = 8_000
+const HAVE_METADATA = 1
+const HAVE_FUTURE_DATA = 3
 const clipTrackId = (trackId: string, clipId: string) => `${trackId}::clip::${clipId}`
 const toSamples = (seconds: number) => Math.max(0, Math.round(seconds * SAMPLE_RATE))
 
@@ -598,14 +601,72 @@ export class SoundScenePlayout {
     return 1
   }
 
+  private waitForMedia(
+    element: HTMLAudioElement, event: "loadedmetadata" | "canplay",
+    ready: () => boolean,
+  ) {
+    if (ready() || typeof element.addEventListener !== "function")
+      return Promise.resolve()
+    return new Promise<void>((resolve) => {
+      const finish = () => {
+        window.clearTimeout(timeout)
+        element.removeEventListener(event, finish)
+        resolve()
+      }
+      const timeout = window.setTimeout(finish, STREAM_READY_TIMEOUT_MS)
+      element.addEventListener(event, finish, { once: true })
+    })
+  }
+
+  private async prepareStreams(time: number) {
+    this.materializeRelevantStreams(time)
+    const targets: Array<{ element: HTMLAudioElement; sourceTime: number }> = []
+    if (this.sequenceStream) {
+      targets.push({
+        element: this.sequenceStream.element,
+        sourceTime: Math.min(
+          time,
+          Number.isFinite(this.sequenceStream.element.duration)
+            ? this.sequenceStream.element.duration : time,
+        ),
+      })
+    }
+    for (const stream of this.streams) {
+      const clip = stream.clip
+      if (!clip) continue
+      const start = Number(clip.resolved_start_ms || 0) / 1_000
+      const duration = Number(clip.resolved_duration_ms || 0) / 1_000
+      const elapsed = time - start
+      if (elapsed < 0 || elapsed >= duration) continue
+      targets.push({ element: stream.element, sourceTime: this.sourceTime(clip, elapsed) })
+    }
+    await Promise.all(targets.map(async ({ element, sourceTime }) => {
+      element.preload = "auto"
+      if (Number(element.readyState) < HAVE_METADATA) {
+        element.load()
+        await this.waitForMedia(
+          element, "loadedmetadata",
+          () => Number(element.readyState) >= HAVE_METADATA,
+        )
+      }
+      if (Math.abs(element.currentTime - sourceTime) > .01)
+        element.currentTime = sourceTime
+      await this.waitForMedia(
+        element, "canplay",
+        () => Number(element.readyState) >= HAVE_FUTURE_DATA,
+      )
+    }))
+  }
+
   private syncStreams(time: number, shouldPlay: boolean) {
     this.materializeRelevantStreams(time)
+    const starts: Promise<void>[] = []
     const sequence = this.sequenceStream
     if (sequence) {
       if (Math.abs(sequence.element.currentTime - time) > .15)
         sequence.element.currentTime = Math.min(
           time, Number.isFinite(sequence.element.duration) ? sequence.element.duration : time)
-      if (shouldPlay) void sequence.element.play().catch(() => undefined)
+      if (shouldPlay) starts.push(sequence.element.play().catch(() => undefined))
       else sequence.element.pause()
     }
     for (const stream of this.streams) {
@@ -625,8 +686,9 @@ export class SoundScenePlayout {
       const sourceTime = this.sourceTime(clip, elapsed)
       if (Math.abs(stream.element.currentTime - sourceTime) > .15)
         stream.element.currentTime = sourceTime
-      void stream.element.play().catch(() => undefined)
+      starts.push(stream.element.play().catch(() => undefined))
     }
+    return starts
   }
 
   private updateDucking() {
@@ -667,13 +729,16 @@ export class SoundScenePlayout {
     await this.activatePlayout()
     if (from !== undefined) this.seek(from)
     await this.context!.resume()
-    this.streamMaster!.gain.setValueAtTime(1, this.context!.currentTime)
-    this.startedAt = this.context!.currentTime
+    this.streamMaster!.gain.setValueAtTime(0, this.context!.currentTime)
+    await this.prepareStreams(this.playhead)
     this.playing = true
+    this.scheduleSequenceMix(this.playhead)
+    await Promise.all(this.syncStreams(this.playhead, true))
+    if (!this.playing || !this.active) return
+    this.startedAt = this.context!.currentTime
     if (this.preparedTrackIds.size)
       this.adapter!.play(this.playhead, this.duration())
-    this.scheduleSequenceMix(this.playhead)
-    this.syncStreams(this.playhead, true)
+    this.streamMaster!.gain.setValueAtTime(1, this.context!.currentTime)
     if (this.streams.length || this.streamDescriptors.size) this.followStreams()
   }
 

@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => {
     dispose: ReturnType<typeof vi.fn>
   }> = []
   const media: Array<{
-    src: string; currentTime: number; duration: number; preload: string;
+    src: string; currentTime: number; duration: number; preload: string; readyState: number;
     play: ReturnType<typeof vi.fn>; pause: ReturnType<typeof vi.fn>;
     load: ReturnType<typeof vi.fn>; removeAttribute: ReturnType<typeof vi.fn>;
   }> = []
@@ -79,6 +79,7 @@ describe("SoundScenePlayout", () => {
       currentTime = 0
       duration = 3_600
       preload = ""
+      readyState = 4
       play = vi.fn().mockResolvedValue(undefined)
       pause = vi.fn()
       load = vi.fn()
@@ -195,6 +196,47 @@ describe("SoundScenePlayout", () => {
     expect(mocks.media[0]?.pause).toHaveBeenCalled()
     expect(mocks.media[0]?.removeAttribute).toHaveBeenCalledWith("src")
     expect(mocks.adapters[0]?.dispose).toHaveBeenCalled()
+    playout.dispose()
+    vi.unstubAllGlobals()
+  })
+
+  it("prepares every active long stream and keeps the stream master silent until all starts resolve", async () => {
+    const source = scene()
+    const durationMs = 60 * 60_000
+    source.sequence_stem = {
+      url: "/audio/sequence-stem.mp3", filename: "sequence-stem.mp3",
+      duration_ms: durationMs, signature: "sequence", cached: true,
+    }
+    source.resolved.duration_ms = durationMs
+    source.resolved.sequence_projection.duration_ms = durationMs
+    const original = source.document.tracks[0]!.clips[0]!
+    const clips = ["a", "b"].map((suffix, index) => ({
+      ...structuredClone(original),
+      id: `78af885c-aeb4-49bf-9edb-d3fc14496b3${suffix}`,
+      asset_id: index + 1, filename: `long-${suffix}.mp3`,
+      duration_ms: durationMs, source_duration_ms: durationMs,
+      resolved_start_ms: 0, resolved_duration_ms: durationMs,
+      anchor: { kind: "absolute" as const, position_ms: 0 },
+    }))
+    source.document.tracks[0]!.clips = clips
+    source.resolved.tracks[0]!.clips = clips
+    source.resolved.signature = "three-active-streams"
+    const playout = new SoundScenePlayout(source)
+    await playout.activatePlayout()
+    const starts: Array<() => void> = []
+    for (const media of mocks.media)
+      media.play.mockImplementation(() => new Promise<void>((resolve) => starts.push(resolve)))
+
+    const playing = playout.play(0)
+    await vi.waitFor(() => expect(starts).toHaveLength(3))
+    const master = mocks.gains[0]!
+    expect(mocks.media.map((media) => media.preload)).toEqual(["auto", "auto", "auto"])
+    expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 0)
+
+    starts.forEach((resolve) => resolve())
+    await playing
+
+    expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 0)
     playout.dispose()
     vi.unstubAllGlobals()
   })
