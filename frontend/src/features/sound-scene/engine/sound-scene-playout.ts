@@ -197,6 +197,7 @@ export class SoundScenePlayout {
   async activatePlayout() {
     this.active = true
     await this.prepare()
+    await this.prepareStreams(this.playhead)
   }
 
   deactivatePlayout() {

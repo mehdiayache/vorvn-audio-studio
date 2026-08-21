@@ -121,6 +121,7 @@ async function boot() {
     location.reload()
     return
   }
+  await playout.activatePlayout()
   buttons.forEach((button) => { button.disabled = false })
   snapshot("ready")
 }
