@@ -120,7 +120,30 @@ describe("Production Workstation", () => {
     expect(screen.getByText("Narrator")).toBeTruthy()
     expect(screen.getByText("Door closes")).toBeTruthy()
     expect(screen.getByText("Quiet room")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Silence 1.5 seconds" }).className).toContain("sound-sequence-silence")
+    expect(screen.getByText("2 audio · 1 pause")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Pause Part 02 · 1.5 seconds" }).className).toContain("sound-sequence-silence")
+    expect(screen.getByTitle("Undo the last Sound Design edit")).toBeTruthy()
+    expect(screen.getByTitle("Redo the last undone Sound Design edit")).toBeTruthy()
+  })
+
+  it("keeps essential track mixing available in the compact rail", () => {
+    const onRemoveTrack = vi.fn()
+    render(<SoundSceneWorkspace session={sessionFor(scene([part({ duration_ms: 30_000 })]))} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={onRemoveTrack} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide track controls" }))
+
+    expect(screen.getByRole("button", { name: "Adjust Music volume" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Track actions for Music" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Add clip to Music" })).toBeNull()
+
+    fireEvent.click(screen.getByRole("button", { name: "Adjust Music volume" }))
+    expect(screen.getByRole("slider", { name: "Music volume" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Mute track" })).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: "Escape" })
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Track actions for Music" }), { button: 0, ctrlKey: false, pointerType: "mouse" })
+    fireEvent.click(screen.getByRole("menuitem", { name: "Remove “Music”" }))
+    expect(onRemoveTrack).toHaveBeenCalledWith(expect.objectContaining({ id: "music", name: "Music" }))
   })
 
   it("presents linked audio as a reusable Venture asset instead of empty speech", () => {

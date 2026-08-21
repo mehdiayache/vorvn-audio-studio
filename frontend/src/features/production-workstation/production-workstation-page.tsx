@@ -64,6 +64,13 @@ function partKindLabel(part: ProductionPart) {
   return part.kind.charAt(0).toUpperCase() + part.kind.slice(1).replaceAll("_", " ")
 }
 
+function partDeletionLabel(part: ProductionPart) {
+  const number = formatPartNumber(part.position ?? 0)
+  if (part.kind === "silence") return `Part ${number} · Pause`
+  if (part.kind === "asset") return `Part ${number} · ${part.title || "Linked audio"}`
+  return `Part ${number} · ${formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"}`
+}
+
 export function InlineProductionName({ name, onRename }: { name: string; onRename: (name: string) => Promise<void> }) {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(name)
@@ -382,7 +389,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     return request.then((job) => { closeComposer(); void refresh().catch(() => undefined); return job })
   }, [actions, closeComposer, composerPart, refresh])
   const requestPartDeletion = useCallback((part: ProductionPart) => setConfirmAction({
-    title: "Delete this Part permanently?",
+    title: `Delete “${partDeletionLabel(part)}” permanently?`,
     description: part.kind === "asset"
       ? "This removes this linked-audio Part from the Sequence. The reusable Venture asset remains available."
       : part.kind === "silence"
@@ -458,6 +465,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   const musicClip = soundSelection?.kind === "clip"
     ? soundSession.currentClip(soundSelection.trackId, soundSelection.clipId)
     : null
+  const musicClipName = musicClip?.asset_name || "Music clip"
   const playingPart = actions.playerPlaying && player.source?.key.startsWith("part:")
     ? sourceParts.find((part) => part.id === Number(player.source?.key.slice(5))) || null
     : null
@@ -483,7 +491,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     track={musicTrack} clip={musicClip} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)}
     onClipChange={(changes) => { if (musicClip) soundSession.updateClip(musicTrack.id, musicClip.id, changes) }} onClipCommit={() => soundSession.commitClip()}
     onTrackVolumeChange={(volume) => soundSession.setTrackVolume(musicTrack.id, volume)} onTrackVolumeCommit={(volume) => soundSession.commitTrackVolume(musicTrack.id, volume)}
-    onChoose={() => { setMusicTarget({ mode: "replace", trackId: soundSelection.trackId, clipId: soundSelection.clipId }); setTool("music") }} onRemove={() => setConfirmAction({ title: "Remove this Music clip?", description: "The reusable Venture asset remains available. Only this Sound Scene placement is removed.", action: () => { void soundSession.removeClip(soundSelection.trackId, soundSelection.clipId) } })}
+    onChoose={() => { setMusicTarget({ mode: "replace", trackId: soundSelection.trackId, clipId: soundSelection.clipId }); setTool("music") }} onRemove={() => setConfirmAction({ title: `Remove “${musicClipName}”?`, description: "The reusable Venture asset remains available. Only this Sound Scene placement is removed.", action: () => { void soundSession.removeClip(soundSelection.trackId, soundSelection.clipId) } })}
   /> : stage === "sound" && soundSpan ? <SequenceMixInspector
     span={soundSpan} saving={soundState.saving}
     onPreview={(changes) => soundSession.previewSequenceOverride(soundSpan.part_public_id, changes)}
@@ -533,12 +541,22 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
           {stage === "sound" && <SoundSceneWorkspace
             session={soundSession}
             onAddMusic={(target) => { setMusicTarget(target); setTool("music") }}
-            onRemoveClip={({ clips }) => setConfirmAction({
-              title: clips.length === 1 ? "Remove this Music clip?" : `Remove ${clips.length} Music clips?`,
-              description: "Reusable Venture assets remain available. Only the selected Sound Scene placements are removed.",
-              action: () => { void soundSession.removeClips(clips) },
+            onRemoveClip={({ clips }) => {
+              const names = clips.flatMap((ref) => {
+                const clip = soundState.scene.resolved.tracks.find((track) => track.id === ref.trackId)?.clips.find((item) => item.id === ref.clipId)
+                return clip ? [clip.asset_name || "Music clip"] : []
+              })
+              setConfirmAction({
+                title: clips.length === 1 ? `Remove “${names[0] || "Music clip"}”?` : `Remove ${clips.length} selected Music clips?`,
+                description: "Reusable Venture assets remain available. Only the selected Sound Scene placements are removed.",
+                action: () => { void soundSession.removeClips(clips) },
+              })
+            }}
+            onRemoveTrack={(track) => setConfirmAction({
+              title: `Remove “${track.name}”?`,
+              description: `This removes the track and its ${track.clips.length} placement${track.clips.length === 1 ? "" : "s"}. Reusable Venture assets remain available.`,
+              action: () => { void soundSession.removeTrack(track.id) },
             })}
-            onRemoveTrack={(trackId) => setConfirmAction({ title: "Remove this Music track?", description: "Every placement on this track is removed. Reusable Venture assets remain available.", action: () => { void soundSession.removeTrack(trackId) } })}
             onOpenSequence={(partId) => { setStage("sequence"); setSelectedId(partId) }}
           />}
           {stage === "mix" && <div className="ws-mix-canvas"><MixExportWorkspace production={production} soundScene={soundScene} previewing={actions.previewing} productionPlaying={actions.productionPlaying} previewReady={actions.productionLoaded} previewStale={Boolean(player.source?.kind === "production" && !actions.productionLoaded)} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={requestExport} onLocatePart={(id) => { setStage("sequence"); setSelectedId(id) }} onOpenHealth={() => setReleaseInspectorOpen(true)} exporting={actions.exporting} /></div>}

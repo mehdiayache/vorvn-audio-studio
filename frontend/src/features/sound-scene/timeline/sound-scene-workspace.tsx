@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
-import { ChevronLeft, ChevronRight, Clock3, Minus, Music2, PanelLeftClose, PanelLeftOpen, Plus, Redo2, Trash2, Undo2, Volume2, VolumeX } from "lucide-react"
+import { ChevronLeft, ChevronRight, Minus, MoreHorizontal, Music2, PanelLeftClose, PanelLeftOpen, Pause, Plus, Redo2, Trash2, Undo2, Volume1, Volume2, VolumeX } from "lucide-react"
 
 import { useAudioPeaks } from "@/components/audio-waveform"
 import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider"
 import { audioUrl } from "@/lib/api"
 import { formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import type { SoundSceneClip } from "@/types/domain"
+import type { SoundSceneClip, SoundSceneTrack } from "@/types/domain"
 import { SoundSceneSession, useSoundSceneSession, type SoundClipRef } from "../engine/sound-scene-session"
 import { SoundSceneContextToolbar, type SoundContext } from "./sound-scene-context-toolbar"
 
@@ -79,11 +81,53 @@ function tickStep(pixelsPerSecond: number) {
   return TICK_STEPS.find((step) => step * pixelsPerSecond >= 70) || 60
 }
 
+function SoundTrackControl({ track, volume, collapsed, onMute, onVolumeChange, onVolumeCommit, onAdd, onRemove }: {
+  track: SoundSceneTrack
+  volume: number
+  collapsed: boolean
+  onMute: () => void
+  onVolumeChange: (volume: number) => void
+  onVolumeCommit: (volume: number) => void
+  onAdd: () => void
+  onRemove: () => void
+}) {
+  const summary = `${track.name} · ${track.clips.length} clip${track.clips.length === 1 ? "" : "s"} · ${track.muted ? "Muted" : decibels(volume)}`
+  return <div className={cn("sound-track-control", collapsed && "is-compact")}>
+    <div className="sound-track-select" title={summary}>
+      <span className={cn("sound-track-icon is-music", track.muted && "is-muted")}><Music2 /></span>
+      {!collapsed && <span className="sound-track-copy"><b>{track.name}</b><small>{track.clips.length} clip{track.clips.length === 1 ? "" : "s"}</small></span>}
+    </div>
+    {collapsed ? <div className="sound-track-compact-actions">
+      <Popover>
+        <PopoverTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Adjust ${track.name} volume`} title={`Adjust ${track.name} volume`}>{track.muted ? <VolumeX /> : <Volume1 />}</Button></PopoverTrigger>
+        <PopoverContent side="right" align="center" className="sound-track-volume-popover">
+          <header><span><b>{track.name}</b><small>Track volume</small></span><strong>{track.muted ? "Muted" : decibels(volume)}</strong></header>
+          <Slider aria-label={`${track.name} volume`} value={[Math.round(volume * 100)]} max={200} step={1} disabled={track.muted} onValueChange={([value = 0]) => onVolumeChange(value / 100)} onValueCommit={([value = 0]) => onVolumeCommit(value / 100)} />
+          <Button variant="ghost" size="sm" onClick={onMute}>{track.muted ? <Volume2 /> : <VolumeX />}{track.muted ? "Unmute track" : "Mute track"}</Button>
+        </PopoverContent>
+      </Popover>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Track actions for ${track.name}`} title={`Track actions for ${track.name}`}><MoreHorizontal /></Button></DropdownMenuTrigger>
+        <DropdownMenuContent side="right" align="center">
+          <DropdownMenuItem onSelect={onAdd}><Plus /> Add Music clip</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onSelect={onRemove}><Trash2 /> Remove “{track.name}”</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div> : <div className="sound-track-mix">
+      <Button variant="ghost" size="icon-sm" aria-label={track.muted ? `Unmute ${track.name}` : `Mute ${track.name}`} onClick={onMute}>{track.muted ? <VolumeX /> : <Volume2 />}</Button>
+      <Slider aria-label={`${track.name} volume`} value={[Math.round(volume * 100)]} max={200} step={1} onValueChange={([value = 0]) => onVolumeChange(value / 100)} onValueCommit={([value = 0]) => onVolumeCommit(value / 100)} />
+      <Button variant="ghost" size="icon-sm" aria-label={`Add clip to ${track.name}`} onClick={onAdd}><Plus /></Button>
+      <Button variant="ghost" size="icon-sm" aria-label={`Remove ${track.name}`} onClick={onRemove}><Trash2 /></Button>
+    </div>}
+  </div>
+}
+
 export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemoveTrack, onOpenSequence }: {
   session: SoundSceneSession
   onAddMusic: (target: AddTarget) => void
   onRemoveClip: (target: RemoveTarget) => void
-  onRemoveTrack: (trackId: string) => void
+  onRemoveTrack: (track: SoundSceneTrack) => void
   onOpenSequence?: (partId: number) => void
 }) {
   const { scene, engine, selection, playhead, saving, error } = useSoundSceneSession(session)
@@ -100,6 +144,9 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
   const step = tickStep(pixelsPerSecond)
   const marks = useMemo(() => Array.from({ length: Math.floor(total / step) + 1 }, (_, index) => index * step), [step, total])
   const tracks = scene.resolved.tracks
+  const pauseCount = scene.resolved.sequence_projection.spans.filter((span) => span.silence).length
+  const audioCount = scene.resolved.sequence_projection.spans.length - pauseCount
+  const sequenceSummary = `${audioCount} audio · ${pauseCount} pause${pauseCount === 1 ? "" : "s"}`
   const trackById = new Map(engine.tracks.map((track) => [track.id, track]))
   const sequence = trackById.get("sequence-projection")
   const rowTemplate = `${RULER_HEIGHT}px repeat(${tracks.length + 1}, ${LANE_HEIGHT}px)`
@@ -313,7 +360,7 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
     <div className="sound-scene-toolbar">
       <Button variant="ghost" size="icon-sm" onClick={() => setTracksCollapsed((value) => !value)} aria-label={tracksCollapsed ? "Show track controls" : "Hide track controls"}>{tracksCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button>
       <span className="sound-scene-toolbar-title">Sound Design</span>
-      <div className="sound-scene-history"><Button variant="ghost" size="icon-sm" disabled={!scene.can_undo || saving} onClick={() => void session.undo()} aria-label="Undo Sound edit"><Undo2 /></Button><Button variant="ghost" size="icon-sm" disabled={!scene.can_redo || saving} onClick={() => void session.redo()} aria-label="Redo Sound edit"><Redo2 /></Button></div>
+      <div className="sound-scene-history"><Button variant="ghost" size="sm" disabled={!scene.can_undo || saving} onClick={() => void session.undo()} aria-label="Undo Sound edit" title="Undo the last Sound Design edit"><Undo2 /><span>Undo</span></Button><Button variant="ghost" size="sm" disabled={!scene.can_redo || saving} onClick={() => void session.redo()} aria-label="Redo Sound edit" title="Redo the last undone Sound Design edit"><Redo2 /><span>Redo</span></Button></div>
       <div className="sound-scene-zoom"><Button variant="ghost" size="icon-sm" disabled={!engine.canZoomOut} onClick={() => session.zoomOut()} aria-label="Zoom out"><Minus /></Button><span>{Math.round(pixelsPerSecond)} px/s</span><Button variant="ghost" size="icon-sm" disabled={!engine.canZoomIn} onClick={() => session.zoomIn()} aria-label="Zoom in"><Plus /></Button></div>
       <Button variant="outline" size="sm" onClick={() => onAddMusic({ mode: "new-track" })}><Plus /> Music track</Button>
       <SoundSceneContextToolbar
@@ -337,11 +384,16 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
     <div className="sound-scene-editor">
       <aside ref={controlsRef} className="sound-scene-track-controls" style={{ gridTemplateRows: rowTemplate }} onWheel={(event) => { if (scrollRef.current) scrollRef.current.scrollTop += event.deltaY }}>
         <div className="sound-scene-track-head"><span>Tracks</span></div>
-        <div className="sound-sequence-control"><span className="sound-track-icon is-sequence"><Volume2 /></span><span className="sound-track-copy"><b>Sequence</b><small>{scene.resolved.sequence_projection.spans.length} audible Parts</small></span></div>
-        {tracks.map((track) => <div className="sound-track-control" key={track.id}>
-          <div className="sound-track-select"><span className="sound-track-icon is-music"><Music2 /></span><span className="sound-track-copy"><b>{track.name}</b><small>{track.clips.length} clip{track.clips.length === 1 ? "" : "s"}</small></span></div>
-          <div className="sound-track-mix"><Button variant="ghost" size="icon-sm" aria-label={track.muted ? `Unmute ${track.name}` : `Mute ${track.name}`} onClick={() => void session.commitTrackMute(track.id, !track.muted)}>{track.muted ? <VolumeX /> : <Volume2 />}</Button><Slider aria-label={`${track.name} volume`} value={[Math.round((trackById.get(track.id)?.volume ?? track.volume) * 100)]} max={200} step={1} onValueChange={([value = 0]) => session.setTrackVolume(track.id, value / 100)} onValueCommit={([value = 0]) => void session.commitTrackVolume(track.id, value / 100)} /><Button variant="ghost" size="icon-sm" aria-label={`Add clip to ${track.name}`} onClick={() => onAddMusic({ mode: "add-clip", trackId: track.id })}><Plus /></Button><Button variant="ghost" size="icon-sm" aria-label={`Remove ${track.name}`} onClick={() => onRemoveTrack(track.id)}><Trash2 /></Button></div>
-        </div>)}
+        <div className="sound-sequence-control" title={tracksCollapsed ? `Sequence · ${sequenceSummary}` : undefined}><span className="sound-track-icon is-sequence"><Volume2 /></span>{!tracksCollapsed && <span className="sound-track-copy"><b>Sequence</b><small>{sequenceSummary}</small></span>}</div>
+        {tracks.map((track) => <SoundTrackControl
+          key={track.id} track={track} collapsed={tracksCollapsed}
+          volume={trackById.get(track.id)?.volume ?? track.volume}
+          onMute={() => void session.commitTrackMute(track.id, !track.muted)}
+          onVolumeChange={(volume) => session.setTrackVolume(track.id, volume)}
+          onVolumeCommit={(volume) => void session.commitTrackVolume(track.id, volume)}
+          onAdd={() => onAddMusic({ mode: "add-clip", trackId: track.id })}
+          onRemove={() => onRemoveTrack(track)}
+        />)}
       </aside>
       <div className="sound-scene-scroll" ref={scrollRef} onScroll={(event) => { if (controlsRef.current) controlsRef.current.scrollTop = event.currentTarget.scrollTop; if (session.snapshot().playing) setFollowPlayhead(false) }}>
         <div className="sound-scene-timeline" ref={timelineRef} style={{ width, gridTemplateRows: rowTemplate }}>
@@ -354,7 +406,13 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
               const clip = sequence?.clips.find((item) => item.id === `sequence:${span.part_public_id}`)
               const start = Number(clip?.startSample || 0) / SAMPLE_RATE
               const duration = Number(clip?.durationSamples || 0) / SAMPLE_RATE
-              if (span.silence) return <button key={span.part_public_id} className={cn("sound-sequence-silence", selection?.kind === "part" && selection.id === span.part_id && "is-selected")} style={styleFor(start, duration)} onClick={() => session.select({ kind: "part", id: span.part_id })} aria-label={`Silence ${duration.toFixed(1)} seconds`}><Clock3 /></button>
+              if (span.silence) {
+                const width = duration * pixelsPerSecond
+                const partNumber = String(Number(span.position ?? 0) + 1).padStart(2, "0")
+                return <button key={span.part_public_id} className={cn("sound-sequence-silence", selection?.kind === "part" && selection.id === span.part_id && "is-selected")} style={styleFor(start, duration)} onClick={() => session.select({ kind: "part", id: span.part_id })} aria-label={`Pause Part ${partNumber} · ${duration.toFixed(1)} seconds`} title={`Part ${partNumber} · Pause ${duration.toFixed(1)} seconds`}>
+                  {width >= 28 && <span><Pause />{width >= 54 && <b>{duration.toFixed(1)}s</b>}</span>}
+                </button>
+              }
               return <button key={span.part_public_id} className={cn("sound-sequence-clip", `is-${roleColor(span.role)}`, selection?.kind === "part" && selection.id === span.part_id && "is-selected")} style={styleFor(start, duration, 18)} onClick={() => session.select({ kind: "part", id: span.part_id })}><CanvasWaveform url={span.filename ? audioUrl(span.filename) : undefined} /><span><em>{String(Number(span.position ?? 0) + 1).padStart(2, "0")}</em><b>{span.role || span.voice_name || span.title || "Speech"}</b></span></button>
             })}
           </div>
