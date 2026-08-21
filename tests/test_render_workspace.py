@@ -3,9 +3,11 @@
 from pathlib import Path
 import shutil
 import subprocess
+import struct
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
+import wave
 
 from audio_studio.infrastructure import render_workspace
 from audio_studio.infrastructure.render_workspace import FFmpegRenderWorkspace
@@ -136,7 +138,7 @@ class RenderWorkspaceTests(unittest.TestCase):
         filters = commands[0][commands[0].index("-filter_complex") + 1]
         self.assertIn("highpass=f=300:p=2,lowpass=f=3400:p=2", filters)
         self.assertIn("asplit=2[seq0dryin1][seq0echoin1]", filters)
-        self.assertIn("aecho=1:1:250|500|750", filters)
+        self.assertIn("aecho=0:1:250|500|750", filters)
         self.assertIn(":1.000000|0.500000|0.250000", filters)
         self.assertIn("adelay=0|0[sequencepart0]", filters)
         self.assertIn("atrim=duration=3.750", filters)
@@ -151,8 +153,61 @@ class RenderWorkspaceTests(unittest.TestCase):
         graph = ";".join(filters)
         self.assertEqual(output, "[testfx0]")
         self.assertIn("volume=0.750000[testdry0]", graph)
-        self.assertIn("aecho=1:1:200:1.000000", graph)
+        self.assertIn("aecho=0:1:200:1.000000", graph)
         self.assertIn("volume=0.250000[testecho0]", graph)
+
+    @unittest.skipUnless(shutil.which("ffmpeg"), "ffmpeg is required")
+    def test_echo_filter_matches_browser_dry_wet_signal_levels(self):
+        """Measure the rendered impulse, not merely the generated filter text."""
+        sample_rate = 48_000
+        delay_ms = 100
+        delay_sample = sample_rate * delay_ms // 1_000
+
+        with TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            source = root / "impulse.wav"
+            with wave.open(str(source), "wb") as output:
+                output.setnchannels(1)
+                output.setsampwidth(2)
+                output.setframerate(sample_rate)
+                samples = [0] * sample_rate
+                samples[0] = 16_000
+                output.writeframes(struct.pack(f"<{len(samples)}h", *samples))
+
+            def render(mix: float, feedback: float) -> list[int]:
+                filters: list[str] = []
+                rendered = render_workspace._append_effects(filters, "[0:a]", [{
+                    "id": "echo", "type": "echo", "enabled": True,
+                    "delay_ms": delay_ms, "feedback": feedback, "mix": mix,
+                }], "signal")
+                target = root / f"echo-{mix}-{feedback}.wav"
+                command = [
+                    "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                    "-i", str(source),
+                ]
+                if filters:
+                    command.extend(["-filter_complex", ";".join(filters),
+                                    "-map", rendered])
+                command.extend(["-c:a", "pcm_s16le", str(target)])
+                subprocess.run(command, check=True)
+                with wave.open(str(target), "rb") as result:
+                    frames = result.readframes(result.getnframes())
+                return list(struct.unpack(f"<{len(frames) // 2}h", frames))
+
+            dry = render(0, 0)
+            quarter = render(.25, 0)
+            wet = render(1, 0)
+            repeated = render(1, .5)
+
+        self.assertAlmostEqual(dry[0], 16_000, delta=2)
+        self.assertAlmostEqual(dry[delay_sample], 0, delta=2)
+        self.assertAlmostEqual(quarter[0], 12_000, delta=4)
+        self.assertAlmostEqual(quarter[delay_sample], 4_000, delta=4)
+        self.assertAlmostEqual(wet[0], 0, delta=2)
+        self.assertAlmostEqual(wet[delay_sample], 16_000, delta=4)
+        self.assertAlmostEqual(wet[delay_sample * 2], 0, delta=2)
+        self.assertAlmostEqual(repeated[delay_sample], 16_000, delta=4)
+        self.assertAlmostEqual(repeated[delay_sample * 2], 8_000, delta=4)
 
     def test_ducking_detector_uses_audible_pre_effect_sequence_mix(self):
         commands: list[list[str]] = []

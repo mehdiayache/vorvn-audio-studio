@@ -156,7 +156,10 @@ def _append_effects(
         filters.extend([
             f"{current}asplit=2[{dry_input}][{echo_input}]",
             f"[{dry_input}]volume={1 - mix:.6f}[{dry}]",
-            f"[{echo_input}]aecho=1:1:{delays}:{decays},"
+            # aecho includes ``input * in_gain`` in its output. This branch is
+            # wet-only, so keep the delayed taps while removing that duplicate
+            # direct contribution. The sibling branch owns the entire dry mix.
+            f"[{echo_input}]aecho=0:1:{delays}:{decays},"
             f"volume={mix:.6f}[{echo}]",
             f"[{dry}][{echo}]amix=inputs=2:duration=longest:"
             f"dropout_transition=0:normalize=0[{output}]",
