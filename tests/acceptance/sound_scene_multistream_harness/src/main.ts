@@ -42,6 +42,7 @@ type InternalStream = { element: HTMLAudioElement; clip?: SoundSceneClip }
 type Snapshot = Record<string, unknown>
 const playout = new SoundScenePlayout(scene)
 const result = document.querySelector<HTMLPreElement>("#result")!
+const summary = document.querySelector<HTMLElement>("#summary")!
 const buttons = [...document.querySelectorAll<HTMLButtonElement>("button")]
 const started = new Map<HTMLAudioElement, number>()
 const history: Snapshot[] = []
@@ -78,6 +79,7 @@ function snapshot(label: string) {
   }
   history.push(entry)
   if (history.length > 240) history.shift()
+  summary.textContent = `${label}: ${rows.length} streams · onset spread ${entry.onsetSpreadMs ?? "—"} ms · current drift ${driftMs} ms · maximum drift ${maximumDriftMs} ms`
   result.textContent = JSON.stringify(entry, null, 2)
   return entry
 }
