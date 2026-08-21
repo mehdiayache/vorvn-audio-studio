@@ -732,6 +732,23 @@ export class SoundScenePlayout {
     await Promise.all(seeks)
   }
 
+  private async primeAlignedStreams(time: number) {
+    const elements = this.activeStreamElements(time)
+    const firstStarts = elements.map((element) => this.waitForPlaybackStart(element))
+    await Promise.all(this.syncStreams(time, true))
+    await Promise.all(firstStarts)
+
+    // A seeked MediaElement can report ready while its decoded output is still
+    // refilling. Warm the path first, then perform the final seek while paused
+    // and wait for both the real play promises and playing events before the
+    // shared master is opened.
+    for (const element of elements) element.pause()
+    await this.alignStreams(time)
+    const finalStarts = elements.map((element) => this.waitForPlaybackStart(element))
+    await Promise.all(elements.map((element) => element.play().catch(() => undefined)))
+    await Promise.all(finalStarts)
+  }
+
   private closeAudibleMaster() {
     if (!this.context || !this.audibleMaster) return
     const now = this.context.currentTime
@@ -826,11 +843,7 @@ export class SoundScenePlayout {
     await this.prepareStreams(this.playhead)
     this.playing = true
     this.synchronizing = true
-    const playbackStarts = this.activeStreamElements(this.playhead)
-      .map((element) => this.waitForPlaybackStart(element))
-    await Promise.all(this.syncStreams(this.playhead, true))
-    await Promise.all(playbackStarts)
-    await this.alignStreams(this.playhead)
+    await this.primeAlignedStreams(this.playhead)
     if (!this.playing || !this.active) return
     this.scheduleSequenceMix(this.playhead)
     this.startedAt = this.context!.currentTime
@@ -844,11 +857,7 @@ export class SoundScenePlayout {
   private async resynchronizeAfterSeek(time: number, generation: number) {
     await this.prepareStreams(time)
     if (!this.playing || !this.active || generation !== this.seekGeneration) return
-    const playbackStarts = this.activeStreamElements(time)
-      .map((element) => this.waitForPlaybackStart(element))
-    await Promise.all(this.syncStreams(time, true))
-    await Promise.all(playbackStarts)
-    await this.alignStreams(time)
+    await this.primeAlignedStreams(time)
     if (!this.playing || !this.active || generation !== this.seekGeneration) return
     this.adapter?.seek(time)
     this.scheduleSequenceMix(time)

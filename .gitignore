@@ -29,3 +29,4 @@ __pycache__/
 .tagged/
 /*.png
 tests/acceptance/sound_scene_multistream_harness/dist/qa-60.mp3
+tests/acceptance/sound_scene_multistream_harness/dist/qa-60.flac

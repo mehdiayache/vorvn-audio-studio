@@ -105,7 +105,7 @@ describe("SoundScenePlayout", () => {
       preload = ""
       readyState = 4
       paused = true
-      play = vi.fn().mockResolvedValue(undefined)
+      play = vi.fn(async () => { this.dispatch("playing") })
       pause = vi.fn(() => { this.paused = true })
       load = vi.fn()
       removeAttribute = vi.fn()
@@ -280,13 +280,16 @@ describe("SoundScenePlayout", () => {
     await Promise.resolve()
     expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 0)
     mocks.media.forEach((media) => media.dispatch("playing"))
+    await vi.waitFor(() => expect(starts).toHaveLength(6))
+    starts.slice(3).forEach((resolve) => resolve())
+    mocks.media.forEach((media) => media.dispatch("playing"))
     await playing
 
     expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 0)
     mocks.contexts[0]!.currentTime = 12.5
     expect(playout.currentTime()).toBe(12.5)
 
-    mocks.media.forEach((media) => media.play.mockResolvedValue(undefined))
+    mocks.media.forEach((media) => media.play.mockImplementation(async () => media.dispatch("playing")))
     playout.seek(3_000)
     expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 12.5)
     await vi.waitFor(() => expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 12.5))
@@ -352,13 +355,16 @@ describe("SoundScenePlayout", () => {
     expect(adapter.play).not.toHaveBeenCalled()
     starts.forEach((resolve) => resolve())
     mocks.media.forEach((media) => media.dispatch("playing"))
+    await vi.waitFor(() => expect(starts).toHaveLength(4))
+    starts.slice(2).forEach((resolve) => resolve())
+    mocks.media.forEach((media) => media.dispatch("playing"))
     await playing
 
     expect(sequenceDry.gain.linearRampToValueAtTime).toHaveBeenCalledWith(1, 7)
     expect(adapter.play).toHaveBeenCalledWith(0, 3_600)
     expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 5)
 
-    mocks.media.forEach((media) => media.play.mockResolvedValue(undefined))
+    mocks.media.forEach((media) => media.play.mockImplementation(async () => media.dispatch("playing")))
     mocks.state.deferSeek = true
     mocks.contexts[0]!.currentTime = 10
     const seekCalls = adapter.seek.mock.calls.length

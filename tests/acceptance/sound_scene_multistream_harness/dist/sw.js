@@ -41,7 +41,7 @@ function renderRange(start, end) {
     const sampleIndex = Math.floor(pcmOffset / BYTES_PER_SAMPLE)
     const byteIndex = pcmOffset % BYTES_PER_SAMPLE
     const withinMinute = sampleIndex % (SAMPLE_RATE * 60)
-    const sample = withinMinute < SAMPLE_RATE / 20
+    const sample = withinMinute < SAMPLE_RATE / 2
       ? Math.round(14000 * Math.sin(2 * Math.PI * 880 * withinMinute / SAMPLE_RATE))
       : 0
     bytes[cursor] = byteIndex === 0 ? sample & 0xff : (sample >> 8) & 0xff
@@ -73,6 +73,7 @@ function rangedResponse(request) {
 self.addEventListener("install", (event) => event.waitUntil(self.skipWaiting()))
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()))
 self.addEventListener("fetch", (event) => {
-  if (new URL(event.request.url).pathname.endsWith("/qa-60.wav"))
+  const pathname = new URL(event.request.url).pathname
+  if (pathname.endsWith("/qa-60.wav"))
     event.respondWith(rangedResponse(event.request))
 })
