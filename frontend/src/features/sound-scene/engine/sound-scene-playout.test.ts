@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => {
   const adapters: Array<{
+    init: ReturnType<typeof vi.fn>
     setTracks: ReturnType<typeof vi.fn>
     setTrackVolume: ReturnType<typeof vi.fn>
     setTrackMute: ReturnType<typeof vi.fn>
@@ -180,6 +181,8 @@ describe("SoundScenePlayout", () => {
 
     await playout.activatePlayout()
 
+    expect(mocks.adapters[0]?.init).not.toHaveBeenCalled()
+
     expect(playout.diagnostics()).toEqual({
       active: true, decodedBytes: 0, bufferedSources: 0,
       streamedSources: 1, sequenceMode: "stream",
@@ -229,6 +232,7 @@ describe("SoundScenePlayout", () => {
 
     const playing = playout.play(0)
     await vi.waitFor(() => expect(starts).toHaveLength(3))
+    expect(mocks.adapters[0]?.init).toHaveBeenCalledTimes(1)
     const master = mocks.gains[0]!
     expect(mocks.media.map((media) => media.preload)).toEqual(["auto", "auto", "auto"])
     expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 0)

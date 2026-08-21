@@ -137,6 +137,7 @@ function valueAt(mix: SequenceMixOverride, local: number, duration: number, base
 export class SoundScenePlayout {
   private context: AudioContext | null = null
   private adapter: NativePlayoutAdapter | null = null
+  private adapterInitialization: Promise<void> | null = null
   private cache: DecodedAudioCache | null = null
   private streamMaster: GainNode | null = null
   private preparedSignature = ""
@@ -179,7 +180,6 @@ export class SoundScenePlayout {
     if (this.context && this.adapter && this.cache && this.streamMaster) return true
     const context = new AudioContext({ sampleRate: SAMPLE_RATE, latencyHint: "interactive" })
     const adapter = new NativePlayoutAdapter(context, { sampleRate: SAMPLE_RATE })
-    await adapter.init()
     if (!this.active) {
       adapter.dispose()
       void context.close()
@@ -192,6 +192,15 @@ export class SoundScenePlayout {
     this.streamMaster.gain.value = 0
     this.streamMaster.connect(context.destination)
     return true
+  }
+
+  private async initializeAdapter() {
+    const adapter = this.adapter
+    if (!adapter) return false
+    if (!this.adapterInitialization)
+      this.adapterInitialization = adapter.init()
+    await this.adapterInitialization
+    return this.active && this.adapter === adapter
   }
 
   async activatePlayout() {
@@ -215,6 +224,7 @@ export class SoundScenePlayout {
     void this.context?.close()
     this.cache?.clear()
     this.adapter = null
+    this.adapterInitialization = null
     this.context = null
     this.cache = null
     this.streamMaster = null
@@ -724,6 +734,7 @@ export class SoundScenePlayout {
 
   async play(from?: number) {
     await this.activatePlayout()
+    if (!await this.initializeAdapter()) return
     if (from !== undefined) this.seek(from)
     await this.context!.resume()
     this.streamMaster!.gain.setValueAtTime(0, this.context!.currentTime)
