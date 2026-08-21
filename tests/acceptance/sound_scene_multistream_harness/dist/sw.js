@@ -1,4 +1,4 @@
-const SAMPLE_RATE = 8000
+const SAMPLE_RATE = 48000
 const CHANNELS = 1
 const BYTES_PER_SAMPLE = 2
 const DURATION_SECONDS = 60 * 60
@@ -55,20 +55,6 @@ function rangedResponse(request) {
     "Accept-Ranges": "bytes",
     "Cache-Control": "no-store",
     "Content-Type": "audio/wav",
-  }
-  if (!range) {
-    let cursor = 0
-    const stream = new ReadableStream({
-      pull(controller) {
-        if (cursor >= FILE_BYTES) { controller.close(); return }
-        const end = Math.min(FILE_BYTES - 1, cursor + 256 * 1024 - 1)
-        controller.enqueue(renderRange(cursor, end))
-        cursor = end + 1
-      },
-    })
-    return new Response(stream, {
-      status: 200, headers: { ...headers, "Content-Length": String(FILE_BYTES) },
-    })
   }
   const match = /bytes=(\d+)-(\d*)/.exec(range)
   const start = Math.min(FILE_BYTES - 1, Number(match?.[1] || 0))

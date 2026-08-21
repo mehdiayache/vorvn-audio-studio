@@ -15,3 +15,12 @@ The committed `dist/` can be opened from a public static origin in Chrome and
 Safari. Use the visible controls in order: play, seek forward, pause, resume,
 seek backward, then leave. The result block records stream onset, drift,
 readiness, and whether streamed resources were released.
+
+For the final working-set certification, generate a realistic compressed
+60-minute source after building and open the harness with `?fixture=mp3`:
+
+```sh
+ffmpeg -f lavfi -i 'aevalsrc=if(lt(mod(t\,60)\,0.05)\,0.5*sin(2*PI*880*t)\,0):s=48000:d=3600' \
+  -c:a libmp3lame -b:a 16k -y \
+  tests/acceptance/sound_scene_multistream_harness/dist/qa-60.mp3
+```

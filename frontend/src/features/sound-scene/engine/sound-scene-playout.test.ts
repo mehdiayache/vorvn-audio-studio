@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => {
     src: string; currentTime: number; duration: number; preload: string; readyState: number;
     play: ReturnType<typeof vi.fn>; pause: ReturnType<typeof vi.fn>;
     load: ReturnType<typeof vi.fn>; removeAttribute: ReturnType<typeof vi.fn>;
+    dispatch: (event: string) => void
   }> = []
   const gains: Array<{
     gain: { value: number; setValueAtTime: ReturnType<typeof vi.fn>;
@@ -76,8 +77,14 @@ describe("SoundScenePlayout", () => {
     })
     const node = () => ({ connect: vi.fn(), disconnect: vi.fn() })
     vi.stubGlobal("Audio", class {
+      listeners = new Map<string, Set<() => void>>()
       src = ""
-      currentTime = 0
+      private time = 0
+      get currentTime() { return this.time }
+      set currentTime(value: number) {
+        this.time = value
+        queueMicrotask(() => this.dispatch("seeked"))
+      }
       duration = 3_600
       preload = ""
       readyState = 4
@@ -85,6 +92,17 @@ describe("SoundScenePlayout", () => {
       pause = vi.fn()
       load = vi.fn()
       removeAttribute = vi.fn()
+      addEventListener = vi.fn((event: string, listener: () => void) => {
+        const listeners = this.listeners.get(event) || new Set<() => void>()
+        listeners.add(listener)
+        this.listeners.set(event, listeners)
+      })
+      removeEventListener = vi.fn((event: string, listener: () => void) => {
+        this.listeners.get(event)?.delete(listener)
+      })
+      dispatch = (event: string) => {
+        for (const listener of this.listeners.get(event) || []) listener()
+      }
       constructor() { mocks.media.push(this) }
     })
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1))
@@ -238,9 +256,20 @@ describe("SoundScenePlayout", () => {
     expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 0)
 
     starts.forEach((resolve) => resolve())
+    await Promise.resolve()
+    expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 0)
+    mocks.media.forEach((media) => media.dispatch("playing"))
     await playing
 
     expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 0)
+    mocks.media[0]!.currentTime = 12.5
+    expect(playout.currentTime()).toBe(12.5)
+
+    mocks.media.forEach((media) => media.play.mockResolvedValue(undefined))
+    playout.seek(3_000)
+    expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 0)
+    await vi.waitFor(() => expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 0))
+    expect(mocks.media.map((media) => media.currentTime)).toEqual([3_000, 3_000, 3_000])
     playout.dispose()
     vi.unstubAllGlobals()
   })

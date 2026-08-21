@@ -28,3 +28,4 @@ __pycache__/
 .icons/
 .tagged/
 /*.png
+tests/acceptance/sound_scene_multistream_harness/dist/qa-60.mp3

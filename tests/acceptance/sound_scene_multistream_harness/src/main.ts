@@ -2,7 +2,8 @@ import { SoundScenePlayout } from "@/features/sound-scene/engine/sound-scene-pla
 import type { SoundScene, SoundSceneClip, SoundSceneTrack } from "@/types/domain"
 
 const durationMs = 60 * 60_000
-const sourceUrl = "./qa-60.wav"
+const sourceUrl = new URLSearchParams(location.search).get("fixture") === "mp3"
+  ? "./qa-60.mp3" : "./qa-60.wav"
 const clip = (id: string): SoundSceneClip => ({
   id, asset_id: 1, duration_ms: durationMs, source_offset_ms: 0,
   gain: .25, fade_in_ms: 0, fade_out_ms: 0, loop: false,
@@ -25,7 +26,7 @@ const scene: SoundScene = {
       signature: "qa-sequence", duration_ms: durationMs, sample_rate: 48_000,
       spans: [{
         part_id: 1, part_public_id: "qa-part", position: 0, kind: "speech",
-        title: "QA Sequence", role: "QA", voice_name: "QA", filename: "qa-60.wav",
+        title: "QA Sequence", role: "QA", voice_name: "QA", filename: sourceUrl,
         start_ms: 0, duration_ms: durationMs, silence: false, missing: false,
         mix: { muted: false, gain: 1, fade_in_ms: 0, fade_out_ms: 0, effects: [] },
       }],
@@ -33,7 +34,7 @@ const scene: SoundScene = {
     tracks, orphans: [],
   },
   sequence_stem: {
-    url: sourceUrl, filename: "qa-60.wav", duration_ms: durationMs,
+    url: sourceUrl, filename: sourceUrl, duration_ms: durationMs,
     signature: "qa-sequence", cached: true,
   },
 }
@@ -41,6 +42,11 @@ const scene: SoundScene = {
 type InternalStream = { element: HTMLAudioElement; clip?: SoundSceneClip }
 type Snapshot = Record<string, unknown>
 const playout = new SoundScenePlayout(scene)
+// Computer Use can transiently background Safari between actions. Keep this
+// focused harness alive so only the explicit Leave control exercises release.
+const visibilityListener = (playout as unknown as { visibilityListener: () => void })
+  .visibilityListener
+document.removeEventListener("visibilitychange", visibilityListener)
 const result = document.querySelector<HTMLPreElement>("#result")!
 const summary = document.querySelector<HTMLElement>("#summary")!
 const buttons = [...document.querySelectorAll<HTMLButtonElement>("button")]
@@ -48,6 +54,7 @@ const started = new Map<HTMLAudioElement, number>()
 const history: Snapshot[] = []
 let requestedAt = 0
 let maximumDriftMs = 0
+let maximumTimelineOffsetMs = 0
 let timer = 0
 
 function streams() {
@@ -55,6 +62,7 @@ function streams() {
 }
 
 function snapshot(label: string) {
+  const playhead = Number(playout.currentTime().toFixed(3))
   const rows = streams().map((stream) => ({
     stream: stream.clip?.id || "sequence",
     time: Number(stream.element.currentTime.toFixed(3)),
@@ -62,6 +70,7 @@ function snapshot(label: string) {
     readyState: stream.element.readyState,
     networkState: stream.element.networkState,
     preload: stream.element.preload,
+    timelineOffsetMs: Math.round((stream.element.currentTime - playhead) * 1_000),
     onsetMs: started.has(stream.element)
       ? Math.round(started.get(stream.element)! - requestedAt) : null,
   }))
@@ -70,16 +79,21 @@ function snapshot(label: string) {
     ? Math.round((Math.max(...activeTimes) - Math.min(...activeTimes)) * 1_000)
     : 0
   maximumDriftMs = Math.max(maximumDriftMs, driftMs)
+  const timelineOffsetMs = activeTimes.length
+    ? Math.max(...rows.filter((row) => !row.paused)
+      .map((row) => Math.abs(row.timelineOffsetMs)))
+    : 0
+  maximumTimelineOffsetMs = Math.max(maximumTimelineOffsetMs, timelineOffsetMs)
   const entry = {
     label, at: new Date().toISOString(), userAgent: navigator.userAgent,
-    playhead: Number(playout.currentTime().toFixed(3)),
-    diagnostics: playout.diagnostics(), streams: rows, driftMs, maximumDriftMs,
+    playhead, diagnostics: playout.diagnostics(), streams: rows,
+    driftMs, maximumDriftMs, timelineOffsetMs, maximumTimelineOffsetMs,
     onsetSpreadMs: started.size > 1
       ? Math.round(Math.max(...started.values()) - Math.min(...started.values())) : null,
   }
   history.push(entry)
   if (history.length > 240) history.shift()
-  summary.textContent = `${label}: ${rows.length} streams · onset spread ${entry.onsetSpreadMs ?? "—"} ms · current drift ${driftMs} ms · maximum drift ${maximumDriftMs} ms`
+  summary.textContent = `${label}: ${rows.length} streams · onset spread ${entry.onsetSpreadMs ?? "—"} ms · stream drift ${driftMs} ms · timeline offset ${timelineOffsetMs} ms · maxima ${maximumDriftMs}/${maximumTimelineOffsetMs} ms`
   result.textContent = JSON.stringify(entry, null, 2)
   return entry
 }
@@ -99,11 +113,12 @@ async function start() {
   requestedAt = performance.now()
   started.clear()
   maximumDriftMs = 0
+  maximumTimelineOffsetMs = 0
   await playout.play(0)
   follow("playing from beginning")
 }
 function seek(seconds: number) { playout.seek(seconds); snapshot(`seek ${seconds}s`) }
-function pause() { playout.pause(); snapshot("paused") }
+function pause() { window.clearInterval(timer); playout.pause(); snapshot("paused") }
 async function resume() { await playout.play(); follow("resumed") }
 function leave() {
   window.clearInterval(timer)
