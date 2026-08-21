@@ -26,7 +26,7 @@ describe("MusicInspector", () => {
     const onPlay = vi.fn()
     render(<MusicInspector track={track} clip={clip} playing={false} onPlay={onPlay} onClipChange={onClipChange} onClipCommit={onClipCommit} onTrackVolumeChange={vi.fn()} onTrackVolumeCommit={vi.fn()} onChoose={vi.fn()} onRemove={vi.fn()} />)
     expect(screen.getByRole("region", { name: "Music source window" })).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Play music audition" }))
+    fireEvent.click(screen.getByRole("button", { name: "Play Music audition" }))
     expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ key: "asset-source:9", kind: "music" }))
     fireEvent.click(screen.getByRole("button", { name: "Music clip level" }))
     expect(onClipChange).toHaveBeenCalledWith({ gain: .24 })

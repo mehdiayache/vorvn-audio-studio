@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerE
 import { ChevronLeft, ChevronRight, LocateFixed, Lock, Maximize2, Minus, MoreHorizontal, Music2, PanelLeftClose, PanelLeftOpen, Pause, Plus, RadioTower, Redo2, Trash2, Undo2, Volume1, Volume2, VolumeX } from "lucide-react"
 
 import { useAudioPeaks } from "@/components/audio-waveform"
+import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -101,7 +102,7 @@ function SoundTrackControl({ track, volume, collapsed, onMute, onVolumeChange, o
     </div>
     {collapsed ? <div className="sound-track-compact-actions">
       <Popover>
-        <PopoverTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Adjust ${track.name} volume`} title={`Adjust ${track.name} volume`}>{track.muted ? <VolumeX /> : <Volume1 />}</Button></PopoverTrigger>
+        <OperatorTooltip label={`Adjust ${track.name} volume`} detail={track.muted ? "Unmute the track before changing its level." : decibels(volume)}><PopoverTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Adjust ${track.name} volume`}>{track.muted ? <VolumeX /> : <Volume1 />}</Button></PopoverTrigger></OperatorTooltip>
         <PopoverContent side="right" align="center" className="sound-track-volume-popover">
           <header><span><b>{track.name}</b><small>Track volume</small></span><strong>{track.muted ? "Muted" : decibels(volume)}</strong></header>
           <Slider aria-label={`${track.name} volume`} value={[Math.round(volume * 100)]} max={200} step={1} disabled={track.muted} onValueChange={([value = 0]) => onVolumeChange(value / 100)} onValueCommit={([value = 0]) => onVolumeCommit(value / 100)} />
@@ -109,7 +110,7 @@ function SoundTrackControl({ track, volume, collapsed, onMute, onVolumeChange, o
         </PopoverContent>
       </Popover>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Track actions for ${track.name}`} title={`Track actions for ${track.name}`}><MoreHorizontal /></Button></DropdownMenuTrigger>
+        <OperatorTooltip label={`More actions for ${track.name}`} detail="Add a Music clip or permanently remove this track."><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Track actions for ${track.name}`}><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip>
         <DropdownMenuContent side="right" align="center">
           <DropdownMenuItem onSelect={onAdd}><Plus /> Add Music clip</DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -117,10 +118,10 @@ function SoundTrackControl({ track, volume, collapsed, onMute, onVolumeChange, o
         </DropdownMenuContent>
       </DropdownMenu>
     </div> : <div className="sound-track-mix">
-      <Button variant="ghost" size="icon-sm" aria-label={track.muted ? `Unmute ${track.name}` : `Mute ${track.name}`} onClick={onMute}>{track.muted ? <VolumeX /> : <Volume2 />}</Button>
+      <OperatorIconButton label={track.muted ? `Unmute ${track.name}` : `Mute ${track.name}`} detail="Changes this Sound Design track without changing Sequence Parts." onClick={onMute}>{track.muted ? <VolumeX /> : <Volume2 />}</OperatorIconButton>
       <Slider aria-label={`${track.name} volume`} value={[Math.round(volume * 100)]} max={200} step={1} onValueChange={([value = 0]) => onVolumeChange(value / 100)} onValueCommit={([value = 0]) => onVolumeCommit(value / 100)} />
-      <Button variant="ghost" size="icon-sm" aria-label={`Add clip to ${track.name}`} onClick={onAdd}><Plus /></Button>
-      <Button variant="ghost" size="icon-sm" aria-label={`Remove ${track.name}`} onClick={onRemove}><Trash2 /></Button>
+      <OperatorIconButton label={`Add Music clip to ${track.name}`} onClick={onAdd}><Plus /></OperatorIconButton>
+      <OperatorIconButton label={`Remove ${track.name}`} detail={`Permanently removes the track and its ${track.clips.length} placement${track.clips.length === 1 ? "" : "s"}.`} onClick={onRemove}><Trash2 /></OperatorIconButton>
     </div>}
   </div>
 }
@@ -481,12 +482,12 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
                   <span className="sound-music-label"><Music2 /><span><b>{clip.asset_name || track.name}</b><small>{decibels(live.gain)}</small></span></span>
                   {(live.locked || live.muted || activeEffects > 0) && <span className="sound-clip-states">{live.locked && <i title="Locked"><Lock /></i>}{live.muted && <i title="Muted"><VolumeX /></i>}{activeEffects > 0 && <i title={`${activeEffects} active effect${activeEffects === 1 ? "" : "s"}`}><RadioTower /><b>{activeEffects}</b></i>}</span>}
                   {selected && !live.locked && <>
-                    <button className="sound-trim-handle is-start" aria-label="Trim start" onPointerDown={(event) => gesture(event, track.id, clip.id, "left")} />
-                    <button className="sound-trim-handle is-end" aria-label="Trim end" onPointerDown={(event) => gesture(event, track.id, clip.id, "right")} />
+                    <OperatorTooltip label="Trim clip start" detail="Drag to change the used source window."><button className="sound-trim-handle is-start" aria-label="Trim start" onPointerDown={(event) => gesture(event, track.id, clip.id, "left")} /></OperatorTooltip>
+                    <OperatorTooltip label="Trim clip end" detail="Drag to change the audible duration."><button className="sound-trim-handle is-end" aria-label="Trim end" onPointerDown={(event) => gesture(event, track.id, clip.id, "right")} /></OperatorTooltip>
                     <div className="sound-gain-line" style={{ top: gainHeight }} onPointerDown={(event) => gesture(event, track.id, clip.id, "gain")}><i /></div>
                     <svg className="sound-fade-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d={`M 0 100 L ${fadeIn / duration * 100} 0 L ${100 - fadeOut / duration * 100} 0 L 100 100`} /></svg>
-                    <button className="sound-fade-handle is-in" style={{ left: `${fadeIn / duration * 100}%` }} aria-label="Fade in" onPointerDown={(event) => gesture(event, track.id, clip.id, "fade-in")} />
-                    <button className="sound-fade-handle is-out" style={{ left: `${(1 - fadeOut / duration) * 100}%` }} aria-label="Fade out" onPointerDown={(event) => gesture(event, track.id, clip.id, "fade-out")} />
+                    <OperatorTooltip label="Adjust fade in" detail="Drag to shape how this clip enters."><button className="sound-fade-handle is-in" style={{ left: `${fadeIn / duration * 100}%` }} aria-label="Fade in" onPointerDown={(event) => gesture(event, track.id, clip.id, "fade-in")} /></OperatorTooltip>
+                    <OperatorTooltip label="Adjust fade out" detail="Drag to shape how this clip leaves."><button className="sound-fade-handle is-out" style={{ left: `${(1 - fadeOut / duration) * 100}%` }} aria-label="Fade out" onPointerDown={(event) => gesture(event, track.id, clip.id, "fade-out")} /></OperatorTooltip>
                   </>}
                 </div>
               })}

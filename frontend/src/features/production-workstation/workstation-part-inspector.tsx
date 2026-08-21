@@ -6,6 +6,8 @@ import {
 
 import { AudioWaveform } from "@/components/audio-waveform"
 import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
+import { OperatorIconButton } from "@/components/operator-action"
+import { OperatorTooltip } from "@/components/operator-tooltip"
 import { speechPartCardFacts } from "@/components/speech-part-card-model"
 import { StoryRoleEditor } from "@/components/story-role-editor"
 import { Button } from "@/components/ui/button"
@@ -80,7 +82,7 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
         <h3>{part.kind === "silence" ? "Intentional pause" : part.kind === "asset" ? part.title || "Linked audio" : facts.selectedVoiceName}</h3>
         <p>{part.kind === "silence" ? "Editorial timing" : part.kind === "asset" ? "Venture audio asset" : facts.methodLine}</p>
       </div>
-      {playable && <Button variant="outline" size="icon" aria-label={currentPlaying ? "Pause selected part" : "Play selected part"} onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</Button>}
+      {playable && <OperatorIconButton label={currentPlaying ? "Pause selected Part" : "Play selected Part"} variant="outline" size="icon" onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</OperatorIconButton>}
     </section>
 
     <dl className="ws-inspector-key-facts">
@@ -109,11 +111,11 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
 
         <TabsContent value="recording" className="ws-inspector-tab">
           {part.kind === "asset" ? playable ? <>
-            <div className="ws-inspector-waveform"><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={96} /><button aria-label={currentPlaying ? "Pause linked audio" : "Play linked audio"} onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</button><span><b>{facts.durationLabel}</b><small>Venture source</small></span></div>
+            <div className="ws-inspector-waveform"><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={96} /><OperatorTooltip label={currentPlaying ? "Pause linked audio" : "Play linked audio"}><button aria-label={currentPlaying ? "Pause linked audio" : "Play linked audio"} onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</button></OperatorTooltip><span><b>{facts.durationLabel}</b><small>Venture source</small></span></div>
             <div className="ws-inspector-section-heading"><div><span>Reusable audio</span><b>{part.asset_collection || part.asset_kind || "Venture library"}</b></div></div>
             <p className="ws-inspector-script">This Part links to a reusable Venture audio asset. Replacing the source updates this placement without creating speech or provider spend.</p>
           </> : <div className="ws-inspector-empty"><FileAudio /><h3>Source unavailable</h3><p>Choose another Venture audio asset for this Part.</p></div> : facts.recorded ? <>
-            <div className="ws-inspector-waveform"><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={96} /><button aria-label={currentPlaying ? "Pause recording" : "Play recording"} onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</button><span><b>{facts.durationLabel}</b><small>{wording.label} input</small></span></div>
+            <div className="ws-inspector-waveform"><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={96} /><OperatorTooltip label={currentPlaying ? "Pause recording" : "Play recording"}><button aria-label={currentPlaying ? "Pause recording" : "Play recording"} onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</button></OperatorTooltip><span><b>{facts.durationLabel}</b><small>{wording.label} input</small></span></div>
             <div className="ws-inspector-section-heading"><div><span>Words used for this recording</span><b>{wording.label}</b></div><CopyTextButton text={wording.text} /></div>
             <div className="ws-inspector-script" dir={textDirection(wording.text)}>{wording.text ? wording.label === "Tagged" ? <InlineDeliveryTags text={wording.text} /> : wording.text : "This historical recording does not contain a reliable wording snapshot."}</div>
           </> : <div className="ws-inspector-empty"><Mic2 /><h3>Not recorded yet</h3><p>The script is ready to open in Composer.</p></div>}
@@ -158,7 +160,7 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
       {part.kind !== "silence" && part.kind !== "asset" && <Button onClick={() => onEdit(part)}><Pencil /> Edit in Composer</Button>}
       {part.kind === "asset" && <Button onClick={() => onReplaceAsset(part)}><FileAudio /> Replace source</Button>}
       <Button variant="outline" onClick={() => onDuplicate(part)}><Copy /> Duplicate</Button>
-      <Button variant="ghost" className="is-danger" aria-label="Delete selected part" onClick={() => onDelete(part)}><Trash2 /></Button>
+      <OperatorIconButton label="Delete selected Part" detail="Permanently removes this Part and its creative content." size="icon" className="is-danger" onClick={() => onDelete(part)}><Trash2 /></OperatorIconButton>
     </footer>
   </div>
 }

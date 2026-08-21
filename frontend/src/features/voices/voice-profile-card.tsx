@@ -1,6 +1,7 @@
 import { AudioLines, CheckCircle2, ChevronDown, MoreHorizontal, Pause, Pencil, Play, Plus, Star } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { OperatorIconButton } from "@/components/operator-action"
 import { VoiceGenderBadge } from "@/components/voice-gender-badge"
 import { languageDisplay, languageFlag } from "@/lib/voice"
 import { VoiceCapabilityList } from "./voice-capability-list"
@@ -29,7 +30,7 @@ export function VoiceProfileCard({ profile, playing = false, onComplete, onRetry
     !profile.jobs.some((job) => job.reference_id === preferredReference?.id && jobMatchesRoute(job, route))).length
   const readyLabel = `${ready} of ${profile.available_routes.length} installed provider models · ${profile.bindings.length} exact binding${profile.bindings.length === 1 ? "" : "s"}`
   return <article className="voice-profile-card">
-    <header><span className="voice-profile-mark">{image ? <img src={image} alt="" /> : initials || <AudioLines />}</span><div><small>{profile.metadata.favourite && <Star />} Your voice{editorialLanguage ? ` · ${languageFlag(editorialLanguage)} ${languageDisplay(editorialLanguage)} focus` : " · no editorial tag"}</small><div className="voice-profile-name"><h2>{profile.name}</h2><VoiceGenderBadge gender={profile.metadata.gender} /></div><p>{profile.metadata.trait || "Ready for a creative note"}</p></div><div className="voice-profile-actions"><Button variant="ghost" size="icon" onClick={onEdit} aria-label={`Edit ${profile.name}`}><MoreHorizontal /></Button></div></header>
+    <header><span className="voice-profile-mark">{image ? <img src={image} alt="" /> : initials || <AudioLines />}</span><div><small>{profile.metadata.favourite && <Star />} Your voice{editorialLanguage ? ` · ${languageFlag(editorialLanguage)} ${languageDisplay(editorialLanguage)} focus` : " · no editorial tag"}</small><div className="voice-profile-name"><h2>{profile.name}</h2><VoiceGenderBadge gender={profile.metadata.gender} /></div><p>{profile.metadata.trait || "Ready for a creative note"}</p></div><div className="voice-profile-actions"><OperatorIconButton label={`Edit ${profile.name}`} detail="Change identity details or archive this Voice."><MoreHorizontal /></OperatorIconButton></div></header>
     <div className="voice-profile-facts"><span><b>{usage?.uses || 0}</b> uses</span><span><b>{usage?.productions || 0}</b> productions</span><span>{readyLabel}</span>{profile.metadata.accent && <span>{String(profile.metadata.accent)}</span>}</div>
     <details className="voice-profile-technical">
       <summary><span><b>{ready === profile.available_routes.length ? `${ready} recording methods ready` : `${ready} of ${profile.available_routes.length} methods ready`}</b><small>Provider models, languages and source evidence</small></span><ChevronDown /></summary>

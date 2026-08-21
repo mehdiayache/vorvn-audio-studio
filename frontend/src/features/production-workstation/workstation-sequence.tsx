@@ -255,7 +255,7 @@ export function WorkstationSequence({ parts, selectedId, playingKey, playerPlayi
   return <div className="ws-sequence-canvas" aria-label="Production sequence">
     <div className="ws-sequence-list">
       {parts.map((part, index) => <div className="ws-sequence-slot" key={part.id}>
-        <button className="ws-insert-control" aria-label={`Add before part ${index + 1}`} onClick={() => actions.addBefore(part)}>+</button>
+        <OperatorTooltip label={`Add a Part before Part ${index + 1}`}><button className="ws-insert-control" aria-label={`Add before part ${index + 1}`} onClick={() => actions.addBefore(part)}>+</button></OperatorTooltip>
         <WorkstationSequenceCard part={part} index={index} selected={selectedId === part.id} playing={playerPlaying && playingKey === `part:${part.id}`} liveJobs={liveJobs} directory={directory} actions={actions} />
       </div>)}
       <button className="ws-add-ending" onClick={onAddEnd}>+ Add the next part</button>

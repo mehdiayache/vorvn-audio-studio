@@ -63,7 +63,7 @@ describe("SoundSceneContextToolbar", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Effects/ }))
     expect(screen.getByLabelText("Effect processing order").textContent).toMatch(/1Telephone.*2Echo/)
-    fireEvent.click(screen.getByRole("button", { name: "Move echo up" }))
+    fireEvent.click(screen.getByRole("button", { name: "Move echo earlier in the effect chain" }))
 
     expect(onEffects).toHaveBeenLastCalledWith([
       expect.objectContaining({ type: "echo" }),

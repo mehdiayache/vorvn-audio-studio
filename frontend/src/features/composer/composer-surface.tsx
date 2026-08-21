@@ -1,6 +1,7 @@
 import { Expand, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { OperatorIconButton } from "@/components/operator-action"
 import { cn } from "@/lib/utils"
 import { ComposerActions } from "./composer-actions"
 import type { ComposerController } from "./composer-controller"
@@ -36,7 +37,7 @@ export function ControlledComposerSurface({ composer, presentation = "mega", onE
         <div className="composer-context-actions">
           {!standalone && <ComposerRoleEditor composer={composer} />}
           {presentation === "inline" && onExpand && <Button variant="outline" size="sm" onClick={onExpand}><Expand /> Expand</Button>}
-          {onClose && <Button variant="ghost" size="icon-sm" aria-label="Close Composer" onClick={onClose}><X /></Button>}
+          {onClose && <OperatorIconButton label="Close Composer" detail="Keeps the saved preparation and returns to the Production." onClick={onClose}><X /></OperatorIconButton>}
         </div>
       </header>
       {workstation ? <div className="composer-workspace">

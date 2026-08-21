@@ -1,5 +1,6 @@
 import { AlertCircle, CheckCircle2, LoaderCircle, Pause, Play, RotateCw } from "lucide-react"
 
+import { OperatorIconButton } from "@/components/operator-action"
 import { Button } from "@/components/ui/button"
 import { SpeechModelIdentity } from "@/components/speech-model-identity"
 import { VoiceIdentity } from "@/components/voice-identity"
@@ -49,7 +50,7 @@ export function RecordingClipCard({ clip, directory, active = false, onPlay, onS
   return <article className={cn("recording-clip-card", `is-${outdated || review ? "warning" : clip.status}`)}>
     <div className="recording-clip-leading">
       {clip.audioUrl && onPlay
-        ? <Button variant="outline" size="icon" aria-label={active ? "Pause recording" : "Play recording"} onClick={onPlay}>{active ? <Pause /> : <Play />}</Button>
+        ? <OperatorIconButton label={active ? "Pause recording" : "Play recording"} variant="outline" size="icon" onClick={onPlay}>{active ? <Pause /> : <Play />}</OperatorIconButton>
         : <span className="recording-clip-state-icon" aria-hidden="true"><StatusIcon className={working ? "spin" : ""} /></span>}
     </div>
     <div className="recording-clip-body">

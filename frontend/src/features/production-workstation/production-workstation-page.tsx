@@ -9,6 +9,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { DeleteProductionDialog } from "@/components/delete-production-dialog"
 import { AudioStudioRailToggle } from "@/components/app-shell"
 import { OperatorTooltip } from "@/components/operator-tooltip"
+import { OperatorIconButton } from "@/components/operator-action"
 import { PartCaptionsDialog } from "@/features/production/part-captions-dialog"
 import { MovePartPositionDialog } from "@/features/production/move-part-position-dialog"
 import { ProductionComposerStage } from "@/features/composer/production-composer-host"
@@ -564,7 +565,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
           {stage === "mix" && <div className="ws-mix-canvas"><MixExportWorkspace production={production} soundScene={soundScene} previewing={actions.previewing} productionPlaying={actions.productionPlaying} previewReady={actions.productionLoaded} previewStale={Boolean(player.source?.kind === "production" && !actions.productionLoaded)} exportJob={actions.exportJob} onPreview={actions.toggleProduction} onExport={requestExport} onLocatePart={(id) => { setStage("sequence"); setSelectedId(id) }} onOpenHealth={() => setReleaseInspectorOpen(true)} exporting={actions.exporting} /></div>}
         </main>
         {inspectorOpen && <aside className="ws-right-pane" aria-label="Contextual inspector">
-          <header><h2>{inspectorTitle}</h2><Button variant="ghost" size="icon-sm" aria-label="Close inspector" onClick={closeInspector}><X /></Button></header>
+          <header><h2>{inspectorTitle}</h2><OperatorIconButton label="Close inspector" detail="Keeps the current Production changes." onClick={closeInspector}><X /></OperatorIconButton></header>
           <div className="ws-inspector-content">{inspector}</div>
         </aside>}
       </div>

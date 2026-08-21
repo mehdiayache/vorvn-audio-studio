@@ -257,7 +257,7 @@ describe("shared Composer contract", () => {
     render(<ComposerSurface {...common} productionId={3} part={part} />)
 
     expect((await screen.findByRole("textbox", { name: "Spoken script" }) as HTMLTextAreaElement).value).toBe("The signal is live…")
-    fireEvent.click(screen.getByRole("button", { name: "Compare" }))
+    fireEvent.click(screen.getByRole("button", { name: "Compare script versions" }))
 
     expect(screen.getByRole("dialog", { name: "Compare script versions" })).toBeTruthy()
     expect(screen.getByText("The signal is live.")).toBeTruthy()

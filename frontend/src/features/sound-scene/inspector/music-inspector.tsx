@@ -2,6 +2,7 @@ import { Headphones, Music2, Pause, Play, RefreshCcw, Trash2 } from "lucide-reac
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { OperatorIconButton } from "@/components/operator-action"
 import { Slider } from "@/components/ui/slider"
 import { SwitchLike } from "@/components/switch-like"
 import { audioUrl } from "@/lib/api"
@@ -64,7 +65,7 @@ export function MusicInspector({ track, clip, playingKey, playing, onPlay, onCli
     <section className="music-workbench-source">
       <span className="music-workbench-art"><Music2 /></span>
       <div><span className="eyebrow">Linked Venture source</span><h3>{clip.asset_name || "Music"}</h3><p>{formatDuration(sourceDuration)} source · reusable asset</p></div>
-      <Button variant="outline" size="icon" onClick={() => onPlay({ key, url: audioUrl(clip.filename!), title: clip.asset_name || "Music", subtitle: "Source audition", kind: "music" })} aria-label={active ? "Pause music audition" : "Play music audition"}>{active ? <Pause /> : <Play />}</Button>
+      <OperatorIconButton label={active ? "Pause Music audition" : "Play Music audition"} detail="Auditions the source without changing its timeline placement." variant="outline" size="icon" onClick={() => onPlay({ key, url: audioUrl(clip.filename!), title: clip.asset_name || "Music", subtitle: "Source audition", kind: "music" })}>{active ? <Pause /> : <Play />}</OperatorIconButton>
     </section>
 
     <section className="music-workbench-controls">

@@ -2,6 +2,8 @@ import { AudioLines, Check, ChevronDown, CircleAlert, Code2, Columns2, Copy, Fil
 import { useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { OperatorIconButton } from "@/components/operator-action"
+import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
@@ -53,7 +55,7 @@ export function ComposerWords() {
         {!text.review && <div className="text-tools" aria-label="Text tools">
           <div className="spoken-split-action">
             <Button variant="ghost" size="sm" disabled={textToolDisabled} onClick={() => void text.run("shape", false, text.spokenProfile)}><AudioLines />{text.busy === "shape" ? "Preparing…" : `Make spoken · ${spokenLabel}`}</Button>
-            <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Choose Spoken preparation method" disabled={textToolDisabled}><ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="spoken-method-menu">
+            <DropdownMenu><OperatorTooltip label="Choose Spoken preparation method" detail="Selects how the text is prepared before you review it." disabledTrigger={textToolDisabled}><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Choose Spoken preparation method" disabled={textToolDisabled}><ChevronDown /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent align="end" className="spoken-method-menu">
               <DropdownMenuItem onSelect={() => void text.run("shape", false, "spoken_1")}><span><b>Spoken 1 · Natural phrasing</b><small>Reshapes sentences for comfortable listening.</small></span>{text.spokenProfile === "spoken_1" && <Check />}</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => void text.run("shape", false, "spoken_2")}><span><b>Spoken 2 · Speech editing</b><small>Cuts and reshapes written prose for spoken rhythm.</small></span>{text.spokenProfile === "spoken_2" && <Check />}</DropdownMenuItem>
             </DropdownMenuContent></DropdownMenu>
@@ -64,9 +66,9 @@ export function ComposerWords() {
           </>}
         </div>}
         <div className="script-utility-actions" aria-label="Script actions">
-          <Button variant="ghost" size="icon-sm" aria-label={copied ? "Copied" : "Copy"} title={copied ? "Copied" : "Copy script"} disabled={!displayedText} onClick={() => void copy()}>{copied ? <Check /> : <Copy />}</Button>
-          <Button variant="ghost" size="icon-sm" aria-label="Compare" title="Compare script versions" disabled={!compareView || !text.states.raw} onClick={() => setCompareOpen(true)}><Columns2 /></Button>
-          <Button variant="ghost" size="icon-sm" aria-label={focusMode ? "Show Sound" : "Focus editor"} title={focusMode ? "Show Sound controls" : "Focus editor"} aria-pressed={focusMode} onClick={() => setFocusMode((current) => !current)}>{focusMode ? <Minimize2 /> : <Maximize2 />}</Button>
+          <OperatorIconButton label={copied ? "Script copied" : "Copy script"} disabled={!displayedText} onClick={() => void copy()}>{copied ? <Check /> : <Copy />}</OperatorIconButton>
+          <OperatorIconButton label="Compare script versions" detail="Shows the current preparation beside the Original." disabled={!compareView || !text.states.raw} onClick={() => setCompareOpen(true)}><Columns2 /></OperatorIconButton>
+          <OperatorIconButton label={focusMode ? "Show Sound controls" : "Focus editor"} detail={focusMode ? "Restores Voice and output controls." : "Gives the script the full creative workspace."} aria-pressed={focusMode} onClick={() => setFocusMode((current) => !current)}>{focusMode ? <Minimize2 /> : <Maximize2 />}</OperatorIconButton>
         </div>
       </div>
     </div>

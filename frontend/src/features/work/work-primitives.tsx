@@ -4,6 +4,7 @@ import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { OperatorTooltip } from "@/components/operator-tooltip"
 import { ShellBreadcrumbs } from "@/components/shell-breadcrumbs"
 import { VentureMark, isImageIdentity } from "@/components/venture-mark"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -48,7 +49,7 @@ export function ProductionRow({ production, menu }: { production: ProductionSumm
 }
 
 export function ProductionMenu({ children, label }: { children: ReactNode; label: string }) {
-  return <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={label}><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">{children}</DropdownMenuContent></DropdownMenu>
+  return <DropdownMenu><OperatorTooltip label={label}><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={label}><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent align="end">{children}</DropdownMenuContent></DropdownMenu>
 }
 
 export { DropdownMenuItem }

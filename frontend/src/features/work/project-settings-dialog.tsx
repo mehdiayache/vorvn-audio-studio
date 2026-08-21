@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -65,7 +66,7 @@ export function ProjectSettingsDialog({ project, venture, onUpdated, onArchived 
 
   return <>
     <DropdownMenu>
-      <DropdownMenuTrigger asChild><Button className="project-card-menu" variant="ghost" size="icon-sm" aria-label={`Project settings for ${project.name}`}><MoreHorizontal /></Button></DropdownMenuTrigger>
+      <OperatorTooltip label={`Manage ${project.name}`} detail="Edit Project settings or archive it."><DropdownMenuTrigger asChild><Button className="project-card-menu" variant="ghost" size="icon-sm" aria-label={`Project settings for ${project.name}`}><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip>
       <DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => setMode("settings")}><Pencil /> Project settings</DropdownMenuItem><DropdownMenuItem variant="destructive" onSelect={() => setMode("archive")}><Archive /> Archive Project</DropdownMenuItem></DropdownMenuContent>
     </DropdownMenu>
     <Dialog open={mode === "settings"} onOpenChange={(open) => { if (!open && !saving) setMode(null) }}>

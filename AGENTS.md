@@ -95,3 +95,18 @@ For every Audio Studio UI/UX task, use the installed
 - The rendered application is authoritative. Inspect and operate every major
   screen at realistic desktop widths, including loading, empty, selected,
   playing, generating, disabled, warning, failure, and error states.
+- Every asynchronous operator action must acknowledge the click at its source.
+  Use the shared `ActionButton` and `useAsyncAction` grammar for short work:
+  show a precise active verb such as `Saving…`, `Preparing…`, or `Testing…`,
+  suppress duplicate execution, and disable only the controls that would
+  conflict. Keep durable provider/render work in the existing Job observer and
+  `OperationState`; use a terminal toast only when the result arrives outside
+  the initiating context. Never use a global blocking overlay for ordinary
+  edits or hide an error away from the control that caused it.
+- Every icon-only operator control must expose a visible, keyboard-accessible
+  human tooltip as well as an accessible name. Use `OperatorIconButton` for
+  ordinary icon controls and `OperatorTooltip` around Radix menu/popover
+  triggers. The tooltip names the action; optional detail explains its effect,
+  destructive consequence, disabled reason, or audio-specific distinction.
+  A native `title` attribute or `aria-label` alone is not sufficient product
+  guidance for a desktop operator.

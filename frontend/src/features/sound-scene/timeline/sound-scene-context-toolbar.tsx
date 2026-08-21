@@ -5,6 +5,7 @@ import {
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider"
@@ -59,8 +60,8 @@ export function SoundEffectsEditor({ effects, disabled, subject = "Clip", onComm
       <span>Processing order</span>
       <ol>{active.map((effect, index) => <li key={effect.id}>
         <b>{index + 1}</b><span>{effect.type === "telephone" ? "Telephone" : "Echo"}</span>
-        <Button type="button" variant="ghost" size="icon-sm" disabled={disabled || index === 0} onClick={() => move(effect.id, -1)} aria-label={`Move ${effect.type} up`}><ArrowUp /></Button>
-        <Button type="button" variant="ghost" size="icon-sm" disabled={disabled || index === active.length - 1} onClick={() => move(effect.id, 1)} aria-label={`Move ${effect.type} down`}><ArrowDown /></Button>
+        <OperatorIconButton type="button" label={`Move ${effect.type} earlier in the effect chain`} disabled={disabled || index === 0} onClick={() => move(effect.id, -1)}><ArrowUp /></OperatorIconButton>
+        <OperatorIconButton type="button" label={`Move ${effect.type} later in the effect chain`} disabled={disabled || index === active.length - 1} onClick={() => move(effect.id, 1)}><ArrowDown /></OperatorIconButton>
       </li>)}</ol>
     </div>}
     <button type="button" aria-pressed={Boolean(telephone?.enabled)} disabled={disabled} onClick={() => toggle("telephone")}><span><b>Telephone</b><small>Focused 300–3400 Hz voice band</small></span><i /></button>

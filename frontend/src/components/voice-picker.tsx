@@ -2,6 +2,7 @@ import { Check, ChevronDown, Pause, Play, Search } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { OperatorIconButton } from "@/components/operator-action"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { VoiceIdentity } from "@/components/voice-identity"
@@ -98,7 +99,7 @@ export function VoicePicker({ identities, value, directory, label = "Choose a vo
                 {isSelected && <Check aria-hidden="true" />}
               </button>
               {voice.preview
-                ? <Button type="button" variant="ghost" size="icon" className="voice-preview-action" aria-label={`${playing ? "Pause" : "Preview"} ${voice.name}`} onClick={() => onPlay({ key, url: voice.preview!, title: voice.name, subtitle: "Voice preview", artwork: voice.image, kind: "voice" })}>{playing ? <Pause /> : <Play />}</Button>
+                ? <OperatorIconButton type="button" label={`${playing ? "Pause" : "Preview"} ${voice.name}`} detail="Auditioning does not change the selected Voice." variant="ghost" size="icon" className="voice-preview-action" onClick={() => onPlay({ key, url: voice.preview!, title: voice.name, subtitle: "Voice preview", artwork: voice.image, kind: "voice" })}>{playing ? <Pause /> : <Play />}</OperatorIconButton>
                 : <span className="voice-preview-unavailable" title={`No preview is available for ${voice.name}`}>No preview</span>}
             </div>
           })}
