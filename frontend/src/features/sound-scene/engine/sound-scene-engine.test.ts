@@ -227,6 +227,78 @@ describe("SoundSceneSession", () => {
     session.dispose()
   })
 
+  it("previews Music mute, fades and effects without persisting pointer changes", async () => {
+    const source = scene()
+    const update = vi.fn().mockResolvedValue({ ...source, revision: 2 })
+    const playout = {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(),
+      seek: vi.fn(), currentTime: vi.fn().mockReturnValue(0),
+      isPlaying: vi.fn().mockReturnValue(false), muteTrack: vi.fn(),
+      setTrackVolume: vi.fn(), setClipGain: vi.fn(), setClipMix: vi.fn(), dispose: vi.fn(),
+    }
+    const session = new SoundSceneSession(source, {
+      update, undo: vi.fn(), redo: vi.fn(),
+    }, playout)
+    const effects = [{
+      id: "echo", type: "echo" as const, enabled: true,
+      delay_ms: 220, feedback: .3, mix: .25,
+    }]
+
+    session.updateClip("music", clipId, {
+      muted: true, fade_in_ms: 800, fade_out_ms: 1_200, effects,
+    })
+
+    expect(playout.setClipMix).toHaveBeenCalledWith("music", clipId, {
+      muted: true, fade_in_ms: 800, fade_out_ms: 1_200, effects,
+    })
+    expect(update).not.toHaveBeenCalled()
+    await session.commitClip()
+    expect(update).toHaveBeenCalledTimes(1)
+    session.dispose()
+  })
+
+  it("serializes rapid commits against current revisions without losing the latest document", async () => {
+    const source = scene()
+    let resolveFirst!: (value: SoundScene) => void
+    const firstResponse = new Promise<SoundScene>((resolve) => { resolveFirst = resolve })
+    const update = vi.fn()
+      .mockReturnValueOnce(firstResponse)
+      .mockImplementationOnce(async (document: SoundScene["document"], expectedRevision: number) => ({
+        ...source, revision: expectedRevision + 1, document,
+        resolved: { ...source.resolved, signature: "second-commit" },
+      }))
+    const playout = {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(),
+      seek: vi.fn(), currentTime: vi.fn().mockReturnValue(0),
+      isPlaying: vi.fn().mockReturnValue(false), muteTrack: vi.fn(),
+      setTrackVolume: vi.fn(), setClipGain: vi.fn(), setClipMix: vi.fn(), dispose: vi.fn(),
+    }
+    const session = new SoundSceneSession(source, {
+      update, undo: vi.fn(), redo: vi.fn(),
+    }, playout)
+
+    const first = session.commitClipChanges("music", clipId, { gain: .4 })
+    const second = session.commitClipChanges("music", clipId, { muted: true })
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(update.mock.calls[0]![1]).toBe(1)
+
+    const firstDocument = update.mock.calls[0]![0]
+    resolveFirst({
+      ...source, revision: 2, document: firstDocument,
+      resolved: { ...source.resolved, signature: "first-commit" },
+    })
+    await first
+    await vi.waitFor(() => expect(update).toHaveBeenCalledTimes(2))
+    await second
+
+    const finalDocument = update.mock.calls[1]![0]
+    expect(update.mock.calls[1]![1]).toBe(2)
+    expect(finalDocument.tracks[0].clips[0]).toMatchObject({ gain: .4, muted: true })
+    expect(session.snapshot().scene.revision).toBe(3)
+    expect(session.snapshot().saving).toBe(false)
+    session.dispose()
+  })
+
   it("keeps track volume distinct from clip gain", async () => {
     const source = scene()
     const update = vi.fn().mockResolvedValue({ ...source, revision: 2 })

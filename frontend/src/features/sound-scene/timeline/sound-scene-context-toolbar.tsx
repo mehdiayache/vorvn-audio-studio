@@ -15,12 +15,13 @@ type EffectsProps = {
   effects: SoundSceneEffect[]
   disabled?: boolean
   subject?: "Clip" | "Part"
+  onPreview?: (effects: SoundSceneEffect[]) => void
   onCommit: (effects: SoundSceneEffect[]) => void
 }
 
 function effectId() { return crypto.randomUUID() }
 
-export function SoundEffectsEditor({ effects, disabled, subject = "Clip", onCommit }: EffectsProps) {
+export function SoundEffectsEditor({ effects, disabled, subject = "Clip", onPreview, onCommit }: EffectsProps) {
   const [draft, setDraft] = useState(effects)
   useEffect(() => setDraft(effects), [effects])
   const telephone = draft.find((effect) => effect.type === "telephone")
@@ -34,12 +35,14 @@ export function SoundEffectsEditor({ effects, disabled, subject = "Clip", onComm
         ? { id: effectId(), type: "telephone" as const, enabled: true }
         : { id: effectId(), type: "echo" as const, enabled: true, delay_ms: 180, feedback: .28, mix: .22 }]
     setDraft(next)
+    onPreview?.(next)
     onCommit(next)
   }
 
   function changeEcho(changes: Partial<Extract<SoundSceneEffect, { type: "echo" }>>, commit = false) {
     const next = draft.map((effect) => effect.type === "echo" ? { ...effect, ...changes } : effect)
     setDraft(next)
+    onPreview?.(next)
     if (commit) onCommit(next)
   }
 
@@ -50,6 +53,7 @@ export function SoundEffectsEditor({ effects, disabled, subject = "Clip", onComm
     const next = [...draft]
     ;[next[index], next[destination]] = [next[destination]!, next[index]!]
     setDraft(next)
+    onPreview?.(next)
     onCommit(next)
   }
 
@@ -84,11 +88,12 @@ export type SoundContext = {
   count?: number
 }
 
-export function SoundSceneContextToolbar({ context, saving, onMute, onGain, onEffects, onLock, onDuplicate, onDelete, onOptions, onOpenSequence }: {
+export function SoundSceneContextToolbar({ context, saving, onMute, onGain, onEffectsPreview, onEffects, onLock, onDuplicate, onDelete, onOptions, onOpenSequence }: {
   context: SoundContext | null
   saving: boolean
   onMute: () => void
   onGain: (gain: number) => void
+  onEffectsPreview?: (effects: SoundSceneEffect[]) => void
   onEffects: (effects: SoundSceneEffect[]) => void
   onLock?: () => void
   onDuplicate?: () => void
@@ -113,7 +118,7 @@ export function SoundSceneContextToolbar({ context, saving, onMute, onGain, onEf
     {context.kind !== "silence" && <div className="sound-context-group is-mix">
       <OperatorTooltip label={muteLabel} detail={muteDetail}><Button className="sound-context-command" variant="ghost" size="sm" disabled={saving} aria-label={muteLabel} onClick={onMute}>{context.muted ? <VolumeX /> : <Volume2 />}{context.muted ? "Unmute" : "Mute"}</Button></OperatorTooltip>
       {context.kind === "sequence" && <Popover><PopoverTrigger asChild><Button className="sound-context-command" variant="ghost" size="sm" disabled={saving}><SlidersHorizontal /> Volume</Button></PopoverTrigger><PopoverContent align="end" className="sound-volume-popover"><span>Part volume <b>{gain}%</b></span><Slider aria-label="Sequence Part volume" value={[gain]} min={0} max={200} step={1} onValueChange={([value = 100]) => setGain(value)} onValueCommit={([value = 100]) => onGain(value / 100)} /></PopoverContent></Popover>}
-      {(context.count === undefined || context.count === 1) ? <Popover><PopoverTrigger asChild><Button className={`sound-context-command${activeEffectCount ? " is-active" : ""}`} variant="ghost" size="sm" disabled={saving}><RadioTower /> Effects{activeEffectCount ? <small>{activeEffectCount}</small> : null}</Button></PopoverTrigger><PopoverContent align="end" className="sound-effects-popover"><SoundEffectsEditor effects={context.effects} disabled={saving} onCommit={onEffects} /></PopoverContent></Popover> : null}
+      {(context.count === undefined || context.count === 1) ? <Popover><PopoverTrigger asChild><Button className={`sound-context-command${activeEffectCount ? " is-active" : ""}`} variant="ghost" size="sm" disabled={saving}><RadioTower /> Effects{activeEffectCount ? <small>{activeEffectCount}</small> : null}</Button></PopoverTrigger><PopoverContent align="end" className="sound-effects-popover"><SoundEffectsEditor effects={context.effects} disabled={saving} onPreview={onEffectsPreview} onCommit={onEffects} /></PopoverContent></Popover> : null}
       {onOptions && <Button className="sound-context-command" variant="ghost" size="sm" disabled={saving} onClick={onOptions}><MoreHorizontal /> Options</Button>}
     </div>}
     {context.kind === "music" && <div className="sound-context-group is-object">

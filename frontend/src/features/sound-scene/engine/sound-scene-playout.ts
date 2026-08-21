@@ -52,6 +52,13 @@ type StreamDescriptor = {
 
 type EchoBus = { key: string; send: GainNode }
 
+type EffectRoute = {
+  input: AudioNode
+  destination: AudioNode
+  nodes: AudioNode[]
+  bufferedTrackId?: string
+}
+
 type SequenceStream = StreamHandle & {
   rawGain: GainNode
   telephoneGain: GainNode
@@ -140,11 +147,14 @@ export class SoundScenePlayout {
   private streams: StreamHandle[] = []
   private streamDescriptors = new Map<string, StreamDescriptor>()
   private musicStreams = new Map<string, StreamHandle>()
-  private effectNodes: AudioNode[] = []
+  private effectRoutes = new Map<string, EffectRoute>()
   private childTracks = new Map<string, string[]>()
   private internalTrackByClip = new Map<string, string>()
+  private bufferedTrackByClip = new Map<string, PlayoutTrack>()
   private liveTrackVolumes = new Map<string, number>()
+  private liveTrackMutes = new Map<string, boolean>()
   private liveClipGains = new Map<string, number>()
+  private liveClips = new Map<string, SoundSceneClip>()
   private preparedTrackIds = new Set<string>()
   private duckedBufferedTracks = new Set<string>()
   private sequenceMixPreviews = new Map<string, Partial<SequenceMixOverride>>()
@@ -196,10 +206,7 @@ export class SoundScenePlayout {
     this.streamDescriptors.clear()
     this.musicStreams.clear()
     this.sequenceStream = null
-    for (const node of this.effectNodes) {
-      try { node.disconnect() } catch { /* already disconnected */ }
-    }
-    this.effectNodes = []
+    this.clearEffectRoutes()
     this.adapter?.dispose()
     void this.context?.close()
     this.cache?.clear()
@@ -210,8 +217,11 @@ export class SoundScenePlayout {
     this.preparedSignature = ""
     this.childTracks.clear()
     this.internalTrackByClip.clear()
+    this.bufferedTrackByClip.clear()
     this.liveTrackVolumes.clear()
+    this.liveTrackMutes.clear()
     this.liveClipGains.clear()
+    this.liveClips.clear()
     this.preparedTrackIds.clear()
     this.duckedBufferedTracks.clear()
     this.duckLevel = 1
@@ -284,6 +294,39 @@ export class SoundScenePlayout {
       current = sum
     }
     return current
+  }
+
+  private rebuildEffectRoute(
+    clipId: string, input: AudioNode, destination: AudioNode,
+    effects: SoundSceneEffect[], bufferedTrackId?: string,
+  ) {
+    const existing = this.effectRoutes.get(clipId)
+    try { input.disconnect() } catch { /* no previous route */ }
+    for (const node of existing?.nodes || []) {
+      try { node.disconnect() } catch { /* already disconnected */ }
+    }
+    const nodes: AudioNode[] = []
+    this.fixedEffects(input, effects, nodes).connect(destination)
+    this.effectRoutes.set(clipId, {
+      input, destination, nodes,
+      bufferedTrackId: bufferedTrackId ?? existing?.bufferedTrackId,
+    })
+  }
+
+  private removeEffectRoute(clipId: string) {
+    const route = this.effectRoutes.get(clipId)
+    if (!route) return
+    if (route.bufferedTrackId)
+      this.adapter?.transport.disconnectTrackOutput(route.bufferedTrackId)
+    try { route.input.disconnect() } catch { /* already disconnected */ }
+    for (const node of route.nodes) {
+      try { node.disconnect() } catch { /* already disconnected */ }
+    }
+    this.effectRoutes.delete(clipId)
+  }
+
+  private clearEffectRoutes() {
+    for (const clipId of [...this.effectRoutes.keys()]) this.removeEffectRoute(clipId)
   }
 
   private createSequenceStream(url: string, scene: SoundScene) {
@@ -412,8 +455,7 @@ export class SoundScenePlayout {
     const gain = this.context!.createGain()
     gain.gain.value = 0
     source.connect(gain)
-    const effected = this.fixedEffects(gain, clip.effects, nodes)
-    effected.connect(this.streamMaster!)
+    this.rebuildEffectRoute(clip.id, gain, this.streamMaster!, clip.effects)
     nodes.push(gain)
     const handle = {
       element, nodes, gain, trackId, clip, trackVolume,
@@ -441,15 +483,13 @@ export class SoundScenePlayout {
     }
   }
 
-  private installBufferedEffects(trackId: string, clip: SoundSceneClip) {
-    if (!clip.effects.some((effect) => effect.enabled) || !this.adapter) return
-    const nodes: AudioNode[] = []
+  private installBufferedEffectRoute(trackId: string, clip: SoundSceneClip) {
+    if (!this.adapter) return
     const input = this.context!.createGain()
-    nodes.push(input)
-    const output = this.fixedEffects(input, clip.effects, nodes)
     this.adapter.transport.connectTrackOutput(trackId, input)
-    output.connect(this.adapter.masterOutputNode)
-    this.effectNodes.push(...nodes)
+    this.rebuildEffectRoute(
+      clip.id, input, this.adapter.masterOutputNode, clip.effects, trackId,
+    )
   }
 
   private async prepare(): Promise<void> {
@@ -461,6 +501,7 @@ export class SoundScenePlayout {
       return
     }
     for (const stream of this.streams) this.releaseStream(stream)
+    this.clearEffectRoutes()
     this.streams = []
     this.sequenceStream = null
     this.streamDescriptors.clear()
@@ -468,8 +509,11 @@ export class SoundScenePlayout {
     const tracks: PlayoutTrack[] = []
     const childTracks = new Map<string, string[]>()
     const internalTrackByClip = new Map<string, string>()
+    const bufferedTrackByClip = new Map<string, PlayoutTrack>()
     const liveTrackVolumes = new Map<string, number>()
+    const liveTrackMutes = new Map<string, boolean>()
     const liveClipGains = new Map<string, number>()
+    const liveClips = new Map<string, SoundSceneClip>()
     const bufferedEffects: Array<{ id: string; clip: SoundSceneClip }> = []
     let reservedDecodedBytes = 0
     if (scene.sequence_stem.url)
@@ -479,11 +523,13 @@ export class SoundScenePlayout {
       const playable = track.clips.filter((clip) => clip.filename && !clip.orphan
         && !clip.missing && Number(clip.resolved_duration_ms || 0) > 0)
       liveTrackVolumes.set(track.id, track.volume)
+      liveTrackMutes.set(track.id, track.muted)
       const children: string[] = []
       for (const clip of playable) {
         const internalId = clipTrackId(track.id, clip.id)
         const gain = Number(clip.gain ?? 1)
         liveClipGains.set(clip.id, gain)
+        liveClips.set(clip.id, { ...clip, effects: structuredClone(clip.effects) })
         const plan = planClipSource(clip, audioUrl(clip.filename!), reservedDecodedBytes)
         if (plan.mode === "stream") {
           this.streamDescriptors.set(clip.id, {
@@ -496,12 +542,14 @@ export class SoundScenePlayout {
         internalTrackByClip.set(clip.id, internalId)
         children.push(internalId)
         const buffer = await this.cache!.get(plan.url)
-        tracks.push({
+        const playoutTrack = {
           id: internalId, name: track.name,
           muted: track.muted || clip.muted, soloed: false,
           volume: track.volume * gain, pan: 0,
           clips: repeatedClips(clip, buffer, plan.bufferOffsetSeconds),
-        })
+        }
+        tracks.push(playoutTrack)
+        bufferedTrackByClip.set(clip.id, playoutTrack)
         bufferedEffects.push({ id: internalId, clip })
         if (clip.ducking) this.duckedBufferedTracks.add(internalId)
       }
@@ -509,11 +557,14 @@ export class SoundScenePlayout {
     }
     if (version !== this.sceneVersion) return
     this.adapter!.setTracks(tracks)
-    for (const item of bufferedEffects) this.installBufferedEffects(item.id, item.clip)
+    for (const item of bufferedEffects) this.installBufferedEffectRoute(item.id, item.clip)
     this.childTracks = childTracks
     this.internalTrackByClip = internalTrackByClip
+    this.bufferedTrackByClip = bufferedTrackByClip
     this.liveTrackVolumes = liveTrackVolumes
+    this.liveTrackMutes = liveTrackMutes
     this.liveClipGains = liveClipGains
+    this.liveClips = liveClips
     this.preparedTrackIds = new Set(tracks.map((track) => track.id))
     this.preparedSignature = scene.resolved.signature
     this.materializeRelevantStreams(this.playhead)
@@ -521,6 +572,7 @@ export class SoundScenePlayout {
   }
 
   private releaseStream(stream: StreamHandle) {
+    if (stream.clip) this.removeEffectRoute(stream.clip.id)
     stream.element.pause()
     stream.element.removeAttribute("src")
     stream.element.load()
@@ -559,14 +611,15 @@ export class SoundScenePlayout {
     for (const stream of this.streams) {
       const clip = stream.clip
       if (!clip) continue
+      const live = this.liveClips.get(clip.id) || clip
       const start = Number(clip.resolved_start_ms || 0) / 1_000
       const duration = Number(clip.resolved_duration_ms || 0) / 1_000
       const elapsed = time - start
       const active = shouldPlay && elapsed >= 0 && elapsed < duration
       const gain = stream.muted ? 0 : stream.trackVolume
-        * (this.liveClipGains.get(clip.id) ?? clip.gain)
-        * this.fadeGain(clip, Math.max(0, elapsed), duration)
-        * (clip.ducking ? this.duckLevel : 1)
+        * (this.liveClipGains.get(clip.id) ?? live.gain)
+        * this.fadeGain(live, Math.max(0, elapsed), duration)
+        * (live.ducking ? this.duckLevel : 1)
       stream.gain.gain.value = active ? gain : 0
       if (!active) { stream.element.pause(); continue }
       const sourceTime = this.sourceTime(clip, elapsed)
@@ -650,6 +703,7 @@ export class SoundScenePlayout {
   isPlaying() { return this.playing }
 
   muteTrack(trackId: string, muted: boolean) {
+    this.liveTrackMutes.set(trackId, muted)
     for (const internalId of this.childTracks.get(trackId) || [])
       this.adapter?.setTrackMute(internalId, muted)
     for (const stream of this.streams)
@@ -680,6 +734,60 @@ export class SoundScenePlayout {
       internalId,
       (this.liveTrackVolumes.get(trackId) ?? track.volume) * Math.max(0, gain),
     )
+  }
+
+  setClipMix(trackId: string, clipId: string, changes: Partial<Pick<
+    SoundSceneClip, "muted" | "fade_in_ms" | "fade_out_ms" | "effects"
+  >>) {
+    const track = this.scene.resolved.tracks.find((item) => item.id === trackId)
+    const original = track?.clips.find((item) => item.id === clipId)
+    if (!track || !original) return
+    const live = { ...(this.liveClips.get(clipId) || original), ...changes }
+    if (changes.effects) live.effects = structuredClone(changes.effects)
+    this.liveClips.set(clipId, live)
+
+    const trackMuted = this.liveTrackMutes.get(trackId) ?? track.muted
+    const internalId = this.internalTrackByClip.get(clipId)
+    if (internalId) {
+      this.adapter?.setTrackMute(internalId, trackMuted || live.muted)
+      const buffered = this.bufferedTrackByClip.get(clipId)
+      if (buffered && (changes.fade_in_ms !== undefined || changes.fade_out_ms !== undefined)) {
+        const last = buffered.clips.length - 1
+        const clips = buffered.clips.map((clip, index) => ({
+          ...clip,
+          fadeIn: index === 0 && live.fade_in_ms
+            ? { duration: Math.min(live.fade_in_ms / 1_000, clip.durationSamples / clip.sampleRate), type: "linear" as const }
+            : undefined,
+          fadeOut: index === last && live.fade_out_ms
+            ? { duration: Math.min(live.fade_out_ms / 1_000, clip.durationSamples / clip.sampleRate), type: "linear" as const }
+            : undefined,
+        }))
+        const next = { ...buffered, muted: trackMuted || live.muted, clips }
+        this.bufferedTrackByClip.set(clipId, next)
+        this.adapter?.updateTrack(internalId, next)
+      }
+      if (changes.effects) {
+        const route = this.effectRoutes.get(clipId)
+        if (route) this.rebuildEffectRoute(
+          clipId, route.input, route.destination, live.effects, internalId,
+        )
+      }
+    }
+
+    const descriptor = this.streamDescriptors.get(clipId)
+    if (descriptor) descriptor.clip = live
+    const stream = this.musicStreams.get(clipId)
+    if (stream) {
+      stream.clip = live
+      stream.muted = trackMuted || live.muted
+      if (changes.effects) {
+        const route = this.effectRoutes.get(clipId)
+        if (route) this.rebuildEffectRoute(
+          clipId, route.input, route.destination, live.effects,
+        )
+      }
+    }
+    if (this.playing) this.syncStreams(this.currentTime(), true)
   }
 
   previewSequenceMix(partPublicId: string, changes: Partial<SequenceMixOverride>) {

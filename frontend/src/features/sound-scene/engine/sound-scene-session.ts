@@ -22,7 +22,7 @@ export type SoundSceneSessionSnapshot = {
 }
 
 export type SoundScenePersistence = {
-  update: (document: SoundSceneDocument) => Promise<SoundScene>
+  update: (document: SoundSceneDocument, expectedRevision: number) => Promise<SoundScene>
   undo: () => Promise<SoundScene>
   redo: () => Promise<SoundScene>
 }
@@ -31,8 +31,18 @@ type Playout = Pick<SoundScenePlayout,
   "replace" | "play" | "pause" | "seek" | "currentTime" | "isPlaying" |
   "muteTrack" | "setTrackVolume" | "setClipGain" | "dispose"
 > & Partial<Pick<SoundScenePlayout,
-  "activatePlayout" | "deactivatePlayout" | "previewSequenceMix"
+  "activatePlayout" | "deactivatePlayout" | "previewSequenceMix" | "setClipMix"
 >>
+
+type CommitWaiter = {
+  resolve: () => void
+  reject: (reason: unknown) => void
+}
+
+type PendingCommit = {
+  document: SoundSceneDocument
+  waiters: CommitWaiter[]
+}
 
 export class SoundSceneSession {
   readonly editor: SoundSceneEngine
@@ -41,6 +51,8 @@ export class SoundSceneSession {
   private snapshotValue: SoundSceneSessionSnapshot
   private frame = 0
   private disposed = false
+  private pendingCommit: PendingCommit | null = null
+  private commitLoop: Promise<void> | null = null
 
   constructor(
     scene: SoundScene,
@@ -117,8 +129,12 @@ export class SoundSceneSession {
     this.set({ playback: "idle", playhead })
   }
 
-  reconcile(scene: SoundScene) {
+  reconcile(scene: SoundScene, force = false) {
     const current = this.snapshotValue.scene
+    if (this.snapshotValue.saving && !force) {
+      if (scene.revision > current.revision) this.set({ scene })
+      return
+    }
     if (scene.revision === current.revision && scene.resolved.signature === current.resolved.signature) return
     const wasPlaying = this.snapshotValue.playback === "playing"
     if (wasPlaying && this.frame) cancelAnimationFrame(this.frame)
@@ -163,6 +179,10 @@ export class SoundSceneSession {
   updateClip(trackId: string, clipId: string, changes: Partial<SoundSceneClip>) {
     this.editor.setClipValue(trackId, clipId, changes)
     if (changes.gain !== undefined) this.playout.setClipGain(trackId, clipId, changes.gain)
+    if (changes.muted !== undefined || changes.fade_in_ms !== undefined
+      || changes.fade_out_ms !== undefined || changes.effects !== undefined) {
+      this.playout.setClipMix?.(trackId, clipId, changes)
+    }
   }
 
   async commitClip() { await this.persist(this.editor.document()) }
@@ -381,22 +401,63 @@ export class SoundSceneSession {
     this.frame = requestAnimationFrame(update)
   }
 
-  private async persist(document: SoundSceneDocument) {
-    if (this.snapshotValue.saving) return
+  private persist(document: SoundSceneDocument) {
+    return new Promise<void>((resolve, reject) => {
+      const waiter = { resolve, reject }
+      if (this.pendingCommit) {
+        this.pendingCommit.document = structuredClone(document)
+        this.pendingCommit.waiters.push(waiter)
+      } else {
+        this.pendingCommit = { document: structuredClone(document), waiters: [waiter] }
+      }
+      this.startCommitLoop()
+    })
+  }
+
+  private startCommitLoop() {
+    if (this.commitLoop) return
+    const loop = this.drainCommits()
+    this.commitLoop = loop
+    void loop.finally(() => {
+      if (this.commitLoop !== loop) return
+      this.commitLoop = null
+      if (this.pendingCommit) this.startCommitLoop()
+    })
+  }
+
+  private async drainCommits() {
     this.set({ saving: true, error: "" })
     try {
-      const scene = await this.persistence.update(document)
-      this.reconcile(scene)
-    } catch (reason) {
-      this.editor.replace(this.snapshotValue.scene)
-      this.set({
-        engine: this.editor.state(),
-        error: reason instanceof Error ? reason.message : "That Sound Scene change could not be saved.",
-      })
-      throw reason
+      while (this.pendingCommit) {
+        const commit = this.pendingCommit
+        this.pendingCommit = null
+        try {
+          const scene = await this.persistence.update(
+            commit.document, this.snapshotValue.scene.revision,
+          )
+          if (this.pendingCommit) this.set({ scene })
+          else this.reconcile(scene, true)
+          commit.waiters.forEach(({ resolve }) => resolve())
+        } catch (reason) {
+          commit.waiters.forEach(({ reject }) => reject(reason))
+          this.rejectPendingCommit(reason)
+          this.editor.replace(this.snapshotValue.scene)
+          this.set({
+            engine: this.editor.state(),
+            error: reason instanceof Error ? reason.message : "That Sound Scene change could not be saved.",
+          })
+          return
+        }
+      }
     } finally {
       this.set({ saving: false })
     }
+  }
+
+  private rejectPendingCommit(reason: unknown) {
+    const pending = this.pendingCommit
+    this.pendingCommit = null
+    pending?.waiters.forEach(({ reject }) => reject(reason))
   }
 
   async undo() {

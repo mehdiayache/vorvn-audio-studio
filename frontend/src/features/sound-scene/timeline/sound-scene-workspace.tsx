@@ -504,6 +504,10 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
         else void session.commitSelectedClipChanges({ muted: !context?.muted }, selectedRefs)
       }}
       onGain={(gain) => { if (selectedPart) void session.updateSequenceOverride(selectedPart.part_public_id, { gain }) }}
+      onEffectsPreview={(effects) => {
+        if (selectedPart) session.previewSequenceOverride(selectedPart.part_public_id, { effects })
+        else if (selectedRefs[0]) session.updateClip(selectedRefs[0].trackId, selectedRefs[0].clipId, { effects })
+      }}
       onEffects={(effects) => {
         if (selectedPart) void session.updateSequenceOverride(selectedPart.part_public_id, { effects })
         else if (selectedRefs[0]) void session.commitClipChanges(selectedRefs[0].trackId, selectedRefs[0].clipId, { effects })

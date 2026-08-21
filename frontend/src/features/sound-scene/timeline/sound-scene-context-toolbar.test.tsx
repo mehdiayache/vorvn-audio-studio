@@ -29,14 +29,16 @@ describe("SoundSceneContextToolbar", () => {
 
   it("creates a bounded Telephone descriptor from the contextual Effects control", () => {
     const onEffects = vi.fn()
+    const onEffectsPreview = vi.fn()
     render(<SoundSceneContextToolbar
       context={{ kind: "sequence", label: "Narrator", muted: false, gain: 1, effects: [] }}
-      saving={false} onMute={vi.fn()} onGain={vi.fn()} onEffects={onEffects}
+      saving={false} onMute={vi.fn()} onGain={vi.fn()} onEffectsPreview={onEffectsPreview} onEffects={onEffects}
     />)
 
     fireEvent.click(screen.getByRole("button", { name: /Effects/ }))
     fireEvent.click(screen.getByRole("button", { name: /Telephone/ }))
 
+    expect(onEffectsPreview).toHaveBeenCalledWith([expect.objectContaining({ type: "telephone", enabled: true })])
     expect(onEffects).toHaveBeenCalledWith([expect.objectContaining({ type: "telephone", enabled: true })])
   })
 

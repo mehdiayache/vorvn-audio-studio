@@ -4,6 +4,8 @@ const mocks = vi.hoisted(() => {
   const adapters: Array<{
     setTracks: ReturnType<typeof vi.fn>
     setTrackVolume: ReturnType<typeof vi.fn>
+    setTrackMute: ReturnType<typeof vi.fn>
+    updateTrack: ReturnType<typeof vi.fn>
     dispose: ReturnType<typeof vi.fn>
   }> = []
   const media: Array<{
@@ -21,6 +23,7 @@ const mocks = vi.hoisted(() => {
     setTracks = vi.fn()
     setTrackVolume = vi.fn()
     setTrackMute = vi.fn()
+    updateTrack = vi.fn()
     init = vi.fn().mockResolvedValue(undefined)
     play = vi.fn()
     pause = vi.fn()
@@ -29,7 +32,7 @@ const mocks = vi.hoisted(() => {
     getCurrentTime = vi.fn().mockReturnValue(0)
     dispose = vi.fn()
     masterOutputNode = { connect: vi.fn() }
-    transport = { connectTrackOutput: vi.fn() }
+    transport = { connectTrackOutput: vi.fn(), disconnectTrackOutput: vi.fn() }
     constructor() { adapters.push(this) }
   }
   return { adapters, media, gains, FakeAdapter }
@@ -122,6 +125,36 @@ describe("SoundScenePlayout", () => {
     expect(adapter.setTrackVolume).toHaveBeenCalledTimes(1)
     expect(adapter.setTrackVolume.mock.calls[0]![0]).toBe("music::clip::78af885c-aeb4-49bf-9edb-d3fc14496b2a")
     expect(adapter.setTrackVolume.mock.calls[0]![1]).toBeCloseTo(.32)
+    playout.dispose()
+    vi.unstubAllGlobals()
+  })
+
+  it("previews Music mute, fades and effects locally on the prepared clip", async () => {
+    const source = scene()
+    const clipId = source.document.tracks[0]!.clips[0]!.id
+    const playout = new SoundScenePlayout(source)
+    await playout.play(0)
+    const adapter = mocks.adapters[0]!
+
+    playout.setClipMix("music", clipId, {
+      muted: true,
+      fade_in_ms: 500,
+      fade_out_ms: 750,
+      effects: [
+        { id: "telephone", type: "telephone", enabled: true },
+        { id: "echo", type: "echo", enabled: true, delay_ms: 180, feedback: .2, mix: .4 },
+      ],
+    })
+
+    expect(adapter.setTrackMute).toHaveBeenLastCalledWith(
+      `music::clip::${clipId}`, true,
+    )
+    const updated = adapter.updateTrack.mock.calls.at(-1)?.[1]
+    expect(updated.clips[0].fadeIn.duration).toBe(.5)
+    expect(updated.clips.at(-1).fadeOut.duration).toBe(.75)
+    expect(mocks.gains.some((node) => node.gain.value === .6)).toBe(true)
+    expect(mocks.gains.some((node) => node.gain.value === .4)).toBe(true)
+
     playout.dispose()
     vi.unstubAllGlobals()
   })

@@ -192,10 +192,10 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     await mutate("parts:move", () => studioApi.reorder(production.id, next), `${selectedCount} Part${selectedCount === 1 ? "" : "s"} moved to position ${position}`)
   }, [mutate, production.id, production.parts])
 
-  const updateSoundScene = useCallback((document: SoundSceneDocument) => mutate(
-    "sound-scene:save", () => studioApi.updateSoundScene(production.id, soundScene.revision, document),
+  const updateSoundScene = useCallback((document: SoundSceneDocument, expectedRevision: number) => mutate(
+    `sound-scene:save:${expectedRevision}`, () => studioApi.updateSoundScene(production.id, expectedRevision, document),
     "Sound Scene saved",
-  ), [mutate, production.id, soundScene.revision])
+  ), [mutate, production.id])
   const undoSoundScene = useCallback(() => mutate(
     "sound-scene:undo", () => studioApi.undoSoundScene(production.id), "Sound Scene undone",
   ), [mutate, production.id])
