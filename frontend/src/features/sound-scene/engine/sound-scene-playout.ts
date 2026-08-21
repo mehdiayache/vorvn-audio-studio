@@ -500,10 +500,7 @@ export class SoundScenePlayout {
     const scene = this.scene
     const version = this.sceneVersion
     if (!await this.ensureActive()) return
-    if (this.preparedSignature === scene.resolved.signature) {
-      await this.context!.resume()
-      return
-    }
+    if (this.preparedSignature === scene.resolved.signature) return
     for (const stream of this.streams) this.releaseStream(stream)
     this.clearEffectRoutes()
     this.streams = []
@@ -572,7 +569,6 @@ export class SoundScenePlayout {
     this.preparedTrackIds = new Set(tracks.map((track) => track.id))
     this.preparedSignature = scene.resolved.signature
     this.materializeRelevantStreams(this.playhead)
-    await this.context!.resume()
   }
 
   private releaseStream(stream: StreamHandle) {
