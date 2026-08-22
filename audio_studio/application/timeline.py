@@ -21,9 +21,8 @@ class TimelineRecords(Protocol):
         voice_identity_ids: set[str],
     ) -> dict[str, int] | None: ...
     def asset(self, asset_id: int) -> dict | None: ...
-    def asset_context(self, asset_id: int) -> dict | None: ...
     def asset_allowed(
-        self, production_id: int, asset_id: int, kinds: set[str],
+        self, production_id: int, asset_id: int,
     ) -> bool: ...
     def insert_asset(
         self, production_id: int, asset_id: int,
@@ -278,14 +277,9 @@ class TimelineService:
         asset = self.records.asset(asset_id)
         if not asset or not asset.get("filename"):
             raise TimelineError("That Asset does not exist.")
-        context = self.records.asset_context(asset_id)
-        if context and context.get("collection") == "Music":
+        if not self.records.asset_allowed(production_id, asset_id):
             raise TimelineError(
-                "Music is a background bed. Choose it in the Music controls.")
-        if not self.records.asset_allowed(
-                production_id, asset_id, {"intros", "outros", "stingers"}):
-            raise TimelineError(
-                "That clip is not in this Venture's reusable clip library.")
+                "That audio is not available to this Production.")
         part_id = self.records.insert_asset(
             production_id, asset_id, before_part_public_id)
         if not part_id:
@@ -301,10 +295,9 @@ class TimelineService:
         asset = self.records.asset(asset_id)
         if not asset or not asset.get("filename"):
             raise TimelineError("That Asset does not exist.")
-        if not self.records.asset_allowed(
-                production_id, asset_id, {"intros", "outros", "stingers"}):
+        if not self.records.asset_allowed(production_id, asset_id):
             raise TimelineError(
-                "That clip is not in this Venture's reusable clip library.")
+                "That audio is not available to this Production.")
         if not self.records.replace_asset(production_id, part_id, asset_id):
             raise TimelineError("The Asset Part could not be replaced.")
         return {"id": part_id}

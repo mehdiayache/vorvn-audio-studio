@@ -30,7 +30,7 @@ describe("SoundSceneContextToolbar", () => {
     expect(container.querySelector(".sound-scene-context")).toBeNull()
 
     rerender(<SoundSceneContextToolbar
-      context={{ kind: "music", label: "Night bed", muted: false, lockState: "unlocked", gain: .2, effects: [] }}
+      context={{ kind: "audio", label: "Night bed", muted: false, lockState: "unlocked", gain: .2, effects: [] }}
       saving={false} onMute={vi.fn()} onGain={vi.fn()} onEffects={vi.fn()}
       onLock={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()}
     />)
@@ -88,7 +88,7 @@ describe("SoundSceneContextToolbar", () => {
     const onEffectsPreview = vi.fn()
     const onEffects = vi.fn()
     render(<SoundSceneContextToolbar
-      context={{ kind: "music", label: "Night bed", muted: false, gain: .2, effects: [{
+      context={{ kind: "audio", label: "Night bed", muted: false, gain: .2, effects: [{
         id: "3bc326ca-57ba-4e63-bdfd-6145dfb73181", type: "echo",
         enabled: true, delay_ms: 180, feedback: .28, mix: .22,
       }] }}

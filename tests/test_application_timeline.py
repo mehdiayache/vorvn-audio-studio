@@ -42,10 +42,7 @@ class Records:
     def asset(self, asset_id):
         return self.assets.get(asset_id)
 
-    def asset_context(self, asset_id):
-        return self.assets.get(asset_id, {}).get("context")
-
-    def asset_allowed(self, _production_id, _asset_id, _kinds):
+    def asset_allowed(self, _production_id, _asset_id):
         return self.allow_asset
 
     def insert_asset(self, production_id, asset_id,
@@ -160,11 +157,9 @@ class TimelineServiceTests(unittest.TestCase):
                          ("Rest now", "Night Guide", "spoken_2", True,
                           "voice-1", "draft", "part-before"))
 
-    def test_parallel_music_is_not_inserted_as_a_sequence_asset(self):
-        self.records.assets[55] = {
-            "filename": "bed.mp3", "context": {"collection": "Music"}}
-        with self.assertRaisesRegex(TimelineError, "background bed"):
-            self.service.insert_asset(6, 55)
+    def test_asset_classification_does_not_restrict_sequence_placement(self):
+        self.records.assets[55] = {"filename": "music.mp3", "kind": "music"}
+        self.assertEqual(self.service.insert_asset(6, 55), {"id": 102})
 
     def test_public_part_anchor_is_the_stable_insertion_contract(self):
         self.service.add_silence(6, 2, "part-before")

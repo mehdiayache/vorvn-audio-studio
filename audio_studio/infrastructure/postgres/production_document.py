@@ -546,8 +546,9 @@ class ProductionDocumentRepository:
                     SELECT item.* FROM asset_versions item
                      WHERE item.asset_id = asset.id ORDER BY item.version DESC LIMIT 1
                   ) version ON true
-                 WHERE asset.id = %s AND asset.venture_id = project.venture_id
-                   AND asset.kind IN ('intros','outros','stingers')
+                 WHERE asset.id = %s
+                   AND (asset.venture_id = project.venture_id
+                        OR asset.scope = 'studio')
             """, (production_id, asset_id))
             row = cursor.fetchone()
         if not row:
@@ -571,8 +572,9 @@ class ProductionDocumentRepository:
                      WHERE item.asset_id=asset.id
                      ORDER BY item.version DESC LIMIT 1
                   ) version ON true
-                 WHERE asset.id=%s AND asset.venture_id=project.venture_id
-                   AND asset.kind IN ('intros','outros','stingers')
+                 WHERE asset.id=%s
+                   AND (asset.venture_id=project.venture_id
+                        OR asset.scope='studio')
             """, (production_id, asset_id))
             asset = cursor.fetchone()
             if not asset:

@@ -49,13 +49,10 @@ class PostgresTimelineRecords:
     def asset(self, asset_id: int) -> dict | None:
         return self.assets.get(asset_id)
 
-    def asset_context(self, asset_id: int) -> dict | None:
-        return self.assets.library_context(asset_id)
-
     def asset_allowed(
-        self, production_id: int, asset_id: int, kinds: set[str],
+        self, production_id: int, asset_id: int,
     ) -> bool:
-        return self.assets.allowed_for_production(production_id, asset_id, kinds)
+        return self.assets.allowed_for_production(production_id, asset_id)
 
     def insert_asset(
         self, production_id: int, asset_id: int,

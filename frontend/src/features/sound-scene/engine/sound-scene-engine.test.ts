@@ -9,7 +9,7 @@ const clipId = "78af885c-aeb4-49bf-9edb-d3fc14496b2c"
 function scene(): SoundScene {
   const mix = { muted: false, gain: 1, fade_in_ms: 0, fade_out_ms: 0, effects: [] }
   const clip = { id: clipId, asset_id: 9, duration_ms: null, source_offset_ms: 0, gain: .1, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, muted: false, locked: false, effects: [], anchor: { kind: "absolute" as const, position_ms: 0 }, asset_name: "Night bed", filename: "bed.mp3", source_duration_ms: 60_000, resolved_start_ms: 0, resolved_duration_ms: 10_000 }
-  const track = { id: "music", kind: "music" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
+  const track = { id: "music", kind: "audio" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
   return { production_id: 6, revision: 1, document: { version: 1, sequence_overrides: {}, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", duration_ms: 10_000, sequence_projection: { signature: "sequence", duration_ms: 10_000, sample_rate: 48_000, spans: [{ part_id: 7, part_public_id: "part-7", position: 0, kind: "speech", title: "Opening", role: "Narrator", voice_name: "Eva", filename: "opening.mp3", start_ms: 0, duration_ms: 10_000, silence: false, missing: false, mix }] }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/stem.mp3", filename: "stem.mp3", duration_ms: 10_000, signature: "sequence", cached: true } }
 }
 
@@ -99,7 +99,7 @@ describe("SoundSceneSession", () => {
     }
     const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, playout)
 
-    await session.addTrack("music", { id: 22, title: "Outro", duration_ms: 8_000 }, 3)
+    await session.addTrack({ id: 22, title: "Outro", duration_ms: 8_000 }, 3)
 
     const document = update.mock.calls[0]![0]
     expect(document.tracks).toHaveLength(2)
@@ -330,7 +330,7 @@ describe("SoundSceneSession", () => {
     second.duration_ms = 2_000
     delete second.resolved_start_ms
     delete second.resolved_duration_ms
-    source.document.tracks.push({ id: "music-2", kind: "music", name: "Music 2", volume: 1, muted: false, clips: [second] })
+    source.document.tracks.push({ id: "music-2", kind: "audio", name: "Music 2", volume: 1, muted: false, clips: [second] })
     source.resolved.tracks.push({
       ...source.document.tracks[1]!,
       clips: [{ ...second, resolved_start_ms: 10_500, resolved_duration_ms: 2_000 }],
@@ -362,7 +362,7 @@ describe("SoundSceneSession", () => {
     second.id = "88af885c-aeb4-49bf-9edb-d3fc14496b2c"
     second.anchor = { kind: "part", part_public_id: "part-7", edge: "end", offset_ms: 500 }
     second.duration_ms = 2_000
-    source.document.tracks.push({ id: "music-2", kind: "music", name: "Music 2", volume: 1, muted: false, clips: [second] })
+    source.document.tracks.push({ id: "music-2", kind: "audio", name: "Music 2", volume: 1, muted: false, clips: [second] })
     source.resolved.tracks.push({
       ...source.document.tracks[1]!,
       clips: [{ ...second, resolved_start_ms: 10_500, resolved_duration_ms: 2_000 }],

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Collection
-
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 
@@ -16,9 +14,17 @@ COLLECTIONS = (
 
 _ASSET_FIELDS = (
     "id", "venture_id", "collection_id", "name", "kind",
-    "legacy_generation_id", "version_id", "filename", "path",
-    "size_bytes", "duration_ms", "mime_type",
+    "scope", "tags", "metadata", "legacy_generation_id", "version_id",
+    "filename", "path", "size_bytes", "duration_ms", "mime_type",
+    "audio_format", "sample_rate", "channels", "version_metadata",
 )
+
+_CATEGORY_BY_COLLECTION = {
+    "intros": "intro",
+    "outros": "outro",
+    "music": "music",
+    "stingers": "sfx",
+}
 
 
 class VentureAssetRepository:
@@ -135,13 +141,17 @@ class VentureAssetRepository:
         fields = ("id", "venture_id", "legacy_container_id", "kind", "name")
         return dict(zip(fields, row))
 
-    def list_for_venture(self, venture_id: int) -> list[dict]:
-        """Return the library presentation shape used by Work and Production."""
+    @staticmethod
+    def _listed_assets(where: str, parameters: tuple) -> list[dict]:
         with read_only() as cursor:
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT collection.name, asset.id, '', asset.name,
                        'Uploaded', version.duration_ms, version.filename,
-                       asset.kind, version.id
+                       asset.kind, version.id, asset.venture_id, asset.scope,
+                       asset.tags, asset.metadata, version.audio_format,
+                       version.sample_rate, version.channels,
+                       version.size_bytes, version.mime_type,
+                       version.metadata
                   FROM assets asset
                   JOIN asset_collections collection
                     ON collection.id = asset.collection_id
@@ -150,25 +160,55 @@ class VentureAssetRepository:
                         WHERE item.asset_id = asset.id
                         ORDER BY item.version DESC LIMIT 1
                   ) version ON true
-                 WHERE asset.venture_id = %s
+                 WHERE {where}
                  ORDER BY collection.name, asset.updated_at, asset.id
-            """, (venture_id,))
+            """, parameters)
             return [{
-                "folder": folder, "collection": kind, "id": asset_id,
+                "folder": folder, "collection": folder,
+                "category": kind, "kind": kind, "id": asset_id,
                 "version_id": version_id, "text": text or "", "title": title,
                 "voice": voice or "", "duration_ms": duration,
-                "filename": filename,
+                "filename": filename, "venture_id": owner, "scope": scope,
+                "tags": tags or [], "metadata": metadata or {},
+                "audio_format": audio_format, "sample_rate": sample_rate,
+                "channels": channels, "size_bytes": size_bytes,
+                "mime_type": mime_type,
+                "version_metadata": version_metadata or {},
             } for (folder, asset_id, text, title, voice, duration, filename,
-                   kind, version_id) in cursor.fetchall()]
+                   kind, version_id, owner, scope, tags, metadata,
+                   audio_format, sample_rate, channels, size_bytes, mime_type,
+                   version_metadata) in cursor.fetchall()]
+
+    def list_for_venture(self, venture_id: int) -> list[dict]:
+        """Return Assets owned by one Venture, regardless of reuse scope."""
+        return self._listed_assets("asset.venture_id = %s", (venture_id,))
+
+    def list_for_production(self, production_id: int) -> list[dict]:
+        """Return every Asset the Production may legally reference."""
+        return self._listed_assets("""
+            EXISTS (
+                SELECT 1
+                  FROM productions production
+                  JOIN work_projects project
+                    ON project.id = production.project_id
+                 WHERE production.id = %s
+                   AND production.archived_at IS NULL
+                   AND (asset.venture_id = project.venture_id
+                        OR asset.scope = 'studio')
+            )
+        """, (production_id,))
 
     def get(self, asset_id: int) -> dict | None:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT asset.id, asset.venture_id, asset.collection_id,
-                       asset.name, asset.kind, asset.legacy_generation_id,
+                       asset.name, asset.kind, asset.scope, asset.tags,
+                       asset.metadata, asset.legacy_generation_id,
                        version.id, version.filename, version.path,
                        version.size_bytes, version.duration_ms,
-                       version.mime_type
+                       version.mime_type, version.audio_format,
+                       version.sample_rate, version.channels,
+                       version.metadata
                   FROM assets asset
                   JOIN LATERAL (
                        SELECT item.* FROM asset_versions item
@@ -183,31 +223,35 @@ class VentureAssetRepository:
     def library_context(self, asset_id: int) -> dict | None:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT venture_id, kind, id, legacy_generation_id
-                  FROM assets WHERE id = %s
+                SELECT asset.venture_id, collection.name, asset.kind, asset.id,
+                       asset.legacy_generation_id, asset.scope
+                  FROM assets asset
+                  JOIN asset_collections collection
+                    ON collection.id = asset.collection_id
+                 WHERE asset.id = %s
             """, (asset_id,))
             row = cursor.fetchone()
-        return ({"venture_id": row[0], "collection": row[1].title(),
-                 "kind": row[1], "asset_id": row[2],
-                 "legacy_generation_id": row[3]} if row else None)
+        return ({"venture_id": row[0], "collection": row[1],
+                 "kind": row[2], "category": row[2], "asset_id": row[3],
+                 "legacy_generation_id": row[4], "scope": row[5]}
+                if row else None)
 
     def allowed_for_production(
-            self, production_id: int, asset_id: int,
-            kinds: Collection[str] | None = None) -> bool:
-        normalized = {item.lower() for item in kinds} if kinds is not None else None
+            self, production_id: int, asset_id: int) -> bool:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT asset.kind
+                SELECT 1
                   FROM assets asset
                   JOIN productions production ON production.id = %s
                   JOIN work_projects project
                     ON project.id = production.project_id
                  WHERE asset.id = %s
-                   AND asset.venture_id = project.venture_id
+                   AND (asset.venture_id = project.venture_id
+                        OR asset.scope = 'studio')
                    AND production.archived_at IS NULL
             """, (production_id, asset_id))
             row = cursor.fetchone()
-        return bool(row and (normalized is None or row[0].lower() in normalized))
+        return bool(row)
 
     def create_uploaded_asset(
             self, collection_id: int, *, name: str, filename: str, path: str,
@@ -222,21 +266,22 @@ class VentureAssetRepository:
             collection = cursor.fetchone()
             if not collection:
                 return None
-            venture_id, _legacy_container_id, kind = collection
+            venture_id, _legacy_container_id, collection_kind = collection
+            category = _CATEGORY_BY_COLLECTION.get(collection_kind, "other")
             cursor.execute("""
                 INSERT INTO assets
                     (venture_id, collection_id, name, kind,
                      legacy_generation_id)
                 VALUES (%s, %s, %s, %s, NULL) RETURNING id
-            """, (venture_id, collection_id, name, kind))
+            """, (venture_id, collection_id, name, category))
             asset_id = cursor.fetchone()[0]
             cursor.execute("""
                 INSERT INTO asset_versions
                     (asset_id, version, source_generation_id, filename, path,
-                     size_bytes, duration_ms, mime_type)
-                VALUES (%s, 1, NULL, %s, %s, %s, %s, %s) RETURNING id
+                     size_bytes, duration_ms, mime_type, audio_format)
+                VALUES (%s, 1, NULL, %s, %s, %s, %s, %s, %s) RETURNING id
             """, (asset_id, filename, path, size_bytes,
-                  duration_ms, mime_type))
+                  duration_ms, mime_type, audio_format))
             version_id = cursor.fetchone()[0]
         return {"id": asset_id,
                 "version_id": version_id, "name": name,

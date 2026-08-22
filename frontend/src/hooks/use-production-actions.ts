@@ -4,7 +4,7 @@ import { toast } from "sonner"
 import type { usePlayer } from "@/hooks/use-player"
 import { useJobExecution } from "@/hooks/use-job-execution"
 import { useAsyncAction } from "@/hooks/use-async-action"
-import { audibleMusicClips } from "@/features/sound-scene/sound-scene-audibility"
+import { audibleAudioClips } from "@/features/sound-scene/sound-scene-audibility"
 import { studioApi } from "@/lib/api"
 import { moveSelectionToPosition } from "@/lib/production-order"
 import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, Production, ProductionPart, SoundScene, SoundSceneDocument, VentureAsset } from "@/types/domain"
@@ -97,7 +97,7 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     try {
       const result = await studioApi.preview(production.id)
       if (!result.url) throw new Error("The preview did not return an audio file.")
-      const mixLabel = audibleMusicClips(soundScene).length ? "with Music" : "voice only"
+      const mixLabel = audibleAudioClips(soundScene).length ? "with Audio" : "voice only"
       const source: PlayerSource = { key: previewKey, url: result.url, title: production.name, subtitle: `Current audible mix · ${mixLabel}`, kind: "production" }
       await player.toggleSource(preparePlayerSource ? await preparePlayerSource(source) : source)
     } catch (error) {

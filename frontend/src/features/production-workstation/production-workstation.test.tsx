@@ -52,7 +52,7 @@ function scene(parts: ProductionPart[], sourceDurationMs = 60_000): SoundScene {
     return span
   })
   const clip = { id: musicClipId, asset_id: 9, duration_ms: null, source_offset_ms: 0, gain: .12, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, muted: false, locked: false, effects: [], anchor: { kind: "absolute" as const, position_ms: 0 }, asset_name: "Quiet room", filename: "bed.mp3", source_duration_ms: sourceDurationMs, resolved_start_ms: 0, resolved_duration_ms: cursor }
-  const track = { id: "music", kind: "music" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
+  const track = { id: "music", kind: "audio" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
   return { production_id: 6, revision: 1, document: { version: 1, sequence_overrides: {}, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", duration_ms: cursor, sequence_projection: { signature: "sequence", duration_ms: cursor, sample_rate: 48_000, spans }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/sequence-stem.mp3", filename: "sequence-stem.mp3", duration_ms: cursor, signature: "sequence", cached: true } }
 }
 
@@ -137,7 +137,7 @@ describe("Production Workstation", () => {
       part({ id: 2, position: 1, kind: "silence", title: "1.5", duration_ms: 1_500, clip_id: null }),
       part({ id: 3, position: 2, kind: "asset", title: "Door closes", duration_ms: 2_000, clip_id: 30 }),
     ]
-    render(<SoundSceneWorkspace session={sessionFor(scene(parts))} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    render(<SoundSceneWorkspace session={sessionFor(scene(parts))} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
     expect(screen.getByText("Narrator")).toBeTruthy()
     expect(screen.getByText("Door closes")).toBeTruthy()
@@ -150,7 +150,7 @@ describe("Production Workstation", () => {
 
   it("keeps essential track mixing available in the compact rail", () => {
     const onRemoveTrack = vi.fn()
-    render(<SoundSceneWorkspace session={sessionFor(scene([part({ duration_ms: 30_000 })]))} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={onRemoveTrack} />)
+    render(<SoundSceneWorkspace session={sessionFor(scene([part({ duration_ms: 30_000 })]))} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={onRemoveTrack} />)
 
     fireEvent.click(screen.getByRole("button", { name: "Hide track controls" }))
 
@@ -190,7 +190,7 @@ describe("Production Workstation", () => {
     const soundScene = scene([story], 1_500_000)
     soundScene.document.tracks[0]!.clips[0]!.asset_name = "Long source"
     soundScene.resolved.tracks[0]!.clips[0]!.asset_name = "Long source"
-    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
     expect((container.querySelector(".sound-scene-timeline") as HTMLElement).style.width).toBe("1200px")
   })
@@ -198,7 +198,7 @@ describe("Production Workstation", () => {
   it("persists one document after a committed drag, never one update per frame", async () => {
     const soundScene = scene([part({ duration_ms: 120_000 })], 1_500_000)
     const onCommit = vi.fn().mockResolvedValue({ ...soundScene, revision: 2 })
-    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene, onCommit)} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene, onCommit)} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
     const musicClip = container.querySelector(".sound-music-clip") as HTMLElement
     fireEvent.pointerDown(musicClip, { button: 0, clientX: 100 })
     fireEvent.pointerMove(window, { clientX: 120 })
@@ -212,13 +212,13 @@ describe("Production Workstation", () => {
     const soundScene = scene([part({ duration_ms: 120_000 })])
     const second = { ...soundScene.document.tracks[0]!.clips[0]!, id: "88af885c-aeb4-49bf-9edb-d3fc14496b2c", asset_name: "Rain layer", anchor: { kind: "absolute" as const, position_ms: 20_000 }, resolved_start_ms: 20_000 }
     soundScene.document.tracks[0]!.clips.push(second)
-    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
     const clips = container.querySelectorAll(".sound-music-clip")
 
     fireEvent.pointerDown(clips[0]!, { button: 0, clientX: 100 })
     fireEvent.pointerDown(clips[1]!, { button: 0, clientX: 200, shiftKey: true })
 
-    expect(screen.getByText("Music selection")).toBeTruthy()
+    expect(screen.getByText("Audio selection")).toBeTruthy()
     expect(screen.getAllByText("2 clips").length).toBeGreaterThan(0)
     expect(screen.queryByRole("button", { name: /Effects/ })).toBeNull()
     expect(screen.getByRole("button", { name: "Duplicate selected clips" })).toBeTruthy()
@@ -230,7 +230,7 @@ describe("Production Workstation", () => {
     source.locked = true
     source.effects = [{ id: "2bc326ca-57ba-4e63-bdfd-6145dfb73181", type: "telephone", enabled: true }]
 
-    render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
     expect(screen.getByTitle("Locked")).toBeTruthy()
     expect(screen.getByTitle("1 active effect")).toBeTruthy()
@@ -240,7 +240,7 @@ describe("Production Workstation", () => {
     const soundScene = scene([part({ duration_ms: 120_000 })])
     const second = { ...soundScene.document.tracks[0]!.clips[0]!, id: "88af885c-aeb4-49bf-9edb-d3fc14496b2c", locked: true, anchor: { kind: "absolute" as const, position_ms: 20_000 }, resolved_start_ms: 20_000 }
     soundScene.document.tracks[0]!.clips.push(second)
-    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
     const clips = container.querySelectorAll(".sound-music-clip")
 
     fireEvent.pointerDown(clips[0]!, { button: 0, clientX: 100 })
@@ -255,7 +255,7 @@ describe("Production Workstation", () => {
 
   it("pans the viewport by dragging unused timeline space", () => {
     const soundScene = scene([part({ duration_ms: 120_000 })])
-    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
     const scroll = container.querySelector(".sound-scene-scroll") as HTMLElement
     const lane = container.querySelector(".sound-scene-lane.is-music") as HTMLElement
     scroll.scrollLeft = 100
@@ -280,7 +280,7 @@ describe("Production Workstation", () => {
     const onCommit = vi.fn().mockImplementation(async (document) => ({
       ...soundScene, revision: 2, document,
     }))
-    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene, onCommit)} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const { container } = render(<SoundSceneWorkspace session={sessionFor(soundScene, onCommit)} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
     const clips = container.querySelectorAll(".sound-music-clip")
     fireEvent.pointerDown(clips[0]!, { button: 0, clientX: 100 })
     fireEvent.pointerUp(window, { clientX: 100 })
@@ -301,7 +301,7 @@ describe("Production Workstation", () => {
     const onCommit = vi.fn().mockResolvedValue({ ...soundScene, revision: 2 })
     const session = sessionFor(soundScene, onCommit)
     const initialAnchor = session.currentClip("music", musicClipId)?.anchor
-    const { container } = render(<SoundSceneWorkspace session={session} onAddMusic={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const { container } = render(<SoundSceneWorkspace session={session} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
     const musicClip = container.querySelector(".sound-music-clip") as HTMLElement
 
     fireEvent.pointerDown(musicClip, { button: 0, clientX: 100 })

@@ -79,7 +79,7 @@ export function SoundEffectsEditor({ effects, disabled, subject = "Clip", onPrev
 }
 
 export type SoundContext = {
-  kind: "music" | "sequence" | "silence"
+  kind: "audio" | "sequence" | "silence"
   label: string
   muted: boolean
   gain: number
@@ -109,19 +109,19 @@ export function SoundSceneContextToolbar({ context, saving, onMute, onGain, onEf
   const activeEffectCount = context.effects.filter((effect) => effect.enabled).length
   const muteLabel = context.kind === "sequence"
     ? context.muted ? "Unmute Part audio" : "Mute Part audio"
-    : context.muted ? "Unmute Music clip" : "Mute Music clip"
+    : context.muted ? "Unmute audio clip" : "Mute audio clip"
   const muteDetail = context.kind === "sequence"
     ? "Keeps this Part in the Sequence with the same position and duration."
-    : "Keeps this Music placement and timing, but removes its sound from the mix."
+    : "Keeps this audio placement and timing, but removes its sound from the mix."
   return <div className="sound-scene-context" aria-label={`${context.label} actions`}>
-    <div className="sound-context-group is-identity"><span className="sound-context-label"><b>{context.label}</b>{context.count && context.count > 1 ? <small>{context.count} clips</small> : <small>{context.kind === "music" ? "Music clip" : context.kind === "silence" ? "Sequence pause" : "Sequence Part"}</small>}</span></div>
+    <div className="sound-context-group is-identity"><span className="sound-context-label"><b>{context.label}</b>{context.count && context.count > 1 ? <small>{context.count} clips</small> : <small>{context.kind === "audio" ? "Audio clip" : context.kind === "silence" ? "Sequence pause" : "Sequence Part"}</small>}</span></div>
     {context.kind !== "silence" && <div className="sound-context-group is-mix">
       <OperatorTooltip label={muteLabel} detail={muteDetail}><Button className="sound-context-command" variant="ghost" size="sm" disabled={saving} aria-label={muteLabel} onClick={onMute}>{context.muted ? <VolumeX /> : <Volume2 />}{context.muted ? "Unmute" : "Mute"}</Button></OperatorTooltip>
       {context.kind === "sequence" && <Popover><PopoverTrigger asChild><Button className="sound-context-command" variant="ghost" size="sm" disabled={saving}><SlidersHorizontal /> Volume</Button></PopoverTrigger><PopoverContent align="end" className="sound-volume-popover"><span>Part volume <b>{gain}%</b></span><Slider aria-label="Sequence Part volume" value={[gain]} min={0} max={200} step={1} onValueChange={([value = 100]) => setGain(value)} onValueCommit={([value = 100]) => onGain(value / 100)} /></PopoverContent></Popover>}
       {(context.count === undefined || context.count === 1) ? <Popover><PopoverTrigger asChild><Button className={`sound-context-command${activeEffectCount ? " is-active" : ""}`} variant="ghost" size="sm" disabled={saving}><RadioTower /> Effects{activeEffectCount ? <small>{activeEffectCount}</small> : null}</Button></PopoverTrigger><PopoverContent align="end" className="sound-effects-popover"><SoundEffectsEditor effects={context.effects} disabled={saving} onPreview={onEffectsPreview} onCommit={onEffects} /></PopoverContent></Popover> : null}
       {onOptions && <Button className="sound-context-command" variant="ghost" size="sm" disabled={saving} onClick={onOptions}><MoreHorizontal /> Options</Button>}
     </div>}
-    {context.kind === "music" && <div className="sound-context-group is-object">
+    {context.kind === "audio" && <div className="sound-context-group is-object">
       <Button className={`sound-context-command${hasLockedClips ? " is-active" : ""}`} variant="ghost" size="sm" disabled={saving} onClick={onLock}>{lockState === "locked" ? <Unlock /> : <Lock />}{lockState === "locked" ? "Unlock" : lockState === "mixed" ? "Lock all" : "Lock"}</Button>
       <Button className="sound-context-command" variant="ghost" size="sm" disabled={saving || hasLockedClips} onClick={onDuplicate} aria-label="Duplicate selected clips"><Copy /> Duplicate</Button>
       <Button className="sound-context-command danger" variant="ghost" size="sm" disabled={saving || hasLockedClips} onClick={onDelete} aria-label="Delete selected clips"><Trash2 /> Delete</Button>

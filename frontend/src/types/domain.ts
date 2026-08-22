@@ -215,7 +215,7 @@ export type SoundSceneClip = {
 
 export type SoundSceneTrack = {
   id: string
-  kind: "music" | "sfx" | "ambience"
+  kind: "audio"
   name: string
   volume: number
   muted: boolean
@@ -288,8 +288,19 @@ export type VentureAsset = {
   folder?: string
   collection?: string
   kind?: string
+  category?: "music" | "ambience" | "sfx" | "intro" | "outro" | "other" | string
+  venture_id?: number
+  scope?: "venture" | "studio"
+  tags?: string[]
+  metadata?: Record<string, unknown>
   filename?: string
   duration_ms?: number | null
+  audio_format?: string | null
+  sample_rate?: number | null
+  channels?: number | null
+  size_bytes?: number | null
+  mime_type?: string | null
+  version_metadata?: Record<string, unknown>
   missing?: boolean
   [key: string]: unknown
 }

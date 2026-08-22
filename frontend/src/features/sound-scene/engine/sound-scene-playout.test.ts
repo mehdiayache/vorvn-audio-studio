@@ -70,7 +70,7 @@ function scene(): SoundScene {
     filename: `${id}.wav`, source_duration_ms: 2_000,
     resolved_start_ms: index * 2_000, resolved_duration_ms: 2_000,
   }))
-  const track = { id: "music", kind: "music" as const, name: "Music", volume: .8, muted: false, clips }
+  const track = { id: "music", kind: "audio" as const, name: "Music", volume: .8, muted: false, clips }
   return {
     production_id: 1, revision: 1, document: { version: 1, sequence_overrides: {}, tracks: [track] },
     can_undo: false, can_redo: false, updated_at: "now",

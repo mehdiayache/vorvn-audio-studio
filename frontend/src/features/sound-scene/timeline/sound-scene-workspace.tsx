@@ -110,9 +110,9 @@ function SoundTrackControl({ track, volume, collapsed, onMute, onVolumeChange, o
         </PopoverContent>
       </Popover>
       <DropdownMenu>
-        <OperatorTooltip label={`More actions for ${track.name}`} detail="Add a Music clip or permanently remove this track."><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Track actions for ${track.name}`}><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip>
+        <OperatorTooltip label={`More actions for ${track.name}`} detail="Add an Audio Library clip or permanently remove this track."><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Track actions for ${track.name}`}><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip>
         <DropdownMenuContent side="right" align="center">
-          <DropdownMenuItem onSelect={onAdd}><Plus /> Add Music clip</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onAdd}><Plus /> Add audio clip</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={onRemove}><Trash2 /> Remove “{track.name}”</DropdownMenuItem>
         </DropdownMenuContent>
@@ -120,15 +120,15 @@ function SoundTrackControl({ track, volume, collapsed, onMute, onVolumeChange, o
     </div> : <div className="sound-track-mix">
       <OperatorIconButton label={track.muted ? `Unmute ${track.name}` : `Mute ${track.name}`} detail="Changes this Sound Design track without changing Sequence Parts." onClick={onMute}>{track.muted ? <VolumeX /> : <Volume2 />}</OperatorIconButton>
       <Slider aria-label={`${track.name} volume`} value={[Math.round(volume * 100)]} max={200} step={1} onValueChange={([value = 0]) => onVolumeChange(value / 100)} onValueCommit={([value = 0]) => onVolumeCommit(value / 100)} />
-      <OperatorIconButton label={`Add Music clip to ${track.name}`} onClick={onAdd}><Plus /></OperatorIconButton>
+      <OperatorIconButton label={`Add audio clip to ${track.name}`} onClick={onAdd}><Plus /></OperatorIconButton>
       <OperatorIconButton label={`Remove ${track.name}`} detail={`Permanently removes the track and its ${track.clips.length} placement${track.clips.length === 1 ? "" : "s"}.`} onClick={onRemove}><Trash2 /></OperatorIconButton>
     </div>}
   </div>
 }
 
-export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemoveTrack, onOpenSequence }: {
+export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemoveTrack, onOpenSequence }: {
   session: SoundSceneSession
-  onAddMusic: (target: AddTarget) => void
+  onAddAudio: (target: AddTarget) => void
   onRemoveClip: (target: RemoveTarget) => void
   onRemoveTrack: (track: SoundSceneTrack) => void
   onOpenSequence?: (partId: number) => void
@@ -173,9 +173,9 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
     label: selectedPart.silence ? `Silence · ${formatDuration(selectedPart.duration_ms / 1000)}` : selectedPart.role || selectedPart.voice_name || selectedPart.title || `Part ${Number(selectedPart.position ?? 0) + 1}`,
     muted: selectedPart.mix.muted, gain: selectedPart.mix.gain, effects: selectedPart.mix.effects,
   } : selectedClips.length ? {
-    kind: "music", label: selectedClips.length === 1
-      ? selectedClips[0]!.clip.asset_name || "Music clip"
-      : "Music selection",
+    kind: "audio", label: selectedClips.length === 1
+      ? selectedClips[0]!.clip.asset_name || "Audio clip"
+      : "Audio selection",
     count: selectedClips.length,
     muted: selectedClips.every(({ clip }) => clip.muted),
     lockState: lockedClipCount === 0 ? "unlocked" : lockedClipCount === selectedClips.length ? "locked" : "mixed",
@@ -425,7 +425,7 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
         <OperatorTooltip label="Keep the playhead visible during playback"><Button variant="ghost" size="sm" className={followPlayhead ? "is-active" : undefined} aria-pressed={followPlayhead} onClick={() => setFollowPlayhead((value) => !value)}><LocateFixed /><span>Follow</span></Button></OperatorTooltip>
       </div>
       <span className="sound-scene-save-state">{saving && <b>Saving…</b>}{error && <b className="is-error" role="alert">{error}</b>}</span>
-      <Button variant="outline" size="sm" onClick={() => onAddMusic({ mode: "new-track" })}><Plus /> Music track</Button>
+      <Button variant="outline" size="sm" onClick={() => onAddAudio({ mode: "new-track" })}><Plus /> Audio Track</Button>
     </div>
     <div className="sound-scene-editor">
       <aside ref={controlsRef} className="sound-scene-track-controls" style={{ gridTemplateRows: rowTemplate }} onWheel={(event) => { if (scrollRef.current) scrollRef.current.scrollTop += event.deltaY }}>
@@ -437,7 +437,7 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
           onMute={() => void session.commitTrackMute(track.id, !track.muted)}
           onVolumeChange={(volume) => session.setTrackVolume(track.id, volume)}
           onVolumeCommit={(volume) => void session.commitTrackVolume(track.id, volume)}
-          onAdd={() => onAddMusic({ mode: "add-clip", trackId: track.id })}
+          onAdd={() => onAddAudio({ mode: "add-clip", trackId: track.id })}
           onRemove={() => onRemoveTrack(track)}
         />)}
       </aside>
@@ -491,7 +491,7 @@ export function SoundSceneWorkspace({ session, onAddMusic, onRemoveClip, onRemov
                   </>}
                 </div>
               })}
-              {!track.clips.length && <button className="sound-empty-lane" onClick={() => onAddMusic({ mode: "add-clip", trackId: track.id })}><Plus /> Add Music clip</button>}
+              {!track.clips.length && <button className="sound-empty-lane" onClick={() => onAddAudio({ mode: "add-clip", trackId: track.id })}><Plus /> Add audio clip</button>}
             </div>
           })}
         </div>

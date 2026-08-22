@@ -5,23 +5,23 @@ import RegionsPlugin, { type Region } from "wavesurfer.js/dist/plugins/regions.e
 import { useAudioPeaks } from "@/components/audio-waveform"
 import { formatDuration } from "@/lib/format"
 
-export type MusicSourceWindow = { sourceOffsetMs: number; durationMs: number | null }
+export type AudioSourceWindow = { sourceOffsetMs: number; durationMs: number | null }
 
-export function MusicSourceEditor({ url, sourceDuration, sourceOffset, usedDuration, loop, disabled, onChange, onCommit }: {
+export function AudioSourceEditor({ url, sourceDuration, sourceOffset, usedDuration, loop, disabled, onChange, onCommit }: {
   url: string
   sourceDuration: number
   sourceOffset: number
   usedDuration: number
   loop: boolean
   disabled?: boolean
-  onChange: (window: MusicSourceWindow) => void
-  onCommit: (window: MusicSourceWindow) => void
+  onChange: (window: AudioSourceWindow) => void
+  onCommit: (window: AudioSourceWindow) => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const regionRef = useRef<Region | null>(null)
   const syncing = useRef(false)
   const gestureDirty = useRef(false)
-  const lastWindow = useRef<MusicSourceWindow>({ sourceOffsetMs: sourceOffset * 1000, durationMs: loop ? null : usedDuration * 1000 })
+  const lastWindow = useRef<AudioSourceWindow>({ sourceOffsetMs: sourceOffset * 1000, durationMs: loop ? null : usedDuration * 1000 })
   const callbacks = useRef({ onChange, onCommit })
   const interaction = useRef({ disabled: Boolean(disabled), loop })
   callbacks.current = { onChange, onCommit }
@@ -56,11 +56,11 @@ export function MusicSourceEditor({ url, sourceDuration, sourceOffset, usedDurat
       barRadius: 2,
       hideScrollbar: true,
     })
-    const value = (current: Region): MusicSourceWindow => ({
+    const value = (current: Region): AudioSourceWindow => ({
       sourceOffsetMs: Math.round(current.start * 1000),
       durationMs: interaction.current.loop ? null : Math.max(100, Math.round((current.end - current.start) * 1000)),
     })
-    const changed = (next: MusicSourceWindow) =>
+    const changed = (next: AudioSourceWindow) =>
       next.sourceOffsetMs !== lastWindow.current.sourceOffsetMs || next.durationMs !== lastWindow.current.durationMs
     const stopUpdate = regions.on("region-update", (current) => {
       if (syncing.current) return
@@ -83,7 +83,7 @@ export function MusicSourceEditor({ url, sourceDuration, sourceOffset, usedDurat
     const stopReady = waveform.once("ready", () => {
       const desired = desiredRegion.current
       regionRef.current = regions.addRegion({
-        id: "music-source-window",
+        id: "audio-source-window",
         start: desired.start,
         end: desired.end,
         drag: !interaction.current.disabled,
@@ -123,7 +123,7 @@ export function MusicSourceEditor({ url, sourceDuration, sourceOffset, usedDurat
     syncing.current = false
   }, [boundedOffset, boundedSource, boundedUsed, disabled, loop])
 
-  return <section className={`music-waveform-editor${loop ? " is-loop" : ""}`} aria-label="Music source window">
+  return <section className={`music-waveform-editor${loop ? " is-loop" : ""}`} aria-label="Audio source window">
     <header><span><b>{loop ? "Loop start" : "Used source window"}</b><small>{loop ? "Drag the purple start marker. The first pass begins here; later passes restart at 0:00." : "Drag the region; resize either edge to choose the exact source window."}</small></span><strong>{loop ? formatDuration(boundedOffset) : `${formatDuration(boundedOffset)} → ${formatDuration(boundedOffset + boundedUsed)}`}</strong></header>
     <div className={`music-waveform-canvas${peaks?.length === 0 ? " is-unavailable" : ""}`}>
       <div className="music-waveform-surface" ref={containerRef} />

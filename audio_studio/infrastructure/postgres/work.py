@@ -823,13 +823,19 @@ def create_production(project_id: int, name: str, description: str = "",
               clean_name, description.strip(), series_id))
         cur.execute("""
             INSERT INTO sound_scenes (production_id, document)
-            VALUES (%s, '{"version":1,"tracks":[{"id":"music","kind":"music","name":"Music","muted":false,"clips":[]}]}'::jsonb)
-            ON CONFLICT (production_id) DO NOTHING
+            VALUES (%s, '{"version":1,"sequence_overrides":{},"tracks":[]}'::jsonb)
+            ON CONFLICT (production_id) DO UPDATE
+              SET document = EXCLUDED.document
+            WHERE sound_scenes.document =
+                  '{"version":1,"tracks":[{"id":"music","kind":"music","name":"Music","muted":false,"clips":[]}]}'::jsonb
         """, (ident,))
         cur.execute("""
             INSERT INTO sound_scene_history (production_id, revision, document)
             SELECT production_id, revision, document FROM sound_scenes
              WHERE production_id=%s
-            ON CONFLICT (production_id, revision) DO NOTHING
+            ON CONFLICT (production_id, revision) DO UPDATE
+              SET document = EXCLUDED.document
+            WHERE sound_scene_history.document =
+                  '{"version":1,"tracks":[{"id":"music","kind":"music","name":"Music","muted":false,"clips":[]}]}'::jsonb
         """, (ident,))
     return production_get(ident)

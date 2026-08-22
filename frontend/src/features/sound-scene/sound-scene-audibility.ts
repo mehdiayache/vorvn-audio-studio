@@ -1,8 +1,8 @@
 import type { SoundScene, SoundSceneClip } from "@/types/domain"
 
-export function audibleMusicClips(soundScene: SoundScene): SoundSceneClip[] {
+export function audibleAudioClips(soundScene: SoundScene): SoundSceneClip[] {
   return soundScene.resolved.tracks.flatMap((track) => {
-    if (track.kind !== "music" || track.muted || track.volume <= 0) return []
+    if (track.muted || track.volume <= 0) return []
     return track.clips.filter((clip) =>
       !clip.muted
       && !clip.missing

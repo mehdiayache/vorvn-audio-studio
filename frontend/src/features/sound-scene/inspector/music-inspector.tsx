@@ -8,11 +8,11 @@ import { SwitchLike } from "@/components/switch-like"
 import { audioUrl } from "@/lib/api"
 import { formatDuration } from "@/lib/format"
 import type { PlayerSource, SoundSceneClip, SoundSceneTrack } from "@/types/domain"
-import { MusicSourceEditor, type MusicSourceWindow } from "../source-editor/music-source-editor"
+import { AudioSourceEditor, type AudioSourceWindow } from "../source-editor/music-source-editor"
 
 import "./music-inspector.css"
 
-export function MusicInspector({ track, clip, playingKey, playing, onPlay, onClipChange, onClipCommit, onTrackVolumeChange, onTrackVolumeCommit, onChoose, onRemove }: {
+export function AudioClipInspector({ track, clip, playingKey, playing, onPlay, onClipChange, onClipCommit, onTrackVolumeChange, onTrackVolumeCommit, onChoose, onRemove }: {
   track: SoundSceneTrack
   clip: SoundSceneClip | null
   playingKey?: string
@@ -44,17 +44,17 @@ export function MusicInspector({ track, clip, playingKey, playing, onPlay, onCli
     setSaving(label)
     setError("")
     try { await action() }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "Those music settings could not be saved.") }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Those audio settings could not be saved.") }
     finally { setSaving("") }
   }
 
-  function sourceWindow(next: MusicSourceWindow) {
+  function sourceWindow(next: AudioSourceWindow) {
     setStart(next.sourceOffsetMs / 1000)
     if (next.durationMs !== null) setWindowDuration(next.durationMs / 1000)
     onClipChange({ source_offset_ms: next.sourceOffsetMs, duration_ms: next.durationMs })
   }
 
-  if (!clip?.filename) return <div className="music-workbench-empty"><Music2 /><span><b>No Music</b><p>Add one reusable Venture track to the Sound Scene.</p></span><Button onClick={onChoose}>Choose music</Button></div>
+  if (!clip?.filename) return <div className="music-workbench-empty"><Music2 /><span><b>No audio</b><p>Add one reusable Audio Library clip to this track.</p></span><Button onClick={onChoose}>Choose audio</Button></div>
 
   const key = `asset-source:${clip.asset_id}`
   const active = playing && playingKey === key
@@ -64,13 +64,13 @@ export function MusicInspector({ track, clip, playingKey, playing, onPlay, onCli
   return <div className="music-workbench-content">
     <section className="music-workbench-source">
       <span className="music-workbench-art"><Music2 /></span>
-      <div><span className="eyebrow">Linked Venture source</span><h3>{clip.asset_name || "Music"}</h3><p>{formatDuration(sourceDuration)} source · reusable asset</p></div>
-      <OperatorIconButton label={active ? "Pause Music audition" : "Play Music audition"} detail="Auditions the source without changing its timeline placement." variant="outline" size="icon" onClick={() => onPlay({ key, url: audioUrl(clip.filename!), title: clip.asset_name || "Music", subtitle: "Source audition", kind: "music" })}>{active ? <Pause /> : <Play />}</OperatorIconButton>
+      <div><span className="eyebrow">Audio Library source</span><h3>{clip.asset_name || "Audio"}</h3><p>{formatDuration(sourceDuration)} source · reusable asset</p></div>
+      <OperatorIconButton label={active ? "Pause audio audition" : "Play audio audition"} detail="Auditions the source without changing its timeline placement." variant="outline" size="icon" onClick={() => onPlay({ key, url: audioUrl(clip.filename!), title: clip.asset_name || "Audio", subtitle: "Source audition", kind: "asset" })}>{active ? <Pause /> : <Play />}</OperatorIconButton>
     </section>
 
     <section className="music-workbench-controls">
       <header className="music-placement-header"><h3>Placement</h3><small>Live preview</small></header>
-      <MusicSourceEditor
+      <AudioSourceEditor
         url={audioUrl(clip.filename)}
         sourceDuration={sourceDuration}
         sourceOffset={start}
@@ -80,11 +80,11 @@ export function MusicInspector({ track, clip, playingKey, playing, onPlay, onCli
         onChange={sourceWindow}
         onCommit={(next) => { sourceWindow(next); void save("source window", onClipCommit) }}
       />
-      <label title="Changes only this Music placement"><span><Headphones /> Clip level <b>{volume}%</b></span><Slider aria-label="Music clip level" disabled={Boolean(saving)} value={[volume]} max={200} step={1} onValueChange={([value = 0]) => { setVolume(value); onClipChange({ gain: value / 100 }) }} onValueCommit={([value = volume]) => { setVolume(value); onClipChange({ gain: value / 100 }); void save("clip level", onClipCommit) }} /></label>
-      <label title={`Changes every clip on ${track.name}`}><span><Music2 /> Track level <b>{trackVolume}%</b></span><Slider aria-label="Music track level" disabled={Boolean(saving)} value={[trackVolume]} max={200} step={1} onValueChange={([value = 0]) => { setTrackVolume(value); onTrackVolumeChange(value / 100) }} onValueCommit={([value = trackVolume]) => { setTrackVolume(value); void save("track level", () => onTrackVolumeCommit(value / 100)) }} /></label>
+      <label title="Changes only this audio placement"><span><Headphones /> Clip level <b>{volume}%</b></span><Slider aria-label="Audio clip level" disabled={Boolean(saving)} value={[volume]} max={200} step={1} onValueChange={([value = 0]) => { setVolume(value); onClipChange({ gain: value / 100 }) }} onValueCommit={([value = volume]) => { setVolume(value); onClipChange({ gain: value / 100 }); void save("clip level", onClipCommit) }} /></label>
+      <label title={`Changes every clip on ${track.name}`}><span><Music2 /> Track level <b>{trackVolume}%</b></span><Slider aria-label="Audio Track level" disabled={Boolean(saving)} value={[trackVolume]} max={200} step={1} onValueChange={([value = 0]) => { setTrackVolume(value); onTrackVolumeChange(value / 100) }} onValueCommit={([value = trackVolume]) => { setTrackVolume(value); void save("track level", () => onTrackVolumeCommit(value / 100)) }} /></label>
       <div className="music-fade-grid">
-        <label><span>Fade in <b>{fadeIn.toFixed(1)}s</b></span><Slider aria-label="Music fade in" disabled={Boolean(saving) || geometryLocked} value={[fadeIn]} max={15} step={0.1} onValueChange={([value = 0]) => { setFadeIn(value); onClipChange({ fade_in_ms: Math.round(value * 1000) }) }} onValueCommit={([value = fadeIn]) => { setFadeIn(value); onClipChange({ fade_in_ms: Math.round(value * 1000) }); void save("fade in", onClipCommit) }} /></label>
-        <label><span>Fade out <b>{fadeOut.toFixed(1)}s</b></span><Slider aria-label="Music fade out" disabled={Boolean(saving) || geometryLocked} value={[fadeOut]} max={15} step={0.1} onValueChange={([value = 0]) => { setFadeOut(value); onClipChange({ fade_out_ms: Math.round(value * 1000) }) }} onValueCommit={([value = fadeOut]) => { setFadeOut(value); onClipChange({ fade_out_ms: Math.round(value * 1000) }); void save("fade out", onClipCommit) }} /></label>
+        <label><span>Fade in <b>{fadeIn.toFixed(1)}s</b></span><Slider aria-label="Audio fade in" disabled={Boolean(saving) || geometryLocked} value={[fadeIn]} max={15} step={0.1} onValueChange={([value = 0]) => { setFadeIn(value); onClipChange({ fade_in_ms: Math.round(value * 1000) }) }} onValueCommit={([value = fadeIn]) => { setFadeIn(value); onClipChange({ fade_in_ms: Math.round(value * 1000) }); void save("fade in", onClipCommit) }} /></label>
+        <label><span>Fade out <b>{fadeOut.toFixed(1)}s</b></span><Slider aria-label="Audio fade out" disabled={Boolean(saving) || geometryLocked} value={[fadeOut]} max={15} step={0.1} onValueChange={([value = 0]) => { setFadeOut(value); onClipChange({ fade_out_ms: Math.round(value * 1000) }) }} onValueCommit={([value = fadeOut]) => { setFadeOut(value); onClipChange({ fade_out_ms: Math.round(value * 1000) }); void save("fade out", onClipCommit) }} /></label>
       </div>
       <SwitchLike label="Loop source" checked={Boolean(clip.loop)} disabled={Boolean(saving) || geometryLocked} onChange={(loop) => { onClipChange({ loop }); void save("looping", onClipCommit) }} />
       <SwitchLike label="Duck under Sequence" checked={Boolean(clip.ducking)} disabled={Boolean(saving)} onChange={(ducking) => { onClipChange({ ducking }); void save("ducking", onClipCommit) }} />

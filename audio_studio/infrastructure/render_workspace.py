@@ -532,9 +532,10 @@ class FFmpegRenderWorkspace:
         return {
             "url": f"/audio/{quote(name)}", "name": name,
             "duration_ms": _measure(target), "parts": len(parts),
+            # `music` remains as a compatibility response field for older
+            # clients. It now truthfully means parallel Sound Design audio.
             "music": any(
-                track.get("kind") == "music" and track.get("clips")
-                and not track.get("muted")
+                track.get("clips") and not track.get("muted")
                 for track in scene.get("tracks", [])
             ), "cached": cached,
             "skipped_drafts": skipped_drafts,

@@ -3317,9 +3317,9 @@ export interface components {
             id: string;
             /**
              * Kind
-             * @enum {string}
+             * @constant
              */
-            kind: "music" | "sfx" | "ambience";
+            kind: "audio";
             /** Muted */
             muted: boolean;
             /** Name */
@@ -3698,7 +3698,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "music" | "sfx" | "ambience";
+            kind: "audio" | "music" | "sfx" | "ambience";
             /**
              * Muted
              * @default false
@@ -4589,6 +4589,12 @@ export interface components {
         };
         /** VentureAssetResponse */
         VentureAssetResponse: {
+            /** Audio Format */
+            audio_format?: string | null;
+            /** Category */
+            category?: string | null;
+            /** Channels */
+            channels?: number | null;
             /** Collection */
             collection?: string | null;
             /** Duration Ms */
@@ -4599,14 +4605,40 @@ export interface components {
             folder?: string | null;
             /** Id */
             id: number;
+            /** Kind */
+            kind?: string | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** Mime Type */
+            mime_type?: string | null;
             /** Missing */
             missing?: boolean | null;
+            /** Sample Rate */
+            sample_rate?: number | null;
+            /**
+             * Scope
+             * @default venture
+             * @enum {string}
+             */
+            scope: "venture" | "studio";
+            /** Size Bytes */
+            size_bytes?: number | null;
+            /** Tags */
+            tags?: string[];
             /** Text */
             text?: string | null;
             /** Title */
             title?: string | null;
+            /** Venture Id */
+            venture_id?: number | null;
             /** Version Id */
             version_id?: number | null;
+            /** Version Metadata */
+            version_metadata?: {
+                [key: string]: unknown;
+            };
             /** Voice */
             voice?: string | null;
         } & {

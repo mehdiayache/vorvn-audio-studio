@@ -9,7 +9,7 @@ import type { ProductionImportCounts, ProductionImportDocument } from "@/feature
 
 export type ConfirmAction = { title: string; description: string; action: () => void | Promise<void>; confirmLabel?: string; kind?: "confirm" | "delete"; variant?: "default" | "destructive" }
 
-export default function ProductionOverlays({ tool, productionId, nextPartNumber, insertAt, insertBeforePartId, composerPart, replacingAssetId, initialMusicAssetId, config, directory, assets, assetCollectionIds, playingKey, playerPlaying, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertAsset, onSetMusic, onUploadAsset, onImport, onImported, onPlay, onConfirmAction }: {
+export default function ProductionOverlays({ tool, productionId, nextPartNumber, insertAt, insertBeforePartId, composerPart, replacingAssetId, initialAudioAssetId, config, directory, assets, assetCollectionIds, playingKey, playerPlaying, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertAsset, onPlaceAudio, onUploadAsset, onImport, onImported, onPlay, onConfirmAction }: {
   tool: ToolKind
   productionId: number
   nextPartNumber: number
@@ -17,7 +17,7 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
   insertBeforePartId: string | null
   composerPart: ProductionPart | null
   replacingAssetId?: number | null
-  initialMusicAssetId?: number | null
+  initialAudioAssetId?: number | null
   config: StudioConfig | null
   directory: VoiceDirectory
   assets: VentureAsset[]
@@ -31,7 +31,7 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
   onGenerate: (payload: GeneratePayload) => Promise<DurableJob<GenerateResult>>
   onAddSilence: (seconds: number) => Promise<void>
   onInsertAsset: (asset: VentureAsset) => Promise<void>
-  onSetMusic: (asset: VentureAsset) => Promise<void>
+  onPlaceAudio: (asset: VentureAsset) => Promise<void>
   onUploadAsset: (folder: string, file: File) => Promise<void>
   onImport: (document: ProductionImportDocument, roleVoices: Record<string, string>) => Promise<ProductionImportCounts>
   onImported: () => void
@@ -70,7 +70,7 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
       onGenerate={onGenerate}
       onPlay={onPlay}
     />}
-    <ProductionToolDialog open={tool === "speech" ? null : tool} nextPartNumber={nextPartNumber} beforePartId={insertBeforePartId} replacingAssetId={replacingAssetId} initialMusicAssetId={initialMusicAssetId} assets={assets} assetCollectionIds={assetCollectionIds} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseTool} onAddSilence={onAddSilence} onInsertAsset={onInsertAsset} onSetMusic={onSetMusic} onUploadAsset={onUploadAsset} onImport={onImport} onImported={onImported} onPlay={onPlay} />
+    <ProductionToolDialog open={tool === "speech" ? null : tool} nextPartNumber={nextPartNumber} beforePartId={insertBeforePartId} replacingAssetId={replacingAssetId} initialAudioAssetId={initialAudioAssetId} assets={assets} assetCollectionIds={assetCollectionIds} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseTool} onAddSilence={onAddSilence} onInsertAsset={onInsertAsset} onPlaceAudio={onPlaceAudio} onUploadAsset={onUploadAsset} onImport={onImport} onImported={onImported} onPlay={onPlay} />
     {confirmAction?.kind === "delete" ? <DeleteConfirmationDialog
       open
       onOpenChange={(open) => { if (!open && !confirmBusy) onConfirmAction(null) }}

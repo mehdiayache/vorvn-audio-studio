@@ -258,6 +258,7 @@ class ProductionDocumentTests(unittest.TestCase):
         })
         music_clip = saved_scene["hydrated_document"]["tracks"][0]["clips"][0]
         persisted_music_clip = saved_scene["document"]["tracks"][0]["clips"][0]
+        self.assertEqual(saved_scene["document"]["tracks"][0]["kind"], "audio")
         self.assertEqual(
             (music_clip["asset_id"], music_clip["filename"],
              music_clip["gain"], music_clip["source_offset_ms"],
@@ -276,8 +277,16 @@ class ProductionDocumentTests(unittest.TestCase):
              persisted_music_clip["effects"]),
             (False, False, []),
         )
+        unavailable_version = json.loads(json.dumps(saved_scene["document"]))
+        unavailable_version["tracks"][0]["clips"][0]["asset_version_id"] = (
+            2_147_483_647
+        )
+        with self.assertRaisesRegex(ValueError, "Asset is unavailable"):
+            sound_scenes.commit(
+                first_id, saved_scene["revision"], unavailable_version,
+        )
         undone_scene = sound_scenes.step(first_id, -1)
-        self.assertEqual(undone_scene["document"]["tracks"][0]["clips"], [])
+        self.assertEqual(undone_scene["document"]["tracks"], [])
         self.assertTrue(undone_scene["can_redo"])
         redone_scene = sound_scenes.step(first_id, 1)
         self.assertEqual(
@@ -365,6 +374,39 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual(active[0]["id"], replacement["id"])
         self.assertEqual([part["position"] for part in active],
                          list(range(len(active))))
+
+    def test_new_production_sound_scene_starts_with_matching_empty_history(self):
+        production_id = int(self.first["id"])
+        with psycopg.connect(settings.database_url) as database:
+            with database.cursor() as cursor:
+                cursor.execute("""
+                    SELECT scene.document, history.document
+                      FROM sound_scenes scene
+                      JOIN sound_scene_history history
+                        ON history.production_id=scene.production_id
+                       AND history.revision=scene.revision
+                     WHERE scene.production_id=%s
+                """, (production_id,))
+                current, history = cursor.fetchone()
+        self.assertEqual(current, history)
+        self.assertEqual(current.get("tracks"), [])
+
+    def test_sequence_accepts_any_accessible_audio_classification(self):
+        production_id = int(self.first["id"])
+        collections = self.asset_repository.collections_for_venture(
+            int(self.venture["id"]))
+        music = next(item for item in collections if item["kind"] == "music")
+        asset = self.asset_repository.create_uploaded_asset(
+            music["id"], name=f"Sequence music {self.marker}",
+            filename=f"sequence-music-{self.marker}.wav",
+            path=f"/tmp/sequence-music-{self.marker}.wav",
+            size_bytes=44, duration_ms=2_000, audio_format="wav",
+            mime_type="audio/wav",
+        )
+        inserted = self.timeline.insert_asset(production_id, asset["id"])
+        part = self.repository.part(production_id, inserted["id"])
+        self.assertEqual((part["kind"], part["asset_id"]),
+                         ("asset", asset["id"]))
 
     def test_reorder_locks_the_active_sequence_and_persists_exact_order(self):
         production_id = int(self.first["id"])

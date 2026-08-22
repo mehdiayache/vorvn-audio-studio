@@ -88,6 +88,8 @@ class SoundSceneDomainTests(unittest.TestCase):
         canonical = normalize_scene(historical)
 
         self.assertEqual(canonical["sequence_overrides"], {})
+        self.assertEqual(canonical["tracks"][0]["kind"], "audio")
+        self.assertEqual(canonical["tracks"][0]["name"], "Music")
         clip = canonical["tracks"][0]["clips"][0]
         self.assertNotIn("start_ms", clip)
         self.assertEqual(clip["anchor"], {

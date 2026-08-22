@@ -7,7 +7,6 @@ from unittest.mock import Mock, patch
 
 from fastapi.testclient import TestClient
 
-from audio_studio.application.timeline import TimelineError
 from audio_studio.application.media import MediaService
 from audio_studio.domain.media import MediaFile
 from audio_studio.http.app import app
@@ -260,7 +259,7 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(conflict.status_code, 409)
         self.assertEqual(conflict.json()["error"]["code"], "domain_conflict")
 
-    def test_timeline_contract_preserves_music_and_silence_rules(self):
+    def test_timeline_contract_preserves_audio_and_silence_rules(self):
         with patch.object(
                 timeline_router.timeline_service, "add_silence",
                 return_value={"id": 101, "seconds": 2.5}):
@@ -296,15 +295,14 @@ class NativeHttpTests(unittest.TestCase):
 
         with patch.object(
                 timeline_router.timeline_service, "insert_asset",
-                side_effect=TimelineError(
-                    "Music is a background bed. Choose it in the Music controls.")):
-            music = self.client.post(
+                return_value={"id": 103, "kind": "asset", "asset_id": 55}):
+            audio = self.client.post(
                 "/api/v1/productions/7/parts/assets", json={"asset_id": 55})
-        self.assertEqual(music.status_code, 400)
-        self.assertEqual(music.json()["error"]["code"], "timeline_error")
+        self.assertEqual(audio.status_code, 200)
+        self.assertEqual(audio.json()["data"]["id"], 103)
 
         document = {"version": 1, "sequence_overrides": {}, "tracks": [{
-            "id": "music", "kind": "music", "name": "Music",
+            "id": "audio", "kind": "audio", "name": "Audio",
             "volume": 1, "muted": False, "clips": [],
         }]}
         with patch.object(

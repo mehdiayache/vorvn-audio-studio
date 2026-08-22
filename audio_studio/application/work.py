@@ -20,6 +20,7 @@ class WorkRecords(Protocol):
     def ensure_asset_collections(self, venture_id: int) -> list[dict]: ...
     def asset_collections(self, venture_id: int) -> list[dict]: ...
     def assets(self, venture_id: int) -> list[dict]: ...
+    def production_assets(self, production_id: int) -> list[dict]: ...
     def parts(self, production_id: int) -> list[dict]: ...
     def exports(self, production_id: int) -> list[dict]: ...
     def latest_render_job(
@@ -105,7 +106,13 @@ class WorkService:
         production = self.records.production(internal_id)
         if not production or not production.get("trail"):
             return None
-        return self.venture_assets(int(production["trail"][0]["id"]))
+        library = self.venture_assets(int(production["trail"][0]["id"]))
+        if not library:
+            return None
+        return {
+            **library,
+            "assets": self.records.production_assets(internal_id),
+        }
 
     def production_editor(self, production_id: int | str) -> dict[str, Any] | None:
         internal_id = self._internal_id("productions", production_id)

@@ -153,7 +153,7 @@ export class SoundScenePlayout {
   private sequenceStream: SequenceStream | null = null
   private streams: StreamHandle[] = []
   private streamDescriptors = new Map<string, StreamDescriptor>()
-  private musicStreams = new Map<string, StreamHandle>()
+  private audioStreams = new Map<string, StreamHandle>()
   private effectRoutes = new Map<string, EffectRoute>()
   private childTracks = new Map<string, string[]>()
   private internalTrackByClip = new Map<string, string>()
@@ -222,7 +222,7 @@ export class SoundScenePlayout {
     for (const stream of this.streams) this.releaseStream(stream)
     this.streams = []
     this.streamDescriptors.clear()
-    this.musicStreams.clear()
+    this.audioStreams.clear()
     this.sequenceStream = null
     this.clearEffectRoutes()
     this.adapter?.dispose()
@@ -465,7 +465,7 @@ export class SoundScenePlayout {
     }
   }
 
-  private createMusicStream(descriptor: StreamDescriptor) {
+  private createAudioStream(descriptor: StreamDescriptor) {
     const { trackId, trackVolume, trackMuted, clip } = descriptor
     const element = this.mediaElement(audioUrl(clip.filename!))
     const source = this.context!.createMediaElementSource(element)
@@ -480,7 +480,7 @@ export class SoundScenePlayout {
       muted: trackMuted || clip.muted,
     }
     this.streams.push(handle)
-    this.musicStreams.set(clip.id, handle)
+    this.audioStreams.set(clip.id, handle)
   }
 
   private materializeRelevantStreams(time: number) {
@@ -491,11 +491,11 @@ export class SoundScenePlayout {
         + Number(clip.effect_tail_ms || 0) / 1_000
       const relevant = start <= time + STREAM_PREROLL_SECONDS
         && end >= time - STREAM_RELEASE_BEHIND_SECONDS
-      const existing = this.musicStreams.get(clip.id)
-      if (relevant && !existing) this.createMusicStream(descriptor)
+      const existing = this.audioStreams.get(clip.id)
+      if (relevant && !existing) this.createAudioStream(descriptor)
       if (!relevant && existing) {
         this.releaseStream(existing)
-        this.musicStreams.delete(clip.id)
+        this.audioStreams.delete(clip.id)
         this.streams = this.streams.filter((stream) => stream !== existing)
       }
     }
@@ -520,7 +520,7 @@ export class SoundScenePlayout {
     this.streams = []
     this.sequenceStream = null
     this.streamDescriptors.clear()
-    this.musicStreams.clear()
+    this.audioStreams.clear()
     const tracks: PlayoutTrack[] = []
     const childTracks = new Map<string, string[]>()
     const internalTrackByClip = new Map<string, string>()
@@ -972,7 +972,7 @@ export class SoundScenePlayout {
 
     const descriptor = this.streamDescriptors.get(clipId)
     if (descriptor) descriptor.clip = live
-    const stream = this.musicStreams.get(clipId)
+    const stream = this.audioStreams.get(clipId)
     if (stream) {
       stream.clip = live
       stream.muted = trackMuted || live.muted

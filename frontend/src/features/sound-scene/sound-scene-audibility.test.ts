@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { SoundScene, SoundSceneTrack } from "@/types/domain"
-import { audibleMusicClips } from "./sound-scene-audibility"
+import { audibleAudioClips } from "./sound-scene-audibility"
 
 function scene(tracks: SoundSceneTrack[]): SoundScene {
   return {
@@ -26,7 +26,7 @@ function scene(tracks: SoundSceneTrack[]): SoundScene {
 function music(id: string, options: Partial<SoundSceneTrack> = {}): SoundSceneTrack {
   return {
     id,
-    kind: "music",
+    kind: "audio",
     name: id,
     volume: 1,
     muted: false,
@@ -40,7 +40,7 @@ function music(id: string, options: Partial<SoundSceneTrack> = {}): SoundSceneTr
   }
 }
 
-describe("audibleMusicClips", () => {
+describe("audibleAudioClips", () => {
   it("aggregates every audible Music track and ignores muted or empty tracks", () => {
     const empty = music("Music 1", { clips: [] })
     const muted = music("Music 2", { muted: true })
@@ -54,7 +54,7 @@ describe("audibleMusicClips", () => {
     const active = music("Music 3")
     active.clips.push({ ...active.clips[0]!, id: "Music 3-second-clip" })
 
-    expect(audibleMusicClips(scene([
+    expect(audibleAudioClips(scene([
       empty, muted, silentTrack, silentClip, mutedClip, missingClip, active,
     ])).map((clip) => clip.id)).toEqual([
       "Music 3-clip",

@@ -62,6 +62,9 @@ class PostgresWorkRecords:
     def assets(self, venture_id: int) -> list[dict]:
         return self.asset_records.list_for_venture(venture_id)
 
+    def production_assets(self, production_id: int) -> list[dict]:
+        return self.asset_records.list_for_production(production_id)
+
     def parts(self, production_id: int) -> list[dict]:
         return self.documents.parts(production_id)
 

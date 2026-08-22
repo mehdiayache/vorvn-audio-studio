@@ -13,18 +13,18 @@ describe("AssetTool", () => {
   it("keeps audition separate from explicit insertion", async () => {
     const onPlay = vi.fn()
     const onChoose = vi.fn().mockResolvedValue(undefined)
-    render(<AssetTool assets={assets} mode="sequence" playerPlaying={false} onMode={vi.fn()} onChoose={onChoose} onPlay={onPlay} onUpload={vi.fn()} />)
+    render(<AssetTool assets={assets} mode="sequence" playerPlaying={false} onChoose={onChoose} onPlay={onPlay} onUpload={vi.fn()} />)
     fireEvent.click(screen.getByRole("button", { name: "Audition" }))
     expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ key: "asset-source:11" }))
     expect(onChoose).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole("button", { name: /Harbor Intro/ }))
-    expect(screen.getByText(/selected, not yet inserted/)).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Insert selected asset" }))
+    expect(screen.getByText(/selected, not yet placed/)).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Insert in Sequence" }))
     await waitFor(() => expect(onChoose).toHaveBeenCalledWith(assets[0]))
   })
 
   it("preselects the linked source when replacing an Asset Part", () => {
-    render(<AssetTool assets={assets} mode="sequence" chooseLabel="Replace linked asset" initialSelectedId={11} playerPlaying={false} onMode={vi.fn()} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} />)
+    render(<AssetTool assets={assets} mode="sequence" chooseLabel="Replace linked asset" initialSelectedId={11} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} />)
     expect(screen.getByRole("button", { name: "Replace linked asset" }).hasAttribute("disabled")).toBe(false)
   })
 })

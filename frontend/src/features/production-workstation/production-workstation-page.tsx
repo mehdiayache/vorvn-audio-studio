@@ -14,9 +14,9 @@ import { PartCaptionsDialog } from "@/features/production/part-captions-dialog"
 import { MovePartPositionDialog } from "@/features/production/move-part-position-dialog"
 import { ProductionComposerStage } from "@/features/composer/production-composer-host"
 import { MixExportWorkspace } from "@/features/production/mix-export-workspace"
-import { MusicInspector } from "@/features/sound-scene/inspector/music-inspector"
+import { AudioClipInspector } from "@/features/sound-scene/inspector/music-inspector"
 import { SequenceMixInspector } from "@/features/sound-scene/inspector/sequence-mix-inspector"
-import { audibleMusicClips } from "@/features/sound-scene/sound-scene-audibility"
+import { audibleAudioClips } from "@/features/sound-scene/sound-scene-audibility"
 import { SoundSceneWorkspace } from "@/features/sound-scene/timeline/sound-scene-workspace"
 import { SoundSceneSession, useSoundSceneSession, type SoundScenePersistence } from "@/features/sound-scene/engine/sound-scene-session"
 import { ProductionFloatingTransport } from "@/features/production/production-floating-transport"
@@ -49,7 +49,7 @@ import "./production-workstation.css"
 const ProductionOverlays = lazy(() => import("@/features/production/production-overlays"))
 
 type WorkstationStage = "sequence" | "sound" | "mix"
-type MusicTarget = { mode: "new-track" } | { mode: "add-clip"; trackId: string } | { mode: "replace"; trackId: string; clipId: string }
+type AudioTarget = { mode: "new-track" } | { mode: "add-clip"; trackId: string } | { mode: "replace"; trackId: string; clipId: string }
 
 function initialSelection(production: Production) {
   if (typeof window !== "undefined") {
@@ -175,7 +175,7 @@ function WorkstationHeader({ production, tree, duration, stage, issueCount, prev
       <div className="ws-action-buttons">
         {issueCount > 0 && <Button variant="outline" size="sm" onClick={() => onStage("mix")}><CircleAlert className="ws-warning-icon" /> {issueCount} issue{issueCount === 1 ? "" : "s"}</Button>}
         <Button variant="outline" size="sm" disabled={previewing} onClick={onPreview}>{previewing ? <LoaderCircle className="spin" /> : playing ? <Pause /> : <Play />}{previewing ? "Preparing…" : playing ? "Pause" : "Preview"}</Button>
-        <DropdownMenu><DropdownMenuTrigger asChild><Button size="sm"><Plus /> Add <ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => onAdd("speech")}><AudioLines /> Speech</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("silence")}><Pause /> Silence</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("asset")}><Sparkles /> Linked audio</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("music")}><Music2 /> Music</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => onAdd("import")}><FileJson2 /> Import JSON</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button size="sm"><Plus /> Add <ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => onAdd("speech")}><AudioLines /> Speech</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("silence")}><Pause /> Silence</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("asset")}><Sparkles /> Linked audio</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("audio")}><Music2 /> Audio Track</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => onAdd("import")}><FileJson2 /> Import JSON</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
         <DropdownMenu><OperatorTooltip label="More Production actions" detail="Contains permanent Production deletion."><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="More Production actions"><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent align="end"><DropdownMenuItem variant="destructive" onSelect={onDelete}><Trash2 /> Delete Production permanently</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
       </div>
     </div>
@@ -204,10 +204,10 @@ function MixOutline({ production, soundScene, onCollapse }: { production: Produc
   const staleOverrides = soundScene.resolved.orphans.filter((orphan) => orphan.kind === "sequence_override").length
   const drafts = production.parts.filter((part) => part.kind === "draft" || part.kind === "speech" && !part.clip_id).length
   const linkedSounds = production.parts.filter((part) => part.kind === "asset" && part.enabled !== false).length
-  const musicClips = audibleMusicClips(soundScene).length
-  const musicLabel = `${musicClips} Music clip${musicClips === 1 ? "" : "s"}`
-  const soundSummary = musicClips
-    ? linkedSounds ? `${musicLabel} + ${linkedSounds} linked sound${linkedSounds === 1 ? "" : "s"}` : musicLabel
+  const audioClips = audibleAudioClips(soundScene).length
+  const audioLabel = `${audioClips} Audio clip${audioClips === 1 ? "" : "s"}`
+  const soundSummary = audioClips
+    ? linkedSounds ? `${audioLabel} + ${linkedSounds} linked sound${linkedSounds === 1 ? "" : "s"}` : audioLabel
     : linkedSounds ? `${linkedSounds} linked sound${linkedSounds === 1 ? "" : "s"}` : "Voice only"
   return <div className="ws-mix-outline">
     <WorkstationPaneHeader title="Release" meta="Output checklist" onCollapse={onCollapse} />
@@ -222,15 +222,15 @@ function EmptyInspector({ stage }: { stage: WorkstationStage }) {
   const copy = stage === "sequence"
     ? ["Select a story part", "Its text, captions and technical details stay here while the full sequence remains visible."]
     : stage === "sound"
-      ? ["Select a clip or track", "Choose voice, linked audio or music directly on the timeline to shape it here."]
+      ? ["Select a clip or track", "Choose Sequence or Audio Library clips directly on the timeline to shape them here."]
       : ["Release inspector", "Issues and finishing evidence stay beside the output workspace."]
   return <div className="ws-empty-inspector"><span><Search /></span><h3>{copy[0]}</h3><p>{copy[1]}</p></div>
 }
 
-function MusicGroupInspector({ count }: { count: number }) {
+function AudioGroupInspector({ count }: { count: number }) {
   return <div className="ws-empty-inspector">
     <span><ListMusic /></span>
-    <h3>{count} Music clips selected</h3>
+    <h3>{count} audio clips selected</h3>
     <p>Drag any selected clip to move the group together. Shared mute, lock, duplicate and remove actions stay in the toolbar.</p>
   </div>
 }
@@ -271,7 +271,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   const [composerPartId, setComposerPartId] = useState<number | null>(null)
   const [releaseInspectorOpen, setReleaseInspectorOpen] = useState(false)
   const [tool, setTool] = useState<ToolKind>(null)
-  const [musicTarget, setMusicTarget] = useState<MusicTarget | null>(null)
+  const [audioTarget, setAudioTarget] = useState<AudioTarget | null>(null)
   const [insertBeforePartId, setInsertBeforePartId] = useState<string | null>(null)
   const [captionPartId, setCaptionPartId] = useState<number | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
@@ -414,7 +414,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   }, [actions, pendingDraftCount])
   const openTool = useCallback((kind: Exclude<ToolKind, null>) => {
     if (kind === "speech") { openNewSpeech(); return }
-    if (kind === "music") setMusicTarget({ mode: "new-track" })
+    if (kind === "audio") setAudioTarget({ mode: "new-track" })
     setInsertBeforePartId(null)
     setTool(kind)
   }, [openNewSpeech])
@@ -456,26 +456,26 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   const soundSpan = soundSelection?.kind === "part"
     ? soundState.scene.resolved.sequence_projection.spans.find((span) => span.part_id === soundSelection.id) || null
     : null
-  const resolvedMusicTrack = soundSelection?.kind === "clip"
+  const resolvedAudioTrack = soundSelection?.kind === "clip"
     ? soundState.scene.resolved.tracks.find((track) => track.id === soundSelection.trackId) || null
     : null
-  const engineMusicTrack = resolvedMusicTrack ? soundState.engine.tracks.find((track) => track.id === resolvedMusicTrack.id) : null
-  const musicTrack = resolvedMusicTrack ? {
-    ...resolvedMusicTrack,
-    volume: engineMusicTrack?.volume ?? resolvedMusicTrack.volume,
-    muted: engineMusicTrack?.muted ?? resolvedMusicTrack.muted,
+  const engineAudioTrack = resolvedAudioTrack ? soundState.engine.tracks.find((track) => track.id === resolvedAudioTrack.id) : null
+  const audioTrack = resolvedAudioTrack ? {
+    ...resolvedAudioTrack,
+    volume: engineAudioTrack?.volume ?? resolvedAudioTrack.volume,
+    muted: engineAudioTrack?.muted ?? resolvedAudioTrack.muted,
   } : null
-  const musicClip = soundSelection?.kind === "clip"
+  const audioClip = soundSelection?.kind === "clip"
     ? soundSession.currentClip(soundSelection.trackId, soundSelection.clipId)
     : null
-  const musicClipName = musicClip?.asset_name || "Music clip"
+  const audioClipName = audioClip?.asset_name || "Audio clip"
   const playingPart = actions.playerPlaying && player.source?.key.startsWith("part:")
     ? sourceParts.find((part) => part.id === Number(player.source?.key.slice(5))) || null
     : null
   const inspectorTitle = composerOpen ? (composerPart ? `Edit Part ${formatPartNumber(composerPart.position ?? 0)}` : "New speech")
     : stage === "sequence" && selectedPart ? `Part ${formatPartNumber(selectedPart.position ?? 0)} · ${formatAuthoredRole(selectedPart.authored_role) || partKindLabel(selectedPart)}`
-      : stage === "sound" && soundSelection?.kind === "clip" ? "Music clip"
-        : stage === "sound" && soundSelection?.kind === "clips" ? `${soundSelection.clips.length} Music clips`
+      : stage === "sound" && soundSelection?.kind === "clip" ? "Audio clip"
+        : stage === "sound" && soundSelection?.kind === "clips" ? `${soundSelection.clips.length} audio clips`
         : stage === "sound" && soundSpan ? `${soundSpan.role || soundSpan.voice_name || "Sequence Part"} · Mix`
           : stage === "mix" ? "Release checks" : "Inspector"
   const composerInsertAt = insertBeforePartId ? Math.max(0, sourceParts.findIndex((part) => part.public_id === insertBeforePartId)) : null
@@ -490,17 +490,17 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     productionId={production.id} part={selectedPart} directory={directory} playingKey={player.source?.key} playerPlaying={actions.playerPlaying}
     onPlay={(source) => void playSource(source)} onChanged={async () => { actions.invalidatePreview(); await refresh() }}
     onDuplicate={(part) => void actions.duplicatePart(part)} onDelete={requestPartDeletion} onEdit={editPart} onOpenCaptions={(part) => setCaptionPartId(part.id)} onReplaceAsset={openAssetReplacement}
-  /> : stage === "sound" && soundSelection?.kind === "clip" && musicTrack ? <MusicInspector
-    track={musicTrack} clip={musicClip} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)}
-    onClipChange={(changes) => { if (musicClip) soundSession.updateClip(musicTrack.id, musicClip.id, changes) }} onClipCommit={() => soundSession.commitClip()}
-    onTrackVolumeChange={(volume) => soundSession.setTrackVolume(musicTrack.id, volume)} onTrackVolumeCommit={(volume) => soundSession.commitTrackVolume(musicTrack.id, volume)}
-    onChoose={() => { setMusicTarget({ mode: "replace", trackId: soundSelection.trackId, clipId: soundSelection.clipId }); setTool("music") }} onRemove={() => setConfirmAction({ title: `Remove “${musicClipName}”?`, description: "The reusable Venture asset remains available. Only this Sound Scene placement is removed.", action: () => soundSession.removeClip(soundSelection.trackId, soundSelection.clipId) })}
+  /> : stage === "sound" && soundSelection?.kind === "clip" && audioTrack ? <AudioClipInspector
+    track={audioTrack} clip={audioClip} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)}
+    onClipChange={(changes) => { if (audioClip) soundSession.updateClip(audioTrack.id, audioClip.id, changes) }} onClipCommit={() => soundSession.commitClip()}
+    onTrackVolumeChange={(volume) => soundSession.setTrackVolume(audioTrack.id, volume)} onTrackVolumeCommit={(volume) => soundSession.commitTrackVolume(audioTrack.id, volume)}
+    onChoose={() => { setAudioTarget({ mode: "replace", trackId: soundSelection.trackId, clipId: soundSelection.clipId }); setTool("audio") }} onRemove={() => setConfirmAction({ title: `Remove “${audioClipName}”?`, description: "The reusable Audio Library asset remains available. Only this Sound Scene placement is removed.", action: () => soundSession.removeClip(soundSelection.trackId, soundSelection.clipId) })}
   /> : stage === "sound" && soundSpan ? <SequenceMixInspector
     span={soundSpan} saving={soundState.saving}
     onPreview={(changes) => soundSession.previewSequenceOverride(soundSpan.part_public_id, changes)}
     onCommit={(changes) => soundSession.updateSequenceOverride(soundSpan.part_public_id, changes)}
     onOpenSequence={() => { soundSession.select(null); setStage("sequence"); setSelectedId(soundSpan.part_id) }}
-  /> : stage === "sound" && soundSelection?.kind === "clips" ? <MusicGroupInspector count={soundSelection.clips.length} />
+  /> : stage === "sound" && soundSelection?.kind === "clips" ? <AudioGroupInspector count={soundSelection.clips.length} />
     : stage === "mix" && releaseInspectorOpen ? <ReleaseInspector
     issues={issues} staleOverrides={staleOverrides}
     onLocate={(id) => { setStage("sequence"); setSelectedId(id); setReleaseInspectorOpen(false); requestAnimationFrame(() => document.getElementById(`ws-part-${id}`)?.scrollIntoView({ block: "center" })) }}
@@ -543,21 +543,21 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
           {stage === "sequence" && <WorkstationSequence parts={sourceParts} selectedId={selectedId} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} liveJobs={liveJobs} directory={directory} actions={partActions} onAddEnd={() => openNewSpeech()} />}
           {stage === "sound" && <SoundSceneWorkspace
             session={soundSession}
-            onAddMusic={(target) => { setMusicTarget(target); setTool("music") }}
+            onAddAudio={(target) => { setAudioTarget(target); setTool("audio") }}
             onRemoveClip={({ clips }) => {
               const names = clips.flatMap((ref) => {
                 const clip = soundState.scene.resolved.tracks.find((track) => track.id === ref.trackId)?.clips.find((item) => item.id === ref.clipId)
-                return clip ? [clip.asset_name || "Music clip"] : []
+                return clip ? [clip.asset_name || "Audio clip"] : []
               })
               setConfirmAction({
-                title: clips.length === 1 ? `Remove this clip: “${names[0] || "Music clip"}”?` : `Remove ${clips.length} selected Music clips?`,
-                description: "Reusable Venture assets remain available. Only the selected Sound Scene placements are removed.",
+                title: clips.length === 1 ? `Remove this clip: “${names[0] || "Audio clip"}”?` : `Remove ${clips.length} selected audio clips?`,
+                description: "Reusable Audio Library assets remain available. Only the selected Sound Scene placements are removed.",
                 action: () => soundSession.removeClips(clips),
               })
             }}
             onRemoveTrack={(track) => setConfirmAction({
               title: `Remove this track: “${track.name}”?`,
-              description: `This removes the track and its ${track.clips.length} placement${track.clips.length === 1 ? "" : "s"}. Reusable Venture assets remain available.`,
+              description: `This removes the track and its ${track.clips.length} placement${track.clips.length === 1 ? "" : "s"}. Reusable Audio Library assets remain available.`,
               action: () => soundSession.removeTrack(track.id),
             })}
             onOpenSequence={(partId) => { setStage("sequence"); setSelectedId(partId) }}
@@ -586,16 +586,16 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     <MovePartPositionDialog part={movePositionPart} count={sourceParts.length} onClose={() => setMovePositionPart(null)} onMove={actions.movePartToPosition} />
     {overlaysOpen && <Suspense fallback={null}><ProductionOverlays
       tool={tool} productionId={production.id} nextPartNumber={sourceParts.length + 1} insertAt={composerInsertAt} insertBeforePartId={insertBeforePartId}
-      composerPart={null} replacingAssetId={replacingAsset?.asset_id} initialMusicAssetId={musicClip?.asset_id} config={config} directory={directory} assets={assets} assetCollectionIds={assetCollectionIds}
+      composerPart={null} replacingAssetId={replacingAsset?.asset_id} initialAudioAssetId={audioClip?.asset_id} config={config} directory={directory} assets={assets} assetCollectionIds={assetCollectionIds}
       playingKey={player.source?.key} playerPlaying={actions.playerPlaying} confirmAction={confirmAction}
-      onCloseTool={() => { setTool(null); setReplacingAsset(null); setMusicTarget(null) }} onSaveDraft={actions.saveDraft} onUpdateEditorial={async () => undefined} onGenerate={queueRender}
+      onCloseTool={() => { setTool(null); setReplacingAsset(null); setAudioTarget(null) }} onSaveDraft={actions.saveDraft} onUpdateEditorial={async () => undefined} onGenerate={queueRender}
       onAddSilence={async (seconds) => { await actions.addSilence(seconds, insertBeforePartId); setTool(null) }}
       onInsertAsset={async (asset) => { if (replacingAsset) await actions.replaceAsset(replacingAsset, asset); else await actions.insertAsset(asset, insertBeforePartId); setTool(null); setReplacingAsset(null) }}
-      onSetMusic={async (asset) => {
-        if (musicTarget?.mode === "replace") await soundSession.replaceClipSource(musicTarget.trackId, musicTarget.clipId, asset)
-        else if (musicTarget?.mode === "add-clip") await soundSession.addClip(musicTarget.trackId, asset, soundSession.snapshot().playhead)
-        else await soundSession.addTrack("music", asset, soundSession.snapshot().playhead)
-        setTool(null); setMusicTarget(null); setStage("sound")
+      onPlaceAudio={async (asset) => {
+        if (audioTarget?.mode === "replace") await soundSession.replaceClipSource(audioTarget.trackId, audioTarget.clipId, asset)
+        else if (audioTarget?.mode === "add-clip") await soundSession.addClip(audioTarget.trackId, asset, soundSession.snapshot().playhead)
+        else await soundSession.addTrack(asset, soundSession.snapshot().playhead)
+        setTool(null); setAudioTarget(null); setStage("sound")
       }}
       onUploadAsset={async (folder, file) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); await actions.uploadAsset(collectionId, folder, file) }}
       onImport={(document, roleVoices) => studioApi.importProduction(production.id, document, roleVoices)} onImported={() => { actions.invalidatePreview(); void refresh().then(() => setTool(null)) }}

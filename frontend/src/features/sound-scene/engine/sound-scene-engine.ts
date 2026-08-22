@@ -92,7 +92,7 @@ function soundTrack(track: SoundSceneTrack): ClipTrack {
       name: track.name,
       muted: track.muted,
       volume: track.volume,
-      color: track.kind === "music" ? "#0f766e" : "#c2410c",
+      color: "#0f766e",
     }),
     id: track.id,
     clips: track.clips.filter((clip) => !clip.orphan).map((clip) => {

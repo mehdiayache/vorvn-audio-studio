@@ -89,7 +89,8 @@ class SoundSceneRepository:
                   JOIN productions production ON production.id=%s
                   JOIN work_projects project ON project.id=production.project_id
                   LEFT JOIN asset_versions version ON version.asset_id=asset.id
-                 WHERE asset.venture_id=project.venture_id
+                 WHERE (asset.venture_id=project.venture_id
+                        OR asset.scope='studio')
                    AND asset.id = ANY(%s::bigint[])
                  ORDER BY asset.id, version.version DESC
             """, (production_id, asset_ids))
@@ -100,10 +101,10 @@ class SoundSceneRepository:
             for clip in track["clips"]:
                 candidates = versions.get(int(clip["asset_id"]), [])
                 requested = clip.get("asset_version_id")
-                source = next(
-                    (row for row in candidates if row[3] == requested),
-                    candidates[0] if candidates else None,
-                )
+                source = (next(
+                    (row for row in candidates if row[3] == requested), None,
+                ) if requested is not None else
+                    (candidates[0] if candidates else None))
                 if not source:
                     clip.update({
                         "asset_name": "Unavailable asset", "filename": "",
@@ -129,9 +130,6 @@ class SoundSceneRepository:
             for clip in track["clips"]:
                 if clip.get("missing"):
                     raise ValueError("A Sound Scene Asset is unavailable.")
-                if track["kind"] == "music" and clip.get("asset_kind") != "music":
-                    raise ValueError(
-                        "The Music track only accepts this Venture's Music assets.")
         return normalize_scene(hydrated)
 
     def commit(

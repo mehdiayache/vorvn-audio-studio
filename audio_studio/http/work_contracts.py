@@ -244,6 +244,18 @@ class VentureAssetResponse(BaseModel):
     duration_ms: int | None = None
     filename: str | None = None
     missing: bool | None = None
+    venture_id: int | None = None
+    scope: Literal["venture", "studio"] = "venture"
+    category: str | None = None
+    kind: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    audio_format: str | None = None
+    sample_rate: int | None = None
+    channels: int | None = None
+    size_bytes: int | None = None
+    mime_type: str | None = None
+    version_metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class VentureAssetLibraryResponse(BaseModel):

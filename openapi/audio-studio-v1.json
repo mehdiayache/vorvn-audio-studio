@@ -5296,11 +5296,7 @@
             "type": "string"
           },
           "kind": {
-            "enum": [
-              "music",
-              "sfx",
-              "ambience"
-            ],
+            "const": "audio",
             "title": "Kind",
             "type": "string"
           },
@@ -6413,6 +6409,7 @@
           },
           "kind": {
             "enum": [
+              "audio",
               "music",
               "sfx",
               "ambience"
@@ -8725,6 +8722,39 @@
       "VentureAssetResponse": {
         "additionalProperties": true,
         "properties": {
+          "audio_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Format"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "channels": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channels"
+          },
           "collection": {
             "anyOf": [
               {
@@ -8773,6 +8803,33 @@
             "title": "Id",
             "type": "integer"
           },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "mime_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mime Type"
+          },
           "missing": {
             "anyOf": [
               {
@@ -8783,6 +8840,44 @@
               }
             ],
             "title": "Missing"
+          },
+          "sample_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Rate"
+          },
+          "scope": {
+            "default": "venture",
+            "enum": [
+              "venture",
+              "studio"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
           },
           "text": {
             "anyOf": [
@@ -8806,6 +8901,17 @@
             ],
             "title": "Title"
           },
+          "venture_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Venture Id"
+          },
           "version_id": {
             "anyOf": [
               {
@@ -8816,6 +8922,11 @@
               }
             ],
             "title": "Version Id"
+          },
+          "version_metadata": {
+            "additionalProperties": true,
+            "title": "Version Metadata",
+            "type": "object"
           },
           "voice": {
             "anyOf": [

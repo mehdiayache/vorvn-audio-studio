@@ -93,7 +93,7 @@ with tempfile.TemporaryDirectory() as directory:
                             "orphan": False, "missing": False,
                         }]}],
         }, mixed)
-        check("background bed mixes with ducking and fades", mixed.exists(),
+        check("parallel audio mixes with ducking and fades", mixed.exists(),
               "ffmpeg music mix failed")
         mixed_probe = subprocess.run([
             "ffprobe", "-v", "error", "-show_entries", "format=duration",

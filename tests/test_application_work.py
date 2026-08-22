@@ -49,6 +49,10 @@ class Records:
         return [{"id": 12, "kind": "music"}]
 
     @staticmethod
+    def production_assets(_production_id):
+        return [{"id": 12, "kind": "music", "scope": "venture"}]
+
+    @staticmethod
     def parts(_production_id):
         return [
             {"id": 7, "kind": "audio", "size_bytes": 100},
@@ -148,6 +152,7 @@ class WorkServiceTests(unittest.TestCase):
         result = self.service.production_assets(6)
         self.assertEqual(result["venture"]["id"], 2)
         self.assertEqual(result["collections"][0]["kind"], "music")
+        self.assertEqual(result["assets"][0]["scope"], "venture")
 
     def test_series_defaults_are_normalized_and_strictly_validated(self):
         result = self.service.update("series", 4, {"defaults": {

@@ -12,7 +12,8 @@ from audio_studio.domain.rendering import silence_duration_seconds
 
 
 SAMPLE_RATE = 48_000
-TRACK_KINDS = {"music", "sfx", "ambience"}
+TRACK_KIND = "audio"
+LEGACY_TRACK_KINDS = {"music", "sfx", "ambience"}
 ANCHOR_KINDS = {"absolute", "part"}
 ANCHOR_EDGES = {"start", "end"}
 EFFECT_TYPES = {"telephone", "echo"}
@@ -164,9 +165,12 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
         if track_id in track_ids:
             raise SoundSceneError("Sound Scene track IDs must be unique.")
         track_ids.add(track_id)
-        kind = str(raw_track.get("kind") or "").strip().lower()
-        if kind not in TRACK_KINDS:
+        incoming_kind = str(raw_track.get("kind") or "").strip().lower()
+        if incoming_kind not in LEGACY_TRACK_KINDS | {TRACK_KIND}:
             raise SoundSceneError("That Sound Scene track kind is unsupported.")
+        # V1 Music/SFX/Ambience tracks remain valid read inputs. Track is now
+        # purely an audio container; classification belongs to each Asset.
+        kind = TRACK_KIND
         raw_clips = raw_track.get("clips")
         if not isinstance(raw_clips, list) or len(raw_clips) > 1_000:
             raise SoundSceneError("Sound Scene clips are invalid.")
@@ -239,7 +243,7 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
         tracks.append({
             "id": track_id,
             "kind": kind,
-            "name": str(raw_track.get("name") or kind.title())[:120],
+            "name": str(raw_track.get("name") or "Audio")[:120],
             "volume": max(0, min(2, _number(
                 raw_track.get("volume"), 1))),
             "muted": bool(raw_track.get("muted", False)),
@@ -389,8 +393,8 @@ def resolve_scene(
             if start_ms is None:
                 duration_ms = 0
             else:
-                # A null duration is the deliberate follow-Sequence bed
-                # contract. Explicitly dimensioned clips are placements of
+                # A null duration deliberately follows the Sequence length.
+                # Explicitly dimensioned clips are placements of
                 # their own and may form an intro/outro beyond the voice stem.
                 duration_ms = (
                     max(0, projection["duration_ms"] - start_ms)

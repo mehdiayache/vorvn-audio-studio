@@ -193,7 +193,7 @@ export class SoundSceneSession {
     return document
   }
 
-  private musicClip(asset: VentureAsset, positionMs: number, followSequence: boolean): SoundSceneClip {
+  private audioClip(asset: VentureAsset, positionMs: number, followSequence: boolean): SoundSceneClip {
     const sourceDuration = Math.max(100, Number(asset.duration_ms || 30_000))
     return {
       id: crypto.randomUUID(), asset_id: asset.id,
@@ -208,11 +208,11 @@ export class SoundSceneSession {
     }
   }
 
-  async addTrack(kind: SoundSceneTrack["kind"], asset?: VentureAsset, timelinePosition = 0) {
-    const id = `${kind}-${crypto.randomUUID()}`
-    const clip = asset ? this.musicClip(asset, Math.max(0, Math.round(timelinePosition * 1000)), true) : null
+  async addTrack(asset?: VentureAsset, timelinePosition = 0) {
+    const id = `audio-${crypto.randomUUID()}`
+    const clip = asset ? this.audioClip(asset, Math.max(0, Math.round(timelinePosition * 1000)), true) : null
     await this.persist(this.nextDocument((document) => document.tracks.push({
-      id, kind, name: `${kind === "music" ? "Music" : kind} ${document.tracks.filter((track) => track.kind === kind).length + 1}`,
+      id, kind: "audio", name: `Audio ${document.tracks.length + 1}`,
       volume: 1, muted: false, clips: clip ? [clip] : [],
     })))
     if (clip) this.select({ kind: "clip", trackId: id, clipId: clip.id })
@@ -227,10 +227,10 @@ export class SoundSceneSession {
   }
 
   async addClip(trackId: string, asset: VentureAsset, timelinePosition = 0) {
-    const clip = this.musicClip(asset, Math.max(0, Math.round(timelinePosition * 1000)), false)
+    const clip = this.audioClip(asset, Math.max(0, Math.round(timelinePosition * 1000)), false)
     await this.persist(this.nextDocument((document) => {
       const track = document.tracks.find((item) => item.id === trackId)
-      if (!track) throw new Error("That Music track is no longer available.")
+      if (!track) throw new Error("That Audio Track is no longer available.")
       track.clips.push(clip)
     }))
     this.select({ kind: "clip", trackId, clipId: clip.id })
@@ -239,7 +239,7 @@ export class SoundSceneSession {
   async replaceClipSource(trackId: string, clipId: string, asset: VentureAsset) {
     await this.persist(this.nextDocument((document) => {
       const clip = document.tracks.find((track) => track.id === trackId)?.clips.find((item) => item.id === clipId)
-      if (!clip) throw new Error("That Music clip is no longer available.")
+      if (!clip) throw new Error("That audio clip is no longer available.")
       if (clip.locked) throw new Error("Unlock this clip before replacing its source.")
       clip.asset_id = asset.id
       clip.asset_version_id = Number(asset.version_id) || null
