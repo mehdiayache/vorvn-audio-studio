@@ -93,10 +93,18 @@ class UploadRecords(Protocol):
         scope: AssetScope = "venture", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
     ) -> tuple[dict | None, bool]: ...
+    def create_generated_asset(
+        self, collection_id: int, *, candidate_id: str,
+        name: str, stored: StoredAsset, size_bytes: int,
+        category: AssetCategory | None = None,
+        scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+        metadata: dict | None = None,
+    ) -> tuple[dict | None, bool]: ...
     def catalog_asset(
         self, collection_id: int, *, origin: str, external_id: str,
         scope: AssetScope,
     ) -> dict | None: ...
+    def generated_asset(self, *, candidate_id: str) -> dict | None: ...
 
 
 def clean_name(encoded: str, fallback: str) -> str:
@@ -219,6 +227,29 @@ class UploadService:
             self.workspace.discard_media(stored.filename)
         return {"asset": asset, "duplicate": duplicate}
 
+    def save_generated_asset_file(
+        self, collection_id: int, source: Path, size_bytes: int, *,
+        candidate_id: str, details: AssetUploadDetails,
+    ) -> dict:
+        """Store one candidate, then resolve its globally unique Asset."""
+        stored = self._store_asset_file(
+            collection_id, source, size_bytes, details)
+        try:
+            asset, duplicate = self.records.create_generated_asset(
+                collection_id, candidate_id=candidate_id,
+                name=details.name, stored=stored, size_bytes=size_bytes,
+                category=details.category, scope=details.scope,
+                tags=details.tags, metadata=details.metadata)
+        except Exception:
+            self.workspace.discard_media(stored.filename)
+            raise
+        if not asset:
+            self.workspace.discard_media(stored.filename)
+            raise RuntimeError("That Asset collection no longer exists.")
+        if duplicate:
+            self.workspace.discard_media(stored.filename)
+        return {"asset": asset, "duplicate": duplicate}
+
     def _store_asset_file(
         self, collection_id: int, source: Path, size_bytes: int,
         details: AssetUploadDetails,
@@ -310,6 +341,9 @@ class UploadService:
         return self.records.catalog_asset(
             collection_id, origin=origin, external_id=external_id,
             scope=scope)
+
+    def generated_asset(self, *, candidate_id: str) -> dict | None:
+        return self.records.generated_asset(candidate_id=candidate_id)
 
     def save_transcription_source_file(
         self, source: Path, size_bytes: int, encoded_name: str,

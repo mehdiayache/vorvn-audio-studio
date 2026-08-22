@@ -89,6 +89,30 @@ class PostgresUploadRecords:
             raise RuntimeError(
                 "The database could not save that Asset.") from exc
 
+    def create_generated_asset(
+        self, collection_id: int, *, candidate_id: str,
+        name: str, stored: StoredAsset, size_bytes: int,
+        category: AssetCategory | None = None,
+        scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+        metadata: dict | None = None,
+    ) -> tuple[dict | None, bool]:
+        try:
+            return self.assets.create_generated_asset(
+                collection_id, candidate_id=candidate_id,
+                name=name, filename=stored.filename, path=stored.path,
+                size_bytes=size_bytes, duration_ms=stored.duration_ms,
+                audio_format=stored.audio_format,
+                mime_type=stored.mime_type,
+                sample_rate=stored.sample_rate, channels=stored.channels,
+                version_metadata=stored.metadata or {}, category=category,
+                scope=scope, tags=tags, metadata=metadata or {})
+        except psycopg.OperationalError as exc:
+            raise RuntimeError(
+                "The database could not save that Asset.") from exc
+
+    def generated_asset(self, *, candidate_id: str) -> dict | None:
+        return self.assets.generated_asset(candidate_id=candidate_id)
+
     def catalog_asset(
         self, collection_id: int, *, origin: str, external_id: str,
         scope: AssetScope,

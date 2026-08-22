@@ -745,6 +745,256 @@
         "title": "AudioCatalogSettingsResponse",
         "type": "object"
       },
+      "AudioGenerationCandidateEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AudioGenerationCandidateResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "AudioGenerationCandidateEnvelope",
+        "type": "object"
+      },
+      "AudioGenerationCandidateResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "audio_format": {
+            "title": "Audio Format",
+            "type": "string"
+          },
+          "candidate_id": {
+            "title": "Candidate Id",
+            "type": "string"
+          },
+          "candidate_url": {
+            "title": "Candidate Url",
+            "type": "string"
+          },
+          "capability": {
+            "title": "Capability",
+            "type": "string"
+          },
+          "channels": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channels"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "sample_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Rate"
+          },
+          "seconds": {
+            "title": "Seconds",
+            "type": "integer"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "candidate_id",
+          "candidate_url",
+          "capability",
+          "prompt",
+          "seconds",
+          "seed",
+          "duration_ms",
+          "audio_format",
+          "size_bytes"
+        ],
+        "title": "AudioGenerationCandidateResponse",
+        "type": "object"
+      },
+      "AudioGenerationJobCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "capability": {
+            "enum": [
+              "sfx",
+              "music"
+            ],
+            "title": "Capability",
+            "type": "string"
+          },
+          "production_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Production Id"
+          },
+          "prompt": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Prompt",
+            "type": "string"
+          },
+          "seconds": {
+            "maximum": 120.0,
+            "minimum": 1.0,
+            "title": "Seconds",
+            "type": "integer"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "maximum": 2147483647.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          }
+        },
+        "required": [
+          "capability",
+          "prompt",
+          "seconds"
+        ],
+        "title": "AudioGenerationJobCreate",
+        "type": "object"
+      },
+      "AudioGenerationSettingsResponse": {
+        "properties": {
+          "base_url": {
+            "title": "Base Url",
+            "type": "string"
+          },
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "provider",
+          "configured",
+          "base_url"
+        ],
+        "title": "AudioGenerationSettingsResponse",
+        "type": "object"
+      },
+      "AudioGenerationSettingsUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "api_key": {
+            "default": "",
+            "maxLength": 4000,
+            "title": "Api Key",
+            "type": "string"
+          },
+          "base_url": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Base Url",
+            "type": "string"
+          }
+        },
+        "title": "AudioGenerationSettingsUpdate",
+        "type": "object"
+      },
+      "AudioGenerationStatusEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AudioGenerationStatusResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "AudioGenerationStatusEnvelope",
+        "type": "object"
+      },
+      "AudioGenerationStatusResponse": {
+        "properties": {
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "models": {
+            "additionalProperties": true,
+            "title": "Models",
+            "type": "object"
+          },
+          "music_ready": {
+            "title": "Music Ready",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "sfx_ready": {
+            "title": "Sfx Ready",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "configured",
+          "sfx_ready",
+          "music_ready",
+          "models"
+        ],
+        "title": "AudioGenerationStatusResponse",
+        "type": "object"
+      },
       "AudioPeaksEnvelope": {
         "properties": {
           "data": {
@@ -1992,6 +2242,60 @@
         "title": "FreesoundSettingsUpdate",
         "type": "object"
       },
+      "GeneratedDiscardEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GeneratedDiscardResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "GeneratedDiscardEnvelope",
+        "type": "object"
+      },
+      "GeneratedDiscardResponse": {
+        "properties": {
+          "discarded": {
+            "title": "Discarded",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "discarded"
+        ],
+        "title": "GeneratedDiscardResponse",
+        "type": "object"
+      },
+      "GeneratedKeepEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GeneratedKeepResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "GeneratedKeepEnvelope",
+        "type": "object"
+      },
+      "GeneratedKeepResponse": {
+        "properties": {
+          "asset": {
+            "$ref": "#/components/schemas/UploadedAssetResponse"
+          },
+          "duplicate": {
+            "title": "Duplicate",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "asset",
+          "duplicate"
+        ],
+        "title": "GeneratedKeepResponse",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2623,6 +2927,58 @@
           "scope"
         ],
         "title": "KeepFreesoundBody",
+        "type": "object"
+      },
+      "KeepGeneratedBody": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "enum": [
+              "music",
+              "ambience",
+              "sfx",
+              "intro",
+              "outro",
+              "other"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "collection_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Collection Id",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "venture",
+              "studio"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "collection_id",
+          "name",
+          "category",
+          "scope"
+        ],
+        "title": "KeepGeneratedBody",
         "type": "object"
       },
       "MoveBody": {
@@ -6186,6 +6542,9 @@
           "audio_catalog": {
             "$ref": "#/components/schemas/AudioCatalogSettingsResponse"
           },
+          "audio_generation": {
+            "$ref": "#/components/schemas/AudioGenerationSettingsResponse"
+          },
           "database": {
             "$ref": "#/components/schemas/audio_studio__http__settings_contracts__DatabaseStatusResponse"
           },
@@ -6239,6 +6598,7 @@
         "required": [
           "provider",
           "audio_catalog",
+          "audio_generation",
           "output_directory",
           "spending",
           "speech",
@@ -12071,6 +12431,200 @@
         ]
       }
     },
+    "/api/v1/audio-generations/status": {
+      "get": {
+        "operationId": "getAudioGenerationStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioGenerationStatusEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Audio Generation Status",
+        "tags": [
+          "audio-generations"
+        ]
+      }
+    },
+    "/api/v1/audio-generations/{candidate_id}": {
+      "get": {
+        "operationId": "getAudioGenerationCandidate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "candidate_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Candidate Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioGenerationCandidateEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Generated Candidate",
+        "tags": [
+          "audio-generations"
+        ]
+      }
+    },
+    "/api/v1/audio-generations/{candidate_id}/candidate": {
+      "delete": {
+        "operationId": "discardAudioGenerationCandidate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "candidate_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Candidate Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneratedDiscardEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Discard Generated Candidate",
+        "tags": [
+          "audio-generations"
+        ]
+      },
+      "get": {
+        "operationId": "playAudioGenerationCandidate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "candidate_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Candidate Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Play Generated Candidate",
+        "tags": [
+          "audio-generations"
+        ]
+      }
+    },
+    "/api/v1/audio-generations/{candidate_id}/keep": {
+      "post": {
+        "operationId": "keepGeneratedAudio",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "candidate_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Candidate Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeepGeneratedBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneratedKeepEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Keep Generated Audio",
+        "tags": [
+          "audio-generations"
+        ]
+      }
+    },
     "/api/v1/composer-drafts": {
       "delete": {
         "operationId": "deleteComposerDraft",
@@ -12306,6 +12860,65 @@
         "summary": "List Hierarchy",
         "tags": [
           "work"
+        ]
+      }
+    },
+    "/api/v1/jobs/audio-generation": {
+      "post": {
+        "operationId": "createAudioGenerationJob",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioGenerationJobCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobCreatedEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Audio Generation Job",
+        "tags": [
+          "jobs"
         ]
       }
     },
@@ -14914,6 +15527,47 @@
           }
         },
         "summary": "Test Alibaba Connection",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/settings/providers/audio-generation": {
+      "patch": {
+        "operationId": "updateAudioGenerationSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioGenerationSettingsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsSnapshotEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Audio Generation",
         "tags": [
           "settings"
         ]

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import subprocess
+from tempfile import NamedTemporaryFile
 
 from audio_studio.infrastructure.media_paths import media_root
 
@@ -24,9 +25,18 @@ def _read_cache(path: Path, count: int, source: Path) -> list[float] | None:
 
 
 def _write_cache(path: Path, values: list[float]) -> None:
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(values), encoding="utf-8")
-    temporary.replace(path)
+    temporary: Path | None = None
+    try:
+        with NamedTemporaryFile(
+                mode="w", encoding="utf-8", dir=path.parent,
+                prefix=f".{path.name}.", suffix=".tmp",
+                delete=False) as handle:
+            json.dump(values, handle)
+            temporary = Path(handle.name)
+        temporary.replace(path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def _downsample(values: list[float], count: int) -> list[float]:

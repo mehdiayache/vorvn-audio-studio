@@ -17,6 +17,7 @@ from audio_studio.domain.transcription import FUN_MODEL, QWEN_MODEL
 from audio_studio.composition.jobs import job_service
 from audio_studio.composition.production_speech import production_speech_service
 from audio_studio.composition.catalog import catalog_service
+from audio_studio.composition.audio_generation import audio_generation_service
 from audio_studio.http.errors import ApiProblem
 
 
@@ -188,10 +189,30 @@ class RenderJobCreate(BaseModel):
     allow_incomplete: bool = False
 
 
+class AudioGenerationJobCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    capability: Literal["sfx", "music"]
+    prompt: str = Field(min_length=1, max_length=500)
+    seconds: int = Field(ge=1, le=120)
+    seed: int | None = Field(default=None, ge=0, le=2_147_483_647)
+    production_id: int | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def duration_matches_capability(self):
+        minimum, maximum = ((1, 30) if self.capability == "sfx"
+                            else (5, 120))
+        if not minimum <= self.seconds <= maximum:
+            raise ValueError(
+                f"{self.capability.upper()} duration must be between "
+                f"{minimum} and {maximum} seconds.")
+        return self
+
+
 def _payload(job: Job) -> dict:
     context_keys = {
         "part_id", "production_id", "transcript_id", "target", "language",
-        "operation", "confirmed", "allow_incomplete",
+        "operation", "confirmed", "allow_incomplete", "capability", "seconds",
     }
     return {"id": str(job.public_id), "type": job.kind, "status": job.status,
             "progress": job.progress, "detail": job.detail,
@@ -251,6 +272,22 @@ def create_render_job(payload: RenderJobCreate,
         production_id=payload.production_id,
         source_tool="production", operation_label="Preview production" if payload.operation == "preview" else "Export production",
     )
+    return {"data": _payload(job), "meta": {"created": created}}
+
+
+@router.post("/audio-generation", operation_id="createAudioGenerationJob",
+             status_code=202, response_model=JobCreatedEnvelope)
+def create_audio_generation_job(
+    payload: AudioGenerationJobCreate,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+) -> dict:
+    try:
+        job, created = audio_generation_service.enqueue(
+            **payload.model_dump(),
+            idempotency_key=(
+                idempotency_key or f"audio-generation-{uuid4()}")[:200])
+    except ValueError as exc:
+        raise ApiProblem(400, "invalid_audio_generation", str(exc)) from exc
     return {"data": _payload(job), "meta": {"created": created}}
 
 

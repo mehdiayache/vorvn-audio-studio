@@ -1,4 +1,4 @@
-import { Check, FileAudio, Library, Pause, Play, Search, Sparkles, Upload, X } from "lucide-react"
+import { Check, FileAudio, Library, Pause, Play, RotateCcw, Search, Sparkles, Trash2, Upload, X } from "lucide-react"
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
 
 import { ActionButton } from "@/components/operator-action"
@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { useJobExecution } from "@/hooks/use-job-execution"
 import { audioUrl, studioApi } from "@/lib/api"
 import { formatDuration } from "@/lib/format"
-import type { AudioAssetCategory, AudioAssetScope, CatalogKeepResult, CatalogLicense, CatalogSound, PlayerSource, VentureAsset } from "@/types/domain"
+import type { AudioAssetCategory, AudioAssetScope, AudioGenerationCandidate, CatalogKeepResult, CatalogLicense, CatalogSound, GeneratedKeepResult, PlayerSource, VentureAsset } from "@/types/domain"
 
 export type AssetMode = "sequence" | "sound"
 export type AssetUploadInput = {
@@ -25,8 +27,15 @@ export type CatalogKeepInput = {
   scope: AudioAssetScope
   tags: string[]
 }
+export type GeneratedKeepInput = {
+  candidateId: string
+  name: string
+  category: AudioAssetCategory
+  scope: AudioAssetScope
+  tags: string[]
+}
 
-type LibraryView = "library" | "upload" | "search"
+type LibraryView = "library" | "upload" | "search" | "generate"
 type ScopeFilter = "all" | "venture" | "studio"
 
 const CATEGORIES = [
@@ -58,17 +67,19 @@ function formatBytes(value?: number | null) {
   return `${(value / 1_000_000).toFixed(value < 10_000_000 ? 1 : 0)} MB`
 }
 
-export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, playingKey, playerPlaying, onChoose, onPlay, onUpload, onKeep }: {
+export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, productionId, playingKey, playerPlaying, onChoose, onPlay, onUpload, onKeep, onKeepGenerated }: {
   assets: VentureAsset[]
   mode: AssetMode
   chooseLabel?: string
   initialSelectedId?: number | null
+  productionId?: number
   playingKey?: string
   playerPlaying: boolean
   onChoose: (asset: VentureAsset) => Promise<void>
   onPlay: (source: PlayerSource) => void
   onUpload: (folder: string, input: AssetUploadInput) => Promise<VentureAsset>
   onKeep: (folder: string, input: CatalogKeepInput) => Promise<CatalogKeepResult>
+  onKeepGenerated?: (folder: string, input: GeneratedKeepInput) => Promise<GeneratedKeepResult>
 }) {
   const fileInput = useRef<HTMLInputElement>(null)
   const [view, setView] = useState<LibraryView>("library")
@@ -96,6 +107,25 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, playin
   const [keepScope, setKeepScope] = useState<AudioAssetScope>("studio")
   const [keepingId, setKeepingId] = useState<string | null>(null)
   const [kept, setKept] = useState<Record<string, number>>({})
+  const generationStorageKey = `audio-studio:generation:${productionId || "library"}`
+  const [generationCapability, setGenerationCapability] = useState<"sfx" | "music">("sfx")
+  const [generationPrompt, setGenerationPrompt] = useState("")
+  const [generationSeconds, setGenerationSeconds] = useState(5)
+  const [generationSeed, setGenerationSeed] = useState("")
+  const [generationJobId, setGenerationJobId] = useState<string | null>(() => sessionStorage.getItem(generationStorageKey))
+  const generationJob = useJobExecution<AudioGenerationCandidate>(generationJobId)
+  const [generationStatus, setGenerationStatus] = useState<"checking" | "ready" | "unavailable">("checking")
+  const [generationReason, setGenerationReason] = useState("")
+  const [generationError, setGenerationError] = useState("")
+  const [generationName, setGenerationName] = useState("")
+  const [generationCategory, setGenerationCategory] = useState<AudioAssetCategory>("sfx")
+  const [generationScope, setGenerationScope] = useState<AudioAssetScope>("studio")
+  const [generationTags, setGenerationTags] = useState<string[]>([])
+  const [generationTagText, setGenerationTagText] = useState("")
+  const [keepingGeneration, setKeepingGeneration] = useState(false)
+  const [discardingGeneration, setDiscardingGeneration] = useState(false)
+  const generationActive = Boolean(generationJob && ["queued", "running", "retrying"].includes(generationJob.status))
+  const generationCandidate = generationJob && ["ok", "warning"].includes(generationJob.status) ? generationJob.result : null
 
   const eligible = useMemo(() => assets.filter((asset) => {
     const matchesCategory = category === "all" || (asset.category || asset.kind || "other") === category
@@ -135,6 +165,41 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, playin
     }, 350)
     return () => { window.clearTimeout(timer); controller.abort() }
   }, [catalogDuration, catalogLicense, catalogQuery, view])
+
+  useEffect(() => {
+    if (view !== "generate") return
+    let current = true
+    setGenerationStatus("checking"); setGenerationReason("")
+    void studioApi.audioGenerationStatus().then((status) => {
+      if (!current) return
+      const ready = generationCapability === "sfx" ? status.sfx_ready : status.music_ready
+      setGenerationStatus(ready ? "ready" : "unavailable")
+      setGenerationReason(status.reason || (ready ? "" : "That generator is not available."))
+    }).catch((reason) => {
+      if (!current) return
+      setGenerationStatus("unavailable")
+      setGenerationReason(reason instanceof Error ? reason.message : "Audio Generation is unavailable.")
+    })
+    return () => { current = false }
+  }, [generationCapability, view])
+
+  useEffect(() => {
+    setGenerationSeconds((current) => generationCapability === "sfx"
+      ? Math.min(30, Math.max(1, current))
+      : Math.min(120, Math.max(5, current)))
+    setGenerationCategory(generationCapability === "sfx" ? "sfx" : "music")
+  }, [generationCapability])
+
+  useEffect(() => {
+    if (!generationCandidate || generationName) return
+    const concise = generationCandidate.prompt.split(/[.!?]/)[0]?.trim().slice(0, 72)
+    setGenerationName(concise || (generationCandidate.capability === "music" ? "Generated music" : "Generated sound effect"))
+  }, [generationCandidate, generationName])
+
+  useEffect(() => {
+    if (!generationJob || !["failed", "lost", "cancelled"].includes(generationJob.status)) return
+    setGenerationError(generationJob.error || generationJob.detail || "Audio could not be generated.")
+  }, [generationJob])
 
   function chooseFile(next?: File) {
     if (!next) return
@@ -199,6 +264,65 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, playin
     } finally { setKeepingId(null) }
   }
 
+  async function generateAudio() {
+    const prompt = generationPrompt.trim()
+    if (!prompt) { setGenerationError("Describe the audio you want to hear."); return }
+    setGenerationError("")
+    try {
+      const parsedSeed = generationSeed.trim() ? Number(generationSeed) : undefined
+      if (parsedSeed !== undefined && (!Number.isInteger(parsedSeed) || parsedSeed < 0 || parsedSeed > 2_147_483_647)) {
+        setGenerationError("Seed must be a whole number between 0 and 2,147,483,647."); return
+      }
+      const job = await studioApi.enqueueAudioGeneration({
+        capability: generationCapability, prompt,
+        seconds: generationSeconds, seed: parsedSeed,
+        production_id: productionId,
+      })
+      setGenerationJobId(job.id)
+      sessionStorage.setItem(generationStorageKey, job.id)
+      setGenerationName(""); setGenerationTags([]); setGenerationTagText("")
+    } catch (reason) {
+      setGenerationError(reason instanceof Error ? reason.message : "Audio could not be generated.")
+    }
+  }
+
+  function addGenerationTag(raw = generationTagText) {
+    const next = raw.trim().replace(/\s+/g, " ").toLocaleLowerCase()
+    if (!next || generationTags.includes(next)) { setGenerationTagText(""); return }
+    if (next.length > 32) { setGenerationError("Keep each tag under 32 characters."); return }
+    if (generationTags.length >= 12) { setGenerationError("Use at most 12 tags."); return }
+    setGenerationTags((current) => [...current, next]); setGenerationTagText(""); setGenerationError("")
+  }
+
+  async function keepGeneration() {
+    if (!generationCandidate || !onKeepGenerated || !generationName.trim()) return
+    setKeepingGeneration(true); setGenerationError("")
+    try {
+      await onKeepGenerated(UPLOAD_COLLECTION[generationCategory], {
+        candidateId: generationCandidate.candidate_id,
+        name: generationName.trim(), category: generationCategory,
+        scope: generationScope, tags: generationTags,
+      })
+      setGenerationJobId(null); sessionStorage.removeItem(generationStorageKey)
+      setGenerationPrompt(""); setGenerationName(""); setGenerationTags([])
+      setCategory(generationCategory); setScopeFilter("all"); setView("library")
+    } catch (reason) {
+      setGenerationError(reason instanceof Error ? reason.message : "That generated audio could not be kept.")
+    } finally { setKeepingGeneration(false) }
+  }
+
+  async function discardGeneration() {
+    if (!generationJobId) return
+    setDiscardingGeneration(true); setGenerationError("")
+    try {
+      if (generationCandidate) await studioApi.discardGeneratedAudio(generationCandidate.candidate_id)
+      setGenerationJobId(null); sessionStorage.removeItem(generationStorageKey)
+      setGenerationName(""); setGenerationTags([])
+    } catch (reason) {
+      setGenerationError(reason instanceof Error ? reason.message : "That candidate could not be discarded.")
+    } finally { setDiscardingGeneration(false) }
+  }
+
   return <div className={`tool-panel-body asset-tool${dragging ? " dragging" : ""}`}
     onDragEnter={(event) => { if ([...event.dataTransfer.types].includes("Files")) { event.preventDefault(); setDragging(true) } }}
     onDragOver={(event) => event.preventDefault()}
@@ -209,10 +333,11 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, playin
         <button className={view === "library" ? "active" : ""} onClick={() => { setView("library"); setError("") }}><Library />Library</button>
         <button className={view === "upload" ? "active" : ""} onClick={() => { setView("upload"); setError("") }}><Upload />Upload</button>
         <button className={view === "search" ? "active" : ""} onClick={() => { setView("search"); setError("") }}><Search />Search</button>
-        <button disabled><Sparkles />Generate <small>Soon</small></button>
+        <button className={view === "generate" ? "active" : ""} onClick={() => { setView("generate"); setError("") }}><Sparkles />Generate</button>
       </nav>
       {view === "library" && <label className="asset-search"><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, category, or tag" /></label>}
       {view === "search" && <span className="asset-catalog-source">Freesound · external previews</span>}
+      {view === "generate" && <span className="asset-catalog-source">VORVN Audio · private generation</span>}
     </header>
 
     {view === "library" ? <>
@@ -266,6 +391,24 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, playin
           }) : <div className="asset-empty"><Search /><b>{catalogQuery.trim().length >= 2 ? "No matching sounds" : "Search Freesound"}</b><p>{catalogQuery.trim().length >= 2 ? "Try another phrase, license, or duration." : "Describe the sound you want to discover."}</p></div>}
         </ScrollArea>
       </div>
+    </section> : view === "generate" ? <section className="asset-generation-workspace">
+      <div className="asset-generation-compose">
+        <div className="asset-generation-kind" aria-label="Generation type"><button type="button" className={generationCapability === "sfx" ? "active" : ""} onClick={() => setGenerationCapability("sfx")}><b>Sound Effect</b><small>1–30 seconds</small></button><button type="button" className={generationCapability === "music" ? "active" : ""} onClick={() => setGenerationCapability("music")}><b>Music</b><small>5–120 seconds</small></button></div>
+        <label className="asset-generation-prompt"><span>Describe what should be heard</span><Textarea autoFocus value={generationPrompt} maxLength={500} disabled={generationActive} onChange={(event) => setGenerationPrompt(event.target.value)} placeholder={generationCapability === "sfx" ? "A heavy wooden library door closes softly, warm room tone, no voices" : "A spacious, gentle ambient bed with soft piano fragments, calm and unobtrusive, no vocals"} /><small>{generationPrompt.length}/500</small></label>
+        <div className="asset-generation-controls"><label><span>Duration</span><div><Input type="number" min={generationCapability === "sfx" ? 1 : 5} max={generationCapability === "sfx" ? 30 : 120} value={generationSeconds} disabled={generationActive} onChange={(event) => setGenerationSeconds(Number(event.target.value))} /><small>seconds</small></div></label><label><span>Seed <small>Optional</small></span><Input type="number" min="0" max="2147483647" value={generationSeed} disabled={generationActive} onChange={(event) => setGenerationSeed(event.target.value)} placeholder="Random" /></label></div>
+        <div className="asset-generation-action"><span>{generationStatus === "checking" ? "Checking generator…" : generationStatus === "ready" ? "A durable Job keeps working if this dialog closes." : generationReason}</span><ActionButton busy={generationActive} busyLabel={generationJob?.detail || "Generating audio…"} disabled={generationStatus !== "ready" || generationActive || !generationPrompt.trim()} onClick={() => void generateAudio()}>{generationJob && ["failed", "lost", "cancelled"].includes(generationJob.status) ? <><RotateCcw />Retry generation</> : <><Sparkles />Generate audio</>}</ActionButton></div>
+      </div>
+      <aside className="asset-generation-result" data-state={generationCandidate ? "ready" : generationActive ? "working" : "empty"}>
+        {generationCandidate ? <>
+          <div className="asset-generation-audition"><span><FileAudio /></span><div><b>Generated candidate</b><small>{formatDuration(generationCandidate.duration_ms / 1000)} · WAV · {Math.round((generationCandidate.sample_rate || 0) / 1000)} kHz · seed {generationCandidate.seed}</small></div><Button variant="outline" onClick={() => onPlay({ key: `generated-candidate:${generationCandidate.candidate_id}`, url: generationCandidate.candidate_url, title: generationName || "Generated candidate", subtitle: "Temporary Audio Library candidate", kind: "asset" })}>{playerPlaying && playingKey === `generated-candidate:${generationCandidate.candidate_id}` ? <Pause /> : <Play />}{playerPlaying && playingKey === `generated-candidate:${generationCandidate.candidate_id}` ? "Pause" : "Audition"}</Button></div>
+          <label><span>Name</span><Input value={generationName} maxLength={120} onChange={(event) => setGenerationName(event.target.value)} /></label>
+          <fieldset><legend>Category</legend><div className="asset-category-choice">{UPLOAD_CATEGORIES.map(([value, label]) => <button key={value} type="button" className={generationCategory === value ? "active" : ""} onClick={() => setGenerationCategory(value)}>{label}</button>)}</div></fieldset>
+          <label><span>Tags <small>Optional</small></span><div className="asset-tag-entry">{generationTags.map((tag) => <button key={tag} type="button" onClick={() => setGenerationTags((current) => current.filter((item) => item !== tag))}>{tag}<X /></button>)}<input value={generationTagText} onChange={(event) => setGenerationTagText(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === ",") { event.preventDefault(); addGenerationTag() } }} onBlur={() => addGenerationTag()} placeholder="Add tag" /></div></label>
+          <fieldset><legend>Available in</legend><div className="asset-scope-choice"><button type="button" className={generationScope === "studio" ? "active" : ""} onClick={() => setGenerationScope("studio")}><b>Studio Library</b><small>Reusable across Ventures</small></button><button type="button" className={generationScope === "venture" ? "active" : ""} onClick={() => setGenerationScope("venture")}><b>This Venture</b><small>Only this Venture</small></button></div></fieldset>
+          <div className="asset-generation-result-actions"><ActionButton variant="ghost" busy={discardingGeneration} busyLabel="Discarding…" disabled={keepingGeneration} onClick={() => void discardGeneration()}><Trash2 />Discard</ActionButton><ActionButton busy={keepingGeneration} busyLabel="Keeping…" disabled={!generationName.trim() || discardingGeneration || !onKeepGenerated} onClick={() => void keepGeneration()}><Check />Keep in Library</ActionButton></div>
+        </> : generationActive ? <div className="asset-generation-wait"><Sparkles /><b>{generationJob?.detail || "Generating audio…"}</b><p>You can close Audio Library. This Job will keep running and return here.</p><small>{Math.round((generationJob?.progress || 0) * 100)}%</small></div> : <div className="asset-generation-wait"><FileAudio /><b>{generationJob && ["failed", "lost", "cancelled"].includes(generationJob.status) ? "Generation did not finish" : "Your candidate will appear here"}</b><p>{generationError || "Generate, audition the temporary result, then Keep only what belongs in the Library."}</p></div>}
+        {generationError && generationCandidate && <p className="asset-generation-error" role="alert">{generationError}</p>}
+      </aside>
     </section> : <section className="asset-upload-workspace">
       <div className="asset-upload-dropzone" data-has-file={Boolean(file)}>
         <input ref={fileInput} type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.aif,.aiff" hidden onChange={(event) => { chooseFile(event.target.files?.[0]); event.target.value = "" }} />

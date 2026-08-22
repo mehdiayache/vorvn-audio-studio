@@ -51,7 +51,7 @@ class StorageContracts(unittest.TestCase):
         with patch.object(upload_workspace.shutil, "which",
                           return_value="/usr/bin/ffprobe"), patch.object(
                 upload_workspace.subprocess, "run", return_value=completed) as run:
-            inspection = upload_workspace._inspect_audio(Path("source.flac"))
+            inspection = upload_workspace.inspect_audio(Path("source.flac"))
         self.assertEqual(run.call_count, 1)
         self.assertEqual(inspection, {
             "audio_format": "flac",
@@ -60,7 +60,7 @@ class StorageContracts(unittest.TestCase):
         })
 
     def test_duration_consumers_reuse_the_unified_audio_inspection(self):
-        with patch.object(upload_workspace, "_inspect_audio", return_value={
+        with patch.object(upload_workspace, "inspect_audio", return_value={
                 "duration_ms": 2750, "sample_rate": 48000, "channels": 2,
                 "metadata": {}}) as inspect:
             duration_ms = upload_workspace._audio_duration_ms(
@@ -106,7 +106,7 @@ class StorageContracts(unittest.TestCase):
             output = root / "media"
             workspace = LocalUploadWorkspace(
                 root=root, output=output, references=root / "references")
-            with patch.object(upload_workspace, "_inspect_audio",
+            with patch.object(upload_workspace, "inspect_audio",
                               return_value=None):
                 with self.assertRaisesRegex(ValueError, "decoded as audio"):
                     workspace.store_asset(

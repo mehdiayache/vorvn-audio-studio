@@ -79,6 +79,17 @@ class EnvironmentSettings:
             **freesound_status(),
         }
 
+    def audio_generation(self) -> dict[str, Any]:
+        configured = bool((os.getenv("VORVN_AI_API_KEY") or "").strip())
+        return {
+            "provider": "VORVN Audio",
+            "base_url": (os.getenv("VORVN_AI_BASE_URL")
+                         or "https://ai.vrn.one").rstrip("/"),
+            "configured": configured,
+            "reason": "" if configured else (
+                "Add the Audio Generation key before generating."),
+        }
+
     def storage_configured(self) -> bool:
         return object_storage.configured()
 
@@ -104,6 +115,19 @@ class EnvironmentSettings:
             changes["FREESOUND_API_TOKEN"] = api_token
         if oauth_access_token:
             changes["FREESOUND_OAUTH_ACCESS_TOKEN"] = oauth_access_token
+        if changes:
+            self._write_environment(changes)
+
+    def save_audio_generation(self, values: dict[str, Any]) -> None:
+        changes: dict[str, str | None] = {}
+        api_key = str(values.get("api_key") or "").strip()
+        base_url = str(values.get("base_url") or "").strip().rstrip("/")
+        if api_key:
+            changes["VORVN_AI_API_KEY"] = api_key
+        if base_url:
+            if not base_url.startswith("https://"):
+                raise ValueError("Audio Generation must use an HTTPS endpoint.")
+            changes["VORVN_AI_BASE_URL"] = base_url
         if changes:
             self._write_environment(changes)
 
@@ -140,7 +164,9 @@ class FilesystemMaintenance:
         scratch_paths = {
             ".blocks": (self.root / ".blocks", "per-block script audio"),
             ".inbox": (self.root / ".inbox", "subtitle source audio"),
-            ".incoming": (self.root / ".incoming", "interrupted uploads"),
+            ".incoming": (
+                self.root / ".incoming",
+                "temporary uploads and generated audio candidates"),
             ".tagged": (self.root / ".tagged", "temporary tagged copies"),
         }
         protected_paths = {

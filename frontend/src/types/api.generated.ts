@@ -89,6 +89,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audio-generations/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Audio Generation Status */
+        get: operations["getAudioGenerationStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audio-generations/{candidate_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Generated Candidate */
+        get: operations["getAudioGenerationCandidate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audio-generations/{candidate_id}/candidate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Play Generated Candidate */
+        get: operations["playAudioGenerationCandidate"];
+        put?: never;
+        post?: never;
+        /** Discard Generated Candidate */
+        delete: operations["discardAudioGenerationCandidate"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audio-generations/{candidate_id}/keep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep Generated Audio */
+        post: operations["keepGeneratedAudio"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/composer-drafts": {
         parameters: {
             query?: never;
@@ -169,6 +238,23 @@ export interface paths {
         get: operations["listHierarchy"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/audio-generation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Audio Generation Job */
+        post: operations["createAudioGenerationJob"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1031,6 +1117,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/providers/audio-generation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Audio Generation */
+        patch: operations["updateAudioGenerationSettings"];
+        trace?: never;
+    };
     "/api/v1/settings/providers/freesound": {
         parameters: {
             query?: never;
@@ -1766,6 +1869,96 @@ export interface components {
             /** Search Configured */
             search_configured: boolean;
         };
+        /** AudioGenerationCandidateEnvelope */
+        AudioGenerationCandidateEnvelope: {
+            data: components["schemas"]["AudioGenerationCandidateResponse"];
+        };
+        /** AudioGenerationCandidateResponse */
+        AudioGenerationCandidateResponse: {
+            /** Audio Format */
+            audio_format: string;
+            /** Candidate Id */
+            candidate_id: string;
+            /** Candidate Url */
+            candidate_url: string;
+            /** Capability */
+            capability: string;
+            /** Channels */
+            channels?: number | null;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Prompt */
+            prompt: string;
+            /** Sample Rate */
+            sample_rate?: number | null;
+            /** Seconds */
+            seconds: number;
+            /** Seed */
+            seed: number;
+            /** Size Bytes */
+            size_bytes: number;
+        } & {
+            [key: string]: unknown;
+        };
+        /** AudioGenerationJobCreate */
+        AudioGenerationJobCreate: {
+            /**
+             * Capability
+             * @enum {string}
+             */
+            capability: "sfx" | "music";
+            /** Production Id */
+            production_id?: number | null;
+            /** Prompt */
+            prompt: string;
+            /** Seconds */
+            seconds: number;
+            /** Seed */
+            seed?: number | null;
+        };
+        /** AudioGenerationSettingsResponse */
+        AudioGenerationSettingsResponse: {
+            /** Base Url */
+            base_url: string;
+            /** Configured */
+            configured: boolean;
+            /** Provider */
+            provider: string;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** AudioGenerationSettingsUpdate */
+        AudioGenerationSettingsUpdate: {
+            /**
+             * Api Key
+             * @default
+             */
+            api_key: string;
+            /**
+             * Base Url
+             * @default
+             */
+            base_url: string;
+        };
+        /** AudioGenerationStatusEnvelope */
+        AudioGenerationStatusEnvelope: {
+            data: components["schemas"]["AudioGenerationStatusResponse"];
+        };
+        /** AudioGenerationStatusResponse */
+        AudioGenerationStatusResponse: {
+            /** Configured */
+            configured: boolean;
+            /** Models */
+            models: {
+                [key: string]: unknown;
+            };
+            /** Music Ready */
+            music_ready: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Sfx Ready */
+            sfx_ready: boolean;
+        };
         /** AudioPeaksEnvelope */
         AudioPeaksEnvelope: {
             data: components["schemas"]["AudioPeaksResponse"];
@@ -2249,6 +2442,25 @@ export interface components {
              */
             oauth_access_token: string;
         };
+        /** GeneratedDiscardEnvelope */
+        GeneratedDiscardEnvelope: {
+            data: components["schemas"]["GeneratedDiscardResponse"];
+        };
+        /** GeneratedDiscardResponse */
+        GeneratedDiscardResponse: {
+            /** Discarded */
+            discarded: boolean;
+        };
+        /** GeneratedKeepEnvelope */
+        GeneratedKeepEnvelope: {
+            data: components["schemas"]["GeneratedKeepResponse"];
+        };
+        /** GeneratedKeepResponse */
+        GeneratedKeepResponse: {
+            asset: components["schemas"]["UploadedAssetResponse"];
+            /** Duplicate */
+            duplicate: boolean;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2480,6 +2692,25 @@ export interface components {
             collection_id: number;
             /** External Id */
             external_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "venture" | "studio";
+            /** Tags */
+            tags?: string[];
+        };
+        /** KeepGeneratedBody */
+        KeepGeneratedBody: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "music" | "ambience" | "sfx" | "intro" | "outro" | "other";
+            /** Collection Id */
+            collection_id: number;
             /** Name */
             name: string;
             /**
@@ -3705,6 +3936,7 @@ export interface components {
         /** SettingsSnapshotResponse */
         SettingsSnapshotResponse: {
             audio_catalog: components["schemas"]["AudioCatalogSettingsResponse"];
+            audio_generation: components["schemas"]["AudioGenerationSettingsResponse"];
             database: components["schemas"]["audio_studio__http__settings_contracts__DatabaseStatusResponse"];
             /** Naming */
             naming: {
@@ -5752,6 +5984,152 @@ export interface operations {
             };
         };
     };
+    getAudioGenerationStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioGenerationStatusEnvelope"];
+                };
+            };
+        };
+    };
+    getAudioGenerationCandidate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioGenerationCandidateEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    playAudioGenerationCandidate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discardAudioGenerationCandidate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GeneratedDiscardEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    keepGeneratedAudio: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KeepGeneratedBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GeneratedKeepEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     saveComposerDraft: {
         parameters: {
             query?: never;
@@ -5919,6 +6297,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HierarchyPageEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createAudioGenerationJob: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudioGenerationJobCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobCreatedEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -7724,6 +8137,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProviderConnectionTestEnvelope"];
+                };
+            };
+        };
+    };
+    updateAudioGenerationSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudioGenerationSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsSnapshotEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -30,6 +30,7 @@ from audio_studio.application.voice_cloning import VoiceCloningService
 
 from audio_studio.composition.jobs import job_service
 from audio_studio.composition.renders import render_service
+from audio_studio.composition.audio_generation import audio_generation_service
 from audio_studio.providers.alibaba.text_preparation import AlibabaTextProvider
 from audio_studio.providers.alibaba.speech_generation import AlibabaSpeechProvider
 from audio_studio.providers.alibaba.translation import AlibabaTranslationProvider
@@ -98,6 +99,7 @@ def main() -> int:
         provider_operations,
     )))
     service.register("render", render_service.handle_job)
+    service.register("audio_generate", audio_generation_service.handle_job)
     alibaba_enrollment = AlibabaVoiceCloningProvider()
     enrollment_provider = ExactEnrollmentProviderRegistry({
         ("alibaba", adapter_key): alibaba_enrollment

@@ -107,7 +107,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                                      references=root / "references"),
                 PostgresUploadRecords(assets=self.repository),
             )
-            with patch.object(upload_workspace, "_inspect_audio", return_value={
+            with patch.object(upload_workspace, "inspect_audio", return_value={
                     "audio_format": "wav", "duration_ms": 1200,
                     "sample_rate": 48000,
                     "channels": 2,
@@ -195,7 +195,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                                      references=root / "references"),
                 PostgresUploadRecords(assets=self.repository),
             )
-            with patch.object(upload_workspace, "_inspect_audio", return_value={
+            with patch.object(upload_workspace, "inspect_audio", return_value={
                     "audio_format": "wav", "duration_ms": 450,
                     "sample_rate": 48000,
                     "channels": 1,
@@ -275,6 +275,47 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                 """, (external_id,))
                 self.assertEqual(cursor.fetchone(), (1, 1))
 
+    def test_concurrent_generated_keep_creates_one_asset_and_version(self):
+        first = self.repository.ensure_collections(self.venture_id)
+        second = self.repository.ensure_collections(self.other_venture_id)
+        collection_ids = (
+            next(item["id"] for item in first if item["kind"] == "stingers"),
+            next(item["id"] for item in second if item["kind"] == "stingers"),
+        )
+        candidate_id = str(uuid4())
+        barrier = Barrier(2)
+
+        def keep(index: int):
+            barrier.wait()
+            return VentureAssetRepository().create_generated_asset(
+                collection_ids[index], candidate_id=candidate_id,
+                name="Generated rain room",
+                filename=f"generated-{index}.wav",
+                path=f"/media/generated-{index}.wav", size_bytes=900,
+                duration_ms=450, audio_format="wav",
+                mime_type="audio/wav", category="ambience", scope="studio",
+                metadata={"origin": "generated",
+                          "external_id": candidate_id},
+                version_metadata={"codec": "pcm_s16le"})
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            results = list(executor.map(keep, (0, 1)))
+
+        self.assertEqual({item[0]["id"] for item in results},
+                         {results[0][0]["id"]})
+        self.assertEqual(sorted(item[1] for item in results), [False, True])
+        with psycopg.connect(settings.database_url) as database:
+            with database.cursor() as cursor:
+                cursor.execute("""
+                    SELECT count(*), count(version.id)
+                      FROM assets asset
+                      LEFT JOIN asset_versions version
+                        ON version.asset_id = asset.id
+                     WHERE asset.metadata ->> 'origin' = 'generated'
+                       AND asset.metadata ->> 'external_id' = %s
+                """, (candidate_id,))
+                self.assertEqual(cursor.fetchone(), (1, 1))
+
     def test_venture_catalog_keep_deduplicates_only_within_venture(self):
         first = self.repository.ensure_collections(self.venture_id)
         second = self.repository.ensure_collections(self.other_venture_id)
@@ -321,7 +362,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                                      references=root / "references"),
                 PostgresUploadRecords(assets=self.repository),
             )
-            with patch.object(upload_workspace, "_inspect_audio", return_value={
+            with patch.object(upload_workspace, "inspect_audio", return_value={
                     "audio_format": "wav", "duration_ms": 1200,
                     "sample_rate": 44100,
                     "channels": 1,

@@ -15,6 +15,26 @@ from audio_studio.infrastructure.settings_administration import (
 
 
 class SettingsAdministrationTests(unittest.TestCase):
+    def test_audio_generation_key_is_persisted_but_never_returned(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            env_file = root / ".env"
+            administration = EnvironmentSettings(
+                env_file=env_file, revision_file=root / ".revision",
+                reload_environment=lambda: None,
+            )
+            with patch.dict(os.environ, {}, clear=True):
+                administration.save_audio_generation({
+                    "api_key": "private-key",
+                    "base_url": "https://audio.test/",
+                })
+                status = administration.audio_generation()
+            saved = env_file.read_text()
+            self.assertIn("VORVN_AI_API_KEY=private-key", saved)
+            self.assertIn("VORVN_AI_BASE_URL=https://audio.test", saved)
+            self.assertTrue(status["configured"])
+            self.assertNotIn("private-key", repr(status))
+
     def test_freesound_secrets_are_persisted_but_never_returned(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)

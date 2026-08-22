@@ -6,13 +6,14 @@ import math
 from pathlib import Path
 import struct
 from tempfile import TemporaryDirectory
+from concurrent.futures import ThreadPoolExecutor
 import unittest
 from unittest.mock import patch
 
 from audio_studio.application.audio_projects import production_scene
 from audio_studio.http.app import app
 from audio_studio.infrastructure.audio_codec import pcm_wav
-from audio_studio.infrastructure.audio_peaks import peaks
+from audio_studio.infrastructure.audio_peaks import _write_cache, peaks
 from audio_studio.infrastructure.render_workspace import FFmpegRenderWorkspace
 
 
@@ -130,6 +131,17 @@ class AudioProjectTests(unittest.TestCase):
                        return_value=root):
                 values = peaks("voice.wav", 4096)
             self.assertEqual(len(values), 4096)
+
+    def test_waveform_cache_writes_are_atomic_under_concurrency(self):
+        with TemporaryDirectory() as folder:
+            target = Path(folder) / ".voice.wav.peaks-v2-4096.json"
+            candidates = [[float(index)] * 32 for index in range(16)]
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                list(pool.map(lambda values: _write_cache(target, values),
+                              candidates))
+            self.assertIn(__import__("json").loads(target.read_text()),
+                          candidates)
+            self.assertEqual(list(target.parent.glob("*.tmp")), [])
 
     def test_openapi_exposes_headless_render_and_peaks(self):
         paths = app.openapi()["paths"]

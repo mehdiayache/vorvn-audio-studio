@@ -36,6 +36,12 @@ type UploadedAsset = paths["/api/v1/asset-collections/{collection_id}/assets/upl
 type FreesoundSearchEnvelope = paths["/api/v1/audio-catalogs/freesound/search"]["get"]["responses"][200]["content"]["application/json"]
 type FreesoundKeepEnvelope = paths["/api/v1/audio-catalogs/freesound/keep"]["post"]["responses"][201]["content"]["application/json"]
 type FreesoundKeepBody = paths["/api/v1/audio-catalogs/freesound/keep"]["post"]["requestBody"]["content"]["application/json"]
+type AudioGenerationStatusEnvelope = paths["/api/v1/audio-generations/status"]["get"]["responses"][200]["content"]["application/json"]
+type AudioGenerationCandidateEnvelope = paths["/api/v1/audio-generations/{candidate_id}"]["get"]["responses"][200]["content"]["application/json"]
+type AudioGenerationJobBody = paths["/api/v1/jobs/audio-generation"]["post"]["requestBody"]["content"]["application/json"]
+type GeneratedKeepBody = paths["/api/v1/audio-generations/{candidate_id}/keep"]["post"]["requestBody"]["content"]["application/json"]
+type GeneratedKeepEnvelope = paths["/api/v1/audio-generations/{candidate_id}/keep"]["post"]["responses"][201]["content"]["application/json"]
+type GeneratedDiscardEnvelope = paths["/api/v1/audio-generations/{candidate_id}/candidate"]["delete"]["responses"][200]["content"]["application/json"]
 type SubtitleListEnvelope = paths["/api/v1/subtitles"]["get"]["responses"][200]["content"]["application/json"]
 type SubtitleEnvelope = paths["/api/v1/subtitles/{transcript_id}"]["get"]["responses"][200]["content"]["application/json"]
 type SubtitleDeletedEnvelope = paths["/api/v1/subtitles/{transcript_id}"]["delete"]["responses"][200]["content"]["application/json"]
@@ -61,6 +67,7 @@ type SettingsEnvelope = paths["/api/v1/settings"]["get"]["responses"][200]["cont
 type SettingsUpdateBody = paths["/api/v1/settings"]["patch"]["requestBody"]["content"]["application/json"]
 type ProviderUpdateBody = paths["/api/v1/settings/provider"]["patch"]["requestBody"]["content"]["application/json"]
 type FreesoundSettingsBody = paths["/api/v1/settings/providers/freesound"]["patch"]["requestBody"]["content"]["application/json"]
+type AudioGenerationSettingsBody = paths["/api/v1/settings/providers/audio-generation"]["patch"]["requestBody"]["content"]["application/json"]
 type AlibabaConnectionTestEnvelope = paths["/api/v1/settings/providers/alibaba/test"]["post"]["responses"][200]["content"]["application/json"]
 type StorageUpdateBody = paths["/api/v1/settings/storage"]["patch"]["requestBody"]["content"]["application/json"]
 type StorageTestEnvelope = paths["/api/v1/settings/storage/test"]["post"]["responses"][200]["content"]["application/json"]
@@ -162,6 +169,7 @@ export const studioApi = {
   resetNaming: () => request<SettingsEnvelope>("/api/v1/settings/naming/reset", { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
   updateProviderSettings: (changes: ProviderUpdateBody) => request<SettingsEnvelope>("/api/v1/settings/provider", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
   updateFreesoundSettings: (changes: FreesoundSettingsBody) => request<SettingsEnvelope>("/api/v1/settings/providers/freesound", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
+  updateAudioGenerationSettings: (changes: AudioGenerationSettingsBody) => request<SettingsEnvelope>("/api/v1/settings/providers/audio-generation", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
   testAlibabaConnection: () => request<AlibabaConnectionTestEnvelope>("/api/v1/settings/providers/alibaba/test", { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
   updateStorageSettings: (changes: StorageUpdateBody) => request<SettingsEnvelope>("/api/v1/settings/storage", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
   testStorage: () => request<StorageTestEnvelope>("/api/v1/settings/storage/test", { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
@@ -383,6 +391,20 @@ export const studioApi = {
   keepFreesound: (payload: FreesoundKeepBody) => request<FreesoundKeepEnvelope>("/api/v1/audio-catalogs/freesound/keep", {
     method: "POST", body: JSON.stringify(payload),
   }).then((response) => response.data),
+  audioGenerationStatus: () => request<AudioGenerationStatusEnvelope>("/api/v1/audio-generations/status").then((response) => response.data),
+  enqueueAudioGeneration: async (payload: AudioGenerationJobBody) => {
+    const response = await request<{ data: DurableJob<import("@/types/domain").AudioGenerationCandidate> }>("/api/v1/jobs/audio-generation", {
+      method: "POST",
+      headers: { "Idempotency-Key": `audio-generation-${crypto.randomUUID()}` },
+      body: JSON.stringify(payload),
+    })
+    return registerJob(response.data)
+  },
+  audioGenerationCandidate: (candidateId: string) => request<AudioGenerationCandidateEnvelope>(`/api/v1/audio-generations/${encodeURIComponent(candidateId)}`).then((response) => response.data),
+  keepGeneratedAudio: (candidateId: string, payload: GeneratedKeepBody) => request<GeneratedKeepEnvelope>(`/api/v1/audio-generations/${encodeURIComponent(candidateId)}/keep`, {
+    method: "POST", body: JSON.stringify(payload),
+  }).then((response) => response.data),
+  discardGeneratedAudio: (candidateId: string) => request<GeneratedDiscardEnvelope>(`/api/v1/audio-generations/${encodeURIComponent(candidateId)}/candidate`, { method: "DELETE" }).then((response) => response.data),
 }
 
 export function audioUrl(filename?: string) {

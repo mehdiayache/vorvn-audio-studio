@@ -60,6 +60,12 @@ class FreesoundSettingsUpdate(BaseModel):
     oauth_access_token: str = ""
 
 
+class AudioGenerationSettingsUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    api_key: str = Field(default="", max_length=4000)
+    base_url: str = Field(default="", max_length=1000)
+
+
 class PronunciationUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: int | None = None
@@ -116,6 +122,19 @@ def update_freesound(payload: FreesoundSettingsUpdate) -> dict:
     except (OSError, ValueError) as exc:
         raise ApiProblem(
             400, "invalid_freesound_settings", str(exc)) from exc
+
+
+@router.patch("/providers/audio-generation",
+              operation_id="updateAudioGenerationSettings",
+              response_model=SettingsSnapshotEnvelope,
+              response_model_exclude_none=True)
+def update_audio_generation(payload: AudioGenerationSettingsUpdate) -> dict:
+    try:
+        return {"data": settings_service.update_audio_generation(
+            payload.model_dump())}
+    except (OSError, ValueError) as exc:
+        raise ApiProblem(
+            400, "invalid_audio_generation_settings", str(exc)) from exc
 
 
 @router.post("/providers/alibaba/test", operation_id="testAlibabaConnection",

@@ -32,6 +32,7 @@ class ConfigurationFake:
     def __init__(self):
         self.saved_provider = None
         self.saved_audio_catalog = None
+        self.saved_audio_generation = None
         self.saved_storage = None
         self.storage_values = {
             "endpoint": "https://storage.test", "bucket": "private",
@@ -57,6 +58,13 @@ class ConfigurationFake:
             "keep_configured": False,
         }
 
+    def audio_generation(self):
+        return {
+            "provider": "VORVN Audio", "configured": True,
+            "sfx_ready": True, "music_ready": True, "reason": "",
+            "base_url": "https://audio.test", "models": {},
+        }
+
     def storage_configured(self):
         return True
 
@@ -68,6 +76,9 @@ class ConfigurationFake:
 
     def save_audio_catalog(self, values):
         self.saved_audio_catalog = values
+
+    def save_audio_generation(self, values):
+        self.saved_audio_generation = values
 
     def save_storage(self, values):
         self.saved_storage = values
@@ -134,6 +145,7 @@ class SettingsServiceTests(unittest.TestCase):
         self.assertTrue(result["provider"]["configured"])
         self.assertTrue(result["audio_catalog"]["search_configured"])
         self.assertFalse(result["audio_catalog"]["keep_configured"])
+        self.assertTrue(result["audio_generation"]["configured"])
         self.assertEqual(result["output_directory"], "/media/audio")
         self.assertTrue(result["storage"]["configured"])
         self.assertNotIn("access_key", result["storage_settings"])
@@ -168,6 +180,16 @@ class SettingsServiceTests(unittest.TestCase):
         })
         self.assertNotIn("api_token", result["audio_catalog"])
         self.assertNotIn("oauth_access_token", result["audio_catalog"])
+
+    def test_audio_generation_secret_uses_the_configuration_port(self):
+        result = self.service.update_audio_generation({
+            "api_key": "  private-key  ",
+            "base_url": "  https://audio.test  ",
+        })
+        self.assertEqual(self.configuration.saved_audio_generation, {
+            "api_key": "private-key", "base_url": "https://audio.test",
+        })
+        self.assertNotIn("api_key", result["audio_generation"])
 
     def test_preferences_filter_unknown_provider_flags_and_naming_fields(self):
         self.service.update({

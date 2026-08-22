@@ -11,6 +11,35 @@ import { studioApi } from "@/lib/api"
 const assets = [{ id: 11, title: "Harbor Intro", folder: "Intros", filename: "harbor.wav", duration_ms: 8_400 }]
 
 describe("AssetTool", () => {
+  it("submits one explicit generated-audio Job without creating an Asset", async () => {
+    sessionStorage.clear()
+    const status = vi.spyOn(studioApi, "audioGenerationStatus").mockResolvedValue({
+      configured: true, sfx_ready: true, music_ready: true, reason: "", models: {},
+    })
+    const enqueue = vi.spyOn(studioApi, "enqueueAudioGeneration").mockResolvedValue({
+      id: "generation-job", type: "audio_generate", status: "queued",
+      progress: 0, detail: "Queued", retries: 0, result: {
+        candidate_id: "generation-job", candidate_url: "",
+        capability: "sfx", prompt: "", seconds: 5, seed: 0,
+        duration_ms: 0, audio_format: "wav", size_bytes: 0,
+      },
+    })
+    const onKeepGenerated = vi.fn()
+    const { container } = render(<AssetTool assets={assets} mode="sound" productionId={81} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} onKeepGenerated={onKeepGenerated} />)
+    const view = within(container)
+    fireEvent.click(view.getByRole("button", { name: /^Generate$/ }))
+    await waitFor(() => expect(status).toHaveBeenCalled())
+    fireEvent.change(view.getByPlaceholderText(/heavy wooden library door/), { target: { value: "A dry match strikes once in a quiet room" } })
+    fireEvent.click(view.getByRole("button", { name: "Generate audio" }))
+    await waitFor(() => expect(enqueue).toHaveBeenCalledWith({
+      capability: "sfx", prompt: "A dry match strikes once in a quiet room",
+      seconds: 5, seed: undefined, production_id: 81,
+    }))
+    expect(onKeepGenerated).not.toHaveBeenCalled()
+    expect(sessionStorage.getItem("audio-studio:generation:81")).toBe("generation-job")
+    status.mockRestore(); enqueue.mockRestore(); sessionStorage.clear()
+  })
+
   it("keeps audition separate from explicit insertion", async () => {
     const onPlay = vi.fn()
     const onChoose = vi.fn().mockResolvedValue(undefined)

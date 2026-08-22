@@ -65,6 +65,7 @@ class FakeRecords:
         self.collection = {"id": 41}
         self.fail_reference = False
         self.fail_asset = False
+        self.generated_duplicate = False
 
     def create_voice_reference(self, **values):
         if self.fail_reference:
@@ -96,6 +97,13 @@ class FakeRecords:
                 "channels": stored.channels, "size_bytes": size_bytes,
                 "mime_type": stored.mime_type,
                 "version_metadata": stored.metadata or {}}
+
+    def create_generated_asset(self, collection_id, **values):
+        asset = self.create_uploaded_asset(collection_id, **{
+            key: value for key, value in values.items()
+            if key != "candidate_id"
+        })
+        return asset, self.generated_duplicate
 
 
 class UploadServiceTests(unittest.TestCase):
@@ -149,6 +157,25 @@ class UploadServiceTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "database"):
                 service.save_asset_file(
                     41, source, source.stat().st_size, "Second.mp3")
+        self.assertEqual(workspace.discarded_media, ["asset_fixture.mp3"])
+
+    def test_generated_duplicate_removes_only_the_losing_media_object(self):
+        service, workspace, records = self.service()
+        records.generated_duplicate = True
+        details = service.prepare_asset_upload(
+            "candidate.wav", name="Rain candidate", category="sfx",
+            scope="studio", metadata={"origin": "generated"},
+        )
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / "candidate.wav"
+            source.write_bytes(b"generated audio")
+            result = service.save_generated_asset_file(
+                41, source, source.stat().st_size,
+                candidate_id="candidate-1", details=details,
+            )
+
+        self.assertTrue(result["duplicate"])
+        self.assertEqual(result["asset"]["name"], "Rain candidate")
         self.assertEqual(workspace.discarded_media, ["asset_fixture.mp3"])
 
     def test_asset_category_is_explicit_and_validated_before_storage(self):

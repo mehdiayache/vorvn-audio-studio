@@ -244,6 +244,37 @@ class VentureAssetRepository:
             "url": f'/audio/{asset["filename"]}',
         }
 
+    def generated_asset(self, *, candidate_id: str) -> dict | None:
+        """Resolve one exact generated candidate regardless of Keep scope."""
+        with read_only() as cursor:
+            asset_id = self._generated_asset_id(
+                cursor, candidate_id=candidate_id)
+        if asset_id is None:
+            return None
+        asset = self.get(asset_id)
+        return ({
+            **asset, "category": asset["kind"],
+            "url": f'/audio/{asset["filename"]}',
+        } if asset else None)
+
+    @staticmethod
+    def _generated_asset_id(cursor, *, candidate_id: str) -> int | None:
+        cursor.execute("""
+            SELECT id FROM assets
+             WHERE metadata ->> 'origin' = 'generated'
+               AND metadata ->> 'external_id' = %s
+             ORDER BY id LIMIT 1
+        """, (candidate_id,))
+        row = cursor.fetchone()
+        return row[0] if row else None
+
+    @staticmethod
+    def _generation_lock_key(candidate_id: str) -> int:
+        identity = f"audio-generation:{candidate_id}"
+        return int.from_bytes(
+            hashlib.blake2b(identity.encode(), digest_size=8).digest(),
+            byteorder="big", signed=True)
+
     @staticmethod
     def _catalog_asset_id(
             cursor, *, collection_id: int, origin: str, external_id: str,
@@ -365,6 +396,54 @@ class VentureAssetRepository:
             existing_id = self._catalog_asset_id(
                 cursor, collection_id=collection_id, origin=origin,
                 external_id=external_id, scope=scope)
+            if existing_id is not None:
+                duplicate = True
+                asset_id = existing_id
+            else:
+                duplicate = False
+                created = self._create_uploaded_asset(
+                    cursor, collection_id=collection_id,
+                    collection=collection, name=name, filename=filename,
+                    path=path, size_bytes=size_bytes,
+                    duration_ms=duration_ms, audio_format=audio_format,
+                    mime_type=mime_type, category=category,
+                    sample_rate=sample_rate, channels=channels, scope=scope,
+                    tags=tags, metadata=metadata,
+                    version_metadata=version_metadata)
+                asset_id = created["id"]
+        asset = self.get(asset_id)
+        if not asset:
+            return None, duplicate
+        return ({
+            **asset, "category": asset["kind"],
+            "url": f'/audio/{asset["filename"]}',
+        }, duplicate)
+
+    def create_generated_asset(
+            self, collection_id: int, *, candidate_id: str,
+            name: str, filename: str, path: str, size_bytes: int,
+            duration_ms: int, audio_format: str, mime_type: str,
+            category: AssetCategory | None = None,
+            sample_rate: int | None = None, channels: int | None = None,
+            scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+            metadata: dict | None = None,
+            version_metadata: dict | None = None,
+            ) -> tuple[dict | None, bool]:
+        """Create one canonical Asset for one exact generation candidate."""
+        with transaction() as cursor:
+            cursor.execute("""
+                SELECT venture_id, legacy_container_id, kind
+                  FROM asset_collections WHERE id = %s
+            """, (collection_id,))
+            collection = cursor.fetchone()
+            if not collection:
+                return None, False
+            cursor.execute(
+                "SELECT pg_advisory_xact_lock(%s)",
+                (self._generation_lock_key(candidate_id),),
+            )
+            existing_id = self._generated_asset_id(
+                cursor, candidate_id=candidate_id)
             if existing_id is not None:
                 duplicate = True
                 asset_id = existing_id

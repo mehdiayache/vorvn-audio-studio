@@ -38,11 +38,11 @@ def _canonical_audio_format(container: str) -> str | None:
 
 
 def _audio_duration_ms(target: Path) -> int | None:
-    inspection = _inspect_audio(target)
+    inspection = inspect_audio(target)
     return inspection["duration_ms"] if inspection else None
 
 
-def _inspect_audio(target: Path) -> dict | None:
+def inspect_audio(target: Path) -> dict | None:
     """Inspect one audio file once and return its canonical technical facts."""
     if not shutil.which("ffprobe"):
         return None
@@ -190,7 +190,7 @@ class LocalUploadWorkspace:
         target: Path | None = None
         try:
             shutil.move(str(source), staging)
-            inspection = _inspect_audio(staging)
+            inspection = inspect_audio(staging)
             if inspection is None:
                 raise ValueError("That file could not be decoded as audio.")
             audio_format = inspection["audio_format"]
