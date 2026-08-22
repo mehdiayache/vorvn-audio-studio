@@ -120,12 +120,20 @@ async def upload_voice_reference(request: Request,
 async def upload_venture_asset(collection_id: int, request: Request,
                                x_filename: str = Header(default="audio.mp3"),
                                x_asset_category: str | None = Header(
-                                   default=None)) -> dict:
+                                   default=None),
+                               x_asset_name: str | None = Header(default=None),
+                               x_asset_scope: str | None = Header(default=None),
+                               x_asset_tags: str | None = Header(default=None)) -> dict:
+    try:
+        details = upload_service.prepare_asset_upload(
+            x_filename, name=x_asset_name, category=x_asset_category,
+            scope=x_asset_scope, encoded_tags=x_asset_tags)
+    except UploadError as exc:
+        raise ApiProblem(400, "invalid_asset", str(exc)) from exc
     incoming, size = await _stream_to_file(request, 250_000_000)
     try:
         result = upload_service.save_asset_file(
-            collection_id, incoming, size, x_filename,
-            category=x_asset_category)
+            collection_id, incoming, size, x_filename, details=details)
     except UploadError as exc:
         raise ApiProblem(400, "invalid_asset", str(exc)) from exc
     except RuntimeError as exc:

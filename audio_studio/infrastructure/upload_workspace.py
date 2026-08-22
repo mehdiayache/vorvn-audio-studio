@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import mimetypes
 import hashlib
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -16,17 +17,42 @@ from audio_studio.infrastructure.media_paths import media_root, voice_reference_
 
 
 def _audio_duration_ms(target: Path) -> int | None:
+    inspection = _inspect_audio(target)
+    return inspection["duration_ms"] if inspection else None
+
+
+def _inspect_audio(target: Path) -> dict | None:
+    """Inspect one audio file once and return its canonical technical facts."""
     if not shutil.which("ffprobe"):
         return None
-    result = subprocess.run(
-        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
-         "-of", "default=nw=1:nk=1", str(target)],
-        capture_output=True, text=True,
-    )
-    try:
-        return int(float(result.stdout.strip()) * 1000)
-    except (TypeError, ValueError):
+    result = subprocess.run([
+        "ffprobe", "-v", "error", "-show_entries",
+        "format=duration,format_name:stream=codec_type,codec_name,sample_rate,channels",
+        "-of", "json", str(target),
+    ], capture_output=True, text=True)
+    if result.returncode:
         return None
+    try:
+        payload = json.loads(result.stdout)
+        stream = next(
+            item for item in payload.get("streams", [])
+            if item.get("codec_type") == "audio")
+        duration_ms = int(float(payload["format"]["duration"]) * 1000)
+        sample_rate = int(stream["sample_rate"])
+        channels = int(stream["channels"])
+    except (KeyError, StopIteration, TypeError, ValueError, json.JSONDecodeError):
+        return None
+    if duration_ms <= 0 or sample_rate <= 0 or channels <= 0:
+        return None
+    return {
+        "duration_ms": duration_ms,
+        "sample_rate": sample_rate,
+        "channels": channels,
+        "metadata": {
+            "codec": stream.get("codec_name") or "",
+            "container": payload.get("format", {}).get("format_name") or "",
+        },
+    }
 
 
 class LocalUploadWorkspace:
@@ -138,8 +164,8 @@ class LocalUploadWorkspace:
         filename = f"{uuid4().hex}{suffix}"
         target = self.output / filename
         shutil.move(str(source), target)
-        duration_ms = _audio_duration_ms(target)
-        if duration_ms is None:
+        inspection = _inspect_audio(target)
+        if inspection is None:
             target.unlink(missing_ok=True)
             raise ValueError("That file could not be decoded as audio.")
         mime_type = {
@@ -148,8 +174,12 @@ class LocalUploadWorkspace:
             ".m4a": "audio/mp4", ".aac": "audio/aac",
         }.get(suffix, "application/octet-stream")
         return StoredAsset(
-            filename=filename, path=str(target), duration_ms=duration_ms,
+            filename=filename, path=str(target),
+            duration_ms=inspection["duration_ms"],
             audio_format=suffix.lstrip("."), mime_type=mime_type,
+            sample_rate=inspection["sample_rate"],
+            channels=inspection["channels"],
+            metadata=inspection["metadata"],
         )
 
     def discard_media(self, filename: str) -> None:

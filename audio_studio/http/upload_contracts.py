@@ -27,6 +27,16 @@ class UploadedAssetResponse(BaseModel):
     filename: str
     duration_ms: int
     url: str
+    category: str
+    scope: str
+    tags: list[str]
+    metadata: dict
+    audio_format: str
+    sample_rate: int | None = None
+    channels: int | None = None
+    size_bytes: int
+    mime_type: str
+    version_metadata: dict
 
 
 class UploadedAssetEnvelope(BaseModel):

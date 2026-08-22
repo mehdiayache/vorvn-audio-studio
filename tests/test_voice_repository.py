@@ -105,7 +105,10 @@ class VoiceRepositoryTests(unittest.TestCase):
 
             profile = next(item for item in repository.profiles()
                            if item["id"] == identity_id)
-            self.assertEqual(profile["references"][0]["id"], reference_id)
+            self.assertEqual(
+                {item["id"] for item in profile["references"]},
+                {reference_id, second_reference_id},
+            )
             self.assertEqual(profile["preferred_reference_id"], reference_id)
             exact_bindings = [item for item in profile["bindings"]
                               if item["model_id"] == model_id]

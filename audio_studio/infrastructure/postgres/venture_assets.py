@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from audio_studio.domain.uploads import ASSET_CATEGORIES, AssetCategory
+import json
+
+from audio_studio.domain.uploads import (
+    ASSET_CATEGORIES, AssetCategory, AssetScope,
+)
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 
@@ -258,6 +262,10 @@ class VentureAssetRepository:
             self, collection_id: int, *, name: str, filename: str, path: str,
             size_bytes: int, duration_ms: int, audio_format: str,
             mime_type: str, category: AssetCategory | None = None,
+            sample_rate: int | None = None, channels: int | None = None,
+            scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+            metadata: dict | None = None,
+            version_metadata: dict | None = None,
             ) -> dict | None:
         """Commit an Asset and its first immutable version atomically."""
         with transaction() as cursor:
@@ -275,19 +283,29 @@ class VentureAssetRepository:
                 raise ValueError("Asset category is not supported.")
             cursor.execute("""
                 INSERT INTO assets
-                    (venture_id, collection_id, name, kind,
-                     legacy_generation_id)
-                VALUES (%s, %s, %s, %s, NULL) RETURNING id
-            """, (venture_id, collection_id, name, canonical_category))
+                    (venture_id, collection_id, name, kind, scope, tags,
+                     metadata, legacy_generation_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NULL) RETURNING id
+            """, (venture_id, collection_id, name, canonical_category,
+                  scope, list(tags), json.dumps(metadata or {})))
             asset_id = cursor.fetchone()[0]
             cursor.execute("""
                 INSERT INTO asset_versions
                     (asset_id, version, source_generation_id, filename, path,
-                     size_bytes, duration_ms, mime_type, audio_format)
-                VALUES (%s, 1, NULL, %s, %s, %s, %s, %s, %s) RETURNING id
+                     size_bytes, duration_ms, mime_type, audio_format,
+                     sample_rate, channels, metadata)
+                VALUES (%s, 1, NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
             """, (asset_id, filename, path, size_bytes,
-                  duration_ms, mime_type, audio_format))
+                  duration_ms, mime_type, audio_format, sample_rate, channels,
+                  json.dumps(version_metadata or {})))
             version_id = cursor.fetchone()[0]
         return {"id": asset_id,
                 "version_id": version_id, "name": name,
-                "filename": filename, "duration_ms": duration_ms}
+                "filename": filename, "duration_ms": duration_ms,
+                "category": canonical_category, "scope": scope,
+                "tags": list(tags), "metadata": metadata or {},
+                "audio_format": audio_format, "sample_rate": sample_rate,
+                "channels": channels, "size_bytes": size_bytes,
+                "mime_type": mime_type,
+                "version_metadata": version_metadata or {}}

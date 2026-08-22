@@ -214,11 +214,18 @@ export function useProductionActions({ production, soundScene, player, refresh, 
   const insertAsset = useCallback((asset: VentureAsset, beforePartId: string | null) => mutate("production:add-asset", () => studioApi.insertAsset(production.id, asset.id, beforePartId), "Library audio inserted"), [mutate, production.id])
   const replaceAsset = useCallback((part: ProductionPart, asset: VentureAsset) => mutate(`part:${part.id}:replace`, () => studioApi.replaceAsset(production.id, part.id, asset.id), "Venture audio replaced"), [mutate, production.id])
   const moveParts = useCallback((ids: number[], targetId: number, targetName: string) => mutate("parts:move-production", () => studioApi.moveParts(production.id, ids, targetId), `Moved to ${targetName}`, true), [mutate, production.id])
-  const uploadAsset = useCallback(async (collectionId: number, folder: string, category: string, file: File) => {
-    await mutationActions.run("asset:upload", async () => {
-      await studioApi.uploadAsset(collectionId, file, category)
+  const uploadAsset = useCallback(async (collectionId: number, folder: string, details: {
+    name: string
+    category: string
+    scope: "venture" | "studio"
+    tags: string[]
+    file: File
+  }): Promise<VentureAsset> => {
+    return mutationActions.run("asset:upload", async () => {
+      const uploaded = await studioApi.uploadAsset(collectionId, details.file, details)
       await refreshAssets()
-      toast.success(`${file.name} uploaded to ${folder}`)
+      toast.success(`${details.name} added to the Audio Library`)
+      return uploaded as VentureAsset
     })
   }, [mutationActions.run, refreshAssets])
 

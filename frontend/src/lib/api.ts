@@ -346,10 +346,20 @@ export const studioApi = {
     const job = await studioApi.enqueueTranscriptTranslation(id, target, confirmed)
     return jobObserver.completion<CaptionMutationResult>(job.id)
   },
-  uploadAsset: async (collectionId: number, file: File, category?: string) => {
+  uploadAsset: async (collectionId: number, file: File, details?: {
+    name?: string
+    category?: string
+    scope?: "venture" | "studio"
+    tags?: string[]
+  }) => {
+    const headers: Record<string, string> = {}
+    if (details?.name) headers["X-Asset-Name"] = encodeURIComponent(details.name)
+    if (details?.category) headers["X-Asset-Category"] = details.category
+    if (details?.scope) headers["X-Asset-Scope"] = details.scope
+    if (details?.tags) headers["X-Asset-Tags"] = encodeURIComponent(JSON.stringify(details.tags))
     const response = await uploadFile<{ data: UploadedAsset }>(
       `/api/v1/asset-collections/${collectionId}/assets/upload`, file,
-      category ? { "X-Asset-Category": category } : {},
+      headers,
     )
     return response.data
   },

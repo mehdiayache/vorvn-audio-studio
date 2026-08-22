@@ -4512,18 +4512,42 @@ export interface components {
         };
         /** UploadedAssetResponse */
         UploadedAssetResponse: {
+            /** Audio Format */
+            audio_format: string;
+            /** Category */
+            category: string;
+            /** Channels */
+            channels?: number | null;
             /** Duration Ms */
             duration_ms: number;
             /** Filename */
             filename: string;
             /** Id */
             id: number;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Mime Type */
+            mime_type: string;
             /** Name */
             name: string;
+            /** Sample Rate */
+            sample_rate?: number | null;
+            /** Scope */
+            scope: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Tags */
+            tags: string[];
             /** Url */
             url: string;
             /** Version Id */
             version_id: number;
+            /** Version Metadata */
+            version_metadata: {
+                [key: string]: unknown;
+            };
         };
         /** UploadedImageEnvelope */
         UploadedImageEnvelope: {
@@ -5436,6 +5460,9 @@ export interface operations {
             header?: {
                 "x-filename"?: string;
                 "x-asset-category"?: string | null;
+                "x-asset-name"?: string | null;
+                "x-asset-scope"?: string | null;
+                "x-asset-tags"?: string | null;
             };
             path: {
                 collection_id: number;

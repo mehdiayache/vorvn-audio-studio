@@ -7,6 +7,7 @@ from typing import Literal
 AssetCategory = Literal[
     "music", "ambience", "sfx", "intro", "outro", "other",
 ]
+AssetScope = Literal["venture", "studio"]
 ASSET_CATEGORIES = frozenset({
     "music", "ambience", "sfx", "intro", "outro", "other",
 })
@@ -39,3 +40,6 @@ class StoredAsset:
     duration_ms: int
     audio_format: str
     mime_type: str
+    sample_rate: int | None = None
+    channels: int | None = None
+    metadata: dict | None = None

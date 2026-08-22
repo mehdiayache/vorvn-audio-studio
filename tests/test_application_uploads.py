@@ -2,10 +2,15 @@
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import json
 import unittest
+from unittest.mock import AsyncMock, Mock, patch
+from urllib.parse import quote
 
 from audio_studio.application.uploads import UploadError, UploadService
 from audio_studio.domain.uploads import StoredAsset, StoredVoiceReference
+from audio_studio.http.errors import ApiProblem
+from audio_studio.http.routers import uploads as upload_router
 
 
 class FakeWorkspace:
@@ -35,7 +40,8 @@ class FakeWorkspace:
         self.assets.append((source, original_name, size_bytes))
         return StoredAsset(
             "asset_fixture.mp3", "/media/asset_fixture.mp3", 1250,
-            "mp3", "audio/mpeg")
+            "mp3", "audio/mpeg", 48000, 2,
+            {"codec": "mp3", "container": "mp3"})
 
     def discard_media(self, filename):
         self.discarded_media.append(filename)
@@ -70,16 +76,26 @@ class FakeRecords:
         return self.collection if collection_id == 41 else None
 
     def create_uploaded_asset(
-            self, collection_id, *, name, stored, size_bytes, category=None):
+            self, collection_id, *, name, stored, size_bytes, category=None,
+            scope="venture", tags=(), metadata=None):
         if self.fail_asset:
             raise RuntimeError("database unavailable")
         self.created_assets.append({
             "collection_id": collection_id, "name": name,
             "stored": stored, "size_bytes": size_bytes,
-            "category": category,
+            "category": category, "scope": scope, "tags": tags,
+            "metadata": metadata,
         })
-        return {"id": 7, "filename": stored.filename,
-                "duration_ms": stored.duration_ms}
+        return {"id": 7, "version_id": 8, "name": name,
+                "filename": stored.filename,
+                "duration_ms": stored.duration_ms,
+                "category": category or "music", "scope": scope,
+                "tags": list(tags), "metadata": metadata or {},
+                "audio_format": stored.audio_format,
+                "sample_rate": stored.sample_rate,
+                "channels": stored.channels, "size_bytes": size_bytes,
+                "mime_type": stored.mime_type,
+                "version_metadata": stored.metadata or {}}
 
 
 class UploadServiceTests(unittest.TestCase):
@@ -125,7 +141,7 @@ class UploadServiceTests(unittest.TestCase):
             result = service.save_asset_file(
                 41, source, source.stat().st_size, "Quiet bed.mp3")
         self.assertEqual(result["url"], "/audio/asset_fixture.mp3")
-        self.assertEqual(result["name"], "Quiet bed.mp3")
+        self.assertEqual(result["name"], "Quiet bed")
         records.fail_asset = True
         with TemporaryDirectory() as directory:
             source = Path(directory) / "incoming"
@@ -152,6 +168,46 @@ class UploadServiceTests(unittest.TestCase):
         self.assertEqual(records.created_assets[0]["category"], "ambience")
         self.assertEqual(len(workspace.assets), 1)
 
+    def test_asset_human_facts_are_normalized_before_storage(self):
+        service, workspace, records = self.service()
+        details = service.prepare_asset_upload(
+            "Night_Room.wav", name="  Night   room ambience  ",
+            category="Ambience", scope="studio",
+            encoded_tags="%5B%22Night%22%2C%22%20night%20%22%2C%22Room%20Tone%22%5D",
+        )
+        self.assertEqual(details.name, "Night room ambience")
+        self.assertEqual(details.tags, ("night", "room tone"))
+        self.assertEqual(details.scope, "studio")
+        self.assertEqual(details.metadata, {
+            "origin": "upload", "original_filename": "Night_Room.wav",
+        })
+        self.assertFalse(workspace.assets)
+        with self.assertRaisesRegex(UploadError, "at most 12"):
+            service.prepare_asset_upload(
+                "audio.wav", category="sfx",
+                encoded_tags=quote(json.dumps(
+                    [f"tag {index}" for index in range(13)])),
+            )
+        self.assertFalse(records.created_assets)
+
+    def test_asset_explicit_name_scope_tags_and_technical_facts_survive(self):
+        service, _, records = self.service()
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / "incoming"
+            source.write_bytes(b"audio")
+            result = service.save_asset_file(
+                41, source, source.stat().st_size, "source.wav",
+                name="Door knock", category="sfx", scope="studio",
+                encoded_tags="%5B%22wood%22%2C%22short%22%5D",
+            )
+        created = records.created_assets[0]
+        self.assertEqual(
+            (created["name"], created["scope"], created["tags"]),
+            ("Door knock", "studio", ("wood", "short")),
+        )
+        self.assertEqual(result["sample_rate"], 48000)
+        self.assertEqual(result["channels"], 2)
+
     def test_transcription_requires_storage_before_moving_the_file(self):
         service, workspace, _ = self.service(storage_ready=False)
         with TemporaryDirectory() as directory:
@@ -162,6 +218,25 @@ class UploadServiceTests(unittest.TestCase):
                     source, source.stat().st_size, "source.mp3")
         self.assertTrue(raised.exception.needs_storage)
         self.assertFalse(workspace.transcriptions)
+
+
+class UploadRouterCleanupTests(unittest.IsolatedAsyncioTestCase):
+    async def test_asset_upload_removes_incoming_file_when_application_rejects_it(self):
+        with TemporaryDirectory() as directory:
+            incoming = Path(directory) / "incoming.upload"
+            incoming.write_bytes(b"invalid")
+            service = Mock()
+            service.prepare_asset_upload.return_value = Mock()
+            service.save_asset_file.side_effect = UploadError("Rejected")
+            with patch.object(upload_router, "upload_service", service), patch.object(
+                    upload_router, "_stream_to_file",
+                    AsyncMock(return_value=(incoming, incoming.stat().st_size))):
+                with self.assertRaises(ApiProblem) as raised:
+                    await upload_router.upload_venture_asset(
+                        41, Mock(), x_filename="broken.wav")
+            self.assertEqual((raised.exception.status, raised.exception.code),
+                             (400, "invalid_asset"))
+            self.assertFalse(incoming.exists())
 
 
 if __name__ == "__main__":

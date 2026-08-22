@@ -8503,6 +8503,25 @@
       },
       "UploadedAssetResponse": {
         "properties": {
+          "audio_format": {
+            "title": "Audio Format",
+            "type": "string"
+          },
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "channels": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channels"
+          },
           "duration_ms": {
             "title": "Duration Ms",
             "type": "integer"
@@ -8515,9 +8534,44 @@
             "title": "Id",
             "type": "integer"
           },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "mime_type": {
+            "title": "Mime Type",
+            "type": "string"
+          },
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "sample_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Rate"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
           },
           "url": {
             "title": "Url",
@@ -8526,6 +8580,11 @@
           "version_id": {
             "title": "Version Id",
             "type": "integer"
+          },
+          "version_metadata": {
+            "additionalProperties": true,
+            "title": "Version Metadata",
+            "type": "object"
           }
         },
         "required": [
@@ -8534,7 +8593,15 @@
           "name",
           "filename",
           "duration_ms",
-          "url"
+          "url",
+          "category",
+          "scope",
+          "tags",
+          "metadata",
+          "audio_format",
+          "size_bytes",
+          "mime_type",
+          "version_metadata"
         ],
         "title": "UploadedAssetResponse",
         "type": "object"
@@ -11506,6 +11573,54 @@
                 }
               ],
               "title": "X-Asset-Category"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-asset-name",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Asset-Name"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-asset-scope",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Asset-Scope"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-asset-tags",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Asset-Tags"
             }
           }
         ],

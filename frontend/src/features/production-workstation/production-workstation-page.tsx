@@ -597,7 +597,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
         else await soundSession.addTrack(asset, soundSession.snapshot().playhead)
         setTool(null); setAudioTarget(null); setStage("sound")
       }}
-      onUploadAsset={async (folder, category, file) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); await actions.uploadAsset(collectionId, folder, category, file) }}
+      onUploadAsset={async (folder, input) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); return actions.uploadAsset(collectionId, folder, input) }}
       onImport={(document, roleVoices) => studioApi.importProduction(production.id, document, roleVoices)} onImported={() => { actions.invalidatePreview(); void refresh().then(() => setTool(null)) }}
       onPlay={(source) => void playSource(source)} onConfirmAction={setConfirmAction}
     /></Suspense>}

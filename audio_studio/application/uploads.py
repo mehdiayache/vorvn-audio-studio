@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+import json
 from pathlib import Path
 import hashlib
-from typing import Protocol
+from typing import cast, Protocol
 from urllib.parse import unquote
 from uuid import uuid4
 
 from audio_studio.domain.uploads import (
     ASSET_CATEGORIES,
     AssetCategory,
+    AssetScope,
     StoredAsset,
     StoredVoiceReference,
 )
@@ -19,12 +22,26 @@ from audio_studio.domain.uploads import (
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 VOICE_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".webm"}
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"}
+ASSET_SCOPES = frozenset({"venture", "studio"})
+MAX_ASSET_NAME_LENGTH = 120
+MAX_ASSET_TAGS = 12
+MAX_ASSET_TAG_LENGTH = 32
 
 
 class UploadError(ValueError):
     def __init__(self, message: str, *, needs_storage: bool = False):
         super().__init__(message)
         self.needs_storage = needs_storage
+
+
+@dataclass(frozen=True, slots=True)
+class AssetUploadDetails:
+    original_name: str
+    name: str
+    category: AssetCategory | None
+    scope: AssetScope
+    tags: tuple[str, ...]
+    metadata: dict
 
 
 class UploadWorkspace(Protocol):
@@ -64,6 +81,8 @@ class UploadRecords(Protocol):
     def create_uploaded_asset(
         self, collection_id: int, *, name: str, stored: StoredAsset,
         size_bytes: int, category: AssetCategory | None = None,
+        scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+        metadata: dict | None = None,
     ) -> dict | None: ...
 
 
@@ -139,7 +158,10 @@ class UploadService:
 
     def save_asset_file(
         self, collection_id: int, source: Path, size_bytes: int,
-        encoded_name: str, *, category: str | None = None,
+        encoded_name: str, *, name: str | None = None,
+        category: str | None = None, scope: str | None = None,
+        encoded_tags: str | None = None,
+        details: AssetUploadDetails | None = None,
     ) -> dict:
         if not self.records.asset_collection(collection_id):
             raise UploadError(
@@ -148,12 +170,12 @@ class UploadService:
             raise UploadError("That audio file is empty.")
         if size_bytes > 250_000_000:
             raise UploadError("That file is over 250 MB.")
-        original = clean_name(encoded_name, "audio.mp3")
+        prepared = details or self.prepare_asset_upload(
+            encoded_name, name=name, category=category, scope=scope,
+            encoded_tags=encoded_tags)
+        original = prepared.original_name
         if Path(original).suffix.lower() not in AUDIO_EXTENSIONS:
             raise UploadError("Use MP3, WAV, M4A, AAC, OGG or FLAC audio.")
-        canonical_category = category.strip().lower() if category else None
-        if canonical_category and canonical_category not in ASSET_CATEGORIES:
-            raise UploadError("Choose a valid audio category.")
         try:
             stored = self.workspace.store_asset(
                 source, original_name=original, size_bytes=size_bytes)
@@ -161,16 +183,74 @@ class UploadService:
             raise UploadError(str(exc)) from exc
         try:
             created = self.records.create_uploaded_asset(
-                collection_id, name=Path(original).stem, stored=stored,
-                size_bytes=size_bytes, category=canonical_category)
+                collection_id, name=prepared.name, stored=stored,
+                size_bytes=size_bytes, category=prepared.category,
+                scope=prepared.scope, tags=prepared.tags,
+                metadata=prepared.metadata)
         except Exception:
             self.workspace.discard_media(stored.filename)
             raise
         if not created:
             self.workspace.discard_media(stored.filename)
             raise RuntimeError("That Asset collection no longer exists.")
-        return {**created, "name": original,
+        return {**created,
                 "url": f"/audio/{stored.filename}"}
+
+    def prepare_asset_upload(
+        self, encoded_name: str, *, name: str | None = None,
+        category: str | None = None, scope: str | None = None,
+        encoded_tags: str | None = None,
+    ) -> AssetUploadDetails:
+        """Validate human Asset facts before streaming or storing media."""
+        original = clean_name(encoded_name, "audio.mp3")
+        if Path(original).suffix.lower() not in AUDIO_EXTENSIONS:
+            raise UploadError("Use MP3, WAV, M4A, AAC, OGG or FLAC audio.")
+        canonical_name = " ".join(
+            (unquote(name) if name is not None else Path(original).stem).split())
+        if not canonical_name:
+            raise UploadError("Give this audio a name.")
+        if len(canonical_name) > MAX_ASSET_NAME_LENGTH:
+            raise UploadError(
+                f"Keep the audio name under {MAX_ASSET_NAME_LENGTH} characters.")
+
+        canonical_category = category.strip().lower() if category else None
+        if canonical_category and canonical_category not in ASSET_CATEGORIES:
+            raise UploadError("Choose a valid audio category.")
+        canonical_scope = (scope or "venture").strip().lower()
+        if canonical_scope not in ASSET_SCOPES:
+            raise UploadError("Choose Studio Library or This Venture.")
+
+        raw_tags: object = []
+        if encoded_tags:
+            try:
+                raw_tags = json.loads(unquote(encoded_tags))
+            except (TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise UploadError("Tags could not be read.") from exc
+        if not isinstance(raw_tags, list) or not all(
+                isinstance(item, str) for item in raw_tags):
+            raise UploadError("Tags must be a list of words or short phrases.")
+        tags: list[str] = []
+        seen: set[str] = set()
+        for raw_tag in raw_tags:
+            tag = " ".join(raw_tag.split()).casefold()
+            if not tag or tag in seen:
+                continue
+            if len(tag) > MAX_ASSET_TAG_LENGTH:
+                raise UploadError(
+                    f"Keep each tag under {MAX_ASSET_TAG_LENGTH} characters.")
+            seen.add(tag)
+            tags.append(tag)
+        if len(tags) > MAX_ASSET_TAGS:
+            raise UploadError(f"Use at most {MAX_ASSET_TAGS} tags.")
+
+        return AssetUploadDetails(
+            original_name=original,
+            name=canonical_name,
+            category=cast(AssetCategory | None, canonical_category),
+            scope=cast(AssetScope, canonical_scope),
+            tags=tuple(tags),
+            metadata={"origin": "upload", "original_filename": original},
+        )
 
     def save_transcription_source_file(
         self, source: Path, size_bytes: int, encoded_name: str,

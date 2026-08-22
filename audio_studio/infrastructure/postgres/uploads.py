@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import psycopg
 
-from audio_studio.domain.uploads import AssetCategory, StoredAsset
+from audio_studio.domain.uploads import AssetCategory, AssetScope, StoredAsset
 from audio_studio.infrastructure.postgres.venture_assets import VentureAssetRepository
 from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
 
@@ -53,6 +53,8 @@ class PostgresUploadRecords:
     def create_uploaded_asset(
         self, collection_id: int, *, name: str, stored: StoredAsset,
         size_bytes: int, category: AssetCategory | None = None,
+        scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+        metadata: dict | None = None,
     ) -> dict | None:
         try:
             return self.assets.create_uploaded_asset(
@@ -60,7 +62,9 @@ class PostgresUploadRecords:
                 path=stored.path, size_bytes=size_bytes,
                 duration_ms=stored.duration_ms,
                 audio_format=stored.audio_format, mime_type=stored.mime_type,
-                category=category)
+                sample_rate=stored.sample_rate, channels=stored.channels,
+                version_metadata=stored.metadata or {}, category=category,
+                scope=scope, tags=tags, metadata=metadata or {})
         except psycopg.OperationalError as exc:
             raise RuntimeError(
                 "The database could not save that Asset.") from exc

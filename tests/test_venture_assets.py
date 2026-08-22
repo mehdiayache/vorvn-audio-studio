@@ -105,11 +105,15 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                                      references=root / "references"),
                 PostgresUploadRecords(assets=self.repository),
             )
-            with patch.object(upload_workspace, "_audio_duration_ms",
-                              return_value=1200):
+            with patch.object(upload_workspace, "_inspect_audio", return_value={
+                    "duration_ms": 1200, "sample_rate": 48000,
+                    "channels": 2,
+                    "metadata": {"codec": "pcm_s16le", "container": "wav"},
+                    }):
                 created = service.save_asset_file(
                     music["id"], source, source.stat().st_size,
-                    "Quiet bed.wav")
+                    "Quiet bed.wav", name="Quiet evening bed",
+                    scope="venture", encoded_tags="%5B%22calm%22%2C%22bed%22%5D")
             self.assertTrue((Path(output) / created["filename"]).is_file())
         asset = self.repository.get(created["id"])
         self.assertEqual(
@@ -120,6 +124,11 @@ class VentureAssetRepositoryTests(unittest.TestCase):
              created["version_id"],
              created["filename"]),
         )
+        self.assertEqual(asset["name"], "Quiet evening bed")
+        self.assertEqual(asset["tags"], ["calm", "bed"])
+        self.assertEqual((asset["sample_rate"], asset["channels"]), (48000, 2))
+        self.assertEqual(asset["metadata"]["origin"], "upload")
+        self.assertEqual(asset["version_metadata"]["codec"], "pcm_s16le")
         listed = self.repository.list_for_venture(self.venture_id)
         self.assertEqual([item["id"] for item in listed], [created["id"]])
         context = self.repository.library_context(created["id"])
@@ -146,10 +155,10 @@ class VentureAssetRepositoryTests(unittest.TestCase):
             database.commit()
         self.assertTrue(self.repository.allowed_for_production(
             other_production_id, created["id"]))
-        self.assertEqual(
+        self.assertIn(
+            created["id"],
             [item["id"] for item in self.repository.list_for_production(
                 other_production_id)],
-            [created["id"]],
         )
         scenes = SoundSceneRepository()
         current = scenes.get(other_production_id)
@@ -169,6 +178,35 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         self.assertFalse(shared_clip["missing"])
         self.assertEqual(shared_clip["asset_version_id"], created["version_id"])
 
+    def test_uploaded_studio_asset_is_reusable_by_another_venture(self):
+        collections = self.repository.ensure_collections(self.venture_id)
+        stingers = next(
+            item for item in collections if item["kind"] == "stingers")
+        other_production_id = self._production_for(self.other_venture_id, 2)
+        with TemporaryDirectory() as output:
+            root = Path(output)
+            source = root / "incoming.upload"
+            source.write_bytes(b"RIFF" + bytes(40))
+            service = UploadService(
+                LocalUploadWorkspace(root=root, output=root,
+                                     references=root / "references"),
+                PostgresUploadRecords(assets=self.repository),
+            )
+            with patch.object(upload_workspace, "_inspect_audio", return_value={
+                    "duration_ms": 450, "sample_rate": 48000,
+                    "channels": 1,
+                    "metadata": {"codec": "pcm_s16le", "container": "wav"},
+                    }):
+                created = service.save_asset_file(
+                    stingers["id"], source, source.stat().st_size,
+                    "knock.wav", name="Wooden door knock", category="sfx",
+                    scope="studio", encoded_tags="%5B%22door%22%5D")
+        asset = self.repository.get(created["id"])
+        self.assertEqual((asset["kind"], asset["scope"], asset["tags"]),
+                         ("sfx", "studio", ["door"]))
+        self.assertTrue(self.repository.allowed_for_production(
+            other_production_id, created["id"]))
+
     def test_unknown_collection_cannot_create_an_orphan(self):
         self.assertIsNone(self.repository.create_uploaded_asset(
             2_147_483_647, name="Orphan", filename="orphan.wav",
@@ -187,8 +225,11 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                                      references=root / "references"),
                 PostgresUploadRecords(assets=self.repository),
             )
-            with patch.object(upload_workspace, "_audio_duration_ms",
-                              return_value=1200):
+            with patch.object(upload_workspace, "_inspect_audio", return_value={
+                    "duration_ms": 1200, "sample_rate": 44100,
+                    "channels": 1,
+                    "metadata": {"codec": "pcm_s16le", "container": "wav"},
+                    }):
                 for category in ("ambience", "sfx", "other"):
                     source = root / f"{category}.upload"
                     source.write_bytes(b"RIFF" + bytes(40))

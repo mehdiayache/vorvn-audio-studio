@@ -1,4 +1,5 @@
 import { ProductionToolDialog, type ToolKind } from "@/components/production-tools"
+import type { AssetUploadInput } from "@/components/production-tools/asset-tool"
 import { ProductionComposerDialog } from "@/features/composer/production-composer-host"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
 import { Button } from "@/components/ui/button"
@@ -32,7 +33,7 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
   onAddSilence: (seconds: number) => Promise<void>
   onInsertAsset: (asset: VentureAsset) => Promise<void>
   onPlaceAudio: (asset: VentureAsset) => Promise<void>
-  onUploadAsset: (folder: string, category: string, file: File) => Promise<void>
+  onUploadAsset: (folder: string, input: AssetUploadInput) => Promise<VentureAsset>
   onImport: (document: ProductionImportDocument, roleVoices: Record<string, string>) => Promise<ProductionImportCounts>
   onImported: () => void
   onPlay: (source: PlayerSource) => void
