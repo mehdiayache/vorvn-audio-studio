@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 
 from audio_studio.domain.uploads import (
@@ -230,31 +231,51 @@ class VentureAssetRepository:
             scope: AssetScope) -> dict | None:
         """Return an already-kept external sound that is reusable here."""
         with read_only() as cursor:
-            cursor.execute("""
-                SELECT asset.id
-                  FROM asset_collections requested
-                  JOIN assets asset
-                    ON (asset.scope = 'studio'
-                        OR asset.venture_id = requested.venture_id)
-                 WHERE requested.id = %s
-                   AND asset.metadata ->> 'origin' = %s
-                   AND asset.metadata ->> 'external_id' = %s
-                   AND (%s = 'studio' AND asset.scope = 'studio'
-                        OR %s = 'venture'
-                           AND asset.venture_id = requested.venture_id)
-                 ORDER BY (asset.scope = 'studio') DESC, asset.id
-                 LIMIT 1
-            """, (collection_id, origin, external_id, scope, scope))
-            row = cursor.fetchone()
-        if not row:
+            asset_id = self._catalog_asset_id(
+                cursor, collection_id=collection_id, origin=origin,
+                external_id=external_id, scope=scope)
+        if asset_id is None:
             return None
-        asset = self.get(row[0])
+        asset = self.get(asset_id)
         if not asset:
             return None
         return {
             **asset, "category": asset["kind"],
             "url": f'/audio/{asset["filename"]}',
         }
+
+    @staticmethod
+    def _catalog_asset_id(
+            cursor, *, collection_id: int, origin: str, external_id: str,
+            scope: AssetScope) -> int | None:
+        """Resolve the established Studio/Venture reuse semantics."""
+        cursor.execute("""
+            SELECT asset.id
+              FROM asset_collections requested
+              JOIN assets asset
+                ON (asset.scope = 'studio'
+                    OR asset.venture_id = requested.venture_id)
+             WHERE requested.id = %s
+               AND asset.metadata ->> 'origin' = %s
+               AND asset.metadata ->> 'external_id' = %s
+               AND (%s = 'studio' AND asset.scope = 'studio'
+                    OR %s = 'venture'
+                       AND asset.venture_id = requested.venture_id)
+             ORDER BY (asset.scope = 'studio') DESC, asset.id
+             LIMIT 1
+        """, (collection_id, origin, external_id, scope, scope))
+        row = cursor.fetchone()
+        return row[0] if row else None
+
+    @staticmethod
+    def _catalog_lock_key(
+            *, venture_id: int, origin: str, external_id: str,
+            scope: AssetScope) -> int:
+        scope_identity = "studio" if scope == "studio" else str(venture_id)
+        identity = f"audio-catalog:{scope}:{scope_identity}:{origin}:{external_id}"
+        return int.from_bytes(
+            hashlib.blake2b(identity.encode(), digest_size=8).digest(),
+            byteorder="big", signed=True)
 
     def library_context(self, asset_id: int) -> dict | None:
         with read_only() as cursor:
@@ -307,30 +328,98 @@ class VentureAssetRepository:
             collection = cursor.fetchone()
             if not collection:
                 return None
-            venture_id, _legacy_container_id, collection_kind = collection
-            canonical_category = category or _CATEGORY_BY_COLLECTION.get(
-                collection_kind, "other")
-            if canonical_category not in ASSET_CATEGORIES:
-                raise ValueError("Asset category is not supported.")
+            return self._create_uploaded_asset(
+                cursor, collection_id=collection_id, collection=collection,
+                name=name, filename=filename, path=path,
+                size_bytes=size_bytes, duration_ms=duration_ms,
+                audio_format=audio_format, mime_type=mime_type,
+                category=category, sample_rate=sample_rate,
+                channels=channels, scope=scope, tags=tags,
+                metadata=metadata, version_metadata=version_metadata)
+
+    def create_catalog_asset(
+            self, collection_id: int, *, origin: str, external_id: str,
+            name: str, filename: str, path: str, size_bytes: int,
+            duration_ms: int, audio_format: str, mime_type: str,
+            category: AssetCategory | None = None,
+            sample_rate: int | None = None, channels: int | None = None,
+            scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+            metadata: dict | None = None,
+            version_metadata: dict | None = None,
+            ) -> tuple[dict | None, bool]:
+        """Create once per external identity and reuse the concurrent winner."""
+        with transaction() as cursor:
             cursor.execute("""
-                INSERT INTO assets
-                    (venture_id, collection_id, name, kind, scope, tags,
-                     metadata, legacy_generation_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, NULL) RETURNING id
-            """, (venture_id, collection_id, name, canonical_category,
-                  scope, list(tags), json.dumps(metadata or {})))
-            asset_id = cursor.fetchone()[0]
-            cursor.execute("""
-                INSERT INTO asset_versions
-                    (asset_id, version, source_generation_id, filename, path,
-                     size_bytes, duration_ms, mime_type, audio_format,
-                     sample_rate, channels, metadata)
-                VALUES (%s, 1, NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id
-            """, (asset_id, filename, path, size_bytes,
-                  duration_ms, mime_type, audio_format, sample_rate, channels,
-                  json.dumps(version_metadata or {})))
-            version_id = cursor.fetchone()[0]
+                SELECT venture_id, legacy_container_id, kind
+                  FROM asset_collections WHERE id = %s
+            """, (collection_id,))
+            collection = cursor.fetchone()
+            if not collection:
+                return None, False
+            cursor.execute(
+                "SELECT pg_advisory_xact_lock(%s)",
+                (self._catalog_lock_key(
+                    venture_id=collection[0], origin=origin,
+                    external_id=external_id, scope=scope),),
+            )
+            existing_id = self._catalog_asset_id(
+                cursor, collection_id=collection_id, origin=origin,
+                external_id=external_id, scope=scope)
+            if existing_id is not None:
+                duplicate = True
+                asset_id = existing_id
+            else:
+                duplicate = False
+                created = self._create_uploaded_asset(
+                    cursor, collection_id=collection_id,
+                    collection=collection, name=name, filename=filename,
+                    path=path, size_bytes=size_bytes,
+                    duration_ms=duration_ms, audio_format=audio_format,
+                    mime_type=mime_type, category=category,
+                    sample_rate=sample_rate, channels=channels, scope=scope,
+                    tags=tags, metadata=metadata,
+                    version_metadata=version_metadata)
+                asset_id = created["id"]
+        asset = self.get(asset_id)
+        if not asset:
+            return None, duplicate
+        return ({
+            **asset, "category": asset["kind"],
+            "url": f'/audio/{asset["filename"]}',
+        }, duplicate)
+
+    @staticmethod
+    def _create_uploaded_asset(
+            cursor, *, collection_id: int, collection: tuple, name: str,
+            filename: str, path: str, size_bytes: int, duration_ms: int,
+            audio_format: str, mime_type: str,
+            category: AssetCategory | None, sample_rate: int | None,
+            channels: int | None, scope: AssetScope, tags: tuple[str, ...],
+            metadata: dict | None, version_metadata: dict | None) -> dict:
+        venture_id, _legacy_container_id, collection_kind = collection
+        canonical_category = category or _CATEGORY_BY_COLLECTION.get(
+            collection_kind, "other")
+        if canonical_category not in ASSET_CATEGORIES:
+            raise ValueError("Asset category is not supported.")
+        cursor.execute("""
+            INSERT INTO assets
+                (venture_id, collection_id, name, kind, scope, tags,
+                 metadata, legacy_generation_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NULL) RETURNING id
+        """, (venture_id, collection_id, name, canonical_category,
+              scope, list(tags), json.dumps(metadata or {})))
+        asset_id = cursor.fetchone()[0]
+        cursor.execute("""
+            INSERT INTO asset_versions
+                (asset_id, version, source_generation_id, filename, path,
+                 size_bytes, duration_ms, mime_type, audio_format,
+                 sample_rate, channels, metadata)
+            VALUES (%s, 1, NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (asset_id, filename, path, size_bytes,
+              duration_ms, mime_type, audio_format, sample_rate, channels,
+              json.dumps(version_metadata or {})))
+        version_id = cursor.fetchone()[0]
         return {"id": asset_id,
                 "version_id": version_id, "name": name,
                 "filename": filename, "duration_ms": duration_ms,

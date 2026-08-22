@@ -53,6 +53,22 @@ def raw_sound(license_name: str = "Creative Commons 0") -> dict:
 
 
 class FreesoundProviderTests(unittest.TestCase):
+    def test_status_requires_both_credentials_for_complete_keep(self):
+        states = (
+            ({}, False, False),
+            ({"FREESOUND_API_TOKEN": "search"}, True, False),
+            ({"FREESOUND_OAUTH_ACCESS_TOKEN": "download"}, False, False),
+            ({"FREESOUND_API_TOKEN": "search",
+              "FREESOUND_OAUTH_ACCESS_TOKEN": "download"}, True, True),
+        )
+        for environment, search_ready, keep_ready in states:
+            with self.subTest(environment=environment), patch.dict(
+                    "os.environ", environment, clear=True):
+                self.assertEqual(FreesoundCatalog.status(), {
+                    "search_configured": search_ready,
+                    "keep_configured": keep_ready,
+                })
+
     def test_search_maps_query_filters_and_all_supported_licenses(self):
         opener = Mock(return_value=Response({"results": [
             raw_sound(), raw_sound("Attribution"),
@@ -119,6 +135,7 @@ class FakeRecords:
     def __init__(self):
         self.created = []
         self.existing = None
+        self.competing_existing = None
         self.fail_create = False
 
     def asset_collection(self, collection_id):
@@ -143,6 +160,14 @@ class FakeRecords:
             "mime_type": stored.mime_type,
             "version_metadata": stored.metadata,
         }
+
+    def create_catalog_asset(
+            self, collection_id, *, origin, external_id, **values):
+        if self.fail_create:
+            raise RuntimeError("database unavailable")
+        if self.competing_existing:
+            return self.competing_existing, True
+        return self.create_uploaded_asset(collection_id, **values), False
 
 
 class FakeCatalog:
@@ -231,6 +256,22 @@ class AudioCatalogApplicationTests(unittest.TestCase):
         self.assertEqual(result["asset"]["id"], 17)
         self.assertEqual(catalog.downloads, 0)
         self.assertFalse(workspace.stored)
+
+    def test_concurrent_loser_reuses_winner_and_discards_its_stored_media(self):
+        with TemporaryDirectory() as directory:
+            service, catalog, workspace, records = self.service(Path(directory))
+            records.competing_existing = {
+                "id": 17, "version_id": 22, "filename": "winner.wav",
+                "url": "/audio/winner.wav",
+            }
+            result = service.keep(
+                collection_id=41, external_id="931", name="Door",
+                category="sfx", scope="studio", tags=())
+        self.assertTrue(result["duplicate"])
+        self.assertEqual(result["asset"]["id"], 17)
+        self.assertEqual(catalog.downloads, 1)
+        self.assertFalse(records.created)
+        self.assertEqual(workspace.discarded, ["kept.wav"])
 
     def test_download_failure_leaves_no_asset_or_scratch_file(self):
         with TemporaryDirectory() as directory:

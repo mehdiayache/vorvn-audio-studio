@@ -82,7 +82,8 @@ class AudioCatalogService:
                 category=category, scope=scope,
                 encoded_tags=None, supplied_tags=tags or sound.tags,
                 metadata=provenance)
-            asset = self.uploads.save_asset_file(
+            result = self.uploads.save_catalog_asset_file(
                 collection_id, Path(downloaded.path), downloaded.size_bytes,
-                downloaded.original_name, details=details)
-        return {"asset": asset, "duplicate": False}
+                origin="freesound", external_id=sound.external_id,
+                details=details)
+        return result

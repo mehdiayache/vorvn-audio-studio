@@ -32,6 +32,16 @@ LICENSE_FILTERS = {
 }
 
 
+def freesound_status() -> dict[str, bool]:
+    api_token = bool((os.getenv("FREESOUND_API_TOKEN") or "").strip())
+    oauth_token = bool(
+        (os.getenv("FREESOUND_OAUTH_ACCESS_TOKEN") or "").strip())
+    return {
+        "search_configured": api_token,
+        "keep_configured": api_token and oauth_token,
+    }
+
+
 def _license(value: object) -> tuple[CatalogLicense, str]:
     raw = str(value or "").strip()
     lowered = raw.casefold()
@@ -96,12 +106,7 @@ class FreesoundCatalog:
 
     @staticmethod
     def status() -> dict[str, bool]:
-        return {
-            "search_configured": bool(
-                (os.getenv("FREESOUND_API_TOKEN") or "").strip()),
-            "keep_configured": bool(
-                (os.getenv("FREESOUND_OAUTH_ACCESS_TOKEN") or "").strip()),
-        }
+        return freesound_status()
 
     @staticmethod
     def _token() -> str:

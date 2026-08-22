@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from threading import Barrier
 import unittest
 from unittest.mock import patch
 from uuid import uuid4
@@ -231,6 +233,75 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         self.assertEqual(existing["id"], created["id"])
         self.assertEqual(existing["version_id"], created["version_id"])
         self.assertEqual(existing["scope"], "studio")
+
+    def test_concurrent_studio_catalog_keep_creates_one_asset_and_version(self):
+        first = self.repository.ensure_collections(self.venture_id)
+        second = self.repository.ensure_collections(self.other_venture_id)
+        collection_ids = (
+            next(item["id"] for item in first if item["kind"] == "stingers"),
+            next(item["id"] for item in second if item["kind"] == "stingers"),
+        )
+        external_id = f"studio-{self.marker}"
+        barrier = Barrier(2)
+
+        def keep(index: int):
+            barrier.wait()
+            return VentureAssetRepository().create_catalog_asset(
+                collection_ids[index], origin="freesound",
+                external_id=external_id, name="Concurrent studio sound",
+                filename=f"studio-{index}.wav",
+                path=f"/media/studio-{index}.wav", size_bytes=900,
+                duration_ms=450, audio_format="wav",
+                mime_type="audio/wav", category="sfx", scope="studio",
+                metadata={"origin": "freesound",
+                          "external_id": external_id},
+                version_metadata={"codec": "pcm_s16le"})
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            results = list(executor.map(keep, (0, 1)))
+
+        self.assertEqual({item[0]["id"] for item in results},
+                         {results[0][0]["id"]})
+        self.assertEqual(sorted(item[1] for item in results), [False, True])
+        with psycopg.connect(settings.database_url) as database:
+            with database.cursor() as cursor:
+                cursor.execute("""
+                    SELECT count(*), count(version.id)
+                      FROM assets asset
+                      LEFT JOIN asset_versions version
+                        ON version.asset_id = asset.id
+                     WHERE asset.metadata ->> 'origin' = 'freesound'
+                       AND asset.metadata ->> 'external_id' = %s
+                """, (external_id,))
+                self.assertEqual(cursor.fetchone(), (1, 1))
+
+    def test_venture_catalog_keep_deduplicates_only_within_venture(self):
+        first = self.repository.ensure_collections(self.venture_id)
+        second = self.repository.ensure_collections(self.other_venture_id)
+        first_collections = [item["id"] for item in first]
+        second_collection = next(
+            item["id"] for item in second if item["kind"] == "stingers")
+        external_id = f"venture-{self.marker}"
+
+        def keep(collection_id: int, filename: str):
+            return self.repository.create_catalog_asset(
+                collection_id, origin="freesound", external_id=external_id,
+                name="Venture sound", filename=filename,
+                path=f"/media/{filename}", size_bytes=900,
+                duration_ms=450, audio_format="wav",
+                mime_type="audio/wav", category="sfx", scope="venture",
+                metadata={"origin": "freesound",
+                          "external_id": external_id})
+
+        first_result = keep(first_collections[0], "venture-first.wav")
+        duplicate_result = keep(first_collections[1], "venture-loser.wav")
+        other_result = keep(second_collection, "venture-other.wav")
+
+        self.assertFalse(first_result[1])
+        self.assertTrue(duplicate_result[1])
+        self.assertEqual(first_result[0]["id"], duplicate_result[0]["id"])
+        self.assertFalse(other_result[1])
+        self.assertNotEqual(first_result[0]["id"], other_result[0]["id"])
 
     def test_unknown_collection_cannot_create_an_orphan(self):
         self.assertIsNone(self.repository.create_uploaded_asset(

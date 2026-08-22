@@ -11,6 +11,7 @@ from typing import Any, Callable
 from audio_studio.config import alibaba_environment, settings
 from audio_studio.infrastructure import object_storage, runtime_environment
 from audio_studio.infrastructure.media_paths import media_root, voice_reference_root
+from audio_studio.providers.freesound import freesound_status
 
 
 _STORAGE_ENV = {
@@ -75,10 +76,7 @@ class EnvironmentSettings:
     def audio_catalog(self) -> dict[str, Any]:
         return {
             "provider": "Freesound",
-            "search_configured": bool(
-                (os.getenv("FREESOUND_API_TOKEN") or "").strip()),
-            "keep_configured": bool(
-                (os.getenv("FREESOUND_OAUTH_ACCESS_TOKEN") or "").strip()),
+            **freesound_status(),
         }
 
     def storage_configured(self) -> bool:

@@ -86,6 +86,13 @@ class UploadRecords(Protocol):
         scope: AssetScope = "venture", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
     ) -> dict | None: ...
+    def create_catalog_asset(
+        self, collection_id: int, *, origin: str, external_id: str,
+        name: str, stored: StoredAsset, size_bytes: int,
+        category: AssetCategory | None = None,
+        scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+        metadata: dict | None = None,
+    ) -> tuple[dict | None, bool]: ...
     def catalog_asset(
         self, collection_id: int, *, origin: str, external_id: str,
         scope: AssetScope,
@@ -169,25 +176,11 @@ class UploadService:
         encoded_tags: str | None = None,
         details: AssetUploadDetails | None = None,
     ) -> dict:
-        if not self.records.asset_collection(collection_id):
-            raise UploadError(
-                "Choose an Intros, Outros, Music or Stingers library first.")
-        if size_bytes <= 0 or not source.is_file():
-            raise UploadError("That audio file is empty.")
-        if size_bytes > 250_000_000:
-            raise UploadError("That file is over 250 MB.")
         prepared = details or self.prepare_asset_upload(
             encoded_name, name=name, category=category, scope=scope,
             encoded_tags=encoded_tags)
-        original = prepared.original_name
-        if Path(original).suffix.lower() not in AUDIO_EXTENSIONS:
-            raise UploadError(
-                "Use MP3, WAV, M4A, AAC, OGG, FLAC or AIFF audio.")
-        try:
-            stored = self.workspace.store_asset(
-                source, original_name=original, size_bytes=size_bytes)
-        except ValueError as exc:
-            raise UploadError(str(exc)) from exc
+        stored = self._store_asset_file(
+            collection_id, source, size_bytes, prepared)
         try:
             created = self.records.create_uploaded_asset(
                 collection_id, name=prepared.name, stored=stored,
@@ -202,6 +195,50 @@ class UploadService:
             raise RuntimeError("That Asset collection no longer exists.")
         return {**created,
                 "url": f"/audio/{stored.filename}"}
+
+    def save_catalog_asset_file(
+        self, collection_id: int, source: Path, size_bytes: int, *,
+        origin: str, external_id: str, details: AssetUploadDetails,
+    ) -> dict:
+        """Store an external original, then resolve its canonical Asset once."""
+        stored = self._store_asset_file(
+            collection_id, source, size_bytes, details)
+        try:
+            asset, duplicate = self.records.create_catalog_asset(
+                collection_id, origin=origin, external_id=external_id,
+                name=details.name, stored=stored, size_bytes=size_bytes,
+                category=details.category, scope=details.scope,
+                tags=details.tags, metadata=details.metadata)
+        except Exception:
+            self.workspace.discard_media(stored.filename)
+            raise
+        if not asset:
+            self.workspace.discard_media(stored.filename)
+            raise RuntimeError("That Asset collection no longer exists.")
+        if duplicate:
+            self.workspace.discard_media(stored.filename)
+        return {"asset": asset, "duplicate": duplicate}
+
+    def _store_asset_file(
+        self, collection_id: int, source: Path, size_bytes: int,
+        details: AssetUploadDetails,
+    ) -> StoredAsset:
+        if not self.records.asset_collection(collection_id):
+            raise UploadError(
+                "Choose an Intros, Outros, Music or Stingers library first.")
+        if size_bytes <= 0 or not source.is_file():
+            raise UploadError("That audio file is empty.")
+        if size_bytes > 250_000_000:
+            raise UploadError("That file is over 250 MB.")
+        if Path(details.original_name).suffix.lower() not in AUDIO_EXTENSIONS:
+            raise UploadError(
+                "Use MP3, WAV, M4A, AAC, OGG, FLAC or AIFF audio.")
+        try:
+            return self.workspace.store_asset(
+                source, original_name=details.original_name,
+                size_bytes=size_bytes)
+        except ValueError as exc:
+            raise UploadError(str(exc)) from exc
 
     def prepare_asset_upload(
         self, encoded_name: str, *, name: str | None = None,
