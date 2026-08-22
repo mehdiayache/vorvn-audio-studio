@@ -8,6 +8,7 @@ from audio_studio.infrastructure.settings_administration import (
     EnvironmentSettings,
     FilesystemMaintenance,
 )
+from audio_studio.providers.alibaba.connection import test_saved_connection
 
 
 settings_service = SettingsService(
@@ -15,6 +16,7 @@ settings_service = SettingsService(
     configuration=EnvironmentSettings(),
     maintenance=FilesystemMaintenance(),
     pronunciations=PronunciationRepository(),
+    provider_connection_test=test_saved_connection,
     load_preferences=load_preferences,
     save_preferences=save_preferences,
 )

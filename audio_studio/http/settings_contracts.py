@@ -86,6 +86,19 @@ class StorageTestEnvelope(BaseModel):
     data: StorageTestResponse
 
 
+class ProviderConnectionTestResponse(BaseModel):
+    connected: bool
+    provider: str
+    region: str
+    region_label: str
+    workspace_configured: bool
+    reason: str | None = None
+
+
+class ProviderConnectionTestEnvelope(BaseModel):
+    data: ProviderConnectionTestResponse
+
+
 class DiskLocationResponse(BaseModel):
     bytes: int
     files: int

@@ -40,12 +40,14 @@ class SettingsService:
     def __init__(self, *, control_plane: ControlPlane,
                  configuration: Configuration, maintenance: Maintenance,
                  pronunciations: Pronunciations,
+                 provider_connection_test: Callable[[], dict[str, Any]],
                  load_preferences: Callable[[], dict[str, Any]],
                  save_preferences: Callable[[dict[str, Any]], dict[str, Any]]):
         self.control_plane = control_plane
         self.configuration = configuration
         self.maintenance = maintenance
         self.pronunciation_repository = pronunciations
+        self.provider_connection_test = provider_connection_test
         self.load_preferences = load_preferences
         self.save_preferences = save_preferences
 
@@ -151,6 +153,9 @@ class SettingsService:
 
     def test_storage(self) -> dict[str, Any]:
         return self.configuration.test_storage()
+
+    def test_provider(self) -> dict[str, Any]:
+        return self.provider_connection_test()
 
     def maintenance_snapshot(self) -> dict[str, Any]:
         return self.maintenance.snapshot()

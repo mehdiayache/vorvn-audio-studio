@@ -49,6 +49,7 @@ class AudioStudioArchitectureTests(unittest.TestCase):
             "/api/v1/asset-collections/{collection_id}/assets/upload",
             "/api/v1/voice-packages",
             "/api/v1/settings/provider",
+            "/api/v1/settings/providers/alibaba/test",
             "/api/v1/settings/storage",
             "/api/v1/settings/pronunciations",
             "/api/v1/settings/maintenance",

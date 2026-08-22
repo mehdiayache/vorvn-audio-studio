@@ -14,6 +14,7 @@ from audio_studio.http.settings_contracts import (
     DiskSnapshotEnvelope,
     PronunciationListEnvelope,
     PronunciationPreviewEnvelope,
+    ProviderConnectionTestEnvelope,
     SavedPronunciationEnvelope,
     SettingsSnapshotEnvelope,
     StorageTestEnvelope,
@@ -96,6 +97,13 @@ def update_provider(payload: ProviderUpdate) -> dict:
         return {"data": settings_service.update_provider(payload.model_dump())}
     except (OSError, ValueError) as exc:
         raise ApiProblem(400, "invalid_provider_settings", str(exc)) from exc
+
+
+@router.post("/providers/alibaba/test", operation_id="testAlibabaConnection",
+             response_model=ProviderConnectionTestEnvelope,
+             response_model_exclude_none=True)
+def test_alibaba_connection() -> dict:
+    return {"data": settings_service.test_provider()}
 
 
 @router.patch("/storage", operation_id="updateStorageSettings",

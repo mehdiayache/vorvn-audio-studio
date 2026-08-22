@@ -963,6 +963,23 @@ export interface paths {
         patch: operations["updateProviderSettings"];
         trace?: never;
     };
+    "/api/v1/settings/providers/alibaba/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test Alibaba Connection */
+        post: operations["testAlibabaConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settings/storage": {
         parameters: {
             query?: never;
@@ -3128,6 +3145,25 @@ export interface components {
              * @default true
              */
             whole_word: boolean;
+        };
+        /** ProviderConnectionTestEnvelope */
+        ProviderConnectionTestEnvelope: {
+            data: components["schemas"]["ProviderConnectionTestResponse"];
+        };
+        /** ProviderConnectionTestResponse */
+        ProviderConnectionTestResponse: {
+            /** Connected */
+            connected: boolean;
+            /** Provider */
+            provider: string;
+            /** Reason */
+            reason?: string | null;
+            /** Region */
+            region: string;
+            /** Region Label */
+            region_label: string;
+            /** Workspace Configured */
+            workspace_configured: boolean;
         };
         /** ProviderSettingsResponse */
         ProviderSettingsResponse: {
@@ -7347,6 +7383,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    testAlibabaConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderConnectionTestEnvelope"];
                 };
             };
         };

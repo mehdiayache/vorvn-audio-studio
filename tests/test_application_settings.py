@@ -109,6 +109,8 @@ class SettingsServiceTests(unittest.TestCase):
             configuration=self.configuration,
             maintenance=self.maintenance,
             pronunciations=self.pronunciations,
+            provider_connection_test=lambda: {
+                "connected": True, "provider": "alibaba"},
             load_preferences=lambda: dict(self.preferences),
             save_preferences=self._save_preferences,
         )
@@ -141,6 +143,7 @@ class SettingsServiceTests(unittest.TestCase):
         self.service.update_storage({"bucket": "new-private"})
         self.assertEqual(
             self.configuration.saved_storage, {"bucket": "new-private"})
+        self.assertTrue(self.service.test_provider()["connected"])
 
     def test_preferences_filter_unknown_provider_flags_and_naming_fields(self):
         self.service.update({

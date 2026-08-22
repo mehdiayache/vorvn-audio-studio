@@ -4857,6 +4857,62 @@
         "title": "PronunciationUpdate",
         "type": "object"
       },
+      "ProviderConnectionTestEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProviderConnectionTestResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ProviderConnectionTestEnvelope",
+        "type": "object"
+      },
+      "ProviderConnectionTestResponse": {
+        "properties": {
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "region": {
+            "title": "Region",
+            "type": "string"
+          },
+          "region_label": {
+            "title": "Region Label",
+            "type": "string"
+          },
+          "workspace_configured": {
+            "title": "Workspace Configured",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "connected",
+          "provider",
+          "region",
+          "region_label",
+          "workspace_configured"
+        ],
+        "title": "ProviderConnectionTestResponse",
+        "type": "object"
+      },
       "ProviderSettingsResponse": {
         "properties": {
           "configured": {
@@ -14176,6 +14232,27 @@
           }
         },
         "summary": "Update Provider",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/settings/providers/alibaba/test": {
+      "post": {
+        "operationId": "testAlibabaConnection",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderConnectionTestEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Test Alibaba Connection",
         "tags": [
           "settings"
         ]
