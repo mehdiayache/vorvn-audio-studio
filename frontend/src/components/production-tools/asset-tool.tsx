@@ -7,15 +7,14 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { audioUrl } from "@/lib/api"
 import { formatDuration } from "@/lib/format"
-import type { PlayerSource, VentureAsset } from "@/types/domain"
+import type { AudioAssetCategory, AudioAssetScope, PlayerSource, VentureAsset } from "@/types/domain"
 
 export type AssetMode = "sequence" | "sound"
-export type AudioAssetCategory = "music" | "ambience" | "sfx" | "intro" | "outro" | "other"
 export type AssetUploadInput = {
   file: File
   name: string
   category: AudioAssetCategory
-  scope: "venture" | "studio"
+  scope: AudioAssetScope
   tags: string[]
 }
 
@@ -71,7 +70,7 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, playin
   const [file, setFile] = useState<File | null>(null)
   const [name, setName] = useState("")
   const [uploadCategory, setUploadCategory] = useState<AudioAssetCategory>("music")
-  const [scope, setScope] = useState<"venture" | "studio">("venture")
+  const [scope, setScope] = useState<AudioAssetScope>("venture")
   const [tags, setTags] = useState<string[]>([])
   const [tagText, setTagText] = useState("")
   const [error, setError] = useState("")
@@ -93,6 +92,12 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, playin
   function chooseFile(next?: File) {
     if (!next) return
     setFile(next); setName(humanName(next)); setError(""); setView("upload")
+  }
+
+  function resetUpload() {
+    if (fileInput.current) fileInput.current.value = ""
+    setFile(null); setName(""); setUploadCategory("music"); setScope("venture")
+    setTags([]); setTagText(""); setError(""); setDragging(false)
   }
 
   function addTag(raw = tagText) {
@@ -118,7 +123,7 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, playin
         file, name: name.trim(), category: uploadCategory, scope, tags,
       })
       setSelectedId(uploaded.id); setCategory(uploadCategory); setScopeFilter("all")
-      setFile(null); setTags([]); setTagText(""); setView("library")
+      resetUpload(); setView("library")
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "That audio could not be added.")
     } finally { setUploading(false); setDragging(false) }
@@ -183,7 +188,7 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, playin
         <label><span>Tags <small>Optional · Enter or comma to add</small></span><div className="asset-tag-entry">{tags.map((tag) => <button key={tag} type="button" onClick={() => setTags((current) => current.filter((item) => item !== tag))}>{tag}<X /></button>)}<input value={tagText} onChange={(event) => setTagText(event.target.value)} onKeyDown={onTagKeyDown} onBlur={() => addTag()} placeholder={tags.length ? "Add tag" : "calm, night, transition"} /></div></label>
         <fieldset><legend>Available in</legend><div className="asset-scope-choice"><button type="button" className={scope === "venture" ? "active" : ""} onClick={() => setScope("venture")}><b>This Venture</b><small>Only Productions in this Venture</small></button><button type="button" className={scope === "studio" ? "active" : ""} onClick={() => setScope("studio")}><b>Studio Library</b><small>Reusable across Ventures</small></button></div></fieldset>
       </div>
-      <footer className="asset-upload-footer"><span>{file ? "Technical audio facts are inspected when you add it." : "Choose a file to continue."}</span>{error && <p role="alert">{error}</p>}<Button variant="ghost" disabled={uploading} onClick={() => { setView("library"); setError("") }}>Cancel</Button><ActionButton busy={uploading} busyLabel="Adding to Library…" disabled={!file || !name.trim()} onClick={() => void upload()}>Add to Library</ActionButton></footer>
+      <footer className="asset-upload-footer"><span>{file ? "Technical audio facts are inspected when you add it." : "Choose a file to continue."}</span>{error && <p role="alert">{error}</p>}<Button variant="ghost" disabled={uploading} onClick={() => { resetUpload(); setView("library") }}>Cancel</Button><ActionButton busy={uploading} busyLabel="Adding to Library…" disabled={!file || !name.trim()} onClick={() => void upload()}>Add to Library</ActionButton></footer>
     </section>}
     {dragging && <div className="asset-drop-overlay"><Upload /><b>Drop to prepare this audio</b><span>You can name and classify it before anything is saved.</span></div>}
   </div>

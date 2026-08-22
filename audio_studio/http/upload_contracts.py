@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel
 
+from audio_studio.domain.uploads import AssetCategory, AssetScope
+
 
 class UploadedImageResponse(BaseModel):
     url: str
@@ -27,8 +29,8 @@ class UploadedAssetResponse(BaseModel):
     filename: str
     duration_ms: int
     url: str
-    category: str
-    scope: str
+    category: AssetCategory
+    scope: AssetScope
     tags: list[str]
     metadata: dict
     audio_format: str

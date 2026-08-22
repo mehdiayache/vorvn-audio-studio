@@ -4514,8 +4514,11 @@ export interface components {
         UploadedAssetResponse: {
             /** Audio Format */
             audio_format: string;
-            /** Category */
-            category: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "music" | "ambience" | "sfx" | "intro" | "outro" | "other";
             /** Channels */
             channels?: number | null;
             /** Duration Ms */
@@ -4534,8 +4537,11 @@ export interface components {
             name: string;
             /** Sample Rate */
             sample_rate?: number | null;
-            /** Scope */
-            scope: string;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "venture" | "studio";
             /** Size Bytes */
             size_bytes: number;
             /** Tags */

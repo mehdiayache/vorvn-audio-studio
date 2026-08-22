@@ -8508,6 +8508,14 @@
             "type": "string"
           },
           "category": {
+            "enum": [
+              "music",
+              "ambience",
+              "sfx",
+              "intro",
+              "outro",
+              "other"
+            ],
             "title": "Category",
             "type": "string"
           },
@@ -8559,6 +8567,10 @@
             "title": "Sample Rate"
           },
           "scope": {
+            "enum": [
+              "venture",
+              "studio"
+            ],
             "title": "Scope",
             "type": "string"
           },

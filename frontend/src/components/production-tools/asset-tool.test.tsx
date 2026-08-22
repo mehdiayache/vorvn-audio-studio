@@ -61,6 +61,21 @@ describe("AssetTool", () => {
     expect(onUpload).not.toHaveBeenCalled()
   })
 
+  it("discards the prepared local form when the operator cancels", () => {
+    const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} />)
+    fireEvent.click(within(container).getByRole("button", { name: /^Upload$/ }))
+    const file = new File(["room tone"], "quiet-night_room.flac", { type: "audio/flac" })
+    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } })
+    const view = within(container)
+    fireEvent.change(view.getByPlaceholderText("Human-readable audio name"), { target: { value: "Edited room tone" } })
+    fireEvent.click(view.getByRole("button", { name: "Cancel" }))
+    fireEvent.click(view.getByRole("button", { name: /^Upload$/ }))
+
+    expect(view.getByRole("button", { name: "Choose file" })).toBeTruthy()
+    expect(view.queryByDisplayValue("Edited room tone")).toBeNull()
+    expect(view.getByRole("button", { name: "Add to Library" }).hasAttribute("disabled")).toBe(true)
+  })
+
   it("searches canonical names and tags and filters reusable scope", () => {
     const library = [
       { id: 21, name: "Night room", category: "ambience", scope: "venture" as const, tags: ["quiet"] },

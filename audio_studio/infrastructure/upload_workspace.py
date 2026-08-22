@@ -16,6 +16,26 @@ from audio_studio.infrastructure import object_storage
 from audio_studio.infrastructure.media_paths import media_root, voice_reference_root
 
 
+_AUDIO_MIME_TYPES = {
+    "mp3": "audio/mpeg",
+    "wav": "audio/wav",
+    "ogg": "audio/ogg",
+    "flac": "audio/flac",
+    "m4a": "audio/mp4",
+    "aac": "audio/aac",
+}
+
+
+def _canonical_audio_format(container: str) -> str | None:
+    containers = {item.strip().lower() for item in container.split(",")}
+    for audio_format in ("wav", "mp3", "flac", "ogg", "aac"):
+        if audio_format in containers:
+            return audio_format
+    if containers.intersection({"mov", "mp4", "m4a", "3gp", "3g2", "mj2"}):
+        return "m4a"
+    return None
+
+
 def _audio_duration_ms(target: Path) -> int | None:
     inspection = _inspect_audio(target)
     return inspection["duration_ms"] if inspection else None
@@ -37,20 +57,24 @@ def _inspect_audio(target: Path) -> dict | None:
         stream = next(
             item for item in payload.get("streams", [])
             if item.get("codec_type") == "audio")
+        container = str(payload["format"]["format_name"])
+        audio_format = _canonical_audio_format(container)
         duration_ms = int(float(payload["format"]["duration"]) * 1000)
         sample_rate = int(stream["sample_rate"])
         channels = int(stream["channels"])
     except (KeyError, StopIteration, TypeError, ValueError, json.JSONDecodeError):
         return None
-    if duration_ms <= 0 or sample_rate <= 0 or channels <= 0:
+    if (not audio_format or duration_ms <= 0 or sample_rate <= 0 or
+            channels <= 0):
         return None
     return {
+        "audio_format": audio_format,
         "duration_ms": duration_ms,
         "sample_rate": sample_rate,
         "channels": channels,
         "metadata": {
             "codec": stream.get("codec_name") or "",
-            "container": payload.get("format", {}).get("format_name") or "",
+            "container": container,
         },
     }
 
@@ -159,24 +183,28 @@ class LocalUploadWorkspace:
     def store_asset(
         self, source: Path, *, original_name: str, size_bytes: int,
     ) -> StoredAsset:
-        suffix = Path(original_name).suffix.lower()
         self.output.mkdir(parents=True, exist_ok=True)
-        filename = f"{uuid4().hex}{suffix}"
-        target = self.output / filename
-        shutil.move(str(source), target)
-        inspection = _inspect_audio(target)
-        if inspection is None:
-            target.unlink(missing_ok=True)
-            raise ValueError("That file could not be decoded as audio.")
-        mime_type = {
-            ".mp3": "audio/mpeg", ".wav": "audio/wav",
-            ".ogg": "audio/ogg", ".flac": "audio/flac",
-            ".m4a": "audio/mp4", ".aac": "audio/aac",
-        }.get(suffix, "application/octet-stream")
+        object_id = uuid4().hex
+        staging = self.output / f"{object_id}.upload"
+        target: Path | None = None
+        try:
+            shutil.move(str(source), staging)
+            inspection = _inspect_audio(staging)
+            if inspection is None:
+                raise ValueError("That file could not be decoded as audio.")
+            audio_format = inspection["audio_format"]
+            target = self.output / f"{object_id}.{audio_format}"
+            staging.replace(target)
+        except Exception:
+            staging.unlink(missing_ok=True)
+            if target is not None:
+                target.unlink(missing_ok=True)
+            raise
         return StoredAsset(
-            filename=filename, path=str(target),
+            filename=target.name, path=str(target),
             duration_ms=inspection["duration_ms"],
-            audio_format=suffix.lstrip("."), mime_type=mime_type,
+            audio_format=audio_format,
+            mime_type=_AUDIO_MIME_TYPES[audio_format],
             sample_rate=inspection["sample_rate"],
             channels=inspection["channels"],
             metadata=inspection["metadata"],

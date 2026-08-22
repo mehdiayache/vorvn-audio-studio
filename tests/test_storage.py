@@ -54,6 +54,7 @@ class StorageContracts(unittest.TestCase):
             inspection = upload_workspace._inspect_audio(Path("source.flac"))
         self.assertEqual(run.call_count, 1)
         self.assertEqual(inspection, {
+            "audio_format": "flac",
             "duration_ms": 2500, "sample_rate": 48000, "channels": 2,
             "metadata": {"codec": "flac", "container": "flac"},
         })
@@ -66,6 +67,36 @@ class StorageContracts(unittest.TestCase):
                 Path("voice-reference.wav"))
         self.assertEqual(duration_ms, 2750)
         inspect.assert_called_once_with(Path("voice-reference.wav"))
+
+    @unittest.skipUnless(
+        upload_workspace.shutil.which("ffmpeg") and
+        upload_workspace.shutil.which("ffprobe"),
+        "FFmpeg and FFprobe are required",
+    )
+    def test_asset_format_extension_and_mime_follow_audio_truth(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            encoded = root / "actual.mp3"
+            upload_workspace.subprocess.run([
+                "ffmpeg", "-nostdin", "-loglevel", "error", "-y",
+                "-f", "lavfi", "-i", "sine=frequency=440:duration=0.2",
+                str(encoded),
+            ], check=True)
+            incoming = root / "incoming.upload"
+            encoded.replace(incoming)
+            workspace = LocalUploadWorkspace(
+                root=root, output=root / "media",
+                references=root / "references")
+
+            stored = workspace.store_asset(
+                incoming, original_name="deliberately-misnamed.wav",
+                size_bytes=incoming.stat().st_size)
+
+            self.assertEqual(stored.audio_format, "mp3")
+            self.assertEqual(stored.mime_type, "audio/mpeg")
+            self.assertTrue(stored.filename.endswith(".mp3"))
+            self.assertEqual(stored.metadata["container"], "mp3")
+            self.assertTrue(Path(stored.path).is_file())
 
     def test_invalid_asset_audio_removes_the_moved_media_file(self):
         with TemporaryDirectory() as directory:

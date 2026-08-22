@@ -106,7 +106,8 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                 PostgresUploadRecords(assets=self.repository),
             )
             with patch.object(upload_workspace, "_inspect_audio", return_value={
-                    "duration_ms": 1200, "sample_rate": 48000,
+                    "audio_format": "wav", "duration_ms": 1200,
+                    "sample_rate": 48000,
                     "channels": 2,
                     "metadata": {"codec": "pcm_s16le", "container": "wav"},
                     }):
@@ -193,7 +194,8 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                 PostgresUploadRecords(assets=self.repository),
             )
             with patch.object(upload_workspace, "_inspect_audio", return_value={
-                    "duration_ms": 450, "sample_rate": 48000,
+                    "audio_format": "wav", "duration_ms": 450,
+                    "sample_rate": 48000,
                     "channels": 1,
                     "metadata": {"codec": "pcm_s16le", "container": "wav"},
                     }):
@@ -226,7 +228,8 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                 PostgresUploadRecords(assets=self.repository),
             )
             with patch.object(upload_workspace, "_inspect_audio", return_value={
-                    "duration_ms": 1200, "sample_rate": 44100,
+                    "audio_format": "wav", "duration_ms": 1200,
+                    "sample_rate": 44100,
                     "channels": 1,
                     "metadata": {"codec": "pcm_s16le", "container": "wav"},
                     }):
