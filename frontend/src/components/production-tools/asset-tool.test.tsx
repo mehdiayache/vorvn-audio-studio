@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { describe, expect, it, vi } from "vitest"
 
@@ -26,5 +26,14 @@ describe("AssetTool", () => {
   it("preselects the linked source when replacing an Asset Part", () => {
     render(<AssetTool assets={assets} mode="sequence" chooseLabel="Replace linked asset" initialSelectedId={11} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} />)
     expect(screen.getByRole("button", { name: "Replace linked asset" }).hasAttribute("disabled")).toBe(false)
+  })
+
+  it("sends canonical classification separately from the legacy collection", async () => {
+    const onUpload = vi.fn().mockResolvedValue(undefined)
+    const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={onUpload} />)
+    fireEvent.click(within(container).getByRole("button", { name: /Ambience/ }))
+    const file = new File(["rain"], "rain.wav", { type: "audio/wav" })
+    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } })
+    await waitFor(() => expect(onUpload).toHaveBeenCalledWith("Stingers", "ambience", file))
   })
 })

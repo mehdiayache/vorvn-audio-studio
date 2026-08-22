@@ -176,6 +176,31 @@ class VentureAssetRepositoryTests(unittest.TestCase):
             audio_format="wav", mime_type="audio/wav",
         ))
 
+    def test_explicit_category_is_independent_from_legacy_collection(self):
+        collections = self.repository.ensure_collections(self.venture_id)
+        stingers = next(
+            item for item in collections if item["kind"] == "stingers")
+        with TemporaryDirectory() as output:
+            root = Path(output)
+            service = UploadService(
+                LocalUploadWorkspace(root=root, output=root,
+                                     references=root / "references"),
+                PostgresUploadRecords(assets=self.repository),
+            )
+            with patch.object(upload_workspace, "_audio_duration_ms",
+                              return_value=1200):
+                for category in ("ambience", "sfx", "other"):
+                    source = root / f"{category}.upload"
+                    source.write_bytes(b"RIFF" + bytes(40))
+                    created = service.save_asset_file(
+                        stingers["id"], source, source.stat().st_size,
+                        f"{category}.wav", category=category,
+                    )
+                    self.assertEqual(
+                        self.repository.get(created["id"])["kind"],
+                        category,
+                    )
+
 
 if __name__ == "__main__":
     unittest.main()

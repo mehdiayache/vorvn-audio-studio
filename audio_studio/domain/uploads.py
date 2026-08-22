@@ -1,6 +1,15 @@
 """Provider-neutral identities for files accepted by Audio Studio."""
 
 from dataclasses import dataclass
+from typing import Literal
+
+
+AssetCategory = Literal[
+    "music", "ambience", "sfx", "intro", "outro", "other",
+]
+ASSET_CATEGORIES = frozenset({
+    "music", "ambience", "sfx", "intro", "outro", "other",
+})
 
 
 @dataclass(frozen=True, slots=True)

@@ -102,10 +102,10 @@ function post<T>(path: string, body: unknown) {
   return request<T>(path, { method: "POST", body: JSON.stringify(body) })
 }
 
-async function uploadFile<T>(path: string, file: File): Promise<T> {
+async function uploadFile<T>(path: string, file: File, headers: Record<string, string> = {}): Promise<T> {
   const response = await fetch(path, {
     method: "POST",
-    headers: { "X-Filename": encodeURIComponent(file.name) },
+    headers: { "X-Filename": encodeURIComponent(file.name), ...headers },
     body: file,
   })
   const body = (await response.json().catch(() => ({}))) as T & { error?: string | { message?: string } }
@@ -346,8 +346,11 @@ export const studioApi = {
     const job = await studioApi.enqueueTranscriptTranslation(id, target, confirmed)
     return jobObserver.completion<CaptionMutationResult>(job.id)
   },
-  uploadAsset: async (collectionId: number, file: File) => {
-    const response = await uploadFile<{ data: UploadedAsset }>(`/api/v1/asset-collections/${collectionId}/assets/upload`, file)
+  uploadAsset: async (collectionId: number, file: File, category?: string) => {
+    const response = await uploadFile<{ data: UploadedAsset }>(
+      `/api/v1/asset-collections/${collectionId}/assets/upload`, file,
+      category ? { "X-Asset-Category": category } : {},
+    )
     return response.data
   },
 }

@@ -8,7 +8,12 @@ from typing import Protocol
 from urllib.parse import unquote
 from uuid import uuid4
 
-from audio_studio.domain.uploads import StoredAsset, StoredVoiceReference
+from audio_studio.domain.uploads import (
+    ASSET_CATEGORIES,
+    AssetCategory,
+    StoredAsset,
+    StoredVoiceReference,
+)
 
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
@@ -58,7 +63,7 @@ class UploadRecords(Protocol):
     def asset_collection(self, collection_id: int) -> dict | None: ...
     def create_uploaded_asset(
         self, collection_id: int, *, name: str, stored: StoredAsset,
-        size_bytes: int,
+        size_bytes: int, category: AssetCategory | None = None,
     ) -> dict | None: ...
 
 
@@ -134,7 +139,7 @@ class UploadService:
 
     def save_asset_file(
         self, collection_id: int, source: Path, size_bytes: int,
-        encoded_name: str,
+        encoded_name: str, *, category: str | None = None,
     ) -> dict:
         if not self.records.asset_collection(collection_id):
             raise UploadError(
@@ -146,6 +151,9 @@ class UploadService:
         original = clean_name(encoded_name, "audio.mp3")
         if Path(original).suffix.lower() not in AUDIO_EXTENSIONS:
             raise UploadError("Use MP3, WAV, M4A, AAC, OGG or FLAC audio.")
+        canonical_category = category.strip().lower() if category else None
+        if canonical_category and canonical_category not in ASSET_CATEGORIES:
+            raise UploadError("Choose a valid audio category.")
         try:
             stored = self.workspace.store_asset(
                 source, original_name=original, size_bytes=size_bytes)
@@ -154,7 +162,7 @@ class UploadService:
         try:
             created = self.records.create_uploaded_asset(
                 collection_id, name=Path(original).stem, stored=stored,
-                size_bytes=size_bytes)
+                size_bytes=size_bytes, category=canonical_category)
         except Exception:
             self.workspace.discard_media(stored.filename)
             raise

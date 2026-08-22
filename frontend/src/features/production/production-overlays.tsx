@@ -32,7 +32,7 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
   onAddSilence: (seconds: number) => Promise<void>
   onInsertAsset: (asset: VentureAsset) => Promise<void>
   onPlaceAudio: (asset: VentureAsset) => Promise<void>
-  onUploadAsset: (folder: string, file: File) => Promise<void>
+  onUploadAsset: (folder: string, category: string, file: File) => Promise<void>
   onImport: (document: ProductionImportDocument, roleVoices: Record<string, string>) => Promise<ProductionImportCounts>
   onImported: () => void
   onPlay: (source: PlayerSource) => void

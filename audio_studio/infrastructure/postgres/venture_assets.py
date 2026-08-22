@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from audio_studio.domain.uploads import ASSET_CATEGORIES, AssetCategory
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 
@@ -256,7 +257,8 @@ class VentureAssetRepository:
     def create_uploaded_asset(
             self, collection_id: int, *, name: str, filename: str, path: str,
             size_bytes: int, duration_ms: int, audio_format: str,
-            mime_type: str) -> dict | None:
+            mime_type: str, category: AssetCategory | None = None,
+            ) -> dict | None:
         """Commit an Asset and its first immutable version atomically."""
         with transaction() as cursor:
             cursor.execute("""
@@ -267,13 +269,16 @@ class VentureAssetRepository:
             if not collection:
                 return None
             venture_id, _legacy_container_id, collection_kind = collection
-            category = _CATEGORY_BY_COLLECTION.get(collection_kind, "other")
+            canonical_category = category or _CATEGORY_BY_COLLECTION.get(
+                collection_kind, "other")
+            if canonical_category not in ASSET_CATEGORIES:
+                raise ValueError("Asset category is not supported.")
             cursor.execute("""
                 INSERT INTO assets
                     (venture_id, collection_id, name, kind,
                      legacy_generation_id)
                 VALUES (%s, %s, %s, %s, NULL) RETURNING id
-            """, (venture_id, collection_id, name, category))
+            """, (venture_id, collection_id, name, canonical_category))
             asset_id = cursor.fetchone()[0]
             cursor.execute("""
                 INSERT INTO asset_versions

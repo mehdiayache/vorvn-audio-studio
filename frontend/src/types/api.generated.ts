@@ -5435,6 +5435,7 @@ export interface operations {
             query?: never;
             header?: {
                 "x-filename"?: string;
+                "x-asset-category"?: string | null;
             };
             path: {
                 collection_id: number;

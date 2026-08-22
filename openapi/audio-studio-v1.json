@@ -11491,6 +11491,22 @@
               "title": "X-Filename",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-asset-category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Asset-Category"
+            }
           }
         ],
         "responses": {

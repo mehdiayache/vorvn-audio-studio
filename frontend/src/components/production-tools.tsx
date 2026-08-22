@@ -30,7 +30,7 @@ export function ProductionToolDialog({ open, nextPartNumber, beforePartId, repla
   onAddSilence: (seconds: number) => Promise<void>
   onInsertAsset: (asset: VentureAsset) => Promise<void>
   onPlaceAudio: (asset: VentureAsset) => Promise<void>
-  onUploadAsset: (folder: string, file: File) => Promise<void>
+  onUploadAsset: (folder: string, category: string, file: File) => Promise<void>
   onImport: (document: ProductionImportDocument, roleVoices: Record<string, string>) => Promise<ProductionImportCounts>
   onImported: () => void
   onPlay: (source: PlayerSource) => void
@@ -45,7 +45,7 @@ export function ProductionToolDialog({ open, nextPartNumber, beforePartId, repla
       <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
       <Suspense fallback={<div className="tool-panel-body"><span className="eyebrow">Loading tool…</span></div>}>
         {open === "silence" && <SilenceTool onAdd={onAddSilence} />}
-        {(open === "asset" || open === "audio") && <AssetTool assets={assets} mode={assetMode} chooseLabel={replacingAsset ? "Replace linked audio" : undefined} initialSelectedId={assetMode === "sound" ? initialAudioAssetId : replacingAssetId} playingKey={playingKey} playerPlaying={playerPlaying} onChoose={assetMode === "sound" ? onPlaceAudio : onInsertAsset} onUpload={async (folder, file) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); await onUploadAsset(folder, file) }} onPlay={onPlay} />}
+        {(open === "asset" || open === "audio") && <AssetTool assets={assets} mode={assetMode} chooseLabel={replacingAsset ? "Replace linked audio" : undefined} initialSelectedId={assetMode === "sound" ? initialAudioAssetId : replacingAssetId} playingKey={playingKey} playerPlaying={playerPlaying} onChoose={assetMode === "sound" ? onPlaceAudio : onInsertAsset} onUpload={async (folder, category, file) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); await onUploadAsset(folder, category, file) }} onPlay={onPlay} />}
         {open === "import" && <ProductionImportTool currentPartCount={nextPartNumber - 1} identities={getVoiceIdentities(directory.registry ?? null, directory.identities).filter((identity) => identity.source === "owned")} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onImport={onImport} onImported={onImported} onCancel={onClose} />}
       </Suspense>
     </DialogContent>

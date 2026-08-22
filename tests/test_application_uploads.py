@@ -70,10 +70,14 @@ class FakeRecords:
         return self.collection if collection_id == 41 else None
 
     def create_uploaded_asset(
-            self, collection_id, *, name, stored, size_bytes):
+            self, collection_id, *, name, stored, size_bytes, category=None):
         if self.fail_asset:
             raise RuntimeError("database unavailable")
-        self.created_assets.append((collection_id, name, stored, size_bytes))
+        self.created_assets.append({
+            "collection_id": collection_id, "name": name,
+            "stored": stored, "size_bytes": size_bytes,
+            "category": category,
+        })
         return {"id": 7, "filename": stored.filename,
                 "duration_ms": stored.duration_ms}
 
@@ -130,6 +134,23 @@ class UploadServiceTests(unittest.TestCase):
                 service.save_asset_file(
                     41, source, source.stat().st_size, "Second.mp3")
         self.assertEqual(workspace.discarded_media, ["asset_fixture.mp3"])
+
+    def test_asset_category_is_explicit_and_validated_before_storage(self):
+        service, workspace, records = self.service()
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / "incoming"
+            source.write_bytes(b"audio")
+            service.save_asset_file(
+                41, source, source.stat().st_size, "Rain.wav",
+                category="AMBIENCE",
+            )
+            with self.assertRaisesRegex(UploadError, "valid audio category"):
+                service.save_asset_file(
+                    41, source, source.stat().st_size, "Unknown.wav",
+                    category="weather",
+                )
+        self.assertEqual(records.created_assets[0]["category"], "ambience")
+        self.assertEqual(len(workspace.assets), 1)
 
     def test_transcription_requires_storage_before_moving_the_file(self):
         service, workspace, _ = self.service(storage_ready=False)

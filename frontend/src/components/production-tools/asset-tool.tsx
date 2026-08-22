@@ -10,6 +10,7 @@ import { formatDuration } from "@/lib/format"
 import type { PlayerSource, VentureAsset } from "@/types/domain"
 
 export type AssetMode = "sequence" | "sound"
+export type AudioAssetCategory = "music" | "ambience" | "sfx" | "intro" | "outro" | "other"
 
 const CATEGORIES = [
   ["all", "All audio"],
@@ -21,7 +22,7 @@ const CATEGORIES = [
   ["other", "Other"],
 ] as const
 
-const UPLOAD_COLLECTION: Record<string, string> = {
+const UPLOAD_COLLECTION: Record<AudioAssetCategory, string> = {
   music: "Music", ambience: "Stingers", sfx: "Stingers",
   intro: "Intros", outro: "Outros", other: "Stingers",
 }
@@ -35,10 +36,10 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, playin
   playerPlaying: boolean
   onChoose: (asset: VentureAsset) => Promise<void>
   onPlay: (source: PlayerSource) => void
-  onUpload: (folder: string, file: File) => Promise<void>
+  onUpload: (folder: string, category: AudioAssetCategory, file: File) => Promise<void>
 }) {
   const [query, setQuery] = useState("")
-  const [category, setCategory] = useState("all")
+  const [category, setCategory] = useState<"all" | AudioAssetCategory>("all")
   const [dragging, setDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -47,15 +48,15 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, playin
   const eligible = useMemo(() => category === "all" ? assets : assets.filter((asset) => (asset.category || asset.kind || "other") === category), [assets, category])
   const shown = eligible.filter((asset) => `${asset.title || ""} ${asset.text || ""} ${asset.category || asset.kind || ""} ${(asset.tags || []).join(" ")}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
   const selected = assets.find((asset) => asset.id === selectedId) || null
-  const uploadFolder = UPLOAD_COLLECTION[category]
+  const uploadFolder = category === "all" ? undefined : UPLOAD_COLLECTION[category]
   useEffect(() => setSelectedId(initialSelectedId && assets.some((asset) => asset.id === initialSelectedId) ? initialSelectedId : null), [assets, initialSelectedId])
 
   async function upload(file?: File) {
     if (!file) return
     setUploading(true); setError("")
     try {
-      if (!uploadFolder) throw new Error("Choose an audio category before uploading.")
-      await onUpload(uploadFolder, file)
+      if (!uploadFolder || category === "all") throw new Error("Choose an audio category before uploading.")
+      await onUpload(uploadFolder, category, file)
     }
     catch (reason) { setError(reason instanceof Error ? reason.message : "That audio could not be uploaded.") }
     finally { setUploading(false); setDragging(false) }
