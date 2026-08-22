@@ -15,6 +15,12 @@ class ProviderSettingsResponse(BaseModel):
     http_base: str
 
 
+class AudioCatalogSettingsResponse(BaseModel):
+    provider: str
+    search_configured: bool
+    keep_configured: bool
+
+
 class SpendingSettingsResponse(BaseModel):
     warn_above: float
     daily_cap: float
@@ -60,6 +66,7 @@ class StorageSettingsResponse(BaseModel):
 
 class SettingsSnapshotResponse(BaseModel):
     provider: ProviderSettingsResponse
+    audio_catalog: AudioCatalogSettingsResponse
     output_directory: str
     spending: SpendingSettingsResponse
     speech: SpeechSettingsResponse

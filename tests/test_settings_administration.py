@@ -15,6 +15,33 @@ from audio_studio.infrastructure.settings_administration import (
 
 
 class SettingsAdministrationTests(unittest.TestCase):
+    def test_freesound_secrets_are_persisted_but_never_returned(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            env_file = root / ".env"
+            revision_file = root / ".revision"
+            env_file.write_text("UNRELATED=keep\n")
+            administration = EnvironmentSettings(
+                env_file=env_file, revision_file=revision_file,
+                reload_environment=lambda: None,
+            )
+            with patch.dict(os.environ, {}, clear=True):
+                administration.save_audio_catalog({
+                    "api_token": "search-secret",
+                    "oauth_access_token": "download-secret",
+                })
+                status = administration.audio_catalog()
+            saved = env_file.read_text()
+            self.assertIn("FREESOUND_API_TOKEN=search-secret", saved)
+            self.assertIn(
+                "FREESOUND_OAUTH_ACCESS_TOKEN=download-secret", saved)
+            self.assertEqual(status, {
+                "provider": "Freesound", "search_configured": True,
+                "keep_configured": True,
+            })
+            self.assertNotIn("search-secret", repr(status))
+            self.assertNotIn("download-secret", repr(status))
+
     def test_blank_secret_fields_preserve_existing_storage_credentials(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)

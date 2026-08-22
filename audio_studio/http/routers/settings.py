@@ -54,6 +54,12 @@ class StorageUpdate(BaseModel):
     secret_key: str = ""
 
 
+class FreesoundSettingsUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    api_token: str = ""
+    oauth_access_token: str = ""
+
+
 class PronunciationUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: int | None = None
@@ -97,6 +103,19 @@ def update_provider(payload: ProviderUpdate) -> dict:
         return {"data": settings_service.update_provider(payload.model_dump())}
     except (OSError, ValueError) as exc:
         raise ApiProblem(400, "invalid_provider_settings", str(exc)) from exc
+
+
+@router.patch("/providers/freesound",
+              operation_id="updateFreesoundSettings",
+              response_model=SettingsSnapshotEnvelope,
+              response_model_exclude_none=True)
+def update_freesound(payload: FreesoundSettingsUpdate) -> dict:
+    try:
+        return {"data": settings_service.update_audio_catalog(
+            payload.model_dump())}
+    except (OSError, ValueError) as exc:
+        raise ApiProblem(
+            400, "invalid_freesound_settings", str(exc)) from exc
 
 
 @router.post("/providers/alibaba/test", operation_id="testAlibabaConnection",

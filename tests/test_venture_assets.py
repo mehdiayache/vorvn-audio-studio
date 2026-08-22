@@ -209,6 +209,29 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         self.assertTrue(self.repository.allowed_for_production(
             other_production_id, created["id"]))
 
+    def test_kept_studio_catalog_asset_is_deduplicated_across_ventures(self):
+        first = self.repository.ensure_collections(self.venture_id)
+        second = self.repository.ensure_collections(self.other_venture_id)
+        first_stingers = next(
+            item for item in first if item["kind"] == "stingers")
+        second_stingers = next(
+            item for item in second if item["kind"] == "stingers")
+        created = self.repository.create_uploaded_asset(
+            first_stingers["id"], name="Shared door", filename="door.wav",
+            path="/media/door.wav", size_bytes=900, duration_ms=450,
+            audio_format="wav", mime_type="audio/wav", category="sfx",
+            scope="studio", tags=("door",), metadata={
+                "origin": "freesound", "external_id": "931"},
+            version_metadata={"codec": "pcm_s16le", "container": "wav"})
+
+        existing = self.repository.catalog_asset(
+            second_stingers["id"], origin="freesound", external_id="931",
+            scope="studio")
+
+        self.assertEqual(existing["id"], created["id"])
+        self.assertEqual(existing["version_id"], created["version_id"])
+        self.assertEqual(existing["scope"], "studio")
+
     def test_unknown_collection_cannot_create_an_orphan(self):
         self.assertIsNone(self.repository.create_uploaded_asset(
             2_147_483_647, name="Orphan", filename="orphan.wav",

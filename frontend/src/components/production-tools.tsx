@@ -1,8 +1,8 @@
 import { lazy, Suspense } from "react"
 
-import type { AssetMode, AssetUploadInput } from "@/components/production-tools/asset-tool"
+import type { AssetMode, AssetUploadInput, CatalogKeepInput } from "@/components/production-tools/asset-tool"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import type { PlayerSource, VentureAsset } from "@/types/domain"
+import type { CatalogKeepResult, PlayerSource, VentureAsset } from "@/types/domain"
 import type { VoiceDirectory } from "@/types/domain"
 import { getVoiceIdentities } from "@/lib/voice-options"
 import type { ProductionImportCounts, ProductionImportDocument } from "@/features/production/production-import"
@@ -15,7 +15,7 @@ const SilenceTool = lazy(() => import("@/components/production-tools/silence-too
 const AssetTool = lazy(() => import("@/components/production-tools/asset-tool").then((module) => ({ default: module.AssetTool })))
 const ProductionImportTool = lazy(() => import("@/features/production/production-import-tool").then((module) => ({ default: module.ProductionImportTool })))
 
-export function ProductionToolDialog({ open, nextPartNumber, beforePartId, replacingAssetId, initialAudioAssetId, assets, assetCollectionIds, directory, playingKey, playerPlaying, onClose, onAddSilence, onInsertAsset, onPlaceAudio, onUploadAsset, onImport, onImported, onPlay }: {
+export function ProductionToolDialog({ open, nextPartNumber, beforePartId, replacingAssetId, initialAudioAssetId, assets, assetCollectionIds, directory, playingKey, playerPlaying, onClose, onAddSilence, onInsertAsset, onPlaceAudio, onUploadAsset, onKeepAsset, onImport, onImported, onPlay }: {
   open: Exclude<ToolKind, "speech">
   nextPartNumber: number
   beforePartId: string | null
@@ -31,6 +31,7 @@ export function ProductionToolDialog({ open, nextPartNumber, beforePartId, repla
   onInsertAsset: (asset: VentureAsset) => Promise<void>
   onPlaceAudio: (asset: VentureAsset) => Promise<void>
   onUploadAsset: (folder: string, input: AssetUploadInput) => Promise<VentureAsset>
+  onKeepAsset: (folder: string, input: CatalogKeepInput) => Promise<CatalogKeepResult>
   onImport: (document: ProductionImportDocument, roleVoices: Record<string, string>) => Promise<ProductionImportCounts>
   onImported: () => void
   onPlay: (source: PlayerSource) => void
@@ -45,7 +46,7 @@ export function ProductionToolDialog({ open, nextPartNumber, beforePartId, repla
       <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
       <Suspense fallback={<div className="tool-panel-body"><span className="eyebrow">Loading tool…</span></div>}>
         {open === "silence" && <SilenceTool onAdd={onAddSilence} />}
-        {(open === "asset" || open === "audio") && <AssetTool assets={assets} mode={assetMode} chooseLabel={replacingAsset ? "Replace linked audio" : undefined} initialSelectedId={assetMode === "sound" ? initialAudioAssetId : replacingAssetId} playingKey={playingKey} playerPlaying={playerPlaying} onChoose={assetMode === "sound" ? onPlaceAudio : onInsertAsset} onUpload={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onUploadAsset(folder, input) }} onPlay={onPlay} />}
+        {(open === "asset" || open === "audio") && <AssetTool assets={assets} mode={assetMode} chooseLabel={replacingAsset ? "Replace linked audio" : undefined} initialSelectedId={assetMode === "sound" ? initialAudioAssetId : replacingAssetId} playingKey={playingKey} playerPlaying={playerPlaying} onChoose={assetMode === "sound" ? onPlaceAudio : onInsertAsset} onUpload={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onUploadAsset(folder, input) }} onKeep={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onKeepAsset(folder, input) }} onPlay={onPlay} />}
         {open === "import" && <ProductionImportTool currentPartCount={nextPartNumber - 1} identities={getVoiceIdentities(directory.registry ?? null, directory.identities).filter((identity) => identity.source === "owned")} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onImport={onImport} onImported={onImported} onCancel={onClose} />}
       </Suspense>
     </DialogContent>

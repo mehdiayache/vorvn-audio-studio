@@ -31,6 +31,7 @@ class ControlPlaneFake:
 class ConfigurationFake:
     def __init__(self):
         self.saved_provider = None
+        self.saved_audio_catalog = None
         self.saved_storage = None
         self.storage_values = {
             "endpoint": "https://storage.test", "bucket": "private",
@@ -50,6 +51,12 @@ class ConfigurationFake:
     def storage(self):
         return dict(self.storage_values)
 
+    def audio_catalog(self):
+        return {
+            "provider": "Freesound", "search_configured": True,
+            "keep_configured": False,
+        }
+
     def storage_configured(self):
         return True
 
@@ -58,6 +65,9 @@ class ConfigurationFake:
 
     def save_provider(self, values):
         self.saved_provider = values
+
+    def save_audio_catalog(self, values):
+        self.saved_audio_catalog = values
 
     def save_storage(self, values):
         self.saved_storage = values
@@ -122,6 +132,8 @@ class SettingsServiceTests(unittest.TestCase):
     def test_snapshot_exposes_configuration_state_but_never_secrets(self):
         result = self.service.snapshot()
         self.assertTrue(result["provider"]["configured"])
+        self.assertTrue(result["audio_catalog"]["search_configured"])
+        self.assertFalse(result["audio_catalog"]["keep_configured"])
         self.assertEqual(result["output_directory"], "/media/audio")
         self.assertTrue(result["storage"]["configured"])
         self.assertNotIn("access_key", result["storage_settings"])
@@ -144,6 +156,18 @@ class SettingsServiceTests(unittest.TestCase):
         self.assertEqual(
             self.configuration.saved_storage, {"bucket": "new-private"})
         self.assertTrue(self.service.test_provider()["connected"])
+
+    def test_freesound_secret_updates_use_the_configuration_port(self):
+        result = self.service.update_audio_catalog({
+            "api_token": "  search-secret  ",
+            "oauth_access_token": "  download-secret  ",
+        })
+        self.assertEqual(self.configuration.saved_audio_catalog, {
+            "api_token": "search-secret",
+            "oauth_access_token": "download-secret",
+        })
+        self.assertNotIn("api_token", result["audio_catalog"])
+        self.assertNotIn("oauth_access_token", result["audio_catalog"])
 
     def test_preferences_filter_unknown_provider_flags_and_naming_fields(self):
         self.service.update({

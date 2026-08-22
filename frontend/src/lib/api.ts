@@ -33,6 +33,9 @@ type GeneratedJob = paths["/api/v1/jobs/{job_id}"]["get"]["responses"][200]["con
 type UploadedImage = paths["/api/v1/project-covers/upload"]["post"]["responses"][200]["content"]["application/json"]["data"]
 type UploadedVoiceReference = paths["/api/v1/voice-references/upload"]["post"]["responses"][200]["content"]["application/json"]["data"]
 type UploadedAsset = paths["/api/v1/asset-collections/{collection_id}/assets/upload"]["post"]["responses"][201]["content"]["application/json"]["data"]
+type FreesoundSearchEnvelope = paths["/api/v1/audio-catalogs/freesound/search"]["get"]["responses"][200]["content"]["application/json"]
+type FreesoundKeepEnvelope = paths["/api/v1/audio-catalogs/freesound/keep"]["post"]["responses"][201]["content"]["application/json"]
+type FreesoundKeepBody = paths["/api/v1/audio-catalogs/freesound/keep"]["post"]["requestBody"]["content"]["application/json"]
 type SubtitleListEnvelope = paths["/api/v1/subtitles"]["get"]["responses"][200]["content"]["application/json"]
 type SubtitleEnvelope = paths["/api/v1/subtitles/{transcript_id}"]["get"]["responses"][200]["content"]["application/json"]
 type SubtitleDeletedEnvelope = paths["/api/v1/subtitles/{transcript_id}"]["delete"]["responses"][200]["content"]["application/json"]
@@ -57,6 +60,7 @@ type VoicePackageRetryBody = paths["/api/v1/voice-packages/retry"]["post"]["requ
 type SettingsEnvelope = paths["/api/v1/settings"]["get"]["responses"][200]["content"]["application/json"]
 type SettingsUpdateBody = paths["/api/v1/settings"]["patch"]["requestBody"]["content"]["application/json"]
 type ProviderUpdateBody = paths["/api/v1/settings/provider"]["patch"]["requestBody"]["content"]["application/json"]
+type FreesoundSettingsBody = paths["/api/v1/settings/providers/freesound"]["patch"]["requestBody"]["content"]["application/json"]
 type AlibabaConnectionTestEnvelope = paths["/api/v1/settings/providers/alibaba/test"]["post"]["responses"][200]["content"]["application/json"]
 type StorageUpdateBody = paths["/api/v1/settings/storage"]["patch"]["requestBody"]["content"]["application/json"]
 type StorageTestEnvelope = paths["/api/v1/settings/storage/test"]["post"]["responses"][200]["content"]["application/json"]
@@ -157,6 +161,7 @@ export const studioApi = {
   }).then((response) => response.data),
   resetNaming: () => request<SettingsEnvelope>("/api/v1/settings/naming/reset", { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
   updateProviderSettings: (changes: ProviderUpdateBody) => request<SettingsEnvelope>("/api/v1/settings/provider", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
+  updateFreesoundSettings: (changes: FreesoundSettingsBody) => request<SettingsEnvelope>("/api/v1/settings/providers/freesound", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
   testAlibabaConnection: () => request<AlibabaConnectionTestEnvelope>("/api/v1/settings/providers/alibaba/test", { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
   updateStorageSettings: (changes: StorageUpdateBody) => request<SettingsEnvelope>("/api/v1/settings/storage", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
   testStorage: () => request<StorageTestEnvelope>("/api/v1/settings/storage/test", { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
@@ -363,6 +368,21 @@ export const studioApi = {
     )
     return response.data
   },
+  searchFreesound: (filters: {
+    query: string
+    license?: "all" | "cc0" | "cc-by" | "cc-by-nc"
+    durationMax?: number | null
+  }, signal?: AbortSignal) => {
+    const query = new URLSearchParams({
+      query: filters.query,
+      license: filters.license || "all",
+    })
+    if (filters.durationMax) query.set("duration_max", String(filters.durationMax))
+    return request<FreesoundSearchEnvelope>(`/api/v1/audio-catalogs/freesound/search?${query}`, { signal }).then((response) => response.data)
+  },
+  keepFreesound: (payload: FreesoundKeepBody) => request<FreesoundKeepEnvelope>("/api/v1/audio-catalogs/freesound/keep", {
+    method: "POST", body: JSON.stringify(payload),
+  }).then((response) => response.data),
 }
 
 export function audioUrl(filename?: string) {

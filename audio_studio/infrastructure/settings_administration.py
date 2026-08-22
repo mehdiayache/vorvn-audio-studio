@@ -72,6 +72,15 @@ class EnvironmentSettings:
     def storage(self) -> dict[str, str]:
         return object_storage.settings()
 
+    def audio_catalog(self) -> dict[str, Any]:
+        return {
+            "provider": "Freesound",
+            "search_configured": bool(
+                (os.getenv("FREESOUND_API_TOKEN") or "").strip()),
+            "keep_configured": bool(
+                (os.getenv("FREESOUND_OAUTH_ACCESS_TOKEN") or "").strip()),
+        }
+
     def storage_configured(self) -> bool:
         return object_storage.configured()
 
@@ -87,6 +96,18 @@ class EnvironmentSettings:
         if api_key:
             changes["DASHSCOPE_API_KEY"] = api_key
         self._write_environment(changes)
+
+    def save_audio_catalog(self, values: dict[str, Any]) -> None:
+        changes: dict[str, str | None] = {}
+        api_token = str(values.get("api_token") or "").strip()
+        oauth_access_token = str(
+            values.get("oauth_access_token") or "").strip()
+        if api_token:
+            changes["FREESOUND_API_TOKEN"] = api_token
+        if oauth_access_token:
+            changes["FREESOUND_OAUTH_ACCESS_TOKEN"] = oauth_access_token
+        if changes:
+            self._write_environment(changes)
 
     def save_storage(self, values: dict[str, Any]) -> None:
         current = self.storage()

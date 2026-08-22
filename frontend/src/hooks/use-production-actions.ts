@@ -7,7 +7,7 @@ import { useAsyncAction } from "@/hooks/use-async-action"
 import { audibleAudioClips } from "@/features/sound-scene/sound-scene-audibility"
 import { studioApi } from "@/lib/api"
 import { moveSelectionToPosition } from "@/lib/production-order"
-import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, Production, ProductionPart, SoundScene, SoundSceneDocument, VentureAsset } from "@/types/domain"
+import type { AudioAssetCategory, AudioAssetScope, CatalogKeepResult, CatalogSound, DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, Production, ProductionPart, SoundScene, SoundSceneDocument, VentureAsset } from "@/types/domain"
 
 type Player = ReturnType<typeof usePlayer>
 export type ProductionMutationStatus = "idle" | "saving" | "saved"
@@ -229,5 +229,26 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     })
   }, [mutationActions.run, refreshAssets])
 
-  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, mutationStatus, isActionPending: mutationActions.isPending, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, updateSoundScene, undoSoundScene, redoSoundScene, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, moveParts, uploadAsset }
+  const keepFreesound = useCallback(async (collectionId: number, details: {
+    result: CatalogSound
+    name: string
+    category: AudioAssetCategory
+    scope: AudioAssetScope
+    tags: string[]
+  }): Promise<CatalogKeepResult> => mutationActions.run(
+    `asset:keep:freesound:${details.result.external_id}`, async () => {
+      const kept = await studioApi.keepFreesound({
+        collection_id: collectionId,
+        external_id: details.result.external_id,
+        name: details.name,
+        category: details.category,
+        scope: details.scope,
+        tags: details.tags,
+      })
+      await refreshAssets()
+      toast.success(kept.duplicate ? `${details.name} is already in the Audio Library` : `${details.name} kept in the Audio Library`)
+      return kept
+    }), [mutationActions.run, refreshAssets])
+
+  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, mutationStatus, isActionPending: mutationActions.isPending, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, updateSoundScene, undoSoundScene, redoSoundScene, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, moveParts, uploadAsset, keepFreesound }
 }

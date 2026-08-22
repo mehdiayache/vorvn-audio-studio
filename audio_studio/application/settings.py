@@ -17,10 +17,12 @@ class ControlPlane(Protocol):
 
 class Configuration(Protocol):
     def provider(self) -> dict[str, Any]: ...
+    def audio_catalog(self) -> dict[str, Any]: ...
     def storage(self) -> dict[str, str]: ...
     def storage_configured(self) -> bool: ...
     def test_storage(self) -> dict[str, Any]: ...
     def save_provider(self, values: dict[str, Any]) -> None: ...
+    def save_audio_catalog(self, values: dict[str, Any]) -> None: ...
     def save_storage(self, values: dict[str, Any]) -> None: ...
     def output_directory(self) -> str: ...
 
@@ -56,6 +58,7 @@ class SettingsService:
         storage_values = self.configuration.storage()
         return {
             "provider": self.configuration.provider(),
+            "audio_catalog": self.configuration.audio_catalog(),
             "output_directory": self.configuration.output_directory(),
             "spending": {
                 "warn_above": float(preferences.get("warn_above") or 0),
@@ -149,6 +152,14 @@ class SettingsService:
 
     def update_storage(self, values: dict[str, Any]) -> dict[str, Any]:
         self.configuration.save_storage(values)
+        return self.snapshot()
+
+    def update_audio_catalog(self, values: dict[str, Any]) -> dict[str, Any]:
+        self.configuration.save_audio_catalog({
+            "api_token": str(values.get("api_token") or "").strip(),
+            "oauth_access_token": str(
+                values.get("oauth_access_token") or "").strip(),
+        })
         return self.snapshot()
 
     def test_storage(self) -> dict[str, Any]:

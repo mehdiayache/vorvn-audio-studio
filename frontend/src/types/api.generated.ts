@@ -38,6 +38,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audio-catalogs/freesound/keep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep Freesound */
+        post: operations["keepFreesoundAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audio-catalogs/freesound/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search Freesound */
+        get: operations["searchFreesound"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audio-catalogs/freesound/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Freesound Status */
+        get: operations["getFreesoundCatalogStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/composer-drafts": {
         parameters: {
             query?: never;
@@ -980,6 +1031,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/providers/freesound": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Freesound */
+        patch: operations["updateFreesoundSettings"];
+        trace?: never;
+    };
     "/api/v1/settings/storage": {
         parameters: {
             query?: never;
@@ -1689,6 +1757,15 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** AudioCatalogSettingsResponse */
+        AudioCatalogSettingsResponse: {
+            /** Keep Configured */
+            keep_configured: boolean;
+            /** Provider */
+            provider: string;
+            /** Search Configured */
+            search_configured: boolean;
+        };
         /** AudioPeaksEnvelope */
         AudioPeaksEnvelope: {
             data: components["schemas"]["AudioPeaksResponse"];
@@ -1799,6 +1876,62 @@ export interface components {
             start: number;
             /** Text */
             text: string;
+        };
+        /** CatalogKeepEnvelope */
+        CatalogKeepEnvelope: {
+            data: components["schemas"]["CatalogKeepResponse"];
+        };
+        /** CatalogKeepResponse */
+        CatalogKeepResponse: {
+            asset: components["schemas"]["UploadedAssetResponse"];
+            /** Duplicate */
+            duplicate: boolean;
+        };
+        /** CatalogSearchEnvelope */
+        CatalogSearchEnvelope: {
+            /** Data */
+            data: components["schemas"]["CatalogSoundResponse"][];
+        };
+        /** CatalogSoundResponse */
+        CatalogSoundResponse: {
+            /** Attribution Required */
+            attribution_required: boolean;
+            /** Attribution Text */
+            attribution_text: string;
+            /** Creator */
+            creator: string;
+            /** Duration Ms */
+            duration_ms: number;
+            /** External Id */
+            external_id: string;
+            /**
+             * License
+             * @enum {string}
+             */
+            license: "cc0" | "cc-by" | "cc-by-nc";
+            /** License Url */
+            license_url: string;
+            /** Name */
+            name: string;
+            /** Original Format */
+            original_format: string;
+            /** Preview Url */
+            preview_url: string;
+            /** Source Url */
+            source_url: string;
+            /** Tags */
+            tags: string[];
+        };
+        /** CatalogStatusEnvelope */
+        CatalogStatusEnvelope: {
+            data: components["schemas"]["CatalogStatusResponse"];
+        };
+        /** CatalogStatusResponse */
+        CatalogStatusResponse: {
+            /** Keep Configured */
+            keep_configured: boolean;
+            /** Search Configured */
+            search_configured: boolean;
         };
         /** CollectionMetaResponse */
         CollectionMetaResponse: {
@@ -2103,6 +2236,19 @@ export interface components {
             /** Enabled */
             enabled: boolean;
         };
+        /** FreesoundSettingsUpdate */
+        FreesoundSettingsUpdate: {
+            /**
+             * Api Token
+             * @default
+             */
+            api_token: string;
+            /**
+             * Oauth Access Token
+             * @default
+             */
+            oauth_access_token: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2322,6 +2468,27 @@ export interface components {
             status: string;
             /** Type */
             type: string;
+        };
+        /** KeepFreesoundBody */
+        KeepFreesoundBody: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "music" | "ambience" | "sfx" | "intro" | "outro" | "other";
+            /** Collection Id */
+            collection_id: number;
+            /** External Id */
+            external_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "venture" | "studio";
+            /** Tags */
+            tags?: string[];
         };
         /** MoveBody */
         MoveBody: {
@@ -3537,6 +3704,7 @@ export interface components {
         };
         /** SettingsSnapshotResponse */
         SettingsSnapshotResponse: {
+            audio_catalog: components["schemas"]["AudioCatalogSettingsResponse"];
             database: components["schemas"]["audio_studio__http__settings_contracts__DatabaseStatusResponse"];
             /** Naming */
             naming: {
@@ -5493,6 +5661,93 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    keepFreesoundAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KeepFreesoundBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogKeepEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    searchFreesound: {
+        parameters: {
+            query: {
+                query: string;
+                license?: string;
+                duration_min?: number | null;
+                duration_max?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogSearchEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getFreesoundCatalogStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogStatusEnvelope"];
                 };
             };
         };
@@ -7469,6 +7724,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProviderConnectionTestEnvelope"];
+                };
+            };
+        };
+    };
+    updateFreesoundSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FreesoundSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsSnapshotEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -23,12 +23,13 @@ _AUDIO_MIME_TYPES = {
     "flac": "audio/flac",
     "m4a": "audio/mp4",
     "aac": "audio/aac",
+    "aiff": "audio/aiff",
 }
 
 
 def _canonical_audio_format(container: str) -> str | None:
     containers = {item.strip().lower() for item in container.split(",")}
-    for audio_format in ("wav", "mp3", "flac", "ogg", "aac"):
+    for audio_format in ("wav", "mp3", "flac", "ogg", "aac", "aiff"):
         if audio_format in containers:
             return audio_format
     if containers.intersection({"mov", "mp4", "m4a", "3gp", "3g2", "mj2"}):

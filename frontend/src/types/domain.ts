@@ -2,6 +2,9 @@ import type { components } from "./api.generated"
 
 export type AudioAssetCategory = components["schemas"]["UploadedAssetResponse"]["category"]
 export type AudioAssetScope = components["schemas"]["UploadedAssetResponse"]["scope"]
+export type CatalogSound = components["schemas"]["CatalogSoundResponse"]
+export type CatalogKeepResult = components["schemas"]["CatalogKeepResponse"]
+export type CatalogLicense = CatalogSound["license"]
 
 export type ResourceType = "venture" | "project" | "series" | "production"
 

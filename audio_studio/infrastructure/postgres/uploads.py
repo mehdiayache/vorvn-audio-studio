@@ -68,3 +68,11 @@ class PostgresUploadRecords:
         except psycopg.OperationalError as exc:
             raise RuntimeError(
                 "The database could not save that Asset.") from exc
+
+    def catalog_asset(
+        self, collection_id: int, *, origin: str, external_id: str,
+        scope: AssetScope,
+    ) -> dict | None:
+        return self.assets.catalog_asset(
+            collection_id, origin=origin, external_id=external_id,
+            scope=scope)

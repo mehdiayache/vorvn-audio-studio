@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest"
 vi.mock("@/components/ui/scroll-area", () => ({ ScrollArea: ({ children }: { children: ReactNode }) => <div>{children}</div> }))
 
 import { AssetTool } from "./asset-tool"
+import { studioApi } from "@/lib/api"
 
 const assets = [{ id: 11, title: "Harbor Intro", folder: "Intros", filename: "harbor.wav", duration_ms: 8_400 }]
 
@@ -13,7 +14,7 @@ describe("AssetTool", () => {
   it("keeps audition separate from explicit insertion", async () => {
     const onPlay = vi.fn()
     const onChoose = vi.fn().mockResolvedValue(undefined)
-    render(<AssetTool assets={assets} mode="sequence" playerPlaying={false} onChoose={onChoose} onPlay={onPlay} onUpload={vi.fn()} />)
+    render(<AssetTool assets={assets} mode="sequence" playerPlaying={false} onChoose={onChoose} onPlay={onPlay} onUpload={vi.fn()} onKeep={vi.fn()} />)
     fireEvent.click(screen.getByRole("button", { name: "Audition" }))
     expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ key: "asset-source:11" }))
     expect(onChoose).not.toHaveBeenCalled()
@@ -24,13 +25,13 @@ describe("AssetTool", () => {
   })
 
   it("preselects the linked source when replacing an Asset Part", () => {
-    render(<AssetTool assets={assets} mode="sequence" chooseLabel="Replace linked asset" initialSelectedId={11} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} />)
+    render(<AssetTool assets={assets} mode="sequence" chooseLabel="Replace linked asset" initialSelectedId={11} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     expect(screen.getByRole("button", { name: "Replace linked asset" }).hasAttribute("disabled")).toBe(false)
   })
 
   it("sends canonical classification separately from the legacy collection", async () => {
     const onUpload = vi.fn().mockResolvedValue({ id: 44, name: "Rain at dusk" })
-    const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={onUpload} />)
+    const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={onUpload} onKeep={vi.fn()} />)
     fireEvent.click(within(container).getByRole("button", { name: /^Upload$/ }))
     const file = new File(["rain"], "rain_at_dusk.wav", { type: "audio/wav" })
     fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } })
@@ -49,7 +50,7 @@ describe("AssetTool", () => {
 
   it("prepares a dropped file without saving it immediately", () => {
     const onUpload = vi.fn()
-    const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={onUpload} />)
+    const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={onUpload} onKeep={vi.fn()} />)
     const file = new File(["room tone"], "quiet-night_room.flac", { type: "audio/flac" })
 
     fireEvent.drop(container.querySelector(".asset-tool")!, {
@@ -62,7 +63,7 @@ describe("AssetTool", () => {
   })
 
   it("discards the prepared local form when the operator cancels", () => {
-    const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} />)
+    const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     fireEvent.click(within(container).getByRole("button", { name: /^Upload$/ }))
     const file = new File(["room tone"], "quiet-night_room.flac", { type: "audio/flac" })
     fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } })
@@ -81,7 +82,7 @@ describe("AssetTool", () => {
       { id: 21, name: "Night room", category: "ambience", scope: "venture" as const, tags: ["quiet"] },
       { id: 22, name: "Wooden knock", category: "sfx", scope: "studio" as const, tags: ["door"] },
     ]
-    const { container } = render(<AssetTool assets={library} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} />)
+    const { container } = render(<AssetTool assets={library} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     const view = within(container)
     fireEvent.change(view.getByPlaceholderText(/Search name/), { target: { value: "door" } })
     expect(view.getByRole("button", { name: /Wooden knock/ })).toBeTruthy()
@@ -90,5 +91,46 @@ describe("AssetTool", () => {
     fireEvent.click(view.getByRole("button", { name: "Studio" }))
     expect(view.getByRole("button", { name: /Wooden knock/ })).toBeTruthy()
     expect(view.queryByRole("button", { name: /Night room/ })).toBeNull()
+  })
+
+  it("auditions an external result without keeping it, then Keeps explicitly", async () => {
+    const result = {
+      external_id: "931", name: "Wooden door close.wav",
+      duration_ms: 2400, creator: "fieldrecorder",
+      license: "cc-by-nc" as const,
+      license_url: "https://creativecommons.org/licenses/by-nc/4.0/",
+      source_url: "https://freesound.org/s/931/",
+      preview_url: "https://cdn.freesound.org/preview.mp3",
+      original_format: "wav", tags: ["door", "wood"],
+      attribution_required: true,
+      attribution_text: "Wooden door close by fieldrecorder",
+    }
+    const search = vi.spyOn(studioApi, "searchFreesound").mockResolvedValue([result])
+    const onPlay = vi.fn()
+    const onKeep = vi.fn().mockResolvedValue({ asset: { id: 77 }, duplicate: false })
+    const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={onPlay} onUpload={vi.fn()} onKeep={onKeep} />)
+    const view = within(container)
+    fireEvent.click(view.getByRole("button", { name: /^Search$/ }))
+    fireEvent.change(view.getByPlaceholderText("wooden door closing"), { target: { value: "wooden door closing" } })
+    await waitFor(() => expect(view.getByText("Wooden door close.wav")).toBeTruthy())
+    expect(search).toHaveBeenCalledWith(expect.objectContaining({
+      query: "wooden door closing", license: "all",
+    }), expect.any(AbortSignal))
+    expect(view.getByText("CC BY-NC")).toBeTruthy()
+
+    fireEvent.click(view.getByRole("button", { name: "Audition" }))
+    expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({
+      key: "freesound-preview:931",
+      url: "https://cdn.freesound.org/preview.mp3",
+    }))
+    expect(onKeep).not.toHaveBeenCalled()
+
+    fireEvent.click(view.getByRole("button", { name: "Keep" }))
+    await waitFor(() => expect(onKeep).toHaveBeenCalledWith("Stingers", {
+      result, name: result.name, category: "sfx", scope: "studio",
+      tags: ["door", "wood"],
+    }))
+    expect(view.getByRole("button", { name: /In Library/ })).toBeTruthy()
+    search.mockRestore()
   })
 })

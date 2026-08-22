@@ -16,6 +16,7 @@ import { ProviderSettingsCard } from "./provider-settings-card"
 import { StorageSettingsCard } from "./storage-settings-card"
 import { SpendingSettingsCard } from "./spending-settings-card"
 import { SpeechSettingsCard } from "./speech-settings-card"
+import { FreesoundSettingsCard } from "./freesound-settings-card"
 
 function statusText(value: Record<string, unknown>) {
   if (typeof value.status === "string") return value.status
@@ -55,6 +56,7 @@ export function SettingsPage() {
 
     <div className="settings-grid">
       <ProviderSettingsCard settings={data} onUpdated={setData} />
+      <FreesoundSettingsCard settings={data} onUpdated={setData} />
       <StorageSettingsCard settings={data} onUpdated={setData} />
       <section className="settings-card settings-wide"><header><FolderOpen /><div><h2>Finished audio</h2><p>One stable media root protects existing recordings. Change it through deployment configuration before startup.</p></div></header><label><span>Media root</span><Input value={data.output_directory} readOnly aria-readonly="true" /></label><small>Set AUDIO_STUDIO_OUTPUT_DIR when deploying or moving the complete media library.</small></section>
 

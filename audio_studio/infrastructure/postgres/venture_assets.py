@@ -225,6 +225,37 @@ class VentureAssetRepository:
             row = cursor.fetchone()
         return dict(zip(_ASSET_FIELDS, row)) if row else None
 
+    def catalog_asset(
+            self, collection_id: int, *, origin: str, external_id: str,
+            scope: AssetScope) -> dict | None:
+        """Return an already-kept external sound that is reusable here."""
+        with read_only() as cursor:
+            cursor.execute("""
+                SELECT asset.id
+                  FROM asset_collections requested
+                  JOIN assets asset
+                    ON (asset.scope = 'studio'
+                        OR asset.venture_id = requested.venture_id)
+                 WHERE requested.id = %s
+                   AND asset.metadata ->> 'origin' = %s
+                   AND asset.metadata ->> 'external_id' = %s
+                   AND (%s = 'studio' AND asset.scope = 'studio'
+                        OR %s = 'venture'
+                           AND asset.venture_id = requested.venture_id)
+                 ORDER BY (asset.scope = 'studio') DESC, asset.id
+                 LIMIT 1
+            """, (collection_id, origin, external_id, scope, scope))
+            row = cursor.fetchone()
+        if not row:
+            return None
+        asset = self.get(row[0])
+        if not asset:
+            return None
+        return {
+            **asset, "category": asset["kind"],
+            "url": f'/audio/{asset["filename"]}',
+        }
+
     def library_context(self, asset_id: int) -> dict | None:
         with read_only() as cursor:
             cursor.execute("""

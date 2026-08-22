@@ -722,6 +722,29 @@
         "title": "AssetSummaryResponse",
         "type": "object"
       },
+      "AudioCatalogSettingsResponse": {
+        "properties": {
+          "keep_configured": {
+            "title": "Keep Configured",
+            "type": "boolean"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "search_configured": {
+            "title": "Search Configured",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "provider",
+          "search_configured",
+          "keep_configured"
+        ],
+        "title": "AudioCatalogSettingsResponse",
+        "type": "object"
+      },
       "AudioPeaksEnvelope": {
         "properties": {
           "data": {
@@ -1006,6 +1029,157 @@
           "text"
         ],
         "title": "CaptionWordResponse",
+        "type": "object"
+      },
+      "CatalogKeepEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CatalogKeepResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "CatalogKeepEnvelope",
+        "type": "object"
+      },
+      "CatalogKeepResponse": {
+        "properties": {
+          "asset": {
+            "$ref": "#/components/schemas/UploadedAssetResponse"
+          },
+          "duplicate": {
+            "title": "Duplicate",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "asset",
+          "duplicate"
+        ],
+        "title": "CatalogKeepResponse",
+        "type": "object"
+      },
+      "CatalogSearchEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogSoundResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "CatalogSearchEnvelope",
+        "type": "object"
+      },
+      "CatalogSoundResponse": {
+        "properties": {
+          "attribution_required": {
+            "title": "Attribution Required",
+            "type": "boolean"
+          },
+          "attribution_text": {
+            "title": "Attribution Text",
+            "type": "string"
+          },
+          "creator": {
+            "title": "Creator",
+            "type": "string"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "external_id": {
+            "title": "External Id",
+            "type": "string"
+          },
+          "license": {
+            "enum": [
+              "cc0",
+              "cc-by",
+              "cc-by-nc"
+            ],
+            "title": "License",
+            "type": "string"
+          },
+          "license_url": {
+            "title": "License Url",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "original_format": {
+            "title": "Original Format",
+            "type": "string"
+          },
+          "preview_url": {
+            "title": "Preview Url",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "external_id",
+          "name",
+          "duration_ms",
+          "creator",
+          "license",
+          "license_url",
+          "source_url",
+          "preview_url",
+          "original_format",
+          "tags",
+          "attribution_required",
+          "attribution_text"
+        ],
+        "title": "CatalogSoundResponse",
+        "type": "object"
+      },
+      "CatalogStatusEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CatalogStatusResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "CatalogStatusEnvelope",
+        "type": "object"
+      },
+      "CatalogStatusResponse": {
+        "properties": {
+          "keep_configured": {
+            "title": "Keep Configured",
+            "type": "boolean"
+          },
+          "search_configured": {
+            "title": "Search Configured",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "search_configured",
+          "keep_configured"
+        ],
+        "title": "CatalogStatusResponse",
         "type": "object"
       },
       "CollectionMetaResponse": {
@@ -1801,6 +1975,23 @@
         "title": "EnabledBody",
         "type": "object"
       },
+      "FreesoundSettingsUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "api_token": {
+            "default": "",
+            "title": "Api Token",
+            "type": "string"
+          },
+          "oauth_access_token": {
+            "default": "",
+            "title": "Oauth Access Token",
+            "type": "string"
+          }
+        },
+        "title": "FreesoundSettingsUpdate",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2373,6 +2564,65 @@
           "result"
         ],
         "title": "JobResponse",
+        "type": "object"
+      },
+      "KeepFreesoundBody": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "enum": [
+              "music",
+              "ambience",
+              "sfx",
+              "intro",
+              "outro",
+              "other"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "collection_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Collection Id",
+            "type": "integer"
+          },
+          "external_id": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "External Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "venture",
+              "studio"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "collection_id",
+          "external_id",
+          "name",
+          "category",
+          "scope"
+        ],
+        "title": "KeepFreesoundBody",
         "type": "object"
       },
       "MoveBody": {
@@ -5933,6 +6183,9 @@
       },
       "SettingsSnapshotResponse": {
         "properties": {
+          "audio_catalog": {
+            "$ref": "#/components/schemas/AudioCatalogSettingsResponse"
+          },
           "database": {
             "$ref": "#/components/schemas/audio_studio__http__settings_contracts__DatabaseStatusResponse"
           },
@@ -5985,6 +6238,7 @@
         },
         "required": [
           "provider",
+          "audio_catalog",
           "output_directory",
           "spending",
           "speech",
@@ -11664,6 +11918,159 @@
         ]
       }
     },
+    "/api/v1/audio-catalogs/freesound/keep": {
+      "post": {
+        "operationId": "keepFreesoundAsset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeepFreesoundBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogKeepEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Keep Freesound",
+        "tags": [
+          "audio-catalogs"
+        ]
+      }
+    },
+    "/api/v1/audio-catalogs/freesound/search": {
+      "get": {
+        "operationId": "searchFreesound",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 2,
+              "title": "Query",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "license",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "pattern": "^(all|cc0|cc-by|cc-by-nc)$",
+              "title": "License",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "duration_min",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 86400,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Duration Min"
+            }
+          },
+          {
+            "in": "query",
+            "name": "duration_max",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "maximum": 86400,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Duration Max"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogSearchEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search Freesound",
+        "tags": [
+          "audio-catalogs"
+        ]
+      }
+    },
+    "/api/v1/audio-catalogs/freesound/status": {
+      "get": {
+        "operationId": "getFreesoundCatalogStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogStatusEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Freesound Status",
+        "tags": [
+          "audio-catalogs"
+        ]
+      }
+    },
     "/api/v1/composer-drafts": {
       "delete": {
         "operationId": "deleteComposerDraft",
@@ -14507,6 +14914,47 @@
           }
         },
         "summary": "Test Alibaba Connection",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/settings/providers/freesound": {
+      "patch": {
+        "operationId": "updateFreesoundSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FreesoundSettingsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsSnapshotEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Freesound",
         "tags": [
           "settings"
         ]
