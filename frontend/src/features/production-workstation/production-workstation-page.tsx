@@ -40,7 +40,7 @@ import type {
   AssetCollection, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, PlayerCaptionTrack,
   PlayerSource, Production, ProductionPart, SoundScene, StudioConfig, VentureAsset, VoiceDirectory,
 } from "@/types/domain"
-import { WorkstationOutline, WorkstationSequence, workstationPartState, type WorkstationPartActions, type WorkstationPartState } from "./workstation-sequence"
+import { WorkstationOutline, WorkstationSequence, workstationPartState, type SequenceInsertKind, type WorkstationPartActions, type WorkstationPartState } from "./workstation-sequence"
 import { WorkstationPartInspector } from "./workstation-part-inspector"
 import { WorkstationPaneHeader } from "./workstation-pane-header"
 
@@ -175,7 +175,8 @@ function WorkstationHeader({ production, tree, duration, stage, issueCount, prev
       <div className="ws-action-buttons">
         {issueCount > 0 && <Button variant="outline" size="sm" onClick={() => onStage("mix")}><CircleAlert className="ws-warning-icon" /> {issueCount} issue{issueCount === 1 ? "" : "s"}</Button>}
         <Button variant="outline" size="sm" disabled={previewing} onClick={onPreview}>{previewing ? <LoaderCircle className="spin" /> : playing ? <Pause /> : <Play />}{previewing ? "Preparing…" : playing ? "Pause" : "Preview"}</Button>
-        <DropdownMenu><DropdownMenuTrigger asChild><Button size="sm"><Plus /> Add <ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => onAdd("speech")}><AudioLines /> Speech</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("silence")}><Pause /> Silence</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("asset")}><Sparkles /> Linked audio</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("audio")}><Music2 /> Audio Track</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => onAdd("import")}><FileJson2 /> Import JSON</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+        {stage === "sequence" && <DropdownMenu><DropdownMenuTrigger asChild><Button size="sm"><Plus /> Add <ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => onAdd("speech")}><AudioLines /> Speech</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("silence")}><Pause /> Pause</DropdownMenuItem><DropdownMenuItem onSelect={() => onAdd("asset")}><Sparkles /> Linked audio</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => onAdd("import")}><FileJson2 /> Import JSON</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
+        {stage === "sound" && <Button size="sm" onClick={() => onAdd("audio")}><Plus /> Audio Track</Button>}
         <DropdownMenu><OperatorTooltip label="More Production actions" detail="Contains permanent Production deletion."><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="More Production actions"><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent align="end"><DropdownMenuItem variant="destructive" onSelect={onDelete}><Trash2 /> Delete Production permanently</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
       </div>
     </div>
@@ -379,6 +380,15 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     setComposerOpen(true)
     setTool(null)
   }, [selectedId])
+  const openSequenceInsert = useCallback((kind: SequenceInsertKind, before?: ProductionPart | null) => {
+    if (kind === "speech") { openNewSpeech(before); return }
+    setStage("sequence")
+    setSelectedId(before?.id || selectedId)
+    setInsertBeforePartId(before?.public_id || null)
+    setComposerPartId(null)
+    setComposerOpen(false)
+    setTool(kind)
+  }, [openNewSpeech, selectedId])
   const closeComposer = useCallback(() => { setComposerOpen(false); setComposerPartId(null); setInsertBeforePartId(null) }, [])
   const changeStage = useCallback((next: WorkstationStage) => {
     if (next !== "sound") soundSession.pause()
@@ -447,9 +457,10 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     confirm: (part, job) => void confirmJob(part, job),
     setEnabled: (part, enabled) => void actions.setPartEnabled(part, enabled),
     editSilence: (part, seconds) => void actions.editSilence(part, seconds),
-    addBefore: (part) => openNewSpeech(part),
+    addBefore: (part, kind) => openSequenceInsert(kind, part),
+    reorderToPosition: (part, position) => void actions.movePartToPosition(part, position),
     isPending: (part, action) => actions.isActionPending(`part:${part.id}:${action}`),
-  }), [actions, confirmJob, editPart, openAssetReplacement, openNewSpeech, playSource, requestPartDeletion, retryJob, selectPart])
+  }), [actions, confirmJob, editPart, openAssetReplacement, openSequenceInsert, playSource, requestPartDeletion, retryJob, selectPart])
 
   const soundSelection = soundState.selection
   const soundPart = soundSelection?.kind === "part" ? sourceParts.find((part) => part.id === soundSelection.id) || null : null
@@ -540,7 +551,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
           </> : <CollapsedPaneSummary label={outlineLabel} number={collapsedNumber} state={collapsedState} playing={Boolean(playingPart)} onExpand={() => setOutlineOpen(true)} />}
         </aside>}
         <main className="ws-center-pane" ref={centerPaneRef}>
-          {stage === "sequence" && <WorkstationSequence parts={sourceParts} selectedId={selectedId} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} liveJobs={liveJobs} directory={directory} actions={partActions} onAddEnd={() => openNewSpeech()} />}
+          {stage === "sequence" && <WorkstationSequence parts={sourceParts} selectedId={selectedId} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} liveJobs={liveJobs} directory={directory} actions={partActions} onAddEnd={(kind) => openSequenceInsert(kind)} />}
           {stage === "sound" && <SoundSceneWorkspace
             session={soundSession}
             onAddAudio={(target) => { setAudioTarget(target); setTool("audio") }}

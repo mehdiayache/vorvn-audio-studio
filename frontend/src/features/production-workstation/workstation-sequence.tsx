@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type DragEvent, type HTMLAttributes } from "react"
 import {
   Captions, Check, CircleAlert, Clock3, Edit3, GripVertical,
   FileAudio, LoaderCircle, Mic2, Minus, MoreHorizontal, Pause, Play, Plus, RotateCw, Search, Sparkles,
@@ -33,9 +33,13 @@ export type WorkstationPartActions = {
   confirm: (part: ProductionPart, job: DurableJob<GenerateResult>) => void
   setEnabled: (part: ProductionPart, enabled: boolean) => void
   editSilence: (part: ProductionPart, seconds: number) => void
-  addBefore: (part: ProductionPart) => void
+  addBefore: (part: ProductionPart, kind: SequenceInsertKind) => void
+  reorderToPosition: (part: ProductionPart, position: number) => void
   isPending: (part: ProductionPart, action: "enabled" | "duplicate" | "move" | "silence" | "delete" | "replace") => boolean
 }
+
+export type SequenceInsertKind = "speech" | "silence" | "asset"
+type DragHandleProps = HTMLAttributes<HTMLElement> & { draggable?: boolean }
 
 function operationJob(part: ProductionPart, liveJobs: Record<string, DurableJob<unknown>>) {
   if (!part.speech_job) return null
@@ -130,10 +134,24 @@ export function WorkstationOutline({ parts, selectedId, playingKey, playerPlayin
   </div>
 }
 
-function SilenceCard({ part, selected, actions }: { part: ProductionPart; selected: boolean; actions: WorkstationPartActions }) {
+function SequenceDragHandle({ part, index, dragHandleProps, compact = false }: {
+  part: ProductionPart
+  index: number
+  dragHandleProps?: DragHandleProps
+  compact?: boolean
+}) {
+  const label = `Drag Part ${formatPartNumber(part.position ?? index)} to reorder`
+  return <button type="button" className={cn("ws-part-index", compact && "is-compact")} aria-label={label} {...dragHandleProps}>
+    {!compact && <span>{formatPartNumber(part.position ?? index)}</span>}
+    <GripVertical aria-hidden="true" />
+  </button>
+}
+
+function SilenceCard({ part, index, selected, actions, dragHandleProps }: { part: ProductionPart; index: number; selected: boolean; actions: WorkstationPartActions; dragHandleProps?: DragHandleProps }) {
   const seconds = partDurationMs(part) / 1000
   const state = workstationPartState(part)
   return <article id={`ws-part-${part.id}`} className={cn("ws-silence-card", selected && "is-selected", part.enabled === false && "is-disabled")} onClick={() => actions.select(part)}>
+    <SequenceDragHandle part={part} index={index} dragHandleProps={dragHandleProps} compact />
     <span className="ws-silence-line" />
     <div><Clock3 /><b>Pause</b><input aria-label="Silence duration" aria-busy={actions.isPending(part, "silence") || undefined} disabled={actions.isPending(part, "silence")} type="number" min="0.1" step="0.1" defaultValue={seconds} onClick={(event) => event.stopPropagation()} onBlur={(event) => actions.editSilence(part, Number(event.target.value))} />{actions.isPending(part, "silence") ? <span><LoaderCircle className="spin" /> Saving…</span> : <span>seconds</span>}<PartStateIndicator state={state} /></div>
     <PartInclusionButton part={part} actions={actions} noun="Pause" />
@@ -156,12 +174,13 @@ function compactAssetDuration(part: ProductionPart) {
   return `${minutes}:${String(seconds).padStart(2, "0")}.${totalTenths % 10}`
 }
 
-export function WorkstationAssetCard({ part, index, selected, playing, actions }: {
+export function WorkstationAssetCard({ part, index, selected, playing, actions, dragHandleProps }: {
   part: ProductionPart
   index: number
   selected: boolean
   playing: boolean
   actions: WorkstationPartActions
+  dragHandleProps?: DragHandleProps
 }) {
   const state = workstationPartState(part)
   const title = part.title || part.text || "Linked audio"
@@ -171,7 +190,7 @@ export function WorkstationAssetCard({ part, index, selected, playing, actions }
   const hasIssue = state === "issue"
   const source: PlayerSource = { key: `part:${part.id}`, url: audioUrl(part.filename || ""), title, subtitle: `${collection} · Part ${formatPartNumber(part.position ?? index)}`, kind: "asset" }
   return <article id={`ws-part-${part.id}`} className={cn("ws-part-card", "ws-asset-card", selected && "is-selected", hasIssue && "has-issue", part.enabled === false && "is-disabled")} onClick={() => actions.select(part)}>
-    <aside className="ws-part-index"><span>{formatPartNumber(part.position ?? index)}</span><GripVertical aria-hidden="true" /></aside>
+    <SequenceDragHandle part={part} index={index} dragHandleProps={dragHandleProps} />
     <div className="ws-part-main ws-asset-main">
       <header className="ws-part-identity">
         <div className="ws-asset-identity"><span><FileAudio /></span><div><b>{title}</b><small>{collection} · Venture source</small></div></div>
@@ -194,7 +213,7 @@ export function WorkstationAssetCard({ part, index, selected, playing, actions }
   </article>
 }
 
-export function WorkstationSequenceCard({ part, index, selected, playing, liveJobs, directory, actions }: {
+export function WorkstationSequenceCard({ part, index, selected, playing, liveJobs, directory, actions, dragHandleProps }: {
   part: ProductionPart
   index: number
   selected: boolean
@@ -202,9 +221,10 @@ export function WorkstationSequenceCard({ part, index, selected, playing, liveJo
   liveJobs: Record<string, DurableJob<unknown>>
   directory: VoiceDirectory
   actions: WorkstationPartActions
+  dragHandleProps?: DragHandleProps
 }) {
-  if (part.kind === "silence") return <SilenceCard part={part} selected={selected} actions={actions} />
-  if (part.kind === "asset") return <WorkstationAssetCard part={part} index={index} selected={selected} playing={playing} actions={actions} />
+  if (part.kind === "silence") return <SilenceCard part={part} index={index} selected={selected} actions={actions} dragHandleProps={dragHandleProps} />
+  if (part.kind === "asset") return <WorkstationAssetCard part={part} index={index} selected={selected} playing={playing} actions={actions} dragHandleProps={dragHandleProps} />
   const speechJob = operationJob(part, liveJobs)
   const facts = speechPartCardFacts({ part, speechJob, captionJob: captionJob(part, liveJobs), directory })
   const role = formatAuthoredRole(part.authored_role)
@@ -213,7 +233,7 @@ export function WorkstationSequenceCard({ part, index, selected, playing, liveJo
   const hasIssue = state === "issue"
   const source: PlayerSource = { key: `part:${part.id}`, url: audioUrl(part.filename || ""), title: role || facts.selectedVoiceName, subtitle: `Part ${formatPartNumber(part.position ?? index)} · ${facts.durationLabel}`, kind: "clip" }
   return <article id={`ws-part-${part.id}`} className={cn("ws-part-card", selected && "is-selected", isDraft && "is-draft", hasIssue && "has-issue", part.enabled === false && "is-disabled")} onClick={() => actions.select(part)}>
-    <aside className="ws-part-index"><span>{formatPartNumber(part.position ?? index)}</span><GripVertical aria-hidden="true" /></aside>
+    <SequenceDragHandle part={part} index={index} dragHandleProps={dragHandleProps} />
     <div className="ws-part-main">
       <header className="ws-part-identity">
         <div className="ws-role-voice">
@@ -242,6 +262,17 @@ export function WorkstationSequenceCard({ part, index, selected, playing, liveJo
   </article>
 }
 
+function SequenceInsertMenu({ label, className, onSelect }: { label: string; className: string; onSelect: (kind: SequenceInsertKind) => void }) {
+  return <DropdownMenu>
+    <OperatorTooltip label={label}><DropdownMenuTrigger asChild><button className={className} aria-label={label}><Plus />{className === "ws-add-ending" && <span>Add Part</span>}</button></DropdownMenuTrigger></OperatorTooltip>
+    <DropdownMenuContent align="center">
+      <DropdownMenuItem onSelect={() => onSelect("speech")}><Mic2 /> Speech</DropdownMenuItem>
+      <DropdownMenuItem onSelect={() => onSelect("silence")}><Clock3 /> Pause</DropdownMenuItem>
+      <DropdownMenuItem onSelect={() => onSelect("asset")}><FileAudio /> Linked audio</DropdownMenuItem>
+    </DropdownMenuContent>
+  </DropdownMenu>
+}
+
 export function WorkstationSequence({ parts, selectedId, playingKey, playerPlaying, liveJobs, directory, actions, onAddEnd }: {
   parts: ProductionPart[]
   selectedId: number | null
@@ -250,15 +281,65 @@ export function WorkstationSequence({ parts, selectedId, playingKey, playerPlayi
   liveJobs: Record<string, DurableJob<unknown>>
   directory: VoiceDirectory
   actions: WorkstationPartActions
-  onAddEnd: () => void
+  onAddEnd: (kind: SequenceInsertKind) => void
 }) {
+  const [draggedId, setDraggedId] = useState<number | null>(null)
+  const [dropIndex, setDropIndex] = useState<number | null>(null)
+  const draggedPart = draggedId === null ? null : parts.find((part) => part.id === draggedId) || null
+
+  function autoScroll(event: DragEvent<HTMLElement>) {
+    const scroller = event.currentTarget.closest(".ws-center-pane")
+    if (!(scroller instanceof HTMLElement)) return
+    const bounds = scroller.getBoundingClientRect()
+    const edge = 72
+    if (event.clientY < bounds.top + edge) scroller.scrollBy({ top: -22 })
+    else if (event.clientY > bounds.bottom - edge) scroller.scrollBy({ top: 22 })
+  }
+
+  function targetPosition(boundary: number) {
+    if (!draggedPart) return null
+    const from = parts.findIndex((part) => part.id === draggedPart.id)
+    if (from < 0) return null
+    const adjusted = boundary > from ? boundary - 1 : boundary
+    return adjusted === from ? null : adjusted + 1
+  }
+
+  function drop(boundary: number) {
+    const position = targetPosition(boundary)
+    if (draggedPart && position !== null) actions.reorderToPosition(draggedPart, position)
+    setDraggedId(null)
+    setDropIndex(null)
+  }
+
+  function dragHandleProps(part: ProductionPart): DragHandleProps {
+    return {
+      draggable: true,
+      onDragStart: (event) => {
+        event.stopPropagation()
+        event.dataTransfer.effectAllowed = "move"
+        event.dataTransfer.setData("text/plain", String(part.id))
+        setDraggedId(part.id)
+      },
+      onDragEnd: () => { setDraggedId(null); setDropIndex(null) },
+      onClick: (event) => event.stopPropagation(),
+    }
+  }
+
   return <div className="ws-sequence-canvas" aria-label="Production sequence">
-    <div className="ws-sequence-list">
-      {parts.map((part, index) => <div className="ws-sequence-slot" key={part.id}>
-        <OperatorTooltip label={`Add a Part before Part ${index + 1}`}><button className="ws-insert-control" aria-label={`Add before part ${index + 1}`} onClick={() => actions.addBefore(part)}>+</button></OperatorTooltip>
-        <WorkstationSequenceCard part={part} index={index} selected={selectedId === part.id} playing={playerPlaying && playingKey === `part:${part.id}`} liveJobs={liveJobs} directory={directory} actions={actions} />
+    <div className={cn("ws-sequence-list", draggedId !== null && "is-reordering")}>
+      {parts.map((part, index) => <div className={cn("ws-sequence-slot", dropIndex === index && targetPosition(index) !== null && "is-drop-target", draggedId === part.id && "is-dragging")} key={part.id}
+        onDragEnter={(event) => { if (draggedId !== null) { event.preventDefault(); setDropIndex(index) } }}
+        onDragOver={(event) => { if (draggedId !== null) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; setDropIndex(index); autoScroll(event) } }}
+        onDrop={(event) => { event.preventDefault(); drop(index) }}>
+        <SequenceInsertMenu label={`Add a Part before Part ${index + 1}`} className="ws-insert-control" onSelect={(kind) => actions.addBefore(part, kind)} />
+        <WorkstationSequenceCard part={part} index={index} selected={selectedId === part.id} playing={playerPlaying && playingKey === `part:${part.id}`} liveJobs={liveJobs} directory={directory} actions={actions} dragHandleProps={dragHandleProps(part)} />
       </div>)}
-      <button className="ws-add-ending" onClick={onAddEnd}>+ Add the next part</button>
+      <div className={cn("ws-sequence-end", dropIndex === parts.length && targetPosition(parts.length) !== null && "is-drop-target")}
+        onDragEnter={(event) => { if (draggedId !== null) { event.preventDefault(); setDropIndex(parts.length) } }}
+        onDragOver={(event) => { if (draggedId !== null) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; setDropIndex(parts.length); autoScroll(event) } }}
+        onDrop={(event) => { event.preventDefault(); drop(parts.length) }}>
+        <SequenceInsertMenu label="Add a Part at the end" className="ws-add-ending" onSelect={onAddEnd} />
+      </div>
     </div>
   </div>
 }

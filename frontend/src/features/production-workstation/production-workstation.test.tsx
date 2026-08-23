@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 import type { DurableJob, GeneratePayload, GenerateResult, ProductionPart, SoundScene, VoiceDirectory } from "@/types/domain"
 import { InlineProductionName } from "./production-workstation-page"
-import { WorkstationAssetCard, WorkstationOutline, WorkstationSequenceCard, workstationPartState, type WorkstationPartActions } from "./workstation-sequence"
+import { WorkstationAssetCard, WorkstationOutline, WorkstationSequence, WorkstationSequenceCard, workstationPartState, type WorkstationPartActions } from "./workstation-sequence"
 import { SoundSceneWorkspace } from "@/features/sound-scene/timeline/sound-scene-workspace"
 import { SoundSceneSession } from "@/features/sound-scene/engine/sound-scene-session"
 
@@ -37,7 +37,7 @@ function part(values: Partial<ProductionPart>): ProductionPart {
 function partActions(values: Partial<WorkstationPartActions> = {}): WorkstationPartActions {
   return {
     select: vi.fn(), edit: vi.fn(), replaceAsset: vi.fn(), play: vi.fn(), captions: vi.fn(), duplicate: vi.fn(), remove: vi.fn(),
-    move: vi.fn(), moveToPosition: vi.fn(), retry: vi.fn(), confirm: vi.fn(), setEnabled: vi.fn(),
+    move: vi.fn(), moveToPosition: vi.fn(), reorderToPosition: vi.fn(), retry: vi.fn(), confirm: vi.fn(), setEnabled: vi.fn(),
     editSilence: vi.fn(), addBefore: vi.fn(), isPending: vi.fn().mockReturnValue(false), ...values,
   }
 }
@@ -322,6 +322,31 @@ describe("Production Workstation", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "Move to position…" }))
 
     expect(moveToPosition).toHaveBeenCalledWith(source)
+  })
+
+  it("offers every canonical Sequence Part type at the exact insertion point", () => {
+    const addBefore = vi.fn()
+    const first = part({ id: 8, position: 0 })
+    const second = part({ id: 9, position: 1 })
+    render(<WorkstationSequence parts={[first, second]} selectedId={null} playerPlaying={false} liveJobs={{}} directory={directory} actions={partActions({ addBefore })} onAddEnd={vi.fn()} />)
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Add a Part before Part 2" }), { button: 0, ctrlKey: false, pointerType: "mouse" })
+    fireEvent.click(screen.getByRole("menuitem", { name: "Pause" }))
+
+    expect(addBefore).toHaveBeenCalledWith(second, "silence")
+  })
+
+  it("reorders a Part from its real drag handle using the canonical reorder action", () => {
+    const reorderToPosition = vi.fn()
+    const parts = [part({ id: 8, position: 0 }), part({ id: 9, position: 1 }), part({ id: 10, position: 2 })]
+    const { container } = render(<WorkstationSequence parts={parts} selectedId={null} playerPlaying={false} liveJobs={{}} directory={directory} actions={partActions({ reorderToPosition })} onAddEnd={vi.fn()} />)
+    const transfer = { effectAllowed: "none", dropEffect: "none", setData: vi.fn() }
+
+    fireEvent.dragStart(screen.getByRole("button", { name: "Drag Part 01 to reorder" }), { dataTransfer: transfer })
+    fireEvent.dragOver(container.querySelectorAll(".ws-sequence-slot")[2]!, { dataTransfer: transfer, clientY: 300 })
+    fireEvent.drop(container.querySelectorAll(".ws-sequence-slot")[2]!, { dataTransfer: transfer })
+
+    expect(reorderToPosition).toHaveBeenCalledWith(parts[0], 2)
   })
 
   it("keeps durable failed-generation recovery in the canonical Workstation", () => {
