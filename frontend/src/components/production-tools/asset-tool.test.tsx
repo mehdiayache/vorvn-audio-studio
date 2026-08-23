@@ -9,6 +9,7 @@ import { AssetTool } from "./asset-tool"
 import { studioApi } from "@/lib/api"
 
 const assets = [{ id: 11, title: "Harbor Intro", folder: "Intros", filename: "harbor.wav", duration_ms: 8_400 }]
+Element.prototype.scrollIntoView = vi.fn()
 
 describe("AssetTool", () => {
   it("submits one explicit generated-audio Job without creating an Asset", async () => {
@@ -46,11 +47,11 @@ describe("AssetTool", () => {
     const onPlay = vi.fn()
     const onChoose = vi.fn().mockResolvedValue(undefined)
     render(<AssetTool assets={assets} mode="sequence" playerPlaying={false} onChoose={onChoose} onPlay={onPlay} onUpload={vi.fn()} onKeep={vi.fn()} />)
-    fireEvent.click(screen.getByRole("button", { name: "Audition" }))
+    fireEvent.click(screen.getByRole("button", { name: "Audition Harbor Intro" }))
     expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ key: "asset-source:11" }))
     expect(onChoose).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole("button", { name: /Harbor Intro/ }))
-    expect(screen.getByText(/selected, not yet placed/i)).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Select Harbor Intro" }))
+    expect(screen.getAllByText("Harbor Intro").length).toBeGreaterThan(1)
     fireEvent.click(screen.getByRole("button", { name: "Insert in Sequence" }))
     await waitFor(() => expect(onChoose).toHaveBeenCalledWith(assets[0]))
   })
@@ -67,8 +68,10 @@ describe("AssetTool", () => {
     const file = new File(["rain"], "rain_at_dusk.wav", { type: "audio/wav" })
     fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } })
     expect(screen.getByDisplayValue("Rain at dusk")).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Ambience" }))
-    fireEvent.click(screen.getByRole("button", { name: /Studio Library/ }))
+    fireEvent.click(screen.getByRole("combobox", { name: "Category" }))
+    fireEvent.click(screen.getByRole("option", { name: "Ambience" }))
+    fireEvent.click(screen.getByRole("combobox", { name: "Available in" }))
+    fireEvent.click(screen.getByRole("option", { name: "Studio Library" }))
     const tags = screen.getByPlaceholderText(/calm, night/)
     fireEvent.change(tags, { target: { value: "rain" } })
     fireEvent.keyDown(tags, { key: "Enter" })
@@ -89,7 +92,7 @@ describe("AssetTool", () => {
     })
 
     expect(screen.getByDisplayValue("Quiet night room")).toBeTruthy()
-    expect(screen.getByText("quiet-night_room.flac")).toBeTruthy()
+    expect(screen.getAllByText("quiet-night_room.flac").length).toBe(2)
     expect(onUpload).not.toHaveBeenCalled()
   })
 
@@ -115,13 +118,13 @@ describe("AssetTool", () => {
     ]
     const { container } = render(<AssetTool assets={library} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     const view = within(container)
-    fireEvent.change(view.getByPlaceholderText(/Search name/), { target: { value: "door" } })
-    expect(view.getByRole("button", { name: /Wooden knock/ })).toBeTruthy()
-    expect(view.queryByRole("button", { name: /Night room/ })).toBeNull()
-    fireEvent.change(view.getByPlaceholderText(/Search name/), { target: { value: "" } })
+    fireEvent.change(view.getByPlaceholderText("Search your audio"), { target: { value: "door" } })
+    expect(view.getByRole("button", { name: "Select Wooden knock" })).toBeTruthy()
+    expect(view.queryByRole("button", { name: "Select Night room" })).toBeNull()
+    fireEvent.change(view.getByPlaceholderText("Search your audio"), { target: { value: "" } })
     fireEvent.click(view.getByRole("button", { name: "Studio" }))
-    expect(view.getByRole("button", { name: /Wooden knock/ })).toBeTruthy()
-    expect(view.queryByRole("button", { name: /Night room/ })).toBeNull()
+    expect(view.getByRole("button", { name: "Select Wooden knock" })).toBeTruthy()
+    expect(view.queryByRole("button", { name: "Select Night room" })).toBeNull()
   })
 
   it("auditions an external result without keeping it, then Keeps explicitly", async () => {
@@ -141,22 +144,23 @@ describe("AssetTool", () => {
     const onKeep = vi.fn().mockResolvedValue({ asset: { id: 77 }, duplicate: false })
     const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={onPlay} onUpload={vi.fn()} onKeep={onKeep} />)
     const view = within(container)
-    fireEvent.click(view.getByRole("button", { name: /^Search$/ }))
-    fireEvent.change(view.getByPlaceholderText("wooden door closing"), { target: { value: "wooden door closing" } })
+    fireEvent.click(view.getByRole("button", { name: /Freesound/ }))
+    fireEvent.change(view.getByPlaceholderText("Describe the sound you need"), { target: { value: "wooden door closing" } })
     await waitFor(() => expect(view.getByText("Wooden door close.wav")).toBeTruthy())
     expect(search).toHaveBeenCalledWith(expect.objectContaining({
       query: "wooden door closing", license: "all",
     }), expect.any(AbortSignal))
-    expect(view.getByText("CC BY-NC")).toBeTruthy()
+    expect(view.getByText(/CC BY-NC/)).toBeTruthy()
 
-    fireEvent.click(view.getByRole("button", { name: "Audition" }))
+    fireEvent.click(view.getByRole("button", { name: "Audition Wooden door close.wav" }))
     expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({
       key: "freesound-preview:931",
       url: "https://cdn.freesound.org/preview.mp3",
     }))
     expect(onKeep).not.toHaveBeenCalled()
 
-    fireEvent.click(view.getByRole("button", { name: "Keep" }))
+    fireEvent.click(view.getByRole("button", { name: "Select Wooden door close.wav" }))
+    fireEvent.click(view.getByRole("button", { name: "Keep in Library" }))
     await waitFor(() => expect(onKeep).toHaveBeenCalledWith("Stingers", {
       result, name: result.name, category: "sfx", scope: "studio",
       tags: ["door", "wood"],

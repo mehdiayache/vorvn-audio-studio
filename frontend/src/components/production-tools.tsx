@@ -42,7 +42,7 @@ export function ProductionToolDialog({ open, productionId, nextPartNumber, befor
   const replacingAsset = Boolean(replacingAssetId)
   const title = open === "import" ? "Import JSON" : open === "silence" ? "Add silence" : replacingAsset ? "Audio Library · Replace linked audio" : "Audio Library"
   const destination = beforePartId ? "Insert at the selected Sequence position." : `Add as Part ${nextPartNumber}.`
-  const description = open === "import" ? "Append authored Speech Drafts and Silence to this existing Production. Validate locally, map roles to owned Voices, then confirm once." : assetMode === "sound" ? "Choose accessible reusable audio, then place it on this Audio Track. Classification never restricts the track." : `${destination} Auditioning is separate from inserting; the following Parts move down only after confirmation.`
+  const description = open === "import" ? "Append authored Speech Drafts and Silence to this existing Production. Validate locally, map roles to owned Voices, then confirm once." : assetMode === "sound" ? "Audition freely. Nothing enters this Audio Track until you confirm." : `${destination} Audition freely; the Sequence changes only after confirmation.`
   return <Dialog open={Boolean(open)} onOpenChange={(next) => { if (!next) onClose() }}>
     <DialogContent className={`tool-dialog ${open === "import" ? "import-dialog" : open === "silence" ? "silence-dialog" : "asset-dialog"}`}>
       <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
