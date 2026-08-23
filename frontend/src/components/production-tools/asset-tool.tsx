@@ -1,4 +1,4 @@
-import { AudioLines, Check, FileAudio, FolderOpen, Library, Music2, Pause, Play, Search, Sparkles, Upload, Wind } from "lucide-react"
+import { AudioLines, Check, FileAudio, Library, Music2, Pause, Play, Search, Sparkles, Upload, Wind } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { ActionButton, OperatorIconButton } from "@/components/operator-action"
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { audioUrl, studioApi } from "@/lib/api"
 import { assetDetails, assetSource, assetSourceLine, type AssetSource } from "@/lib/asset-provenance"
 import { formatDuration } from "@/lib/format"
@@ -28,13 +28,6 @@ const UPLOAD_COLLECTION: Record<AudioAssetCategory, string> = {
   music: "Music", ambience: "Stingers", sfx: "Stingers", intro: "Intros", outro: "Outros", other: "Stingers",
 }
 const LICENSE_LABELS: Record<CatalogLicense, string> = { cc0: "CC0", "cc-by": "CC BY", "cc-by-nc": "CC BY-NC" }
-const VIEW_COPY: Record<LibraryView, [string, string]> = {
-  library: ["Your audio", "Audition and choose a reusable sound."],
-  upload: ["Upload audio", "Prepare one local file before it enters the Library."],
-  search: ["Find audio", "Audition Freesound previews, then keep only what belongs."],
-  generate: ["Generate audio", "Create temporary variations, audition, then keep deliberately."],
-}
-
 function assetTitle(asset: VentureAsset) { return asset.name || asset.title || asset.text || "Untitled audio" }
 function humanName(file: File) {
   const cleaned = file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim()
@@ -156,31 +149,35 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, produc
     finally { setKeepingId(null) }
   }
 
-  const [viewTitle, viewDescription] = VIEW_COPY[view]
   return <div className={`tool-panel-body asset-tool${dragging ? " dragging" : ""}`}
     onDragEnter={(event) => { if ([...event.dataTransfer.types].includes("Files")) { event.preventDefault(); setDragging(true) } }}
     onDragOver={(event) => event.preventDefault()} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false) }}
     onDrop={(event) => { event.preventDefault(); setDragging(false); chooseFile(event.dataTransfer.files[0]) }}>
-    <header className="asset-workspace-toolbar"><div><b>{viewTitle}</b><span>{viewDescription}</span></div>
-      {view === "library" && <label className="asset-search"><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your audio" /></label>}
-      {view === "search" && <label className="asset-search"><Search /><Input autoFocus value={catalogQuery} onChange={(event) => setCatalogQuery(event.target.value)} placeholder="Describe the sound you need" /></label>}
+    <header className="asset-workspace-toolbar">
+      <Tabs value={view} onValueChange={(value) => openView(value as LibraryView)} className="asset-mode-tabs">
+        <TabsList variant="line" aria-label="Audio Library views">
+          <TabsTrigger value="library" aria-label="Library" onClick={() => openView("library")}><Library /><span><b>Library</b><small>{assets.length} sounds</small></span></TabsTrigger>
+          <TabsTrigger value="upload" aria-label="Upload" onClick={() => openView("upload")}><Upload /><span><b>Upload</b><small>From this computer</small></span></TabsTrigger>
+          <TabsTrigger value="search" aria-label="Freesound" onClick={() => openView("search")}><Search /><span><b>Freesound</b><small>Find recorded audio</small></span></TabsTrigger>
+          <TabsTrigger value="generate" aria-label="Generate" onClick={() => openView("generate")} disabled={!onKeepGenerated}><Sparkles /><span><b>Generate</b><small>Create a variation</small></span></TabsTrigger>
+        </TabsList>
+      </Tabs>
+      <div className="asset-toolbar-context">
+        {view === "library" && <>
+          <label className="asset-search"><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your audio" /></label>
+          <Select value={category} onValueChange={(value) => setCategory(value as "all" | AudioAssetCategory)}><SelectTrigger aria-label="Asset category"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All categories</SelectItem>{ASSET_CATEGORIES.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
+          <Select value={scopeFilter} onValueChange={(value) => setScopeFilter(value as ScopeFilter)}><SelectTrigger aria-label="Asset library"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All libraries</SelectItem><SelectItem value="studio">Studio Library</SelectItem><SelectItem value="venture">This Venture</SelectItem></SelectContent></Select>
+          <Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as SourceFilter)}><SelectTrigger aria-label="Asset source"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All sources</SelectItem><SelectItem value="generated">Generated</SelectItem><SelectItem value="freesound">Freesound</SelectItem><SelectItem value="uploaded">Uploaded</SelectItem><SelectItem value="library">Existing Library</SelectItem></SelectContent></Select>
+        </>}
+        {view === "search" && <>
+          <label className="asset-search"><Search /><Input autoFocus value={catalogQuery} onChange={(event) => setCatalogQuery(event.target.value)} placeholder="Describe the sound you need" /></label>
+          <Select value={catalogLicense} onValueChange={(value) => setCatalogLicense(value as "all" | CatalogLicense)}><SelectTrigger aria-label="License"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All licensed audio</SelectItem><SelectItem value="cc0">CC0</SelectItem><SelectItem value="cc-by">Attribution</SelectItem><SelectItem value="cc-by-nc">Attribution NonCommercial</SelectItem></SelectContent></Select>
+          <Select value={catalogDuration} onValueChange={setCatalogDuration}><SelectTrigger aria-label="Maximum duration"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Any duration</SelectItem><SelectItem value="10">Up to 10 sec</SelectItem><SelectItem value="30">Up to 30 sec</SelectItem><SelectItem value="120">Up to 2 min</SelectItem></SelectContent></Select>
+        </>}
+      </div>
     </header>
 
     <div className="asset-workspace-shell">
-      <aside className="asset-source-rail" aria-label="Audio Library navigation">
-        <button aria-label="Library" className={view === "library" ? "active" : ""} onClick={() => openView("library")}><Library /><span><b>Library</b><small>{assets.length} sounds</small></span></button>
-        <span className="asset-rail-label">Add audio</span>
-        <button aria-label="Upload" className={view === "upload" ? "active" : ""} onClick={() => openView("upload")}><Upload /><span><b>Upload</b><small>From this computer</small></span></button>
-        <button aria-label="Freesound" className={view === "search" ? "active" : ""} onClick={() => openView("search")}><Search /><span><b>Freesound</b><small>Find recorded audio</small></span></button>
-        <button aria-label="Generate" className={view === "generate" ? "active" : ""} onClick={() => openView("generate")} disabled={!onKeepGenerated}><Sparkles /><span><b>Generate</b><small>Create a variation</small></span></button>
-        {view === "library" && <><Separator /><span className="asset-rail-label">Categories</span><nav className="asset-category-nav">
-          <button className={category === "all" ? "active" : ""} onClick={() => setCategory("all")}><FolderOpen />All audio <small>{assets.length}</small></button>
-          {ASSET_CATEGORIES.map(([value, label]) => <button key={value} className={category === value ? "active" : ""} onClick={() => setCategory(value)}>{categoryIcon(value)}{label}<small>{assets.filter((asset) => (asset.category || asset.kind || "other") === value).length}</small></button>)}
-        </nav><span className="asset-rail-label">Access</span><div className="asset-access-filter"><button className={scopeFilter === "all" ? "active" : ""} onClick={() => setScopeFilter("all")}>All</button><button className={scopeFilter === "studio" ? "active" : ""} onClick={() => setScopeFilter("studio")}>Studio</button><button className={scopeFilter === "venture" ? "active" : ""} onClick={() => setScopeFilter("venture")}>Venture</button></div>
-          <Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as SourceFilter)}><SelectTrigger aria-label="Asset source"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All sources</SelectItem><SelectItem value="generated">Generated</SelectItem><SelectItem value="freesound">Freesound</SelectItem><SelectItem value="uploaded">Uploaded</SelectItem><SelectItem value="library">Existing Library</SelectItem></SelectContent></Select></>}
-        {view === "search" && <><Separator /><span className="asset-rail-label">Search filters</span><label className="asset-field"><span>License</span><Select value={catalogLicense} onValueChange={(value) => setCatalogLicense(value as "all" | CatalogLicense)}><SelectTrigger aria-label="License"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All licensed audio</SelectItem><SelectItem value="cc0">CC0</SelectItem><SelectItem value="cc-by">Attribution</SelectItem><SelectItem value="cc-by-nc">Attribution NonCommercial</SelectItem></SelectContent></Select></label><label className="asset-field"><span>Maximum length</span><Select value={catalogDuration} onValueChange={setCatalogDuration}><SelectTrigger aria-label="Maximum duration"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Any duration</SelectItem><SelectItem value="10">Up to 10 sec</SelectItem><SelectItem value="30">Up to 30 sec</SelectItem><SelectItem value="120">Up to 2 min</SelectItem></SelectContent></Select></label></>}
-      </aside>
-
       {view === "library" ? <section className="asset-view asset-library-view">
         <ScrollArea className="asset-canvas"><div className="asset-result-list">{shown.length ? shown.map((asset) => {
           const sourceKey = `asset-source:${asset.id}`; const active = playerPlaying && playingKey === sourceKey; const isSelected = selectedId === asset.id

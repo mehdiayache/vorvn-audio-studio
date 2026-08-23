@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@/components/ui/scroll-area", () => ({ ScrollArea: ({ children }: { children: ReactNode }) => <div>{children}</div> }))
 
@@ -10,8 +10,20 @@ import { studioApi } from "@/lib/api"
 
 const assets = [{ id: 11, title: "Harbor Intro", folder: "Intros", filename: "harbor.wav", duration_ms: 8_400 }]
 Element.prototype.scrollIntoView = vi.fn()
+afterEach(() => cleanup())
 
 describe("AssetTool", () => {
+  it("keeps source navigation on top and names every Library filter explicitly", () => {
+    const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
+    const view = within(container)
+    expect(view.getByRole("tablist", { name: "Audio Library views" })).toBeTruthy()
+    expect(view.getByRole("tab", { name: "Library" }).getAttribute("aria-selected")).toBe("true")
+    expect(view.getByRole("combobox", { name: "Asset category" }).textContent).toContain("All categories")
+    expect(view.getByRole("combobox", { name: "Asset library" }).textContent).toContain("All libraries")
+    expect(view.getByRole("combobox", { name: "Asset source" }).textContent).toContain("All sources")
+    expect(container.querySelector(".asset-source-rail")).toBeNull()
+  })
+
   it("submits one explicit generated-audio Job without creating an Asset", async () => {
     const status = vi.spyOn(studioApi, "audioGenerationStatus").mockResolvedValue({
       configured: true, sfx_ready: true, music_ready: true, reason: "", models: {},
@@ -28,8 +40,9 @@ describe("AssetTool", () => {
     const onKeepGenerated = vi.fn()
     const { container } = render(<AssetTool assets={assets} mode="sound" productionId={81} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} onKeepGenerated={onKeepGenerated} />)
     const view = within(container)
-    fireEvent.click(view.getByRole("button", { name: /^Generate$/ }))
+    fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     await waitFor(() => expect(status).toHaveBeenCalled())
+    expect(view.getByRole("tab", { name: "Sound Effect" }).getAttribute("aria-selected")).toBe("true")
     fireEvent.change(view.getByPlaceholderText(/heavy wooden library door/i), { target: { value: "dry match" } })
     fireEvent.change(view.getByPlaceholderText(/closes softly/i), { target: { value: "strikes once" } })
     fireEvent.click(view.getByRole("button", { name: "Generate variation" }))
@@ -64,7 +77,7 @@ describe("AssetTool", () => {
   it("sends canonical classification separately from the legacy collection", async () => {
     const onUpload = vi.fn().mockResolvedValue({ id: 44, name: "Rain at dusk" })
     const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={onUpload} onKeep={vi.fn()} />)
-    fireEvent.click(within(container).getByRole("button", { name: /^Upload$/ }))
+    fireEvent.click(within(container).getByRole("tab", { name: "Upload" }))
     const file = new File(["rain"], "rain_at_dusk.wav", { type: "audio/wav" })
     fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } })
     expect(screen.getByDisplayValue("Rain at dusk")).toBeTruthy()
@@ -98,13 +111,13 @@ describe("AssetTool", () => {
 
   it("discards the prepared local form when the operator cancels", () => {
     const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
-    fireEvent.click(within(container).getByRole("button", { name: /^Upload$/ }))
+    fireEvent.click(within(container).getByRole("tab", { name: "Upload" }))
     const file = new File(["room tone"], "quiet-night_room.flac", { type: "audio/flac" })
     fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } })
     const view = within(container)
     fireEvent.change(view.getByPlaceholderText("Human-readable audio name"), { target: { value: "Edited room tone" } })
     fireEvent.click(view.getByRole("button", { name: "Cancel" }))
-    fireEvent.click(view.getByRole("button", { name: /^Upload$/ }))
+    fireEvent.click(view.getByRole("tab", { name: "Upload" }))
 
     expect(view.getByRole("button", { name: "Choose file" })).toBeTruthy()
     expect(view.queryByDisplayValue("Edited room tone")).toBeNull()
@@ -122,7 +135,8 @@ describe("AssetTool", () => {
     expect(view.getByRole("button", { name: "Select Wooden knock" })).toBeTruthy()
     expect(view.queryByRole("button", { name: "Select Night room" })).toBeNull()
     fireEvent.change(view.getByPlaceholderText("Search your audio"), { target: { value: "" } })
-    fireEvent.click(view.getByRole("button", { name: "Studio" }))
+    fireEvent.click(view.getByRole("combobox", { name: "Asset library" }))
+    fireEvent.click(screen.getByRole("option", { name: "Studio Library" }))
     expect(view.getByRole("button", { name: "Select Wooden knock" })).toBeTruthy()
     expect(view.queryByRole("button", { name: "Select Night room" })).toBeNull()
   })
@@ -144,7 +158,7 @@ describe("AssetTool", () => {
     const onKeep = vi.fn().mockResolvedValue({ asset: { id: 77 }, duplicate: false })
     const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={onPlay} onUpload={vi.fn()} onKeep={onKeep} />)
     const view = within(container)
-    fireEvent.click(view.getByRole("button", { name: /Freesound/ }))
+    fireEvent.click(view.getByRole("tab", { name: "Freesound" }))
     fireEvent.change(view.getByPlaceholderText("Describe the sound you need"), { target: { value: "wooden door closing" } })
     await waitFor(() => expect(view.getByText("Wooden door close.wav")).toBeTruthy())
     expect(search).toHaveBeenCalledWith(expect.objectContaining({
