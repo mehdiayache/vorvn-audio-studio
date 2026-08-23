@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audio-generations/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recent Audio Generations */
+        get: operations["listRecentAudioGenerations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audio-generations/status": {
         parameters: {
             query?: never;
@@ -1877,6 +1894,8 @@ export interface components {
         AudioGenerationCandidateResponse: {
             /** Audio Format */
             audio_format: string;
+            /** Authored Prompt */
+            authored_prompt?: string | null;
             /** Candidate Id */
             candidate_id: string;
             /** Candidate Url */
@@ -1887,8 +1906,19 @@ export interface components {
             channels?: number | null;
             /** Duration Ms */
             duration_ms: number;
+            /** Generation Brief */
+            generation_brief?: {
+                [key: string]: unknown;
+            } | null;
             /** Prompt */
             prompt: string;
+            /**
+             * Prompt Mode
+             * @default expert
+             */
+            prompt_mode: string;
+            /** Resolved Prompt */
+            resolved_prompt?: string | null;
             /** Sample Rate */
             sample_rate?: number | null;
             /** Seconds */
@@ -1900,17 +1930,73 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** AudioGenerationHistoryEnvelope */
+        AudioGenerationHistoryEnvelope: {
+            /** Data */
+            data: components["schemas"]["AudioGenerationHistoryItemResponse"][];
+        };
+        /** AudioGenerationHistoryItemResponse */
+        AudioGenerationHistoryItemResponse: {
+            candidate?: components["schemas"]["AudioGenerationCandidateResponse"] | null;
+            /** Candidate Available */
+            candidate_available: boolean;
+            /** Created At */
+            created_at?: string | null;
+            /** Detail */
+            detail: string;
+            /** Error */
+            error?: string | null;
+            /** Job Id */
+            job_id: string;
+            kept_asset?: components["schemas"]["UploadedAssetResponse"] | null;
+            /** Progress */
+            progress: number;
+            request: components["schemas"]["AudioGenerationRequestResponse"];
+            /** Status */
+            status: string;
+        };
         /** AudioGenerationJobCreate */
         AudioGenerationJobCreate: {
+            /** Authored Prompt */
+            authored_prompt?: string | null;
             /**
              * Capability
              * @enum {string}
              */
             capability: "sfx" | "music";
+            /** Generation Brief */
+            generation_brief?: {
+                [key: string]: unknown;
+            } | null;
             /** Production Id */
             production_id?: number | null;
             /** Prompt */
             prompt: string;
+            /**
+             * Prompt Mode
+             * @default expert
+             * @enum {string}
+             */
+            prompt_mode: "simple" | "expert";
+            /** Seconds */
+            seconds: number;
+            /** Seed */
+            seed?: number | null;
+        };
+        /** AudioGenerationRequestResponse */
+        AudioGenerationRequestResponse: {
+            /** Authored Prompt */
+            authored_prompt?: string | null;
+            /** Capability */
+            capability: string;
+            /** Generation Brief */
+            generation_brief?: {
+                [key: string]: unknown;
+            } | null;
+            /** Prompt Mode */
+            prompt_mode: string;
+            /** Resolved Prompt */
+            resolved_prompt: string;
             /** Seconds */
             seconds: number;
             /** Seed */
@@ -5980,6 +6066,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CatalogStatusEnvelope"];
+                };
+            };
+        };
+    };
+    listRecentAudioGenerations: {
+        parameters: {
+            query: {
+                production_id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioGenerationHistoryEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

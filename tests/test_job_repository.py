@@ -17,6 +17,45 @@ from audio_studio.domain.jobs import IdempotencyConflict
 
 
 class JobRepositoryTests(unittest.TestCase):
+    def test_recent_generation_jobs_are_scoped_and_newest_first(self):
+        try:
+            connection = psycopg.connect(settings.database_url)
+        except psycopg.OperationalError as exc:
+            self.skipTest(str(exc))
+        repository = jobs_module.JobRepository()
+        job_ids = []
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT id FROM productions WHERE archived_at IS NULL "
+                    "ORDER BY id LIMIT 1")
+                owner = cursor.fetchone()
+            if not owner:
+                self.skipTest("No Production fixture is available")
+            production_id = int(owner[0])
+            first, _ = repository.enqueue(
+                "audio_generate", {"prompt": "first"},
+                idempotency_key=f"generation-recent-{uuid4()}",
+                production_id=production_id)
+            second, _ = repository.enqueue(
+                "audio_generate", {"prompt": "second"},
+                idempotency_key=f"generation-recent-{uuid4()}",
+                production_id=production_id)
+            job_ids.extend([first.id, second.id])
+
+            recent = repository.recent_for_production(
+                production_id, kind="audio_generate", limit=2)
+
+            self.assertEqual([job.id for job in recent],
+                             [second.id, first.id])
+        finally:
+            if job_ids:
+                with connection.cursor() as cursor:
+                    cursor.execute("DELETE FROM jobs WHERE id=ANY(%s)",
+                                   (job_ids,))
+                connection.commit()
+            connection.close()
+
     def test_latest_render_job_recovers_export_progress_for_a_production(self):
         try:
             connection = psycopg.connect(settings.database_url)

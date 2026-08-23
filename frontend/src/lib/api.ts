@@ -37,6 +37,7 @@ type FreesoundSearchEnvelope = paths["/api/v1/audio-catalogs/freesound/search"][
 type FreesoundKeepEnvelope = paths["/api/v1/audio-catalogs/freesound/keep"]["post"]["responses"][201]["content"]["application/json"]
 type FreesoundKeepBody = paths["/api/v1/audio-catalogs/freesound/keep"]["post"]["requestBody"]["content"]["application/json"]
 type AudioGenerationStatusEnvelope = paths["/api/v1/audio-generations/status"]["get"]["responses"][200]["content"]["application/json"]
+type AudioGenerationHistoryEnvelope = paths["/api/v1/audio-generations/recent"]["get"]["responses"][200]["content"]["application/json"]
 type AudioGenerationCandidateEnvelope = paths["/api/v1/audio-generations/{candidate_id}"]["get"]["responses"][200]["content"]["application/json"]
 type AudioGenerationJobBody = paths["/api/v1/jobs/audio-generation"]["post"]["requestBody"]["content"]["application/json"]
 type GeneratedKeepBody = paths["/api/v1/audio-generations/{candidate_id}/keep"]["post"]["requestBody"]["content"]["application/json"]
@@ -392,6 +393,7 @@ export const studioApi = {
     method: "POST", body: JSON.stringify(payload),
   }).then((response) => response.data),
   audioGenerationStatus: () => request<AudioGenerationStatusEnvelope>("/api/v1/audio-generations/status").then((response) => response.data),
+  recentAudioGenerations: (productionId: number) => request<AudioGenerationHistoryEnvelope>(`/api/v1/audio-generations/recent?production_id=${productionId}`).then((response) => response.data),
   enqueueAudioGeneration: async (payload: AudioGenerationJobBody) => {
     const response = await request<{ data: DurableJob<import("@/types/domain").AudioGenerationCandidate> }>("/api/v1/jobs/audio-generation", {
       method: "POST",

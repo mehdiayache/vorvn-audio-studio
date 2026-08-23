@@ -12,6 +12,7 @@ from audio_studio.composition.audio_generation import audio_generation_service
 from audio_studio.domain.uploads import AssetCategory, AssetScope
 from audio_studio.http.audio_generation_contracts import (
     AudioGenerationCandidateEnvelope,
+    AudioGenerationHistoryEnvelope,
     AudioGenerationStatusEnvelope,
     GeneratedDiscardEnvelope,
     GeneratedKeepEnvelope,
@@ -37,6 +38,14 @@ class KeepGeneratedBody(BaseModel):
             response_model=AudioGenerationStatusEnvelope)
 def audio_generation_status() -> dict:
     return {"data": audio_generation_service.status()}
+
+
+@router.get("/recent", operation_id="listRecentAudioGenerations",
+            response_model=AudioGenerationHistoryEnvelope)
+def recent_audio_generations(production_id: int) -> dict:
+    if production_id <= 0:
+        raise ApiProblem(400, "invalid_production", "Choose a Production.")
+    return {"data": audio_generation_service.recent(production_id)}
 
 
 def _candidate(candidate_id: UUID) -> tuple[dict, Path]:

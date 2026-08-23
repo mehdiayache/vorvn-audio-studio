@@ -241,6 +241,20 @@ class JobRepository:
             row = cursor.fetchone()
             return _job(row) if row else None
 
+    def recent_for_production(self, production_id: int, *, kind: str,
+                              limit: int = 8) -> list[Job]:
+        """Project a small recent Job history for one creative workflow."""
+        with read_only() as cursor:
+            cursor.execute(
+                _SELECT + """
+                 WHERE production_id = %s AND kind = %s
+                 ORDER BY created_at DESC, id DESC
+                 LIMIT %s
+                """,
+                (production_id, kind, max(1, min(limit, 20))),
+            )
+            return [_job(row) for row in cursor.fetchall()]
+
     def claim_next(self, kinds: Iterable[str]) -> Job | None:
         kinds = list(kinds)
         if not kinds:

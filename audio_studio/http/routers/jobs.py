@@ -194,6 +194,9 @@ class AudioGenerationJobCreate(BaseModel):
 
     capability: Literal["sfx", "music"]
     prompt: str = Field(min_length=1, max_length=500)
+    prompt_mode: Literal["simple", "expert"] = "expert"
+    generation_brief: dict[str, Any] | None = None
+    authored_prompt: str | None = Field(default=None, max_length=500)
     seconds: int = Field(ge=1, le=120)
     seed: int | None = Field(default=None, ge=0, le=2_147_483_647)
     production_id: int | None = Field(default=None, gt=0)
@@ -206,6 +209,10 @@ class AudioGenerationJobCreate(BaseModel):
             raise ValueError(
                 f"{self.capability.upper()} duration must be between "
                 f"{minimum} and {maximum} seconds.")
+        if self.generation_brief is not None:
+            encoded = str(self.generation_brief)
+            if len(encoded) > 5_000:
+                raise ValueError("The generation brief is too large.")
         return self
 
 

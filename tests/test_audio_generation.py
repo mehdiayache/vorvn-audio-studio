@@ -120,6 +120,10 @@ class FakeJobs:
     def get(self, public_id):
         return self.jobs.get(public_id)
 
+    def recent_for_production(self, _production_id, *, kind, limit=8):
+        return [job for job in reversed(list(self.jobs.values()))
+                if job.kind == kind][:limit]
+
 
 class FakeUploads:
     def __init__(self):
@@ -207,6 +211,12 @@ class AudioGenerationApplicationTests(unittest.TestCase):
             self.assertEqual(len(uploads.saved), 1)
             self.assertEqual(uploads.saved[0]["candidate_id"],
                              str(job.public_id))
+            provenance = uploads.saved[0]["details"]["values"]["metadata"]
+            self.assertEqual(provenance["prompt_mode"], "expert")
+            self.assertEqual(provenance["resolved_prompt"],
+                             "Soft cloth movement")
+            self.assertEqual(provenance["output_duration_ms"], 3000)
+            self.assertNotIn("generation_duration_ms", provenance)
             self.assertFalse((root / "generated" /
                               f"{job.public_id}.wav").exists())
 
@@ -292,6 +302,31 @@ class AudioGenerationApplicationTests(unittest.TestCase):
             service.enqueue(
                 capability="music", prompt="Rain", seconds=4, seed=None,
                 idempotency_key="music")
+
+    def test_simple_intent_is_durable_and_projected_in_recent_history(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            service, jobs, _ = self.service(root)
+            job, _ = service.enqueue(
+                capability="music", prompt="Purpose: quiet underscore.",
+                seconds=20, seed=9, prompt_mode="simple",
+                generation_brief={"purpose": "quiet underscore"},
+                idempotency_key="intent", production_id=81)
+            self.assertEqual(job.payload["resolved_prompt"],
+                             "Purpose: quiet underscore.")
+            self.assertEqual(job.payload["generation_brief"], {
+                "purpose": "quiet underscore"})
+            jobs.jobs[job.public_id] = Job(
+                job.id, job.public_id, job.kind, JobStatus.RUNNING,
+                payload=job.payload, progress=.4, detail="Generating")
+
+            recent = service.recent(81)
+
+            self.assertEqual(recent[0]["job_id"], str(job.public_id))
+            self.assertEqual(recent[0]["request"]["prompt_mode"], "simple")
+            self.assertEqual(recent[0]["request"]["generation_brief"], {
+                "purpose": "quiet underscore"})
+            self.assertFalse(recent[0]["candidate_available"])
 
 
 if __name__ == "__main__":

@@ -23,6 +23,8 @@ class JobStore(JobProgress, Protocol):
     def enqueue(self, kind: str, payload: dict[str, Any], **values) \
             -> tuple[Job, bool]: ...
     def get(self, public_id: UUID) -> Job | None: ...
+    def recent_for_production(self, production_id: int, *, kind: str,
+                              limit: int = 8) -> list[Job]: ...
     def events(self, public_id: UUID) -> list[dict[str, Any]]: ...
     def cancel(self, public_id: UUID) -> Job | None: ...
     def confirm(self, public_id: UUID, *, idempotency_key: str) \
@@ -44,6 +46,11 @@ class JobService:
 
     def get(self, public_id: UUID) -> Job | None:
         return self.repository.get(public_id)
+
+    def recent_for_production(self, production_id: int, *, kind: str,
+                              limit: int = 8) -> list[Job]:
+        return self.repository.recent_for_production(
+            production_id, kind=kind, limit=limit)
 
     def events(self, public_id: UUID) -> list[dict[str, Any]]:
         return self.repository.events(public_id)

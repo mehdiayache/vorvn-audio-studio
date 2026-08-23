@@ -6,6 +6,7 @@ export type CatalogSound = components["schemas"]["CatalogSoundResponse"]
 export type CatalogKeepResult = components["schemas"]["CatalogKeepResponse"]
 export type CatalogLicense = CatalogSound["license"]
 export type AudioGenerationCandidate = components["schemas"]["AudioGenerationCandidateResponse"]
+export type AudioGenerationHistoryItem = components["schemas"]["AudioGenerationHistoryItemResponse"]
 export type AudioGenerationStatus = components["schemas"]["AudioGenerationStatusResponse"]
 export type GeneratedKeepResult = components["schemas"]["GeneratedKeepResponse"]
 

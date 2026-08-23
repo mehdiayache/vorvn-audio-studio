@@ -53,14 +53,25 @@ class AudioGenerationService:
 
     def enqueue(self, *, capability: AudioGenerationCapability,
                 prompt: str, seconds: int, seed: int | None,
+                prompt_mode: str = "expert",
+                generation_brief: dict[str, Any] | None = None,
+                authored_prompt: str | None = None,
                 idempotency_key: str, production_id: int | None = None) \
             -> tuple[Job, bool]:
         clean_prompt = " ".join(prompt.split())
         self._validate(capability, clean_prompt, seconds, seed)
+        if prompt_mode not in {"simple", "expert"}:
+            raise ValueError("Choose Simple or Expert prompting.")
         payload = {
             "operation": "generate_audio",
             "capability": capability,
             "prompt": clean_prompt,
+            "prompt_mode": prompt_mode,
+            "generation_brief": generation_brief if prompt_mode == "simple" else None,
+            "authored_prompt": (
+                " ".join((authored_prompt or prompt).split())
+                if prompt_mode == "expert" else None),
+            "resolved_prompt": clean_prompt,
             "seconds": seconds,
             "seed": seed,
             "engine": "vorvn_audio",
@@ -167,6 +178,11 @@ class AudioGenerationService:
                     f"/api/v1/audio-generations/{job.public_id}/candidate"),
                 "capability": capability,
                 "prompt": prompt,
+                "prompt_mode": job.payload.get("prompt_mode") or "expert",
+                "generation_brief": job.payload.get("generation_brief"),
+                "authored_prompt": job.payload.get("authored_prompt"),
+                "resolved_prompt": (
+                    job.payload.get("resolved_prompt") or prompt),
                 "seconds": seconds,
                 "seed": resolved_seed,
                 "provider_request_id": provider_job_id,
@@ -222,6 +238,42 @@ class AudioGenerationService:
         path.unlink(missing_ok=True)
         return existed
 
+    def recent(self, production_id: int, *, limit: int = 8) -> list[dict]:
+        """Return durable generation attempts with their current candidate truth."""
+        history = []
+        for job in self.jobs.recent_for_production(
+                production_id, kind="audio_generate", limit=limit):
+            candidate_id = str(job.public_id)
+            kept_asset = self.uploads.generated_asset(
+                candidate_id=candidate_id)
+            candidate_available = (
+                job.status in {JobStatus.SUCCEEDED, JobStatus.WARNING}
+                and self._candidate_path(job.public_id).is_file())
+            history.append({
+                "job_id": candidate_id,
+                "status": str(job.status),
+                "progress": job.progress,
+                "detail": job.detail,
+                "error": job.error or None,
+                "created_at": (job.created_at.isoformat()
+                               if job.created_at else None),
+                "request": {
+                    "capability": job.payload.get("capability"),
+                    "prompt_mode": job.payload.get("prompt_mode") or "expert",
+                    "generation_brief": job.payload.get("generation_brief"),
+                    "authored_prompt": job.payload.get("authored_prompt"),
+                    "resolved_prompt": (
+                        job.payload.get("resolved_prompt")
+                        or job.payload.get("prompt")),
+                    "seconds": job.payload.get("seconds"),
+                    "seed": job.payload.get("seed"),
+                },
+                "candidate": job.result if candidate_available else None,
+                "candidate_available": candidate_available,
+                "kept_asset": kept_asset,
+            })
+        return history
+
     def keep(self, *, candidate_id: UUID, collection_id: int, name: str,
              category: AssetCategory, scope: AssetScope,
              tags: tuple[str, ...]) -> dict:
@@ -247,7 +299,11 @@ class AudioGenerationService:
             "capability": job.result.get("capability"),
             "model": job.result.get("model"),
             "route": job.result.get("provider_endpoint"),
-            "prompt": job.result.get("prompt"),
+            "prompt_mode": job.result.get("prompt_mode") or "expert",
+            "generation_brief": job.result.get("generation_brief"),
+            "authored_prompt": job.result.get("authored_prompt"),
+            "resolved_prompt": (job.result.get("resolved_prompt")
+                                or job.result.get("prompt")),
             "parameters": {
                 "seconds": job.result.get("seconds"),
                 "seed": job.result.get("seed"),
@@ -256,7 +312,7 @@ class AudioGenerationService:
             "external_id": str(candidate_id),
             "provider_job_id": job.result.get("provider_request_id"),
             "generated_at": job.result.get("generated_at"),
-            "generation_duration_ms": job.result.get("duration_ms"),
+            "output_duration_ms": job.result.get("duration_ms"),
             "remote_output_bytes": job.result.get("remote_output_bytes"),
             "remote_output_sha256": job.result.get("remote_output_sha256"),
         }

@@ -12,15 +12,15 @@ const assets = [{ id: 11, title: "Harbor Intro", folder: "Intros", filename: "ha
 
 describe("AssetTool", () => {
   it("submits one explicit generated-audio Job without creating an Asset", async () => {
-    sessionStorage.clear()
     const status = vi.spyOn(studioApi, "audioGenerationStatus").mockResolvedValue({
       configured: true, sfx_ready: true, music_ready: true, reason: "", models: {},
     })
+    const recent = vi.spyOn(studioApi, "recentAudioGenerations").mockResolvedValue([])
     const enqueue = vi.spyOn(studioApi, "enqueueAudioGeneration").mockResolvedValue({
       id: "generation-job", type: "audio_generate", status: "queued",
       progress: 0, detail: "Queued", retries: 0, result: {
         candidate_id: "generation-job", candidate_url: "",
-        capability: "sfx", prompt: "", seconds: 5, seed: 0,
+        capability: "sfx", prompt: "", prompt_mode: "simple", seconds: 5, seed: 0,
         duration_ms: 0, audio_format: "wav", size_bytes: 0,
       },
     })
@@ -29,15 +29,17 @@ describe("AssetTool", () => {
     const view = within(container)
     fireEvent.click(view.getByRole("button", { name: /^Generate$/ }))
     await waitFor(() => expect(status).toHaveBeenCalled())
-    fireEvent.change(view.getByPlaceholderText(/heavy wooden library door/), { target: { value: "A dry match strikes once in a quiet room" } })
-    fireEvent.click(view.getByRole("button", { name: "Generate audio" }))
+    fireEvent.change(view.getByPlaceholderText(/heavy wooden library door/i), { target: { value: "dry match" } })
+    fireEvent.change(view.getByPlaceholderText(/closes softly/i), { target: { value: "strikes once" } })
+    fireEvent.click(view.getByRole("button", { name: "Generate variation" }))
     await waitFor(() => expect(enqueue).toHaveBeenCalledWith({
-      capability: "sfx", prompt: "A dry match strikes once in a quiet room",
-      seconds: 5, seed: undefined, production_id: 81,
+      capability: "sfx", prompt: "Sound source: dry match. Action: strikes once.",
+      prompt_mode: "simple",
+      generation_brief: expect.objectContaining({ object: "dry match", action: "strikes once" }),
+      authored_prompt: undefined, seconds: 5, seed: undefined, production_id: 81,
     }))
     expect(onKeepGenerated).not.toHaveBeenCalled()
-    expect(sessionStorage.getItem("audio-studio:generation:81")).toBe("generation-job")
-    status.mockRestore(); enqueue.mockRestore(); sessionStorage.clear()
+    status.mockRestore(); recent.mockRestore(); enqueue.mockRestore()
   })
 
   it("keeps audition separate from explicit insertion", async () => {

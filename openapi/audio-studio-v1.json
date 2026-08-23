@@ -764,6 +764,17 @@
             "title": "Audio Format",
             "type": "string"
           },
+          "authored_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authored Prompt"
+          },
           "candidate_id": {
             "title": "Candidate Id",
             "type": "string"
@@ -791,9 +802,37 @@
             "title": "Duration Ms",
             "type": "integer"
           },
+          "generation_brief": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generation Brief"
+          },
           "prompt": {
             "title": "Prompt",
             "type": "string"
+          },
+          "prompt_mode": {
+            "default": "expert",
+            "title": "Prompt Mode",
+            "type": "string"
+          },
+          "resolved_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved Prompt"
           },
           "sample_rate": {
             "anyOf": [
@@ -833,9 +872,116 @@
         "title": "AudioGenerationCandidateResponse",
         "type": "object"
       },
+      "AudioGenerationHistoryEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/AudioGenerationHistoryItemResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "AudioGenerationHistoryEnvelope",
+        "type": "object"
+      },
+      "AudioGenerationHistoryItemResponse": {
+        "properties": {
+          "candidate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AudioGenerationCandidateResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "candidate_available": {
+            "title": "Candidate Available",
+            "type": "boolean"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "kept_asset": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UploadedAssetResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "progress": {
+            "title": "Progress",
+            "type": "number"
+          },
+          "request": {
+            "$ref": "#/components/schemas/AudioGenerationRequestResponse"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "status",
+          "progress",
+          "detail",
+          "request",
+          "candidate_available"
+        ],
+        "title": "AudioGenerationHistoryItemResponse",
+        "type": "object"
+      },
       "AudioGenerationJobCreate": {
         "additionalProperties": false,
         "properties": {
+          "authored_prompt": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authored Prompt"
+          },
           "capability": {
             "enum": [
               "sfx",
@@ -843,6 +989,18 @@
             ],
             "title": "Capability",
             "type": "string"
+          },
+          "generation_brief": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generation Brief"
           },
           "production_id": {
             "anyOf": [
@@ -860,6 +1018,15 @@
             "maxLength": 500,
             "minLength": 1,
             "title": "Prompt",
+            "type": "string"
+          },
+          "prompt_mode": {
+            "default": "expert",
+            "enum": [
+              "simple",
+              "expert"
+            ],
+            "title": "Prompt Mode",
             "type": "string"
           },
           "seconds": {
@@ -888,6 +1055,68 @@
           "seconds"
         ],
         "title": "AudioGenerationJobCreate",
+        "type": "object"
+      },
+      "AudioGenerationRequestResponse": {
+        "properties": {
+          "authored_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authored Prompt"
+          },
+          "capability": {
+            "title": "Capability",
+            "type": "string"
+          },
+          "generation_brief": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generation Brief"
+          },
+          "prompt_mode": {
+            "title": "Prompt Mode",
+            "type": "string"
+          },
+          "resolved_prompt": {
+            "title": "Resolved Prompt",
+            "type": "string"
+          },
+          "seconds": {
+            "title": "Seconds",
+            "type": "integer"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          }
+        },
+        "required": [
+          "capability",
+          "prompt_mode",
+          "resolved_prompt",
+          "seconds"
+        ],
+        "title": "AudioGenerationRequestResponse",
         "type": "object"
       },
       "AudioGenerationSettingsResponse": {
@@ -12428,6 +12657,48 @@
         "summary": "Freesound Status",
         "tags": [
           "audio-catalogs"
+        ]
+      }
+    },
+    "/api/v1/audio-generations/recent": {
+      "get": {
+        "operationId": "listRecentAudioGenerations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioGenerationHistoryEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recent Audio Generations",
+        "tags": [
+          "audio-generations"
         ]
       }
     },

@@ -26,6 +26,10 @@ class AudioGenerationCandidateResponse(BaseModel):
     candidate_url: str
     capability: str
     prompt: str
+    prompt_mode: str = "expert"
+    generation_brief: dict[str, Any] | None = None
+    authored_prompt: str | None = None
+    resolved_prompt: str | None = None
     seconds: int
     seed: int
     duration_ms: int
@@ -37,6 +41,33 @@ class AudioGenerationCandidateResponse(BaseModel):
 
 class AudioGenerationCandidateEnvelope(BaseModel):
     data: AudioGenerationCandidateResponse
+
+
+class AudioGenerationRequestResponse(BaseModel):
+    capability: str
+    prompt_mode: str
+    generation_brief: dict[str, Any] | None = None
+    authored_prompt: str | None = None
+    resolved_prompt: str
+    seconds: int
+    seed: int | None = None
+
+
+class AudioGenerationHistoryItemResponse(BaseModel):
+    job_id: str
+    status: str
+    progress: float
+    detail: str
+    error: str | None = None
+    created_at: str | None = None
+    request: AudioGenerationRequestResponse
+    candidate: AudioGenerationCandidateResponse | None = None
+    candidate_available: bool
+    kept_asset: UploadedAssetResponse | None = None
+
+
+class AudioGenerationHistoryEnvelope(BaseModel):
+    data: list[AudioGenerationHistoryItemResponse]
 
 
 class GeneratedKeepResponse(BaseModel):
