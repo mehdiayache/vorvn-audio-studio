@@ -8,6 +8,7 @@ import { SwitchLike } from "@/components/switch-like"
 import { audioUrl } from "@/lib/api"
 import { formatDuration } from "@/lib/format"
 import type { PlayerSource, SoundSceneClip, SoundSceneTrack } from "@/types/domain"
+import { dbToGain, formatDb, gainToDb, MAX_GAIN_DB, MIN_GAIN_DB } from "../sound-scene-gain"
 import { AudioSourceEditor, type AudioSourceWindow } from "../source-editor/music-source-editor"
 
 import "./music-inspector.css"
@@ -25,16 +26,16 @@ export function AudioClipInspector({ track, clip, playingKey, playing, onPlay, o
   onChoose: () => void
   onRemove: () => void
 }) {
-  const [volume, setVolume] = useState(Math.round((clip?.gain ?? .1) * 100))
-  const [trackVolume, setTrackVolume] = useState(Math.round((track.volume ?? 1) * 100))
+  const [clipGainDb, setClipGainDb] = useState(gainToDb(clip?.gain ?? .1))
+  const [trackGainDb, setTrackGainDb] = useState(gainToDb(track.volume ?? 1))
   const [start, setStart] = useState((clip?.source_offset_ms ?? 0) / 1000)
   const [windowDuration, setWindowDuration] = useState((clip?.duration_ms ?? clip?.resolved_duration_ms ?? 0) / 1000)
   const [fadeIn, setFadeIn] = useState((clip?.fade_in_ms ?? 2000) / 1000)
   const [fadeOut, setFadeOut] = useState((clip?.fade_out_ms ?? 3000) / 1000)
   const [saving, setSaving] = useState("")
   const [error, setError] = useState("")
-  useEffect(() => setVolume(Math.round((clip?.gain ?? .1) * 100)), [clip?.gain])
-  useEffect(() => setTrackVolume(Math.round((track.volume ?? 1) * 100)), [track.volume])
+  useEffect(() => setClipGainDb(gainToDb(clip?.gain ?? .1)), [clip?.gain])
+  useEffect(() => setTrackGainDb(gainToDb(track.volume ?? 1)), [track.volume])
   useEffect(() => setStart((clip?.source_offset_ms ?? 0) / 1000), [clip?.source_offset_ms])
   useEffect(() => setWindowDuration((clip?.duration_ms ?? clip?.resolved_duration_ms ?? 0) / 1000), [clip?.duration_ms, clip?.resolved_duration_ms])
   useEffect(() => setFadeIn((clip?.fade_in_ms ?? 2000) / 1000), [clip?.fade_in_ms])
@@ -80,8 +81,8 @@ export function AudioClipInspector({ track, clip, playingKey, playing, onPlay, o
         onChange={sourceWindow}
         onCommit={(next) => { sourceWindow(next); void save("source window", onClipCommit) }}
       />
-      <label title="Changes only this audio placement"><span><Headphones /> Clip level <b>{volume}%</b></span><Slider aria-label="Audio clip level" disabled={Boolean(saving)} value={[volume]} max={200} step={1} onValueChange={([value = 0]) => { setVolume(value); onClipChange({ gain: value / 100 }) }} onValueCommit={([value = volume]) => { setVolume(value); onClipChange({ gain: value / 100 }); void save("clip level", onClipCommit) }} /></label>
-      <label title={`Changes every clip on ${track.name}`}><span><Music2 /> Track level <b>{trackVolume}%</b></span><Slider aria-label="Audio Track level" disabled={Boolean(saving)} value={[trackVolume]} max={200} step={1} onValueChange={([value = 0]) => { setTrackVolume(value); onTrackVolumeChange(value / 100) }} onValueCommit={([value = trackVolume]) => { setTrackVolume(value); void save("track level", () => onTrackVolumeCommit(value / 100)) }} /></label>
+      <label title="Changes only this audio placement"><span><Headphones /> Clip gain <b>{formatDb(clipGainDb)}</b></span><Slider aria-label="Audio clip gain" disabled={Boolean(saving)} value={[clipGainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setClipGainDb(value); onClipChange({ gain: dbToGain(value) }) }} onValueCommit={([value = clipGainDb]) => { setClipGainDb(value); onClipChange({ gain: dbToGain(value) }); void save("clip gain", onClipCommit) }} /></label>
+      <label title={`Changes every clip on ${track.name}`}><span><Music2 /> Track gain <b>{formatDb(trackGainDb)}</b></span><Slider aria-label="Audio Track gain" disabled={Boolean(saving)} value={[trackGainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setTrackGainDb(value); onTrackVolumeChange(dbToGain(value)) }} onValueCommit={([value = trackGainDb]) => { setTrackGainDb(value); void save("track gain", () => onTrackVolumeCommit(dbToGain(value))) }} /></label>
       <div className="music-fade-grid">
         <label><span>Fade in <b>{fadeIn.toFixed(1)}s</b></span><Slider aria-label="Audio fade in" disabled={Boolean(saving) || geometryLocked} value={[fadeIn]} max={15} step={0.1} onValueChange={([value = 0]) => { setFadeIn(value); onClipChange({ fade_in_ms: Math.round(value * 1000) }) }} onValueCommit={([value = fadeIn]) => { setFadeIn(value); onClipChange({ fade_in_ms: Math.round(value * 1000) }); void save("fade in", onClipCommit) }} /></label>
         <label><span>Fade out <b>{fadeOut.toFixed(1)}s</b></span><Slider aria-label="Audio fade out" disabled={Boolean(saving) || geometryLocked} value={[fadeOut]} max={15} step={0.1} onValueChange={([value = 0]) => { setFadeOut(value); onClipChange({ fade_out_ms: Math.round(value * 1000) }) }} onValueCommit={([value = fadeOut]) => { setFadeOut(value); onClipChange({ fade_out_ms: Math.round(value * 1000) }); void save("fade out", onClipCommit) }} /></label>

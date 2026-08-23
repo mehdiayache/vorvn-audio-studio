@@ -322,6 +322,37 @@ describe("SoundSceneSession", () => {
     session.dispose()
   })
 
+  it("applies a relative dB change without flattening a multi-clip selection", async () => {
+    const source = scene()
+    const second = structuredClone(source.document.tracks[0]!.clips[0]!)
+    second.id = "88af885c-aeb4-49bf-9edb-d3fc14496b2c"
+    second.gain = .5
+    source.document.tracks[0]!.clips.push(second)
+    source.resolved.tracks[0]!.clips.push({ ...second, resolved_start_ms: 2_000, resolved_duration_ms: 10_000 })
+    const update = vi.fn().mockImplementation(async (document: SoundScene["document"], expectedRevision: number) => ({
+      ...source, revision: expectedRevision + 1, document,
+    }))
+    const playout = {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(),
+      seek: vi.fn(), currentTime: vi.fn().mockReturnValue(0),
+      isPlaying: vi.fn().mockReturnValue(false), muteTrack: vi.fn(),
+      setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    }
+    const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, playout)
+
+    await session.commitSelectedClipGainDelta(6, [
+      { trackId: "music", clipId },
+      { trackId: "music", clipId: second.id },
+    ])
+
+    const [quiet, loud] = update.mock.calls[0]![0].tracks[0].clips
+    expect(quiet.gain).toBeCloseTo(.2, 2)
+    expect(loud.gain).toBeCloseTo(1, 2)
+    expect(quiet.gain).not.toBe(loud.gain)
+    expect(update).toHaveBeenCalledOnce()
+    session.dispose()
+  })
+
   it("duplicates a multi-track group after itself while preserving relative Part anchors", async () => {
     const source = scene()
     const second = structuredClone(source.document.tracks[0]!.clips[0]!)

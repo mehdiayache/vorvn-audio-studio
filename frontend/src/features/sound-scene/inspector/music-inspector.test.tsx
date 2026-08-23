@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@/components/ui/slider", () => ({
   Slider: ({ "aria-label": label, onValueChange, onValueCommit, disabled }: { "aria-label"?: string; onValueChange?: (value: number[]) => void; onValueCommit?: (value: number[]) => void; disabled?: boolean }) => {
-    const value = label === "Audio clip level" ? 24 : label === "Audio Track level" ? 70 : label === "Audio fade in" ? 1.5 : 3.5
+    const value = label === "Audio clip gain" ? -12 : label === "Audio Track gain" ? -3 : label === "Audio fade in" ? 1.5 : 3.5
     return <button type="button" aria-label={label} disabled={disabled} onClick={() => { onValueChange?.([value]); onValueCommit?.([value]) }} />
   },
 }))
@@ -28,8 +28,8 @@ describe("AudioClipInspector", () => {
     expect(screen.getByRole("region", { name: "Audio source window" })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Play audio audition" }))
     expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ key: "asset-source:9", kind: "asset" }))
-    fireEvent.click(screen.getByRole("button", { name: "Audio clip level" }))
-    expect(onClipChange).toHaveBeenCalledWith({ gain: .24 })
+    fireEvent.click(screen.getByRole("button", { name: "Audio clip gain" }))
+    expect(onClipChange).toHaveBeenCalledWith({ gain: expect.closeTo(.251, 3) })
     await waitFor(() => expect(onClipCommit).toHaveBeenCalledTimes(1))
     fireEvent.click(screen.getByRole("button", { name: "Move source window" }))
     expect(onClipChange).toHaveBeenCalledWith({ source_offset_ms: 5_500, duration_ms: null })
@@ -56,7 +56,7 @@ describe("AudioClipInspector", () => {
     expect(screen.getByRole("button", { name: /Replace source/ }).hasAttribute("disabled")).toBe(true)
     expect(screen.getByRole("button", { name: /Remove clip/ }).hasAttribute("disabled")).toBe(true)
     expect(screen.getByRole("button", { name: "Audio fade in" }).hasAttribute("disabled")).toBe(true)
-    expect(screen.getByRole("button", { name: "Audio clip level" }).hasAttribute("disabled")).toBe(false)
+    expect(screen.getByRole("button", { name: "Audio clip gain" }).hasAttribute("disabled")).toBe(false)
     expect(screen.getByText(/Levels and effects remain available/)).toBeTruthy()
   })
 })

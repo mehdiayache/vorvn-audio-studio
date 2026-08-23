@@ -148,18 +148,29 @@ describe("Production Workstation", () => {
     expect(screen.getByRole("button", { name: "Redo Sound edit" })).toBeTruthy()
   })
 
+  it("keeps a muted track level editable for the value that applies on unmute", () => {
+    const soundScene = scene([part({ id: 1, authored_role: "Narrator", duration_ms: 8_000 })])
+    const musicTrack = soundScene.document.tracks[0]
+    if (!musicTrack) throw new Error("Expected Music track fixture")
+    musicTrack.muted = true
+    render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+
+    expect(screen.getByRole("slider", { name: "Music gain" }).getAttribute("aria-disabled")).not.toBe("true")
+    expect(screen.getByRole("button", { name: "Unmute Music" })).toBeTruthy()
+  })
+
   it("keeps essential track mixing available in the compact rail", () => {
     const onRemoveTrack = vi.fn()
     render(<SoundSceneWorkspace session={sessionFor(scene([part({ duration_ms: 30_000 })]))} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={onRemoveTrack} />)
 
     fireEvent.click(screen.getByRole("button", { name: "Hide track controls" }))
 
-    expect(screen.getByRole("button", { name: "Adjust Music volume" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Adjust Music gain" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Track actions for Music" })).toBeTruthy()
     expect(screen.queryByRole("button", { name: "Add clip to Music" })).toBeNull()
 
-    fireEvent.click(screen.getByRole("button", { name: "Adjust Music volume" }))
-    expect(screen.getByRole("slider", { name: "Music volume" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Adjust Music gain" }))
+    expect(screen.getByRole("slider", { name: "Music gain" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Mute track" })).toBeTruthy()
 
     fireEvent.keyDown(document, { key: "Escape" })

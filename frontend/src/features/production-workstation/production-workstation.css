@@ -285,6 +285,9 @@
 .ws-inspector-waveform { position: relative; height: 6rem; display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); align-content: end; align-items: center; gap: .65rem; overflow: hidden; padding: .65rem; border-bottom: 1px solid color-mix(in oklab, var(--primary) 24%, var(--border)); color: var(--primary); background: color-mix(in oklab, var(--primary-soft) 54%, white); }
 .ws-inspector-waveform .audio-waveform { position: absolute; inset: .7rem; width: calc(100% - 1.4rem); height: calc(100% - 1.4rem); opacity: .4; }
 .ws-inspector-waveform .waveform-loading, .ws-inspector-waveform .waveform-unavailable { position: absolute; top: 50%; right: .75rem; left: .75rem; border-top: 1px solid currentColor; opacity: .24; }
+.ws-overlay-loading { position: fixed; z-index: 80; display: grid; inset: 0; place-items: center; background: rgb(20 17 24 / .28); }
+.ws-overlay-loading > span { display: inline-flex; align-items: center; gap: .625rem; min-height: 3rem; padding: .75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--popover); color: var(--popover-foreground); box-shadow: var(--shadow-lg); }
+.ws-overlay-loading svg { width: 1rem; height: 1rem; color: var(--primary); }
 .ws-inspector-waveform button { position: relative; z-index: 2; width: 2.25rem; height: 2.25rem; display: grid; place-items: center; border: 0; border-radius: 999px; color: var(--primary-foreground); background: var(--primary); }
 .ws-inspector-waveform button svg { width: .85rem; fill: currentColor; }
 .ws-inspector-waveform > span { position: relative; z-index: 2; min-width: 0; display: flex; align-items: baseline; gap: .45rem; color: var(--foreground); }

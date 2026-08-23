@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react"
 
 import type { SequenceMixOverride, SoundScene, SoundSceneClip, SoundSceneDocument, SoundSceneTrack, VentureAsset } from "@/types/domain"
+import { dbToGain, gainToDb } from "../sound-scene-gain"
 import { SoundSceneEngine, type SoundSceneEngineState } from "./sound-scene-engine"
 import { SoundScenePlayout } from "./sound-scene-playout"
 
@@ -312,6 +313,16 @@ export class SoundSceneSession {
   async commitSelectedClipChanges(changes: Partial<SoundSceneClip>, refs = this.selectedClips()) {
     if (!refs.length) return
     for (const ref of refs) this.updateClip(ref.trackId, ref.clipId, changes)
+    await this.commitClip()
+  }
+
+  async commitSelectedClipGainDelta(deltaDb: number, refs = this.selectedClips()) {
+    if (!refs.length) return
+    for (const ref of refs) {
+      const clip = this.currentClip(ref.trackId, ref.clipId)
+      if (!clip) continue
+      this.updateClip(ref.trackId, ref.clipId, { gain: clip.gain <= .001 ? 0 : dbToGain(gainToDb(clip.gain) + deltaDb) })
+    }
     await this.commitClip()
   }
 

@@ -51,6 +51,19 @@ const ProductionOverlays = lazy(() => import("@/features/production/production-o
 type WorkstationStage = "sequence" | "sound" | "mix"
 type AudioTarget = { mode: "new-track" } | { mode: "add-clip"; trackId: string } | { mode: "replace"; trackId: string; clipId: string }
 
+const overlayLoadingLabels: Partial<Record<NonNullable<ToolKind>, string>> = {
+  speech: "Opening Speech editor",
+  silence: "Opening Pause controls",
+  import: "Opening JSON import",
+  asset: "Opening Audio Library",
+  audio: "Opening Audio Library",
+}
+
+function ProductionOverlayLoading({ tool }: { tool: ToolKind }) {
+  const label = tool ? overlayLoadingLabels[tool] || "Opening confirmation" : "Opening confirmation"
+  return <div className="ws-overlay-loading" role="status" aria-live="polite"><span><LoaderCircle className="spin" /><b>{label}…</b></span></div>
+}
+
 function initialSelection(production: Production) {
   if (typeof window !== "undefined") {
     const key = new URL(window.location.href).searchParams.get("part")
@@ -595,7 +608,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     <DeleteProductionDialog production={production} open={deleteProductionOpen} onOpenChange={setDeleteProductionOpen} onDeleted={() => { player.pause(); navigate(`${audioStudioBase}/projects/${production.project_id}`) }} />
     <PartCaptionsDialog productionId={production.id} part={captionPart} directory={directory} onOpenChange={(open) => { if (!open) setCaptionPartId(null) }} onChanged={async () => { actions.invalidatePreview(); await refresh() }} />
     <MovePartPositionDialog part={movePositionPart} count={sourceParts.length} onClose={() => setMovePositionPart(null)} onMove={actions.movePartToPosition} />
-    {overlaysOpen && <Suspense fallback={null}><ProductionOverlays
+    {overlaysOpen && <Suspense fallback={<ProductionOverlayLoading tool={tool} />}><ProductionOverlays
       tool={tool} productionId={production.id} nextPartNumber={sourceParts.length + 1} insertAt={composerInsertAt} insertBeforePartId={insertBeforePartId}
       composerPart={null} replacingAssetId={replacingAsset?.asset_id} initialAudioAssetId={audioClip?.asset_id} config={config} directory={directory} assets={assets} assetCollectionIds={assetCollectionIds}
       playingKey={player.source?.key} playerPlaying={actions.playerPlaying} confirmAction={confirmAction}

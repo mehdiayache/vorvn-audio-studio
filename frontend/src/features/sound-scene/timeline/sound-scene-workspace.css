@@ -123,6 +123,14 @@
 .sound-clip-states svg { width: .58rem; height: .58rem; }
 .sound-clip-states b { font: 700 .48rem/1 var(--font-mono); }
 .sound-scene-waveform { position: absolute; inset: .35rem; width: calc(100% - .7rem); height: calc(100% - .7rem); opacity: .42; }
+.sound-scene-waveform-state { position: absolute; inset: .35rem; display: flex; align-items: center; min-width: 0; overflow: hidden; color: currentColor; opacity: .52; font-size: .55rem; white-space: nowrap; }
+.sound-scene-waveform-state.is-loading { gap: .18rem; }
+.sound-scene-waveform-state.is-loading i { width: .18rem; height: 42%; border-radius: 999px; background: currentColor; animation: sound-waveform-pulse .9s ease-in-out infinite alternate; }
+.sound-scene-waveform-state.is-loading i:nth-child(2) { height: 68%; animation-delay: -.45s; }
+.sound-scene-waveform-state.is-loading i:nth-child(3) { height: 84%; animation-delay: -.2s; }
+.sound-scene-waveform-state.is-loading i:nth-child(4) { height: 52%; animation-delay: -.65s; }
+@keyframes sound-waveform-pulse { from { opacity: .28; transform: scaleY(.62); } to { opacity: .82; transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { .sound-scene-waveform-state.is-loading i { animation: none; } }
 .sound-sequence-clip.is-selected, .sound-sequence-silence.is-selected, .sound-music-clip.is-selected { z-index: 3; border-color: var(--primary); box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 22%, transparent), var(--shadow-sm); }
 .sound-scene-lane.is-muted { opacity: .4; }
 .sound-empty-lane { position: absolute; top: 50%; left: 1rem; display: flex; align-items: center; gap: .35rem; transform: translateY(-50%); padding: .4rem .65rem; border: 1px dashed var(--border-strong); border-radius: .45rem; color: var(--muted-foreground); background: white; font-size: .65rem; }

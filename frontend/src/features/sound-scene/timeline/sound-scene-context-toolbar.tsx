@@ -10,6 +10,7 @@ import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider"
 import type { SoundSceneEffect } from "@/types/domain"
+import { formatDb, gainToDb, MAX_GAIN_DB, MIN_GAIN_DB } from "../sound-scene-gain"
 
 type EffectsProps = {
   effects: SoundSceneEffect[]
@@ -83,16 +84,18 @@ export type SoundContext = {
   label: string
   muted: boolean
   gain: number
+  gainMixed?: boolean
   effects: SoundSceneEffect[]
   lockState?: "unlocked" | "locked" | "mixed"
   count?: number
 }
 
-export function SoundSceneContextToolbar({ context, saving, onMute, onGain, onEffectsPreview, onEffects, onLock, onDuplicate, onDelete, onOptions, onOpenSequence }: {
+export function SoundSceneContextToolbar({ context, saving, onMute, onGainPreview, onGain, onEffectsPreview, onEffects, onLock, onDuplicate, onDelete, onOptions, onOpenSequence }: {
   context: SoundContext | null
   saving: boolean
   onMute: () => void
-  onGain: (gain: number) => void
+  onGainPreview?: (gainDb: number, relative: boolean) => void
+  onGain: (gainDb: number, relative: boolean) => void
   onEffectsPreview?: (effects: SoundSceneEffect[]) => void
   onEffects: (effects: SoundSceneEffect[]) => void
   onLock?: () => void
@@ -101,8 +104,8 @@ export function SoundSceneContextToolbar({ context, saving, onMute, onGain, onEf
   onOptions?: () => void
   onOpenSequence?: () => void
 }) {
-  const [gain, setGain] = useState(Math.round((context?.gain ?? 1) * 100))
-  useEffect(() => setGain(Math.round((context?.gain ?? 1) * 100)), [context?.gain, context?.label])
+  const [gainDb, setGainDb] = useState(context?.gainMixed ? 0 : gainToDb(context?.gain ?? 1))
+  useEffect(() => setGainDb(context?.gainMixed ? 0 : gainToDb(context?.gain ?? 1)), [context?.gain, context?.gainMixed, context?.label])
   if (!context) return null
   const lockState = context.lockState || "unlocked"
   const hasLockedClips = lockState !== "unlocked"
@@ -117,7 +120,7 @@ export function SoundSceneContextToolbar({ context, saving, onMute, onGain, onEf
     <div className="sound-context-group is-identity"><span className="sound-context-label"><b>{context.label}</b>{context.count && context.count > 1 ? <small>{context.count} clips</small> : <small>{context.kind === "audio" ? "Audio clip" : context.kind === "silence" ? "Sequence pause" : "Sequence Part"}</small>}</span></div>
     {context.kind !== "silence" && <div className="sound-context-group is-mix">
       <OperatorTooltip label={muteLabel} detail={muteDetail}><Button className="sound-context-command" variant="ghost" size="sm" disabled={saving} aria-label={muteLabel} onClick={onMute}>{context.muted ? <VolumeX /> : <Volume2 />}{context.muted ? "Unmute" : "Mute"}</Button></OperatorTooltip>
-      {context.kind === "sequence" && <Popover><PopoverTrigger asChild><Button className="sound-context-command" variant="ghost" size="sm" disabled={saving}><SlidersHorizontal /> Volume</Button></PopoverTrigger><PopoverContent align="end" className="sound-volume-popover"><span>Part volume <b>{gain}%</b></span><Slider aria-label="Sequence Part volume" value={[gain]} min={0} max={200} step={1} onValueChange={([value = 100]) => setGain(value)} onValueCommit={([value = 100]) => onGain(value / 100)} /></PopoverContent></Popover>}
+      <Popover><PopoverTrigger asChild><Button className="sound-context-command" variant="ghost" size="sm" disabled={saving}><SlidersHorizontal /> Gain</Button></PopoverTrigger><PopoverContent align="end" className="sound-volume-popover"><span>{context.gainMixed ? "Relative gain" : context.kind === "sequence" ? "Part gain" : "Clip gain"} <b>{context.gainMixed ? formatDb(gainDb, true) : formatDb(gainDb)}</b></span><Slider aria-label={context.gainMixed ? "Selected clips relative gain" : context.kind === "sequence" ? "Sequence Part gain" : "Audio clip gain"} value={[gainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setGainDb(value); onGainPreview?.(value, Boolean(context.gainMixed)) }} onValueCommit={([value = gainDb]) => onGain(value, Boolean(context.gainMixed))} /></PopoverContent></Popover>
       {(context.count === undefined || context.count === 1) ? <Popover><PopoverTrigger asChild><Button className={`sound-context-command${activeEffectCount ? " is-active" : ""}`} variant="ghost" size="sm" disabled={saving}><RadioTower /> Effects{activeEffectCount ? <small>{activeEffectCount}</small> : null}</Button></PopoverTrigger><PopoverContent align="end" className="sound-effects-popover"><SoundEffectsEditor effects={context.effects} disabled={saving} onPreview={onEffectsPreview} onCommit={onEffects} /></PopoverContent></Popover> : null}
       {onOptions && <Button className="sound-context-command" variant="ghost" size="sm" disabled={saving} onClick={onOptions}><MoreHorizontal /> Options</Button>}
     </div>}
