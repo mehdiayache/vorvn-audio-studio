@@ -1,6 +1,7 @@
 import {
-  AudioLines, Check, ChevronDown, Clipboard, FileAudio, History, Music2,
-  Pause, Play, RotateCcw, Sparkles, Trash2, WandSparkles, X,
+  ArrowLeft, AudioLines, Check, ChevronDown, Clipboard, History,
+  LoaderCircle, Music2, Pause, Play, RotateCcw, Sparkles, Trash2,
+  WandSparkles, X,
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
@@ -11,7 +12,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Progress } from "@/components/ui/progress"
+import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { studioApi } from "@/lib/api"
@@ -25,7 +27,7 @@ import type {
 import type { AssetMode, GeneratedKeepInput } from "./asset-tool"
 import { AssetCategorySelect, AssetScopeSelect, AssetTagEditor } from "./asset-library-controls"
 import {
-  RecipeField, RecipeStage, SemanticScale, SingleChoice, TaxonomyPicker,
+  RecipeField, SemanticScale, SingleChoice, TaxonomyPicker,
 } from "./sound-recipe-controls"
 import {
   emptySoundRecipe, inferKnownSelections, recipePath, recipeSummary,
@@ -36,6 +38,7 @@ import {
 
 const MUSIC_STAGES = ["Use & Story", "Voice & Feeling", "Musical World", "Instruments", "Arrangement", "Sound & Space", "Review"]
 const SFX_STAGES = ["Sound", "Action", "Perspective", "Character", "Review"]
+type GenerationPhase = "compose" | "generating" | "compare" | "finalize"
 
 function candidateName(item: AudioGenerationHistoryItem) {
   const prompt = item.request.resolved_prompt || ""
@@ -115,6 +118,9 @@ export function GenerationWorkspace({
   const [editingPrompt, setEditingPrompt] = useState(false)
   const [history, setHistory] = useState<AudioGenerationHistoryItem[]>([])
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
+  const [historySelection, setHistorySelection] = useState(false)
+  const [phase, setPhase] = useState<GenerationPhase>("compose")
+  const [sessionJobIds, setSessionJobIds] = useState<string[]>([])
   const [historyOpen, setHistoryOpen] = useState(false)
   const [status, setStatus] = useState<"checking" | "ready" | "unavailable">("checking")
   const [reason, setReason] = useState("")
@@ -133,12 +139,16 @@ export function GenerationWorkspace({
   const items = useMemo(() => taxonomyItems(taxonomy), [taxonomy])
   const stages = capability === "music" ? MUSIC_STAGES : SFX_STAGES
   const capabilityHistory = useMemo(() => history.filter((item) => item.request.capability === capability), [history, capability])
-  const selected = capabilityHistory.find((item) => item.job_id === selectedJobId) || null
+  const selected = history.find((item) => item.job_id === selectedJobId) || null
+  const sessionItems = useMemo(() => sessionJobIds.map((jobId) => history.find((item) => item.job_id === jobId)).filter(Boolean) as AudioGenerationHistoryItem[], [history, sessionJobIds])
   const candidate = selected?.candidate || null
   const anyWorking = history.some(isWorking)
   const unresolvedConflicts = compilation?.conflicts || []
   const generatedPrompt = compilation?.compiled_prompt || ""
   const generating = generationStage !== null
+  const hasCreativeDirection = promptMode === "simple"
+    ? Boolean(recipe.creative_brief.trim())
+    : Boolean(recipe.creative_brief.trim() || recipeSummary(recipe, items).length)
 
   const setRecipe = (next: SoundRecipe | ((current: SoundRecipe) => SoundRecipe)) => {
     setRecipes((current) => ({
@@ -149,16 +159,11 @@ export function GenerationWorkspace({
   }
   const setPath = (path: string, value: unknown) => setRecipe((current) => updateRecipePath(current, path, value))
 
-  const refreshHistory = useCallback(async (preferredJobId?: string) => {
+  const refreshHistory = useCallback(async () => {
     if (!productionId) return
     try {
       const recent = await studioApi.recentAudioGenerations(productionId)
       setHistory(recent)
-      setSelectedJobId((current) => {
-        if (preferredJobId && recent.some((item) => item.job_id === preferredJobId)) return preferredJobId
-        if (current && recent.some((item) => item.job_id === current)) return current
-        return recent.find((item) => item.candidate_available)?.job_id || recent[0]?.job_id || null
-      })
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Recent variations could not be loaded.")
     }
@@ -166,10 +171,10 @@ export function GenerationWorkspace({
 
   useEffect(() => { void refreshHistory() }, [refreshHistory])
   useEffect(() => {
-    if (!anyWorking) return
+    if (!anyWorking && phase !== "generating") return
     const timer = window.setInterval(() => void refreshHistory(), 1200)
     return () => window.clearInterval(timer)
-  }, [anyWorking, refreshHistory])
+  }, [anyWorking, phase, refreshHistory])
   useEffect(() => {
     let current = true
     void studioApi.soundRecipeTaxonomy().then((snapshot) => { if (current) setTaxonomy(snapshot) }).catch((cause) => {
@@ -218,15 +223,15 @@ export function GenerationWorkspace({
     setActiveStage(0); setEditingPrompt(false)
   }, [capability])
   useEffect(() => {
-    if (capabilityHistory.some((item) => item.job_id === selectedJobId)) return
-    setSelectedJobId(capabilityHistory.find((item) => item.candidate_available)?.job_id || capabilityHistory[0]?.job_id || null)
-  }, [capability, history, selectedJobId])
-  useEffect(() => {
     if (!selected) return
     setName(candidateName(selected))
     setCategory(selected.request.capability === "music" ? "music" : "sfx")
     setTags([])
   }, [selectedJobId])
+  useEffect(() => {
+    if (phase !== "generating" || !sessionJobIds.length || sessionItems.length !== sessionJobIds.length) return
+    if (!sessionItems.some(isWorking)) setPhase("compare")
+  }, [phase, sessionItems, sessionJobIds])
 
   const changeMode = (nextMode: "simple" | "expert") => {
     if (nextMode === "expert") setRecipe((current) => inferKnownSelections(current, items))
@@ -234,7 +239,12 @@ export function GenerationWorkspace({
   }
 
   const generate = async () => {
-    if (!generatedPrompt || unresolvedConflicts.length) return
+    if (!hasCreativeDirection || !generatedPrompt || unresolvedConflicts.length) return
+    const createdJobIds: string[] = []
+    setPhase("generating")
+    setSelectedJobId(null)
+    setHistorySelection(false)
+    setSessionJobIds([])
     setGenerationStage("understanding"); setGenerationProgress(0); setError("")
     try {
       const normalized = await studioApi.normalizeSoundRecipe({
@@ -249,7 +259,6 @@ export function GenerationWorkspace({
       setCompilation(normalized)
       setGenerationStage("starting")
       const count = normalizedRecipe.variation_count
-      let latestJobId: string | undefined
       for (let index = 0; index < count; index += 1) {
         const semanticState = {
           ...normalizedRecipe,
@@ -268,13 +277,14 @@ export function GenerationWorkspace({
           seed: semanticState.seed < 0 ? null : semanticState.seed,
           production_id: productionId,
         })
-        latestJobId = job.id
-        setSelectedJobId(job.id)
+        createdJobIds.push(job.id)
+        setSessionJobIds((current) => [...current, job.id])
         setGenerationProgress(index + 1)
       }
-      await refreshHistory(latestJobId)
+      await refreshHistory()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Audio could not be generated.")
+      if (!createdJobIds.length) setPhase("compose")
     } finally { setGenerationStage(null) }
   }
 
@@ -287,7 +297,41 @@ export function GenerationWorkspace({
     setRecipes((current) => ({ ...current, [nextCapability]: restored }))
     setPromptMode(item.request.prompt_mode as "simple" | "expert")
     setPromptOverride((current) => ({ ...current, [nextCapability]: null }))
+    setSelectedJobId(null)
+    setHistorySelection(false)
+    setSessionJobIds([])
+    setPhase("compose")
     setActiveStage(0); setError("")
+  }
+
+  const startFresh = () => {
+    setRecipes((current) => ({ ...current, [capability]: emptySoundRecipe(capability) }))
+    setPromptOverride((current) => ({ ...current, [capability]: null }))
+    setPromptMode("simple")
+    setActiveStage(0)
+    setSelectedJobId(null)
+    setHistorySelection(false)
+    setSessionJobIds([])
+    setPhase("compose")
+    setError("")
+  }
+
+  const openHistoryItem = (jobId: string) => {
+    const item = history.find((entry) => entry.job_id === jobId)
+    if (!item) return
+    setCapability(item.request.capability as RecipeCapability)
+    setSelectedJobId(jobId)
+    setHistorySelection(true)
+    setSessionJobIds([jobId])
+    setPhase("finalize")
+    setError("")
+  }
+
+  const chooseCandidate = (jobId: string) => {
+    setSelectedJobId(jobId)
+    setHistorySelection(false)
+    setPhase("finalize")
+    setError("")
   }
 
   const keep = async (place: boolean) => {
@@ -310,6 +354,11 @@ export function GenerationWorkspace({
     try {
       await studioApi.discardGeneratedAudio(candidate.candidate_id)
       await refreshHistory()
+      setSelectedJobId(null)
+      setHistorySelection(false)
+      const remaining = sessionJobIds.filter((jobId) => jobId !== selected?.job_id)
+      setSessionJobIds(remaining)
+      setPhase(remaining.length ? "compare" : "compose")
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "That variation could not be discarded.")
     } finally { setDiscarding(false) }
@@ -319,9 +368,14 @@ export function GenerationWorkspace({
     ...current, conflict_resolutions: { ...current.conflict_resolutions, [id]: resolution },
   }))
 
-  const selectedState = selected?.kept_asset ? "kept" : candidate ? "ready" : selected && isWorking(selected) ? "working" : "unavailable"
-  const statusCopy = status === "checking" ? "Checking generator…" : status === "ready" ? "Temporary until you keep it." : reason
-  const selectedIndex = selected ? capabilityHistory.findIndex((item) => item.job_id === selected.job_id) : -1
+  const statusCopy = status === "checking"
+    ? "Checking generator…"
+    : status !== "ready"
+      ? reason
+      : hasCreativeDirection
+        ? "Ready to create"
+        : `Describe the ${capability === "music" ? "music" : "sound"} before generating`
+  const selectedIndex = selected ? sessionJobIds.indexOf(selected.job_id) : -1
   const selectedLabel = selectedIndex >= 0 ? String.fromCharCode(65 + selectedIndex) : ""
   const selectedActive = Boolean(candidate && playerPlaying && playingKey === `generated-candidate:${candidate.candidate_id}`)
   const stageSummary = (index: number) => capability === "music" ? [
@@ -340,49 +394,176 @@ export function GenerationWorkspace({
     "",
   ][index]
 
-  return <section className="asset-view asset-generation-view">
-    <main className="asset-generation-compose">
-      <div className="asset-generation-heading">
-        <Tabs value={capability} onValueChange={(value) => setCapability(value as RecipeCapability)} className="asset-generation-kind">
-          <TabsList aria-label="Generate audio type">
-            <TabsTrigger value="sfx" aria-label="Sound Effect"><AudioLines /><span><b>Sound Effect</b><small>Events, foley & ambience</small></span></TabsTrigger>
-            <TabsTrigger value="music" aria-label="Music"><Music2 /><span><b>Music</b><small>Instrumental production cues</small></span></TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <div className="asset-generation-heading-actions">
-          <ToggleGroup type="single" variant="outline" value={promptMode} onValueChange={(value) => value && changeMode(value as "simple" | "expert")} aria-label="Creation mode">
-            <OperatorTooltip label="Simple" detail="Describe what you need in your own words. It uses the same model and Recipe compiler as Expert."><ToggleGroupItem value="simple">Simple</ToggleGroupItem></OperatorTooltip>
-            <OperatorTooltip label="Expert" detail="Shape musical or sonic details yourself. Expert adds control, not model quality."><ToggleGroupItem value="expert">Expert</ToggleGroupItem></OperatorTooltip>
-          </ToggleGroup>
-          <HistoryMenu history={capabilityHistory} selectedJobId={selectedJobId} open={historyOpen} onOpenChange={setHistoryOpen} onSelect={setSelectedJobId} />
-        </div>
-      </div>
+  return <section className="asset-view asset-generation-view" data-phase={phase}>
+    <main className="asset-generation-stage">
+      {phase === "compose" && <div className="asset-generation-compose">
+        <header className="asset-generation-toolbar">
+          <ChoiceSwitch
+            left="Sound Effect"
+            right="Music"
+            checked={capability === "music"}
+            onCheckedChange={(checked) => setCapability(checked ? "music" : "sfx")}
+            label="Audio type"
+          />
+          <ChoiceSwitch
+            left="Simple"
+            right="Expert"
+            checked={promptMode === "expert"}
+            onCheckedChange={(checked) => changeMode(checked ? "expert" : "simple")}
+            label="Creation mode"
+          />
+          <HistoryMenu history={capabilityHistory} selectedJobId={selectedJobId} open={historyOpen} onOpenChange={setHistoryOpen} onSelect={openHistoryItem} />
+        </header>
 
-      {promptMode === "simple" ? <SimpleRecipe recipe={recipe} capability={capability} onChange={setRecipe} onOpenExpert={() => changeMode("expert")} /> : <div className="recipe-funnel">
-        <nav className="recipe-step-rail" aria-label={`${capability === "music" ? "Music" : "Sound Effect"} recipe steps`}>{stages.map((stage, index) => <button type="button" key={stage} className={activeStage === index ? "is-active" : ""} onClick={() => setActiveStage(index)}><span>{stageSummary(index) ? <Check /> : index + 1}</span><b>{stage}</b></button>)}</nav>
-        {stages.map((stage, index) => <RecipeStage key={stage} number={index + 1} title={stage} summary={stageSummary(index) || ""} open={activeStage === index} onOpenChange={(open) => open && setActiveStage(index)}>
-          {capability === "music" ? <MusicStage index={index} recipe={recipe} items={items} setPath={setPath} setRecipe={setRecipe} /> : <SfxStage index={index} recipe={recipe} items={items} setPath={setPath} setRecipe={setRecipe} />}
-          {index < stages.length - 1 && <div className="recipe-stage-next"><Button variant="ghost" onClick={() => setActiveStage(index + 1)}>Skip for now</Button><Button onClick={() => setActiveStage(index + 1)}>Continue</Button></div>}
-        </RecipeStage>)}
+        {promptMode === "simple" ? <SimpleRecipe recipe={recipe} capability={capability} onChange={setRecipe} onOpenExpert={() => changeMode("expert")} /> : <section className="recipe-funnel">
+          <nav className="recipe-step-rail" aria-label={`${capability === "music" ? "Music" : "Sound Effect"} recipe steps`}>{stages.map((stage, index) => <button type="button" key={stage} className={activeStage === index ? "is-active" : ""} aria-current={activeStage === index ? "step" : undefined} onClick={() => setActiveStage(index)}><span>{stageSummary(index) ? <Check /> : index + 1}</span><b>{stage}</b></button>)}</nav>
+          <article className="recipe-current-step">
+            <header><span>Step {activeStage + 1} of {stages.length}</span><h3>{stages[activeStage]}</h3>{stageSummary(activeStage) && <p>{stageSummary(activeStage)}</p>}</header>
+            <div className="recipe-current-step-fields">{capability === "music" ? <MusicStage index={activeStage} recipe={recipe} items={items} setPath={setPath} setRecipe={setRecipe} /> : <SfxStage index={activeStage} recipe={recipe} items={items} setPath={setPath} setRecipe={setRecipe} />}</div>
+            <footer>
+              <Button variant="ghost" disabled={activeStage === 0} onClick={() => setActiveStage((current) => Math.max(0, current - 1))}><ArrowLeft />Back</Button>
+              {activeStage < stages.length - 1 && <Button onClick={() => setActiveStage((current) => Math.min(stages.length - 1, current + 1))}>Continue</Button>}
+            </footer>
+          </article>
+        </section>}
+
+        {unresolvedConflicts.length > 0 && <section className="recipe-conflicts" aria-live="polite"><header><b>Choose the direction that should win</b><span>We will not send contradictory instructions.</span></header>{unresolvedConflicts.map((conflict) => <div key={conflict.id}><p><b>{conflict.structured}</b>{conflict.free_text && <><span>conflicts with</span><b>“{conflict.free_text}”</b></>}</p><div><Button variant="outline" size="sm" onClick={() => resolveConflict(conflict.id, "structured")}>Keep structured choice</Button>{conflict.free_text && <Button variant="outline" size="sm" onClick={() => resolveConflict(conflict.id, "brief")}>Keep brief wording</Button>}</div></div>)}</section>}
+
+        <PromptPreview compilation={compilation} compiling={compiling} editing={editingPrompt} override={promptOverride[capability]} onEditing={setEditingPrompt} onOverride={(value) => setPromptOverride((current) => ({ ...current, [capability]: value }))} />
       </div>}
 
-      {unresolvedConflicts.length > 0 && <section className="recipe-conflicts" aria-live="polite"><header><b>Choose the direction that should win</b><span>We will not send contradictory instructions.</span></header>{unresolvedConflicts.map((conflict) => <div key={conflict.id}><p><b>{conflict.structured}</b>{conflict.free_text && <><span>conflicts with</span><b>“{conflict.free_text}”</b></>}</p><div><Button variant="outline" size="sm" onClick={() => resolveConflict(conflict.id, "structured")}>Keep structured choice</Button>{conflict.free_text && <Button variant="outline" size="sm" onClick={() => resolveConflict(conflict.id, "brief")}>Keep brief wording</Button>}</div></div>)}</section>}
+      {(phase === "generating" || phase === "compare") && <VariationWorkspace
+        phase={phase}
+        capability={capability}
+        expectedCount={phase === "compare" ? Math.max(sessionJobIds.length, 1) : recipe.variation_count}
+        items={sessionItems}
+        playingKey={playingKey}
+        playerPlaying={playerPlaying}
+        onPlay={onPlay}
+        onChoose={chooseCandidate}
+      />}
 
-      <PromptPreview compilation={compilation} compiling={compiling} editing={editingPrompt} override={promptOverride[capability]} onEditing={setEditingPrompt} onOverride={(value) => setPromptOverride((current) => ({ ...current, [capability]: value }))} />
+      {phase === "finalize" && selected && <CandidateFinalizer
+        selected={selected}
+        selectedLabel={historySelection ? null : selectedLabel || "A"}
+        selectedActive={selectedActive}
+        name={name}
+        category={category}
+        scope={scope}
+        tags={tags}
+        onName={setName}
+        onCategory={setCategory}
+        onScope={setScope}
+        onTags={setTags}
+        onError={setError}
+        onPlay={onPlay}
+        onRefine={() => refine(selected)}
+        onBack={() => setPhase(sessionJobIds.length > 1 ? "compare" : "compose")}
+      />}
     </main>
 
-    <aside className="asset-inspector asset-generation-inspector" data-state={selectedState}>
-      <RecipePanel recipe={recipe} items={items} compilation={compilation} />
-      <CandidatePanel selected={selected} candidate={candidate} selectedLabel={selectedLabel} selectedActive={selectedActive} name={name} category={category} scope={scope} tags={tags} onName={setName} onCategory={setCategory} onScope={setScope} onTags={setTags} onError={setError} onPlay={onPlay} onRefine={() => selected && refine(selected)} />
-    </aside>
+    <footer className="asset-action-bar asset-generation-actions">
+      <div>
+        <b>{phase === "compose" ? capability === "music" ? "Create music" : "Create a sound effect" : phase === "generating" ? "Creating variations" : phase === "compare" ? "Choose what works" : candidate ? candidateName(selected!) : "Variation unavailable"}</b>
+        <span>{phase === "generating" ? generationStage === "understanding" ? "Understanding the creative direction…" : generationStage === "starting" ? `Starting ${generationProgress} of ${recipe.variation_count}…` : `${sessionItems.filter((item) => item.candidate).length} of ${recipe.variation_count} ready` : phase === "compare" ? "Audition freely. Nothing is kept until you choose it." : phase === "finalize" ? "Name and file the chosen audio before keeping it." : statusCopy}</span>
+      </div>
+      {error && <p role="alert">{error}</p>}
+      {phase === "compose" && <ActionButton busy={generating} busyLabel={generationStage === "understanding" ? "Understanding…" : "Starting…"} disabled={status !== "ready" || !hasCreativeDirection || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length)} onClick={() => void generate()}><Sparkles />Generate {recipe.variation_count} variation{recipe.variation_count === 1 ? "" : "s"}</ActionButton>}
+      {phase === "generating" && <div className="asset-generation-footer-progress"><Progress value={Math.max(generationProgress / recipe.variation_count, ...sessionItems.map((item) => item.progress)) * 100} /><span>{sessionItems.filter((item) => item.candidate).length}/{recipe.variation_count}</span></div>}
+      {phase === "compare" && <><Button variant="outline" onClick={() => setPhase("compose")}><ArrowLeft />Back to recipe</Button><Button variant="ghost" onClick={startFresh}>Start fresh</Button></>}
+      {phase === "finalize" && candidate && !selected?.kept_asset && <><ActionButton variant="ghost" busy={discarding} busyLabel="Discarding…" disabled={Boolean(keeping)} onClick={() => void discard()}><Trash2 />Discard</ActionButton><ActionButton variant="outline" busy={keeping === "library"} busyLabel="Keeping…" disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(false)}><Check />Keep in Library</ActionButton><ActionButton busy={keeping === "place"} busyLabel={mode === "sound" ? "Adding to track…" : "Inserting…"} disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(true)}><Check />{mode === "sound" ? "Keep & Add to Track" : "Keep & Insert"}</ActionButton></>}
+      {phase === "finalize" && selected?.kept_asset && <Button onClick={startFresh}><Sparkles />Create another</Button>}
+    </footer>
+  </section>
+}
 
-    <footer className="asset-action-bar"><div><b>{candidate ? candidateName(selected!) : capability === "music" ? "New music recipe" : "New sound recipe"}</b><span>{generationStage === "understanding" ? "Understanding the creative brief…" : generationStage === "starting" ? `Starting variation ${Math.min(generationProgress + 1, recipe.variation_count)} of ${recipe.variation_count}…` : statusCopy}</span></div>{error && <p role="alert">{error}</p>}{candidate && !selected?.kept_asset ? <><ActionButton variant="outline" busy={generating} busyLabel={generationStage === "understanding" ? "Understanding brief…" : "Starting new variations…"} disabled={status !== "ready" || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length) || Boolean(keeping) || discarding} onClick={() => void generate()}><Sparkles />Generate new</ActionButton><ActionButton variant="ghost" busy={discarding} busyLabel="Discarding…" disabled={Boolean(keeping) || generating} onClick={() => void discard()}><Trash2 />Discard</ActionButton><ActionButton variant="outline" busy={keeping === "library"} busyLabel="Keeping…" disabled={Boolean(keeping) || discarding || generating || !name.trim()} onClick={() => void keep(false)}><Check />Keep in Library</ActionButton><ActionButton busy={keeping === "place"} busyLabel={mode === "sound" ? "Adding to track…" : "Inserting…"} disabled={Boolean(keeping) || discarding || generating || !name.trim()} onClick={() => void keep(true)}><Check />{mode === "sound" ? "Keep & Add to Track" : "Keep & Insert"}</ActionButton></> : <ActionButton busy={generating} busyLabel={generationStage === "understanding" ? "Understanding brief…" : `Starting ${recipe.variation_count} variation${recipe.variation_count === 1 ? "" : "s"}…`} disabled={status !== "ready" || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length)} onClick={() => void generate()}><Sparkles />Generate {recipe.variation_count} variation{recipe.variation_count === 1 ? "" : "s"}</ActionButton>}</footer>
+function ChoiceSwitch({ left, right, checked, onCheckedChange, label }: { left: string; right: string; checked: boolean; onCheckedChange: (checked: boolean) => void; label: string }) {
+  return <div className="asset-choice-switch" role="group" aria-label={label}>
+    <button type="button" className={!checked ? "is-active" : ""} aria-pressed={!checked} onClick={() => onCheckedChange(false)}>{left}</button>
+    <Switch checked={checked} onCheckedChange={onCheckedChange} aria-label={`${label}: ${checked ? right : left}`} />
+    <button type="button" className={checked ? "is-active" : ""} aria-pressed={checked} onClick={() => onCheckedChange(true)}>{right}</button>
+  </div>
+}
+
+function VariationWorkspace({ phase, capability, expectedCount, items, playingKey, playerPlaying, onPlay, onChoose }: {
+  phase: "generating" | "compare"
+  capability: RecipeCapability
+  expectedCount: number
+  items: AudioGenerationHistoryItem[]
+  playingKey?: string
+  playerPlaying: boolean
+  onPlay: (source: PlayerSource) => void
+  onChoose: (jobId: string) => void
+}) {
+  const slots = Array.from({ length: expectedCount }, (_, index) => items[index] || null)
+  const readyCount = items.filter((item) => item.candidate).length
+  return <section className="asset-variation-workspace" aria-live="polite">
+    <header>
+      <span className="asset-variation-workspace-icon">{phase === "generating" ? <LoaderCircle className="is-spinning" /> : <AudioLines />}</span>
+      <div><h2>{phase === "generating" ? `Creating ${expectedCount} ${capability === "music" ? "music" : "sound"} variation${expectedCount === 1 ? "" : "s"}` : "Compare the variations"}</h2><p>{phase === "generating" ? "Each result will appear here as soon as it is ready." : "Listen in any order, then choose one to name and keep."}</p></div>
+      <span className="asset-variation-count">{readyCount}/{expectedCount} ready</span>
+    </header>
+    <div className="asset-variation-grid" data-count={expectedCount}>
+      {slots.map((item, index) => {
+        const label = String.fromCharCode(65 + index)
+        if (!item) return <article className="asset-variation-card is-waiting" key={`pending-${index}`}><header><span>{label}</span><b>Waiting to start</b></header><div className="asset-variation-card-wait"><LoaderCircle className="is-spinning" /><p>Preparing variation {label}</p></div></article>
+        const itemCandidate = item.candidate
+        const active = Boolean(itemCandidate && playerPlaying && playingKey === `generated-candidate:${itemCandidate.candidate_id}`)
+        return <article className="asset-variation-card" data-state={itemCandidate ? "ready" : item.status} key={item.job_id}>
+          <header><span>{label}</span><div><b>{candidateName(item)}</b><small>{itemCandidate ? `${formatDuration(itemCandidate.duration_ms / 1000)} · seed ${itemCandidate.seed}` : variationState(item)}</small></div>{itemCandidate && <OperatorIconButton label={active ? `Pause variation ${label}` : `Play variation ${label}`} detail="Auditioning does not keep or add this audio." onClick={() => onPlay({ key: `generated-candidate:${itemCandidate.candidate_id}`, url: itemCandidate.candidate_url, title: candidateName(item), subtitle: `Temporary variation ${label}`, kind: "asset" })}>{active ? <Pause /> : <Play />}</OperatorIconButton>}</header>
+          {isWorking(item) && <div className="asset-variation-card-progress"><Progress value={item.progress * 100} /><span>{item.detail || "Generating audio…"}</span></div>}
+          {item.status === "failed" && <div className="asset-variation-card-error"><b>Generation failed</b><p>{item.error || "This variation could not be created."}</p></div>}
+          {itemCandidate && <Button onClick={() => onChoose(item.job_id)}>Choose variation {label}</Button>}
+        </article>
+      })}
+    </div>
+  </section>
+}
+
+function CandidateFinalizer({ selected, selectedLabel, selectedActive, name, category, scope, tags, onName, onCategory, onScope, onTags, onError, onPlay, onRefine, onBack }: {
+  selected: AudioGenerationHistoryItem
+  selectedLabel: string | null
+  selectedActive: boolean
+  name: string
+  category: AudioAssetCategory
+  scope: AudioAssetScope
+  tags: string[]
+  onName: (value: string) => void
+  onCategory: (value: AudioAssetCategory) => void
+  onScope: (value: AudioAssetScope) => void
+  onTags: (value: string[]) => void
+  onError: (value: string) => void
+  onPlay: (source: PlayerSource) => void
+  onRefine: () => void
+  onBack: () => void
+}) {
+  const candidate = selected.candidate
+  const selectionName = selectedLabel ? `Chosen variation ${selectedLabel}` : "Previous generation"
+  const auditionName = selectedLabel ? `Variation ${selectedLabel}` : "Generated audio"
+  const playerSubtitle = selectedLabel ? `Temporary variation ${selectedLabel}` : "Previous temporary generation"
+  return <section className="asset-finalize-workspace">
+    <header><Button variant="ghost" onClick={onBack}><ArrowLeft />Back</Button><div><span>{selectionName}</span><h2>Name and keep the audio</h2><p>The sound is still temporary. File it only when it is ready to reuse.</p></div></header>
+    <div className="asset-finalize-layout">
+      <section className="asset-finalize-audition">
+        <div className="asset-finalize-wave"><AudioLines /></div>
+        <div><span>{auditionName}</span><h3>{candidateName(selected)}</h3>{candidate && <p>{formatDuration(candidate.duration_ms / 1000)} · WAV · seed {candidate.seed}</p>}</div>
+        {candidate && <OperatorIconButton label={selectedActive ? "Pause chosen variation" : "Play chosen variation"} detail="Listen again before keeping it." onClick={() => onPlay({ key: `generated-candidate:${candidate.candidate_id}`, url: candidate.candidate_url, title: candidateName(selected), subtitle: playerSubtitle, kind: "asset" })}>{selectedActive ? <Pause /> : <Play />}</OperatorIconButton>}
+        <Button variant="outline" onClick={onRefine}><RotateCcw />Refine recipe</Button>
+      </section>
+      {candidate && !selected.kept_asset && <section className="asset-finalize-form">
+        <label className="asset-field"><span>Name</span><Input value={name} maxLength={120} onChange={(event) => onName(event.target.value)} autoFocus /></label>
+        <div className="asset-finalize-fields"><AssetCategorySelect value={category} onChange={onCategory} /><AssetScopeSelect value={scope} onChange={onScope} /></div>
+        <AssetTagEditor tags={tags} onChange={onTags} onError={onError} />
+      </section>}
+      {selected.kept_asset && <section className="asset-generation-kept"><Check /><span><b>Kept in Audio Library</b><small>{selected.kept_asset.name}</small></span></section>}
+      {!candidate && !selected.kept_asset && <section className="asset-generation-unavailable"><b>Variation unavailable</b><p>{selected.error || "This temporary variation was discarded or expired."}</p><Button variant="outline" onClick={onRefine}>Restore recipe</Button></section>}
+    </div>
   </section>
 }
 
 function SimpleRecipe({ recipe, capability, onChange, onOpenExpert }: { recipe: SoundRecipe; capability: RecipeCapability; onChange: (recipe: SoundRecipe) => void; onOpenExpert: () => void }) {
   return <section className="recipe-simple">
-    <header><span><WandSparkles /></span><div><h3>Describe what you need</h3><p>Write for the production moment. We turn it into an English Stable Audio recipe without changing models.</p></div></header>
+    <header><span><WandSparkles /></span><div><h2>What should we hear?</h2><p>Describe the moment, the source, and how it should feel.</p></div></header>
     <Textarea autoFocus value={recipe.creative_brief} onChange={(event) => onChange({ ...recipe, creative_brief: event.target.value })} placeholder={capability === "music" ? "Gentle music underneath a prayer, intimate and hopeful, with felt piano and soft strings…" : "A heavy wooden church door slams shut nearby, realistic, weighty, with a long natural room tail…"} />
     <div className="recipe-simple-actions"><span>{recipe.creative_brief.trim() ? "Ready to shape" : "Start with the situation and what should be heard"}</span><Button variant="outline" onClick={onOpenExpert}>Shape in Expert</Button></div>
     <GenerationSettings recipe={recipe} onChange={onChange} capability={capability} />
@@ -463,7 +644,7 @@ function InstrumentStage({ recipe, items, onChange }: { recipe: SoundRecipe; ite
 
 function GenerationSettings({ recipe, onChange, capability }: { recipe: SoundRecipe; onChange: (recipe: SoundRecipe) => void; capability: RecipeCapability }) {
   const maximumDuration = capability === "music" ? 120 : 30
-  return <section className="recipe-generation-settings"><header><b>Generation</b><span>Real model parameters</span></header><div><RecipeField label="Duration" help={`Sent to the current ${capability === "music" ? "Music" : "Sound Effect"} service as a real duration parameter (${capability === "music" ? "5–120" : "1–30"} seconds).`}><div className="recipe-duration"><Input type="number" min={capability === "music" ? 5 : 1} max={maximumDuration} value={recipe.duration} onChange={(event) => onChange({ ...recipe, duration: Math.min(maximumDuration, Number(event.target.value)) })} /><span>seconds</span></div></RecipeField><RecipeField label="Variations" help="Each variation is a separate temporary candidate with its actual seed."><ToggleGroup type="single" variant="outline" value={String(recipe.variation_count)} onValueChange={(value) => value && onChange({ ...recipe, variation_count: Number(value) as 1 | 2 | 4 })} aria-label="Number of variations"><ToggleGroupItem value="1">1</ToggleGroupItem><ToggleGroupItem value="2">2</ToggleGroupItem><ToggleGroupItem value="4">4</ToggleGroupItem></ToggleGroup></RecipeField><RecipeField label="Seed (advanced)" help="Random by default. Reuse a seed to reproduce a generation more closely."><Input type="number" min={0} max={2_147_483_647} value={recipe.seed < 0 ? "" : recipe.seed} onChange={(event) => onChange({ ...recipe, seed: event.target.value ? Number(event.target.value) : -1 })} placeholder="Random" /></RecipeField></div></section>
+  return <section className="recipe-generation-settings"><header><b>Output</b></header><div><RecipeField label="Duration" help={`${capability === "music" ? "Music" : "Sound effects"} can be ${capability === "music" ? "5–120" : "1–30"} seconds long.`}><div className="recipe-duration"><Input type="number" min={capability === "music" ? 5 : 1} max={maximumDuration} value={recipe.duration} onChange={(event) => onChange({ ...recipe, duration: Math.min(maximumDuration, Number(event.target.value)) })} /><span>seconds</span></div></RecipeField><RecipeField label="Variations" help="Generate one focused result or several choices to compare."><ToggleGroup type="single" variant="outline" value={String(recipe.variation_count)} onValueChange={(value) => value && onChange({ ...recipe, variation_count: Number(value) as 1 | 2 | 4 })} aria-label="Number of variations"><ToggleGroupItem value="1">1</ToggleGroupItem><ToggleGroupItem value="2">2</ToggleGroupItem><ToggleGroupItem value="4">4</ToggleGroupItem></ToggleGroup></RecipeField></div><Collapsible className="recipe-advanced-settings"><CollapsibleTrigger><span>Advanced</span><ChevronDown /></CollapsibleTrigger><CollapsibleContent><RecipeField label="Seed" help="Leave empty for a new result. Reuse a seed when you want a closer repeat."><Input type="number" min={0} max={2_147_483_647} value={recipe.seed < 0 ? "" : recipe.seed} onChange={(event) => onChange({ ...recipe, seed: event.target.value ? Number(event.target.value) : -1 })} placeholder="Random" /></RecipeField></CollapsibleContent></Collapsible></section>
 }
 
 function RecipeReview({ recipe, items }: { recipe: SoundRecipe; items: TaxonomyItem[] }) {
@@ -471,20 +652,10 @@ function RecipeReview({ recipe, items }: { recipe: SoundRecipe; items: TaxonomyI
   return <section className="recipe-review"><header><span><Sparkles /></span><div><h3>Your {recipe.model_type === "music" ? "music" : "sound"}</h3><p>Read the production brief as a whole. Jump back to any step if something feels wrong.</p></div></header>{recipe.creative_brief && <blockquote>{recipe.creative_brief}</blockquote>}<dl>{summary.map((row) => <div key={row.label}><dt>{row.label}</dt><dd>{row.values.join(" · ")}</dd></div>)}</dl><div className="recipe-review-settings"><span>{recipe.duration}s</span><span>{recipe.variation_count} variation{recipe.variation_count === 1 ? "" : "s"}</span><span>{recipe.seed < 0 ? "Random seeds" : `Seed ${recipe.seed}`}</span></div></section>
 }
 
-function RecipePanel({ recipe, items, compilation }: { recipe: SoundRecipe; items: TaxonomyItem[]; compilation: SoundRecipeCompilation | null }) {
-  const summary = recipeSummary(recipe, items)
-  return <section className="recipe-panel"><header><span><WandSparkles /></span><div><small>Sound Recipe</small><h3>{recipe.model_type === "music" ? "Your music" : "Your sound"}</h3></div></header>{recipe.creative_brief && <p>{recipe.creative_brief}</p>}<dl>{summary.length ? summary.map((row) => <div key={row.label}><dt>{row.label}</dt><dd>{row.values.join(" · ")}</dd></div>) : <div className="recipe-panel-empty">Your choices will collect here as one production brief.</div>}</dl><footer><span>{recipe.duration}s</span><span>{recipe.variation_count} variation{recipe.variation_count === 1 ? "" : "s"}</span>{compilation && <OperatorTooltip label="Versioned recipe" detail={`${compilation.semantic_schema_version} · ${compilation.compiler_version} · ${compilation.taxonomy_version}`}><button type="button">v1</button></OperatorTooltip>}</footer></section>
-}
-
 function PromptPreview({ compilation, compiling, editing, override, onEditing, onOverride }: { compilation: SoundRecipeCompilation | null; compiling: boolean; editing: boolean; override: string | null; onEditing: (value: boolean) => void; onOverride: (value: string | null) => void }) {
   return <Collapsible className="asset-resolved-prompt"><CollapsibleTrigger><span>View prompt sent to Stable Audio</span><span>{compiling ? "Compiling…" : compilation?.model.replace("stable-audio-3-", "")}</span><ChevronDown /></CollapsibleTrigger><CollapsibleContent><div className="recipe-prompt-preview"><p>We translate your selections into a detailed English production prompt for Stable Audio 3.</p>{editing ? <><Textarea value={override ?? compilation?.compiled_prompt ?? ""} onChange={(event) => onOverride(event.target.value)} /><div><Button variant="ghost" size="sm" onClick={() => { onOverride(null); onEditing(false) }}><RotateCcw />Reset generated prompt</Button></div></> : <><blockquote>{compilation?.compiled_prompt || "Choose or describe a sound to build the prompt."}</blockquote><div><OperatorTooltip label="Copy model prompt" detail="Copies the exact English prompt currently compiled for Stable Audio."><Button variant="ghost" size="sm" onClick={() => void navigator.clipboard.writeText(compilation?.compiled_prompt || "")}><Clipboard />Copy</Button></OperatorTooltip><Button variant="ghost" size="sm" onClick={() => { onOverride(compilation?.compiled_prompt || ""); onEditing(true) }}>Edit final prompt</Button></div></>}</div></CollapsibleContent></Collapsible>
 }
 
 function HistoryMenu({ history, selectedJobId, open, onOpenChange, onSelect }: { history: AudioGenerationHistoryItem[]; selectedJobId: string | null; open: boolean; onOpenChange: (value: boolean) => void; onSelect: (value: string) => void }) {
-  return <Popover open={open} onOpenChange={onOpenChange}><PopoverTrigger asChild><Button variant="outline" className="asset-history-trigger" disabled={!history.length}><History /><span>{history.length ? `${history.length} variation${history.length === 1 ? "" : "s"}` : "No variations"}</span><ChevronDown /></Button></PopoverTrigger><PopoverContent align="end" className="asset-history-popover"><Command><CommandInput placeholder="Find a variation…" /><CommandList><CommandEmpty>No matching variation.</CommandEmpty><CommandGroup heading="Recent variations">{history.map((item, index) => { const label = String.fromCharCode(65 + index); const state = variationState(item); return <CommandItem key={item.job_id} value={`${candidateName(item)} ${state} ${item.request.seconds}`} onSelect={() => { onSelect(item.job_id); onOpenChange(false) }}><span className="asset-variation-letter">{label}</span><span className="asset-history-copy"><b>{candidateName(item)}</b><small>{item.request.seconds}s · {item.candidate?.seed ?? item.request.seed ?? "random seed"}</small></span><span className="asset-variation-state" data-state={state.toLocaleLowerCase()}>{state}</span>{selectedJobId === item.job_id && <Check />}</CommandItem> })}</CommandGroup></CommandList></Command></PopoverContent></Popover>
-}
-
-function CandidatePanel({ selected, candidate, selectedLabel, selectedActive, name, category, scope, tags, onName, onCategory, onScope, onTags, onError, onPlay, onRefine }: { selected: AudioGenerationHistoryItem | null; candidate: AudioGenerationHistoryItem["candidate"]; selectedLabel: string; selectedActive: boolean; name: string; category: AudioAssetCategory; scope: AudioAssetScope; tags: string[]; onName: (value: string) => void; onCategory: (value: AudioAssetCategory) => void; onScope: (value: AudioAssetScope) => void; onTags: (value: string[]) => void; onError: (value: string) => void; onPlay: (source: PlayerSource) => void; onRefine: () => void }) {
-  if (!selected) return <section className="recipe-candidate-empty"><FileAudio /><b>No variations yet</b><p>Build the Recipe, generate temporary variations, then keep only what works.</p></section>
-  return <section className="recipe-candidate"><header><small>Variation {selectedLabel}</small><b>{candidateName(selected)}</b></header><div className="asset-generation-audition"><span><FileAudio /></span><div><b>{candidateName(selected)}</b><small>{candidate ? `${formatDuration(candidate.duration_ms / 1000)} · WAV · seed ${candidate.seed}` : selected.error || selected.detail || "Temporary audio is unavailable"}</small></div>{candidate && <OperatorIconButton label={selectedActive ? "Pause variation" : "Audition variation"} detail="Auditioning does not create or place an Asset." onClick={() => onPlay({ key: `generated-candidate:${candidate.candidate_id}`, url: candidate.candidate_url, title: candidateName(selected), subtitle: `Temporary variation ${selectedLabel}`, kind: "asset" })}>{selectedActive ? <Pause /> : <Play />}</OperatorIconButton>}</div>{candidate && !selected.kept_asset ? <><div className="asset-variation-intent"><Button variant="outline" size="sm" onClick={onRefine}><RotateCcw />Refine this Recipe</Button></div><label className="asset-field"><span>Name</span><Input value={name} maxLength={120} onChange={(event) => onName(event.target.value)} /></label><AssetCategorySelect value={category} onChange={onCategory} /><AssetTagEditor tags={tags} onChange={onTags} onError={onError} /><AssetScopeSelect value={scope} onChange={onScope} /></> : selected.kept_asset ? <div className="asset-generation-kept"><Check /><span><b>Kept in Audio Library</b><small>{selected.kept_asset.name}</small></span></div> : isWorking(selected) ? <div className="asset-generation-progress"><Sparkles /><span><b>{selected.detail || "Generating audio…"}</b><small>{Math.round(selected.progress * 100)}% · continue working while it renders</small></span></div> : <div className="asset-generation-unavailable"><p>{selected.error || "This temporary variation was discarded or expired."}</p><Button variant="outline" size="sm" onClick={onRefine}>Restore Recipe</Button></div>}</section>
+  return <Popover open={open} onOpenChange={onOpenChange}><PopoverTrigger asChild><Button variant="outline" className="asset-history-trigger" aria-label="Previous generations" disabled={!history.length}><History /><span>Previous generations</span>{history.length > 0 && <b>{history.length}</b>}<ChevronDown /></Button></PopoverTrigger><PopoverContent align="end" className="asset-history-popover"><Command><CommandInput placeholder="Find a previous generation…" /><CommandList><CommandEmpty>No matching generation.</CommandEmpty><CommandGroup heading="Previous generations">{history.map((item) => { const state = variationState(item); return <CommandItem key={item.job_id} value={`${candidateName(item)} ${state} ${item.request.seconds}`} onSelect={() => { onSelect(item.job_id); onOpenChange(false) }}><span className="asset-history-icon"><History /></span><span className="asset-history-copy"><b>{candidateName(item)}</b><small>{item.request.seconds}s · {item.candidate?.seed ?? item.request.seed ?? "random seed"}</small></span><span className="asset-variation-state" data-state={state.toLocaleLowerCase()}>{state}</span>{selectedJobId === item.job_id && <Check />}</CommandItem> })}</CommandGroup></CommandList></Command></PopoverContent></Popover>
 }

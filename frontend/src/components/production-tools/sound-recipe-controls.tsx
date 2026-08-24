@@ -1,33 +1,14 @@
-import { Check, ChevronDown, CircleHelp, Plus, Search, X } from "lucide-react"
+import { Check, CircleHelp, Plus, Search, X } from "lucide-react"
 import { useMemo, useState, type ReactNode } from "react"
 
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
 
 import { categoryItems, taxonomyLabel, valueId, valueLabel, type SemanticValue, type TaxonomyItem } from "./sound-recipe"
-
-export function RecipeStage({ number, title, summary, open, onOpenChange, children }: {
-  number: number
-  title: string
-  summary: string
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  children: ReactNode
-}) {
-  return <Collapsible open={open} onOpenChange={onOpenChange} className="recipe-stage">
-    <CollapsibleTrigger className="recipe-stage-trigger">
-      <span className="recipe-stage-number">{summary ? <Check /> : number}</span>
-      <span className="recipe-stage-heading"><b>{title}</b><small>{summary || "Optional — shape only what matters"}</small></span>
-      <ChevronDown />
-    </CollapsibleTrigger>
-    <CollapsibleContent><div className="recipe-stage-content">{children}</div></CollapsibleContent>
-  </Collapsible>
-}
 
 export function RecipeField({ label, help, children }: {
   label: string

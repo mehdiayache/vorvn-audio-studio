@@ -10,7 +10,15 @@ import { studioApi } from "@/lib/api"
 
 const assets = [{ id: 11, title: "Harbor Intro", folder: "Intros", filename: "harbor.wav", duration_ms: 8_400 }]
 Element.prototype.scrollIntoView = vi.fn()
-afterEach(() => cleanup())
+globalThis.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
+})
 
 describe("AssetTool", () => {
   it("keeps source navigation on top and names every Library filter explicitly", () => {
@@ -61,7 +69,7 @@ describe("AssetTool", () => {
     const view = within(container)
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     await waitFor(() => expect(status).toHaveBeenCalled())
-    expect(view.getByRole("tab", { name: "Sound Effect" }).getAttribute("aria-selected")).toBe("true")
+    expect(view.getByRole("button", { name: "Sound Effect" }).getAttribute("aria-pressed")).toBe("true")
     fireEvent.change(view.getByPlaceholderText(/heavy wooden church door/i), { target: { value: "A dry match strikes once in a quiet room" } })
     fireEvent.click(view.getByRole("radio", { name: "1" }))
     await waitFor(() => expect(compile).toHaveBeenCalled())
@@ -78,6 +86,111 @@ describe("AssetTool", () => {
     })))
     expect(onKeepGenerated).not.toHaveBeenCalled()
     status.mockRestore(); recent.mockRestore(); taxonomy.mockRestore(); compile.mockRestore(); normalize.mockRestore(); enqueue.mockRestore()
+  })
+
+  it("opens Generate as a fresh composition instead of selecting previous audio", async () => {
+    const status = vi.spyOn(studioApi, "audioGenerationStatus").mockResolvedValue({
+      configured: true, sfx_ready: true, music_ready: true, reason: "", models: {},
+    })
+    const recent = vi.spyOn(studioApi, "recentAudioGenerations").mockResolvedValue([{
+      job_id: "old-job",
+      status: "succeeded",
+      progress: 1,
+      detail: "Ready",
+      error: null,
+      candidate_available: true,
+      request: {
+        capability: "sfx", resolved_prompt: "Old ceramic tea cup", source_free_text: "Old ceramic tea cup",
+        authored_prompt: null, semantic_state: null, prompt_mode: "simple", seconds: 3, seed: 41,
+      },
+      candidate: {
+        candidate_id: "old-candidate", candidate_url: "/old.wav", capability: "sfx",
+        prompt: "Old ceramic tea cup", prompt_mode: "simple", seconds: 3, seed: 41,
+        duration_ms: 3_000, audio_format: "wav", size_bytes: 400,
+      },
+      kept_asset: null,
+    }])
+    const taxonomy = vi.spyOn(studioApi, "soundRecipeTaxonomy").mockResolvedValue({ version: "audio-taxonomy-v1", items: [] })
+    const compile = vi.spyOn(studioApi, "compileSoundRecipe").mockResolvedValue({
+      capability: "sfx", semantic_state: {}, source_free_text: "", compiled_prompt: "",
+      conflicts: [], model: "stable-audio-3-small-sfx", semantic_schema_version: "sfx-semantic-v2",
+      compiler_version: "sfx-compiler-v2", taxonomy_version: "audio-taxonomy-v1",
+    })
+
+    const { container } = render(<AssetTool assets={assets} mode="sound" productionId={81} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} onKeepGenerated={vi.fn()} />)
+    const view = within(container)
+    fireEvent.click(view.getByRole("tab", { name: "Generate" }))
+    await waitFor(() => expect(recent).toHaveBeenCalled())
+
+    expect(view.getByRole("heading", { name: "What should we hear?" })).toBeTruthy()
+    expect(view.getByRole("button", { name: "Previous generations" }).textContent).toContain("1")
+    expect(view.getByRole("button", { name: "Generate 4 variations" }).hasAttribute("disabled")).toBe(true)
+    expect(view.queryByText("Name and keep the audio")).toBeNull()
+    expect(view.queryByRole("button", { name: "Keep in Library" })).toBeNull()
+
+    fireEvent.click(view.getByRole("button", { name: "Previous generations" }))
+    fireEvent.click(screen.getByRole("option", { name: /Old ceramic tea cup/ }))
+    expect(view.getByText("Previous generation")).toBeTruthy()
+    expect(view.queryByText("Chosen variation A")).toBeNull()
+
+    status.mockRestore(); recent.mockRestore(); taxonomy.mockRestore(); compile.mockRestore()
+  })
+
+  it("moves one generation through compare and deliberate finalization", async () => {
+    vi.spyOn(studioApi, "audioGenerationStatus").mockResolvedValue({
+      configured: true, sfx_ready: true, music_ready: true, reason: "", models: {},
+    })
+    vi.spyOn(studioApi, "soundRecipeTaxonomy").mockResolvedValue({ version: "audio-taxonomy-v1", items: [] })
+    vi.spyOn(studioApi, "compileSoundRecipe").mockResolvedValue({
+      capability: "sfx", semantic_state: {}, source_free_text: "",
+      compiled_prompt: "A close wooden knock.", conflicts: [],
+      model: "stable-audio-3-small-sfx", semantic_schema_version: "sfx-semantic-v2",
+      compiler_version: "sfx-compiler-v2", taxonomy_version: "audio-taxonomy-v1",
+    })
+    vi.spyOn(studioApi, "normalizeSoundRecipe").mockImplementation(async (payload) => ({
+      capability: "sfx", semantic_state: payload.semantic_state, source_free_text: payload.source_free_text,
+      compiled_prompt: "A close wooden knock.", conflicts: [], model: "stable-audio-3-small-sfx",
+      semantic_schema_version: "sfx-semantic-v2", compiler_version: "sfx-compiler-v2",
+      taxonomy_version: "audio-taxonomy-v1", normalization_model: "qwen3.7-plus",
+      normalization_cost: 0.00001, usage: {},
+    }))
+    const readyItem = {
+      job_id: "new-job", status: "succeeded", progress: 1, detail: "Ready", error: null,
+      candidate_available: true,
+      request: {
+        capability: "sfx", resolved_prompt: "A close wooden knock", source_free_text: "A close wooden knock",
+        authored_prompt: null, semantic_state: null, prompt_mode: "simple", seconds: 2, seed: 73,
+      },
+      candidate: {
+        candidate_id: "new-candidate", candidate_url: "/new.wav", capability: "sfx",
+        prompt: "A close wooden knock", prompt_mode: "simple", seconds: 2, seed: 73,
+        duration_ms: 2_000, audio_format: "wav", size_bytes: 400,
+      },
+      kept_asset: null,
+    }
+    let recentItems: typeof readyItem[] = []
+    vi.spyOn(studioApi, "recentAudioGenerations").mockImplementation(async () => recentItems)
+    vi.spyOn(studioApi, "enqueueAudioGeneration").mockImplementation(async () => {
+      recentItems = [readyItem]
+      return {
+        id: "new-job", type: "audio_generate", status: "queued", progress: 0, detail: "Queued", retries: 0,
+        result: { ...readyItem.candidate, candidate_url: "", duration_ms: 0, size_bytes: 0 },
+      }
+    })
+
+    const { container } = render(<AssetTool assets={assets} mode="sound" productionId={81} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} onKeepGenerated={vi.fn()} />)
+    const view = within(container)
+    fireEvent.click(view.getByRole("tab", { name: "Generate" }))
+    fireEvent.change(view.getByPlaceholderText(/heavy wooden church door/i), { target: { value: "A close wooden knock" } })
+    fireEvent.click(view.getByRole("radio", { name: "1" }))
+    await waitFor(() => expect(view.getByRole("button", { name: "Generate 1 variation" }).hasAttribute("disabled")).toBe(false))
+    fireEvent.click(view.getByRole("button", { name: "Generate 1 variation" }))
+
+    await waitFor(() => expect(view.getByRole("heading", { name: "Compare the variations" })).toBeTruthy())
+    expect(view.queryByRole("button", { name: "Keep in Library" })).toBeNull()
+    fireEvent.click(view.getByRole("button", { name: "Choose variation A" }))
+    expect(view.getByRole("heading", { name: "Name and keep the audio" })).toBeTruthy()
+    expect(view.getByRole("button", { name: "Keep in Library" })).toBeTruthy()
   })
 
   it("keeps audition separate from explicit insertion", async () => {
