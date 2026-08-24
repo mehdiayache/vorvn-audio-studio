@@ -411,11 +411,22 @@ export function GenerationWorkspace({
             <p>Choose the audio and the amount of creative control. Both can be changed before generation.</p>
           </header>
           <div className="asset-generation-setup-choices">
-            <section>
+            <section className="asset-generation-type-choice">
               <b>Audio type</b>
-              <ChoiceSwitch left="Sound Effect" right="Music" checked={capability === "music"} onCheckedChange={(checked) => setCapability(checked ? "music" : "sfx")} label="Audio type" />
+              <div className="asset-type-cards" role="group" aria-label="Audio type">
+                <button type="button" className={capability === "sfx" ? "is-active" : ""} aria-label="Sound Effect" aria-pressed={capability === "sfx"} onClick={() => setCapability("sfx")}>
+                  <span><AudioLines /></span>
+                  <div><strong>Sound Effect</strong><small>Foley, ambience, impacts and transitions</small></div>
+                  <Check aria-hidden="true" />
+                </button>
+                <button type="button" className={capability === "music" ? "is-active" : ""} aria-label="Music" aria-pressed={capability === "music"} onClick={() => setCapability("music")}>
+                  <span><Music2 /></span>
+                  <div><strong>Music</strong><small>Beds, underscore, themes and stingers</small></div>
+                  <Check aria-hidden="true" />
+                </button>
+              </div>
             </section>
-            <section>
+            <section className="asset-generation-mode-choice">
               <b>Creation mode</b>
               <ChoiceSwitch left="Simple" right="Expert" checked={promptMode === "expert"} onCheckedChange={(checked) => changeMode(checked ? "expert" : "simple")} label="Creation mode" />
             </section>

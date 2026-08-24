@@ -78,6 +78,7 @@
 .ws-collapsed-context > svg { width: .85rem; color: var(--primary); }
 .ws-collapsed-context.is-playing b { color: var(--primary); }
 .ws-center-pane { container-type: inline-size; overflow: auto; overscroll-behavior: contain; background: white; }
+.production-workstation[data-stage="sound"] .ws-center-pane { overflow: hidden; overscroll-behavior: none; }
 .ws-right-pane { position: relative; z-index: 3; display: grid; grid-template-rows: auto minmax(0, 1fr); box-shadow: 0 14px 38px rgb(var(--shadow-color) / 10%); animation: ws-inspector-in 180ms ease-out; }
 @keyframes ws-inspector-in { from { opacity: .6; transform: translateX(12px); } }
 .ws-right-pane > header { min-height: 3.15rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .55rem .7rem .55rem 1rem; border-bottom: 1px solid var(--border); }

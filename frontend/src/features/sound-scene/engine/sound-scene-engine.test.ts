@@ -124,13 +124,31 @@ describe("SoundSceneSession", () => {
     }
     const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, playout)
 
-    await session.addTrack({ id: 22, title: "Outro", duration_ms: 8_000 }, 3)
+    await session.addTrack({ id: 22, title: "Outro", category: "outro", duration_ms: 8_000 }, 3)
 
     const document = update.mock.calls[0]![0]
     expect(document.tracks).toHaveLength(2)
     expect(document.tracks[0].clips[0].asset_id).toBe(9)
     expect(document.tracks[1].clips[0].asset_id).toBe(22)
     expect(document.tracks[1].clips[0].anchor.position_ms).toBe(3_000)
+    expect(document.tracks[1].clips[0]).toMatchObject({ gain: 1, duration_ms: 8_000, loop: false, ducking: false })
+    session.dispose()
+  })
+
+  it("uses bed defaults only for Music and Ambience, not one-shot audio", async () => {
+    const source = scene()
+    const update = vi.fn().mockImplementation(async (document) => ({ ...source, revision: 2, document }))
+    const playout = {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(),
+      seek: vi.fn(), currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(false),
+      muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    }
+    const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, playout)
+
+    await session.addTrack({ id: 23, title: "Bed", category: "music", duration_ms: 15_000 }, 0)
+
+    const music = update.mock.calls[0]![0].tracks[1].clips[0]
+    expect(music).toMatchObject({ gain: .18, duration_ms: null, loop: true, ducking: true })
     session.dispose()
   })
 

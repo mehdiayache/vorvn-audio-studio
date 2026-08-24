@@ -64,6 +64,23 @@ export function AudioClipInspector({ track, clip, playingKey, playing, onPlay, o
   const sourceDuration = Math.max(Number(clip.source_duration_ms || 0) / 1000, 0.1)
   const usedDuration = Math.max(windowDuration, .1)
   const geometryLocked = Boolean(clip.locked)
+  const effectiveGainDb = Math.max(MIN_GAIN_DB, clipGainDb + trackGainDb)
+  const effectivelyVeryQuiet = !track.muted && effectiveGainDb <= -36
+  const oneShotAtBedLevel = Boolean(clip.asset_kind && !["music", "ambience"].includes(clip.asset_kind) && clipGainDb <= -12)
+  const duckAmountLabel = duckAmountDb === 0 ? "No reduction" : formatDb(duckAmountDb)
+
+  function restoreTrackLevel() {
+    setTrackGainDb(0)
+    onTrackVolumeChange(1)
+    void save("track level", () => onTrackVolumeCommit(1))
+  }
+
+  function restoreClipLevel() {
+    setClipGainDb(0)
+    onClipChange({ gain: 1 })
+    void save("clip level", onClipCommit)
+  }
+
   return <div className="music-workbench-content">
     <section className="music-workbench-source">
       <span className="music-workbench-art"><Music2 /></span>
@@ -85,14 +102,21 @@ export function AudioClipInspector({ track, clip, playingKey, playing, onPlay, o
       />
       <label title="Changes only this audio placement"><span><Headphones /> Clip gain <b>{formatDb(clipGainDb)}</b></span><Slider aria-label="Audio clip gain" disabled={Boolean(saving)} value={[clipGainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setClipGainDb(value); onClipChange({ gain: dbToGain(value) }) }} onValueCommit={([value = clipGainDb]) => { setClipGainDb(value); onClipChange({ gain: dbToGain(value) }); void save("clip gain", onClipCommit) }} /></label>
       <label title={`Changes every clip on ${track.name}`}><span><Music2 /> Track gain <b>{formatDb(trackGainDb)}</b></span><Slider aria-label="Audio Track gain" disabled={Boolean(saving)} value={[trackGainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setTrackGainDb(value); onTrackVolumeChange(dbToGain(value)) }} onValueCommit={([value = trackGainDb]) => { setTrackGainDb(value); void save("track gain", () => onTrackVolumeCommit(dbToGain(value))) }} /></label>
+      {(effectivelyVeryQuiet || oneShotAtBedLevel) && <aside className="music-level-warning" role="status">
+        <div><b>{oneShotAtBedLevel ? "This sound is set like a quiet music bed" : "Very quiet in this scene"}</b><p>Clip {formatDb(clipGainDb)} + {track.name} {formatDb(trackGainDb)} = {formatDb(effectiveGainDb)} before narration lowering.</p></div>
+        <Button variant="outline" size="sm" disabled={Boolean(saving)} onClick={oneShotAtBedLevel ? restoreClipLevel : restoreTrackLevel}>{oneShotAtBedLevel ? "Set clip to 0 dB" : "Reset track to 0 dB"}</Button>
+      </aside>}
       <div className="music-fade-grid">
         <label><span>Fade in <b>{fadeIn.toFixed(1)}s</b></span><Slider aria-label="Audio fade in" disabled={Boolean(saving) || geometryLocked} value={[fadeIn]} max={15} step={0.1} onValueChange={([value = 0]) => { setFadeIn(value); onClipChange({ fade_in_ms: Math.round(value * 1000) }) }} onValueCommit={([value = fadeIn]) => { setFadeIn(value); onClipChange({ fade_in_ms: Math.round(value * 1000) }); void save("fade in", onClipCommit) }} /></label>
         <label><span>Fade out <b>{fadeOut.toFixed(1)}s</b></span><Slider aria-label="Audio fade out" disabled={Boolean(saving) || geometryLocked} value={[fadeOut]} max={15} step={0.1} onValueChange={([value = 0]) => { setFadeOut(value); onClipChange({ fade_out_ms: Math.round(value * 1000) }) }} onValueCommit={([value = fadeOut]) => { setFadeOut(value); onClipChange({ fade_out_ms: Math.round(value * 1000) }); void save("fade out", onClipCommit) }} /></label>
       </div>
       <SwitchLike label="Loop source" checked={Boolean(clip.loop)} disabled={Boolean(saving) || geometryLocked} onChange={(loop) => { onClipChange({ loop }); void save("looping", onClipCommit) }} />
-      <SwitchLike label="Duck under Sequence" checked={Boolean(clip.ducking)} disabled={Boolean(saving)} onChange={(ducking) => { onClipChange({ ducking }); void save("ducking", onClipCommit) }} />
-      {clip.ducking && <label className="music-duck-amount"><span>Duck amount <b>{formatDb(duckAmountDb)}</b></span><Slider aria-label="Duck amount under Sequence" disabled={Boolean(saving)} value={[duckAmountDb]} min={-30} max={0} step={1} onValueChange={([value = -12]) => { setDuckAmountDb(value); onClipChange({ duck_amount_db: value }) }} onValueCommit={([value = duckAmountDb]) => { setDuckAmountDb(value); onClipChange({ duck_amount_db: value }); void save("duck amount", onClipCommit) }} /></label>}
-      <p className="music-track-state">Starts at {formatDuration(Number(clip.resolved_start_ms || 0) / 1000)} · {track.muted ? "Track muted" : "Track audible"}</p>
+      <div className="music-duck-control">
+        <SwitchLike label="Lower while narration plays" checked={Boolean(clip.ducking)} disabled={Boolean(saving)} onChange={(ducking) => { onClipChange({ ducking }); void save("narration lowering", onClipCommit) }} />
+        <p>The audio returns to its normal level between spoken Parts.</p>
+        {clip.ducking && <label className="music-duck-amount"><span>Speech reduction <b>{duckAmountLabel}</b></span><Slider aria-label="Speech reduction" disabled={Boolean(saving)} value={[duckAmountDb]} min={-30} max={0} step={1} onValueChange={([value = -12]) => { setDuckAmountDb(value); onClipChange({ duck_amount_db: value }) }} onValueCommit={([value = duckAmountDb]) => { setDuckAmountDb(value); onClipChange({ duck_amount_db: value }); void save("speech reduction", onClipCommit) }} /></label>}
+      </div>
+      <p className="music-track-state">Starts at {formatDuration(Number(clip.resolved_start_ms || 0) / 1000)} · {track.muted ? "Track muted" : effectivelyVeryQuiet ? "Technically active, but nearly silent" : `Combined level ${formatDb(effectiveGainDb)}`}</p>
       <p className={`music-save-state${error ? " is-error" : ""}`} role={error ? "alert" : "status"} aria-live="polite">{error || (saving ? `Saving ${saving}…` : "Saved on release")}</p>
     </section>
 

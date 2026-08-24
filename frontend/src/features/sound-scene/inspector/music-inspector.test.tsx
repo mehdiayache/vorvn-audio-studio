@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@/components/ui/slider", () => ({
   Slider: ({ "aria-label": label, onValueChange, onValueCommit, disabled }: { "aria-label"?: string; onValueChange?: (value: number[]) => void; onValueCommit?: (value: number[]) => void; disabled?: boolean }) => {
-    const value = label === "Audio clip gain" ? -12 : label === "Audio Track gain" ? -3 : label === "Audio fade in" ? 1.5 : label === "Duck amount under Sequence" ? -18 : 3.5
+    const value = label === "Audio clip gain" ? -12 : label === "Audio Track gain" ? -3 : label === "Audio fade in" ? 1.5 : label === "Speech reduction" ? -18 : 3.5
     return <button type="button" aria-label={label} disabled={disabled} onClick={() => { onValueChange?.([value]); onValueCommit?.([value]) }} />
   },
 }))
@@ -34,7 +34,7 @@ describe("AudioClipInspector", () => {
     fireEvent.click(screen.getByRole("button", { name: "Move source window" }))
     expect(onClipChange).toHaveBeenCalledWith({ source_offset_ms: 5_500, duration_ms: null })
     await waitFor(() => expect(onClipCommit).toHaveBeenCalledTimes(2))
-    fireEvent.click(screen.getByRole("button", { name: "Duck amount under Sequence" }))
+    fireEvent.click(screen.getByRole("button", { name: "Speech reduction" }))
     expect(onClipChange).toHaveBeenCalledWith({ duck_amount_db: -18 })
     await waitFor(() => expect(onClipCommit).toHaveBeenCalledTimes(3))
   })
@@ -61,5 +61,28 @@ describe("AudioClipInspector", () => {
     expect(screen.getByRole("button", { name: "Audio fade in" }).hasAttribute("disabled")).toBe(true)
     expect(screen.getByRole("button", { name: "Audio clip gain" }).hasAttribute("disabled")).toBe(false)
     expect(screen.getByText(/Levels and effects remain available/)).toBeTruthy()
+  })
+
+  it("explains an effectively silent two-stage mix and can restore the track level", async () => {
+    const onTrackVolumeChange = vi.fn()
+    const onTrackVolumeCommit = vi.fn().mockResolvedValue(undefined)
+    render(<AudioClipInspector track={{ ...track, volume: .06 }} clip={clip} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackVolumeChange={onTrackVolumeChange} onTrackVolumeCommit={onTrackVolumeCommit} onChoose={vi.fn()} onRemove={vi.fn()} />)
+
+    expect(screen.getByText("Very quiet in this scene")).toBeTruthy()
+    expect(screen.getByText(/before narration lowering/).textContent).toContain("-44.4 dB")
+    fireEvent.click(screen.getByRole("button", { name: "Reset track to 0 dB" }))
+    expect(onTrackVolumeChange).toHaveBeenCalledWith(1)
+    await waitFor(() => expect(onTrackVolumeCommit).toHaveBeenCalledWith(1))
+  })
+
+  it("recognizes a one-shot sound accidentally using music-bed gain", async () => {
+    const onClipChange = vi.fn()
+    const onClipCommit = vi.fn().mockResolvedValue(undefined)
+    render(<AudioClipInspector track={track} clip={{ ...clip, asset_kind: "sfx" }} playing={false} onPlay={vi.fn()} onClipChange={onClipChange} onClipCommit={onClipCommit} onTrackVolumeChange={vi.fn()} onTrackVolumeCommit={vi.fn()} onChoose={vi.fn()} onRemove={vi.fn()} />)
+
+    expect(screen.getByText("This sound is set like a quiet music bed")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Set clip to 0 dB" }))
+    expect(onClipChange).toHaveBeenCalledWith({ gain: 1 })
+    await waitFor(() => expect(onClipCommit).toHaveBeenCalledTimes(1))
   })
 })

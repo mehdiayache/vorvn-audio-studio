@@ -203,14 +203,16 @@ export class SoundSceneSession {
 
   private audioClip(asset: VentureAsset, positionMs: number, followSequence: boolean): SoundSceneClip {
     const sourceDuration = Math.max(100, Number(asset.duration_ms || 30_000))
+    const category = String(asset.category || asset.kind || "").toLowerCase()
+    const isBed = followSequence && (category === "music" || category === "ambience")
     return {
       id: crypto.randomUUID(), asset_id: asset.id,
       asset_version_id: Number(asset.version_id) || null,
-      duration_ms: followSequence ? null : sourceDuration,
-      source_offset_ms: 0, gain: followSequence ? .18 : 1,
-      fade_in_ms: followSequence ? 2_000 : 0,
-      fade_out_ms: followSequence ? 3_000 : 0,
-      loop: followSequence, ducking: followSequence, duck_amount_db: -12,
+      duration_ms: isBed ? null : sourceDuration,
+      source_offset_ms: 0, gain: isBed ? .18 : 1,
+      fade_in_ms: isBed ? 2_000 : 0,
+      fade_out_ms: isBed ? 3_000 : 0,
+      loop: isBed, ducking: isBed, duck_amount_db: -12,
       muted: false, locked: false, effects: [],
       anchor: { kind: "absolute", position_ms: positionMs },
     }
