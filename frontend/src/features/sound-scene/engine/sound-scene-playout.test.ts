@@ -171,6 +171,34 @@ describe("SoundScenePlayout", () => {
     vi.unstubAllGlobals()
   })
 
+  it("adopts a saved track-volume change without rebuilding or silencing active clips", async () => {
+    const source = scene()
+    const playout = new SoundScenePlayout(source)
+    await playout.play(0)
+    const adapter = mocks.adapters[0]!
+    adapter.setTrackVolume.mockClear()
+    adapter.updateTrack.mockClear()
+    adapter.seek.mockClear()
+    adapter.pause.mockClear()
+
+    const saved = structuredClone(source)
+    saved.revision = 2
+    saved.document.tracks[0]!.volume = .55
+    saved.resolved.tracks[0]!.volume = .55
+    saved.resolved.signature = "saved-track-volume"
+    playout.adopt(saved)
+
+    expect(adapter.setTrackVolume).toHaveBeenCalledTimes(2)
+    expect(adapter.setTrackVolume.mock.calls.every(([, volume]) => volume > 0)).toBe(true)
+    expect(adapter.updateTrack).not.toHaveBeenCalled()
+    expect(adapter.seek).not.toHaveBeenCalled()
+    expect(adapter.pause).not.toHaveBeenCalled()
+    expect(playout.isPlaying()).toBe(true)
+
+    playout.dispose()
+    vi.unstubAllGlobals()
+  })
+
   it("previews Music mute, fades and effects locally on the prepared clip", async () => {
     const source = scene()
     const clipId = source.document.tracks[0]!.clips[0]!.id

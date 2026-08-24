@@ -29,6 +29,18 @@ export type SoundScenePersistence = {
   redo: () => Promise<SoundScene>
 }
 
+function assetTrackName(asset?: VentureAsset) {
+  return String(asset?.title || asset?.name || "Audio").trim() || "Audio"
+}
+
+export function soundTrackDisplayName(track: SoundSceneTrack) {
+  const legacyGeneratedName = track.name === "Music" || /^Audio \d+$/.test(track.name)
+  if (legacyGeneratedName && track.clips.length === 1 && track.clips[0]?.asset_name)
+    return track.clips[0].asset_name
+  if (legacyGeneratedName) return "Audio"
+  return track.name || "Audio"
+}
+
 type Playout = Pick<SoundScenePlayout,
   "replace" | "play" | "pause" | "seek" | "currentTime" | "isPlaying" |
   "muteTrack" | "setTrackVolume" | "setClipGain" | "dispose"
@@ -253,7 +265,7 @@ export class SoundSceneSession {
     const id = `audio-${crypto.randomUUID()}`
     const clip = asset ? this.audioClip(asset, Math.max(0, Math.round(timelinePosition * 1000)), true) : null
     await this.persist(this.nextDocument((document) => document.tracks.push({
-      id, kind: "audio", name: `Audio ${document.tracks.length + 1}`,
+      id, kind: "audio", name: assetTrackName(asset),
       volume: 1, muted: false, clips: clip ? [clip] : [],
     })))
     if (clip) this.select({ kind: "clip", trackId: id, clipId: clip.id })
@@ -272,9 +284,25 @@ export class SoundSceneSession {
     await this.persist(this.nextDocument((document) => {
       const track = document.tracks.find((item) => item.id === trackId)
       if (!track) throw new Error("That Audio Track is no longer available.")
+      if (!track.clips.length && (track.name === "Audio" || /^Audio \d+$/.test(track.name)))
+        track.name = assetTrackName(asset)
+      else if (track.clips.length === 1 && (
+        track.name === "Music" || /^Audio \d+$/.test(track.name)
+        || track.name === String(track.clips[0]?.asset_name || "").trim()
+      )) track.name = "Audio"
       track.clips.push(clip)
     }))
     this.select({ kind: "clip", trackId, clipId: clip.id })
+  }
+
+  async renameTrack(trackId: string, name: string) {
+    const next = name.trim()
+    if (!next) throw new Error("Track name cannot be empty.")
+    await this.persist(this.nextDocument((document) => {
+      const track = document.tracks.find((item) => item.id === trackId)
+      if (!track) throw new Error("That Audio Track is no longer available.")
+      track.name = next.slice(0, 80)
+    }))
   }
 
   async replaceClipSource(trackId: string, clipId: string, asset: VentureAsset) {

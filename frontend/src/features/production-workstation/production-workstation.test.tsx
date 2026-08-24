@@ -141,7 +141,7 @@ describe("Production Workstation", () => {
 
     expect(screen.getByText("Narrator")).toBeTruthy()
     expect(screen.getByText("Door closes")).toBeTruthy()
-    expect(screen.getByText("Quiet room")).toBeTruthy()
+    expect(screen.getAllByText("Quiet room")).toHaveLength(2)
     expect(screen.getByText("2 audio · 1 pause")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Pause Part 02 · 1.5 seconds" }).className).toContain("sound-sequence-silence")
     expect(screen.getByRole("button", { name: "Undo Sound edit" })).toBeTruthy()
@@ -155,8 +155,8 @@ describe("Production Workstation", () => {
     musicTrack.muted = true
     render(<SoundSceneWorkspace session={sessionFor(soundScene)} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
-    expect(screen.getByRole("slider", { name: "Music gain" }).getAttribute("aria-disabled")).not.toBe("true")
-    expect(screen.getByRole("button", { name: "Unmute Music" })).toBeTruthy()
+    expect(screen.getByRole("slider", { name: "Quiet room gain" }).getAttribute("aria-disabled")).not.toBe("true")
+    expect(screen.getByRole("button", { name: "Unmute Quiet room" })).toBeTruthy()
   })
 
   it("keeps essential track mixing available in the compact rail", () => {
@@ -165,17 +165,17 @@ describe("Production Workstation", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Hide track controls" }))
 
-    expect(screen.getByRole("button", { name: "Adjust Music gain" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Track actions for Music" })).toBeTruthy()
-    expect(screen.queryByRole("button", { name: "Add clip to Music" })).toBeNull()
+    expect(screen.getByRole("button", { name: "Adjust Quiet room gain" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Track actions for Quiet room" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Add audio clip to Quiet room" })).toBeNull()
 
-    fireEvent.click(screen.getByRole("button", { name: "Adjust Music gain" }))
-    expect(screen.getByRole("slider", { name: "Music gain" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Adjust Quiet room gain" }))
+    expect(screen.getByRole("slider", { name: "Quiet room gain" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Mute track" })).toBeTruthy()
 
     fireEvent.keyDown(document, { key: "Escape" })
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Track actions for Music" }), { button: 0, ctrlKey: false, pointerType: "mouse" })
-    fireEvent.click(screen.getByRole("menuitem", { name: "Remove “Music”" }))
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Track actions for Quiet room" }), { button: 0, ctrlKey: false, pointerType: "mouse" })
+    fireEvent.click(screen.getByRole("menuitem", { name: "Remove “Quiet room”" }))
     expect(onRemoveTrack).toHaveBeenCalledWith(expect.objectContaining({ id: "music", name: "Music" }))
   })
 

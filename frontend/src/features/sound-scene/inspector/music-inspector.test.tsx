@@ -60,29 +60,24 @@ describe("AudioClipInspector", () => {
     expect(screen.getByRole("button", { name: /Remove clip/ }).hasAttribute("disabled")).toBe(true)
     expect(screen.getByRole("button", { name: "Audio fade in" }).hasAttribute("disabled")).toBe(true)
     expect(screen.getByRole("button", { name: "Audio clip gain" }).hasAttribute("disabled")).toBe(false)
-    expect(screen.getByText(/Levels and effects remain available/)).toBeTruthy()
+    expect(screen.getByText(/Level and effects remain available/)).toBeTruthy()
   })
 
-  it("explains an effectively silent two-stage mix and can restore the track level", async () => {
+  it("shows the factual combined output without prescribing a reset", () => {
     const onTrackVolumeChange = vi.fn()
     const onTrackVolumeCommit = vi.fn().mockResolvedValue(undefined)
     render(<AudioClipInspector track={{ ...track, volume: .06 }} clip={clip} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackVolumeChange={onTrackVolumeChange} onTrackVolumeCommit={onTrackVolumeCommit} onChoose={vi.fn()} onRemove={vi.fn()} />)
 
-    expect(screen.getByText("Very quiet in this scene")).toBeTruthy()
-    expect(screen.getByText(/before narration lowering/).textContent).toContain("-44.4 dB")
-    fireEvent.click(screen.getByRole("button", { name: "Reset track to 0 dB" }))
-    expect(onTrackVolumeChange).toHaveBeenCalledWith(1)
-    await waitFor(() => expect(onTrackVolumeCommit).toHaveBeenCalledWith(1))
+    expect(screen.getByText(/Output -44.4 dB/)).toBeTruthy()
+    expect(screen.queryByText(/Very quiet|music bed|Reset track/)).toBeNull()
   })
 
-  it("recognizes a one-shot sound accidentally using music-bed gain", async () => {
-    const onClipChange = vi.fn()
-    const onClipCommit = vi.fn().mockResolvedValue(undefined)
-    render(<AudioClipInspector track={track} clip={{ ...clip, asset_kind: "sfx" }} playing={false} onPlay={vi.fn()} onClipChange={onClipChange} onClipCommit={onClipCommit} onTrackVolumeChange={vi.fn()} onTrackVolumeCommit={vi.fn()} onChoose={vi.fn()} onRemove={vi.fn()} />)
+  it("shows canonical SFX identity and rich technical metadata", () => {
+    render(<AudioClipInspector track={track} clip={{ ...clip, asset_kind: "sfx" }} asset={{ id: 9, title: "Door latch", category: "sfx", duration_ms: 60_000, audio_format: "wav", sample_rate: 48_000, channels: 2, metadata: { origin: "generated", model: "stable-audio-3-small-sfx" } }} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackVolumeChange={vi.fn()} onTrackVolumeCommit={vi.fn()} onChoose={vi.fn()} onRemove={vi.fn()} />)
 
-    expect(screen.getByText("This sound is set like a quiet music bed")).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Set clip to 0 dB" }))
-    expect(onClipChange).toHaveBeenCalledWith({ gain: 1 })
-    await waitFor(() => expect(onClipCommit).toHaveBeenCalledTimes(1))
+    expect(screen.getByText("Door latch")).toBeTruthy()
+    expect(screen.getByText(/SFX · Generated · Stable Audio · SFX/)).toBeTruthy()
+    expect(screen.getByText(/1:00 · WAV · 48 kHz · Stereo/)).toBeTruthy()
+    expect(screen.queryByText(/music bed/)).toBeNull()
   })
 })

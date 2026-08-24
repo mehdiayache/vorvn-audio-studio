@@ -124,7 +124,7 @@ export function AudioSourceEditor({ url, sourceDuration, sourceOffset, usedDurat
   }, [boundedOffset, boundedSource, boundedUsed, disabled, loop])
 
   return <section className={`music-waveform-editor${loop ? " is-loop" : ""}`} aria-label="Audio source window">
-    <header><span><b>{loop ? "Loop start" : "Used source window"}</b><small>{loop ? "Drag the purple start marker. The first pass begins here; later passes restart at 0:00." : "Drag the region; resize either edge to choose the exact source window."}</small></span><strong>{loop ? formatDuration(boundedOffset) : `${formatDuration(boundedOffset)} → ${formatDuration(boundedOffset + boundedUsed)}`}</strong></header>
+    <header><span><b>{loop ? "Source start" : "Source window"}</b><small>{loop ? "First pass starts here; repeats restart at 0:00." : "Drag to move. Resize either edge to change the selection."}</small></span><strong>{loop ? formatDuration(boundedOffset) : `${formatDuration(boundedOffset)} → ${formatDuration(boundedOffset + boundedUsed)}`}</strong></header>
     <div className={`music-waveform-canvas${peaks?.length === 0 ? " is-unavailable" : ""}`}>
       <div className="music-waveform-surface" ref={containerRef} />
       {!peaks && <span className="music-waveform-loading">Loading waveform…</span>}

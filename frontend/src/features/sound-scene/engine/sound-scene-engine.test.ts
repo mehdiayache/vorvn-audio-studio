@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import type { SoundScene } from "@/types/domain"
 import { SOUND_SCENE_ZOOM_LEVELS, SoundSceneEngine, soundSceneFitZoomIndex, soundSceneZoomIndex, soundSceneZoomLevel } from "./sound-scene-engine"
-import { isLiveMixOnlyChange, SoundSceneSession } from "./sound-scene-session"
+import { isLiveMixOnlyChange, soundTrackDisplayName, SoundSceneSession } from "./sound-scene-session"
 import { loopBoundaryTimes, waveformPeakIndex } from "../timeline/waveform-projection"
 
 const clipId = "78af885c-aeb4-49bf-9edb-d3fc14496b2c"
@@ -15,6 +15,13 @@ function scene(): SoundScene {
 }
 
 describe("SoundSceneEngine", () => {
+  it("replaces legacy generated track labels with the canonical clip identity", () => {
+    const track = scene().resolved.tracks[0]!
+    expect(soundTrackDisplayName(track)).toBe("Night bed")
+    expect(soundTrackDisplayName({ ...track, clips: [...track.clips, { ...track.clips[0]!, id: "second" }] })).toBe("Audio")
+    expect(soundTrackDisplayName({ ...track, name: "Operator mix" })).toBe("Operator mix")
+  })
+
   it("projects looped waveform peaks instead of stretching one source copy", () => {
     const projection = { clipDuration: 10, sourceDuration: 2, sourceOffset: 0, loop: true }
     expect([0, 20, 40, 60, 80].map((column) => waveformPeakIndex(column, 100, 20, projection)))
@@ -123,7 +130,7 @@ describe("SoundSceneSession", () => {
     const update = vi.fn()
     const setSoloTracks = vi.fn()
     const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, {
-      replace: vi.fn(), play: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(), seek: vi.fn(),
       currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(false),
       muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), setSoloTracks, dispose: vi.fn(),
     })
@@ -156,9 +163,46 @@ describe("SoundSceneSession", () => {
     const document = update.mock.calls[0]![0]
     expect(document.tracks).toHaveLength(2)
     expect(document.tracks[0].clips[0].asset_id).toBe(9)
+    expect(document.tracks[1].name).toBe("Outro")
     expect(document.tracks[1].clips[0].asset_id).toBe(22)
     expect(document.tracks[1].clips[0].anchor.position_ms).toBe(3_000)
     expect(document.tracks[1].clips[0]).toMatchObject({ gain: 1, duration_ms: 8_000, loop: false, ducking: false })
+    session.dispose()
+  })
+
+  it("persists an explicit operator track name without changing its audio facts", async () => {
+    const source = scene()
+    const update = vi.fn().mockImplementation(async (document) => ({ ...source, revision: 2, document }))
+    const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(false),
+      muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    })
+
+    await session.renameTrack("music", "Prayer underscore")
+
+    const document = update.mock.calls[0]![0]
+    expect(document.tracks[0]).toMatchObject({ name: "Prayer underscore", volume: 1, muted: false })
+    expect(document.tracks[0].clips[0].asset_id).toBe(9)
+    session.dispose()
+  })
+
+  it("uses a truthful generic name when a content-named track becomes a multi-clip track", async () => {
+    const source = scene()
+    source.document.tracks[0]!.name = "Night bed"
+    source.resolved.tracks[0]!.name = "Night bed"
+    const update = vi.fn().mockImplementation(async (document) => ({ ...source, revision: 2, document }))
+    const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(false),
+      muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    })
+
+    await session.addClip("music", { id: 24, title: "Bell", category: "sfx", duration_ms: 2_000 }, 4)
+
+    const track = update.mock.calls[0]![0].tracks[0]
+    expect(track.name).toBe("Audio")
+    expect(track.clips.map((clip: { asset_id: number }) => clip.asset_id)).toEqual([9, 24])
     session.dispose()
   })
 

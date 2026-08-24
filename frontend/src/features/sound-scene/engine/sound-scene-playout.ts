@@ -306,6 +306,7 @@ export class SoundScenePlayout {
   }
 
   adopt(scene: SoundScene) {
+    const previousScene = this.scene
     const previousSignature = this.scene.resolved.signature
     const retainedPreparation = this.preparedSignature === previousSignature
     const timelineTime = this.currentTime()
@@ -313,23 +314,29 @@ export class SoundScenePlayout {
     if (retainedPreparation) this.preparedSignature = scene.resolved.signature
     this.sequenceMixPreviews.clear()
     for (const track of scene.resolved.tracks) {
-      this.setTrackVolume(track.id, track.volume)
-      this.muteTrack(track.id, track.muted)
+      const previousTrack = previousScene.resolved.tracks.find((item) => item.id === track.id)
+      if (!previousTrack || previousTrack.volume !== track.volume)
+        this.setTrackVolume(track.id, track.volume)
+      if (!previousTrack || previousTrack.muted !== track.muted)
+        this.muteTrack(track.id, track.muted)
       for (const clip of track.clips) {
-        this.setClipGain(track.id, clip.id, clip.gain)
-        this.setClipMix(track.id, clip.id, {
-          muted: clip.muted,
-          fade_in_ms: clip.fade_in_ms,
-          fade_out_ms: clip.fade_out_ms,
-          ducking: clip.ducking,
-          duck_amount_db: clip.duck_amount_db,
-          effects: clip.effects,
-        }, false)
+        const previousClip = previousTrack?.clips.find((item) => item.id === clip.id)
+        if (!previousClip || previousClip.gain !== clip.gain)
+          this.setClipGain(track.id, clip.id, clip.gain)
+        const changes: Parameters<SoundScenePlayout["setClipMix"]>[2] = {}
+        if (!previousClip || previousClip.muted !== clip.muted) changes.muted = clip.muted
+        if (!previousClip || previousClip.fade_in_ms !== clip.fade_in_ms) changes.fade_in_ms = clip.fade_in_ms
+        if (!previousClip || previousClip.fade_out_ms !== clip.fade_out_ms) changes.fade_out_ms = clip.fade_out_ms
+        if (!previousClip || previousClip.ducking !== clip.ducking) changes.ducking = clip.ducking
+        if (!previousClip || previousClip.duck_amount_db !== clip.duck_amount_db)
+          changes.duck_amount_db = clip.duck_amount_db
+        if (!previousClip || JSON.stringify(previousClip.effects) !== JSON.stringify(clip.effects))
+          changes.effects = clip.effects
+        if (Object.keys(changes).length) this.setClipMix(track.id, clip.id, changes, false)
       }
     }
     if (this.playing) {
       this.scheduleSequenceMix(timelineTime)
-      this.syncStreams(timelineTime, true)
     }
     else this.playhead = Math.min(this.playhead, this.duration())
   }

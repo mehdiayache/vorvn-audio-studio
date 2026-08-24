@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
-import { ChevronLeft, ChevronRight, LocateFixed, Lock, Maximize2, Minus, MoreHorizontal, Music2, PanelLeftClose, PanelLeftOpen, Pause, Plus, RadioTower, Redo2, Repeat2, Trash2, Undo2, Volume1, Volume2, VolumeX } from "lucide-react"
+import { AudioWaveform, ChevronLeft, ChevronRight, LocateFixed, Lock, Maximize2, Minus, MoreHorizontal, Music2, PanelLeftClose, PanelLeftOpen, Pause, PencilLine, Plus, RadioTower, Redo2, Repeat2, Trash2, Undo2, Volume1, Volume2, VolumeX } from "lucide-react"
 
 import { useAudioPeaks } from "@/components/audio-waveform"
 import { OperatorIconButton } from "@/components/operator-action"
@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider"
+import { Input } from "@/components/ui/input"
 import { audioUrl } from "@/lib/api"
 import { formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { SoundSceneClip, SoundSceneTrack } from "@/types/domain"
 import { SOUND_SCENE_ZOOM_LEVELS, soundSceneFitZoomIndex, soundSceneZoomIndex, soundSceneZoomLevel } from "../engine/sound-scene-engine"
-import { SoundSceneSession, useSoundSceneSession, type SoundClipRef } from "../engine/sound-scene-session"
+import { SoundSceneSession, soundTrackDisplayName, useSoundSceneSession, type SoundClipRef } from "../engine/sound-scene-session"
 import { dbToGain, formatDb, gainToDb, MAX_GAIN_DB, MIN_GAIN_DB } from "../sound-scene-gain"
 import { SoundSceneContextToolbar, type SoundContext } from "./sound-scene-context-toolbar"
 import { loopBoundaryTimes, waveformPeakIndex, type WaveformProjection } from "./waveform-projection"
@@ -34,6 +35,16 @@ function roleColor(role?: string | null) {
   const palette = ["violet", "blue", "teal", "amber", "rose"]
   const hash = Array.from(String(role || "voice")).reduce((sum, char) => sum + char.charCodeAt(0), 0)
   return palette[hash % palette.length]
+}
+
+function audioCategory(value?: string | null) {
+  const category = String(value || "other").toLowerCase()
+  return category === "music" ? "music" : category === "sfx" ? "sfx" : "other"
+}
+
+function trackCategory(track: SoundSceneTrack) {
+  const categories = new Set(track.clips.map((clip) => audioCategory(clip.asset_kind)))
+  return categories.size === 1 ? [...categories][0]! : "other"
 }
 
 function CanvasWaveform({ url, projection }: { url?: string; projection?: WaveformProjection }) {
@@ -99,7 +110,7 @@ function tickStep(pixelsPerSecond: number) {
   return TICK_STEPS.find((step) => step * pixelsPerSecond >= 70) || 60
 }
 
-function SoundTrackControl({ track, volume, collapsed, soloed, soloSuppressed, onMute, onSolo, onVolumeChange, onVolumeCommit, onAdd, onRemove }: {
+function SoundTrackControl({ track, volume, collapsed, soloed, soloSuppressed, onMute, onSolo, onVolumeChange, onVolumeCommit, onRename, onAdd, onRemove }: {
   track: SoundSceneTrack
   volume: number
   collapsed: boolean
@@ -109,42 +120,57 @@ function SoundTrackControl({ track, volume, collapsed, soloed, soloSuppressed, o
   onSolo: () => void
   onVolumeChange: (volume: number) => void
   onVolumeCommit: (volume: number) => void
+  onRename: (name: string) => Promise<void>
   onAdd: () => void
   onRemove: () => void
 }) {
+  const name = soundTrackDisplayName(track)
+  const category = trackCategory(track)
+  const TrackIcon = category === "sfx" ? AudioWaveform : Music2
   const volumeDb = gainToDb(volume)
+  const [editing, setEditing] = useState(false)
+  const [draftName, setDraftName] = useState(name)
+  const [renameError, setRenameError] = useState("")
+  useEffect(() => { if (!editing) setDraftName(name) }, [editing, name])
+  async function commitName() {
+    const next = draftName.trim()
+    if (!next || next === name) { setEditing(false); setDraftName(name); return }
+    try { setRenameError(""); await onRename(next); setEditing(false) }
+    catch (reason) { setRenameError(reason instanceof Error ? reason.message : "Track name could not be saved.") }
+  }
   const state = track.muted ? "Muted" : soloed ? "Solo" : soloSuppressed ? "Outside solo" : formatDb(volumeDb)
-  const summary = `${track.name} · ${track.clips.length} clip${track.clips.length === 1 ? "" : "s"} · ${state}`
+  const summary = `${name} · ${track.clips.length} clip${track.clips.length === 1 ? "" : "s"} · ${state}`
   return <div className={cn("sound-track-control", collapsed && "is-compact", track.muted && "is-muted", soloed && "is-solo", soloSuppressed && "is-solo-suppressed")}>
     <div className="sound-track-select" title={summary}>
-      <span className={cn("sound-track-icon is-music", track.muted && "is-muted")}><Music2 /></span>
-      {!collapsed && <span className="sound-track-copy"><b>{track.name}</b><small>{track.muted ? "MUTED" : soloed ? "SOLO" : soloSuppressed ? "Outside solo" : `${track.clips.length} clip${track.clips.length === 1 ? "" : "s"}`}</small></span>}
+      <span className={cn("sound-track-icon", `is-category-${category}`, track.muted && "is-muted")}><TrackIcon /></span>
+      {!collapsed && <span className="sound-track-copy">{editing ? <Input aria-label={`Name ${name} track`} autoFocus maxLength={80} value={draftName} onChange={(event) => setDraftName(event.target.value)} onBlur={() => void commitName()} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") { setDraftName(name); setEditing(false) } }} /> : <button type="button" aria-label={`Rename ${name} track`} onClick={() => setEditing(true)}><b>{name}</b><PencilLine /></button>}<small className={renameError ? "is-error" : undefined}>{renameError || (track.muted ? "MUTED" : soloed ? "SOLO" : soloSuppressed ? "Outside solo" : `${track.clips.length} clip${track.clips.length === 1 ? "" : "s"}`)}</small></span>}
     </div>
     {collapsed ? <div className="sound-track-compact-actions">
-      <OperatorTooltip label={track.muted ? `Unmute ${track.name}` : `Mute ${track.name}`} detail="A persistent mix decision used by preview and export."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", track.muted && "is-active is-mute")} aria-label={track.muted ? `Unmute ${track.name}` : `Mute ${track.name}`} aria-pressed={track.muted} onClick={onMute}>M</Button></OperatorTooltip>
-      <OperatorTooltip label={soloed ? `Remove ${track.name} from Solo` : `Solo ${track.name}`} detail="Temporary audition only. Sequence stays audible and export is unchanged."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", soloed && "is-active is-solo")} aria-label={soloed ? `Remove ${track.name} from Solo` : `Solo ${track.name}`} aria-pressed={soloed} onClick={onSolo}>S</Button></OperatorTooltip>
+      <OperatorTooltip label={track.muted ? `Unmute ${name}` : `Mute ${name}`} detail="A persistent mix decision used by preview and export."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", track.muted && "is-active is-mute")} aria-label={track.muted ? `Unmute ${name}` : `Mute ${name}`} aria-pressed={track.muted} onClick={onMute}>M</Button></OperatorTooltip>
+      <OperatorTooltip label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} detail="Temporary audition only. Sequence stays audible and export is unchanged."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", soloed && "is-active is-solo")} aria-label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} aria-pressed={soloed} onClick={onSolo}>S</Button></OperatorTooltip>
       <Popover>
-        <OperatorTooltip label={`Adjust ${track.name} gain`} detail={track.muted ? `Muted now · ${formatDb(volumeDb)} will apply when unmuted.` : formatDb(volumeDb)}><PopoverTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Adjust ${track.name} gain`}>{track.muted ? <VolumeX /> : <Volume1 />}</Button></PopoverTrigger></OperatorTooltip>
+        <OperatorTooltip label={`Adjust ${name} gain`} detail={track.muted ? `Muted now · ${formatDb(volumeDb)} will apply when unmuted.` : formatDb(volumeDb)}><PopoverTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Adjust ${name} gain`}>{track.muted ? <VolumeX /> : <Volume1 />}</Button></PopoverTrigger></OperatorTooltip>
         <PopoverContent side="right" align="center" className="sound-track-volume-popover">
-          <header><span><b>{track.name}</b><small>Track gain</small></span><strong>{track.muted ? `Muted · ${formatDb(volumeDb)}` : formatDb(volumeDb)}</strong></header>
-          <Slider aria-label={`${track.name} gain`} value={[volumeDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => onVolumeChange(dbToGain(value))} onValueCommit={([value = 0]) => onVolumeCommit(dbToGain(value))} />
+          <header><span><b>{name}</b><small>Track gain</small></span><strong>{track.muted ? `Muted · ${formatDb(volumeDb)}` : formatDb(volumeDb)}</strong></header>
+          <Slider aria-label={`${name} gain`} value={[volumeDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => onVolumeChange(dbToGain(value))} onValueCommit={([value = 0]) => onVolumeCommit(dbToGain(value))} />
           <Button variant="ghost" size="sm" onClick={onMute}>{track.muted ? <Volume2 /> : <VolumeX />}{track.muted ? "Unmute track" : "Mute track"}</Button>
         </PopoverContent>
       </Popover>
       <DropdownMenu>
-        <OperatorTooltip label={`More actions for ${track.name}`} detail="Add an Audio Library clip or permanently remove this track."><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Track actions for ${track.name}`}><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip>
+        <OperatorTooltip label={`More actions for ${name}`} detail="Rename, add an Audio Library clip, or permanently remove this track."><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Track actions for ${name}`}><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip>
         <DropdownMenuContent side="right" align="center">
+          <DropdownMenuItem onSelect={() => setEditing(true)}><PencilLine /> Rename track</DropdownMenuItem>
           <DropdownMenuItem onSelect={onAdd}><Plus /> Add audio clip</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onSelect={onRemove}><Trash2 /> Remove “{track.name}”</DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onSelect={onRemove}><Trash2 /> Remove “{name}”</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div> : <div className="sound-track-mix">
-      <OperatorTooltip label={track.muted ? `Unmute ${track.name}` : `Mute ${track.name}`} detail="A persistent mix decision used by preview and export."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", track.muted && "is-active is-mute")} aria-label={track.muted ? `Unmute ${track.name}` : `Mute ${track.name}`} aria-pressed={track.muted} onClick={onMute}>M</Button></OperatorTooltip>
-      <OperatorTooltip label={soloed ? `Remove ${track.name} from Solo` : `Solo ${track.name}`} detail="Temporary audition only. Sequence stays audible and export is unchanged."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", soloed && "is-active is-solo")} aria-label={soloed ? `Remove ${track.name} from Solo` : `Solo ${track.name}`} aria-pressed={soloed} onClick={onSolo}>S</Button></OperatorTooltip>
-      <Slider aria-label={`${track.name} gain`} value={[volumeDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => onVolumeChange(dbToGain(value))} onValueCommit={([value = 0]) => onVolumeCommit(dbToGain(value))} />
-      <OperatorIconButton label={`Add audio clip to ${track.name}`} onClick={onAdd}><Plus /></OperatorIconButton>
-      <OperatorIconButton label={`Remove ${track.name}`} detail={`Permanently removes the track and its ${track.clips.length} placement${track.clips.length === 1 ? "" : "s"}.`} onClick={onRemove}><Trash2 /></OperatorIconButton>
+      <OperatorTooltip label={track.muted ? `Unmute ${name}` : `Mute ${name}`} detail="A persistent mix decision used by preview and export."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", track.muted && "is-active is-mute")} aria-label={track.muted ? `Unmute ${name}` : `Mute ${name}`} aria-pressed={track.muted} onClick={onMute}>M</Button></OperatorTooltip>
+      <OperatorTooltip label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} detail="Temporary audition only. Sequence stays audible and export is unchanged."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", soloed && "is-active is-solo")} aria-label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} aria-pressed={soloed} onClick={onSolo}>S</Button></OperatorTooltip>
+      <Slider aria-label={`${name} gain`} value={[volumeDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => onVolumeChange(dbToGain(value))} onValueCommit={([value = 0]) => onVolumeCommit(dbToGain(value))} />
+      <OperatorIconButton label={`Add audio clip to ${name}`} onClick={onAdd}><Plus /></OperatorIconButton>
+      <OperatorIconButton label={`Remove ${name}`} detail={`Permanently removes the track and its ${track.clips.length} placement${track.clips.length === 1 ? "" : "s"}.`} onClick={onRemove}><Trash2 /></OperatorIconButton>
     </div>}
   </div>
 }
@@ -464,6 +490,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
           onSolo={() => session.toggleTrackSolo(track.id)}
           onVolumeChange={(volume) => session.setTrackVolume(track.id, volume)}
           onVolumeCommit={(volume) => void session.commitTrackVolume(track.id, volume)}
+          onRename={(name) => session.renameTrack(track.id, name)}
           onAdd={() => onAddAudio({ mode: "add-clip", trackId: track.id })}
           onRemove={() => onRemoveTrack(track)}
         />)}
@@ -507,14 +534,16 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
                 const fadeIn = Math.min(duration, live.fade_in_ms / 1000)
                 const fadeOut = Math.min(duration, live.fade_out_ms / 1000)
                 const gainHeight = Math.max(8, Math.min(82, 50 - (20 * Math.log10(Math.max(.001, live.gain))) * 1.25))
-                return <div key={clip.id} role="button" tabIndex={0} className={cn("sound-music-clip", selected && "is-selected", live.locked && "is-locked")} style={styleFor(start, duration, 24)} onPointerDown={(event) => gesture(event, track.id, clip.id, "move")} onClick={(event) => { if (event.detail === 0) session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey) }} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey) }}>
+                const category = audioCategory(live.asset_kind)
+                const ClipIcon = category === "sfx" ? AudioWaveform : Music2
+                return <div key={clip.id} role="button" tabIndex={0} className={cn("sound-music-clip", `is-category-${category}`, selected && "is-selected", live.locked && "is-locked")} style={styleFor(start, duration, 24)} onPointerDown={(event) => gesture(event, track.id, clip.id, "move")} onClick={(event) => { if (event.detail === 0) session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey) }} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey) }}>
                   <CanvasWaveform url={clip.filename ? audioUrl(clip.filename) : undefined} projection={{
                     clipDuration: duration,
                     sourceDuration: Math.max(.001, Number(live.source_duration_ms || live.resolved_duration_ms || live.duration_ms || 0) / 1_000),
                     sourceOffset: Number(live.source_offset_ms || 0) / 1_000,
                     loop: Boolean(live.loop),
                   }} />
-                  <span className="sound-music-label"><Music2 /><span><b>{clip.asset_name || track.name}</b><small>{formatDb(gainToDb(live.gain))}</small></span></span>
+                  <span className="sound-music-label"><ClipIcon /><span><b>{clip.asset_name || soundTrackDisplayName(track)}</b><small>{formatDb(gainToDb(live.gain))}</small></span></span>
                   {(live.locked || live.muted || live.loop || activeEffects > 0) && <span className="sound-clip-states">{live.locked && <i title="Locked"><Lock /></i>}{live.muted && <i title="Muted"><VolumeX /></i>}{live.loop && <i title="Looped source" aria-label="Looped source"><Repeat2 /></i>}{activeEffects > 0 && <i title={`${activeEffects} active effect${activeEffects === 1 ? "" : "s"}`}><RadioTower /><b>{activeEffects}</b></i>}</span>}
                   {selected && !live.locked && <>
                     <OperatorTooltip label="Trim clip start" detail="Drag to change the used source window."><button className="sound-trim-handle is-start" aria-label="Trim start" onPointerDown={(event) => gesture(event, track.id, clip.id, "left")} /></OperatorTooltip>

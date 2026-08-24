@@ -496,6 +496,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   const audioClip = soundSelection?.kind === "clip"
     ? soundSession.currentClip(soundSelection.trackId, soundSelection.clipId)
     : null
+  const audioAsset = audioClip ? assets.find((asset) => asset.id === audioClip.asset_id) : undefined
   const audioClipName = audioClip?.asset_name || "Audio clip"
   const playingPart = actions.playerPlaying && player.source?.key.startsWith("part:")
     ? sourceParts.find((part) => part.id === Number(player.source?.key.slice(5))) || null
@@ -519,7 +520,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     onPlay={(source) => void playSource(source)} onChanged={async () => { actions.invalidatePreview(); await refresh() }}
     onDuplicate={(part) => void actions.duplicatePart(part)} onDelete={requestPartDeletion} onEdit={editPart} onOpenCaptions={(part) => setCaptionPartId(part.id)} onReplaceAsset={openAssetReplacement}
   /> : stage === "sound" && soundSelection?.kind === "clip" && audioTrack ? <AudioClipInspector
-    track={audioTrack} clip={audioClip} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)}
+    track={audioTrack} clip={audioClip} asset={audioAsset} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)}
     onClipChange={(changes) => { if (audioClip) soundSession.updateClip(audioTrack.id, audioClip.id, changes) }} onClipCommit={() => soundSession.commitClip()}
     onTrackVolumeChange={(volume) => soundSession.setTrackVolume(audioTrack.id, volume)} onTrackVolumeCommit={(volume) => soundSession.commitTrackVolume(audioTrack.id, volume)}
     onChoose={() => { setAudioTarget({ mode: "replace", trackId: soundSelection.trackId, clipId: soundSelection.clipId }); setTool("audio") }} onRemove={() => setConfirmAction({ title: `Remove “${audioClipName}”?`, description: "The reusable Audio Library asset remains available. Only this Sound Scene placement is removed.", action: () => soundSession.removeClip(soundSelection.trackId, soundSelection.clipId) })}
