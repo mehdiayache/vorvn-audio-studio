@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
-import { ChevronLeft, ChevronRight, LocateFixed, Lock, Maximize2, Minus, MoreHorizontal, Music2, PanelLeftClose, PanelLeftOpen, Pause, Plus, RadioTower, Redo2, Trash2, Undo2, Volume1, Volume2, VolumeX } from "lucide-react"
+import { ChevronLeft, ChevronRight, LocateFixed, Lock, Maximize2, Minus, MoreHorizontal, Music2, PanelLeftClose, PanelLeftOpen, Pause, Plus, RadioTower, Redo2, Repeat2, Trash2, Undo2, Volume1, Volume2, VolumeX } from "lucide-react"
 
 import { useAudioPeaks } from "@/components/audio-waveform"
 import { OperatorIconButton } from "@/components/operator-action"
@@ -16,6 +16,7 @@ import { SOUND_SCENE_ZOOM_LEVELS, soundSceneFitZoomIndex, soundSceneZoomIndex, s
 import { SoundSceneSession, useSoundSceneSession, type SoundClipRef } from "../engine/sound-scene-session"
 import { dbToGain, formatDb, gainToDb, MAX_GAIN_DB, MIN_GAIN_DB } from "../sound-scene-gain"
 import { SoundSceneContextToolbar, type SoundContext } from "./sound-scene-context-toolbar"
+import { loopBoundaryTimes, waveformPeakIndex, type WaveformProjection } from "./waveform-projection"
 
 import "./sound-scene-workspace.css"
 
@@ -35,7 +36,7 @@ function roleColor(role?: string | null) {
   return palette[hash % palette.length]
 }
 
-function CanvasWaveform({ url }: { url?: string }) {
+function CanvasWaveform({ url, projection }: { url?: string; projection?: WaveformProjection }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const [tier, setTier] = useState<number>(128)
   const peaks = useAudioPeaks(url, tier)
@@ -60,20 +61,35 @@ function CanvasWaveform({ url }: { url?: string }) {
       const context = node.getContext("2d")
       if (!context) return
       context.clearRect(0, 0, node.width, node.height)
+      context.setTransform(ratio, 0, 0, ratio, 0, 0)
       context.fillStyle = getComputedStyle(node).color
       context.globalAlpha = .62
-      const bar = Math.max(1, node.width / peaks.length)
-      peaks.forEach((peak, index) => {
-        const height = peak * node.height * .82
-        if (height <= 0) return
-        context.fillRect(index * bar, (node.height - height) / 2, Math.max(1, bar * .56), height)
-      })
+      const width = Math.max(1, rect.width)
+      const height = Math.max(1, rect.height)
+      const columns = Math.max(1, Math.min(4_096, Math.ceil(width)))
+      const bar = width / columns
+      for (let column = 0; column < columns; column += 1) {
+        const index = projection
+          ? waveformPeakIndex(column, columns, peaks.length, projection)
+          : Math.min(peaks.length - 1, Math.floor(column / columns * peaks.length))
+        const peak = peaks[index] || 0
+        const peakHeight = peak * height * .82
+        if (peakHeight <= 0) continue
+        context.fillRect(column * bar, (height - peakHeight) / 2, Math.max(.7, bar * .58), peakHeight)
+      }
+      if (projection?.loop) {
+        context.globalAlpha = .24
+        for (const boundary of loopBoundaryTimes(projection)) {
+          const x = boundary / projection.clipDuration * width
+          context.fillRect(Math.round(x), 0, 1, height)
+        }
+      }
     }
     draw()
     const observer = new ResizeObserver(draw)
     observer.observe(node)
     return () => observer.disconnect()
-  }, [peaks])
+  }, [peaks, projection?.clipDuration, projection?.loop, projection?.sourceDuration, projection?.sourceOffset])
   if (!url || peaks?.length === 0) return <span className="sound-scene-waveform-state is-unavailable" aria-hidden="true">Waveform unavailable</span>
   if (!peaks) return <span className="sound-scene-waveform-state is-loading" aria-hidden="true"><i /><i /><i /><i /></span>
   return <canvas ref={canvas} className="sound-scene-waveform" aria-hidden="true" />
@@ -492,9 +508,14 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
                 const fadeOut = Math.min(duration, live.fade_out_ms / 1000)
                 const gainHeight = Math.max(8, Math.min(82, 50 - (20 * Math.log10(Math.max(.001, live.gain))) * 1.25))
                 return <div key={clip.id} role="button" tabIndex={0} className={cn("sound-music-clip", selected && "is-selected", live.locked && "is-locked")} style={styleFor(start, duration, 24)} onPointerDown={(event) => gesture(event, track.id, clip.id, "move")} onClick={(event) => { if (event.detail === 0) session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey) }} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey) }}>
-                  <CanvasWaveform url={clip.filename ? audioUrl(clip.filename) : undefined} />
+                  <CanvasWaveform url={clip.filename ? audioUrl(clip.filename) : undefined} projection={{
+                    clipDuration: duration,
+                    sourceDuration: Math.max(.001, Number(live.source_duration_ms || live.resolved_duration_ms || live.duration_ms || 0) / 1_000),
+                    sourceOffset: Number(live.source_offset_ms || 0) / 1_000,
+                    loop: Boolean(live.loop),
+                  }} />
                   <span className="sound-music-label"><Music2 /><span><b>{clip.asset_name || track.name}</b><small>{formatDb(gainToDb(live.gain))}</small></span></span>
-                  {(live.locked || live.muted || activeEffects > 0) && <span className="sound-clip-states">{live.locked && <i title="Locked"><Lock /></i>}{live.muted && <i title="Muted"><VolumeX /></i>}{activeEffects > 0 && <i title={`${activeEffects} active effect${activeEffects === 1 ? "" : "s"}`}><RadioTower /><b>{activeEffects}</b></i>}</span>}
+                  {(live.locked || live.muted || live.loop || activeEffects > 0) && <span className="sound-clip-states">{live.locked && <i title="Locked"><Lock /></i>}{live.muted && <i title="Muted"><VolumeX /></i>}{live.loop && <i title="Looped source" aria-label="Looped source"><Repeat2 /></i>}{activeEffects > 0 && <i title={`${activeEffects} active effect${activeEffects === 1 ? "" : "s"}`}><RadioTower /><b>{activeEffects}</b></i>}</span>}
                   {selected && !live.locked && <>
                     <OperatorTooltip label="Trim clip start" detail="Drag to change the used source window."><button className="sound-trim-handle is-start" aria-label="Trim start" onPointerDown={(event) => gesture(event, track.id, clip.id, "left")} /></OperatorTooltip>
                     <OperatorTooltip label="Trim clip end" detail="Drag to change the audible duration."><button className="sound-trim-handle is-end" aria-label="Trim end" onPointerDown={(event) => gesture(event, track.id, clip.id, "right")} /></OperatorTooltip>

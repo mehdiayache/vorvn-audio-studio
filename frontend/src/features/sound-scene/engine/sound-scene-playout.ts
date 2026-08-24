@@ -305,6 +305,35 @@ export class SoundScenePlayout {
     if (wasPlaying) await this.play(this.playhead)
   }
 
+  adopt(scene: SoundScene) {
+    const previousSignature = this.scene.resolved.signature
+    const retainedPreparation = this.preparedSignature === previousSignature
+    const timelineTime = this.currentTime()
+    this.scene = scene
+    if (retainedPreparation) this.preparedSignature = scene.resolved.signature
+    this.sequenceMixPreviews.clear()
+    for (const track of scene.resolved.tracks) {
+      this.setTrackVolume(track.id, track.volume)
+      this.muteTrack(track.id, track.muted)
+      for (const clip of track.clips) {
+        this.setClipGain(track.id, clip.id, clip.gain)
+        this.setClipMix(track.id, clip.id, {
+          muted: clip.muted,
+          fade_in_ms: clip.fade_in_ms,
+          fade_out_ms: clip.fade_out_ms,
+          ducking: clip.ducking,
+          duck_amount_db: clip.duck_amount_db,
+          effects: clip.effects,
+        }, false)
+      }
+    }
+    if (this.playing) {
+      this.scheduleSequenceMix(timelineTime)
+      this.syncStreams(timelineTime, true)
+    }
+    else this.playhead = Math.min(this.playhead, this.duration())
+  }
+
   private mediaElement(url: string) {
     const element = new Audio()
     element.preload = "metadata"
@@ -1052,7 +1081,7 @@ export class SoundScenePlayout {
 
   setClipMix(trackId: string, clipId: string, changes: Partial<Pick<
     SoundSceneClip, "muted" | "fade_in_ms" | "fade_out_ms" | "effects" | "ducking" | "duck_amount_db"
-  >>) {
+  >>, synchronize = true) {
     const track = this.scene.resolved.tracks.find((item) => item.id === trackId)
     const original = track?.clips.find((item) => item.id === clipId)
     if (!track || !original) return
@@ -1110,7 +1139,7 @@ export class SoundScenePlayout {
         )
       }
     }
-    if (this.playing) this.syncStreams(this.currentTime(), true)
+    if (synchronize && this.playing) this.syncStreams(this.currentTime(), true)
   }
 
   previewSequenceMix(partPublicId: string, changes: Partial<SequenceMixOverride>) {

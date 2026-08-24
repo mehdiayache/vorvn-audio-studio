@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest"
 
 import type { SoundScene } from "@/types/domain"
 import { SOUND_SCENE_ZOOM_LEVELS, SoundSceneEngine, soundSceneFitZoomIndex, soundSceneZoomIndex, soundSceneZoomLevel } from "./sound-scene-engine"
-import { SoundSceneSession } from "./sound-scene-session"
+import { isLiveMixOnlyChange, SoundSceneSession } from "./sound-scene-session"
+import { loopBoundaryTimes, waveformPeakIndex } from "../timeline/waveform-projection"
 
 const clipId = "78af885c-aeb4-49bf-9edb-d3fc14496b2c"
 
@@ -14,6 +15,32 @@ function scene(): SoundScene {
 }
 
 describe("SoundSceneEngine", () => {
+  it("projects looped waveform peaks instead of stretching one source copy", () => {
+    const projection = { clipDuration: 10, sourceDuration: 2, sourceOffset: 0, loop: true }
+    expect([0, 20, 40, 60, 80].map((column) => waveformPeakIndex(column, 100, 20, projection)))
+      .toEqual([0, 0, 0, 0, 0])
+    expect([10, 30, 50, 70, 90].map((column) => waveformPeakIndex(column, 100, 20, projection)))
+      .toEqual([10, 10, 10, 10, 10])
+    expect(loopBoundaryTimes(projection)).toEqual([2, 4, 6, 8])
+
+    const offsetProjection = { ...projection, clipDuration: 5, sourceOffset: 1 }
+    expect(waveformPeakIndex(0, 100, 20, offsetProjection)).toBe(10)
+    expect(loopBoundaryTimes(offsetProjection)).toEqual([1, 3])
+  })
+
+  it("distinguishes live mix commits from structural source and timing changes", () => {
+    const previous = scene().document
+    const mix = structuredClone(previous)
+    mix.tracks[0]!.volume = .5
+    mix.tracks[0]!.clips[0]!.gain = .4
+    mix.tracks[0]!.clips[0]!.fade_in_ms = 800
+    expect(isLiveMixOnlyChange(previous, mix)).toBe(true)
+
+    const loop = structuredClone(mix)
+    loop.tracks[0]!.clips[0]!.loop = false
+    expect(isLiveMixOnlyChange(previous, loop)).toBe(false)
+  })
+
   it("maps native move and trim operations back to the persisted scene contract", () => {
     const editor = new SoundSceneEngine(scene())
     editor.beginGesture()
@@ -363,6 +390,34 @@ describe("SoundSceneSession", () => {
     expect(update.mock.calls[0]![0].tracks[0].volume).toBe(.65)
     expect(update.mock.calls[0]![0].tracks[0].clips[0].gain).toBe(.1)
     session.dispose()
+  })
+
+  it("adopts a saved gain while playing without replacing or moving the transport", async () => {
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(7))
+    vi.stubGlobal("cancelAnimationFrame", vi.fn())
+    const source = scene()
+    const adopt = vi.fn()
+    const replace = vi.fn().mockResolvedValue(undefined)
+    const playout = {
+      replace, adopt, play: vi.fn().mockResolvedValue(undefined), pause: vi.fn(), seek: vi.fn(),
+      currentTime: vi.fn().mockReturnValue(3), isPlaying: vi.fn().mockReturnValue(true),
+      muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    }
+    const update = vi.fn().mockImplementation(async (document) => ({
+      ...source, revision: 2, document,
+      resolved: { ...source.resolved, signature: "saved-gain" },
+    }))
+    const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, playout)
+
+    await session.togglePlayback()
+    await session.commitClipChanges("music", clipId, { gain: .4 })
+
+    expect(adopt).toHaveBeenCalledOnce()
+    expect(replace).not.toHaveBeenCalled()
+    expect(cancelAnimationFrame).not.toHaveBeenCalled()
+    expect(session.snapshot().playback).toBe("playing")
+    session.dispose()
+    vi.unstubAllGlobals()
   })
 
   it("applies a relative dB change without flattening a multi-clip selection", async () => {

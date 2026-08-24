@@ -33,7 +33,7 @@ type Playout = Pick<SoundScenePlayout,
   "replace" | "play" | "pause" | "seek" | "currentTime" | "isPlaying" |
   "muteTrack" | "setTrackVolume" | "setClipGain" | "dispose"
 > & Partial<Pick<SoundScenePlayout,
-  "activatePlayout" | "deactivatePlayout" | "previewSequenceMix" | "setClipMix" |
+  "activatePlayout" | "deactivatePlayout" | "adopt" | "previewSequenceMix" | "setClipMix" |
   "setSoloTracks" | "subscribeMeter" | "meterSnapshot"
 >>
 
@@ -45,6 +45,31 @@ type CommitWaiter = {
 type PendingCommit = {
   document: SoundSceneDocument
   waiters: CommitWaiter[]
+}
+
+function playoutStructure(document: SoundSceneDocument) {
+  return {
+    version: document.version,
+    sequenceEffects: Object.fromEntries(Object.entries(document.sequence_overrides)
+      .map(([partId, override]) => [partId, override.effects])),
+    tracks: document.tracks.map((track) => ({
+      id: track.id,
+      kind: track.kind,
+      clips: track.clips.map((clip) => ({
+        id: clip.id,
+        asset_id: clip.asset_id,
+        asset_version_id: clip.asset_version_id,
+        duration_ms: clip.duration_ms,
+        source_offset_ms: clip.source_offset_ms,
+        loop: clip.loop,
+        anchor: clip.anchor,
+      })),
+    })),
+  }
+}
+
+export function isLiveMixOnlyChange(previous: SoundSceneDocument, next: SoundSceneDocument) {
+  return JSON.stringify(playoutStructure(previous)) === JSON.stringify(playoutStructure(next))
 }
 
 export class SoundSceneSession {
@@ -141,13 +166,19 @@ export class SoundSceneSession {
     }
     if (scene.revision === current.revision && scene.resolved.signature === current.resolved.signature) return
     const wasPlaying = this.snapshotValue.playback === "playing"
-    if (wasPlaying && this.frame) cancelAnimationFrame(this.frame)
-    if (wasPlaying) this.frame = 0
+    const canAdoptLiveMix = force && Boolean(this.playout.adopt)
+      && isLiveMixOnlyChange(current.document, scene.document)
+    if (!canAdoptLiveMix && wasPlaying && this.frame) cancelAnimationFrame(this.frame)
+    if (!canAdoptLiveMix && wasPlaying) this.frame = 0
     this.editor.replace(scene)
     const trackIds = new Set(scene.document.tracks.map((track) => track.id))
     const soloTrackIds = this.snapshotValue.soloTrackIds.filter((id) => trackIds.has(id))
     this.playout.setSoloTracks?.(soloTrackIds)
     this.set({ scene, engine: this.editor.state(), soloTrackIds })
+    if (canAdoptLiveMix) {
+      this.playout.adopt?.(scene)
+      return
+    }
     void this.playout.replace(scene).then(() => {
       if (!wasPlaying) return
       const playing = this.playout.isPlaying()
@@ -338,6 +369,7 @@ export class SoundSceneSession {
   async updateSequenceOverride(partPublicId: string, changes: Partial<SequenceMixOverride>) {
     const span = this.snapshotValue.scene.resolved.sequence_projection.spans.find((item) => item.part_public_id === partPublicId)
     if (!span) throw new Error("That Sequence Part is no longer available.")
+    this.previewSequenceOverride(partPublicId, changes)
     await this.persist(this.nextDocument((document) => {
       document.sequence_overrides[partPublicId] = { ...span.mix, ...document.sequence_overrides[partPublicId], ...changes }
     }))
