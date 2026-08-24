@@ -193,9 +193,13 @@ class AudioGenerationJobCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     capability: Literal["sfx", "music"]
-    prompt: str = Field(min_length=1, max_length=500)
+    prompt: str | None = Field(default=None, min_length=1, max_length=500)
     prompt_mode: Literal["simple", "expert"] = "expert"
     generation_brief: dict[str, Any] | None = None
+    semantic_state: dict[str, Any] | None = None
+    source_free_text: str = Field(default="", max_length=2_000)
+    final_prompt_override: str | None = Field(
+        default=None, min_length=1, max_length=500)
     authored_prompt: str | None = Field(default=None, max_length=500)
     seconds: int = Field(ge=1, le=120)
     seed: int | None = Field(default=None, ge=0, le=2_147_483_647)
@@ -213,6 +217,11 @@ class AudioGenerationJobCreate(BaseModel):
             encoded = str(self.generation_brief)
             if len(encoded) > 5_000:
                 raise ValueError("The generation brief is too large.")
+        if self.semantic_state is None and self.prompt is None:
+            raise ValueError("Provide a Sound Recipe or a generation prompt.")
+        if self.semantic_state is not None and len(str(
+                self.semantic_state)) > 30_000:
+            raise ValueError("The Sound Recipe is too large.")
         return self
 
 

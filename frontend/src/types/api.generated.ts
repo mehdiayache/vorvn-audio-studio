@@ -106,6 +106,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audio-generations/recipe/compile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Compile Recipe */
+        post: operations["compileSoundRecipe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audio-generations/recipe/taxonomy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sound Recipe Taxonomy */
+        get: operations["getSoundRecipeTaxonomy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audio-generations/status": {
         parameters: {
             query?: never;
@@ -1904,6 +1938,8 @@ export interface components {
             capability: string;
             /** Channels */
             channels?: number | null;
+            /** Compiler Version */
+            compiler_version?: string | null;
             /** Duration Ms */
             duration_ms: number;
             /** Generation Brief */
@@ -1925,8 +1961,18 @@ export interface components {
             seconds: number;
             /** Seed */
             seed: number;
+            /** Semantic Schema Version */
+            semantic_schema_version?: string | null;
+            /** Semantic State */
+            semantic_state?: {
+                [key: string]: unknown;
+            } | null;
             /** Size Bytes */
             size_bytes: number;
+            /** Source Free Text */
+            source_free_text?: string | null;
+            /** Taxonomy Version */
+            taxonomy_version?: string | null;
         } & {
             [key: string]: unknown;
         };
@@ -1964,6 +2010,8 @@ export interface components {
              * @enum {string}
              */
             capability: "sfx" | "music";
+            /** Final Prompt Override */
+            final_prompt_override?: string | null;
             /** Generation Brief */
             generation_brief?: {
                 [key: string]: unknown;
@@ -1971,7 +2019,7 @@ export interface components {
             /** Production Id */
             production_id?: number | null;
             /** Prompt */
-            prompt: string;
+            prompt?: string | null;
             /**
              * Prompt Mode
              * @default expert
@@ -1982,6 +2030,15 @@ export interface components {
             seconds: number;
             /** Seed */
             seed?: number | null;
+            /** Semantic State */
+            semantic_state?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Source Free Text
+             * @default
+             */
+            source_free_text: string;
         };
         /** AudioGenerationRequestResponse */
         AudioGenerationRequestResponse: {
@@ -1989,6 +2046,8 @@ export interface components {
             authored_prompt?: string | null;
             /** Capability */
             capability: string;
+            /** Compiler Version */
+            compiler_version?: string | null;
             /** Generation Brief */
             generation_brief?: {
                 [key: string]: unknown;
@@ -2001,6 +2060,16 @@ export interface components {
             seconds: number;
             /** Seed */
             seed?: number | null;
+            /** Semantic Schema Version */
+            semantic_schema_version?: string | null;
+            /** Semantic State */
+            semantic_state?: {
+                [key: string]: unknown;
+            } | null;
+            /** Source Free Text */
+            source_free_text?: string | null;
+            /** Taxonomy Version */
+            taxonomy_version?: string | null;
         };
         /** AudioGenerationSettingsResponse */
         AudioGenerationSettingsResponse: {
@@ -4071,6 +4140,75 @@ export interface components {
             /** Seconds */
             seconds: number;
         };
+        /** SoundRecipeCompileEnvelope */
+        SoundRecipeCompileEnvelope: {
+            data: components["schemas"]["SoundRecipeCompileResponse"];
+        };
+        /** SoundRecipeCompileRequest */
+        SoundRecipeCompileRequest: {
+            /** Capability */
+            capability: string;
+            /** Final Prompt Override */
+            final_prompt_override?: string | null;
+            /** Semantic State */
+            semantic_state: {
+                [key: string]: unknown;
+            };
+            /**
+             * Source Free Text
+             * @default
+             */
+            source_free_text: string;
+        };
+        /** SoundRecipeCompileResponse */
+        SoundRecipeCompileResponse: {
+            /** Capability */
+            capability: string;
+            /** Compiled Prompt */
+            compiled_prompt: string;
+            /** Compiler Version */
+            compiler_version: string;
+            /** Conflicts */
+            conflicts: components["schemas"]["SoundRecipeConflictResponse"][];
+            /** Model */
+            model: string;
+            /** Semantic Schema Version */
+            semantic_schema_version: string;
+            /** Semantic State */
+            semantic_state: {
+                [key: string]: unknown;
+            };
+            /** Source Free Text */
+            source_free_text: string;
+            /** Taxonomy Version */
+            taxonomy_version: string;
+        };
+        /** SoundRecipeConflictResponse */
+        SoundRecipeConflictResponse: {
+            /** Field */
+            field: string;
+            /** Free Text */
+            free_text: string;
+            /** Id */
+            id: string;
+            /** Structured */
+            structured: string;
+            /** Title */
+            title: string;
+        };
+        /** SoundRecipeTaxonomyEnvelope */
+        SoundRecipeTaxonomyEnvelope: {
+            data: components["schemas"]["SoundRecipeTaxonomyResponse"];
+        };
+        /** SoundRecipeTaxonomyResponse */
+        SoundRecipeTaxonomyResponse: {
+            /** Items */
+            items: {
+                [key: string]: unknown;
+            }[];
+            /** Version */
+            version: string;
+        };
         /** SoundSceneClipDocument */
         SoundSceneClipDocument: {
             /** Anchor */
@@ -6107,6 +6245,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    compileSoundRecipe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SoundRecipeCompileRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoundRecipeCompileEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getSoundRecipeTaxonomy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoundRecipeTaxonomyEnvelope"];
                 };
             };
         };

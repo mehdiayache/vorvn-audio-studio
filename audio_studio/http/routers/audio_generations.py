@@ -16,7 +16,12 @@ from audio_studio.http.audio_generation_contracts import (
     AudioGenerationStatusEnvelope,
     GeneratedDiscardEnvelope,
     GeneratedKeepEnvelope,
+    SoundRecipeCompileEnvelope,
+    SoundRecipeCompileRequest,
+    SoundRecipeTaxonomyEnvelope,
 )
+from audio_studio.domain.sound_recipes import compile_sound_recipe
+from audio_studio.domain.sound_recipe_taxonomy import TAXONOMY
 from audio_studio.http.errors import ApiProblem
 
 
@@ -38,6 +43,24 @@ class KeepGeneratedBody(BaseModel):
             response_model=AudioGenerationStatusEnvelope)
 def audio_generation_status() -> dict:
     return {"data": audio_generation_service.status()}
+
+
+@router.get("/recipe/taxonomy", operation_id="getSoundRecipeTaxonomy",
+            response_model=SoundRecipeTaxonomyEnvelope)
+def sound_recipe_taxonomy() -> dict:
+    return {"data": TAXONOMY}
+
+
+@router.post("/recipe/compile", operation_id="compileSoundRecipe",
+             response_model=SoundRecipeCompileEnvelope)
+def compile_recipe(payload: SoundRecipeCompileRequest) -> dict:
+    try:
+        compiled = compile_sound_recipe(
+            payload.capability, payload.semantic_state,
+            payload.source_free_text, payload.final_prompt_override)
+    except ValueError as exc:
+        raise ApiProblem(400, "invalid_sound_recipe", str(exc)) from exc
+    return {"data": compiled.as_dict()}
 
 
 @router.get("/recent", operation_id="listRecentAudioGenerations",

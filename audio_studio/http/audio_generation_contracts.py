@@ -19,6 +19,48 @@ class AudioGenerationStatusEnvelope(BaseModel):
     data: AudioGenerationStatusResponse
 
 
+class SoundRecipeCompileRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    capability: str
+    semantic_state: dict[str, Any]
+    source_free_text: str = ""
+    final_prompt_override: str | None = None
+
+
+class SoundRecipeConflictResponse(BaseModel):
+    id: str
+    title: str
+    structured: str
+    free_text: str
+    field: str
+
+
+class SoundRecipeCompileResponse(BaseModel):
+    capability: str
+    semantic_state: dict[str, Any]
+    source_free_text: str
+    compiled_prompt: str
+    conflicts: list[SoundRecipeConflictResponse]
+    model: str
+    semantic_schema_version: str
+    compiler_version: str
+    taxonomy_version: str
+
+
+class SoundRecipeCompileEnvelope(BaseModel):
+    data: SoundRecipeCompileResponse
+
+
+class SoundRecipeTaxonomyResponse(BaseModel):
+    version: str
+    items: list[dict[str, Any]]
+
+
+class SoundRecipeTaxonomyEnvelope(BaseModel):
+    data: SoundRecipeTaxonomyResponse
+
+
 class AudioGenerationCandidateResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -28,6 +70,11 @@ class AudioGenerationCandidateResponse(BaseModel):
     prompt: str
     prompt_mode: str = "expert"
     generation_brief: dict[str, Any] | None = None
+    semantic_state: dict[str, Any] | None = None
+    source_free_text: str | None = None
+    semantic_schema_version: str | None = None
+    compiler_version: str | None = None
+    taxonomy_version: str | None = None
     authored_prompt: str | None = None
     resolved_prompt: str | None = None
     seconds: int
@@ -47,6 +94,11 @@ class AudioGenerationRequestResponse(BaseModel):
     capability: str
     prompt_mode: str
     generation_brief: dict[str, Any] | None = None
+    semantic_state: dict[str, Any] | None = None
+    source_free_text: str | None = None
+    semantic_schema_version: str | None = None
+    compiler_version: str | None = None
+    taxonomy_version: str | None = None
     authored_prompt: str | None = None
     resolved_prompt: str
     seconds: int

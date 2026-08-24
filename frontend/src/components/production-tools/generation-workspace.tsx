@@ -180,6 +180,7 @@ export function GenerationWorkspace({
         prompt: requestedPrompt,
         prompt_mode: sourceMode,
         generation_brief: sourceMode === "simple" ? (request?.generation_brief || brief) : undefined,
+        source_free_text: "",
         authored_prompt: sourceMode === "expert" ? (request?.authored_prompt || requestedPrompt) : undefined,
         seconds: request?.seconds || seconds,
         seed: requestedSeed,

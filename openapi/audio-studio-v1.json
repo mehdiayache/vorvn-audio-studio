@@ -798,6 +798,17 @@
             ],
             "title": "Channels"
           },
+          "compiler_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compiler Version"
+          },
           "duration_ms": {
             "title": "Duration Ms",
             "type": "integer"
@@ -853,9 +864,54 @@
             "title": "Seed",
             "type": "integer"
           },
+          "semantic_schema_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semantic Schema Version"
+          },
+          "semantic_state": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semantic State"
+          },
           "size_bytes": {
             "title": "Size Bytes",
             "type": "integer"
+          },
+          "source_free_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Free Text"
+          },
+          "taxonomy_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxonomy Version"
           }
         },
         "required": [
@@ -990,6 +1046,19 @@
             "title": "Capability",
             "type": "string"
           },
+          "final_prompt_override": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Prompt Override"
+          },
           "generation_brief": {
             "anyOf": [
               {
@@ -1015,10 +1084,17 @@
             "title": "Production Id"
           },
           "prompt": {
-            "maxLength": 500,
-            "minLength": 1,
-            "title": "Prompt",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt"
           },
           "prompt_mode": {
             "default": "expert",
@@ -1047,11 +1123,28 @@
               }
             ],
             "title": "Seed"
+          },
+          "semantic_state": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semantic State"
+          },
+          "source_free_text": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Source Free Text",
+            "type": "string"
           }
         },
         "required": [
           "capability",
-          "prompt",
           "seconds"
         ],
         "title": "AudioGenerationJobCreate",
@@ -1073,6 +1166,17 @@
           "capability": {
             "title": "Capability",
             "type": "string"
+          },
+          "compiler_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compiler Version"
           },
           "generation_brief": {
             "anyOf": [
@@ -1108,6 +1212,51 @@
               }
             ],
             "title": "Seed"
+          },
+          "semantic_schema_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semantic Schema Version"
+          },
+          "semantic_state": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semantic State"
+          },
+          "source_free_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Free Text"
+          },
+          "taxonomy_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxonomy Version"
           }
         },
         "required": [
@@ -6964,6 +7113,178 @@
         "title": "SilenceBody",
         "type": "object"
       },
+      "SoundRecipeCompileEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SoundRecipeCompileResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SoundRecipeCompileEnvelope",
+        "type": "object"
+      },
+      "SoundRecipeCompileRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "capability": {
+            "title": "Capability",
+            "type": "string"
+          },
+          "final_prompt_override": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Prompt Override"
+          },
+          "semantic_state": {
+            "additionalProperties": true,
+            "title": "Semantic State",
+            "type": "object"
+          },
+          "source_free_text": {
+            "default": "",
+            "title": "Source Free Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "capability",
+          "semantic_state"
+        ],
+        "title": "SoundRecipeCompileRequest",
+        "type": "object"
+      },
+      "SoundRecipeCompileResponse": {
+        "properties": {
+          "capability": {
+            "title": "Capability",
+            "type": "string"
+          },
+          "compiled_prompt": {
+            "title": "Compiled Prompt",
+            "type": "string"
+          },
+          "compiler_version": {
+            "title": "Compiler Version",
+            "type": "string"
+          },
+          "conflicts": {
+            "items": {
+              "$ref": "#/components/schemas/SoundRecipeConflictResponse"
+            },
+            "title": "Conflicts",
+            "type": "array"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "semantic_schema_version": {
+            "title": "Semantic Schema Version",
+            "type": "string"
+          },
+          "semantic_state": {
+            "additionalProperties": true,
+            "title": "Semantic State",
+            "type": "object"
+          },
+          "source_free_text": {
+            "title": "Source Free Text",
+            "type": "string"
+          },
+          "taxonomy_version": {
+            "title": "Taxonomy Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "capability",
+          "semantic_state",
+          "source_free_text",
+          "compiled_prompt",
+          "conflicts",
+          "model",
+          "semantic_schema_version",
+          "compiler_version",
+          "taxonomy_version"
+        ],
+        "title": "SoundRecipeCompileResponse",
+        "type": "object"
+      },
+      "SoundRecipeConflictResponse": {
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "free_text": {
+            "title": "Free Text",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "structured": {
+            "title": "Structured",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "structured",
+          "free_text",
+          "field"
+        ],
+        "title": "SoundRecipeConflictResponse",
+        "type": "object"
+      },
+      "SoundRecipeTaxonomyEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SoundRecipeTaxonomyResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SoundRecipeTaxonomyEnvelope",
+        "type": "object"
+      },
+      "SoundRecipeTaxonomyResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "items"
+        ],
+        "title": "SoundRecipeTaxonomyResponse",
+        "type": "object"
+      },
       "SoundSceneClipDocument": {
         "additionalProperties": false,
         "properties": {
@@ -12711,6 +13032,68 @@
           }
         },
         "summary": "Recent Audio Generations",
+        "tags": [
+          "audio-generations"
+        ]
+      }
+    },
+    "/api/v1/audio-generations/recipe/compile": {
+      "post": {
+        "operationId": "compileSoundRecipe",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SoundRecipeCompileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SoundRecipeCompileEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Compile Recipe",
+        "tags": [
+          "audio-generations"
+        ]
+      }
+    },
+    "/api/v1/audio-generations/recipe/taxonomy": {
+      "get": {
+        "operationId": "getSoundRecipeTaxonomy",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SoundRecipeTaxonomyEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sound Recipe Taxonomy",
         "tags": [
           "audio-generations"
         ]

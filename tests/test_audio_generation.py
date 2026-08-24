@@ -328,6 +328,57 @@ class AudioGenerationApplicationTests(unittest.TestCase):
                 "purpose": "quiet underscore"})
             self.assertFalse(recent[0]["candidate_available"])
 
+    def test_sound_recipe_is_compiled_server_side_and_stored_as_snapshot(self):
+        with TemporaryDirectory() as directory:
+            service, jobs, _ = self.service(Path(directory))
+            recipe = {
+                "creative_brief": "A gentle prayer bed",
+                "context": ["context.faith"],
+                "moment": ["moment.prayer"],
+                "genres": ["genre.ambient"],
+                "duration": 24,
+                "seed": 31,
+                "variation_count": 2,
+            }
+            job, _ = service.enqueue(
+                capability="music", prompt="this client prompt is ignored",
+                seconds=5, seed=None, prompt_mode="expert",
+                semantic_state=recipe,
+                source_free_text=recipe["creative_brief"],
+                idempotency_key="recipe", production_id=81)
+
+            self.assertIn("TrackType: Music", job.payload["prompt"])
+            self.assertNotIn("client prompt", job.payload["prompt"])
+            self.assertEqual(job.payload["seconds"], 24)
+            self.assertEqual(job.payload["seed"], 31)
+            self.assertEqual(job.payload["semantic_state"]["variation_count"], 2)
+            self.assertEqual(job.payload["semantic_schema_version"],
+                             "music-semantic-v1")
+            self.assertEqual(job.payload["compiler_version"],
+                             "music-compiler-v1")
+            self.assertEqual(job.payload["taxonomy_version"],
+                             "audio-taxonomy-v1")
+            jobs.jobs[job.public_id] = Job(
+                job.id, job.public_id, job.kind, JobStatus.RUNNING,
+                payload=job.payload)
+            request = service.recent(81)[0]["request"]
+            self.assertEqual(request["semantic_state"]["context"],
+                             ["context.faith"])
+            self.assertEqual(request["source_free_text"],
+                             "A gentle prayer bed")
+
+    def test_unresolved_sound_recipe_conflict_cannot_generate(self):
+        service, _, _ = self.service(Path("/tmp"))
+        with self.assertRaisesRegex(ValueError, "Resolve the conflicting"):
+            service.enqueue(
+                capability="music", prompt=None, seconds=30, seed=None,
+                semantic_state={
+                    "creative_brief": "a huge explosive climax",
+                    "arrangement": {
+                        "dynamics": "arrangement.dynamics_restrained"},
+                },
+                idempotency_key="conflict")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -14,6 +14,7 @@ from audio_studio.application.jobs import JobProgress, JobService
 from audio_studio.application.uploads import UploadService
 from audio_studio.domain.jobs import Job, JobCancelled, JobFailed, JobStatus
 from audio_studio.domain.uploads import AssetCategory, AssetScope
+from audio_studio.domain.sound_recipes import compile_sound_recipe
 from audio_studio.providers.vorvn_audio import (
     AudioGenerationCapability,
     AudioGenerationError,
@@ -52,13 +53,30 @@ class AudioGenerationService:
         return self.generator.status()
 
     def enqueue(self, *, capability: AudioGenerationCapability,
-                prompt: str, seconds: int, seed: int | None,
+                prompt: str | None, seconds: int, seed: int | None,
                 prompt_mode: str = "expert",
                 generation_brief: dict[str, Any] | None = None,
+                semantic_state: dict[str, Any] | None = None,
+                source_free_text: str = "",
+                final_prompt_override: str | None = None,
                 authored_prompt: str | None = None,
                 idempotency_key: str, production_id: int | None = None) \
             -> tuple[Job, bool]:
-        clean_prompt = " ".join(prompt.split())
+        compiled = None
+        if semantic_state is not None:
+            compiled = compile_sound_recipe(
+                capability, semantic_state, source_free_text,
+                final_prompt_override)
+            if compiled.conflicts:
+                raise ValueError(
+                    "Resolve the conflicting Sound Recipe directions before "
+                    "generating.")
+            clean_prompt = compiled.compiled_prompt
+            seconds = int(compiled.semantic_state["duration"])
+            semantic_seed = int(compiled.semantic_state["seed"])
+            seed = None if semantic_seed < 0 else semantic_seed
+        else:
+            clean_prompt = " ".join((prompt or "").split())
         self._validate(capability, clean_prompt, seconds, seed)
         if prompt_mode not in {"simple", "expert"}:
             raise ValueError("Choose Simple or Expert prompting.")
@@ -68,8 +86,14 @@ class AudioGenerationService:
             "prompt": clean_prompt,
             "prompt_mode": prompt_mode,
             "generation_brief": generation_brief if prompt_mode == "simple" else None,
+            "semantic_state": compiled.semantic_state if compiled else None,
+            "source_free_text": compiled.source_free_text if compiled else None,
+            "semantic_schema_version": (
+                compiled.semantic_schema_version if compiled else None),
+            "compiler_version": compiled.compiler_version if compiled else None,
+            "taxonomy_version": compiled.taxonomy_version if compiled else None,
             "authored_prompt": (
-                " ".join((authored_prompt or prompt).split())
+                " ".join((authored_prompt or prompt or clean_prompt).split())
                 if prompt_mode == "expert" else None),
             "resolved_prompt": clean_prompt,
             "seconds": seconds,
@@ -180,6 +204,12 @@ class AudioGenerationService:
                 "prompt": prompt,
                 "prompt_mode": job.payload.get("prompt_mode") or "expert",
                 "generation_brief": job.payload.get("generation_brief"),
+                "semantic_state": job.payload.get("semantic_state"),
+                "source_free_text": job.payload.get("source_free_text"),
+                "semantic_schema_version": job.payload.get(
+                    "semantic_schema_version"),
+                "compiler_version": job.payload.get("compiler_version"),
+                "taxonomy_version": job.payload.get("taxonomy_version"),
                 "authored_prompt": job.payload.get("authored_prompt"),
                 "resolved_prompt": (
                     job.payload.get("resolved_prompt") or prompt),
@@ -261,6 +291,12 @@ class AudioGenerationService:
                     "capability": job.payload.get("capability"),
                     "prompt_mode": job.payload.get("prompt_mode") or "expert",
                     "generation_brief": job.payload.get("generation_brief"),
+                    "semantic_state": job.payload.get("semantic_state"),
+                    "source_free_text": job.payload.get("source_free_text"),
+                    "semantic_schema_version": job.payload.get(
+                        "semantic_schema_version"),
+                    "compiler_version": job.payload.get("compiler_version"),
+                    "taxonomy_version": job.payload.get("taxonomy_version"),
                     "authored_prompt": job.payload.get("authored_prompt"),
                     "resolved_prompt": (
                         job.payload.get("resolved_prompt")
@@ -301,6 +337,12 @@ class AudioGenerationService:
             "route": job.result.get("provider_endpoint"),
             "prompt_mode": job.result.get("prompt_mode") or "expert",
             "generation_brief": job.result.get("generation_brief"),
+            "semantic_state": job.result.get("semantic_state"),
+            "source_free_text": job.result.get("source_free_text"),
+            "semantic_schema_version": job.result.get(
+                "semantic_schema_version"),
+            "compiler_version": job.result.get("compiler_version"),
+            "taxonomy_version": job.result.get("taxonomy_version"),
             "authored_prompt": job.result.get("authored_prompt"),
             "resolved_prompt": (job.result.get("resolved_prompt")
                                 or job.result.get("prompt")),

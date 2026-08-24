@@ -51,7 +51,8 @@ describe("AssetTool", () => {
       capability: "sfx", prompt: "Sound source: dry match. Action: strikes once.",
       prompt_mode: "simple",
       generation_brief: expect.objectContaining({ object: "dry match", action: "strikes once" }),
-      authored_prompt: undefined, seconds: 5, seed: undefined, production_id: 81,
+      source_free_text: "", authored_prompt: undefined,
+      seconds: 5, seed: undefined, production_id: 81,
     }))
     expect(onKeepGenerated).not.toHaveBeenCalled()
     status.mockRestore(); recent.mockRestore(); enqueue.mockRestore()
