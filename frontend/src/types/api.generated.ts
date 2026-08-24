@@ -329,6 +329,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs/sound-recipe-normalization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Sound Recipe Normalization Job */
+        post: operations["createSoundRecipeNormalizationJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs/speech": {
         parameters: {
             query?: never;
@@ -4196,6 +4213,30 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** SoundRecipeNormalizationJobCreate */
+        SoundRecipeNormalizationJobCreate: {
+            /**
+             * Capability
+             * @enum {string}
+             */
+            capability: "sfx" | "music";
+            /**
+             * Confirmed
+             * @default false
+             */
+            confirmed: boolean;
+            /** Production Id */
+            production_id?: number | null;
+            /** Semantic State */
+            semantic_state: {
+                [key: string]: unknown;
+            };
+            /**
+             * Source Free Text
+             * @default
+             */
+            source_free_text: string;
+        };
         /** SoundRecipeTaxonomyEnvelope */
         SoundRecipeTaxonomyEnvelope: {
             data: components["schemas"]["SoundRecipeTaxonomyResponse"];
@@ -6675,6 +6716,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RenderJobCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobCreatedEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createSoundRecipeNormalizationJob: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SoundRecipeNormalizationJobCreate"];
             };
         };
         responses: {

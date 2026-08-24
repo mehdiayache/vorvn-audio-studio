@@ -43,6 +43,7 @@ type SoundRecipeCompileBody = paths["/api/v1/audio-generations/recipe/compile"][
 type SoundRecipeCompileEnvelope = paths["/api/v1/audio-generations/recipe/compile"]["post"]["responses"][200]["content"]["application/json"]
 type SoundRecipeTaxonomyEnvelope = paths["/api/v1/audio-generations/recipe/taxonomy"]["get"]["responses"][200]["content"]["application/json"]
 type AudioGenerationJobBody = paths["/api/v1/jobs/audio-generation"]["post"]["requestBody"]["content"]["application/json"]
+type SoundRecipeNormalizationJobBody = paths["/api/v1/jobs/sound-recipe-normalization"]["post"]["requestBody"]["content"]["application/json"]
 type GeneratedKeepBody = paths["/api/v1/audio-generations/{candidate_id}/keep"]["post"]["requestBody"]["content"]["application/json"]
 type GeneratedKeepEnvelope = paths["/api/v1/audio-generations/{candidate_id}/keep"]["post"]["responses"][201]["content"]["application/json"]
 type GeneratedDiscardEnvelope = paths["/api/v1/audio-generations/{candidate_id}/candidate"]["delete"]["responses"][200]["content"]["application/json"]
@@ -400,6 +401,15 @@ export const studioApi = {
   compileSoundRecipe: (payload: SoundRecipeCompileBody, signal?: AbortSignal) => request<SoundRecipeCompileEnvelope>("/api/v1/audio-generations/recipe/compile", {
     method: "POST", body: JSON.stringify(payload), signal,
   }).then((response) => response.data),
+  normalizeSoundRecipe: async (payload: SoundRecipeNormalizationJobBody) => {
+    const response = await request<{ data: DurableJob<import("@/types/domain").SoundRecipeNormalizationResult> }>("/api/v1/jobs/sound-recipe-normalization", {
+      method: "POST",
+      headers: { "Idempotency-Key": `sound-recipe-normalization-${crypto.randomUUID()}` },
+      body: JSON.stringify(payload),
+    })
+    const job = registerJob(response.data)
+    return jobObserver.completion<import("@/types/domain").SoundRecipeNormalizationResult>(job.id)
+  },
   recentAudioGenerations: (productionId: number) => request<AudioGenerationHistoryEnvelope>(`/api/v1/audio-generations/recent?production_id=${productionId}`).then((response) => response.data),
   enqueueAudioGeneration: async (payload: AudioGenerationJobBody) => {
     const response = await request<{ data: DurableJob<import("@/types/domain").AudioGenerationCandidate> }>("/api/v1/jobs/audio-generation", {

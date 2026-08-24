@@ -225,6 +225,22 @@ class AudioGenerationJobCreate(BaseModel):
         return self
 
 
+class SoundRecipeNormalizationJobCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    capability: Literal["sfx", "music"]
+    semantic_state: dict[str, Any]
+    source_free_text: str = Field(default="", max_length=2_000)
+    production_id: int | None = Field(default=None, gt=0)
+    confirmed: bool = False
+
+    @model_validator(mode="after")
+    def recipe_is_bounded(self):
+        if len(str(self.semantic_state)) > 30_000:
+            raise ValueError("The Sound Recipe is too large.")
+        return self
+
+
 def _payload(job: Job) -> dict:
     context_keys = {
         "part_id", "production_id", "transcript_id", "target", "language",
@@ -304,6 +320,24 @@ def create_audio_generation_job(
                 idempotency_key or f"audio-generation-{uuid4()}")[:200])
     except ValueError as exc:
         raise ApiProblem(400, "invalid_audio_generation", str(exc)) from exc
+    return {"data": _payload(job), "meta": {"created": created}}
+
+
+@router.post("/sound-recipe-normalization",
+             operation_id="createSoundRecipeNormalizationJob",
+             status_code=202, response_model=JobCreatedEnvelope)
+def create_sound_recipe_normalization_job(
+    payload: SoundRecipeNormalizationJobCreate,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+) -> dict:
+    job, created = job_service.enqueue(
+        "sound_recipe_normalize", payload.model_dump(),
+        idempotency_key=(
+            idempotency_key or f"sound-recipe-normalization-{uuid4()}")[:200],
+        production_id=payload.production_id,
+        source_tool="production",
+        operation_label="Understand Sound Recipe",
+    )
     return {"data": _payload(job), "meta": {"created": created}}
 
 

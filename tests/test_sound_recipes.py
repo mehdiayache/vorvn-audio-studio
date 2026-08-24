@@ -2,7 +2,11 @@
 
 import unittest
 
-from audio_studio.domain.sound_recipes import compile_sound_recipe
+from audio_studio.domain.sound_recipes import (
+    LANGUAGE_NORMALIZATION_VERSION,
+    compile_sound_recipe,
+    language_source_sha256,
+)
 from audio_studio.domain.sound_recipe_taxonomy import INDEX, TAXONOMY
 
 
@@ -94,7 +98,41 @@ class SoundRecipeCompilerTests(unittest.TestCase):
         self.assertIn("heavy wooden door", result.compiled_prompt)
         self.assertIn("slamming shut", result.compiled_prompt)
         self.assertIn("large reverberant church", result.compiled_prompt)
-        self.assertEqual(result.semantic_schema_version, "sfx-semantic-v1")
+        self.assertEqual(result.semantic_schema_version, "sfx-semantic-v2")
+
+    def test_custom_language_keeps_display_and_compiles_canonical_english(self):
+        state = {
+            "creative_brief": "Une musique fragile sous la narration",
+            "creative_brief_en": "Fragile music beneath spoken narration",
+            "instruments": [{
+                "id": {
+                    "display": "bouteilles en verre frottées doucement",
+                    "canonical_en": "gently rubbed glass bottles",
+                    "source": "custom",
+                },
+                "modifiers": [{
+                    "display": "un peu feutré et fragile",
+                    "canonical_en": "delicate and softly muted",
+                    "source": "custom",
+                }],
+            }],
+        }
+        state["language_normalization_version"] = LANGUAGE_NORMALIZATION_VERSION
+        state["language_source_sha256"] = language_source_sha256(
+            state, state["creative_brief"])
+        result = compile_sound_recipe(
+            "music", state, source_free_text=state["creative_brief"])
+
+        instrument = result.semantic_state["instruments"][0]
+        self.assertEqual(
+            instrument["id"]["display"],
+            "bouteilles en verre frottées doucement")
+        self.assertEqual(
+            instrument["id"]["canonical_en"],
+            "gently rubbed glass bottles")
+        self.assertIn("gently rubbed glass bottles", result.compiled_prompt)
+        self.assertIn("Fragile music beneath", result.compiled_prompt)
+        self.assertNotIn("Une musique fragile", result.compiled_prompt)
 
     def test_prompt_packing_keeps_complete_high_value_sentences(self):
         result = compile_sound_recipe("music", {
@@ -106,7 +144,21 @@ class SoundRecipeCompilerTests(unittest.TestCase):
         self.assertTrue(result.compiled_prompt.endswith("."))
         self.assertIn("TrackType: Music", result.compiled_prompt)
 
+    def test_changed_source_never_reuses_stale_english_normalization(self):
+        state = {
+            "creative_brief": "Une cloche délicate",
+            "creative_brief_en": "A delicate bell",
+            "language_normalization_version": LANGUAGE_NORMALIZATION_VERSION,
+        }
+        state["language_source_sha256"] = language_source_sha256(
+            state, state["creative_brief"])
+
+        result = compile_sound_recipe(
+            "sfx", state, source_free_text="Une porte lourde se ferme")
+
+        self.assertIn("Une porte lourde", result.compiled_prompt)
+        self.assertNotIn("delicate bell", result.compiled_prompt)
+
 
 if __name__ == "__main__":
     unittest.main()
-

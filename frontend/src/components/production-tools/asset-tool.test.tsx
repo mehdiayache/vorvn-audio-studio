@@ -36,9 +36,18 @@ describe("AssetTool", () => {
     const compile = vi.spyOn(studioApi, "compileSoundRecipe").mockResolvedValue({
       capability: "sfx", semantic_state: {}, source_free_text: "",
       compiled_prompt: "A dry match strikes once.", conflicts: [],
-      model: "stable-audio-3-small-sfx", semantic_schema_version: "sfx-semantic-v1",
-      compiler_version: "sfx-compiler-v1", taxonomy_version: "audio-taxonomy-v1",
+      model: "stable-audio-3-small-sfx", semantic_schema_version: "sfx-semantic-v2",
+      compiler_version: "sfx-compiler-v2", taxonomy_version: "audio-taxonomy-v1",
     })
+    const normalize = vi.spyOn(studioApi, "normalizeSoundRecipe").mockImplementation(async (payload) => ({
+      capability: "sfx",
+      semantic_state: payload.semantic_state,
+      source_free_text: payload.source_free_text,
+      compiled_prompt: "A dry match strikes once.", conflicts: [],
+      model: "stable-audio-3-small-sfx", semantic_schema_version: "sfx-semantic-v2",
+      compiler_version: "sfx-compiler-v2", taxonomy_version: "audio-taxonomy-v1",
+      normalization_model: "qwen3.7-plus", normalization_cost: 0.00001, usage: {},
+    }))
     const enqueue = vi.spyOn(studioApi, "enqueueAudioGeneration").mockResolvedValue({
       id: "generation-job", type: "audio_generate", status: "queued",
       progress: 0, detail: "Queued", retries: 0, result: {
@@ -57,6 +66,7 @@ describe("AssetTool", () => {
     fireEvent.click(view.getByRole("radio", { name: "1" }))
     await waitFor(() => expect(compile).toHaveBeenCalled())
     fireEvent.click(view.getByRole("button", { name: "Generate 1 variation" }))
+    await waitFor(() => expect(normalize).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
       capability: "sfx", prompt: null, prompt_mode: "simple",
       semantic_state: expect.objectContaining({
@@ -67,7 +77,7 @@ describe("AssetTool", () => {
       generation_brief: null, seconds: 5, seed: null, production_id: 81,
     })))
     expect(onKeepGenerated).not.toHaveBeenCalled()
-    status.mockRestore(); recent.mockRestore(); taxonomy.mockRestore(); compile.mockRestore(); enqueue.mockRestore()
+    status.mockRestore(); recent.mockRestore(); taxonomy.mockRestore(); compile.mockRestore(); normalize.mockRestore(); enqueue.mockRestore()
   })
 
   it("keeps audition separate from explicit insertion", async () => {

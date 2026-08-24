@@ -17,6 +17,10 @@ from audio_studio.application.text_preparation import (
     TextPreparationJobHandler,
     TextPreparationService,
 )
+from audio_studio.application.sound_recipe_normalization import (
+    SoundRecipeNormalizationJobHandler,
+    SoundRecipeNormalizationService,
+)
 from audio_studio.application.translation import (
     SubtitleTranslationJobHandler,
     SubtitleTranslationService,
@@ -98,6 +102,12 @@ def main() -> int:
         PostgresTextPreparationRepository(), AlibabaTextProvider(), load_preferences,
         provider_operations,
     )))
+    service.register(
+        "sound_recipe_normalize",
+        SoundRecipeNormalizationJobHandler(SoundRecipeNormalizationService(
+            AlibabaTextProvider(), load_preferences, provider_operations,
+        )),
+    )
     service.register("render", render_service.handle_job)
     service.register("audio_generate", audio_generation_service.handle_job)
     alibaba_enrollment = AlibabaVoiceCloningProvider()

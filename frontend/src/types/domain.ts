@@ -10,6 +10,12 @@ export type AudioGenerationHistoryItem = components["schemas"]["AudioGenerationH
 export type AudioGenerationStatus = components["schemas"]["AudioGenerationStatusResponse"]
 export type GeneratedKeepResult = components["schemas"]["GeneratedKeepResponse"]
 export type SoundRecipeCompilation = components["schemas"]["SoundRecipeCompileResponse"]
+export type SoundRecipeNormalizationResult = SoundRecipeCompilation & {
+  normalization_model: string | null
+  normalization_cost: number
+  normalization_price_version?: string
+  usage: Record<string, unknown>
+}
 export type SoundRecipeTaxonomy = components["schemas"]["SoundRecipeTaxonomyResponse"]
 export type SoundRecipeTaxonomyItem = SoundRecipeTaxonomy["items"][number]
 

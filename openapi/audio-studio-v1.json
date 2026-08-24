@@ -7251,6 +7251,53 @@
         "title": "SoundRecipeConflictResponse",
         "type": "object"
       },
+      "SoundRecipeNormalizationJobCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "capability": {
+            "enum": [
+              "sfx",
+              "music"
+            ],
+            "title": "Capability",
+            "type": "string"
+          },
+          "confirmed": {
+            "default": false,
+            "title": "Confirmed",
+            "type": "boolean"
+          },
+          "production_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Production Id"
+          },
+          "semantic_state": {
+            "additionalProperties": true,
+            "title": "Semantic State",
+            "type": "object"
+          },
+          "source_free_text": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Source Free Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "capability",
+          "semantic_state"
+        ],
+        "title": "SoundRecipeNormalizationJobCreate",
+        "type": "object"
+      },
       "SoundRecipeTaxonomyEnvelope": {
         "properties": {
           "data": {
@@ -13644,6 +13691,65 @@
           }
         },
         "summary": "Create Render Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/v1/jobs/sound-recipe-normalization": {
+      "post": {
+        "operationId": "createSoundRecipeNormalizationJob",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SoundRecipeNormalizationJobCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobCreatedEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Sound Recipe Normalization Job",
         "tags": [
           "jobs"
         ]

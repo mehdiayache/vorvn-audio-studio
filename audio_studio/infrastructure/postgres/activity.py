@@ -11,6 +11,8 @@ KIND_LABELS = {
     "speech": "Speech", "batch": "Legacy bulk operation", "transcribe": "Subtitles",
     "translate": "Translation", "rewrite": "Text preparation",
     "render": "Production render", "clone": "Voice cloning",
+    "audio_generate": "Audio generation",
+    "sound_recipe_normalize": "Sound Recipe",
     "production_deleted": "Production deleted",
 }
 

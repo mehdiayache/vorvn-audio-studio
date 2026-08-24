@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+import json
 import re
 from typing import Any, Iterable, Literal
 
@@ -12,18 +13,19 @@ from audio_studio.domain.sound_recipe_taxonomy import INDEX, TAXONOMY_VERSION
 
 RecipeCapability = Literal["music", "sfx"]
 SCHEMA_VERSIONS = {
-    "music": "music-semantic-v1",
-    "sfx": "sfx-semantic-v1",
+    "music": "music-semantic-v2",
+    "sfx": "sfx-semantic-v2",
 }
 COMPILER_VERSIONS = {
-    "music": "music-compiler-v1",
-    "sfx": "sfx-compiler-v1",
+    "music": "music-compiler-v2",
+    "sfx": "sfx-compiler-v2",
 }
 MODEL_IDS = {
     "music": "stable-audio-3-small-music",
     "sfx": "stable-audio-3-small-sfx",
 }
 MAX_PROMPT_CHARS = 500
+LANGUAGE_NORMALIZATION_VERSION = "sound-recipe-language-v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,6 +76,9 @@ def empty_recipe(capability: RecipeCapability) -> dict[str, Any]:
     if capability == "music":
         return {
             "model_type": "music", "creative_brief": "",
+            "creative_brief_en": "",
+            "language_normalization_version": None,
+            "language_source_sha256": None,
             "context": [], "cue_role": [], "moment": [],
             "voice_relationship": None, "speech_presence": None,
             "moods": [], "energy": None, "tension": None,
@@ -97,6 +102,9 @@ def empty_recipe(capability: RecipeCapability) -> dict[str, Any]:
         }
     return {
         "model_type": "sfx", "creative_brief": "",
+        "creative_brief_en": "",
+        "language_normalization_version": None,
+        "language_source_sha256": None,
         "family": [], "source": [], "material": [], "action": [],
         "motion": None, "perspective": None, "environment": [],
         "intensity": None, "envelope": [], "character": [],
@@ -122,25 +130,44 @@ def _selection_id(value: Any) -> str:
     return ""
 
 
-def _values(value: Any) -> list[str]:
+def _normalized_selection(value: Any) -> str | dict[str, str] | None:
+    if isinstance(value, str):
+        return _clean_text(value, maximum=120) or None
+    if not isinstance(value, dict):
+        return None
+    display = _clean_text(value.get("display"), maximum=120)
+    canonical = _clean_text(value.get("canonical_en"), maximum=120)
+    if not display and not canonical:
+        return None
+    return {
+        "display": display or canonical,
+        "canonical_en": canonical or display,
+        "source": "custom",
+    }
+
+
+def _values(value: Any) -> list[str | dict[str, str]]:
     raw = value if isinstance(value, list) else ([value] if value else [])
-    result: list[str] = []
+    result: list[str | dict[str, str]] = []
     seen: set[str] = set()
     for item in raw:
-        identifier = _selection_id(item)
+        normalized = _normalized_selection(item)
+        identifier = _selection_id(normalized)
         key = identifier.casefold()
-        if identifier and key not in seen:
+        if normalized is not None and identifier and key not in seen:
             seen.add(key)
-            result.append(identifier)
+            result.append(normalized)
     return result
 
 
-def _item_prompt(identifier: str) -> str:
+def _item_prompt(value: Any) -> str:
+    identifier = _selection_id(value)
     item = INDEX.get(identifier)
     return str(item["prompt_en"]) if item else _clean_text(identifier, maximum=120)
 
 
-def _item_label(identifier: str) -> str:
+def _item_label(value: Any) -> str:
+    identifier = _selection_id(value)
     item = INDEX.get(identifier)
     if item:
         return str(item["labels"]["en"])
@@ -157,6 +184,12 @@ def normalize_recipe(capability: RecipeCapability,
             base[key] = source[key]
     base["model_type"] = capability
     base["creative_brief"] = _clean_text(source.get("creative_brief"))
+    base["creative_brief_en"] = _clean_text(
+        source.get("creative_brief_en"), maximum=500)
+    base["language_normalization_version"] = _clean_text(
+        source.get("language_normalization_version"), maximum=80) or None
+    base["language_source_sha256"] = _clean_text(
+        source.get("language_source_sha256"), maximum=64) or None
     base["conflict_resolutions"] = {
         str(key): str(value) for key, value in (
             source.get("conflict_resolutions") or {}).items()
@@ -186,7 +219,7 @@ def normalize_recipe(capability: RecipeCapability,
             base[key] = _values(source.get(key))
         for key in ("voice_relationship", "speech_presence", "energy",
                     "tension", "emotional_arc", "pace"):
-            base[key] = _selection_id(source.get(key)) or None
+            base[key] = _normalized_selection(source.get(key))
         bpm = source.get("exact_bpm")
         try:
             base["exact_bpm"] = max(30, min(240, int(bpm))) if bpm else None
@@ -198,8 +231,8 @@ def normalize_recipe(capability: RecipeCapability,
                 raw = {"id": raw, "modifiers": []}
             if not isinstance(raw, dict):
                 continue
-            identifier = _selection_id(raw.get("id") or raw)
-            if identifier:
+            identifier = _normalized_selection(raw.get("id") or raw)
+            if identifier is not None:
                 instruments.append({
                     "id": identifier,
                     "modifiers": _values(raw.get("modifiers")),
@@ -213,7 +246,7 @@ def normalize_recipe(capability: RecipeCapability,
             for key in normalized:
                 value = incoming.get(key)
                 normalized[key] = _values(value) if isinstance(
-                    defaults[key], list) else (_selection_id(value) or None)
+                    defaults[key], list) else _normalized_selection(value)
             base[group] = normalized
     else:
         for key in ("family", "source", "material", "action", "environment",
@@ -221,7 +254,7 @@ def normalize_recipe(capability: RecipeCapability,
             base[key] = _values(source.get(key))
         for key in ("motion", "perspective", "intensity", "realism",
                     "behaviour"):
-            base[key] = _selection_id(source.get(key)) or None
+            base[key] = _normalized_selection(source.get(key))
     return base
 
 
@@ -235,10 +268,37 @@ def _all_ids(state: dict[str, Any]) -> list[str]:
             for item in value:
                 visit(item)
         elif isinstance(value, dict):
+            if value.get("source") == "custom":
+                return
             for item in value.values():
                 visit(item)
     visit(state)
     return result
+
+
+def language_source_sha256(state: dict[str, Any], source_free_text: str) -> str:
+    """Fingerprint only language that needs provider normalization."""
+    custom_displays: list[str] = []
+
+    def visit(value: Any) -> None:
+        if isinstance(value, dict) and value.get("source") == "custom":
+            display = _clean_text(value.get("display"), maximum=120)
+            if display:
+                custom_displays.append(display)
+            return
+        if isinstance(value, dict):
+            for nested in value.values():
+                visit(nested)
+        elif isinstance(value, list):
+            for nested in value:
+                visit(nested)
+
+    visit(state)
+    payload = json.dumps({
+        "brief": _clean_text(source_free_text),
+        "custom": custom_displays,
+    }, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def _conflicts(state: dict[str, Any], brief: str) -> tuple[RecipeConflict, ...]:
@@ -388,8 +448,16 @@ def compile_sound_recipe(capability: RecipeCapability,
     if capability not in {"music", "sfx"}:
         raise ValueError("Choose Music or Sound Effect.")
     state = normalize_recipe(capability, semantic_state)
-    brief = _clean_text(source_free_text or state.get("creative_brief"))
-    state["creative_brief"] = brief
+    source_brief = _clean_text(source_free_text or state.get("creative_brief"))
+    state["creative_brief"] = source_brief
+    normalized_language_is_current = (
+        state.get("language_normalization_version")
+        == LANGUAGE_NORMALIZATION_VERSION
+        and state.get("language_source_sha256")
+        == language_source_sha256(state, source_brief)
+    )
+    brief = (_clean_text(state.get("creative_brief_en"), maximum=500)
+             if normalized_language_is_current else "") or source_brief
     conflicts = _conflicts(state, brief)
     resolutions = state.get("conflict_resolutions") or {}
     unresolved = tuple(item for item in conflicts if item.id not in resolutions)
@@ -402,6 +470,6 @@ def compile_sound_recipe(capability: RecipeCapability,
                  else _sfx_parts(state, brief))
         prompt = _pack(parts)
     return CompiledSoundRecipe(
-        capability, state, brief, prompt, unresolved,
+        capability, state, source_brief, prompt, unresolved,
         MODEL_IDS[capability], SCHEMA_VERSIONS[capability],
         COMPILER_VERSIONS[capability], TAXONOMY_VERSION)

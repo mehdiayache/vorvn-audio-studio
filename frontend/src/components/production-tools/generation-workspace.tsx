@@ -19,7 +19,7 @@ import { formatDuration } from "@/lib/format"
 import type {
   AudioAssetCategory, AudioAssetScope, AudioGenerationHistoryItem,
   GeneratedKeepResult, PlayerSource, SoundRecipeCompilation,
-  SoundRecipeTaxonomy, VentureAsset,
+  SoundRecipeNormalizationResult, SoundRecipeTaxonomy, VentureAsset,
 } from "@/types/domain"
 
 import type { AssetMode, GeneratedKeepInput } from "./asset-tool"
@@ -39,7 +39,8 @@ const SFX_STAGES = ["Sound", "Action", "Perspective", "Character", "Review"]
 
 function candidateName(item: AudioGenerationHistoryItem) {
   const prompt = item.request.resolved_prompt || ""
-  const concise = prompt.split(/[.!?]/)[0]?.replace(/^[^:]+:\s*/, "").replace(/^(TrackType:[^,]+,\s*)/i, "").trim().slice(0, 72)
+  const audiblePrompt = prompt.replace(/^TrackType:[^.]+\.\s*/i, "")
+  const concise = audiblePrompt.split(/[.!?]/)[0]?.trim().slice(0, 72)
   return concise || (item.request.capability === "music" ? "Generated music" : "Generated sound effect")
 }
 
@@ -118,7 +119,7 @@ export function GenerationWorkspace({
   const [status, setStatus] = useState<"checking" | "ready" | "unavailable">("checking")
   const [reason, setReason] = useState("")
   const [error, setError] = useState("")
-  const [generating, setGenerating] = useState(false)
+  const [generationStage, setGenerationStage] = useState<"understanding" | "starting" | null>(null)
   const [generationProgress, setGenerationProgress] = useState(0)
   const [name, setName] = useState("")
   const [category, setCategory] = useState<AudioAssetCategory>("sfx")
@@ -137,6 +138,7 @@ export function GenerationWorkspace({
   const anyWorking = history.some(isWorking)
   const unresolvedConflicts = compilation?.conflicts || []
   const generatedPrompt = compilation?.compiled_prompt || ""
+  const generating = generationStage !== null
 
   const setRecipe = (next: SoundRecipe | ((current: SoundRecipe) => SoundRecipe)) => {
     setRecipes((current) => ({
@@ -147,12 +149,13 @@ export function GenerationWorkspace({
   }
   const setPath = (path: string, value: unknown) => setRecipe((current) => updateRecipePath(current, path, value))
 
-  const refreshHistory = useCallback(async () => {
+  const refreshHistory = useCallback(async (preferredJobId?: string) => {
     if (!productionId) return
     try {
       const recent = await studioApi.recentAudioGenerations(productionId)
       setHistory(recent)
       setSelectedJobId((current) => {
+        if (preferredJobId && recent.some((item) => item.job_id === preferredJobId)) return preferredJobId
         if (current && recent.some((item) => item.job_id === current)) return current
         return recent.find((item) => item.candidate_available)?.job_id || recent[0]?.job_id || null
       })
@@ -232,34 +235,47 @@ export function GenerationWorkspace({
 
   const generate = async () => {
     if (!generatedPrompt || unresolvedConflicts.length) return
-    setGenerating(true); setGenerationProgress(0); setError("")
+    setGenerationStage("understanding"); setGenerationProgress(0); setError("")
     try {
-      const count = recipe.variation_count
+      const normalized = await studioApi.normalizeSoundRecipe({
+        capability,
+        semantic_state: recipe,
+        source_free_text: recipe.creative_brief,
+        production_id: productionId,
+        confirmed: false,
+      }) as SoundRecipeNormalizationResult
+      const normalizedRecipe = normalized.semantic_state as SoundRecipe
+      setRecipes((current) => ({ ...current, [capability]: normalizedRecipe }))
+      setCompilation(normalized)
+      setGenerationStage("starting")
+      const count = normalizedRecipe.variation_count
+      let latestJobId: string | undefined
       for (let index = 0; index < count; index += 1) {
         const semanticState = {
-          ...recipe,
-          seed: recipe.seed < 0 ? -1 : Math.min(2_147_483_647, recipe.seed + index),
+          ...normalizedRecipe,
+          seed: normalizedRecipe.seed < 0 ? -1 : Math.min(2_147_483_647, normalizedRecipe.seed + index),
         }
         const job = await studioApi.enqueueAudioGeneration({
           capability,
           prompt: null,
           prompt_mode: promptMode,
           semantic_state: semanticState,
-          source_free_text: recipe.creative_brief,
+          source_free_text: normalizedRecipe.creative_brief,
           final_prompt_override: promptOverride[capability],
           authored_prompt: promptOverride[capability],
           generation_brief: null,
-          seconds: recipe.duration,
+          seconds: normalizedRecipe.duration,
           seed: semanticState.seed < 0 ? null : semanticState.seed,
           production_id: productionId,
         })
+        latestJobId = job.id
         setSelectedJobId(job.id)
         setGenerationProgress(index + 1)
       }
-      await refreshHistory()
+      await refreshHistory(latestJobId)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Audio could not be generated.")
-    } finally { setGenerating(false) }
+    } finally { setGenerationStage(null) }
   }
 
   const refine = (item: AudioGenerationHistoryItem) => {
@@ -360,7 +376,7 @@ export function GenerationWorkspace({
       <CandidatePanel selected={selected} candidate={candidate} selectedLabel={selectedLabel} selectedActive={selectedActive} name={name} category={category} scope={scope} tags={tags} onName={setName} onCategory={setCategory} onScope={setScope} onTags={setTags} onError={setError} onPlay={onPlay} onRefine={() => selected && refine(selected)} />
     </aside>
 
-    <footer className="asset-action-bar"><div><b>{candidate ? candidateName(selected!) : capability === "music" ? "New music recipe" : "New sound recipe"}</b><span>{generating ? `Starting variation ${Math.min(generationProgress + 1, recipe.variation_count)} of ${recipe.variation_count}…` : statusCopy}</span></div>{error && <p role="alert">{error}</p>}{candidate && !selected?.kept_asset ? <><ActionButton variant="outline" busy={generating} busyLabel="Starting new variations…" disabled={status !== "ready" || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length) || Boolean(keeping) || discarding} onClick={() => void generate()}><Sparkles />Generate new</ActionButton><ActionButton variant="ghost" busy={discarding} busyLabel="Discarding…" disabled={Boolean(keeping) || generating} onClick={() => void discard()}><Trash2 />Discard</ActionButton><ActionButton variant="outline" busy={keeping === "library"} busyLabel="Keeping…" disabled={Boolean(keeping) || discarding || generating || !name.trim()} onClick={() => void keep(false)}><Check />Keep in Library</ActionButton><ActionButton busy={keeping === "place"} busyLabel={mode === "sound" ? "Adding to track…" : "Inserting…"} disabled={Boolean(keeping) || discarding || generating || !name.trim()} onClick={() => void keep(true)}><Check />{mode === "sound" ? "Keep & Add to Track" : "Keep & Insert"}</ActionButton></> : <ActionButton busy={generating} busyLabel={`Starting ${recipe.variation_count} variation${recipe.variation_count === 1 ? "" : "s"}…`} disabled={status !== "ready" || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length)} onClick={() => void generate()}><Sparkles />Generate {recipe.variation_count} variation{recipe.variation_count === 1 ? "" : "s"}</ActionButton>}</footer>
+    <footer className="asset-action-bar"><div><b>{candidate ? candidateName(selected!) : capability === "music" ? "New music recipe" : "New sound recipe"}</b><span>{generationStage === "understanding" ? "Understanding the creative brief…" : generationStage === "starting" ? `Starting variation ${Math.min(generationProgress + 1, recipe.variation_count)} of ${recipe.variation_count}…` : statusCopy}</span></div>{error && <p role="alert">{error}</p>}{candidate && !selected?.kept_asset ? <><ActionButton variant="outline" busy={generating} busyLabel={generationStage === "understanding" ? "Understanding brief…" : "Starting new variations…"} disabled={status !== "ready" || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length) || Boolean(keeping) || discarding} onClick={() => void generate()}><Sparkles />Generate new</ActionButton><ActionButton variant="ghost" busy={discarding} busyLabel="Discarding…" disabled={Boolean(keeping) || generating} onClick={() => void discard()}><Trash2 />Discard</ActionButton><ActionButton variant="outline" busy={keeping === "library"} busyLabel="Keeping…" disabled={Boolean(keeping) || discarding || generating || !name.trim()} onClick={() => void keep(false)}><Check />Keep in Library</ActionButton><ActionButton busy={keeping === "place"} busyLabel={mode === "sound" ? "Adding to track…" : "Inserting…"} disabled={Boolean(keeping) || discarding || generating || !name.trim()} onClick={() => void keep(true)}><Check />{mode === "sound" ? "Keep & Add to Track" : "Keep & Insert"}</ActionButton></> : <ActionButton busy={generating} busyLabel={generationStage === "understanding" ? "Understanding brief…" : `Starting ${recipe.variation_count} variation${recipe.variation_count === 1 ? "" : "s"}…`} disabled={status !== "ready" || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length)} onClick={() => void generate()}><Sparkles />Generate {recipe.variation_count} variation{recipe.variation_count === 1 ? "" : "s"}</ActionButton>}</footer>
   </section>
 }
 

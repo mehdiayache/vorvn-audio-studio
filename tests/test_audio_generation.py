@@ -353,9 +353,9 @@ class AudioGenerationApplicationTests(unittest.TestCase):
             self.assertEqual(job.payload["seed"], 31)
             self.assertEqual(job.payload["semantic_state"]["variation_count"], 2)
             self.assertEqual(job.payload["semantic_schema_version"],
-                             "music-semantic-v1")
+                             "music-semantic-v2")
             self.assertEqual(job.payload["compiler_version"],
-                             "music-compiler-v1")
+                             "music-compiler-v2")
             self.assertEqual(job.payload["taxonomy_version"],
                              "audio-taxonomy-v1")
             jobs.jobs[job.public_id] = Job(
