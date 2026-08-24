@@ -71,6 +71,13 @@ type SequenceStream = StreamHandle & {
   analyser: AnalyserNode
 }
 
+export type SoundSceneMeter = {
+  left: number
+  right: number
+  peak: number
+  clipping: boolean
+}
+
 function audioClip(
   id: string, buffer: AudioBuffer, start: number, duration: number,
   offset: number, fadeIn: number, fadeOut: number,
@@ -141,6 +148,12 @@ export class SoundScenePlayout {
   private adapterInitialization: Promise<void> | null = null
   private cache: DecodedAudioCache | null = null
   private audibleMaster: GainNode | null = null
+  private meterLeft: AnalyserNode | null = null
+  private meterRight: AnalyserNode | null = null
+  private meterNodes: AudioNode[] = []
+  private meterValue: SoundSceneMeter = { left: 0, right: 0, peak: 0, clipping: false }
+  private meterListeners = new Set<() => void>()
+  private clipUntil = 0
   private preparedSignature = ""
   private sceneVersion = 0
   private active = false
@@ -157,15 +170,17 @@ export class SoundScenePlayout {
   private effectRoutes = new Map<string, EffectRoute>()
   private childTracks = new Map<string, string[]>()
   private internalTrackByClip = new Map<string, string>()
+  private clipByInternalTrack = new Map<string, string>()
   private bufferedTrackByClip = new Map<string, PlayoutTrack>()
   private liveTrackVolumes = new Map<string, number>()
   private liveTrackMutes = new Map<string, boolean>()
+  private soloTrackIds = new Set<string>()
   private liveClipGains = new Map<string, number>()
   private liveClips = new Map<string, SoundSceneClip>()
   private preparedTrackIds = new Set<string>()
   private duckedBufferedTracks = new Set<string>()
   private sequenceMixPreviews = new Map<string, Partial<SequenceMixOverride>>()
-  private duckLevel = 1
+  private detectorCompressionGain = 1
   private visibilityListener = () => {
     if (document.hidden) this.deactivatePlayout()
   }
@@ -194,6 +209,23 @@ export class SoundScenePlayout {
     this.audibleMaster = context.createGain()
     this.audibleMaster.gain.value = 0
     this.audibleMaster.connect(context.destination)
+    const splitter = context.createChannelSplitter(2)
+    const meterLeft = context.createAnalyser()
+    const meterRight = context.createAnalyser()
+    const silentSink = context.createGain()
+    silentSink.gain.value = 0
+    for (const analyser of [meterLeft, meterRight]) {
+      analyser.fftSize = 256
+      analyser.smoothingTimeConstant = .32
+      analyser.connect(silentSink)
+    }
+    this.audibleMaster.connect(splitter)
+    splitter.connect(meterLeft, 0)
+    splitter.connect(meterRight, 1)
+    silentSink.connect(context.destination)
+    this.meterLeft = meterLeft
+    this.meterRight = meterRight
+    this.meterNodes = [splitter, meterLeft, meterRight, silentSink]
     adapter.transport.connectMasterOutput(this.audibleMaster)
     return true
   }
@@ -233,9 +265,17 @@ export class SoundScenePlayout {
     this.context = null
     this.cache = null
     this.audibleMaster = null
+    for (const node of this.meterNodes) {
+      try { node.disconnect() } catch { /* already disconnected */ }
+    }
+    this.meterNodes = []
+    this.meterLeft = null
+    this.meterRight = null
+    this.publishMeter({ left: 0, right: 0, peak: 0, clipping: false })
     this.preparedSignature = ""
     this.childTracks.clear()
     this.internalTrackByClip.clear()
+    this.clipByInternalTrack.clear()
     this.bufferedTrackByClip.clear()
     this.liveTrackVolumes.clear()
     this.liveTrackMutes.clear()
@@ -243,7 +283,7 @@ export class SoundScenePlayout {
     this.liveClips.clear()
     this.preparedTrackIds.clear()
     this.duckedBufferedTracks.clear()
-    this.duckLevel = 1
+    this.detectorCompressionGain = 1
     this.active = false
   }
 
@@ -524,6 +564,7 @@ export class SoundScenePlayout {
     const tracks: PlayoutTrack[] = []
     const childTracks = new Map<string, string[]>()
     const internalTrackByClip = new Map<string, string>()
+    const clipByInternalTrack = new Map<string, string>()
     const bufferedTrackByClip = new Map<string, PlayoutTrack>()
     const liveTrackVolumes = new Map<string, number>()
     const liveTrackMutes = new Map<string, boolean>()
@@ -555,11 +596,14 @@ export class SoundScenePlayout {
         }
         reservedDecodedBytes += plan.decodedBytes
         internalTrackByClip.set(clip.id, internalId)
+        clipByInternalTrack.set(internalId, clip.id)
         children.push(internalId)
         const buffer = await this.cache!.get(plan.url)
         const playoutTrack = {
           id: internalId, name: track.name,
-          muted: track.muted || clip.muted, soloed: false,
+          muted: track.muted || clip.muted
+            || Boolean(this.soloTrackIds.size && !this.soloTrackIds.has(track.id)),
+          soloed: false,
           volume: track.volume * gain, pan: 0,
           clips: repeatedClips(clip, buffer, plan.bufferOffsetSeconds),
         }
@@ -575,6 +619,7 @@ export class SoundScenePlayout {
     for (const item of bufferedEffects) this.installBufferedEffectRoute(item.id, item.clip)
     this.childTracks = childTracks
     this.internalTrackByClip = internalTrackByClip
+    this.clipByInternalTrack = clipByInternalTrack
     this.bufferedTrackByClip = bufferedTrackByClip
     this.liveTrackVolumes = liveTrackVolumes
     this.liveTrackMutes = liveTrackMutes
@@ -782,10 +827,13 @@ export class SoundScenePlayout {
       const duration = Number(clip.resolved_duration_ms || 0) / 1_000
       const elapsed = time - start
       const active = shouldPlay && elapsed >= 0 && elapsed < duration
-      const gain = stream.muted ? 0 : stream.trackVolume
+      const trackMuted = this.liveTrackMutes.get(stream.trackId || "") ?? stream.muted
+      const soloSuppressed = Boolean(stream.trackId && this.soloTrackIds.size
+        && !this.soloTrackIds.has(stream.trackId))
+      const gain = trackMuted || live.muted || soloSuppressed ? 0 : stream.trackVolume
         * (this.liveClipGains.get(clip.id) ?? live.gain)
         * this.fadeGain(live, Math.max(0, elapsed), duration)
-        * (live.ducking ? this.duckLevel : 1)
+        * this.duckGain(live)
       stream.gain.gain.value = active ? gain : 0
       if (!active) { stream.element.pause(); continue }
       const sourceTime = this.sourceTime(clip, elapsed)
@@ -797,25 +845,78 @@ export class SoundScenePlayout {
   }
 
   private updateDucking() {
-    if (!this.sequenceStream) { this.duckLevel = 1; return }
+    if (!this.sequenceStream) { this.detectorCompressionGain = 1; return }
     const samples = new Float32Array(this.sequenceStream.analyser.fftSize)
     this.sequenceStream.analyser.getFloatTimeDomainData(samples)
     const rms = Math.sqrt(samples.reduce(
       (sum, value) => sum + value * value, 0) / samples.length)
-    this.duckLevel = rms > .015 ? Math.max(.14, .015 / rms) : 1
+    this.detectorCompressionGain = rms > .015 ? Math.min(1, .015 / rms) : 1
     for (const internalId of this.duckedBufferedTracks) {
-      const clipId = [...this.internalTrackByClip.entries()]
-        .find(([, id]) => id === internalId)?.[0]
+      const clipId = this.clipByInternalTrack.get(internalId)
       if (!clipId) continue
       const track = this.scene.resolved.tracks.find((candidate) =>
         candidate.clips.some((clip) => clip.id === clipId))
+      const clip = this.liveClips.get(clipId)
+      const trackMuted = this.liveTrackMutes.get(track?.id || "") ?? track?.muted ?? false
+      const soloSuppressed = Boolean(track?.id && this.soloTrackIds.size
+        && !this.soloTrackIds.has(track.id))
+      this.adapter?.setTrackMute(internalId, trackMuted || soloSuppressed || Boolean(clip?.muted))
       this.adapter?.setTrackVolume(
         internalId,
         (this.liveTrackVolumes.get(track?.id || "") ?? track?.volume ?? 1)
-        * (this.liveClipGains.get(clipId) ?? 1) * this.duckLevel,
+        * (this.liveClipGains.get(clipId) ?? 1) * this.duckGain(clip),
       )
     }
   }
+
+  private duckGain(clip?: SoundSceneClip) {
+    if (!clip?.ducking) return 1
+    const amountDb = Math.max(-30, Math.min(0, Number(clip.duck_amount_db ?? -12)))
+    const floor = 10 ** (amountDb / 20)
+    return floor + (1 - floor) * this.detectorCompressionGain
+  }
+
+  private analyserLevel(analyser: AnalyserNode | null) {
+    if (!analyser) return { rms: 0, peak: 0 }
+    const samples = new Float32Array(analyser.fftSize)
+    analyser.getFloatTimeDomainData(samples)
+    let sum = 0
+    let peak = 0
+    for (const sample of samples) {
+      sum += sample * sample
+      peak = Math.max(peak, Math.abs(sample))
+    }
+    return { rms: Math.sqrt(sum / Math.max(1, samples.length)), peak }
+  }
+
+  private updateMeter() {
+    const left = this.analyserLevel(this.meterLeft)
+    const right = this.analyserLevel(this.meterRight)
+    const peak = Math.max(left.peak, right.peak)
+    if (peak >= .995) this.clipUntil = performance.now() + 1_500
+    this.publishMeter({
+      left: Math.min(1, left.rms * 3.2),
+      right: Math.min(1, right.rms * 3.2),
+      peak: Math.min(1, peak),
+      clipping: performance.now() < this.clipUntil,
+    })
+  }
+
+  private publishMeter(value: SoundSceneMeter) {
+    const current = this.meterValue
+    if (Math.abs(current.left - value.left) < .006
+      && Math.abs(current.right - value.right) < .006
+      && Math.abs(current.peak - value.peak) < .006
+      && current.clipping === value.clipping) return
+    this.meterValue = value
+    this.meterListeners.forEach((listener) => listener())
+  }
+
+  subscribeMeter = (listener: () => void) => {
+    this.meterListeners.add(listener)
+    return () => this.meterListeners.delete(listener)
+  }
+  meterSnapshot = () => this.meterValue
 
   private followStreams() {
     if (this.streamFrame) cancelAnimationFrame(this.streamFrame)
@@ -825,6 +926,7 @@ export class SoundScenePlayout {
       if (time >= this.duration()) { this.pause(); return }
       this.updateDucking()
       this.syncStreams(time, true)
+      this.updateMeter()
       this.streamFrame = requestAnimationFrame(update)
     }
     this.streamFrame = requestAnimationFrame(update)
@@ -851,7 +953,7 @@ export class SoundScenePlayout {
       this.adapter!.play(this.playhead, this.duration())
     this.synchronizing = false
     this.openAudibleMaster()
-    if (this.streams.length || this.streamDescriptors.size) this.followStreams()
+    this.followStreams()
   }
 
   private async resynchronizeAfterSeek(time: number, generation: number) {
@@ -900,12 +1002,28 @@ export class SoundScenePlayout {
 
   muteTrack(trackId: string, muted: boolean) {
     this.liveTrackMutes.set(trackId, muted)
-    for (const internalId of this.childTracks.get(trackId) || [])
-      this.adapter?.setTrackMute(internalId, muted)
-    for (const stream of this.streams)
-      if (stream.trackId === trackId) stream.muted = muted || Boolean(stream.clip?.muted)
+    for (const internalId of this.childTracks.get(trackId) || []) {
+      const clipId = this.clipByInternalTrack.get(internalId)
+      const clipMuted = Boolean(clipId && this.liveClips.get(clipId)?.muted)
+      this.adapter?.setTrackMute(internalId, muted || clipMuted
+        || Boolean(this.soloTrackIds.size && !this.soloTrackIds.has(trackId)))
+    }
     for (const descriptor of this.streamDescriptors.values())
       if (descriptor.trackId === trackId) descriptor.trackMuted = muted
+  }
+
+  setSoloTracks(trackIds: Iterable<string>) {
+    this.soloTrackIds = new Set(trackIds)
+    for (const [trackId, internalIds] of this.childTracks) {
+      const trackMuted = (this.liveTrackMutes.get(trackId) ?? false)
+        || Boolean(this.soloTrackIds.size && !this.soloTrackIds.has(trackId))
+      for (const internalId of internalIds) {
+        const clipId = this.clipByInternalTrack.get(internalId)
+        this.adapter?.setTrackMute(internalId, trackMuted
+          || Boolean(clipId && this.liveClips.get(clipId)?.muted))
+      }
+    }
+    if (this.playing) this.syncStreams(this.currentTime(), true)
   }
 
   setTrackVolume(trackId: string, volume: number) {
@@ -933,7 +1051,7 @@ export class SoundScenePlayout {
   }
 
   setClipMix(trackId: string, clipId: string, changes: Partial<Pick<
-    SoundSceneClip, "muted" | "fade_in_ms" | "fade_out_ms" | "effects"
+    SoundSceneClip, "muted" | "fade_in_ms" | "fade_out_ms" | "effects" | "ducking" | "duck_amount_db"
   >>) {
     const track = this.scene.resolved.tracks.find((item) => item.id === trackId)
     const original = track?.clips.find((item) => item.id === clipId)
@@ -945,7 +1063,8 @@ export class SoundScenePlayout {
     const trackMuted = this.liveTrackMutes.get(trackId) ?? track.muted
     const internalId = this.internalTrackByClip.get(clipId)
     if (internalId) {
-      this.adapter?.setTrackMute(internalId, trackMuted || live.muted)
+      this.adapter?.setTrackMute(internalId, trackMuted || live.muted
+        || Boolean(this.soloTrackIds.size && !this.soloTrackIds.has(trackId)))
       const buffered = this.bufferedTrackByClip.get(clipId)
       if (buffered && (changes.fade_in_ms !== undefined || changes.fade_out_ms !== undefined)) {
         const last = buffered.clips.length - 1
@@ -968,6 +1087,14 @@ export class SoundScenePlayout {
           clipId, route.input, route.destination, live.effects, internalId,
         )
       }
+      if (changes.ducking !== undefined) {
+        if (live.ducking) this.duckedBufferedTracks.add(internalId)
+        else this.duckedBufferedTracks.delete(internalId)
+      }
+      if (changes.ducking !== undefined || changes.duck_amount_db !== undefined)
+        this.adapter?.setTrackVolume(internalId,
+          (this.liveTrackVolumes.get(trackId) ?? track.volume)
+          * (this.liveClipGains.get(clipId) ?? live.gain) * this.duckGain(live))
     }
 
     const descriptor = this.streamDescriptors.get(clipId)
@@ -1011,5 +1138,7 @@ export class SoundScenePlayout {
     if (typeof document !== "undefined")
       document.removeEventListener("visibilitychange", this.visibilityListener)
     this.deactivatePlayout()
+    this.soloTrackIds.clear()
+    this.meterListeners.clear()
   }
 }

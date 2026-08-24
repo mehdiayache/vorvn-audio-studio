@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -283,7 +284,7 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
     _append_sequence_filters(
         filters, scene, include_detector=include_detector,
     )
-    ducked_labels: list[str] = []
+    ducked_labels: dict[float, list[str]] = {}
     dry_labels: list[str] = []
     for index, (track, clip) in enumerate(clips, 1):
         duration = int(clip["resolved_duration_ms"]) / 1000
@@ -312,8 +313,12 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
         )
         label = f"scene{index}"
         filters.append(f"{processed}anull[{label}]")
-        group = ducked_labels if clip.get("ducking") else dry_labels
-        group.append(f"[{label}]")
+        if clip.get("ducking"):
+            amount_db = max(-30, min(0, float(
+                clip.get("duck_amount_db", -12))))
+            ducked_labels.setdefault(amount_db, []).append(f"[{label}]")
+        else:
+            dry_labels.append(f"[{label}]")
 
     def mix_group(labels: list[str], name: str) -> str | None:
         if not labels:
@@ -326,16 +331,43 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
         )
         return f"[{name}]"
 
-    ducked_label = mix_group(ducked_labels, "ducked")
     dry_label = mix_group(dry_labels, "dry")
     sound_labels: list[str] = []
-    if ducked_label:
+    if ducked_labels:
         filters.append("[sequencebase]anull[sequence]")
-        filters.append(
-            f"{ducked_label}[sequencedetector]sidechaincompress=threshold=0.015:ratio=20:"
-            "attack=20:release=450:makeup=1[under]"
-        )
-        sound_labels.append("[under]")
+        detector_labels = ["[sequencedetector]"]
+        if len(ducked_labels) > 1:
+            detector_labels = [f"[duckdetector{index}]" for index in range(len(ducked_labels))]
+            filters.append(
+                f"[sequencedetector]asplit={len(detector_labels)}"
+                f"{''.join(detector_labels)}"
+            )
+        for index, ((amount_db, labels), detector) in enumerate(
+                zip(sorted(ducked_labels.items()), detector_labels)):
+            ducked_label = mix_group(labels, f"ducked{index}")
+            if not ducked_label:
+                continue
+            floor = math.pow(10, amount_db / 20)
+            variable = 1 - floor
+            filters.append(
+                f"{ducked_label}asplit=2[duckfloorin{index}]"
+                f"[duckcompressin{index}]"
+            )
+            filters.append(
+                f"[duckfloorin{index}]volume={floor:.6f}[duckfloor{index}]"
+            )
+            filters.append(
+                f"[duckcompressin{index}]{detector}"
+                "sidechaincompress=threshold=0.015:ratio=20:attack=20:"
+                f"release=450:makeup=1,volume={variable:.6f}"
+                f"[duckvariable{index}]"
+            )
+            filters.append(
+                f"[duckfloor{index}][duckvariable{index}]"
+                "amix=inputs=2:duration=longest:dropout_transition=0:"
+                f"normalize=0[under{index}]"
+            )
+            sound_labels.append(f"[under{index}]")
     else:
         filters.append("[sequencebase]anull[sequence]")
     if dry_label:

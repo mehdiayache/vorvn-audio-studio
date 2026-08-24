@@ -141,6 +141,7 @@ describe("SoundScenePlayout", () => {
         ...node(), fftSize: 1024, smoothingTimeConstant: 0,
         getFloatTimeDomainData: vi.fn(),
       }))
+      createChannelSplitter = vi.fn(() => node())
       createMediaElementSource = vi.fn(() => node())
       resume = vi.fn().mockResolvedValue(undefined)
       close = vi.fn().mockResolvedValue(undefined)
@@ -195,6 +196,52 @@ describe("SoundScenePlayout", () => {
     expect(updated.clips.at(-1).fadeOut.duration).toBe(.75)
     expect(mocks.gains.some((node) => node.gain.value === .6)).toBe(true)
     expect(mocks.gains.some((node) => node.gain.value === .4)).toBe(true)
+
+    playout.dispose()
+    vi.unstubAllGlobals()
+  })
+
+  it("solos multiple Sound Design tracks locally without changing Sequence audibility", async () => {
+    const source = scene()
+    const ambience = structuredClone(source.document.tracks[0]!)
+    ambience.id = "ambience"
+    ambience.name = "Ambience"
+    ambience.clips = ambience.clips.map((clip, index) => ({
+      ...clip,
+      id: `68af885c-aeb4-49bf-9edb-d3fc14496b2${index}`,
+      asset_id: clip.asset_id + 20,
+      filename: `ambience-${index}.wav`,
+    }))
+    source.document.tracks.push(ambience)
+    source.resolved.tracks.push(structuredClone(ambience))
+    source.resolved.signature = "two-audio-tracks"
+    const playout = new SoundScenePlayout(source)
+    playout.setSoloTracks(["music"])
+    await playout.play(0)
+    const adapter = mocks.adapters[0]!
+
+    expect(adapter.setTracks.mock.calls[0]![0]
+      .filter((track: { id: string }) => track.id.startsWith("ambience::"))
+      .every((track: { muted: boolean }) => track.muted)).toBe(true)
+
+    playout.setSoloTracks(["music"])
+    expect(adapter.setTrackMute).toHaveBeenCalledWith(
+      `ambience::clip::${ambience.clips[0]!.id}`, true,
+    )
+    expect(adapter.setTrackMute).toHaveBeenCalledWith(
+      `music::clip::${source.document.tracks[0]!.clips[0]!.id}`, false,
+    )
+
+    adapter.setTrackMute.mockClear()
+    playout.setSoloTracks(["music", "ambience"])
+    expect(adapter.setTrackMute.mock.calls.every(([, muted]) => muted === false)).toBe(true)
+
+    adapter.setTrackMute.mockClear()
+    playout.muteTrack("ambience", true)
+    playout.setSoloTracks(["music", "ambience"])
+    expect(adapter.setTrackMute.mock.calls
+      .filter(([id]) => String(id).startsWith("ambience::"))
+      .every(([, muted]) => muted === true)).toBe(true)
 
     playout.dispose()
     vi.unstubAllGlobals()
@@ -348,10 +395,9 @@ describe("SoundScenePlayout", () => {
     await vi.waitFor(() => expect(starts).toHaveLength(2))
     const adapter = mocks.adapters[0]!
     const master = mocks.gains[0]!
-    const sequenceDry = mocks.gains[1]!
     mocks.contexts[0]!.currentTime = 5
 
-    expect(sequenceDry.gain.setValueAtTime).not.toHaveBeenCalled()
+    expect(mocks.gains.every((gain) => gain.gain.linearRampToValueAtTime.mock.calls.length === 0)).toBe(true)
     expect(adapter.play).not.toHaveBeenCalled()
     starts.forEach((resolve) => resolve())
     mocks.media.forEach((media) => media.dispatch("playing"))
@@ -360,7 +406,8 @@ describe("SoundScenePlayout", () => {
     mocks.media.forEach((media) => media.dispatch("playing"))
     await playing
 
-    expect(sequenceDry.gain.linearRampToValueAtTime).toHaveBeenCalledWith(1, 7)
+    expect(mocks.gains.some((gain) => gain.gain.linearRampToValueAtTime.mock.calls
+      .some((call) => call[0] === 1 && call[1] === 7))).toBe(true)
     expect(adapter.play).toHaveBeenCalledWith(0, 3_600)
     expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 5)
 
@@ -368,16 +415,19 @@ describe("SoundScenePlayout", () => {
     mocks.state.deferSeek = true
     mocks.contexts[0]!.currentTime = 10
     const seekCalls = adapter.seek.mock.calls.length
+    const automationGains = mocks.gains.slice(1)
     playout.seek(3)
 
     expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 10)
     expect(adapter.seek).toHaveBeenCalledTimes(seekCalls)
-    expect(sequenceDry.gain.setValueAtTime).not.toHaveBeenCalledWith(0, 10)
+    expect(automationGains.every((gain) => !gain.gain.setValueAtTime.mock.calls
+      .some((call) => call[0] === 0 && call[1] === 10))).toBe(true)
 
     await vi.waitFor(() => expect(mocks.media.map((media) => media.currentTime)).toEqual([3, 3]))
     mocks.media.forEach((media) => media.dispatch("seeked"))
     await vi.waitFor(() => expect(adapter.seek).toHaveBeenLastCalledWith(3))
-    expect(sequenceDry.gain.setValueAtTime).toHaveBeenCalledWith(0, 10)
+    expect(automationGains.some((gain) => gain.gain.setValueAtTime.mock.calls
+      .some((call) => call[0] === 0 && call[1] === 10))).toBe(true)
     expect(master.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 10)
     expect(adapter.seek.mock.invocationCallOrder.at(-1))
       .toBeLessThan(master.gain.setValueAtTime.mock.invocationCallOrder.at(-1)!)

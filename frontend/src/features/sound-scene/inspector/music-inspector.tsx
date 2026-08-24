@@ -32,6 +32,7 @@ export function AudioClipInspector({ track, clip, playingKey, playing, onPlay, o
   const [windowDuration, setWindowDuration] = useState((clip?.duration_ms ?? clip?.resolved_duration_ms ?? 0) / 1000)
   const [fadeIn, setFadeIn] = useState((clip?.fade_in_ms ?? 2000) / 1000)
   const [fadeOut, setFadeOut] = useState((clip?.fade_out_ms ?? 3000) / 1000)
+  const [duckAmountDb, setDuckAmountDb] = useState(clip?.duck_amount_db ?? -12)
   const [saving, setSaving] = useState("")
   const [error, setError] = useState("")
   useEffect(() => setClipGainDb(gainToDb(clip?.gain ?? .1)), [clip?.gain])
@@ -40,6 +41,7 @@ export function AudioClipInspector({ track, clip, playingKey, playing, onPlay, o
   useEffect(() => setWindowDuration((clip?.duration_ms ?? clip?.resolved_duration_ms ?? 0) / 1000), [clip?.duration_ms, clip?.resolved_duration_ms])
   useEffect(() => setFadeIn((clip?.fade_in_ms ?? 2000) / 1000), [clip?.fade_in_ms])
   useEffect(() => setFadeOut((clip?.fade_out_ms ?? 3000) / 1000), [clip?.fade_out_ms])
+  useEffect(() => setDuckAmountDb(clip?.duck_amount_db ?? -12), [clip?.duck_amount_db])
 
   async function save(label: string, action: () => Promise<void>) {
     setSaving(label)
@@ -89,6 +91,7 @@ export function AudioClipInspector({ track, clip, playingKey, playing, onPlay, o
       </div>
       <SwitchLike label="Loop source" checked={Boolean(clip.loop)} disabled={Boolean(saving) || geometryLocked} onChange={(loop) => { onClipChange({ loop }); void save("looping", onClipCommit) }} />
       <SwitchLike label="Duck under Sequence" checked={Boolean(clip.ducking)} disabled={Boolean(saving)} onChange={(ducking) => { onClipChange({ ducking }); void save("ducking", onClipCommit) }} />
+      {clip.ducking && <label className="music-duck-amount"><span>Duck amount <b>{formatDb(duckAmountDb)}</b></span><Slider aria-label="Duck amount under Sequence" disabled={Boolean(saving)} value={[duckAmountDb]} min={-30} max={0} step={1} onValueChange={([value = -12]) => { setDuckAmountDb(value); onClipChange({ duck_amount_db: value }) }} onValueCommit={([value = duckAmountDb]) => { setDuckAmountDb(value); onClipChange({ duck_amount_db: value }); void save("duck amount", onClipCommit) }} /></label>}
       <p className="music-track-state">Starts at {formatDuration(Number(clip.resolved_start_ms || 0) / 1000)} · {track.muted ? "Track muted" : "Track audible"}</p>
       <p className={`music-save-state${error ? " is-error" : ""}`} role={error ? "alert" : "status"} aria-live="polite">{error || (saving ? `Saving ${saving}…` : "Saved on release")}</p>
     </section>

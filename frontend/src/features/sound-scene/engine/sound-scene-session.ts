@@ -20,6 +20,7 @@ export type SoundSceneSessionSnapshot = {
   playhead: number
   saving: boolean
   error: string
+  soloTrackIds: string[]
 }
 
 export type SoundScenePersistence = {
@@ -32,7 +33,8 @@ type Playout = Pick<SoundScenePlayout,
   "replace" | "play" | "pause" | "seek" | "currentTime" | "isPlaying" |
   "muteTrack" | "setTrackVolume" | "setClipGain" | "dispose"
 > & Partial<Pick<SoundScenePlayout,
-  "activatePlayout" | "deactivatePlayout" | "previewSequenceMix" | "setClipMix"
+  "activatePlayout" | "deactivatePlayout" | "previewSequenceMix" | "setClipMix" |
+  "setSoloTracks" | "subscribeMeter" | "meterSnapshot"
 >>
 
 type CommitWaiter = {
@@ -71,6 +73,7 @@ export class SoundSceneSession {
       playhead: 0,
       saving: false,
       error: "",
+      soloTrackIds: [],
     }
     this.editor.onChange((engine) => this.set({ engine }))
   }
@@ -141,7 +144,10 @@ export class SoundSceneSession {
     if (wasPlaying && this.frame) cancelAnimationFrame(this.frame)
     if (wasPlaying) this.frame = 0
     this.editor.replace(scene)
-    this.set({ scene, engine: this.editor.state() })
+    const trackIds = new Set(scene.document.tracks.map((track) => track.id))
+    const soloTrackIds = this.snapshotValue.soloTrackIds.filter((id) => trackIds.has(id))
+    this.playout.setSoloTracks?.(soloTrackIds)
+    this.set({ scene, engine: this.editor.state(), soloTrackIds })
     void this.playout.replace(scene).then(() => {
       if (!wasPlaying) return
       const playing = this.playout.isPlaying()
@@ -181,7 +187,8 @@ export class SoundSceneSession {
     this.editor.setClipValue(trackId, clipId, changes)
     if (changes.gain !== undefined) this.playout.setClipGain(trackId, clipId, changes.gain)
     if (changes.muted !== undefined || changes.fade_in_ms !== undefined
-      || changes.fade_out_ms !== undefined || changes.effects !== undefined) {
+      || changes.fade_out_ms !== undefined || changes.effects !== undefined
+      || changes.ducking !== undefined || changes.duck_amount_db !== undefined) {
       this.playout.setClipMix?.(trackId, clipId, changes)
     }
   }
@@ -203,7 +210,7 @@ export class SoundSceneSession {
       source_offset_ms: 0, gain: followSequence ? .18 : 1,
       fade_in_ms: followSequence ? 2_000 : 0,
       fade_out_ms: followSequence ? 3_000 : 0,
-      loop: followSequence, ducking: followSequence,
+      loop: followSequence, ducking: followSequence, duck_amount_db: -12,
       muted: false, locked: false, effects: [],
       anchor: { kind: "absolute", position_ms: positionMs },
     }
@@ -350,6 +357,21 @@ export class SoundSceneSession {
     this.setTrackMute(trackId, muted)
     await this.persist(this.editor.document())
   }
+  toggleTrackSolo(trackId: string) {
+    const current = this.snapshotValue.soloTrackIds
+    const soloTrackIds = current.includes(trackId)
+      ? current.filter((id) => id !== trackId)
+      : [...current, trackId]
+    this.playout.setSoloTracks?.(soloTrackIds)
+    this.set({ soloTrackIds })
+  }
+  clearTrackSolos() {
+    this.playout.setSoloTracks?.([])
+    this.set({ soloTrackIds: [] })
+  }
+
+  subscribeMeter = (listener: () => void) => this.playout.subscribeMeter?.(listener) || (() => undefined)
+  meterSnapshot = () => this.playout.meterSnapshot?.() || { left: 0, right: 0, peak: 0, clipping: false }
   setTrackVolume(trackId: string, volume: number) {
     this.editor.setTrackVolume(trackId, volume)
     this.playout.setTrackVolume(trackId, volume)

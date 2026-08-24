@@ -1,9 +1,11 @@
-import { AudioLines, Check, FileAudio, Library, Music2, Pause, Play, Search, Sparkles, Upload, Wind } from "lucide-react"
+import { AudioLines, Check, FileAudio, Library, Music2, Pause, Play, Search, SlidersHorizontal, Sparkles, Upload, Wind, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { ActionButton, OperatorIconButton } from "@/components/operator-action"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -23,6 +25,9 @@ export type GeneratedKeepInput = { candidateId: string; name: string; category: 
 type LibraryView = "library" | "upload" | "search" | "generate"
 type ScopeFilter = "all" | "venture" | "studio"
 type SourceFilter = "all" | AssetSource
+type DurationFilter = "all" | "under-3" | "3-10" | "10-30" | "30-120" | "over-120"
+type UsageFilter = "all" | "used" | "unused"
+type AssetSort = "recent" | "name" | "duration"
 
 const UPLOAD_COLLECTION: Record<AudioAssetCategory, string> = {
   music: "Music", ambience: "Stingers", sfx: "Stingers", intro: "Intros", outro: "Outros", other: "Stingers",
@@ -45,8 +50,9 @@ function categoryIcon(category: string) {
   return <FileAudio />
 }
 
-export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, productionId, playingKey, playerPlaying, onChoose, onPlay, onUpload, onKeep, onKeepGenerated }: {
+export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, productionId, usedAssetIds = [], playingKey, playerPlaying, onChoose, onPlay, onUpload, onKeep, onKeepGenerated }: {
   assets: VentureAsset[]; mode: AssetMode; chooseLabel?: string; initialSelectedId?: number | null; productionId?: number
+  usedAssetIds?: number[]
   playingKey?: string; playerPlaying: boolean; onChoose: (asset: VentureAsset) => Promise<void>; onPlay: (source: PlayerSource) => void
   onUpload: (folder: string, input: AssetUploadInput) => Promise<VentureAsset>; onKeep: (folder: string, input: CatalogKeepInput) => Promise<CatalogKeepResult>
   onKeepGenerated?: (folder: string, input: GeneratedKeepInput) => Promise<GeneratedKeepResult>
@@ -57,6 +63,10 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, produc
   const [category, setCategory] = useState<"all" | AudioAssetCategory>("all")
   const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("all")
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all")
+  const [durationFilter, setDurationFilter] = useState<DurationFilter>("all")
+  const [usageFilter, setUsageFilter] = useState<UsageFilter>("all")
+  const [tagFilters, setTagFilters] = useState<string[]>([])
+  const [assetSort, setAssetSort] = useState<AssetSort>("recent")
   const [dragging, setDragging] = useState(false)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [choosing, setChoosing] = useState(false)
@@ -79,13 +89,37 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, produc
   const [keepingId, setKeepingId] = useState<string | null>(null)
   const [kept, setKept] = useState<Record<string, number>>({})
 
+  const usedIds = useMemo(() => new Set(usedAssetIds), [usedAssetIds])
+  const existingTags = useMemo(() => [...new Set(assets.flatMap((asset) => asset.tags || []))]
+    .sort((left, right) => left.localeCompare(right)), [assets])
   const eligible = useMemo(() => assets.filter((asset) => {
     const matchesCategory = category === "all" || (asset.category || asset.kind || "other") === category
     const matchesScope = scopeFilter === "all" || (asset.scope || "venture") === scopeFilter
-    return matchesCategory && matchesScope && (sourceFilter === "all" || assetSource(asset) === sourceFilter)
-  }), [assets, category, scopeFilter, sourceFilter])
+    const seconds = Number(asset.duration_ms || 0) / 1000
+    const matchesDuration = durationFilter === "all"
+      || durationFilter === "under-3" && seconds < 3
+      || durationFilter === "3-10" && seconds >= 3 && seconds < 10
+      || durationFilter === "10-30" && seconds >= 10 && seconds < 30
+      || durationFilter === "30-120" && seconds >= 30 && seconds < 120
+      || durationFilter === "over-120" && seconds >= 120
+    const matchesTags = tagFilters.every((tag) => (asset.tags || []).includes(tag))
+    const used = usedIds.has(asset.id)
+    const matchesUsage = usageFilter === "all"
+      || (usageFilter === "used" && used)
+      || (usageFilter === "unused" && !used)
+    return matchesCategory && matchesScope && matchesDuration && matchesTags && matchesUsage
+      && (sourceFilter === "all" || assetSource(asset) === sourceFilter)
+  }), [assets, category, durationFilter, scopeFilter, sourceFilter, tagFilters, usageFilter, usedIds])
   const normalizedQuery = query.trim().toLocaleLowerCase()
-  const shown = eligible.filter((asset) => `${assetTitle(asset)} ${asset.category || asset.kind || ""} ${(asset.tags || []).join(" ")}`.toLocaleLowerCase().includes(normalizedQuery))
+  const shown = eligible.filter((asset) => `${assetTitle(asset)} ${asset.category || asset.kind || ""} ${(asset.tags || []).join(" ")}`.toLocaleLowerCase().includes(normalizedQuery)).sort((left, right) => {
+    if (assetSort === "name") return assetTitle(left).localeCompare(assetTitle(right))
+    if (assetSort === "duration") return Number(left.duration_ms || 0) - Number(right.duration_ms || 0)
+    const leftTime = Date.parse(String(left.created_at || left.updated_at || "")) || left.id
+    const rightTime = Date.parse(String(right.created_at || right.updated_at || "")) || right.id
+    return rightTime - leftTime
+  })
+  const activeFilterCount = [category !== "all", scopeFilter !== "all", sourceFilter !== "all", durationFilter !== "all", usageFilter !== "all", assetSort !== "recent"].filter(Boolean).length + tagFilters.length
+  const clearFilters = () => { setCategory("all"); setScopeFilter("all"); setSourceFilter("all"); setDurationFilter("all"); setUsageFilter("all"); setTagFilters([]); setAssetSort("recent") }
   const selected = assets.find((asset) => asset.id === selectedId) || null
   const selectedCatalog = catalogResults.find((result) => result.external_id === selectedCatalogId) || null
 
@@ -165,9 +199,18 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, produc
       <div className="asset-toolbar-context">
         {view === "library" && <>
           <label className="asset-search"><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your audio" /></label>
-          <Select value={category} onValueChange={(value) => setCategory(value as "all" | AudioAssetCategory)}><SelectTrigger aria-label="Asset category"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All categories</SelectItem>{ASSET_CATEGORIES.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
-          <Select value={scopeFilter} onValueChange={(value) => setScopeFilter(value as ScopeFilter)}><SelectTrigger aria-label="Asset library"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All libraries</SelectItem><SelectItem value="studio">Studio Library</SelectItem><SelectItem value="venture">This Venture</SelectItem></SelectContent></Select>
-          <Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as SourceFilter)}><SelectTrigger aria-label="Asset source"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All sources</SelectItem><SelectItem value="generated">Generated</SelectItem><SelectItem value="freesound">Freesound</SelectItem><SelectItem value="uploaded">Uploaded</SelectItem><SelectItem value="library">Existing Library</SelectItem></SelectContent></Select>
+          <Popover><PopoverTrigger asChild><Button aria-label={activeFilterCount ? `Filters, ${activeFilterCount} active` : "Filters"} variant="outline" className={activeFilterCount ? "asset-filter-trigger is-active" : "asset-filter-trigger"}><SlidersHorizontal />Filters{activeFilterCount > 0 && <b>{activeFilterCount}</b>}</Button></PopoverTrigger><PopoverContent align="end" className="asset-filter-popover">
+            <header><div><b>Filter Audio Library</b><small>Filters combine together</small></div>{activeFilterCount > 0 && <Button variant="ghost" size="sm" onClick={clearFilters}><X />Clear</Button>}</header>
+            <div className="asset-filter-grid">
+              <label><span>Category</span><Select value={category} onValueChange={(value) => setCategory(value as "all" | AudioAssetCategory)}><SelectTrigger aria-label="Asset category"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All categories</SelectItem>{ASSET_CATEGORIES.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
+              <label><span>Duration</span><Select value={durationFilter} onValueChange={(value) => setDurationFilter(value as DurationFilter)}><SelectTrigger aria-label="Asset duration"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Any duration</SelectItem><SelectItem value="under-3">Under 3 seconds</SelectItem><SelectItem value="3-10">3–10 seconds</SelectItem><SelectItem value="10-30">10–30 seconds</SelectItem><SelectItem value="30-120">30 seconds–2 min</SelectItem><SelectItem value="over-120">2 min or longer</SelectItem></SelectContent></Select></label>
+              <label><span>Library</span><Select value={scopeFilter} onValueChange={(value) => setScopeFilter(value as ScopeFilter)}><SelectTrigger aria-label="Asset library"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All libraries</SelectItem><SelectItem value="studio">Studio Library</SelectItem><SelectItem value="venture">This Venture</SelectItem></SelectContent></Select></label>
+              <label><span>Source</span><Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as SourceFilter)}><SelectTrigger aria-label="Asset source"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All sources</SelectItem><SelectItem value="generated">Generated</SelectItem><SelectItem value="freesound">Freesound</SelectItem><SelectItem value="uploaded">Uploaded</SelectItem><SelectItem value="library">Existing Library</SelectItem></SelectContent></Select></label>
+              <label><span>Usage</span><Select value={usageFilter} onValueChange={(value) => setUsageFilter(value as UsageFilter)}><SelectTrigger aria-label="Asset usage in this Production"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Any usage</SelectItem><SelectItem value="used">Used in this Production</SelectItem><SelectItem value="unused">Unused here</SelectItem></SelectContent></Select></label>
+              <label><span>Sort</span><Select value={assetSort} onValueChange={(value) => setAssetSort(value as AssetSort)}><SelectTrigger aria-label="Sort assets"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="recent">Recently added</SelectItem><SelectItem value="name">Name</SelectItem><SelectItem value="duration">Duration</SelectItem></SelectContent></Select></label>
+            </div>
+            <fieldset className="asset-tag-filters"><legend>Tags</legend>{existingTags.length ? <div>{existingTags.map((tag) => <label key={tag}><Checkbox checked={tagFilters.includes(tag)} onCheckedChange={(checked) => setTagFilters((current) => checked ? [...current, tag] : current.filter((item) => item !== tag))} /><span>{tag}</span></label>)}</div> : <p>No tags exist in this Library yet.</p>}</fieldset>
+          </PopoverContent></Popover>
         </>}
         {view === "search" && <>
           <label className="asset-search"><Search /><Input autoFocus value={catalogQuery} onChange={(event) => setCatalogQuery(event.target.value)} placeholder="Describe the sound you need" /></label>

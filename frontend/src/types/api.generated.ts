@@ -3728,6 +3728,11 @@ export interface components {
             /** Asset Version Id */
             asset_version_id?: number | null;
             /**
+             * Duck Amount Db
+             * @default -12
+             */
+            duck_amount_db: number;
+            /**
              * Ducking
              * @default false
              */
@@ -4074,6 +4079,11 @@ export interface components {
             asset_id: number;
             /** Asset Version Id */
             asset_version_id?: number | null;
+            /**
+             * Duck Amount Db
+             * @default -12
+             */
+            duck_amount_db: number;
             /**
              * Ducking
              * @default false

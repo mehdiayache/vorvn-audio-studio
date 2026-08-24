@@ -82,6 +82,7 @@ class SoundSceneClipDocument(BaseModel):
     fade_out_ms: int = Field(default=0, ge=0, le=120_000)
     loop: bool = False
     ducking: bool = False
+    duck_amount_db: float = Field(default=-12, ge=-30, le=0)
     muted: bool = False
     locked: bool = False
     effects: list[SoundSceneEffect] = Field(default_factory=list, max_length=16)

@@ -350,6 +350,10 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   const staleOverrides = useMemo(() => soundState.scene.resolved.orphans.flatMap((orphan) =>
     orphan.kind === "sequence_override" && orphan.part_public_id ? [orphan.part_public_id] : []), [soundState.scene.resolved.orphans])
   const assetCollectionIds = Object.fromEntries(assetCollections.map((collection) => [collection.name, collection.id]))
+  const usedAssetIds = useMemo(() => [...new Set([
+    ...sourceParts.flatMap((part) => part.asset_id ? [part.asset_id] : []),
+    ...soundState.scene.document.tracks.flatMap((track) => track.clips.map((clip) => clip.asset_id)),
+  ])], [soundState.scene.document.tracks, sourceParts])
   const renameProduction = useCallback(async (name: string) => {
     await studioApi.updateResource<Production>("productions", production.id, { name })
     await refresh()
@@ -610,7 +614,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     <MovePartPositionDialog part={movePositionPart} count={sourceParts.length} onClose={() => setMovePositionPart(null)} onMove={actions.movePartToPosition} />
     {overlaysOpen && <Suspense fallback={<ProductionOverlayLoading tool={tool} />}><ProductionOverlays
       tool={tool} productionId={production.id} nextPartNumber={sourceParts.length + 1} insertAt={composerInsertAt} insertBeforePartId={insertBeforePartId}
-      composerPart={null} replacingAssetId={replacingAsset?.asset_id} initialAudioAssetId={audioClip?.asset_id} config={config} directory={directory} assets={assets} assetCollectionIds={assetCollectionIds}
+      composerPart={null} replacingAssetId={replacingAsset?.asset_id} initialAudioAssetId={audioClip?.asset_id} config={config} directory={directory} assets={assets} usedAssetIds={usedAssetIds} assetCollectionIds={assetCollectionIds}
       playingKey={player.source?.key} playerPlaying={actions.playerPlaying} confirmAction={confirmAction}
       onCloseTool={() => { setTool(null); setReplacingAsset(null); setAudioTarget(null) }} onSaveDraft={actions.saveDraft} onUpdateEditorial={async () => undefined} onGenerate={queueRender}
       onAddSilence={async (seconds) => { await actions.addSilence(seconds, insertBeforePartId); setTool(null) }}

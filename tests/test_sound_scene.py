@@ -44,6 +44,23 @@ def anchored_scene(part_public_id: str) -> dict:
 
 
 class SoundSceneDomainTests(unittest.TestCase):
+    def test_legacy_ducking_defaults_to_minus_twelve_db(self):
+        document = normalize_scene({
+            "version": 1, "sequence_overrides": {}, "tracks": [{
+                "id": "music", "kind": "audio", "name": "Music",
+                "volume": 1, "muted": False, "clips": [{
+                    "id": "78af885c-aeb4-49bf-9edb-d3fc14496b2c",
+                    "asset_id": 9, "duration_ms": 1000,
+                    "source_offset_ms": 0, "gain": 1, "fade_in_ms": 0,
+                    "fade_out_ms": 0, "loop": False, "ducking": True,
+                    "muted": False, "locked": False, "effects": [],
+                    "anchor": {"kind": "absolute", "position_ms": 0},
+                }],
+            }],
+        })
+        self.assertEqual(
+            document["tracks"][0]["clips"][0]["duck_amount_db"], -12)
+
     def test_echo_feedback_zero_keeps_exactly_one_delayed_hit(self):
         effect = {
             "id": "2bc326ca-57ba-4e63-bdfd-6145dfb73181",

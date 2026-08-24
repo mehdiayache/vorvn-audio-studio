@@ -18,9 +18,10 @@ describe("AssetTool", () => {
     const view = within(container)
     expect(view.getByRole("tablist", { name: "Audio Library views" })).toBeTruthy()
     expect(view.getByRole("tab", { name: "Library" }).getAttribute("aria-selected")).toBe("true")
-    expect(view.getByRole("combobox", { name: "Asset category" }).textContent).toContain("All categories")
-    expect(view.getByRole("combobox", { name: "Asset library" }).textContent).toContain("All libraries")
-    expect(view.getByRole("combobox", { name: "Asset source" }).textContent).toContain("All sources")
+    fireEvent.click(view.getByRole("button", { name: "Filters" }))
+    expect(screen.getByRole("combobox", { name: "Asset category" }).textContent).toContain("All categories")
+    expect(screen.getByRole("combobox", { name: "Asset library" }).textContent).toContain("All libraries")
+    expect(screen.getByRole("combobox", { name: "Asset source" }).textContent).toContain("All sources")
     expect(container.querySelector(".asset-source-rail")).toBeNull()
   })
 
@@ -135,10 +136,33 @@ describe("AssetTool", () => {
     expect(view.getByRole("button", { name: "Select Wooden knock" })).toBeTruthy()
     expect(view.queryByRole("button", { name: "Select Night room" })).toBeNull()
     fireEvent.change(view.getByPlaceholderText("Search your audio"), { target: { value: "" } })
-    fireEvent.click(view.getByRole("combobox", { name: "Asset library" }))
+    fireEvent.click(view.getByRole("button", { name: "Filters" }))
+    fireEvent.click(screen.getByRole("combobox", { name: "Asset library" }))
     fireEvent.click(screen.getByRole("option", { name: "Studio Library" }))
     expect(view.getByRole("button", { name: "Select Wooden knock" })).toBeTruthy()
     expect(view.queryByRole("button", { name: "Select Night room" })).toBeNull()
+  })
+
+  it("combines duration, actual tags and Production usage filters with a clear count", () => {
+    const library = [
+      { id: 21, name: "Short rain", duration_ms: 2_000, tags: ["rain", "soft"] },
+      { id: 22, name: "Room rain", duration_ms: 8_000, tags: ["rain"] },
+      { id: 23, name: "Long wind", duration_ms: 140_000, tags: ["wind"] },
+    ]
+    render(<AssetTool assets={library} usedAssetIds={[22]} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
+    fireEvent.click(screen.getByRole("button", { name: "Filters" }))
+    fireEvent.click(screen.getByRole("combobox", { name: "Asset duration" }))
+    fireEvent.click(screen.getByRole("option", { name: "3–10 seconds" }))
+    fireEvent.click(screen.getByRole("combobox", { name: "Asset usage in this Production" }))
+    fireEvent.click(screen.getByRole("option", { name: "Used in this Production" }))
+    fireEvent.click(screen.getByRole("checkbox", { name: "rain" }))
+
+    expect(screen.getByRole("button", { name: "Select Room rain" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Select Short rain" })).toBeNull()
+    expect(screen.getByRole("button", { name: "Filters, 3 active" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }))
+    expect(screen.getByRole("button", { name: "Select Short rain" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Select Long wind" })).toBeTruthy()
   })
 
   it("auditions an external result without keeping it, then Keeps explicitly", async () => {

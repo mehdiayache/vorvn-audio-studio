@@ -31,6 +31,17 @@
 .asset-search > svg { position: absolute; z-index: 1; top: 50%; left: 11px; width: 15px; height: 15px; transform: translateY(-50%); color: var(--foreground); opacity: .62; }
 .asset-search input { height: 36px; padding-left: 34px; background: var(--surface-raised); }
 .asset-toolbar-context .asset-search { min-width: 190px; flex: 1; max-width: 310px; }
+.asset-filter-trigger { gap: 7px; flex: none; }
+.asset-filter-trigger > b { min-width: 1.15rem; height: 1.15rem; display: grid; place-items: center; border-radius: 999px; color: white; background: var(--primary); font: 750 .58rem/1 var(--font-mono); }
+.asset-filter-trigger.is-active { border-color: color-mix(in oklab, var(--primary) 45%, var(--border)); color: var(--primary); background: var(--primary-soft); }
+.asset-filter-popover { width: 34rem; padding: 0; overflow: hidden; }
+.asset-filter-popover > header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem .85rem; border-bottom: 1px solid var(--border); }
+.asset-filter-popover > header > div { display: grid; }.asset-filter-popover > header b { font-size: .75rem; }.asset-filter-popover > header small { color: var(--muted-foreground); font-size: .62rem; }
+.asset-filter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; padding: .8rem .85rem; }
+.asset-filter-grid > label { min-width: 0; display: grid; gap: .3rem; }.asset-filter-grid > label > span, .asset-tag-filters legend { color: var(--muted-foreground); font-size: .61rem; font-weight: 680; }
+.asset-tag-filters { margin: 0; padding: .75rem .85rem .9rem; border: 0; border-top: 1px solid var(--border); }
+.asset-tag-filters legend { padding: 0; }.asset-tag-filters > div { max-height: 8.5rem; display: flex; flex-wrap: wrap; gap: .28rem .65rem; overflow: auto; padding-top: .55rem; }
+.asset-tag-filters label { display: flex; align-items: center; gap: .35rem; font-size: .64rem; }.asset-tag-filters p { margin: .5rem 0 0; color: var(--muted-foreground); font-size: .62rem; }
 .asset-workspace-shell { min-height: 0; display: block; }
 .asset-view { min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 304px; grid-template-rows: minmax(0, 1fr) 66px; overflow: hidden; background: var(--surface-raised); }
 .asset-canvas { min-width: 0; min-height: 0; height: 100%; }

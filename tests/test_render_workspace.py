@@ -60,7 +60,8 @@ class RenderWorkspaceTests(unittest.TestCase):
                             "resolved_duration_ms": 10_000,
                             "source_offset_ms": 0, "fade_in_ms": 0,
                             "fade_out_ms": 0, "loop": True,
-                            "ducking": True, "orphan": False,
+                            "ducking": True, "duck_amount_db": -18,
+                            "orphan": False,
                             "missing": False,
                         }],
                     },
@@ -90,8 +91,10 @@ class RenderWorkspaceTests(unittest.TestCase):
         filters = commands[0][commands[0].index("-filter_complex") + 1]
         self.assertIn("volume=0.2000", filters)
         self.assertIn("volume=0.4000", filters)
-        self.assertIn("[scene1][sequencedetector]sidechaincompress", filters)
-        self.assertIn("[under][scene2]amix=inputs=2", filters)
+        self.assertIn("[duckcompressin0][sequencedetector]sidechaincompress", filters)
+        self.assertIn("[duckfloorin0]volume=0.125893", filters)
+        self.assertIn("volume=0.874107[duckvariable0]", filters)
+        self.assertIn("[under0][scene2]amix=inputs=2", filters)
 
     def test_mix_builds_sequence_effect_buses_and_keeps_the_echo_tail(self):
         commands: list[list[str]] = []
@@ -270,7 +273,7 @@ class RenderWorkspaceTests(unittest.TestCase):
             "[sequencedetectorpart0][sequencedetectorpart1]amix=inputs=2",
             graph,
         )
-        self.assertIn("[scene1][sequencedetector]sidechaincompress", graph)
+        self.assertIn("[duckcompressin0][sequencedetector]sidechaincompress", graph)
 
     def test_muted_sound_clip_never_enters_the_render_graph(self):
         scene = {

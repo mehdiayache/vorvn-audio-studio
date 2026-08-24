@@ -5951,6 +5951,13 @@
             ],
             "title": "Asset Version Id"
           },
+          "duck_amount_db": {
+            "default": -12,
+            "maximum": 0.0,
+            "minimum": -30.0,
+            "title": "Duck Amount Db",
+            "type": "number"
+          },
           "ducking": {
             "default": false,
             "title": "Ducking",
@@ -6994,6 +7001,13 @@
               }
             ],
             "title": "Asset Version Id"
+          },
+          "duck_amount_db": {
+            "default": -12,
+            "maximum": 0.0,
+            "minimum": -30.0,
+            "title": "Duck Amount Db",
+            "type": "number"
           },
           "ducking": {
             "default": false,

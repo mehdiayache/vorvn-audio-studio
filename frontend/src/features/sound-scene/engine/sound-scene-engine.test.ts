@@ -89,6 +89,31 @@ describe("SoundSceneEngine", () => {
 })
 
 describe("SoundSceneSession", () => {
+  it("keeps multi-track Solo as local audition state and never persists it", () => {
+    const source = scene()
+    source.document.tracks.push({ id: "ambience", kind: "audio", name: "Ambience", volume: 1, muted: false, clips: [] })
+    source.resolved.tracks.push(structuredClone(source.document.tracks[1]!))
+    const update = vi.fn()
+    const setSoloTracks = vi.fn()
+    const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, {
+      replace: vi.fn(), play: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(false),
+      muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), setSoloTracks, dispose: vi.fn(),
+    })
+
+    session.toggleTrackSolo("music")
+    session.toggleTrackSolo("ambience")
+    expect(session.snapshot().soloTrackIds).toEqual(["music", "ambience"])
+    expect(setSoloTracks).toHaveBeenLastCalledWith(["music", "ambience"])
+    expect(update).not.toHaveBeenCalled()
+
+    session.toggleTrackSolo("music")
+    expect(session.snapshot().soloTrackIds).toEqual(["ambience"])
+    session.clearTrackSolos()
+    expect(session.snapshot().soloTrackIds).toEqual([])
+    session.dispose()
+  })
+
   it("adds another Music track without replacing the existing placement", async () => {
     const source = scene()
     const update = vi.fn().mockResolvedValue({ ...source, revision: 2 })

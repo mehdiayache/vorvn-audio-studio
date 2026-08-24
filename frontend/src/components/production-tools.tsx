@@ -15,7 +15,7 @@ const SilenceTool = lazy(() => import("@/components/production-tools/silence-too
 const AssetTool = lazy(() => import("@/components/production-tools/asset-tool").then((module) => ({ default: module.AssetTool })))
 const ProductionImportTool = lazy(() => import("@/features/production/production-import-tool").then((module) => ({ default: module.ProductionImportTool })))
 
-export function ProductionToolDialog({ open, productionId, nextPartNumber, beforePartId, replacingAssetId, initialAudioAssetId, assets, assetCollectionIds, directory, playingKey, playerPlaying, onClose, onAddSilence, onInsertAsset, onPlaceAudio, onUploadAsset, onKeepAsset, onKeepGenerated, onImport, onImported, onPlay }: {
+export function ProductionToolDialog({ open, productionId, nextPartNumber, beforePartId, replacingAssetId, initialAudioAssetId, assets, usedAssetIds = [], assetCollectionIds, directory, playingKey, playerPlaying, onClose, onAddSilence, onInsertAsset, onPlaceAudio, onUploadAsset, onKeepAsset, onKeepGenerated, onImport, onImported, onPlay }: {
   open: Exclude<ToolKind, "speech">
   productionId: number
   nextPartNumber: number
@@ -23,6 +23,7 @@ export function ProductionToolDialog({ open, productionId, nextPartNumber, befor
   replacingAssetId?: number | null
   initialAudioAssetId?: number | null
   assets: VentureAsset[]
+  usedAssetIds?: number[]
   assetCollectionIds: Record<string, number>
   directory: VoiceDirectory
   playingKey?: string
@@ -48,7 +49,7 @@ export function ProductionToolDialog({ open, productionId, nextPartNumber, befor
       <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
       <Suspense fallback={<div className="tool-panel-body"><span className="eyebrow">Loading tool…</span></div>}>
         {open === "silence" && <SilenceTool onAdd={onAddSilence} />}
-        {(open === "asset" || open === "audio") && <AssetTool assets={assets} mode={assetMode} productionId={productionId} chooseLabel={replacingAsset ? "Replace linked audio" : undefined} initialSelectedId={assetMode === "sound" ? initialAudioAssetId : replacingAssetId} playingKey={playingKey} playerPlaying={playerPlaying} onChoose={assetMode === "sound" ? onPlaceAudio : onInsertAsset} onUpload={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onUploadAsset(folder, input) }} onKeep={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onKeepAsset(folder, input) }} onKeepGenerated={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onKeepGenerated(folder, input) }} onPlay={onPlay} />}
+        {(open === "asset" || open === "audio") && <AssetTool assets={assets} usedAssetIds={usedAssetIds} mode={assetMode} productionId={productionId} chooseLabel={replacingAsset ? "Replace linked audio" : undefined} initialSelectedId={assetMode === "sound" ? initialAudioAssetId : replacingAssetId} playingKey={playingKey} playerPlaying={playerPlaying} onChoose={assetMode === "sound" ? onPlaceAudio : onInsertAsset} onUpload={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onUploadAsset(folder, input) }} onKeep={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onKeepAsset(folder, input) }} onKeepGenerated={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onKeepGenerated(folder, input) }} onPlay={onPlay} />}
         {open === "import" && <ProductionImportTool currentPartCount={nextPartNumber - 1} identities={getVoiceIdentities(directory.registry ?? null, directory.identities).filter((identity) => identity.source === "owned")} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onImport={onImport} onImported={onImported} onCancel={onClose} />}
       </Suspense>
     </DialogContent>

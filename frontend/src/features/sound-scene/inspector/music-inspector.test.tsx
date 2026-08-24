@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@/components/ui/slider", () => ({
   Slider: ({ "aria-label": label, onValueChange, onValueCommit, disabled }: { "aria-label"?: string; onValueChange?: (value: number[]) => void; onValueCommit?: (value: number[]) => void; disabled?: boolean }) => {
-    const value = label === "Audio clip gain" ? -12 : label === "Audio Track gain" ? -3 : label === "Audio fade in" ? 1.5 : 3.5
+    const value = label === "Audio clip gain" ? -12 : label === "Audio Track gain" ? -3 : label === "Audio fade in" ? 1.5 : label === "Duck amount under Sequence" ? -18 : 3.5
     return <button type="button" aria-label={label} disabled={disabled} onClick={() => { onValueChange?.([value]); onValueCommit?.([value]) }} />
   },
 }))
@@ -34,6 +34,9 @@ describe("AudioClipInspector", () => {
     fireEvent.click(screen.getByRole("button", { name: "Move source window" }))
     expect(onClipChange).toHaveBeenCalledWith({ source_offset_ms: 5_500, duration_ms: null })
     await waitFor(() => expect(onClipCommit).toHaveBeenCalledTimes(2))
+    fireEvent.click(screen.getByRole("button", { name: "Duck amount under Sequence" }))
+    expect(onClipChange).toHaveBeenCalledWith({ duck_amount_db: -18 })
+    await waitFor(() => expect(onClipCommit).toHaveBeenCalledTimes(3))
   })
 
   it("keeps a failed save visible in the owning Workbench", async () => {

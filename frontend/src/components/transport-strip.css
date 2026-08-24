@@ -81,7 +81,15 @@
 .transport-strip.is-production [data-slot="slider-range"] { background: oklch(.69 .2 300); }
 .transport-strip.is-production [data-slot="slider-thumb"] { border-color: oklch(.69 .2 300); background: var(--transport-ink); }
 .transport-strip.is-production .transport-strip-copy > span { display: none; }
-.transport-strip.is-production.is-sound-scene { grid-template-columns: 2.5rem minmax(9rem, 14rem) 2.5rem auto minmax(11rem, 1fr) auto; }
+.transport-strip.is-production.is-sound-scene { grid-template-columns: 2.5rem minmax(9rem, 14rem) 2.5rem auto minmax(11rem, 1fr) auto 5.5rem; }
+.transport-meter { display: grid; grid-template-columns: .42rem minmax(0, 1fr) 1.1rem; grid-template-rows: repeat(2, .28rem); align-items: center; gap: .18rem .25rem; min-width: 0; }
+.transport-meter > small { color: var(--transport-muted); font: 700 .45rem/1 var(--font-mono); }
+.transport-meter > span { position: relative; overflow: hidden; height: .28rem; border-radius: 999px; background: oklch(.32 .025 285); }
+.transport-meter > span > i { position: absolute; inset: 0; transform-origin: left; border-radius: inherit; background: linear-gradient(90deg, oklch(.72 .17 150) 0 74%, oklch(.82 .16 85) 88%, oklch(.68 .22 28)); transition: transform 70ms linear; }
+.transport-meter > span > em { position: absolute; inset-block: 0; width: 1px; background: white; opacity: .8; transform: translateX(-1px); }
+.transport-meter > b { grid-column: 3; grid-row: 1 / span 2; align-self: stretch; display: grid; place-items: center; border-radius: .2rem; color: var(--transport-muted); background: var(--transport-raised); font: 750 .48rem/1 var(--font-mono); }
+.transport-meter > b.is-clipping { color: white; background: var(--destructive); }
+@media (prefers-reduced-motion: reduce) { .transport-meter > span > i { transition: none; } }
 .transport-strip.is-production .transport-strip-volume-icon,
 .transport-strip.is-production .transport-strip-volume { display: none; }
 .transport-cc.is-on { color: var(--info); background: var(--info-soft); }

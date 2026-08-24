@@ -235,6 +235,9 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
                     0, min(120_000, _integer(raw_clip.get("fade_out_ms")))),
                 "loop": bool(raw_clip.get("loop", False)),
                 "ducking": bool(raw_clip.get("ducking", False)),
+                "duck_amount_db": max(
+                    -30, min(0, _number(
+                        raw_clip.get("duck_amount_db"), -12))),
                 "muted": bool(raw_clip.get("muted", False)),
                 "locked": bool(raw_clip.get("locked", False)),
                 "effects": _effects(raw_clip.get("effects")),

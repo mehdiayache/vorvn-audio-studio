@@ -207,6 +207,7 @@ export type SoundSceneClip = {
   fade_out_ms: number
   loop: boolean
   ducking: boolean
+  duck_amount_db?: number
   muted: boolean
   locked: boolean
   effects: SoundSceneEffect[]
