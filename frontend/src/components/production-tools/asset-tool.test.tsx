@@ -30,6 +30,15 @@ describe("AssetTool", () => {
       configured: true, sfx_ready: true, music_ready: true, reason: "", models: {},
     })
     const recent = vi.spyOn(studioApi, "recentAudioGenerations").mockResolvedValue([])
+    const taxonomy = vi.spyOn(studioApi, "soundRecipeTaxonomy").mockResolvedValue({
+      version: "audio-taxonomy-v1", items: [],
+    })
+    const compile = vi.spyOn(studioApi, "compileSoundRecipe").mockResolvedValue({
+      capability: "sfx", semantic_state: {}, source_free_text: "",
+      compiled_prompt: "A dry match strikes once.", conflicts: [],
+      model: "stable-audio-3-small-sfx", semantic_schema_version: "sfx-semantic-v1",
+      compiler_version: "sfx-compiler-v1", taxonomy_version: "audio-taxonomy-v1",
+    })
     const enqueue = vi.spyOn(studioApi, "enqueueAudioGeneration").mockResolvedValue({
       id: "generation-job", type: "audio_generate", status: "queued",
       progress: 0, detail: "Queued", retries: 0, result: {
@@ -44,18 +53,21 @@ describe("AssetTool", () => {
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     await waitFor(() => expect(status).toHaveBeenCalled())
     expect(view.getByRole("tab", { name: "Sound Effect" }).getAttribute("aria-selected")).toBe("true")
-    fireEvent.change(view.getByPlaceholderText(/heavy wooden library door/i), { target: { value: "dry match" } })
-    fireEvent.change(view.getByPlaceholderText(/closes softly/i), { target: { value: "strikes once" } })
-    fireEvent.click(view.getByRole("button", { name: "Generate variation" }))
-    await waitFor(() => expect(enqueue).toHaveBeenCalledWith({
-      capability: "sfx", prompt: "Sound source: dry match. Action: strikes once.",
-      prompt_mode: "simple",
-      generation_brief: expect.objectContaining({ object: "dry match", action: "strikes once" }),
-      source_free_text: "", authored_prompt: undefined,
-      seconds: 5, seed: undefined, production_id: 81,
-    }))
+    fireEvent.change(view.getByPlaceholderText(/heavy wooden church door/i), { target: { value: "A dry match strikes once in a quiet room" } })
+    fireEvent.click(view.getByRole("radio", { name: "1" }))
+    await waitFor(() => expect(compile).toHaveBeenCalled())
+    fireEvent.click(view.getByRole("button", { name: "Generate 1 variation" }))
+    await waitFor(() => expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
+      capability: "sfx", prompt: null, prompt_mode: "simple",
+      semantic_state: expect.objectContaining({
+        model_type: "sfx", creative_brief: "A dry match strikes once in a quiet room",
+        variation_count: 1,
+      }),
+      source_free_text: "A dry match strikes once in a quiet room",
+      generation_brief: null, seconds: 5, seed: null, production_id: 81,
+    })))
     expect(onKeepGenerated).not.toHaveBeenCalled()
-    status.mockRestore(); recent.mockRestore(); enqueue.mockRestore()
+    status.mockRestore(); recent.mockRestore(); taxonomy.mockRestore(); compile.mockRestore(); enqueue.mockRestore()
   })
 
   it("keeps audition separate from explicit insertion", async () => {

@@ -9,6 +9,9 @@ export type AudioGenerationCandidate = components["schemas"]["AudioGenerationCan
 export type AudioGenerationHistoryItem = components["schemas"]["AudioGenerationHistoryItemResponse"]
 export type AudioGenerationStatus = components["schemas"]["AudioGenerationStatusResponse"]
 export type GeneratedKeepResult = components["schemas"]["GeneratedKeepResponse"]
+export type SoundRecipeCompilation = components["schemas"]["SoundRecipeCompileResponse"]
+export type SoundRecipeTaxonomy = components["schemas"]["SoundRecipeTaxonomyResponse"]
+export type SoundRecipeTaxonomyItem = SoundRecipeTaxonomy["items"][number]
 
 export type ResourceType = "venture" | "project" | "series" | "production"
 

@@ -163,11 +163,12 @@ def normalize_recipe(capability: RecipeCapability,
         if value in {"structured", "brief"}
     } if isinstance(source.get("conflict_resolutions"), dict) else {}
     minimum = 1 if capability == "sfx" else 5
+    maximum = 30 if capability == "sfx" else 120
     try:
         duration = int(source.get("duration", base["duration"]))
     except (TypeError, ValueError):
         duration = base["duration"]
-    base["duration"] = max(minimum, min(120, duration))
+    base["duration"] = max(minimum, min(maximum, duration))
     try:
         seed = int(source.get("seed", -1))
     except (TypeError, ValueError):
