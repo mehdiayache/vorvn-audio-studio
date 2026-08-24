@@ -36,9 +36,10 @@ import {
   type SoundRecipe, type TaxonomyItem,
 } from "./sound-recipe"
 
-const MUSIC_STAGES = ["Use & Story", "Voice & Feeling", "Musical World", "Instruments", "Arrangement", "Sound & Space", "Review"]
-const SFX_STAGES = ["Sound", "Action", "Perspective", "Character", "Review"]
+const MUSIC_STAGES = ["Use & Story", "Voice & Feeling", "Musical World", "Instruments", "Arrangement", "Sound & Space", "Output", "Review"]
+const SFX_STAGES = ["Sound", "Action", "Perspective", "Character", "Avoid", "Output", "Review"]
 type GenerationPhase = "compose" | "generating" | "compare" | "finalize"
+type ComposeScreen = "setup" | "recipe"
 
 function candidateName(item: AudioGenerationHistoryItem) {
   const prompt = item.request.resolved_prompt || ""
@@ -107,6 +108,7 @@ export function GenerationWorkspace({
 }) {
   const [capability, setCapability] = useState<RecipeCapability>("sfx")
   const [promptMode, setPromptMode] = useState<"simple" | "expert">("simple")
+  const [composeScreen, setComposeScreen] = useState<ComposeScreen>("setup")
   const [recipes, setRecipes] = useState<Record<RecipeCapability, SoundRecipe>>({
     music: emptySoundRecipe("music"), sfx: emptySoundRecipe("sfx"),
   })
@@ -301,6 +303,7 @@ export function GenerationWorkspace({
     setHistorySelection(false)
     setSessionJobIds([])
     setPhase("compose")
+    setComposeScreen("recipe")
     setActiveStage(0); setError("")
   }
 
@@ -313,6 +316,7 @@ export function GenerationWorkspace({
     setHistorySelection(false)
     setSessionJobIds([])
     setPhase("compose")
+    setComposeScreen("setup")
     setError("")
   }
 
@@ -385,51 +389,57 @@ export function GenerationWorkspace({
     (recipe.instruments as RecipeInstrument[]).map((item) => valueLabel(item.id, items)).join(" · "),
     summaryFor(items, recipe, ["arrangement.density", "arrangement.melody_prominence", "arrangement.percussion_presence"]),
     summaryFor(items, recipe, ["production.characters", "production.space", "cue_behaviour.ending"]),
+    `${recipe.duration}s · ${recipe.variation_count} variation${recipe.variation_count === 1 ? "" : "s"}`,
     "",
   ][index] : [
     summaryFor(items, recipe, ["family", "source", "material"]),
     summaryFor(items, recipe, ["action", "motion"]),
     summaryFor(items, recipe, ["perspective", "environment"]),
     summaryFor(items, recipe, ["intensity", "character", "behaviour"]),
+    summaryFor(items, recipe, ["constraints"]),
+    `${recipe.duration}s · ${recipe.variation_count} variation${recipe.variation_count === 1 ? "" : "s"}`,
     "",
   ][index]
 
   return <section className="asset-view asset-generation-view" data-phase={phase}>
     <main className="asset-generation-stage">
-      {phase === "compose" && <div className="asset-generation-compose">
-        <header className="asset-generation-toolbar">
-          <ChoiceSwitch
-            left="Sound Effect"
-            right="Music"
-            checked={capability === "music"}
-            onCheckedChange={(checked) => setCapability(checked ? "music" : "sfx")}
-            label="Audio type"
-          />
-          <ChoiceSwitch
-            left="Simple"
-            right="Expert"
-            checked={promptMode === "expert"}
-            onCheckedChange={(checked) => changeMode(checked ? "expert" : "simple")}
-            label="Creation mode"
-          />
+      {phase === "compose" && <div className="asset-generation-compose" data-screen={composeScreen}>
+        {composeScreen === "setup" ? <section className="asset-generation-setup">
+          <header>
+            <span>Generate audio</span>
+            <h2>What do you want to create?</h2>
+            <p>Choose the audio and the amount of creative control. Both can be changed before generation.</p>
+          </header>
+          <div className="asset-generation-setup-choices">
+            <section>
+              <b>Audio type</b>
+              <ChoiceSwitch left="Sound Effect" right="Music" checked={capability === "music"} onCheckedChange={(checked) => setCapability(checked ? "music" : "sfx")} label="Audio type" />
+            </section>
+            <section>
+              <b>Creation mode</b>
+              <ChoiceSwitch left="Simple" right="Expert" checked={promptMode === "expert"} onCheckedChange={(checked) => changeMode(checked ? "expert" : "simple")} label="Creation mode" />
+            </section>
+          </div>
           <HistoryMenu history={capabilityHistory} selectedJobId={selectedJobId} open={historyOpen} onOpenChange={setHistoryOpen} onSelect={openHistoryItem} />
-        </header>
+        </section> : <>
+          <header className="asset-generation-context">
+            <Button variant="ghost" onClick={() => setComposeScreen("setup")}><ArrowLeft />Change setup</Button>
+            <div><b>{capability === "music" ? "Music" : "Sound Effect"}</b><span>·</span><b>{promptMode === "expert" ? "Expert" : "Simple"}</b></div>
+            <HistoryMenu history={capabilityHistory} selectedJobId={selectedJobId} open={historyOpen} onOpenChange={setHistoryOpen} onSelect={openHistoryItem} />
+          </header>
 
-        {promptMode === "simple" ? <SimpleRecipe recipe={recipe} capability={capability} onChange={setRecipe} onOpenExpert={() => changeMode("expert")} /> : <section className="recipe-funnel">
-          <nav className="recipe-step-rail" aria-label={`${capability === "music" ? "Music" : "Sound Effect"} recipe steps`}>{stages.map((stage, index) => <button type="button" key={stage} className={activeStage === index ? "is-active" : ""} aria-current={activeStage === index ? "step" : undefined} onClick={() => setActiveStage(index)}><span>{stageSummary(index) ? <Check /> : index + 1}</span><b>{stage}</b></button>)}</nav>
-          <article className="recipe-current-step">
-            <header><span>Step {activeStage + 1} of {stages.length}</span><h3>{stages[activeStage]}</h3>{stageSummary(activeStage) && <p>{stageSummary(activeStage)}</p>}</header>
-            <div className="recipe-current-step-fields">{capability === "music" ? <MusicStage index={activeStage} recipe={recipe} items={items} setPath={setPath} setRecipe={setRecipe} /> : <SfxStage index={activeStage} recipe={recipe} items={items} setPath={setPath} setRecipe={setRecipe} />}</div>
-            <footer>
-              <Button variant="ghost" disabled={activeStage === 0} onClick={() => setActiveStage((current) => Math.max(0, current - 1))}><ArrowLeft />Back</Button>
-              {activeStage < stages.length - 1 && <Button onClick={() => setActiveStage((current) => Math.min(stages.length - 1, current + 1))}>Continue</Button>}
-            </footer>
-          </article>
-        </section>}
+          {promptMode === "simple" ? <SimpleRecipe recipe={recipe} capability={capability} onChange={setRecipe} onOpenExpert={() => changeMode("expert")} /> : <section className="recipe-funnel">
+            <nav className="recipe-step-rail" data-count={stages.length} aria-label={`${capability === "music" ? "Music" : "Sound Effect"} recipe steps`}>{stages.map((stage, index) => <button type="button" key={stage} className={activeStage === index ? "is-active" : ""} aria-current={activeStage === index ? "step" : undefined} onClick={() => setActiveStage(index)}><span>{index + 1}</span><b>{stage}</b></button>)}</nav>
+            <article className="recipe-current-step">
+              <header><span>Step {activeStage + 1} of {stages.length}</span><h3>{stages[activeStage]}</h3>{stageSummary(activeStage) && <p>{stageSummary(activeStage)}</p>}</header>
+              <div className="recipe-current-step-fields">{capability === "music" ? <MusicStage index={activeStage} recipe={recipe} items={items} setPath={setPath} setRecipe={setRecipe} /> : <SfxStage index={activeStage} recipe={recipe} items={items} setPath={setPath} setRecipe={setRecipe} />}</div>
+            </article>
+          </section>}
 
-        {unresolvedConflicts.length > 0 && <section className="recipe-conflicts" aria-live="polite"><header><b>Choose the direction that should win</b><span>We will not send contradictory instructions.</span></header>{unresolvedConflicts.map((conflict) => <div key={conflict.id}><p><b>{conflict.structured}</b>{conflict.free_text && <><span>conflicts with</span><b>“{conflict.free_text}”</b></>}</p><div><Button variant="outline" size="sm" onClick={() => resolveConflict(conflict.id, "structured")}>Keep structured choice</Button>{conflict.free_text && <Button variant="outline" size="sm" onClick={() => resolveConflict(conflict.id, "brief")}>Keep brief wording</Button>}</div></div>)}</section>}
+          {(promptMode === "simple" || activeStage === stages.length - 1) && unresolvedConflicts.length > 0 && <section className="recipe-conflicts" aria-live="polite"><header><b>Choose the direction that should win</b><span>We will not send contradictory instructions.</span></header>{unresolvedConflicts.map((conflict) => <div key={conflict.id}><p><b>{conflict.structured}</b>{conflict.free_text && <><span>conflicts with</span><b>“{conflict.free_text}”</b></>}</p><div><Button variant="outline" size="sm" onClick={() => resolveConflict(conflict.id, "structured")}>Keep structured choice</Button>{conflict.free_text && <Button variant="outline" size="sm" onClick={() => resolveConflict(conflict.id, "brief")}>Keep brief wording</Button>}</div></div>)}</section>}
 
-        <PromptPreview compilation={compilation} compiling={compiling} editing={editingPrompt} override={promptOverride[capability]} onEditing={setEditingPrompt} onOverride={(value) => setPromptOverride((current) => ({ ...current, [capability]: value }))} />
+          {(promptMode === "simple" || activeStage === stages.length - 1) && <PromptPreview compilation={compilation} compiling={compiling} editing={editingPrompt} override={promptOverride[capability]} onEditing={setEditingPrompt} onOverride={(value) => setPromptOverride((current) => ({ ...current, [capability]: value }))} />}
+        </>}
       </div>}
 
       {(phase === "generating" || phase === "compare") && <VariationWorkspace
@@ -464,13 +474,16 @@ export function GenerationWorkspace({
 
     <footer className="asset-action-bar asset-generation-actions">
       <div>
-        <b>{phase === "compose" ? capability === "music" ? "Create music" : "Create a sound effect" : phase === "generating" ? "Creating variations" : phase === "compare" ? "Choose what works" : candidate ? candidateName(selected!) : "Variation unavailable"}</b>
-        <span>{phase === "generating" ? generationStage === "understanding" ? "Understanding the creative direction…" : generationStage === "starting" ? `Starting ${generationProgress} of ${recipe.variation_count}…` : `${sessionItems.filter((item) => item.candidate).length} of ${recipe.variation_count} ready` : phase === "compare" ? "Audition freely. Nothing is kept until you choose it." : phase === "finalize" ? "Name and file the chosen audio before keeping it." : statusCopy}</span>
+        <b>{phase === "compose" ? composeScreen === "setup" ? "Start a new generation" : promptMode === "expert" ? `${stages[activeStage]} · Step ${activeStage + 1} of ${stages.length}` : capability === "music" ? "Create music" : "Create a sound effect" : phase === "generating" ? "Creating variations" : phase === "compare" ? "Choose what works" : candidate ? candidateName(selected!) : "Variation unavailable"}</b>
+        <span>{phase === "generating" ? generationStage === "understanding" ? "Understanding the creative direction…" : generationStage === "starting" ? `Starting ${generationProgress} of ${recipe.variation_count}…` : `${sessionItems.filter((item) => item.candidate).length} of ${recipe.variation_count} ready` : phase === "compare" ? "Audition freely. Nothing is kept until you choose it." : phase === "finalize" ? "Name and file the chosen audio before keeping it." : composeScreen === "setup" ? "Choose an audio type and creation mode together." : promptMode === "expert" && activeStage < stages.length - 1 ? "Complete this focused screen, then continue." : statusCopy}</span>
       </div>
       {error && <p role="alert">{error}</p>}
-      {phase === "compose" && <ActionButton busy={generating} busyLabel={generationStage === "understanding" ? "Understanding…" : "Starting…"} disabled={status !== "ready" || !hasCreativeDirection || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length)} onClick={() => void generate()}><Sparkles />Generate {recipe.variation_count} variation{recipe.variation_count === 1 ? "" : "s"}</ActionButton>}
+      {phase === "compose" && composeScreen === "setup" && <Button onClick={() => setComposeScreen("recipe")}>Continue</Button>}
+      {phase === "compose" && composeScreen === "recipe" && promptMode === "expert" && activeStage > 0 && <Button variant="ghost" onClick={() => setActiveStage((current) => Math.max(0, current - 1))}><ArrowLeft />Back</Button>}
+      {phase === "compose" && composeScreen === "recipe" && promptMode === "expert" && activeStage < stages.length - 1 && <Button onClick={() => setActiveStage((current) => Math.min(stages.length - 1, current + 1))}>Continue</Button>}
+      {phase === "compose" && composeScreen === "recipe" && (promptMode === "simple" || activeStage === stages.length - 1) && <ActionButton busy={generating} busyLabel={generationStage === "understanding" ? "Understanding…" : "Starting…"} disabled={status !== "ready" || !hasCreativeDirection || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length)} onClick={() => void generate()}><Sparkles />Generate {recipe.variation_count} variation{recipe.variation_count === 1 ? "" : "s"}</ActionButton>}
       {phase === "generating" && <div className="asset-generation-footer-progress"><Progress value={Math.max(generationProgress / recipe.variation_count, ...sessionItems.map((item) => item.progress)) * 100} /><span>{sessionItems.filter((item) => item.candidate).length}/{recipe.variation_count}</span></div>}
-      {phase === "compare" && <><Button variant="outline" onClick={() => setPhase("compose")}><ArrowLeft />Back to recipe</Button><Button variant="ghost" onClick={startFresh}>Start fresh</Button></>}
+      {phase === "compare" && <><Button variant="outline" onClick={() => { setComposeScreen("recipe"); setPhase("compose") }}><ArrowLeft />Back to recipe</Button><Button variant="ghost" onClick={startFresh}>Start fresh</Button></>}
       {phase === "finalize" && candidate && !selected?.kept_asset && <><ActionButton variant="ghost" busy={discarding} busyLabel="Discarding…" disabled={Boolean(keeping)} onClick={() => void discard()}><Trash2 />Discard</ActionButton><ActionButton variant="outline" busy={keeping === "library"} busyLabel="Keeping…" disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(false)}><Check />Keep in Library</ActionButton><ActionButton busy={keeping === "place"} busyLabel={mode === "sound" ? "Adding to track…" : "Inserting…"} disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(true)}><Check />{mode === "sound" ? "Keep & Add to Track" : "Keep & Insert"}</ActionButton></>}
       {phase === "finalize" && selected?.kept_asset && <Button onClick={startFresh}><Sparkles />Create another</Button>}
     </footer>
@@ -604,8 +617,8 @@ function MusicStage({ index, recipe, items, setPath, setRecipe }: { index: numbe
     <RecipeField label="Recording character" help="Optional recording and stereo character."><TaxonomyPicker items={items} category="recording_character" label="recording choices" value={pathValues(recipe, "production.recording_character")} onChange={(value) => setPath("production.recording_character", value)} /></RecipeField>
     <div className="recipe-two-up"><RecipeField label="How should it end?" help="The final editorial behaviour of the cue."><SingleChoice items={items} category="ending" label="endings" value={pathValues(recipe, "cue_behaviour.ending")[0] || null} onChange={(value) => setPath("cue_behaviour.ending", value)} /></RecipeField><RecipeField label="Loop intention" help="Prompt for continuation-friendly material; true seamless loops still require editing."><SingleChoice items={items} category="loop_intention" label="loop choices" value={pathValues(recipe, "cue_behaviour.loop_intention")[0] || null} onChange={(value) => setPath("cue_behaviour.loop_intention", value)} /></RecipeField></div>
     <RecipeField label="Keep out" help="We translate exclusions into positive directions the post-trained Small model can follow."><TaxonomyPicker items={items} category="constraint" label="constraints" value={pathValues(recipe, "constraints")} onChange={(value) => setPath("constraints", value)} /></RecipeField>
-    <GenerationSettings recipe={recipe} onChange={(next) => setRecipe(next)} capability="music" />
   </>
+  if (index === 6) return <GenerationSettings recipe={recipe} onChange={(next) => setRecipe(next)} capability="music" />
   return <RecipeReview recipe={recipe} items={items} />
 }
 
@@ -627,8 +640,9 @@ function SfxStage({ index, recipe, items, setPath, setRecipe }: { index: number;
     <div className="recipe-two-up"><RecipeField label="Attack & decay" help="How quickly the sound arrives and how long it remains."><TaxonomyPicker items={items} category="sfx_envelope" label="envelope choices" value={pathValues(recipe, "envelope")} onChange={(value) => setPath("envelope", value)} /></RecipeField><RecipeField label="Character" help="The tactile or emotional character of the sound."><TaxonomyPicker items={items} category="sfx_character" label="characters" value={pathValues(recipe, "character")} onChange={(value) => setPath("character", value)} /></RecipeField></div>
     <div className="recipe-two-up"><RecipeField label="Realism" help="Choose physical realism or deliberate sound design."><SingleChoice items={items} category="sfx_realism" label="realism choices" value={pathValues(recipe, "realism")[0] || null} onChange={(value) => setPath("realism", value)} /></RecipeField><RecipeField label="Behaviour" help="A one-shot event or a continuous environmental bed."><SingleChoice items={items} category="sfx_behaviour" label="behaviours" value={pathValues(recipe, "behaviour")[0] || null} onChange={(value) => setPath("behaviour", value)} /></RecipeField></div>
     <RecipeField label="Processing" help="Optional production colour. Keep realistic sounds lightly processed."><TaxonomyPicker items={items} category="sfx_processing" label="processing choices" value={pathValues(recipe, "processing")} onChange={(value) => setPath("processing", value)} /></RecipeField>
-    <GenerationSettings recipe={recipe} onChange={(next) => setRecipe(next)} capability="sfx" />
   </>
+  if (index === 4) return <RecipeField label="What should never be introduced?" help="Choose exclusions that protect the intended sound without writing a negative prompt by hand."><TaxonomyPicker items={items} category="constraint" label="things to avoid" value={pathValues(recipe, "constraints")} onChange={(value) => setPath("constraints", value)} /></RecipeField>
+  if (index === 5) return <GenerationSettings recipe={recipe} onChange={(next) => setRecipe(next)} capability="sfx" />
   return <RecipeReview recipe={recipe} items={items} />
 }
 

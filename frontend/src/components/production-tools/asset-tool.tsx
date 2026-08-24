@@ -188,12 +188,13 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, produc
     onDragOver={(event) => event.preventDefault()} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false) }}
     onDrop={(event) => { event.preventDefault(); setDragging(false); chooseFile(event.dataTransfer.files[0]) }}>
     <header className="asset-workspace-toolbar">
+      <strong className="asset-workspace-title">Audio Library</strong>
       <Tabs value={view} onValueChange={(value) => openView(value as LibraryView)} className="asset-mode-tabs">
         <TabsList variant="line" aria-label="Audio Library views">
-          <TabsTrigger value="library" aria-label="Library" onClick={() => openView("library")}><Library /><span><b>Library</b><small>{assets.length} sounds</small></span></TabsTrigger>
-          <TabsTrigger value="upload" aria-label="Upload" onClick={() => openView("upload")}><Upload /><span><b>Upload</b><small>From this computer</small></span></TabsTrigger>
-          <TabsTrigger value="search" aria-label="Freesound" onClick={() => openView("search")}><Search /><span><b>Freesound</b><small>Find recorded audio</small></span></TabsTrigger>
-          <TabsTrigger value="generate" aria-label="Generate" onClick={() => openView("generate")} disabled={!onKeepGenerated}><Sparkles /><span><b>Generate</b><small>Create a variation</small></span></TabsTrigger>
+          <TabsTrigger value="library" aria-label="Library" onClick={() => openView("library")}><Library />Library</TabsTrigger>
+          <TabsTrigger value="upload" aria-label="Upload" onClick={() => openView("upload")}><Upload />Upload</TabsTrigger>
+          <TabsTrigger value="search" aria-label="Freesound" onClick={() => openView("search")}><Search />Freesound</TabsTrigger>
+          <TabsTrigger value="generate" aria-label="Generate" onClick={() => openView("generate")} disabled={!onKeepGenerated}><Sparkles />Generate</TabsTrigger>
         </TabsList>
       </Tabs>
       <div className="asset-toolbar-context">

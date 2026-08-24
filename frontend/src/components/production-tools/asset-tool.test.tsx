@@ -69,9 +69,11 @@ describe("AssetTool", () => {
     const view = within(container)
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     await waitFor(() => expect(status).toHaveBeenCalled())
+    expect(view.getByRole("heading", { name: "What do you want to create?" })).toBeTruthy()
     expect(view.getByRole("button", { name: "Sound Effect" }).getAttribute("aria-pressed")).toBe("true")
+    expect(view.getByRole("button", { name: "Simple" }).getAttribute("aria-pressed")).toBe("true")
+    fireEvent.click(view.getByRole("button", { name: "Continue" }))
     fireEvent.change(view.getByPlaceholderText(/heavy wooden church door/i), { target: { value: "A dry match strikes once in a quiet room" } })
-    fireEvent.click(view.getByRole("radio", { name: "1" }))
     await waitFor(() => expect(compile).toHaveBeenCalled())
     fireEvent.click(view.getByRole("button", { name: "Generate 1 variation" }))
     await waitFor(() => expect(normalize).toHaveBeenCalledTimes(1))
@@ -122,11 +124,16 @@ describe("AssetTool", () => {
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     await waitFor(() => expect(recent).toHaveBeenCalled())
 
-    expect(view.getByRole("heading", { name: "What should we hear?" })).toBeTruthy()
+    expect(view.getByRole("heading", { name: "What do you want to create?" })).toBeTruthy()
     expect(view.getByRole("button", { name: "Previous generations" }).textContent).toContain("1")
-    expect(view.getByRole("button", { name: "Generate 4 variations" }).hasAttribute("disabled")).toBe(true)
+    expect(view.queryByRole("button", { name: /Generate \d variation/ })).toBeNull()
     expect(view.queryByText("Name and keep the audio")).toBeNull()
     expect(view.queryByRole("button", { name: "Keep in Library" })).toBeNull()
+
+    fireEvent.click(view.getByRole("button", { name: "Continue" }))
+    expect(view.getByRole("heading", { name: "What should we hear?" })).toBeTruthy()
+    expect(view.getByRole("button", { name: "Generate 1 variation" }).hasAttribute("disabled")).toBe(true)
+    fireEvent.click(view.getByRole("button", { name: "Change setup" }))
 
     fireEvent.click(view.getByRole("button", { name: "Previous generations" }))
     fireEvent.click(screen.getByRole("option", { name: /Old ceramic tea cup/ }))
@@ -134,6 +141,38 @@ describe("AssetTool", () => {
     expect(view.queryByText("Chosen variation A")).toBeNull()
 
     status.mockRestore(); recent.mockRestore(); taxonomy.mockRestore(); compile.mockRestore()
+  })
+
+  it("keeps type and mode together, then presents Expert as focused funnel screens", async () => {
+    vi.spyOn(studioApi, "audioGenerationStatus").mockResolvedValue({
+      configured: true, sfx_ready: true, music_ready: true, reason: "", models: {},
+    })
+    vi.spyOn(studioApi, "recentAudioGenerations").mockResolvedValue([])
+    vi.spyOn(studioApi, "soundRecipeTaxonomy").mockResolvedValue({ version: "audio-taxonomy-v1", items: [] })
+    vi.spyOn(studioApi, "compileSoundRecipe").mockResolvedValue({
+      capability: "sfx", semantic_state: {}, source_free_text: "", compiled_prompt: "",
+      conflicts: [], model: "stable-audio-3-small-sfx", semantic_schema_version: "sfx-semantic-v2",
+      compiler_version: "sfx-compiler-v2", taxonomy_version: "audio-taxonomy-v1",
+    })
+
+    const { container } = render(<AssetTool assets={assets} mode="sound" productionId={81} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} onKeepGenerated={vi.fn()} />)
+    const view = within(container)
+    fireEvent.click(view.getByRole("tab", { name: "Generate" }))
+    expect(view.getByRole("button", { name: "Sound Effect" })).toBeTruthy()
+    expect(view.getByRole("button", { name: "Music" })).toBeTruthy()
+    expect(view.getByRole("button", { name: "Simple" })).toBeTruthy()
+    fireEvent.click(view.getByRole("button", { name: "Expert" }))
+    fireEvent.click(view.getByRole("button", { name: "Continue" }))
+
+    const steps = view.getByRole("navigation", { name: "Sound Effect recipe steps" })
+    expect(view.getByRole("heading", { name: "Sound" })).toBeTruthy()
+    expect(within(steps).getAllByRole("button")).toHaveLength(7)
+    expect(view.queryByRole("button", { name: "Generate 1 variation" })).toBeNull()
+    fireEvent.click(view.getByRole("button", { name: "Continue" }))
+    expect(view.getByRole("heading", { name: "Action" })).toBeTruthy()
+    fireEvent.click(within(steps).getByText("Review").closest("button")!)
+    expect(view.getByRole("heading", { name: "Review" })).toBeTruthy()
+    expect(view.getByRole("button", { name: "Generate 1 variation" }).hasAttribute("disabled")).toBe(true)
   })
 
   it("moves one generation through compare and deliberate finalization", async () => {
@@ -181,8 +220,8 @@ describe("AssetTool", () => {
     const { container } = render(<AssetTool assets={assets} mode="sound" productionId={81} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} onKeepGenerated={vi.fn()} />)
     const view = within(container)
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
+    fireEvent.click(view.getByRole("button", { name: "Continue" }))
     fireEvent.change(view.getByPlaceholderText(/heavy wooden church door/i), { target: { value: "A close wooden knock" } })
-    fireEvent.click(view.getByRole("radio", { name: "1" }))
     await waitFor(() => expect(view.getByRole("button", { name: "Generate 1 variation" }).hasAttribute("disabled")).toBe(false))
     fireEvent.click(view.getByRole("button", { name: "Generate 1 variation" }))
 

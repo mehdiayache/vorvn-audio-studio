@@ -46,13 +46,13 @@ export function emptySoundRecipe(capability: RecipeCapability): SoundRecipe {
       harmonic_movement: null, phrase_space: null, low_end_weight: null,
     }, production: { characters: [], palette: null, tone: null, space: [], recording_character: [] },
     cue_behaviour: { ending: null, loop_intention: null }, constraints: [],
-    duration: 30, seed: -1, variation_count: 4, conflict_resolutions: {},
+    duration: 30, seed: -1, variation_count: 1, conflict_resolutions: {},
   }
   return {
     model_type: "sfx", creative_brief: "", family: [], source: [], material: [],
     action: [], motion: null, perspective: null, environment: [], intensity: null,
     envelope: [], character: [], processing: [], realism: null, behaviour: null,
-    constraints: [], duration: 5, seed: -1, variation_count: 4,
+    constraints: [], duration: 5, seed: -1, variation_count: 1,
     conflict_resolutions: {},
   }
 }
