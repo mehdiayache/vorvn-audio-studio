@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, ConfigDict, Field
 
 from audio_studio.composition.voices import voice_service
+from audio_studio.composition.jobs import job_service
+from audio_studio.composition.catalog import catalog_service
 from audio_studio.http.errors import ApiProblem
 from audio_studio.http.voice_contracts import (
     HistoricalVoiceCollectionEnvelope,
@@ -17,6 +20,8 @@ from audio_studio.http.voice_contracts import (
     VoicePackageRetryEnvelope,
     VoiceProfileCollectionEnvelope,
     VoiceProfileEnvelope,
+    VoicePreviewCreatedEnvelope,
+    VoiceReferenceWindowEnvelope,
 )
 
 
@@ -56,7 +61,33 @@ class VoicePackageCreate(VoicePackagePreflight):
     trait: str | None = Field(default=None, max_length=160)
     editorial_language: str | None = Field(default=None, max_length=160)
     provider_model_ids: list[str] | None = Field(default=None, max_length=20)
+    reference_window_id: str | None = Field(default=None, max_length=120)
+    reference_window_ids: dict[str, str] | None = None
     confirmed: bool = False
+
+
+class VoiceReferenceWindowUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    provider_model_id: str | None = Field(default=None, max_length=160)
+    start_ms: int = Field(ge=0)
+    duration_ms: int = Field(ge=1_000, le=60_000)
+    source_language: str = Field(default="", max_length=80)
+    transcript: str = Field(default="", max_length=20_000)
+    enable_preprocess: bool | None = None
+
+
+class VoicePreviewCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    binding_id: UUID
+    tag: str | None = Field(default=None, max_length=40)
+    text: str = Field(min_length=1, max_length=1_000)
+    instruction: str = Field(default="", max_length=1_000)
+    seed: int = Field(default=0, ge=0, le=2_147_483_647)
+    language: str = Field(default="Auto", max_length=80)
+
+
+class VoicePreviewApproval(BaseModel):
+    approval_state: Literal["unreviewed", "approved", "rejected"]
 
 
 class VoicePackageRetry(BaseModel):
@@ -104,6 +135,104 @@ def update_profile(identity_id: str, payload: VoiceUpdate) -> dict:
     if not item:
         raise ApiProblem(404, "voice_not_found", "That voice identity does not exist.")
     return {"data": item}
+
+
+@router.put(
+    "/voice-references/{reference_id}/window",
+    operation_id="saveUploadedVoiceReferenceWindow",
+    response_model=VoiceReferenceWindowEnvelope,
+)
+def save_uploaded_reference_window(reference_id: str,
+                                   payload: VoiceReferenceWindowUpdate) -> dict:
+    try:
+        result = voice_service.save_uploaded_reference_window(
+            reference_id, payload.model_dump())
+    except LookupError as exc:
+        raise ApiProblem(404, "voice_source_not_found", str(exc)) from exc
+    except ValueError as exc:
+        raise ApiProblem(400, "invalid_voice_source_window", str(exc)) from exc
+    return {"data": result}
+
+
+@router.put(
+    "/voices/{identity_id}/references/{reference_id}/window",
+    operation_id="saveVoiceReferenceWindow",
+    response_model=VoiceProfileEnvelope,
+)
+def save_reference_window(identity_id: str, reference_id: str,
+                          payload: VoiceReferenceWindowUpdate) -> dict:
+    try:
+        item = voice_service.save_reference_window(
+            identity_id, reference_id, payload.model_dump())
+    except LookupError as exc:
+        raise ApiProblem(404, "voice_source_not_found", str(exc)) from exc
+    except ValueError as exc:
+        raise ApiProblem(400, "invalid_voice_source_window", str(exc)) from exc
+    return {"data": item}
+
+
+@router.post(
+    "/voices/{identity_id}/previews", operation_id="createVoicePreview",
+    status_code=202, response_model=VoicePreviewCreatedEnvelope,
+)
+def create_voice_preview(identity_id: str, payload: VoicePreviewCreate) -> dict:
+    values = {
+        "text": payload.text.strip(),
+        "text_raw": payload.text.strip(),
+        "text_tagged": payload.text.strip() if payload.tag else None,
+        "text_state": "tagged" if payload.tag else "raw",
+        "binding_id": str(payload.binding_id),
+        "language": payload.language,
+        "instruction": payload.instruction.strip(),
+        "seed": payload.seed,
+        "format": "mp3",
+        "speech_mode": "performance" if payload.tag else "exact",
+        "rate": 1, "pitch": 1, "volume": 50,
+        "_voice_preview": True,
+    }
+    try:
+        resolved = catalog_service.resolve_voice(values)
+    except ValueError as exc:
+        raise ApiProblem(409, "voice_route_unavailable", str(exc)) from exc
+    if resolved.get("identity_id") != identity_id:
+        raise ApiProblem(400, "invalid_voice_preview",
+                         "That recording method belongs to another Voice.")
+    values.update({
+        "voice": resolved["provider_voice_id"],
+        "voice_identity_id": resolved.get("identity_id"),
+        "engine": resolved["engine"], "model": resolved["tier"],
+        "capability_id": resolved.get("capability_id"),
+    })
+    job, _ = job_service.enqueue(
+        "speech", values,
+        idempotency_key=f"voice-preview-{uuid4()}",
+        source_tool="voices", operation_label="Test voice",
+    )
+    try:
+        preview_id = voice_service.record_preview(
+            identity_id, str(payload.binding_id), job_id=job.id,
+            tag=payload.tag, text=payload.text.strip(),
+            instruction=payload.instruction.strip(), seed=payload.seed)
+    except LookupError as exc:
+        raise ApiProblem(400, "invalid_voice_preview", str(exc)) from exc
+    return {"data": {"preview_id": preview_id,
+                     "job_id": str(job.public_id)}}
+
+
+@router.patch(
+    "/voices/{identity_id}/previews/{preview_id}",
+    operation_id="approveVoicePreview", response_model=VoiceProfileEnvelope,
+)
+def approve_voice_preview(identity_id: str, preview_id: UUID,
+                          payload: VoicePreviewApproval) -> dict:
+    try:
+        profile = voice_service.approve_preview(
+            identity_id, str(preview_id), payload.approval_state)
+    except LookupError as exc:
+        raise ApiProblem(404, "voice_preview_not_found", str(exc)) from exc
+    except ValueError as exc:
+        raise ApiProblem(409, "voice_preview_not_ready", str(exc)) from exc
+    return {"data": profile}
 
 
 @router.delete(

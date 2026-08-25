@@ -35,6 +35,8 @@ class VoiceCloningProvider(Protocol):
 class VoiceReferenceResolver(Protocol):
     def resolve(self, stored_name: str) -> Path: ...
     def resolve_reference(self, reference: dict) -> Path: ...
+    def resolve_reference_window(self, reference: dict, job: VoicePackageJob
+                                 ) -> Path: ...
 
 
 class VoiceCloningService:
@@ -69,7 +71,7 @@ class VoiceCloningService:
             reference = self.repository.reference(job.reference_id)
             if not reference or not reference.get("normalized_path"):
                 raise RuntimeError("The saved reference recording is unavailable.")
-            local = self.references.resolve_reference(reference)
+            local = self.references.resolve_reference_window(reference, job)
         except Exception as exc:
             # Route/configuration/reference resolution is local and free.
             # Persist the failed Job without inventing provider evidence.
@@ -94,6 +96,7 @@ class VoiceCloningService:
                         "adapter_key": job.adapter_key,
                         "model": job.model_id,
                         "binding_reference_id": job.reference_id,
+                        "reference_window_id": job.reference_window_id,
                     }, {"identity_id": job.identity_id,
                         "reference_id": job.reference_id,
                         "model_id": job.model_id}, reservation_id)

@@ -61,14 +61,16 @@ class AlibabaVoiceCloningProvider:
 
     @staticmethod
     def _reference_url(job: VoicePackageJob, local: Path) -> str:
+        cache_key = job.reference_window_id or job.reference_id
         with _REFERENCE_URL_LOCK:
-            cached = _REFERENCE_URLS.get(job.reference_id)
+            cached = _REFERENCE_URLS.get(cache_key)
             if cached and time.monotonic() - cached[0] < 600:
                 return cached[1]
             url = storage.upload(
-                local, kind="voice-references", object_id=job.reference_id,
+                local, kind="voice-references",
+                object_id=f"{job.reference_id}-{cache_key}",
                 retention="durable")
-            _REFERENCE_URLS[job.reference_id] = (time.monotonic(), url)
+            _REFERENCE_URLS[cache_key] = (time.monotonic(), url)
             return url
 
     def create(self, job: VoicePackageJob, local: Path,
@@ -103,7 +105,13 @@ class AlibabaVoiceCloningProvider:
             # for cosyvoice-v3-plus. Never send an undocumented option merely
             # because both models share the SDK transport.
             if job.engine == "audio":
-                enrollment_options["max_prompt_audio_length"] = 30.0
+                source_seconds = float(
+                    job.metadata.get("window_duration_ms") or 20_000) / 1000
+                enrollment_options["max_prompt_audio_length"] = min(
+                    30.0, max(3.0, source_seconds),
+                )
+                enrollment_options["enable_preprocess"] = bool(
+                    job.metadata.get("enable_preprocess"))
             provider_voice_id = VoiceEnrollmentService().create_voice(
                 **enrollment_options,
             )

@@ -36,6 +36,7 @@ class VoiceRepositoryTests(unittest.TestCase):
         second_provider_id = f"qwen-audio-3.0-tts-flash-repo-second-{marker}"
         metadata_id = f"qwen-audio-3.0-tts-plus-repo-{marker}"
         part_id = None
+        preview_job_id = None
         try:
             with psycopg.connect(settings.database_url) as database:
                 with database.cursor() as cursor:
@@ -72,10 +73,20 @@ class VoiceRepositoryTests(unittest.TestCase):
                     cursor.execute("""
                         INSERT INTO voice_bindings
                             (provider_voice_id, model_id, identity_id, engine,
-                             tier, languages, reference_id)
+                             tier, languages, reference_id,validation_state)
                         VALUES (%s, %s, %s, 'audio', 'flash', '["English"]'::jsonb,
-                                %s)
+                                %s,'candidate')
+                        RETURNING id
                     """, (second_provider_id, model_id, identity_id,
+                          second_reference_id))
+                    candidate_binding_id = cursor.fetchone()[0]
+                    cursor.execute("""
+                        INSERT INTO voice_bindings
+                            (provider_voice_id, model_id, identity_id, engine,
+                             tier, languages, reference_id,validation_state)
+                        VALUES (%s, %s, %s, 'audio', 'flash', '["English"]'::jsonb,
+                                %s,'rejected')
+                    """, (f"rejected-{marker}", model_id, identity_id,
                           second_reference_id))
                     cursor.execute("""
                         INSERT INTO voices (id, image, favourite, name)
@@ -112,12 +123,24 @@ class VoiceRepositoryTests(unittest.TestCase):
             self.assertEqual(profile["preferred_reference_id"], reference_id)
             exact_bindings = [item for item in profile["bindings"]
                               if item["model_id"] == model_id]
-            self.assertEqual(len(exact_bindings), 2)
+            self.assertEqual(len(exact_bindings), 3)
             self.assertEqual(
                 {item["reference_id"] for item in exact_bindings},
                 {reference_id, second_reference_id})
             self.assertEqual(len({item["binding_id"]
-                                  for item in exact_bindings}), 2)
+                                  for item in exact_bindings}), 3)
+            self.assertEqual(
+                {item["validation_state"] for item in exact_bindings},
+                {"approved", "candidate", "rejected"})
+            self.assertEqual(
+                [item["voice_id"] for item in repository.custom_bindings()
+                 if item["identity_id"] == identity_id],
+                [provider_id])
+            self.assertEqual(
+                {item["voice_id"] for item in repository.custom_bindings(
+                    include_candidates=True)
+                 if item["identity_id"] == identity_id},
+                {provider_id, second_provider_id})
             self.assertEqual(repository.profile_usage()[identity_id]["uses"], 1)
             binding = next(
                 item for item in repository.custom_bindings()
@@ -129,6 +152,39 @@ class VoiceRepositoryTests(unittest.TestCase):
                 "estimate_rate_per_million_chars"})
             self.assertEqual(
                 repository.binding_references()[provider_id]["id"], reference_id)
+
+            with psycopg.connect(settings.database_url) as database:
+                with database.cursor() as cursor:
+                    cursor.execute("""
+                        INSERT INTO jobs (kind,status,result,finished_at)
+                        VALUES ('speech','ok',
+                                '{"name":"candidate-test.mp3","duration_ms":900}'::jsonb,
+                                now()) RETURNING id
+                    """)
+                    preview_job_id = cursor.fetchone()[0]
+                database.commit()
+            preview_id = repository.create_preview(
+                identity_id, str(candidate_binding_id), job_id=preview_job_id,
+                tag=None, text="A meaningful candidate test.",
+                instruction="", seed=0)
+            self.assertTrue(repository.set_preview_approval(
+                identity_id, preview_id, "approved"))
+            promoted = [
+                item for item in repository.custom_bindings()
+                if item["identity_id"] == identity_id
+            ]
+            self.assertEqual([item["voice_id"] for item in promoted],
+                             [second_provider_id])
+            with psycopg.connect(settings.database_url) as database:
+                states = dict(database.execute("""
+                    SELECT provider_voice_id,validation_state
+                      FROM voice_bindings WHERE identity_id=%s
+                """, (identity_id,)).fetchall())
+            self.assertEqual(states, {
+                provider_id: "superseded",
+                second_provider_id: "approved",
+                f"rejected-{marker}": "rejected",
+            })
 
             metadata = repository.catalog_metadata()
             self.assertEqual(metadata[voice_key(metadata_id)]["image"], "fixture.png")
@@ -166,6 +222,9 @@ class VoiceRepositoryTests(unittest.TestCase):
                     cursor.execute(
                         "DELETE FROM jobs WHERE voice_identity_id = %s",
                         (identity_id,))
+                    if preview_job_id:
+                        cursor.execute("DELETE FROM jobs WHERE id=%s",
+                                       (preview_job_id,))
                     if part_id:
                         cursor.execute("DELETE FROM production_parts WHERE id = %s",
                                        (part_id,))

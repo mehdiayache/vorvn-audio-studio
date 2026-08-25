@@ -13,7 +13,11 @@ from unittest.mock import patch
 from audio_studio.application.audio_projects import production_scene
 from audio_studio.http.app import app
 from audio_studio.infrastructure.audio_codec import pcm_wav
-from audio_studio.infrastructure.audio_peaks import _write_cache, peaks
+from audio_studio.infrastructure.audio_peaks import (
+    _write_cache,
+    peaks,
+    peaks_for_path,
+)
 from audio_studio.infrastructure.render_workspace import FFmpegRenderWorkspace
 
 
@@ -131,6 +135,17 @@ class AudioProjectTests(unittest.TestCase):
                        return_value=root):
                 values = peaks("voice.wav", 4096)
             self.assertEqual(len(values), 4096)
+
+    def test_server_waveform_peaks_supports_contained_voice_sources(self):
+        with TemporaryDirectory() as folder:
+            source = Path(folder).resolve() / "voice-source.wav"
+            source.write_bytes(_tone())
+            values = peaks_for_path(source, 128)
+            self.assertEqual(len(values), 128)
+            self.assertTrue(all(0 <= value <= 1 for value in values))
+            self.assertTrue(
+                (source.parent / ".voice-source.wav.peaks-v2-128.json").is_file()
+            )
 
     def test_waveform_cache_writes_are_atomic_under_concurrency(self):
         with TemporaryDirectory() as folder:

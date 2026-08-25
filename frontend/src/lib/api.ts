@@ -59,6 +59,11 @@ type VoiceRouteBody = paths["/api/v1/voice-routes/resolve"]["post"]["requestBody
 type VoiceProfileCollectionEnvelope = paths["/api/v1/voices"]["get"]["responses"][200]["content"]["application/json"]
 type VoiceProfileEnvelope = paths["/api/v1/voices/{identity_id}"]["get"]["responses"][200]["content"]["application/json"]
 type VoiceUpdateBody = paths["/api/v1/voices/{identity_id}"]["patch"]["requestBody"]["content"]["application/json"]
+type VoiceReferenceWindowBody = paths["/api/v1/voices/{identity_id}/references/{reference_id}/window"]["put"]["requestBody"]["content"]["application/json"]
+type UploadedVoiceReferenceWindowEnvelope = paths["/api/v1/voice-references/{reference_id}/window"]["put"]["responses"][200]["content"]["application/json"]
+type VoicePreviewCreateBody = paths["/api/v1/voices/{identity_id}/previews"]["post"]["requestBody"]["content"]["application/json"]
+type VoicePreviewCreatedEnvelope = paths["/api/v1/voices/{identity_id}/previews"]["post"]["responses"][202]["content"]["application/json"]
+type VoicePreviewApprovalBody = paths["/api/v1/voices/{identity_id}/previews/{preview_id}"]["patch"]["requestBody"]["content"]["application/json"]
 type HistoricalVoiceCollectionEnvelope = paths["/api/v1/voice-history/unlinked"]["get"]["responses"][200]["content"]["application/json"]
 type VoiceHistoryLinkEnvelope = paths["/api/v1/voices/{identity_id}/link-history"]["post"]["responses"][200]["content"]["application/json"]
 type VoiceHistoryLinkBody = paths["/api/v1/voices/{identity_id}/link-history"]["post"]["requestBody"]["content"]["application/json"]
@@ -212,6 +217,23 @@ export const studioApi = {
   updateVoiceProfile: (identityId: string, changes: VoiceUpdateBody) => request<VoiceProfileEnvelope>(`/api/v1/voices/${encodeURIComponent(identityId)}`, {
     method: "PATCH",
     body: JSON.stringify(changes),
+  }).then((response) => response.data),
+  saveVoiceReferenceWindow: (identityId: string, referenceId: string, window: VoiceReferenceWindowBody) => request<VoiceProfileEnvelope>(`/api/v1/voices/${encodeURIComponent(identityId)}/references/${encodeURIComponent(referenceId)}/window`, {
+    method: "PUT",
+    body: JSON.stringify(window),
+  }).then((response) => response.data),
+  saveUploadedVoiceReferenceWindow: (referenceId: string, window: VoiceReferenceWindowBody) => request<UploadedVoiceReferenceWindowEnvelope>(`/api/v1/voice-references/${encodeURIComponent(referenceId)}/window`, {
+    method: "PUT",
+    body: JSON.stringify(window),
+  }).then((response) => response.data),
+  createVoicePreview: (identityId: string, values: VoicePreviewCreateBody) => request<VoicePreviewCreatedEnvelope>(`/api/v1/voices/${encodeURIComponent(identityId)}/previews`, {
+    method: "POST",
+    body: JSON.stringify(values),
+  }).then((response) => response.data),
+  voicePreviewResult: (jobId: string) => waitForJob<GenerateResult>(jobId),
+  approveVoicePreview: (identityId: string, previewId: string, approval_state: VoicePreviewApprovalBody["approval_state"]) => request<VoiceProfileEnvelope>(`/api/v1/voices/${encodeURIComponent(identityId)}/previews/${encodeURIComponent(previewId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ approval_state } satisfies VoicePreviewApprovalBody),
   }).then((response) => response.data),
   archiveVoiceProfile: (identityId: string) => request<VoiceProfileEnvelope>(`/api/v1/voices/${encodeURIComponent(identityId)}`, { method: "DELETE" }).then((response) => response.data),
   uploadVoiceImage: (file: File) => uploadFile<{ data: UploadedImage }>("/api/v1/voice-images/upload", file).then((response) => response.data),

@@ -16,8 +16,8 @@ const profile: VoiceProfile = {
   ],
   preferred_reference_id: "ref-1",
   bindings: [
-    { binding_id: "binding-1", provider_voice_id: "audio-serinity", provider: "alibaba", region: "intl", provider_model_id: "alibaba:intl:audio-flash", reference_id: "ref-1", model_id: "audio-flash", engine: "audio", tier: "flash", status: "active", languages: ["en"], created_at: "2026-08-07" },
-    { binding_id: "binding-2", provider_voice_id: "audio-serinity-studio", provider: "alibaba", region: "intl", provider_model_id: "alibaba:intl:audio-flash", reference_id: "ref-2", model_id: "audio-flash", engine: "audio", tier: "flash", status: "active", languages: ["en"], created_at: "2026-08-08" },
+    { binding_id: "binding-1", provider_voice_id: "audio-serinity", provider: "alibaba", region: "intl", provider_model_id: "alibaba:intl:audio-flash", reference_id: "ref-1", model_id: "audio-flash", engine: "audio", tier: "flash", status: "active", validation_state: "approved", languages: ["en"], created_at: "2026-08-07" },
+    { binding_id: "binding-2", provider_voice_id: "audio-serinity-studio", provider: "alibaba", region: "intl", provider_model_id: "alibaba:intl:audio-flash", reference_id: "ref-2", model_id: "audio-flash", engine: "audio", tier: "flash", status: "active", validation_state: "candidate", languages: ["en"], created_at: "2026-08-08" },
   ],
   jobs: [],
   usage: { uses: 0, productions: 0, spend: 0, last_used: null, preview_filename: "" },
@@ -28,29 +28,24 @@ const profile: VoiceProfile = {
 }
 
 describe("VoiceProfileCard", () => {
-  it("presents one identity with model capabilities underneath", () => {
-    render(<VoiceProfileCard profile={profile} onComplete={() => undefined} onRetry={() => undefined} onEdit={() => undefined} onPreview={() => undefined} />)
+  it("keeps the card focused on the human identity and review state", () => {
+    render(<VoiceProfileCard profile={profile} onOpen={() => undefined} onPreview={() => undefined} />)
     expect(screen.getByRole("heading", { name: "Serinity" })).toBeTruthy()
     expect(screen.getByText("Female")).toBeTruthy()
-    expect(screen.getByText("1 of 2 installed provider models · 2 exact bindings")).toBeTruthy()
-    expect(screen.getByText("Exact production")).toBeTruthy()
-    expect(screen.getByText(/alibaba · Qwen Audio/)).toBeTruthy()
-    expect(screen.getByText("Reference: serinity.wav")).toBeTruthy()
-    expect(screen.getByText("Reference: serinity-studio.wav")).toBeTruthy()
-    expect(screen.getAllByText("2 documented output languages")).toHaveLength(2)
-    expect(screen.getByRole("button", { name: "Create 1 missing method" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Edit Serinity" })).toBeTruthy()
+    expect(screen.getByText("1 candidate to review")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Open Serinity" })).toBeTruthy()
   })
 
-  it("does not pretend a historical voice can build versions without its source", () => {
-    render(<VoiceProfileCard profile={{ ...profile, references: [], preferred_reference_id: null, bindings: [] }} onComplete={() => undefined} onRetry={() => undefined} onEdit={() => undefined} onPreview={() => undefined} />)
-    expect(screen.getAllByText("Source recording needed").length).toBe(2)
-    expect(screen.getByRole("button", { name: "Add reference for 2 provider models" })).toBeTruthy()
+  it("reports the number of approved methods without exposing provider clutter", () => {
+    render(<VoiceProfileCard profile={{ ...profile, bindings: [profile.bindings[0]!] }} onOpen={() => undefined} onPreview={() => undefined} />)
+    expect(screen.getByText("1 method ready")).toBeTruthy()
+    expect(screen.queryByText(/qwen/i)).toBeNull()
   })
 
   it("keeps a failed enrollment available as a missing method", () => {
     render(<VoiceProfileCard profile={{
       ...profile,
+      bindings: [profile.bindings[0]!],
       jobs: [{
         id: "job-failed",
         identity_id: profile.id,
@@ -68,9 +63,8 @@ describe("VoiceProfileCard", () => {
         error: "Audio.DurationLimitError",
         updated_at: "2026-08-08",
       }],
-    }} onComplete={() => undefined} onRetry={() => undefined} onEdit={() => undefined} onPreview={() => undefined} />)
+    }} onOpen={() => undefined} onPreview={() => undefined} />)
 
-    expect(screen.getByRole("button", { name: "Create 1 missing method" })).toBeTruthy()
-    expect(screen.queryByText("Ready to create")).toBeNull()
+    expect(screen.getByText("Needs attention")).toBeTruthy()
   })
 })

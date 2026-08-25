@@ -7,8 +7,9 @@ import { formatDuration } from "@/lib/format"
 
 export type AudioSourceWindow = { sourceOffsetMs: number; durationMs: number | null }
 
-export function AudioSourceEditor({ url, sourceDuration, sourceOffset, usedDuration, loop, disabled, onChange, onCommit }: {
+export function AudioSourceEditor({ url, peaksUrl, sourceDuration, sourceOffset, usedDuration, loop, disabled, onChange, onCommit }: {
   url: string
+  peaksUrl?: string
   sourceDuration: number
   sourceOffset: number
   usedDuration: number
@@ -26,7 +27,7 @@ export function AudioSourceEditor({ url, sourceDuration, sourceOffset, usedDurat
   const interaction = useRef({ disabled: Boolean(disabled), loop })
   callbacks.current = { onChange, onCommit }
   interaction.current = { disabled: Boolean(disabled), loop }
-  const peaks = useAudioPeaks(url, 1024)
+  const peaks = useAudioPeaks(url, 1024, peaksUrl)
   const boundedSource = Math.max(sourceDuration, .1)
   const boundedOffset = Math.min(Math.max(sourceOffset, 0), Math.max(0, boundedSource - .1))
   const boundedUsed = Math.max(.1, Math.min(loop ? .1 : usedDuration, boundedSource - boundedOffset))

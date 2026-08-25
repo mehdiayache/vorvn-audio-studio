@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 import shutil
+import subprocess
+from uuid import uuid4
 
 from audio_studio.config import settings
 from audio_studio.infrastructure.media_paths import contained, voice_reference_root
@@ -57,6 +60,37 @@ class VoiceReferenceWorkspace:
                 restored.unlink(missing_ok=True)
                 raise RuntimeError("The stored reference recording failed integrity verification.")
         return restored
+
+    def resolve_reference_window(self, reference: dict, job) -> Path:
+        """Derive the exact provider input from the immutable saved master."""
+        master = self.resolve_reference(reference)
+        start_ms = int(job.metadata.get("window_start_ms") or 0)
+        duration_ms = int(job.metadata.get("window_duration_ms") or 0)
+        if duration_ms <= 0:
+            return master
+        directory = self.root / str(reference["id"])
+        directory.mkdir(parents=True, exist_ok=True)
+        model_key = "".join(
+            char if char.isalnum() else "-"
+            for char in str(job.provider_model_id or job.model_id).lower()
+        ).strip("-")[:64] or "model"
+        target = directory / (
+            f"window-{model_key}-{start_ms}-{duration_ms}-24k.wav")
+        if target.is_file() and target.stat().st_size > 0:
+            return target
+        temporary = directory / f".{target.stem}-{uuid4().hex}.tmp.wav"
+        result = subprocess.run([
+            "ffmpeg", "-nostdin", "-loglevel", "error", "-y",
+            "-ss", f"{start_ms / 1000:.3f}", "-i", str(master),
+            "-t", f"{duration_ms / 1000:.3f}", "-ac", "1", "-ar", "24000",
+            "-c:a", "pcm_s16le", str(temporary),
+        ], capture_output=True)
+        if result.returncode or not temporary.is_file() \
+                or temporary.stat().st_size <= 0:
+            temporary.unlink(missing_ok=True)
+            raise RuntimeError("The selected Voice Source window could not be prepared.")
+        os.replace(temporary, target)
+        return target
 
     def migrate_legacy(self, reference_id: str, stored_name: str,
                        role: str) -> str:

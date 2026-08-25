@@ -30,6 +30,7 @@ def package_job(**changes):
     values = {
         "id": "vjob_test", "identity_id": "voice_test",
         "reference_id": "ref_test", "model_id": "qwen-audio-3.0-tts-flash",
+        "reference_window_id": "vwin_test",
         "provider": "alibaba", "region": "intl",
         "provider_model_id": "alibaba:intl:qwen-audio-3.0-tts-flash",
         "adapter_key": "audio",
@@ -145,7 +146,32 @@ class VoicePackageWorkerTests(unittest.TestCase):
         service.return_value.create_voice.assert_called_once_with(
             target_model="qwen-audio-3.0-tts-flash", prefix="testvoice",
             url="https://storage.test/reference.wav", language_hints=None,
-            max_prompt_audio_length=30.0,
+            max_prompt_audio_length=20.0, enable_preprocess=False,
+        )
+
+    def test_qwen_audio_clone_keeps_long_source_window_but_caps_prompt_length(self):
+        job = package_job(
+            engine="audio", tier="flash",
+            model_id="qwen-audio-3.0-tts-flash",
+            metadata={"language": "en", "window_duration_ms": 45_000},
+        )
+        with TemporaryDirectory() as directory:
+            local = Path(directory) / "source.wav"
+            local.write_bytes(b"RIFF-test")
+            with patch.dict("os.environ", {"DASHSCOPE_API_KEY": "fixture"}), \
+                    patch(
+                        "audio_studio.providers.alibaba.voice_cloning.storage.configured",
+                        return_value=True), \
+                    patch(
+                        "audio_studio.providers.alibaba.voice_cloning.storage.upload",
+                        return_value="https://storage.test/reference.wav"), \
+                    patch("dashscope.audio.tts_v2.VoiceEnrollmentService") as service:
+                service.return_value.create_voice.return_value = "audio-fixture"
+                AlibabaVoiceCloningProvider().create(job, local)
+        service.return_value.create_voice.assert_called_once_with(
+            target_model="qwen-audio-3.0-tts-flash", prefix="testvoice",
+            url="https://storage.test/reference.wav", language_hints=["en"],
+            max_prompt_audio_length=30.0, enable_preprocess=False,
         )
 
     def test_alibaba_adapter_rejects_a_different_region_before_upload(self):
@@ -340,7 +366,7 @@ class VoicePackageWorkerTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "missing"):
                 workspace.resolve("voice.wav")
 
-    def test_postgres_package_lifecycle_is_atomic_and_does_not_auto_retry(self):
+    def test_postgres_package_lifecycle_keeps_retry_and_rebuild_distinct(self):
         try:
             connection = psycopg.connect(settings.database_url)
         except psycopg.OperationalError as error:
@@ -350,7 +376,7 @@ class VoicePackageWorkerTests(unittest.TestCase):
         marker = uuid4().hex
         reference_id = repository.create_reference(
             original_name=f"{marker}.wav", original_path=f"{marker}.wav",
-            normalized_path=f"{marker}-24k.wav")
+            normalized_path=f"{marker}-24k.wav", source_language="en")
         identity_id = None
         route = {
             "provider_model_id": "alibaba:intl:qwen-audio-3.0-tts-flash",
@@ -382,13 +408,14 @@ class VoicePackageWorkerTests(unittest.TestCase):
                     attempts_before_retry = int(cursor.fetchone()[0])
                 database.commit()
             self.assertIsNone(repository.claim_next(job_id))
-            _, duplicate_queue = repository.create_package(
+            _, rebuild_queue = repository.create_package(
                 name=f"Voice {marker[:8]}",
                 metadata={"language": "en", "trait": "Fixture"},
                 reference_id=reference_id, identity_id=identity_id,
                 routes=[route], estimate=.01,
             )
-            self.assertEqual(duplicate_queue, [])
+            self.assertEqual(len(rebuild_queue), 1)
+            self.assertNotEqual(rebuild_queue[0], job_id)
             self.assertIsNone(repository.claim_next(job_id))
             self.assertEqual(repository.retry(job_id), job_id)
             claimed = repository.claim_next(job_id)

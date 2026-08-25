@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import re
+from uuid import uuid4
 
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 from audio_studio.infrastructure.postgres.provider_catalogue import (
     ProviderCatalogueRepository,
 )
+from audio_studio.domain.delivery_tags import TAG_RE, KNOWN_TAGS
 
 
 _VOICE_PREFIX = re.compile(r"^qwen[\w.-]*?-tts-(?:plus|flash)-", re.I)
@@ -67,7 +69,8 @@ class VoiceRepository:
                 "preferred_reference_id": row[12],
                 "created_at": row[15].isoformat(),
                 "updated_at": row[16].isoformat(),
-                "references": [], "bindings": [], "jobs": [],
+                "references": [], "bindings": [], "jobs": [], "previews": [],
+                "used_tags": [],
             } for row in cursor.fetchall()]
             by_id = {item["id"]: item for item in identities}
 
@@ -93,20 +96,57 @@ class VoiceRepository:
                         "duration_ms": duration_ms, "sample_rate": sample_rate,
                         "channels": channels, "metadata": metadata or {},
                         "diagnostics": diagnostics or {},
+                        "windows": [],
                         "created_at": created_at.isoformat(),
                         "updated_at": updated_at.isoformat(),
+                    })
+
+            references = {
+                reference["id"]: reference
+                for identity in identities
+                for reference in identity["references"]
+            }
+            cursor.execute("""
+                SELECT source_window.id,source_window.reference_id,
+                       source_window.provider_model_id,
+                       source_window.start_ms,source_window.duration_ms,
+                       coalesce(source_window.source_language,''),
+                       coalesce(source_window.transcript,''),
+                       source_window.enable_preprocess,
+                       coalesce(source_window.derived_path,''),
+                       source_window.created_at,source_window.updated_at
+                  FROM voice_reference_windows source_window
+                  JOIN voice_references reference
+                    ON reference.id=source_window.reference_id
+                 WHERE reference.identity_id IS NOT NULL
+                 ORDER BY source_window.provider_model_id NULLS FIRST,
+                          source_window.created_at
+            """)
+            for row in cursor.fetchall():
+                reference = references.get(row[1])
+                if reference is not None:
+                    reference["windows"].append({
+                        "id": row[0], "reference_id": row[1],
+                        "provider_model_id": row[2], "start_ms": row[3],
+                        "duration_ms": row[4], "source_language": row[5],
+                        "transcript": row[6], "enable_preprocess": row[7],
+                        "derived_path": row[8],
+                        "created_at": row[9].isoformat(),
+                        "updated_at": row[10].isoformat(),
                     })
 
             cursor.execute("""
                 SELECT id,provider_voice_id,model_id,identity_id,engine,tier,
                        status,languages,reference_id,provider,provider_region,
-                       provider_model_id,created_at
+                       provider_model_id,created_at,reference_window_id,
+                       validation_state,superseded_by
                   FROM voice_bindings ORDER BY created_at
             """)
             for row in cursor.fetchall():
                 (binding_id,provider_id,model_id,identity_id,engine,tier,status,
                  languages,reference_id,provider,region,provider_model_id,
-                 created_at) = row
+                 created_at,reference_window_id,validation_state,
+                 superseded_by) = row
                 if identity_id in by_id:
                     by_id[identity_id]["bindings"].append({
                         "binding_id": str(binding_id),
@@ -116,6 +156,10 @@ class VoiceRepository:
                         "engine": engine, "tier": tier, "status": status,
                         "languages": languages or [],
                         "reference_id": reference_id,
+                        "reference_window_id": reference_window_id,
+                        "validation_state": validation_state,
+                        "superseded_by": (str(superseded_by)
+                                           if superseded_by else None),
                         "created_at": created_at.isoformat(),
                     })
 
@@ -123,7 +167,7 @@ class VoiceRepository:
                 SELECT id, identity_id, reference_id, model_id, engine, tier,
                        status, provider_voice_id, error, attempts, updated_at,
                        provider,provider_region,provider_model_id,adapter_key,
-                       classification,binding_id
+                       classification,binding_id,reference_window_id
                   FROM voice_package_jobs ORDER BY created_at
             """)
             job_keys = (
@@ -131,6 +175,7 @@ class VoiceRepository:
                 "tier", "status", "provider_voice_id", "error", "attempts",
                 "updated_at", "provider", "region", "provider_model_id",
                 "adapter_key", "classification", "binding_id",
+                "reference_window_id",
             )
             for row in cursor.fetchall():
                 if row[1] in by_id:
@@ -139,7 +184,127 @@ class VoiceRepository:
                     if values[16] is not None:
                         values[16] = str(values[16])
                     by_id[row[1]]["jobs"].append(dict(zip(job_keys, values)))
+
+            cursor.execute("""
+                SELECT preview.id,preview.identity_id,preview.binding_id,
+                       preview.job_id,preview.tag,preview.text,
+                       coalesce(preview.instruction,''),preview.seed,
+                       CASE WHEN job.status='ok' THEN 'ready'
+                            WHEN job.status IN ('failed','blocked') THEN 'failed'
+                            WHEN job.status='running' THEN 'running'
+                            ELSE preview.status END,
+                       preview.approval_state,
+                       coalesce(job.result->>'name',preview.filename,''),
+                       coalesce((job.result->>'duration_ms')::integer,
+                                preview.duration_ms),
+                       coalesce(job.error,preview.error,''),preview.created_at,
+                       binding.model_id
+                  FROM voice_previews preview
+                  JOIN voice_bindings binding ON binding.id=preview.binding_id
+             LEFT JOIN jobs job ON job.id=preview.job_id
+                 ORDER BY preview.created_at DESC
+            """)
+            keys = ("id", "identity_id", "binding_id", "job_id", "tag",
+                    "text", "instruction", "seed", "status",
+                    "approval_state", "filename", "duration_ms", "error",
+                    "created_at", "model_id")
+            for row in cursor.fetchall():
+                if row[1] in by_id:
+                    values = list(row)
+                    values[0] = str(values[0])
+                    values[2] = str(values[2])
+                    values[13] = values[13].isoformat()
+                    by_id[row[1]]["previews"].append(dict(zip(keys, values)))
+
+            cursor.execute("""
+                SELECT coalesce(clip.voice_identity_id,binding.identity_id),
+                       clip.tagged_text
+                  FROM clips clip
+             LEFT JOIN voice_bindings binding ON binding.id=clip.binding_id
+                 WHERE coalesce(clip.tagged_text,'') <> ''
+            """)
+            tags_by_identity: dict[str, set[str]] = {}
+            for identity_id, tagged_text in cursor.fetchall():
+                if identity_id not in by_id:
+                    continue
+                tags = tags_by_identity.setdefault(identity_id, set())
+                tags.update(
+                    match.group(1).strip().casefold()
+                    for match in TAG_RE.finditer(tagged_text or "")
+                    if match.group(1).strip().casefold() in KNOWN_TAGS
+                )
+            for identity_id, tags in tags_by_identity.items():
+                by_id[identity_id]["used_tags"] = sorted(tags)
         return identities
+
+    def create_preview(self, identity_id: str, binding_id: str, *, job_id: int,
+                       tag: str | None, text: str, instruction: str,
+                       seed: int) -> str:
+        preview_id = uuid4()
+        with transaction() as cursor:
+            cursor.execute("""
+                INSERT INTO voice_previews
+                    (id,identity_id,binding_id,job_id,tag,text,instruction,seed)
+                SELECT %s,%s,binding.id,%s,%s,%s,%s,%s
+                  FROM voice_bindings binding
+                 WHERE binding.id=%s AND binding.identity_id=%s
+                RETURNING id
+            """, (preview_id, identity_id, job_id, tag or None, text,
+                  instruction or None, seed, binding_id, identity_id))
+            row = cursor.fetchone()
+        if not row:
+            raise LookupError("That recording method does not belong to this Voice.")
+        return str(row[0])
+
+    def set_preview_approval(self, identity_id: str, preview_id: str,
+                             approval_state: str) -> bool:
+        if approval_state not in {"unreviewed", "approved", "rejected"}:
+            raise ValueError("Choose approved, rejected, or unreviewed.")
+        with transaction() as cursor:
+            cursor.execute("""
+                SELECT preview.binding_id, binding.provider,
+                       binding.provider_region,
+                       binding.model_id,
+                       binding.validation_state, job.status
+                  FROM voice_previews preview
+                  JOIN voice_bindings binding ON binding.id=preview.binding_id
+             LEFT JOIN jobs job ON job.id=preview.job_id
+                 WHERE preview.id=%s AND preview.identity_id=%s
+                 FOR UPDATE OF preview,binding
+            """, (preview_id, identity_id))
+            selected = cursor.fetchone()
+            if not selected:
+                return False
+            binding_id, provider, region, method_key, binding_state, job_status = selected
+            if approval_state == "approved":
+                if job_status != "ok":
+                    raise ValueError(
+                        "Listen to a completed Voice test before approving this method.")
+                cursor.execute("""
+                    UPDATE voice_bindings
+                       SET validation_state='superseded',superseded_by=%s
+                     WHERE identity_id=%s AND provider=%s
+                       AND provider_region=%s
+                       AND model_id=%s
+                       AND validation_state='approved' AND archived_at IS NULL
+                       AND id<>%s
+                """, (binding_id, identity_id, provider, region, method_key,
+                      binding_id))
+                cursor.execute("""
+                    UPDATE voice_bindings
+                       SET validation_state='approved',superseded_by=NULL
+                     WHERE id=%s
+                """, (binding_id,))
+            elif approval_state == "rejected" and binding_state == "candidate":
+                cursor.execute("""
+                    UPDATE voice_bindings SET validation_state='rejected'
+                     WHERE id=%s
+                """, (binding_id,))
+            cursor.execute("""
+                UPDATE voice_previews SET approval_state=%s,updated_at=now()
+                 WHERE id=%s AND identity_id=%s
+            """, (approval_state, preview_id, identity_id))
+            return cursor.rowcount == 1
 
     def profile_usage(self) -> dict[str, dict]:
         with read_only() as cursor:
@@ -262,13 +427,14 @@ class VoiceRepository:
                 ))
             return linked
 
-    def custom_bindings(self) -> list[dict]:
+    def custom_bindings(self, *, include_candidates: bool = False) -> list[dict]:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT binding.id, binding.provider_voice_id, binding.model_id,
                        binding.engine, binding.tier, binding.status,
                        binding.languages, binding.reference_id,
                        binding.provider, binding.provider_region,
+                       binding.validation_state,
                        provider_model.adapter_key, provider_model.pricing,
                        coalesce(jsonb_agg(jsonb_build_object(
                            'id', capability.id, 'name', capability.name,
@@ -293,16 +459,19 @@ class VoiceRepository:
                  WHERE binding.source = 'custom'
                    AND identity.status = 'active'
                    AND binding.archived_at IS NULL
+                   AND (binding.validation_state = 'approved'
+                        OR (%s AND binding.validation_state = 'candidate'))
               GROUP BY binding.id, binding.provider_voice_id, binding.model_id,
                        binding.engine, binding.tier, binding.status,
                        binding.languages, binding.reference_id,
                        binding.provider, binding.provider_region,
+                       binding.validation_state,
                        provider_model.adapter_key, provider_model.pricing,
                        identity.id, identity.name, identity.image,
                        identity.gender, identity.age, identity.accent,
                        identity.trait, identity.scene, identity.notes
                  ORDER BY identity.name, binding.model_id
-            """)
+            """, (include_candidates,))
             rows = cursor.fetchall()
         return [{
             "binding_id": str(binding_id),
@@ -313,6 +482,7 @@ class VoiceRepository:
             "reference_id": reference_id,
             "provider": provider or "alibaba",
             "region": provider_region or "intl",
+            "validation_state": validation_state,
             "adapter_key": adapter_key or engine,
             "estimate_rate_per_million_chars": float(
                 (pricing or {}).get("speech_per_million_chars") or 0),
@@ -322,7 +492,7 @@ class VoiceRepository:
             "accent": accent or "", "trait": trait or "",
             "scene": scene or "", "notes": notes or "",
         } for binding_id, provider_id, model_id, engine, tier, status, languages, reference_id,
-            provider, provider_region, adapter_key, pricing, capabilities,
+            provider, provider_region, validation_state, adapter_key, pricing, capabilities,
             identity_id, name, image, gender, age, accent, trait, scene, notes
             in rows]
 

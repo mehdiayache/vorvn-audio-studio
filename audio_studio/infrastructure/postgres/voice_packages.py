@@ -23,10 +23,10 @@ def _job(row) -> VoicePackageJob | None:
         return None
     return VoicePackageJob(
         id=row[0], identity_id=row[1], reference_id=row[2],
-        model_id=row[3], provider=row[4], region=row[5],
-        provider_model_id=row[6], adapter_key=row[7], engine=row[8],
-        tier=row[9], output_languages=list(row[10] or []),
-        attempts=int(row[11]), name=row[12], metadata=row[13] or {},
+        reference_window_id=row[3], model_id=row[4], provider=row[5],
+        region=row[6], provider_model_id=row[7], adapter_key=row[8],
+        engine=row[9], tier=row[10], output_languages=list(row[11] or []),
+        attempts=int(row[12]), name=row[13], metadata=row[14] or {},
     )
 
 
@@ -143,11 +143,84 @@ class VoicePackageRepository:
                   original_sha256 or None,
                   normalized_sha256 or sha256 or None,
                   original_size_bytes, normalized_size_bytes))
+            cursor.execute("""
+                INSERT INTO voice_reference_windows
+                    (id, reference_id, start_ms, duration_ms,
+                     source_language, transcript, metadata)
+                VALUES (%s, %s, 0, %s, %s, %s, %s::jsonb)
+            """, (
+                f"vwin_{uuid4().hex}", reference_id,
+                max(1_000, min(int(duration_ms or 20_000), 20_000)),
+                source_language or None, transcript or None,
+                json.dumps({"created_by": "upload-default"}),
+            ))
         return reference_id
+
+    def save_window(self, reference_id: str, *, provider_model_id: str | None,
+                    start_ms: int, duration_ms: int, source_language: str,
+                    transcript: str, enable_preprocess: bool | None) -> dict:
+        """Upsert one explicit clone input without changing its source master."""
+        with transaction() as cursor:
+            cursor.execute(
+                "SELECT duration_ms FROM voice_references WHERE id=%s FOR UPDATE",
+                (reference_id,))
+            source = cursor.fetchone()
+            if not source:
+                raise LookupError("That Voice Source does not exist.")
+            source_duration = int(source[0] or 0)
+            if not 1_000 <= duration_ms <= 60_000:
+                raise ValueError("Choose between 1 and 60 seconds.")
+            if start_ms < 0 or (source_duration and
+                                start_ms + duration_ms > source_duration + 50):
+                raise ValueError("That selection falls outside the Voice Source.")
+            cursor.execute("""
+                SELECT id FROM voice_reference_windows
+                 WHERE reference_id=%s
+                   AND coalesce(provider_model_id,'')=coalesce(%s,'')
+                 FOR UPDATE
+            """, (reference_id, provider_model_id))
+            row = cursor.fetchone()
+            window_id = row[0] if row else f"vwin_{uuid4().hex}"
+            if row:
+                cursor.execute("""
+                    UPDATE voice_reference_windows
+                       SET start_ms=%s, duration_ms=%s, source_language=%s,
+                           transcript=%s, enable_preprocess=%s,
+                           derived_path=NULL, updated_at=now()
+                     WHERE id=%s
+                """, (start_ms, duration_ms, source_language or None,
+                      transcript or None, enable_preprocess, window_id))
+            else:
+                cursor.execute("""
+                    INSERT INTO voice_reference_windows
+                        (id,reference_id,provider_model_id,start_ms,duration_ms,
+                         source_language,transcript,enable_preprocess)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                """, (window_id, reference_id, provider_model_id, start_ms,
+                      duration_ms, source_language or None,
+                      transcript or None, enable_preprocess))
+            cursor.execute("""
+                SELECT id,reference_id,provider_model_id,start_ms,duration_ms,
+                       source_language,transcript,enable_preprocess,
+                       coalesce(derived_path,''),created_at,updated_at
+                  FROM voice_reference_windows WHERE id=%s
+            """, (window_id,))
+            values = cursor.fetchone()
+        keys = ("id", "reference_id", "provider_model_id", "start_ms",
+                "duration_ms", "source_language", "transcript",
+                "enable_preprocess", "derived_path", "created_at",
+                "updated_at")
+        result = dict(zip(keys, values))
+        result["created_at"] = result["created_at"].isoformat()
+        result["updated_at"] = result["updated_at"].isoformat()
+        return result
 
     def create_package(self, *, name: str, metadata: dict, reference_id: str,
                        identity_id: str | None, routes: list[dict],
-                       estimate: float) -> tuple[str, list[str]]:
+                       estimate: float,
+                       reference_window_id: str | None = None,
+                       reference_window_ids: dict[str, str] | None = None
+                       ) -> tuple[str, list[str]]:
         queued: list[str] = []
         source_language = str((routes[0] if routes else {}).get("language") or "")
         with transaction() as cursor:
@@ -209,30 +282,69 @@ class VoicePackageRepository:
                 if not provider_model_id:
                     raise ValueError(
                         "Every installed enrollment method needs an exact provider model ID.")
+                requested_window = str((reference_window_ids or {}).get(
+                    provider_model_id) or reference_window_id or "").strip()
+                if requested_window:
+                    cursor.execute("""
+                        SELECT id,duration_ms,coalesce(source_language,''),
+                               coalesce(transcript,'')
+                          FROM voice_reference_windows
+                         WHERE id=%s AND reference_id=%s
+                           AND (provider_model_id IS NULL
+                                OR provider_model_id=%s)
+                    """, (requested_window, reference_id, provider_model_id))
+                else:
+                    cursor.execute("""
+                        SELECT id,duration_ms,coalesce(source_language,''),
+                               coalesce(transcript,'')
+                          FROM voice_reference_windows
+                         WHERE reference_id=%s
+                           AND (provider_model_id=%s
+                                OR provider_model_id IS NULL)
+                         ORDER BY (provider_model_id IS NOT NULL) DESC
+                         LIMIT 1
+                    """, (reference_id, provider_model_id))
+                window = cursor.fetchone()
+                if not window:
+                    raise ValueError(
+                        "Choose a valid Voice Source window for every method.")
+                selected_window_id, window_duration, window_language, window_transcript = window
+                engine = str(route.get("engine") or "")
+                if not window_language:
+                    raise ValueError(
+                        f"Choose the source language for {route['model_id']}.")
+                if engine == "qwen_tts" and not window_transcript.strip():
+                    raise ValueError(
+                        "Qwen3 TTS Voice Clone needs the exact transcript of "
+                        "its selected Voice Source window.")
+                duration_contract = provider_catalog.CAPABILITIES.get(
+                    engine, {}).get("clone_source_duration_ms") or {}
+                minimum_duration_ms = int(duration_contract.get("minimum") or 5_000)
+                maximum_duration_ms = int(duration_contract.get("maximum") or 60_000)
+                if not minimum_duration_ms <= int(window_duration) <= maximum_duration_ms:
+                    raise ValueError(
+                        f"{route['model_id']} needs between "
+                        f"{minimum_duration_ms // 1_000} and "
+                        f"{maximum_duration_ms // 1_000} seconds of continuous "
+                        "speech in its selected Voice Source window.")
                 cursor.execute("""
                     SELECT 1 FROM voice_package_jobs
                      WHERE identity_id=%s AND provider_model_id=%s
-                       AND reference_id=%s
-                """, (identity_id, provider_model_id, reference_id))
-                if cursor.fetchone():
-                    continue
-                cursor.execute("""
-                    SELECT 1 FROM voice_bindings
-                     WHERE identity_id = %s AND provider_model_id = %s
-                       AND reference_id = %s
-                       AND status NOT IN
-                           ('deleted', 'undeployed', 'archived', 'failed')
-                """, (identity_id, provider_model_id, reference_id))
+                       AND reference_id=%s AND reference_window_id=%s
+                       AND status IN ('queued','creating')
+                """, (identity_id, provider_model_id, reference_id,
+                      selected_window_id))
                 if cursor.fetchone():
                     continue
                 proposed = f"vjob_{uuid4().hex}"
                 cursor.execute("""
                     INSERT INTO voice_package_jobs
                         (id, identity_id, reference_id, model_id, engine, tier,
-                         provider, provider_region, provider_model_id,
-                         adapter_key, classification, status)
+                        provider, provider_region, provider_model_id,
+                         adapter_key, classification, status,
+                         reference_window_id)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
-                            %s, %s, %s, 'queued')
+                            %s, %s, %s, 'queued', %s)
                     RETURNING id, status
                 """, (proposed, identity_id, reference_id, route["model_id"],
                       route["engine"], route["tier"],
@@ -242,7 +354,7 @@ class VoicePackageRepository:
                       route.get("adapter_key") or route["engine"],
                       route.get("classification") or (
                           "documented" if route.get("source_language_documented")
-                          else "experimental")))
+                          else "experimental"), selected_window_id))
                 job_id, status = cursor.fetchone()
                 if status == "queued":
                     queued.append(job_id)
@@ -302,24 +414,33 @@ class VoicePackageRepository:
                            error = NULL, updated_at = now()
                       FROM candidate WHERE job.id = candidate.id
                     RETURNING job.id, job.identity_id, job.reference_id,
-                              job.model_id, job.provider, job.provider_region,
+                              job.reference_window_id, job.model_id,
+                              job.provider, job.provider_region,
                               job.provider_model_id, job.adapter_key,
                               job.engine, job.tier, job.attempts
                 )
                 SELECT claimed.id, claimed.identity_id, claimed.reference_id,
-                       claimed.model_id, claimed.provider,
+                       claimed.reference_window_id, claimed.model_id,
+                       claimed.provider,
                        claimed.provider_region, claimed.provider_model_id,
                        claimed.adapter_key, claimed.engine, claimed.tier,
                        coalesce(model.output_languages, '[]'::jsonb),
                        claimed.attempts, identity.name,
                        identity.metadata || jsonb_strip_nulls(
                            jsonb_build_object(
-                               'language', reference.source_language,
-                               'transcript', reference.transcript))
+                               'language', coalesce(source_window.source_language,
+                                                   reference.source_language),
+                               'transcript', coalesce(source_window.transcript,
+                                                     reference.transcript),
+                               'window_start_ms', source_window.start_ms,
+                               'window_duration_ms', source_window.duration_ms,
+                               'enable_preprocess', source_window.enable_preprocess))
                   FROM claimed JOIN voice_identities identity
                     ON identity.id = claimed.identity_id
                   JOIN voice_references reference
                     ON reference.id = claimed.reference_id
+                  LEFT JOIN voice_reference_windows source_window
+                    ON source_window.id=claimed.reference_window_id
                   LEFT JOIN provider_models model
                     ON model.id=claimed.provider_model_id
             """, (job_id, job_id))
@@ -342,7 +463,8 @@ class VoicePackageRepository:
                 job.engine, job.tier,
                 f"{job.name} · {job.engine} {job.tier}",
                 json.dumps({"voice_package_job_id": job.id,
-                            "reference_id": job.reference_id}),
+                            "reference_id": job.reference_id,
+                            "reference_window_id": job.reference_window_id}),
                 f"voice-package:{job.id}:attempt:{job.attempts}",
                 json.dumps({"executor": "voice-package-worker-v1",
                             "provider": job.provider,
@@ -400,13 +522,31 @@ class VoicePackageRepository:
                 # Honest compatibility for historical/test enrollments whose
                 # exact model predates the installed provider catalogue.
                 provider_model_id = None
+            cursor.execute(
+                "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
+                (f"voice-binding:{job.identity_id}:{job.provider}:"
+                 f"{job.region}:{job.model_id}",),
+            )
+            cursor.execute("""
+                SELECT id FROM voice_bindings
+                 WHERE identity_id=%s AND provider=%s AND provider_region=%s
+                   AND model_id=%s
+                   AND validation_state='approved' AND archived_at IS NULL
+                 ORDER BY created_at DESC LIMIT 1 FOR UPDATE
+            """, (
+                job.identity_id, job.provider, job.region,
+                job.model_id,
+            ))
+            approved = cursor.fetchone()
+            validation_state = "candidate" if approved else "approved"
             cursor.execute("""
                 INSERT INTO voice_bindings
                     (provider_voice_id, model_id, identity_id, engine, tier,
                      status, languages, reference_id, provider,
-                     provider_region, provider_model_id)
+                     provider_region, provider_model_id, reference_window_id,
+                     validation_state)
                 VALUES (%s, %s, %s, %s, %s, 'active', %s::jsonb, %s,
-                        %s, %s, %s)
+                        %s, %s, %s, %s, %s)
                 ON CONFLICT (provider_voice_id, model_id) DO NOTHING
                 RETURNING id
             """, (
@@ -414,7 +554,7 @@ class VoicePackageRepository:
                 job.engine, job.tier,
                 json.dumps(output_languages),
                 job.reference_id, job.provider, job.region,
-                provider_model_id,
+                provider_model_id, job.reference_window_id, validation_state,
             ))
             created = cursor.fetchone()
             if created:

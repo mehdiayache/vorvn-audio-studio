@@ -11,11 +11,11 @@ import { audioUrl, studioApi } from "@/lib/api"
 import { productIdentity } from "@/lib/product-identity"
 import { announceVoiceDirectoryChange } from "@/lib/voice-directory-events"
 import type { HistoricalVoiceReference, VoiceProfile } from "@/types/domain"
-import { CompleteVoiceDialog } from "./complete-voice-dialog"
 import { CreateVoiceDialog } from "./create-voice-dialog"
 import { EditVoiceDialog } from "./edit-voice-dialog"
 import { useVoiceProfiles } from "./use-voice-profiles"
 import { VoiceProfileCard } from "./voice-profile-card"
+import { VoiceProfileDialog } from "./voice-profile-dialog"
 import { bindingMatchesRoute } from "./voice-route"
 import { HistoricalVoicePanel } from "./historical-voice-panel"
 import "./voices-page.css"
@@ -23,8 +23,8 @@ import "./voices-page.css"
 export function VoicesPage() {
   const resources = useVoiceProfiles()
   const [creating, setCreating] = useState(false)
-  const [completing, setCompleting] = useState<VoiceProfile | null>(null)
   const [editing, setEditing] = useState<VoiceProfile | null>(null)
+  const [openProfileId, setOpenProfileId] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
   const [query, setQuery] = useState("")
   const [filter, setFilter] = useState<"all" | "favourites" | "incomplete">("all")
@@ -33,6 +33,7 @@ export function VoicesPage() {
   const player = useGlobalPlayer()
   const activeProfiles = useMemo(() => resources.profiles.filter((profile) => profile.metadata.status !== "archived"), [resources.profiles])
   const archivedProfiles = useMemo(() => resources.profiles.filter((profile) => profile.metadata.status === "archived"), [resources.profiles])
+  const openProfile = useMemo(() => resources.profiles.find((profile) => profile.id === openProfileId) || null, [openProfileId, resources.profiles])
   const shownProfiles = useMemo(() => (showArchived ? archivedProfiles : activeProfiles).filter((profile) => {
     const searchable = `${profile.name} ${profile.metadata.editorial_language || ""} ${profile.metadata.recording_language || ""} ${profile.metadata.trait || ""} ${profile.metadata.accent || ""}`.toLocaleLowerCase()
     const matchesQuery = searchable.includes(query.trim().toLocaleLowerCase())
@@ -55,10 +56,6 @@ export function VoicesPage() {
     }
     priorWorking.current = current
   }, [activeProfiles])
-  async function retry(_profile: VoiceProfile, enrollmentJobId: string) {
-    try { await studioApi.retryVoiceBinding(enrollmentJobId); announceVoiceDirectoryChange(); toast.success("Voice version queued again."); void resources.refresh() }
-    catch (reason) { toast.error(reason instanceof Error ? reason.message : "Unable to retry this version.") }
-  }
   function preview(profile: VoiceProfile) {
     const filename = profile.usage?.preview_filename
     if (!filename) return
@@ -75,10 +72,10 @@ export function VoicesPage() {
     {resources.status === "error" && resources.profiles.length > 0 && <InlineResourceError message="Voice Library refresh failed. Existing identities are preserved." retry={() => void resources.refresh()} />}
     <section className="voices-overview" aria-label="Voice summary"><span><b>{activeProfiles.length}</b> voices</span><span><b>{readyBindings}</b> ready provider bindings</span><span><b>{installedProviderModels}</b> installed provider models</span>{Boolean(archivedProfiles.length) && <Button variant={showArchived ? "secondary" : "ghost"} size="sm" onClick={() => setShowArchived((value) => !value)}>{showArchived ? "Back to active" : `${archivedProfiles.length} archived`}</Button>}</section>
     <section className="voices-controls" aria-label="Find voices"><label><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, language, trait, or accent" /></label><div role="group" aria-label="Voice filters"><Button size="sm" variant={filter === "all" ? "secondary" : "ghost"} onClick={() => setFilter("all")}>All</Button><Button size="sm" variant={filter === "favourites" ? "secondary" : "ghost"} onClick={() => setFilter("favourites")}>Favourites</Button><Button size="sm" variant={filter === "incomplete" ? "secondary" : "ghost"} onClick={() => setFilter("incomplete")}>Needs setup</Button></div></section>
-    <section className="voice-profile-grid" aria-label={showArchived ? "Archived voices" : "Your cloned voices"}>{shownProfiles.map((profile) => <VoiceProfileCard key={profile.id} profile={profile} playing={player.source?.key === `voice:${profile.id}` && player.state === "playing"} onEdit={() => setEditing(profile)} onPreview={() => preview(profile)} onComplete={() => setCompleting(profile)} onRetry={(modelId) => void retry(profile, modelId)} />)}{!shownProfiles.length && (showArchived ? <div className="voices-empty"><Mic2 /><h2>No archived voices</h2><p>Archived identities stay out of casting while existing productions keep their historical reference.</p></div> : <div className="voices-empty"><Sparkles /><h2>Create one voice, not one model ID</h2><p>Add a clean recording. {productIdentity.name} will build every compatible production capability and keep them under one identity.</p><Button onClick={() => setCreating(true)}><Plus /> Create your first voice</Button></div>)}</section>
+    <section className="voice-profile-grid" aria-label={showArchived ? "Archived voices" : "Your cloned voices"}>{shownProfiles.map((profile) => <VoiceProfileCard key={profile.id} profile={profile} playing={player.source?.key === `voice:${profile.id}` && player.state === "playing"} onOpen={() => setOpenProfileId(profile.id)} onPreview={() => preview(profile)} />)}{!shownProfiles.length && (showArchived ? <div className="voices-empty"><Mic2 /><h2>No archived voices</h2><p>Archived identities stay out of casting while existing productions keep their historical reference.</p></div> : <div className="voices-empty"><Sparkles /><h2>Create one voice, not one model ID</h2><p>Add a clean recording. {productIdentity.name} will build every compatible production capability and keep them under one identity.</p><Button onClick={() => setCreating(true)}><Plus /> Create your first voice</Button></div>)}</section>
     {!showArchived && <HistoricalVoicePanel profiles={resources.profiles} onLinked={() => void resources.refresh()} onPreview={previewHistory} />}
     <CreateVoiceDialog open={creating} onOpenChange={setCreating} config={resources.config} onQueued={() => { announceVoiceDirectoryChange(); void resources.refresh() }} />
-    <CompleteVoiceDialog profile={completing} config={resources.config} onOpenChange={() => setCompleting(null)} onQueued={() => { announceVoiceDirectoryChange(); void resources.refresh() }} />
+    <VoiceProfileDialog profile={openProfile} open={Boolean(openProfile)} onOpenChange={(next) => { if (!next) setOpenProfileId(null) }} onEditIdentity={() => { if (openProfile) { setEditing(openProfile); setOpenProfileId(null) } }} onChanged={() => { announceVoiceDirectoryChange(); void resources.refresh() }} />
     <EditVoiceDialog profile={editing} onOpenChange={(open) => { if (!open) setEditing(null) }} onSaved={() => { announceVoiceDirectoryChange(); void resources.refresh() }} onArchived={() => { player.close(); announceVoiceDirectoryChange(); void resources.refresh() }} />
   </main>
 }

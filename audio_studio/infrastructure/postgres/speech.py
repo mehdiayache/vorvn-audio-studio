@@ -15,7 +15,7 @@ from audio_studio.infrastructure.postgres.transcripts import insert_transcript
 
 
 class SpeechRepository:
-    def voice_bindings(self) -> list[dict]:
+    def voice_bindings(self, *, include_candidates: bool = False) -> list[dict]:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT binding.id, binding.provider_voice_id, binding.model_id,
@@ -23,6 +23,7 @@ class SpeechRepository:
                        binding.languages, identity.id, identity.name,
                        binding.reference_id, binding.provider,
                        binding.provider_region,
+                       binding.validation_state,
                        provider_model.adapter_key,provider_model.pricing,
                        coalesce(jsonb_agg(jsonb_build_object(
                            'id', capability.id, 'name', capability.name,
@@ -42,16 +43,19 @@ class SpeechRepository:
                  WHERE binding.source = 'custom'
                    AND identity.status = 'active'
                    AND binding.archived_at IS NULL
+                   AND (binding.validation_state = 'approved'
+                        OR (%s AND binding.validation_state = 'candidate'))
                    AND binding.status NOT IN
                        ('deleted', 'undeployed', 'failed', 'archived')
               GROUP BY binding.id, binding.provider_voice_id, binding.model_id,
                        binding.engine, binding.tier, binding.status,
                        binding.languages, identity.id, identity.name,
                        binding.reference_id, binding.provider,
-                       binding.provider_region, provider_model.adapter_key,
+                       binding.provider_region, binding.validation_state,
+                       provider_model.adapter_key,
                        provider_model.pricing
                  ORDER BY identity.name, binding.model_id, binding.created_at
-            """)
+            """, (include_candidates,))
             custom = [{
                 "binding_id": str(row[0]), "provider_voice_id": row[1],
                 "voice_id": row[1], "model_id": row[2], "target_model": row[2],
@@ -59,10 +63,11 @@ class SpeechRepository:
                 "languages": row[6] or [], "identity_id": row[7],
                 "name": row[8], "reference_id": row[9],
                 "source": "custom", "provider": row[10], "region": row[11],
-                "adapter_key": row[12] or row[3],
+                "validation_state": row[12],
+                "adapter_key": row[13] or row[3],
                 "estimate_rate_per_million_chars": float(
-                    (row[13] or {}).get("speech_per_million_chars") or 0),
-                "capabilities": row[14] or [],
+                    (row[14] or {}).get("speech_per_million_chars") or 0),
+                "capabilities": row[15] or [],
             } for row in cursor.fetchall()]
         return custom
 

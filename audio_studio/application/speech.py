@@ -29,7 +29,8 @@ _SETTING_FIELDS = (
 
 
 class SpeechRepository(Protocol):
-    def voice_bindings(self) -> list[dict]: ...
+    def voice_bindings(self, *, include_candidates: bool = False
+                       ) -> list[dict]: ...
     def catalogue_voices(self) -> list[dict]: ...
     def pronunciations(self) -> list[dict]: ...
     def today_spend(self) -> float: ...
@@ -202,9 +203,14 @@ class SpeechGenerationService:
         if not self.provider.is_configured():
             raise RuntimeError("Add the Alibaba API key in Settings before generating.")
         preferences = self.preferences()
+        include_candidates = bool(effective.get("_voice_preview"))
+        bindings = (
+            self.repository.voice_bindings(include_candidates=True)
+            if include_candidates else self.repository.voice_bindings()
+        )
         prepared = self.provider.prepare(
             text=text, values=effective,
-            bindings=self.repository.voice_bindings(),
+            bindings=bindings,
             catalogue=self.repository.catalogue_voices(),
             pronunciations=self.repository.pronunciations(),
             preferences=preferences,

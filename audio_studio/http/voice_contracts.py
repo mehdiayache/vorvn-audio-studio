@@ -65,6 +65,24 @@ class VoiceProfileMetadataResponse(BaseModel):
     status: Literal["active", "archived"] | None = None
 
 
+class VoiceReferenceWindowResponse(BaseModel):
+    id: str
+    reference_id: str
+    provider_model_id: str | None = None
+    start_ms: int
+    duration_ms: int
+    source_language: str = ""
+    transcript: str = ""
+    enable_preprocess: bool | None = None
+    derived_path: str = ""
+    created_at: str
+    updated_at: str
+
+
+class VoiceReferenceWindowEnvelope(BaseModel):
+    data: VoiceReferenceWindowResponse
+
+
 class VoiceReferenceSummaryResponse(BaseModel):
     id: str
     original_name: str
@@ -77,6 +95,7 @@ class VoiceReferenceSummaryResponse(BaseModel):
     channels: int | None = None
     metadata: dict = Field(default_factory=dict)
     diagnostics: dict = Field(default_factory=dict)
+    windows: list[VoiceReferenceWindowResponse] = Field(default_factory=list)
     created_at: str
     updated_at: str
 
@@ -93,6 +112,11 @@ class VoiceProfileBindingResponse(BaseModel):
     status: str
     languages: list[str]
     reference_id: str | None = None
+    reference_window_id: str | None = None
+    validation_state: Literal[
+        "approved", "candidate", "rejected", "superseded"
+    ] = "approved"
+    superseded_by: str | None = None
     created_at: str
 
 
@@ -107,6 +131,7 @@ class VoicePackageJobResponse(BaseModel):
     adapter_key: str
     classification: str
     binding_id: str | None = None
+    reference_window_id: str | None = None
     engine: Engine
     tier: Tier
     status: str
@@ -124,6 +149,24 @@ class VoiceProfileUsageResponse(BaseModel):
     preview_filename: str = ""
 
 
+class VoicePreviewResponse(BaseModel):
+    id: str
+    identity_id: str
+    binding_id: str
+    job_id: int | None = None
+    tag: str | None = None
+    text: str
+    instruction: str = ""
+    seed: int
+    status: Literal["queued", "running", "ready", "failed"]
+    approval_state: Literal["unreviewed", "approved", "rejected"]
+    filename: str = ""
+    duration_ms: int | None = None
+    error: str = ""
+    created_at: str
+    model_id: str
+
+
 class VoiceProfileResponse(BaseModel):
     id: str
     name: str
@@ -132,6 +175,8 @@ class VoiceProfileResponse(BaseModel):
     references: list[VoiceReferenceSummaryResponse]
     bindings: list[VoiceProfileBindingResponse]
     jobs: list[VoicePackageJobResponse]
+    previews: list[VoicePreviewResponse] = Field(default_factory=list)
+    used_tags: list[str] = Field(default_factory=list)
     available_routes: list[VoicePackageRouteResponse]
     usage: VoiceProfileUsageResponse
     created_at: str
@@ -204,3 +249,12 @@ class VoicePackageRetryResponse(BaseModel):
 
 class VoicePackageRetryEnvelope(BaseModel):
     data: VoicePackageRetryResponse
+
+
+class VoicePreviewCreatedResponse(BaseModel):
+    preview_id: str
+    job_id: str
+
+
+class VoicePreviewCreatedEnvelope(BaseModel):
+    data: VoicePreviewCreatedResponse

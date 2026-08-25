@@ -27,7 +27,8 @@ LANGUAGES = ["Auto", "English", "Chinese", "Japanese", "Korean", "French",
 
 class VoiceCatalogue(Protocol):
     def catalog_metadata(self) -> dict: ...
-    def custom_bindings(self) -> list[dict]: ...
+    def custom_bindings(self, *, include_candidates: bool = False
+                        ) -> list[dict]: ...
     def binding_references(self) -> dict: ...
     def catalog_usage(self) -> dict: ...
     def catalogue_bindings(self) -> list[dict]: ...
@@ -134,7 +135,12 @@ class CatalogService:
         return self.voices.catalog_metadata()
 
     def resolve_voice(self, payload: dict) -> dict:
-        bindings = self.voices.custom_bindings()
+        values = dict(payload)
+        include_candidates = bool(values.pop("_voice_preview", False))
+        bindings = (
+            self.voices.custom_bindings(include_candidates=True)
+            if include_candidates else self.voices.custom_bindings()
+        )
         catalogue = self.voices.catalogue_bindings()
         # Capabilities are provider-model data.  The current catalogue snapshot
         # is single-mode per exact route; future multi-mode routes can publish
@@ -154,4 +160,4 @@ class CatalogService:
                 "name": provider_catalog.CAPABILITIES[item["engine"]][
                     "operator_title"],
             }])
-        return voice_routing.resolve(payload, bindings, catalogue).payload()
+        return voice_routing.resolve(values, bindings, catalogue).payload()

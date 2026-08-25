@@ -29,7 +29,8 @@ MAX_ASSET_NAME_LENGTH = 120
 MAX_ASSET_TAGS = 12
 MAX_ASSET_TAG_LENGTH = 32
 MIN_VOICE_REFERENCE_DURATION_MS = 5_000
-MAX_VOICE_REFERENCE_DURATION_MS = 60_000
+MAX_VOICE_REFERENCE_DURATION_MS = 600_000
+MAX_VOICE_REFERENCE_SIZE_BYTES = 100_000_000
 
 
 class UploadError(ValueError):
@@ -137,8 +138,8 @@ class UploadService:
     ) -> dict[str, str | int]:
         if not raw:
             raise UploadError("Choose a recording first.")
-        if len(raw) > 10_000_000:
-            raise UploadError("That recording is over 10 MB.")
+        if len(raw) > MAX_VOICE_REFERENCE_SIZE_BYTES:
+            raise UploadError("That source recording is over 100 MB.")
         original = clean_name(encoded_name, "reference.wav")
         if Path(original).suffix.lower() not in VOICE_EXTENSIONS:
             raise UploadError(
@@ -161,7 +162,7 @@ class UploadService:
         if duration_ms > MAX_VOICE_REFERENCE_DURATION_MS:
             self.workspace.discard_voice_reference(reference_id)
             raise UploadError(
-                "That recording is over 60 seconds. Use 10–20 seconds of clear speech for the strongest clone.")
+                "That source recording is over 10 minutes. Choose a shorter master.")
         try:
             saved_id = self.records.create_voice_reference(
                 reference_id=reference_id,

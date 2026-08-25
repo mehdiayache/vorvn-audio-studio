@@ -14,6 +14,9 @@ class VoiceProfilesStore(Protocol):
     def update_profile(self, identity_id: str, changes: dict) -> bool: ...
     def unlinked_history(self) -> list[dict]: ...
     def link_history(self, provider_voice_id: str, identity_id: str) -> int: ...
+    def create_preview(self, identity_id: str, binding_id: str, **values) -> str: ...
+    def set_preview_approval(self, identity_id: str, preview_id: str,
+                             approval_state: str) -> bool: ...
 
 
 class VoicePackageStore(Protocol):
@@ -22,6 +25,7 @@ class VoicePackageStore(Protocol):
     def record_blocked(self, *, estimate: float, detail: str) -> None: ...
     def create_package(self, **values) -> tuple[str, list[str]]: ...
     def retry(self, enrollment_job_id: str) -> str | None: ...
+    def save_window(self, reference_id: str, **values) -> dict: ...
 
 
 class EnrollmentMethodStore(Protocol):
@@ -89,8 +93,64 @@ class VoiceService:
             return None
         return self.profile(identity_id)
 
+    def save_reference_window(self, identity_id: str, reference_id: str,
+                              values: dict[str, Any]) -> dict[str, Any]:
+        profile = self.profile(identity_id)
+        if not profile or reference_id not in {
+                item["id"] for item in profile["references"]}:
+            raise LookupError("That Voice Source does not belong to this Voice.")
+        self.package_store.save_window(
+            reference_id,
+            provider_model_id=(str(values.get("provider_model_id") or "").strip()
+                               or None),
+            start_ms=int(values["start_ms"]),
+            duration_ms=int(values["duration_ms"]),
+            source_language=str(values.get("source_language") or "").strip().lower(),
+            transcript=str(values.get("transcript") or "").strip(),
+            enable_preprocess=values.get("enable_preprocess"),
+        )
+        refreshed = self.profile(identity_id)
+        if not refreshed:
+            raise LookupError("That Voice no longer exists.")
+        return refreshed
+
+    def save_uploaded_reference_window(self, reference_id: str,
+                                       values: dict[str, Any]) -> dict:
+        reference = self.package_store.reference(reference_id)
+        if not reference:
+            raise LookupError("That Voice Source does not exist.")
+        if reference.get("identity_id"):
+            raise ValueError("Edit an attached Voice Source from its Voice profile.")
+        return self.package_store.save_window(
+            reference_id,
+            provider_model_id=(str(values.get("provider_model_id") or "").strip()
+                               or None),
+            start_ms=int(values["start_ms"]),
+            duration_ms=int(values["duration_ms"]),
+            source_language=str(values.get("source_language") or "").strip().lower(),
+            transcript=str(values.get("transcript") or "").strip(),
+            enable_preprocess=values.get("enable_preprocess"),
+        )
+
     def archive(self, identity_id: str) -> dict[str, Any] | None:
         return self.update(identity_id, {"status": "archived"})
+
+    def record_preview(self, identity_id: str, binding_id: str, *, job_id: int,
+                       tag: str | None, text: str, instruction: str,
+                       seed: int) -> str:
+        return self.profiles_store.create_preview(
+            identity_id, binding_id, job_id=job_id, tag=tag, text=text,
+            instruction=instruction, seed=seed)
+
+    def approve_preview(self, identity_id: str, preview_id: str,
+                        approval_state: str) -> dict[str, Any]:
+        if not self.profiles_store.set_preview_approval(
+                identity_id, preview_id, approval_state):
+            raise LookupError("That Voice test does not exist.")
+        profile = self.profile(identity_id)
+        if not profile:
+            raise LookupError("That Voice does not exist.")
+        return profile
 
     def unlinked_history(self) -> list[dict[str, Any]]:
         return self.profiles_store.unlinked_history()
@@ -184,6 +244,13 @@ class VoiceService:
             identity_id=str(payload.get("identity_id") or "").strip() or None,
             routes=plan["routes"],
             estimate=estimate,
+            reference_window_id=(str(payload.get("reference_window_id") or "").strip()
+                                 or None),
+            reference_window_ids={
+                str(key): str(value)
+                for key, value in (payload.get("reference_window_ids") or {}).items()
+                if str(key).strip() and str(value).strip()
+            },
         )
         return {
             "identity": self.profile(identity_id),

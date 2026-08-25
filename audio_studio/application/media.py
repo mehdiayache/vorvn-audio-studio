@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from pathlib import Path
+from typing import Callable, Protocol
 
 from audio_studio.domain.media import MediaFile
 
@@ -20,6 +21,14 @@ class MediaWorkspace(Protocol):
 class MediaRecords(Protocol):
     def export(self, export_id: int) -> dict | None: ...
     def clip(self, recording_id: int) -> dict | None: ...
+
+
+class VoiceReferenceRecords(Protocol):
+    def reference(self, reference_id: str) -> dict | None: ...
+
+
+class VoiceReferenceWorkspace(Protocol):
+    def resolve_reference(self, reference: dict) -> Path: ...
 
 
 class MediaService:
@@ -53,3 +62,32 @@ class MediaService:
     ) -> MediaFile | None:
         return self.workspace.segment(
             name, offset_ms=offset_ms, duration_ms=duration_ms)
+
+
+class VoiceReferenceMediaService:
+    """Deliver one preserved Voice Source without exposing storage to HTTP."""
+
+    def __init__(
+        self,
+        records: VoiceReferenceRecords,
+        workspace: VoiceReferenceWorkspace,
+        peak_reader: Callable[[Path, int], list[float]],
+    ):
+        self.records = records
+        self.workspace = workspace
+        self.peak_reader = peak_reader
+
+    def source(self, reference_id: str) -> MediaFile | None:
+        reference = self.records.reference(reference_id)
+        if not reference:
+            return None
+        return MediaFile(
+            self.workspace.resolve_reference(reference),
+            str(reference.get("original_name") or "voice-source.wav"),
+        )
+
+    def peaks(self, reference_id: str, bars: int) -> list[float]:
+        source = self.source(reference_id)
+        if source is None:
+            raise LookupError("Voice Source not found")
+        return self.peak_reader(source.path, bars)

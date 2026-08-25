@@ -147,7 +147,7 @@ class UploadServiceTests(unittest.TestCase):
             service.save_voice_reference(b"audio", "second.mp3")
         self.assertEqual(len(workspace.discarded_references), 1)
 
-    def test_voice_reference_rejects_provider_incompatible_duration_before_db(self):
+    def test_voice_reference_accepts_a_long_master_but_keeps_a_hard_ceiling(self):
         service, workspace, records = self.service()
         workspace.voice_duration_ms = 4_999
         with self.assertRaisesRegex(UploadError, "at least 5 seconds"):
@@ -155,10 +155,15 @@ class UploadServiceTests(unittest.TestCase):
         self.assertFalse(records.references)
         self.assertEqual(len(workspace.discarded_references), 1)
 
-        workspace.voice_duration_ms = 60_001
-        with self.assertRaisesRegex(UploadError, "over 60 seconds"):
-            service.save_voice_reference(b"audio", "long.wav")
-        self.assertFalse(records.references)
+        workspace.voice_duration_ms = 180_000
+        result = service.save_voice_reference(b"audio", "long.wav")
+        self.assertEqual(result["duration_ms"], 180_000)
+        self.assertEqual(len(records.references), 1)
+
+        workspace.voice_duration_ms = 600_001
+        with self.assertRaisesRegex(UploadError, "over 10 minutes"):
+            service.save_voice_reference(b"audio", "too-long.wav")
+        self.assertEqual(len(records.references), 1)
         self.assertEqual(len(workspace.discarded_references), 2)
 
     def test_asset_record_failure_removes_the_new_media_object(self):

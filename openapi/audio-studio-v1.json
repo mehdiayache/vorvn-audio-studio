@@ -11298,6 +11298,32 @@
             "title": "Reference Id",
             "type": "string"
           },
+          "reference_window_id": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Window Id"
+          },
+          "reference_window_ids": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Window Ids"
+          },
           "trait": {
             "anyOf": [
               {
@@ -11441,6 +11467,17 @@
           "reference_id": {
             "title": "Reference Id",
             "type": "string"
+          },
+          "reference_window_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Window Id"
           },
           "region": {
             "title": "Region",
@@ -11742,6 +11779,219 @@
         "title": "VoicePackageRouteResponse",
         "type": "object"
       },
+      "VoicePreviewApproval": {
+        "properties": {
+          "approval_state": {
+            "enum": [
+              "unreviewed",
+              "approved",
+              "rejected"
+            ],
+            "title": "Approval State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "approval_state"
+        ],
+        "title": "VoicePreviewApproval",
+        "type": "object"
+      },
+      "VoicePreviewCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "binding_id": {
+            "format": "uuid",
+            "title": "Binding Id",
+            "type": "string"
+          },
+          "instruction": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Instruction",
+            "type": "string"
+          },
+          "language": {
+            "default": "Auto",
+            "maxLength": 80,
+            "title": "Language",
+            "type": "string"
+          },
+          "seed": {
+            "default": 0,
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "tag": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tag"
+          },
+          "text": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "binding_id",
+          "text"
+        ],
+        "title": "VoicePreviewCreate",
+        "type": "object"
+      },
+      "VoicePreviewCreatedEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/VoicePreviewCreatedResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "VoicePreviewCreatedEnvelope",
+        "type": "object"
+      },
+      "VoicePreviewCreatedResponse": {
+        "properties": {
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "preview_id": {
+            "title": "Preview Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "preview_id",
+          "job_id"
+        ],
+        "title": "VoicePreviewCreatedResponse",
+        "type": "object"
+      },
+      "VoicePreviewResponse": {
+        "properties": {
+          "approval_state": {
+            "enum": [
+              "unreviewed",
+              "approved",
+              "rejected"
+            ],
+            "title": "Approval State",
+            "type": "string"
+          },
+          "binding_id": {
+            "title": "Binding Id",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "error": {
+            "default": "",
+            "title": "Error",
+            "type": "string"
+          },
+          "filename": {
+            "default": "",
+            "title": "Filename",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "identity_id": {
+            "title": "Identity Id",
+            "type": "string"
+          },
+          "instruction": {
+            "default": "",
+            "title": "Instruction",
+            "type": "string"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "ready",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tag"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "identity_id",
+          "binding_id",
+          "text",
+          "seed",
+          "status",
+          "approval_state",
+          "created_at",
+          "model_id"
+        ],
+        "title": "VoicePreviewResponse",
+        "type": "object"
+      },
       "VoiceProfileBindingResponse": {
         "properties": {
           "binding_id": {
@@ -11797,6 +12047,17 @@
             ],
             "title": "Reference Id"
           },
+          "reference_window_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Window Id"
+          },
           "region": {
             "title": "Region",
             "type": "string"
@@ -11805,8 +12066,30 @@
             "title": "Status",
             "type": "string"
           },
+          "superseded_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By"
+          },
           "tier": {
             "title": "Tier",
+            "type": "string"
+          },
+          "validation_state": {
+            "default": "approved",
+            "enum": [
+              "approved",
+              "candidate",
+              "rejected",
+              "superseded"
+            ],
+            "title": "Validation State",
             "type": "string"
           }
         },
@@ -12060,6 +12343,13 @@
             ],
             "title": "Preferred Reference Id"
           },
+          "previews": {
+            "items": {
+              "$ref": "#/components/schemas/VoicePreviewResponse"
+            },
+            "title": "Previews",
+            "type": "array"
+          },
           "references": {
             "items": {
               "$ref": "#/components/schemas/VoiceReferenceSummaryResponse"
@@ -12073,6 +12363,13 @@
           },
           "usage": {
             "$ref": "#/components/schemas/VoiceProfileUsageResponse"
+          },
+          "used_tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Used Tags",
+            "type": "array"
           }
         },
         "required": [
@@ -12281,6 +12578,13 @@
           "updated_at": {
             "title": "Updated At",
             "type": "string"
+          },
+          "windows": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceReferenceWindowResponse"
+            },
+            "title": "Windows",
+            "type": "array"
           }
         },
         "required": [
@@ -12291,6 +12595,150 @@
           "updated_at"
         ],
         "title": "VoiceReferenceSummaryResponse",
+        "type": "object"
+      },
+      "VoiceReferenceWindowEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/VoiceReferenceWindowResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "VoiceReferenceWindowEnvelope",
+        "type": "object"
+      },
+      "VoiceReferenceWindowResponse": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "derived_path": {
+            "default": "",
+            "title": "Derived Path",
+            "type": "string"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "enable_preprocess": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enable Preprocess"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "provider_model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Model Id"
+          },
+          "reference_id": {
+            "title": "Reference Id",
+            "type": "string"
+          },
+          "source_language": {
+            "default": "",
+            "title": "Source Language",
+            "type": "string"
+          },
+          "start_ms": {
+            "title": "Start Ms",
+            "type": "integer"
+          },
+          "transcript": {
+            "default": "",
+            "title": "Transcript",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "reference_id",
+          "start_ms",
+          "duration_ms",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "VoiceReferenceWindowResponse",
+        "type": "object"
+      },
+      "VoiceReferenceWindowUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "duration_ms": {
+            "maximum": 60000.0,
+            "minimum": 1000.0,
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "enable_preprocess": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enable Preprocess"
+          },
+          "provider_model_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Model Id"
+          },
+          "source_language": {
+            "default": "",
+            "maxLength": 80,
+            "title": "Source Language",
+            "type": "string"
+          },
+          "start_ms": {
+            "minimum": 0.0,
+            "title": "Start Ms",
+            "type": "integer"
+          },
+          "transcript": {
+            "default": "",
+            "maxLength": 20000,
+            "title": "Transcript",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_ms",
+          "duration_ms"
+        ],
+        "title": "VoiceReferenceWindowUpdate",
         "type": "object"
       },
       "VoiceRegistryEnvelope": {
@@ -17857,6 +18305,112 @@
         ]
       }
     },
+    "/api/v1/voice-references/{reference_id}/peaks": {
+      "get": {
+        "operationId": "getVoiceReferencePeaks",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reference_id",
+            "required": true,
+            "schema": {
+              "title": "Reference Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "bars",
+            "required": false,
+            "schema": {
+              "default": 1024,
+              "maximum": 4096,
+              "minimum": 8,
+              "title": "Bars",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioPeaksEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Voice Reference Peaks",
+        "tags": [
+          "media"
+        ]
+      }
+    },
+    "/api/v1/voice-references/{reference_id}/window": {
+      "put": {
+        "operationId": "saveUploadedVoiceReferenceWindow",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reference_id",
+            "required": true,
+            "schema": {
+              "title": "Reference Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoiceReferenceWindowUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceReferenceWindowEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Uploaded Reference Window",
+        "tags": [
+          "voices"
+        ]
+      }
+    },
     "/api/v1/voice-registry": {
       "get": {
         "operationId": "getVoiceRegistry",
@@ -18180,6 +18734,181 @@
           }
         },
         "summary": "Link History",
+        "tags": [
+          "voices"
+        ]
+      }
+    },
+    "/api/v1/voices/{identity_id}/previews": {
+      "post": {
+        "operationId": "createVoicePreview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity_id",
+            "required": true,
+            "schema": {
+              "title": "Identity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoicePreviewCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoicePreviewCreatedEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Voice Preview",
+        "tags": [
+          "voices"
+        ]
+      }
+    },
+    "/api/v1/voices/{identity_id}/previews/{preview_id}": {
+      "patch": {
+        "operationId": "approveVoicePreview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity_id",
+            "required": true,
+            "schema": {
+              "title": "Identity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "preview_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Preview Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoicePreviewApproval"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceProfileEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Voice Preview",
+        "tags": [
+          "voices"
+        ]
+      }
+    },
+    "/api/v1/voices/{identity_id}/references/{reference_id}/window": {
+      "put": {
+        "operationId": "saveVoiceReferenceWindow",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity_id",
+            "required": true,
+            "schema": {
+              "title": "Identity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "reference_id",
+            "required": true,
+            "schema": {
+              "title": "Reference Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoiceReferenceWindowUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceProfileEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Reference Window",
         "tags": [
           "voices"
         ]

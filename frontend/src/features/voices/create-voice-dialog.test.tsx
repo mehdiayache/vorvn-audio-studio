@@ -7,6 +7,7 @@ import { CreateVoiceDialog } from "./create-voice-dialog"
 
 vi.mock("@/lib/api", () => ({ studioApi: {
   createVoicePackage: vi.fn(),
+  saveUploadedVoiceReferenceWindow: vi.fn(),
   uploadVoiceReference: vi.fn(),
   voicePackagePreflight: vi.fn(),
 } }))
@@ -25,6 +26,12 @@ const route = {
 describe("CreateVoiceDialog", () => {
   it("requires sex during identity setup and sends it with the new voice", async () => {
     vi.mocked(studioApi.uploadVoiceReference).mockResolvedValue({ reference_id: "ref-new", name: "voice.wav", duration_ms: 15_000, sample_rate: 24_000, channels: 1 })
+    vi.mocked(studioApi.saveUploadedVoiceReferenceWindow).mockResolvedValue({
+      id: "vwin-new", reference_id: "ref-new", provider_model_id: null,
+      start_ms: 0, duration_ms: 15_000, source_language: "en",
+      transcript: "A faithful reference sentence.", enable_preprocess: null,
+      derived_path: "", created_at: "", updated_at: "",
+    })
     vi.mocked(studioApi.voicePackagePreflight).mockResolvedValue({
       region: "intl", region_label: "Singapore", language: "en",
       package: "complete", routes: [route], available_routes: [route],
@@ -44,12 +51,16 @@ describe("CreateVoiceDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Continue" }))
     const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]')
     fireEvent.change(fileInput!, { target: { files: [new File(["voice"], "voice.wav", { type: "audio/wav" })] } })
+    fireEvent.click(screen.getByRole("button", { name: "Choose source window" }))
+    await screen.findByRole("textbox", { name: "Exact words in this selection" })
+    fireEvent.change(screen.getByRole("textbox", { name: "Exact words in this selection" }), { target: { value: "A faithful reference sentence." } })
     fireEvent.click(screen.getByRole("button", { name: "Review methods" }))
     await screen.findByText("1 installed versions will be attempted")
     fireEvent.click(screen.getByRole("button", { name: "Create voice" }))
 
     await waitFor(() => expect(studioApi.createVoicePackage).toHaveBeenCalledWith(expect.objectContaining({
       name: "New narrator", gender: "female", language: "en", reference_id: "ref-new",
+      reference_window_id: "vwin-new",
     })))
   })
 })

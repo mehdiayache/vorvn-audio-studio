@@ -55,12 +55,21 @@ def peaks(filename: str, bars: int) -> list[float]:
     source = (root / Path(filename).name).resolve()
     if source.parent != root or not source.is_file():
         raise LookupError("That audio file is unavailable.")
+    return peaks_for_path(source, bars)
+
+
+def peaks_for_path(source: Path, bars: int) -> list[float]:
+    """Build the same bounded cache for any already-contained audio source."""
+    source = source.resolve()
+    if not source.is_file():
+        raise LookupError("That audio file is unavailable.")
     count = max(8, min(4096, int(bars)))
-    cache = root / f".{source.name}.peaks-v2-{count}.json"
+    cache_root = source.parent
+    cache = cache_root / f".{source.name}.peaks-v2-{count}.json"
     cached = _read_cache(cache, count, source)
     if cached is not None:
         return cached
-    canonical_cache = root / f".{source.name}.peaks-v2-{CANONICAL_BARS}.json"
+    canonical_cache = cache_root / f".{source.name}.peaks-v2-{CANONICAL_BARS}.json"
     canonical = _read_cache(canonical_cache, CANONICAL_BARS, source)
     if canonical is not None:
         result = _downsample(canonical, count)

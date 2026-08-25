@@ -109,7 +109,7 @@ async def upload_voice_reference(request: Request,
                                  x_filename: str = Header(default="reference.wav")) -> dict:
     try:
         return {"data": upload_service.save_voice_reference(
-            await _body(request, 10_000_000), x_filename)}
+            await _body(request, 100_000_000), x_filename)}
     except UploadError as exc:
         raise ApiProblem(400, "invalid_voice_reference", str(exc)) from exc
 

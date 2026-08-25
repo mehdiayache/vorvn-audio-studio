@@ -42,6 +42,20 @@ class ProviderCatalogTests(unittest.TestCase):
         self.assertEqual(set(provider_catalog.SEGMENTATION),
                          {"audio", "qwen_tts", "cosyvoice"})
 
+    def test_clone_source_duration_is_model_family_truth(self):
+        self.assertEqual(
+            provider_catalog.CAPABILITIES["audio"]
+            ["clone_source_duration_ms"],
+            {"minimum": 5_000, "maximum": 60_000})
+        self.assertEqual(
+            provider_catalog.CAPABILITIES["cosyvoice"]
+            ["clone_source_duration_ms"],
+            {"minimum": 5_000, "maximum": 60_000})
+        self.assertEqual(
+            provider_catalog.CAPABILITIES["qwen_tts"]
+            ["clone_source_duration_ms"],
+            {"minimum": 3_000, "maximum": 60_000})
+
 
 if __name__ == "__main__":
     unittest.main()

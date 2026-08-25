@@ -6,7 +6,10 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from audio_studio.composition.media import media_service
+from audio_studio.composition.media import (
+    media_service,
+    voice_reference_media_service,
+)
 from audio_studio.composition.waveforms import waveform_peaks
 from audio_studio.domain.media import MediaFile
 
@@ -62,6 +65,35 @@ def get_audio_peaks(name: str, bars: int = Query(48, ge=8, le=4096)) -> dict:
     except RuntimeError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"data": {"filename": name, "bars": len(values), "peaks": values}}
+
+
+@router.api_route(
+    "/api/v1/voice-references/{reference_id}/audio",
+    methods=["GET", "HEAD"], include_in_schema=False,
+)
+def get_voice_reference_audio(reference_id: str) -> FileResponse:
+    try:
+        return _response(voice_reference_media_service.source(reference_id))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get(
+    "/api/v1/voice-references/{reference_id}/peaks",
+    operation_id="getVoiceReferencePeaks",
+    response_model=AudioPeaksEnvelope,
+)
+def get_voice_reference_peaks(
+    reference_id: str, bars: int = Query(1024, ge=8, le=4096),
+) -> dict:
+    try:
+        values = voice_reference_media_service.peaks(reference_id, bars)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"data": {"filename": reference_id,
+                     "bars": len(values), "peaks": values}}
 
 
 @router.api_route("/icon/{name}", methods=["GET", "HEAD"], include_in_schema=False)

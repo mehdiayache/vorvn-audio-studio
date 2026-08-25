@@ -1615,6 +1615,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/voice-references/{reference_id}/peaks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Voice Reference Peaks */
+        get: operations["getVoiceReferencePeaks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voice-references/{reference_id}/window": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save Uploaded Reference Window */
+        put: operations["saveUploadedVoiceReferenceWindow"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/voice-registry": {
         parameters: {
             query?: never;
@@ -1713,6 +1747,57 @@ export interface paths {
         put?: never;
         /** Link History */
         post: operations["linkVoiceHistory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voices/{identity_id}/previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Voice Preview */
+        post: operations["createVoicePreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voices/{identity_id}/previews/{preview_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Approve Voice Preview */
+        patch: operations["approveVoicePreview"];
+        trace?: never;
+    };
+    "/api/v1/voices/{identity_id}/references/{reference_id}/window": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save Reference Window */
+        put: operations["saveVoiceReferenceWindow"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5690,6 +5775,12 @@ export interface components {
             provider_model_ids?: string[] | null;
             /** Reference Id */
             reference_id: string;
+            /** Reference Window Id */
+            reference_window_id?: string | null;
+            /** Reference Window Ids */
+            reference_window_ids?: {
+                [key: string]: string;
+            } | null;
             /** Trait */
             trait?: string | null;
         };
@@ -5733,6 +5824,8 @@ export interface components {
             provider_voice_id?: string | null;
             /** Reference Id */
             reference_id: string;
+            /** Reference Window Id */
+            reference_window_id?: string | null;
             /** Region */
             region: string;
             /** Status */
@@ -5844,6 +5937,100 @@ export interface components {
             /** Tier */
             tier: string;
         };
+        /** VoicePreviewApproval */
+        VoicePreviewApproval: {
+            /**
+             * Approval State
+             * @enum {string}
+             */
+            approval_state: "unreviewed" | "approved" | "rejected";
+        };
+        /** VoicePreviewCreate */
+        VoicePreviewCreate: {
+            /**
+             * Binding Id
+             * Format: uuid
+             */
+            binding_id: string;
+            /**
+             * Instruction
+             * @default
+             */
+            instruction: string;
+            /**
+             * Language
+             * @default Auto
+             */
+            language: string;
+            /**
+             * Seed
+             * @default 0
+             */
+            seed: number;
+            /** Tag */
+            tag?: string | null;
+            /** Text */
+            text: string;
+        };
+        /** VoicePreviewCreatedEnvelope */
+        VoicePreviewCreatedEnvelope: {
+            data: components["schemas"]["VoicePreviewCreatedResponse"];
+        };
+        /** VoicePreviewCreatedResponse */
+        VoicePreviewCreatedResponse: {
+            /** Job Id */
+            job_id: string;
+            /** Preview Id */
+            preview_id: string;
+        };
+        /** VoicePreviewResponse */
+        VoicePreviewResponse: {
+            /**
+             * Approval State
+             * @enum {string}
+             */
+            approval_state: "unreviewed" | "approved" | "rejected";
+            /** Binding Id */
+            binding_id: string;
+            /** Created At */
+            created_at: string;
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /**
+             * Error
+             * @default
+             */
+            error: string;
+            /**
+             * Filename
+             * @default
+             */
+            filename: string;
+            /** Id */
+            id: string;
+            /** Identity Id */
+            identity_id: string;
+            /**
+             * Instruction
+             * @default
+             */
+            instruction: string;
+            /** Job Id */
+            job_id?: number | null;
+            /** Model Id */
+            model_id: string;
+            /** Seed */
+            seed: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "ready" | "failed";
+            /** Tag */
+            tag?: string | null;
+            /** Text */
+            text: string;
+        };
         /** VoiceProfileBindingResponse */
         VoiceProfileBindingResponse: {
             /** Binding Id */
@@ -5864,12 +6051,22 @@ export interface components {
             provider_voice_id: string;
             /** Reference Id */
             reference_id?: string | null;
+            /** Reference Window Id */
+            reference_window_id?: string | null;
             /** Region */
             region: string;
             /** Status */
             status: string;
+            /** Superseded By */
+            superseded_by?: string | null;
             /** Tier */
             tier: string;
+            /**
+             * Validation State
+             * @default approved
+             * @enum {string}
+             */
+            validation_state: "approved" | "candidate" | "rejected" | "superseded";
         };
         /** VoiceProfileCollectionEnvelope */
         VoiceProfileCollectionEnvelope: {
@@ -5929,11 +6126,15 @@ export interface components {
             name: string;
             /** Preferred Reference Id */
             preferred_reference_id?: string | null;
+            /** Previews */
+            previews?: components["schemas"]["VoicePreviewResponse"][];
             /** References */
             references: components["schemas"]["VoiceReferenceSummaryResponse"][];
             /** Updated At */
             updated_at: string;
             usage: components["schemas"]["VoiceProfileUsageResponse"];
+            /** Used Tags */
+            used_tags?: string[];
         };
         /** VoiceProfileUsageResponse */
         VoiceProfileUsageResponse: {
@@ -6007,6 +6208,67 @@ export interface components {
             transcript: string;
             /** Updated At */
             updated_at: string;
+            /** Windows */
+            windows?: components["schemas"]["VoiceReferenceWindowResponse"][];
+        };
+        /** VoiceReferenceWindowEnvelope */
+        VoiceReferenceWindowEnvelope: {
+            data: components["schemas"]["VoiceReferenceWindowResponse"];
+        };
+        /** VoiceReferenceWindowResponse */
+        VoiceReferenceWindowResponse: {
+            /** Created At */
+            created_at: string;
+            /**
+             * Derived Path
+             * @default
+             */
+            derived_path: string;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Enable Preprocess */
+            enable_preprocess?: boolean | null;
+            /** Id */
+            id: string;
+            /** Provider Model Id */
+            provider_model_id?: string | null;
+            /** Reference Id */
+            reference_id: string;
+            /**
+             * Source Language
+             * @default
+             */
+            source_language: string;
+            /** Start Ms */
+            start_ms: number;
+            /**
+             * Transcript
+             * @default
+             */
+            transcript: string;
+            /** Updated At */
+            updated_at: string;
+        };
+        /** VoiceReferenceWindowUpdate */
+        VoiceReferenceWindowUpdate: {
+            /** Duration Ms */
+            duration_ms: number;
+            /** Enable Preprocess */
+            enable_preprocess?: boolean | null;
+            /** Provider Model Id */
+            provider_model_id?: string | null;
+            /**
+             * Source Language
+             * @default
+             */
+            source_language: string;
+            /** Start Ms */
+            start_ms: number;
+            /**
+             * Transcript
+             * @default
+             */
+            transcript: string;
         };
         /** VoiceRegistryEnvelope */
         VoiceRegistryEnvelope: {
@@ -9504,6 +9766,74 @@ export interface operations {
             };
         };
     };
+    getVoiceReferencePeaks: {
+        parameters: {
+            query?: {
+                bars?: number;
+            };
+            header?: never;
+            path: {
+                reference_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioPeaksEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    saveUploadedVoiceReferenceWindow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reference_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoiceReferenceWindowUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceReferenceWindowEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getVoiceRegistry: {
         parameters: {
             query?: never;
@@ -9728,6 +10058,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VoiceHistoryLinkEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createVoicePreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoicePreviewCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoicePreviewCreatedEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approveVoicePreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity_id: string;
+                preview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoicePreviewApproval"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceProfileEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    saveVoiceReferenceWindow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity_id: string;
+                reference_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoiceReferenceWindowUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceProfileEnvelope"];
                 };
             };
             /** @description Validation Error */

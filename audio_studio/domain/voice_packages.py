@@ -103,6 +103,7 @@ class VoicePackageJob:
     id: str
     identity_id: str
     reference_id: str
+    reference_window_id: str | None
     model_id: str
     provider: str
     region: str

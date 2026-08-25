@@ -2,7 +2,13 @@ import { useEffect, useId, useState } from "react"
 
 const waveformCache = new Map<string, Promise<number[]>>()
 
-async function fetchWaveform(url: string, bars: number) {
+async function fetchWaveform(url: string, bars: number, endpoint?: string) {
+  if (endpoint) {
+    const response = await fetch(`${endpoint}${endpoint.includes("?") ? "&" : "?"}bars=${bars}`)
+    if (!response.ok) throw new Error(`Waveform unavailable (${response.status})`)
+    const payload = await response.json() as { data: { peaks: number[] } }
+    return payload.data.peaks
+  }
   const path = new URL(url, window.location.origin).pathname
   const filename = decodeURIComponent(path.split("/").pop() || "")
   if (!filename) throw new Error("Audio filename is unavailable")
@@ -12,18 +18,18 @@ async function fetchWaveform(url: string, bars: number) {
   return payload.data.peaks
 }
 
-export function useAudioPeaks(url?: string, bars = 48) {
+export function useAudioPeaks(url?: string, bars = 48, endpoint?: string) {
   const [peaks, setPeaks] = useState<number[] | null>(null)
 
   useEffect(() => {
     let active = true
     if (!url) { setPeaks(null); return () => { active = false } }
-    const key = `${url}:${bars}`
-    const pending = waveformCache.get(key) || fetchWaveform(url, bars)
+    const key = `${url}:${endpoint || "media"}:${bars}`
+    const pending = waveformCache.get(key) || fetchWaveform(url, bars, endpoint)
     waveformCache.set(key, pending)
     pending.then((value) => { if (active) setPeaks(value) }).catch(() => { if (active) setPeaks([]) })
     return () => { active = false }
-  }, [url, bars])
+  }, [url, bars, endpoint])
   return peaks
 }
 
