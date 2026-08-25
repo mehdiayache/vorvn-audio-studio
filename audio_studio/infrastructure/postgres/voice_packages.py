@@ -313,10 +313,6 @@ class VoicePackageRepository:
                 if not window_language:
                     raise ValueError(
                         f"Choose the source language for {route['model_id']}.")
-                if engine == "qwen_tts" and not window_transcript.strip():
-                    raise ValueError(
-                        "Qwen3 TTS Voice Clone needs the exact transcript of "
-                        "its selected Voice Source window.")
                 duration_contract = provider_catalog.CAPABILITIES.get(
                     engine, {}).get("clone_source_duration_ms") or {}
                 minimum_duration_ms = int(duration_contract.get("minimum") or 5_000)

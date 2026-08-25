@@ -2,6 +2,7 @@ import { CircleAlert, Pause, Play, Sparkles } from "lucide-react"
 
 import { OperatorIconButton } from "@/components/operator-action"
 import { VoiceGenderBadge } from "@/components/voice-gender-badge"
+import { VoiceLanguageBadge } from "@/components/voice-language-badge"
 import type { VoiceProfile } from "@/types/domain"
 import { bindingMatchesRoute } from "./voice-route"
 
@@ -23,7 +24,7 @@ export function VoiceProfileCard({ profile, playing = false, onOpen, onPreview }
   return <article className="voice-profile-card" onClick={onOpen}>
     <button className="voice-card-main" type="button" aria-label={`Open ${profile.name}`}>
       <span className="voice-profile-mark">{image ? <img src={image} alt="" /> : initials}</span>
-      <span className="voice-card-copy"><span className="voice-card-title"><h2>{profile.name}</h2><VoiceGenderBadge gender={profile.metadata.gender} /></span><span>{profile.metadata.trait || "Production voice"}</span><small className={failed ? "has-error" : ""}>{working ? <Sparkles className="spin" /> : failed ? <CircleAlert /> : <i />}{state}</small></span>
+      <span className="voice-card-copy"><span className="voice-card-title"><h2>{profile.name}</h2><VoiceGenderBadge gender={profile.metadata.gender} /><VoiceLanguageBadge language={String(profile.metadata.editorial_language || "")} /></span><span>{profile.metadata.trait || "Production voice"}</span><small className={failed ? "has-error" : ""}>{working ? <Sparkles className="spin" /> : failed ? <CircleAlert /> : <i />}{state}</small></span>
     </button>
     <OperatorIconButton label={playing ? `Pause ${profile.name}` : `Preview ${profile.name}`} detail={canPreview ? "Hear the most recent approved recording." : "Generate this Voice once to create a preview."} disabled={!canPreview} onClick={(event) => { event.stopPropagation(); onPreview() }}>{playing ? <Pause /> : <Play />}</OperatorIconButton>
   </article>

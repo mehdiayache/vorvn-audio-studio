@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { OperatorIconButton } from "@/components/operator-action"
 import { VoiceGenderBadge } from "@/components/voice-gender-badge"
+import { VoiceLanguageBadge } from "@/components/voice-language-badge"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -106,6 +107,7 @@ export function VoiceProfileDialog({ profile, open, onOpenChange, onEditIdentity
   const image = String(profile.metadata.image || "")
   const sourceDurationMs = reference?.duration_ms || 0
   const approvedCount = profile.bindings.filter((binding) => binding.validation_state === "approved").length
+  const replacingMethod = Boolean(setupRoute && profile.bindings.some((binding) => binding.validation_state === "approved" && bindingMatchesRoute(binding, setupRoute)))
 
   function beginMethodSetup(route: VoicePackageRoute) {
     if (!reference) return
@@ -116,7 +118,10 @@ export function VoiceProfileDialog({ profile, open, onOpenChange, onEditIdentity
     setSourceDraft({
       startMs: existing?.start_ms || 0,
       durationMs: Math.min(existing?.duration_ms || guidance.recommendedMaximumMs, sourceDurationMs || guidance.recommendedMaximumMs, guidance.maximumMs),
-      transcript: existing?.transcript || reference.transcript || "",
+      // A full-recording transcript cannot be guessed into an arbitrary
+      // sub-selection. Only reuse transcript truth saved for this exact
+      // method window.
+      transcript: existing?.transcript || "",
       preprocess: route.adapter_key === "audio" && Boolean(existing?.enable_preprocess),
     })
     setSetupRouteId(route.provider_model_id)
@@ -128,10 +133,6 @@ export function VoiceProfileDialog({ profile, open, onOpenChange, onEditIdentity
     const guidance = routeSourceGuidance(setupRoute)
     if (sourceDraft.durationMs < guidance.minimumMs || sourceDraft.durationMs > guidance.maximumMs) {
       toast.error(`${routeLabel(setupRoute)} needs a source between ${guidance.minimumMs / 1000} and ${guidance.maximumMs / 1000} seconds.`)
-      return
-    }
-    if (setupRoute.adapter_key === "qwen_tts" && !sourceDraft.transcript.trim()) {
-      toast.error("Paste the exact words spoken in this selection for Qwen3 TTS Voice Clone.")
       return
     }
     setSetupBusy(true)
@@ -194,7 +195,7 @@ export function VoiceProfileDialog({ profile, open, onOpenChange, onEditIdentity
   }
 
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="voice-profile-dialog">
-    <DialogHeader className="voice-profile-dialog-header"><div className="voice-profile-dialog-identity"><span className="voice-profile-dialog-avatar">{image ? <img src={image} alt="" /> : initials}</span><span><DialogTitle>{profile.name}</DialogTitle><DialogDescription>{profile.metadata.trait || "Cloned production voice"}</DialogDescription><VoiceGenderBadge gender={profile.metadata.gender} /></span></div><Button variant="outline" size="sm" onClick={onEditIdentity}><SlidersHorizontal /> Edit identity</Button></DialogHeader>
+    <DialogHeader className="voice-profile-dialog-header"><div className="voice-profile-dialog-identity"><span className="voice-profile-dialog-avatar">{image ? <img src={image} alt="" /> : initials}</span><span><DialogTitle>{profile.name}</DialogTitle><VoiceGenderBadge gender={profile.metadata.gender} /><VoiceLanguageBadge language={String(profile.metadata.editorial_language || "")} /><DialogDescription>{profile.metadata.trait || "Cloned production voice"}</DialogDescription></span></div><Button variant="outline" size="sm" onClick={onEditIdentity}><SlidersHorizontal /> Edit identity</Button></DialogHeader>
     <Tabs value={tab} onValueChange={(next) => { setTab(next); if (next !== "methods") setSetupRouteId("") }} className="voice-profile-tabs">
       <TabsList><TabsTrigger value="voice">Voice</TabsTrigger><TabsTrigger value="methods">Recording methods</TabsTrigger><TabsTrigger value="tests">Voice tests</TabsTrigger></TabsList>
       <ScrollArea className="voice-profile-dialog-scroll">
@@ -204,15 +205,16 @@ export function VoiceProfileDialog({ profile, open, onOpenChange, onEditIdentity
           {reference ? <section className="voice-master-summary"><span className="voice-master-icon"><FileAudio /></span><div><h4>Original recording</h4><b>{reference.original_name}</b><p>{formatDuration(sourceDurationMs / 1000)} · {reference.sample_rate ? `${reference.sample_rate / 1000} kHz` : "Sample rate unavailable"} · {reference.channels === 1 ? "Mono" : reference.channels === 2 ? "Stereo" : "Channels unavailable"} · {languageLabel(reference.source_language || profile.metadata.recording_language)}</p></div><Badge variant="outline">Preserved master</Badge></section> : <div className="voice-profile-empty compact"><CircleAlert /><h3>No original recording</h3><p>Add a source recording before setting up another method.</p></div>}
         </TabsContent>
         <TabsContent value="methods" className="voice-profile-panel">
-          {setupRoute && reference ? <><button type="button" className="voice-method-back" onClick={() => setSetupRouteId("")}><ArrowLeft /> All recording methods</button><header className="voice-profile-section-heading voice-method-setup-heading"><span><h3>Prepare {routeLabel(setupRoute)}</h3><p>Choose the strongest passage for this method. The original recording stays unchanged.</p></span></header><VoiceMethodSourceEditor route={setupRoute} referenceId={reference.id} sourceDurationMs={sourceDurationMs} value={sourceDraft} onChange={setSourceDraft} /><footer className="voice-profile-panel-actions"><span>This creates a test version. Nothing ready today is replaced until you approve it.</span><Button onClick={() => void createMethodVersion()} disabled={setupBusy}>{setupBusy ? <LoaderCircle className="spin" /> : <Sparkles />} {setupBusy ? "Creating…" : "Create test version"}</Button></footer></> : <><header className="voice-profile-section-heading"><span><h3>Recording methods</h3><p>Each method gets its own carefully chosen passage from the preserved original recording.</p></span></header><div className="voice-method-list">{profile.available_routes.map((route) => {
+          {setupRoute && reference ? <><button type="button" className="voice-method-back" onClick={() => setSetupRouteId("")}><ArrowLeft /> All recording methods</button><header className="voice-profile-section-heading voice-method-setup-heading"><span><h3>{replacingMethod ? "Reclone for" : "Set up"} {routeLabel(setupRoute)}</h3><p>Choose the strongest passage for this method. The original recording stays unchanged.</p></span></header><VoiceMethodSourceEditor route={setupRoute} referenceId={reference.id} sourceDurationMs={sourceDurationMs} value={sourceDraft} onChange={setSourceDraft} /><footer className="voice-profile-panel-actions"><span>This creates a test version. Nothing ready today is replaced until you approve it.</span><Button onClick={() => void createMethodVersion()} disabled={setupBusy}>{setupBusy ? <LoaderCircle className="spin" /> : <Sparkles />} {setupBusy ? "Creating…" : "Create test version"}</Button></footer></> : <><header className="voice-profile-section-heading"><span><h3>Recording methods</h3><p>Each method gets its own carefully chosen passage from the preserved original recording.</p></span></header><div className="voice-method-list">{profile.available_routes.map((route) => {
             const bindings = profile.bindings.filter((binding) => bindingMatchesRoute(binding, route))
             const approved = bindings.find((binding) => binding.validation_state === "approved")
             const candidates = bindings.filter((binding) => binding.validation_state === "candidate")
             const job = profile.jobs.find((item) => jobMatchesRoute(item, route) && ["queued", "creating", "failed", "interrupted"].includes(item.status))
             const working = Boolean(job && ["queued", "creating"].includes(job.status))
             const failed = Boolean(job && ["failed", "interrupted"].includes(job.status))
-            const state = candidates.length ? "New version ready to review" : approved ? "Ready to use" : failed ? methodFailureMessage(job?.error) : working ? "Creating test version…" : "Needs setup"
-            return <article key={route.provider_model_id}><span className={cn("voice-method-state", approved && "ready", working && "working", failed && "failed")}>{working ? <LoaderCircle className="spin" /> : approved ? <Check /> : failed ? <CircleAlert /> : <X />}</span><div><h4>{routeLabel(route)}</h4><p>{route.role}</p><span>{state}</span></div><Button variant="outline" size="sm" disabled={!reference || working} onClick={() => beginMethodSetup(route)}><RefreshCw /> {approved ? "Prepare new version" : "Set up"}</Button></article>
+            const stateKind = candidates.length ? "review" : approved ? "ready" : failed ? "failed" : working ? "working" : "setup"
+            const state = candidates.length ? "New version ready — listen in Voice tests" : approved ? "Ready to use" : failed ? methodFailureMessage(job?.error) : working ? "Creating test version…" : "Needs setup"
+            return <article key={route.provider_model_id}><span className={cn("voice-method-state", stateKind)}>{working ? <LoaderCircle className="spin" /> : approved ? <Check /> : failed ? <CircleAlert /> : <X />}</span><div><h4>{routeLabel(route)}</h4><p>{route.role}</p><span className={`voice-method-status-copy ${stateKind}`}>{state}</span></div><Button variant="outline" size="sm" disabled={!reference || working} onClick={() => beginMethodSetup(route)}><RefreshCw /> {approved ? "Reclone" : "Set up"}</Button></article>
           })}</div></>}
         </TabsContent>
         <TabsContent value="tests" className="voice-profile-panel">

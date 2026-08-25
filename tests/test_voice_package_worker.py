@@ -237,6 +237,31 @@ class VoicePackageWorkerTests(unittest.TestCase):
             language="en",
             transcript="Reference words")
 
+    def test_qwen_tts_clone_allows_the_provider_optional_transcript_to_be_absent(self):
+        job = package_job(
+            engine="qwen_tts", tier="vc",
+            model_id="qwen3-tts-vc-2026-01-22",
+            metadata={"language": "en", "transcript": ""},
+        )
+        with TemporaryDirectory() as directory:
+            local = Path(directory) / "source.wav"
+            local.write_bytes(b"RIFF-test")
+            with patch.dict("os.environ", {"DASHSCOPE_API_KEY": "fixture"}), \
+                    patch(
+                        "audio_studio.providers.alibaba.voice_cloning.storage.configured",
+                        return_value=True), \
+                    patch(
+                        "audio_studio.providers.alibaba.voice_cloning.storage.upload",
+                        return_value="https://storage.test/reference.wav"), \
+                    patch(
+                        "audio_studio.providers.alibaba.voice_cloning.qwen_tts.create_voice",
+                        return_value="qwen3-tts-vc-fixture") as create:
+                AlibabaVoiceCloningProvider().create(job, local)
+        create.assert_called_once_with(
+            "qwen3-tts-vc-2026-01-22", "testvoice",
+            "https://storage.test/reference.wav",
+            language="en", transcript=None)
+
     def test_service_claims_resolves_and_completes_one_capability(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)

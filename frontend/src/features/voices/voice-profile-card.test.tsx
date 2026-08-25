@@ -8,7 +8,7 @@ import { VoiceProfileCard } from "./voice-profile-card"
 afterEach(cleanup)
 
 const profile: VoiceProfile = {
-  id: "voice-serinity", name: "Serinity", metadata: { language: "en", gender: "female" },
+  id: "voice-serinity", name: "Serinity", metadata: { language: "en", editorial_language: "en", gender: "female" },
   created_at: "2026-08-07", updated_at: "2026-08-07",
   references: [
     { id: "ref-1", original_name: "serinity.wav", normalized_path: "serinity-24k.wav", source_language: "en", transcript: "", sha256: "fixture", created_at: "2026-08-07", updated_at: "2026-08-07" },
@@ -32,6 +32,7 @@ describe("VoiceProfileCard", () => {
     render(<VoiceProfileCard profile={profile} onOpen={() => undefined} onPreview={() => undefined} />)
     expect(screen.getByRole("heading", { name: "Serinity" })).toBeTruthy()
     expect(screen.getByText("Female")).toBeTruthy()
+    expect(screen.getByText("English")).toBeTruthy()
     expect(screen.getByText("1 new version to review")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Open Serinity" })).toBeTruthy()
   })

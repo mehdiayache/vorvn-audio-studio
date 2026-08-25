@@ -64,7 +64,10 @@ CAPABILITIES = {
             "minimum": 5_000,
             "recommended_minimum": 10_000,
             "recommended_maximum": 20_000,
-            "maximum": 60_000,
+            # The source file API accepts up to 60 seconds, but our exact
+            # Qwen Audio enrollment path controls the used prompt with
+            # max_prompt_audio_length, whose documented maximum is 30.
+            "maximum": 30_000,
         },
         "output_languages": list(AUDIO_CLONE_LANGUAGES.values()),
         "system_languages": ["Chinese", "English"],

@@ -26,18 +26,6 @@
 .music-workbench-section label > span svg { width: 15px; }
 .music-workbench-section label > span b { margin-left: auto; color: var(--foreground); font-variant-numeric: tabular-nums; }
 
-.music-waveform-editor { display: grid; gap: var(--space-2); padding: var(--space-3); border: var(--stroke-hairline) solid var(--border); border-radius: var(--radius-md); background: var(--surface-subtle); }
-.music-waveform-editor > header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
-.music-waveform-editor > header span { display: grid; gap: 2px; }
-.music-waveform-editor > header small { color: var(--muted-foreground); font-size: var(--type-caption); font-weight: var(--weight-body); line-height: 1.35; }
-.music-waveform-editor > header strong { color: var(--primary); font-variant-numeric: tabular-nums; }
-.music-waveform-editor.is-loop [part="region"] { min-width: 3px !important; width: 3px !important; border-radius: 999px; background: var(--primary) !important; }
-.music-waveform-canvas { position: relative; min-height: 104px; overflow: hidden; border-radius: var(--radius-sm); background: color-mix(in oklab, var(--surface-raised) 86%, var(--primary-soft)); }
-.music-waveform-surface { height: 104px; color: color-mix(in oklab, var(--primary) 64%, var(--muted-foreground)); }
-.music-waveform-surface::part(region) { border: 1px solid color-mix(in oklab, var(--primary) 72%, white); border-radius: .35rem; box-shadow: inset 0 0 0 1px color-mix(in oklab, white 55%, transparent); }
-.music-waveform-surface::part(region-handle) { width: .55rem; }
-.music-waveform-loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted-foreground); font-size: var(--type-caption); }
-.music-waveform-ruler { display: flex; justify-content: space-between; color: var(--muted-foreground); font-size: var(--type-caption); font-variant-numeric: tabular-nums; }
 
 .music-primary-level { gap: .65rem !important; }
 .music-output-fact { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin: 0; color: var(--foreground); font-size: .66rem; font-weight: 680; font-variant-numeric: tabular-nums; }

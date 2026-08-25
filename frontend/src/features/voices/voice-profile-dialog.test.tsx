@@ -30,7 +30,7 @@ const route = {
   language: "en", source_language_documented: true,
   documented_output_languages: ["English"], estimated_creation_cost: 0,
   capability_ids: ["expressive_tags"],
-  clone_source_duration_ms: { minimum: 5_000, recommended_minimum: 10_000, recommended_maximum: 20_000, maximum: 60_000 },
+  clone_source_duration_ms: { minimum: 5_000, recommended_minimum: 10_000, recommended_maximum: 20_000, maximum: 30_000 },
 }
 
 const profile: VoiceProfile = {
@@ -77,11 +77,12 @@ describe("VoiceProfileDialog", () => {
     fireEvent.keyDown(voiceTab, { key: "ArrowRight" })
     await waitFor(() => expect(screen.getByRole("tab", { name: "Recording methods" }).getAttribute("data-state")).toBe("active"))
     await waitFor(() => expect(screen.getByText("Ready to use")).toBeTruthy())
-    fireEvent.click(screen.getByRole("button", { name: "Prepare new version" }))
+    fireEvent.click(screen.getByRole("button", { name: "Reclone" }))
 
-    expect(screen.getByRole("heading", { name: "Prepare Qwen Audio TTS · Flash" })).toBeTruthy()
-    expect(screen.getByText("Recommended 10–20 seconds")).toBeTruthy()
-    expect(screen.getByText("Clean a noisy recording")).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "Reclone for Qwen Audio TTS · Flash" })).toBeTruthy()
+    expect(screen.getByText("Best result")).toBeTruthy()
+    expect(screen.getByText("Required range")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Recording cleanup" })).toBeTruthy()
     expect(screen.getByRole("button", { name: /Create test version/ })).toBeTruthy()
   })
 

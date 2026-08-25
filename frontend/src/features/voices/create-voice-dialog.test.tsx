@@ -54,8 +54,7 @@ describe("CreateVoiceDialog", () => {
     const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]')
     fireEvent.change(fileInput!, { target: { files: [new File(["voice"], "voice.wav", { type: "audio/wav" })] } })
     fireEvent.click(screen.getByRole("button", { name: "Prepare recording" }))
-    const transcript = await screen.findByPlaceholderText("Paste exactly what the speaker says in this selected window")
-    fireEvent.change(transcript, { target: { value: "A faithful reference sentence." } })
+    await screen.findByText("Exact transcript")
     fireEvent.click(screen.getByRole("button", { name: "Review voice" }))
     await screen.findByText("1 recording methods are ready")
     fireEvent.click(screen.getByRole("button", { name: "Create voice" }))
@@ -64,5 +63,6 @@ describe("CreateVoiceDialog", () => {
       name: "New narrator", gender: "female", language: "en", reference_id: "ref-new",
       reference_window_ids: { [route.provider_model_id]: "vwin-new" },
     })))
+    expect(studioApi.saveUploadedVoiceReferenceWindow).toHaveBeenCalledWith("ref-new", expect.objectContaining({ transcript: "" }))
   })
 })
