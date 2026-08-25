@@ -10,9 +10,9 @@
 .capability-choice-row.selected .capability-row-radio { color: var(--primary); }
 .capability-row-radio svg { width: 20px; height: 20px; }
 .capability-row-copy { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.capability-row-copy .capability-card-title { color: var(--primary); font-size: var(--type-small); font-weight: 750; }
-.capability-row-copy b { overflow: hidden; color: var(--muted-foreground); font-size: var(--type-caption); font-weight: 520; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
-.capability-row-model { min-width: 0; color: var(--foreground); font-size: var(--type-small); font-weight: 650; line-height: 1.35; text-align: right; }
+.capability-row-copy .capability-card-title { color: var(--primary); font-size: var(--type-small); font-weight: var(--weight-emphasis); }
+.capability-row-copy b { overflow: hidden; color: var(--muted-foreground); font-size: var(--type-caption); font-weight: var(--weight-emphasis); line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.capability-row-model { min-width: 0; color: var(--foreground); font-size: var(--type-small); font-weight: var(--weight-emphasis); line-height: 1.35; text-align: right; }
 .capability-choice-row small { color: var(--muted-foreground); font-size: var(--type-caption); white-space: nowrap; }
 .capability-choice-row .capability-card-state { display: flex; align-items: center; gap: 5px; }
 .capability-choice-row .capability-card-state.documented { color: var(--success); }

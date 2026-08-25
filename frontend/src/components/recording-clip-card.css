@@ -14,15 +14,15 @@
 .recording-clip-state-icon svg { width: 17px; height: 17px; }
 .recording-clip-body { min-width: 0; display: grid; gap: 6px; }
 .recording-clip-body > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.recording-clip-status { flex: none; display: inline-flex; align-items: center; gap: 5px; color: var(--muted-foreground); font-size: var(--type-caption); font-weight: 650; }
+.recording-clip-status { flex: none; display: inline-flex; align-items: center; gap: 5px; color: var(--muted-foreground); font-size: var(--type-caption); font-weight: var(--weight-emphasis); }
 .recording-clip-status svg { width: 14px; height: 14px; }
 .is-pending .recording-clip-status { color: var(--primary); }
 .is-failed .recording-clip-status { color: var(--destructive); }
 .is-warning .recording-clip-status { color: var(--warning); }
 .recording-clip-script { display: -webkit-box; overflow: hidden; margin: 0; color: var(--foreground); font-size: var(--type-body); line-height: 1.45; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .recording-clip-facts { min-width: 0; display: flex; align-items: center; gap: 7px 12px; overflow: hidden; color: var(--muted-foreground); font-size: var(--type-caption); }
-.recording-clip-facts > b, .recording-clip-facts > small, .recording-clip-facts > em { flex: none; overflow: hidden; font-size: inherit; font-style: normal; font-weight: 520; text-overflow: ellipsis; white-space: nowrap; }
-.recording-clip-facts > b { color: var(--foreground); font-weight: 620; }
+.recording-clip-facts > b, .recording-clip-facts > small, .recording-clip-facts > em { flex: none; overflow: hidden; font-size: inherit; font-style: normal; font-weight: var(--weight-emphasis); text-overflow: ellipsis; white-space: nowrap; }
+.recording-clip-facts > b { color: var(--foreground); font-weight: var(--weight-emphasis); }
 .recording-clip-facts > * + *::before { margin-right: 12px; color: var(--border-strong); content: "·"; }
 .recording-clip-facts .speech-model-identity { flex: 0 1 auto; min-width: 0; }
 .recording-clip-facts .speech-model-identity::before { margin-right: 12px; color: var(--border-strong); content: "·"; }

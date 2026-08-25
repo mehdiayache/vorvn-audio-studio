@@ -7,6 +7,6 @@
 .voice-name-row { min-width: 0; display: flex; align-items: center; gap: 6px; }
 .voice-display-name { min-width: 0; overflow-wrap: anywhere; white-space: normal; }
 .voice-source-flag { flex: 0 0 auto; font-size: 15px; line-height: 1; }
-.voice-copy small { margin-top: 3px; color: var(--muted-foreground); font-size: var(--type-caption); font-weight: 400; }
+.voice-copy small { margin-top: 3px; color: var(--muted-foreground); font-size: var(--type-caption); font-weight: var(--weight-regular); }
 .voice-identity.compact .voice-portrait { width: 30px; height: 30px; flex-basis: 30px; border-radius: var(--radius-sm); }
 @media (max-width: 600px) { .voice-copy small { white-space: normal; line-height: 1.35; } }

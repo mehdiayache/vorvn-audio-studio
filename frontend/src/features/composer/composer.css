@@ -93,7 +93,7 @@
 .composer-field-label {
   color: var(--muted-foreground);
   font-size: var(--type-caption);
-  font-weight: 650;
+  font-weight: var(--weight-emphasis);
   letter-spacing: .015em;
 }
 
@@ -138,7 +138,7 @@
   color: var(--muted-foreground);
   font-size: var(--type-caption);
   font-style: normal;
-  font-weight: 450;
+  font-weight: var(--weight-medium);
 }
 
 .composer-picker-copy code {
@@ -162,7 +162,7 @@
   border-radius: 8px;
   background: var(--surface-subtle);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--weight-emphasis);
 }
 
 .composer-method-mark {
@@ -423,7 +423,7 @@
 .spoken-method-menu small {
   color: var(--muted-foreground);
   font-size: var(--type-caption);
-  font-weight: 400;
+  font-weight: var(--weight-regular);
 }
 
 .script-editor-shell {
@@ -590,7 +590,7 @@
 .composer-controls-rail .composer-section > label > span {
   color: var(--foreground);
   font-size: var(--type-small);
-  font-weight: 650;
+  font-weight: var(--weight-emphasis);
 }
 
 .composer-controls-rail [data-slot="select-trigger"],
@@ -626,7 +626,7 @@
   flex-basis: 100%;
   color: var(--muted-foreground);
   font-size: var(--type-caption);
-  font-weight: 650;
+  font-weight: var(--weight-emphasis);
 }
 
 .delivery-mode p {
@@ -670,7 +670,7 @@
 .composer-output-route > span {
   color: var(--muted-foreground);
   font-size: var(--type-caption);
-  font-weight: 650;
+  font-weight: var(--weight-emphasis);
   letter-spacing: .04em;
   text-transform: uppercase;
 }
@@ -755,7 +755,7 @@
   flex: none;
   height: 100%;
   padding-inline: 4px;
-  font-weight: 650;
+  font-weight: var(--weight-emphasis);
 }
 
 .composer-stage-tabs > [data-slot="tabs-list"] [data-slot="tabs-trigger"][data-state="active"]::after {

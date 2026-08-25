@@ -11,9 +11,9 @@
 .voice-language-verdict b { display: block; font-size: var(--type-small); }
 .voice-language-verdict p { margin: 3px 0 0; color: var(--muted-foreground); font-size: var(--type-caption); line-height: 1.45; }
 .voice-language-support details { padding-top: var(--space-2); border-top: 1px solid color-mix(in oklch, var(--border) 80%, transparent); }
-.voice-language-support summary { display: flex; align-items: center; gap: var(--space-2); color: var(--muted-foreground); font-size: var(--type-caption); font-weight: 700; cursor: pointer; }
+.voice-language-support summary { display: flex; align-items: center; gap: var(--space-2); color: var(--muted-foreground); font-size: var(--type-caption); font-weight: var(--weight-emphasis); cursor: pointer; }
 .voice-language-support summary svg { width: 14px; }
 .voice-language-list { display: flex; flex-wrap: wrap; gap: 5px; padding-top: var(--space-2); }
 .voice-language-list span { padding: 4px 7px; border: 1px solid var(--border); border-radius: var(--radius-full); background: var(--surface-raised); color: var(--muted-foreground); font-size: 11px; }
-.voice-language-list span.current { border-color: color-mix(in oklch, var(--primary) 45%, var(--border)); background: var(--primary-soft); color: var(--primary); font-weight: 700; }
+.voice-language-list span.current { border-color: color-mix(in oklch, var(--primary) 45%, var(--border)); background: var(--primary-soft); color: var(--primary); font-weight: var(--weight-emphasis); }
 .voice-language-support.compact { margin-top: 4px; padding: var(--space-3); }

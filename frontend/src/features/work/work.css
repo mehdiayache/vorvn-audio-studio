@@ -1,6 +1,6 @@
 .work-page {
   min-height: calc(100dvh - var(--studio-standalone-header-height) - var(--studio-local-chrome-height));
-  background: color-mix(in oklch, var(--surface-subtle) 76%, var(--background));
+  background: var(--workspace-background);
 }
 
 .work-home-inner,
@@ -20,9 +20,9 @@
   gap: 2rem;
   padding: 18px 0 36px;
 }
-.work-welcome > div > span { display: inline-flex; align-items: center; gap: 7px; color: var(--primary); font-size: var(--type-small); font-weight: 720; }
+.work-welcome > div > span { display: inline-flex; align-items: center; gap: 7px; color: var(--primary); font-size: var(--type-small); font-weight: var(--weight-emphasis); }
 .work-welcome > div > span svg { width: 1rem; }
-.work-welcome h1 { margin-top: 8px; font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 730; letter-spacing: -.045em; line-height: 1.02; }
+.work-welcome h1 { margin-top: 8px; font-size: clamp(2rem, 4vw, 3.2rem); font-weight: var(--weight-emphasis); letter-spacing: -.045em; line-height: 1.02; }
 .work-welcome p { margin-top: 10px; color: color-mix(in oklch, var(--foreground) 70%, transparent); font-size: var(--type-heading-sm); line-height: 1.45; }
 
 .work-page-header { padding-block: 18px 22px; background: transparent; }
@@ -32,13 +32,13 @@
 .work-title-icon > img, .work-title-icon > .venture-mark { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .work-title-icon > svg { width: 1.35rem; }
 .work-title-copy { min-width: 0; }
-.work-title-copy h1 { overflow: hidden; font-size: var(--type-heading-xl); font-weight: 720; letter-spacing: -.025em; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+.work-title-copy h1 { overflow: hidden; font-size: var(--type-heading-xl); font-weight: var(--weight-emphasis); letter-spacing: -.025em; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
 .work-title-copy p { margin-top: 3px; overflow: hidden; color: color-mix(in oklch, var(--foreground) 68%, transparent); font-size: var(--type-small); line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 .work-title-actions { display: flex; align-items: center; gap: 8px; }
 .work-metrics { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-left: calc(3.25rem + 14px); }
 .work-metrics > div { display: flex; align-items: baseline; gap: 5px; }
-.work-metrics dt { color: color-mix(in oklch, var(--foreground) 64%, transparent); font-size: var(--type-caption); font-weight: 560; }
-.work-metrics dd { order: -1; margin: 0; color: var(--foreground); font-size: var(--type-small); font-weight: 730; font-variant-numeric: tabular-nums; }
+.work-metrics dt { color: color-mix(in oklch, var(--foreground) 64%, transparent); font-size: var(--type-caption); font-weight: var(--weight-emphasis); }
+.work-metrics dd { order: -1; margin: 0; color: var(--foreground); font-size: var(--type-small); font-weight: var(--weight-emphasis); font-variant-numeric: tabular-nums; }
 
 .work-content { padding-top: 16px; }
 .work-section + .work-section,
@@ -46,8 +46,8 @@
 .venture-media + .work-section { margin-top: 44px; }
 .work-section-head { display: flex; align-items: end; justify-content: space-between; gap: 1.25rem; margin-bottom: 14px; }
 .work-section-title { display: flex; align-items: baseline; gap: 8px; }
-.work-section-title h2, .work-section-head h2 { font-size: var(--type-heading-md); font-weight: 700; letter-spacing: -.015em; line-height: 1.25; }
-.work-section-title small { color: color-mix(in oklch, var(--foreground) 62%, transparent); font-size: var(--type-small); font-weight: 650; }
+.work-section-title h2, .work-section-head h2 { font-size: var(--type-heading-md); font-weight: var(--weight-emphasis); letter-spacing: -.015em; line-height: 1.25; }
+.work-section-title small { color: color-mix(in oklch, var(--foreground) 62%, transparent); font-size: var(--type-small); font-weight: var(--weight-emphasis); }
 .work-section-head p { margin-top: 3px; color: color-mix(in oklch, var(--foreground) 68%, transparent); font-size: var(--type-small); line-height: 1.45; }
 
 .work-collection-toolbar { min-height: 48px; display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding: 6px; border: 1px solid var(--border); border-radius: calc(var(--radius) * 1.05); background: var(--surface-raised); box-shadow: var(--shadow-xs); }
@@ -76,7 +76,7 @@
 .venture-card-link:focus-visible, .project-card-link:focus-visible, .series-card-link:focus-visible { outline: 3px solid color-mix(in oklch, var(--ring) 48%, transparent); outline-offset: -4px; }
 .venture-brand-mark { width: 3.5rem; height: 3.5rem; border-radius: calc(var(--radius) * 1.05); background: var(--primary-soft); font-size: 1.65rem; }
 .venture-card-copy { min-width: 0; }
-.venture-card-copy h2 { overflow: hidden; font-size: var(--type-heading-sm); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.venture-card-copy h2 { overflow: hidden; font-size: var(--type-heading-sm); font-weight: var(--weight-emphasis); text-overflow: ellipsis; white-space: nowrap; }
 .venture-card-copy p { display: -webkit-box; min-height: 2.6em; margin-top: 4px; overflow: hidden; color: color-mix(in oklch, var(--foreground) 69%, transparent); font-size: var(--type-small); line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .venture-card-copy footer { display: flex; flex-wrap: wrap; gap: 5px 12px; margin-top: 14px; color: color-mix(in oklch, var(--foreground) 63%, transparent); font-size: var(--type-caption); }
 .venture-card-copy footer span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -94,7 +94,7 @@
 .project-card-menu-wrap { position: absolute; z-index: 3; top: 8px; right: 8px; border-radius: var(--radius-sm); background: color-mix(in oklch, var(--surface-raised) 88%, transparent); box-shadow: var(--shadow-xs); }
 .project-card-menu { color: var(--foreground); pointer-events: auto; }
 .project-card-content { position: absolute; inset: 58% 0 0; padding: 13px 14px; border-top: 1px solid var(--border); background: var(--surface-raised); pointer-events: none; }
-.project-card-content h3 { overflow: hidden; font-size: var(--type-body); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.project-card-content h3 { overflow: hidden; font-size: var(--type-body); font-weight: var(--weight-emphasis); text-overflow: ellipsis; white-space: nowrap; }
 .project-card-content > p { margin-top: 3px; overflow: hidden; color: color-mix(in oklch, var(--foreground) 68%, transparent); font-size: var(--type-caption); text-overflow: ellipsis; white-space: nowrap; }
 .project-card-content footer { display: flex; flex-wrap: wrap; gap: 3px 9px; margin-top: 9px; color: color-mix(in oklch, var(--foreground) 62%, transparent); font-size: var(--type-caption); }
 
@@ -113,10 +113,10 @@
 .series-card:hover { border-color: color-mix(in oklch, var(--series) 34%, var(--border)); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
 .series-card-art { position: relative; display: grid; place-items: center; overflow: hidden; background: var(--series-soft); color: var(--series); }
 .series-card-art > svg { position: absolute; top: 12px; left: 12px; width: 17px; }
-.series-card-art > b { font-size: 2.25rem; font-weight: 760; }
+.series-card-art > b { font-size: 2.25rem; font-weight: var(--weight-emphasis); }
 .series-card-art img { width: 100%; height: 100%; object-fit: cover; }
 .series-card-copy { min-width: 0; padding: 13px 14px 14px; }
-.series-card-copy h3 { overflow: hidden; font-size: var(--type-body); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.series-card-copy h3 { overflow: hidden; font-size: var(--type-body); font-weight: var(--weight-emphasis); text-overflow: ellipsis; white-space: nowrap; }
 .series-card-copy p { margin-top: 3px; overflow: hidden; color: color-mix(in oklch, var(--foreground) 68%, transparent); font-size: var(--type-caption); text-overflow: ellipsis; white-space: nowrap; }
 .series-card-copy footer { display: flex; flex-wrap: wrap; gap: 3px 9px; margin-top: 10px; color: color-mix(in oklch, var(--foreground) 62%, transparent); font-size: var(--type-caption); }
 .series-card-open { position: absolute; right: 13px; bottom: 14px; width: 15px; color: color-mix(in oklch, var(--foreground) 48%, transparent); }
@@ -129,7 +129,7 @@
 .production-summary-icon { width: 2.35rem; height: 2.35rem; display: grid; place-items: center; border-radius: var(--radius-sm); background: var(--primary-soft); color: var(--primary); }
 .production-summary-icon svg { width: 1rem; }
 .production-summary-copy { min-width: 0; display: grid; gap: 5px; }
-.production-summary-copy > b { overflow: hidden; font-size: var(--type-small); font-weight: 690; text-overflow: ellipsis; white-space: nowrap; }
+.production-summary-copy > b { overflow: hidden; font-size: var(--type-small); font-weight: var(--weight-emphasis); text-overflow: ellipsis; white-space: nowrap; }
 .production-summary-meta { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .production-summary-meta > small { color: color-mix(in oklch, var(--foreground) 64%, transparent); font-size: var(--type-caption); white-space: nowrap; }
 .production-context { overflow: hidden; text-overflow: ellipsis; }
@@ -139,7 +139,7 @@
 .production-summary-stats small { color: color-mix(in oklch, var(--foreground) 62%, transparent); font-size: var(--type-caption); }
 .production-summary-open { width: 14px; color: color-mix(in oklch, var(--foreground) 48%, transparent); }
 .production-summary-row > button { align-self: center; margin-right: 7px; }
-.work-production-status { display: inline-flex; align-items: center; gap: 5px; font-size: var(--type-caption); font-weight: 680; text-transform: capitalize; }
+.work-production-status { display: inline-flex; align-items: center; gap: 5px; font-size: var(--type-caption); font-weight: var(--weight-emphasis); text-transform: capitalize; }
 .work-production-status i { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--border-strong); }
 .work-production-status.is-draft i { background: var(--draft); }
 .work-production-status.is-ready i { background: var(--success); }
@@ -154,7 +154,7 @@
 .work-empty { min-height: 13rem; display: flex; flex-direction: column; place-items: center; justify-content: center; gap: 10px; padding: 26px; border: 1px dashed var(--border-strong); border-radius: calc(var(--radius) * 1.15); background: color-mix(in oklch, var(--surface-raised) 72%, transparent); color: var(--foreground); text-align: center; }
 .work-empty.compact { min-height: 7.5rem; flex-direction: row; justify-content: flex-start; text-align: left; }
 .work-empty > svg { width: 1.5rem; color: var(--primary); }
-.work-empty h3 { font-size: var(--type-body); font-weight: 690; }
+.work-empty h3 { font-size: var(--type-body); font-weight: var(--weight-emphasis); }
 .work-empty p { margin-top: 3px; color: color-mix(in oklch, var(--foreground) 67%, transparent); font-size: var(--type-small); line-height: 1.45; }
 
 /* Venture media keeps canonical category color: Music green, SFX/other audio orange. */
@@ -164,13 +164,13 @@
 .media-collection-icon { width: 2.6rem; height: 2.6rem; display: grid; place-items: center; border-radius: var(--radius-sm); background: var(--asset-soft); color: var(--asset); }
 .media-collection.is-music .media-collection-icon { background: var(--success-soft); color: var(--success); }
 .media-collection-icon svg { width: 17px; }
-.media-collection h3 { font-size: var(--type-small); font-weight: 690; }
+.media-collection h3 { font-size: var(--type-small); font-weight: var(--weight-emphasis); }
 .media-collection p { margin-top: 2px; color: color-mix(in oklch, var(--foreground) 64%, transparent); font-size: var(--type-caption); }
 .media-collection-actions { grid-column: 1 / -1; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
-.media-upload-button { min-height: 30px; display: inline-flex; align-items: center; gap: 5px; padding: 0 9px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-subtle); font-size: var(--type-caption); font-weight: 650; cursor: pointer; }
+.media-upload-button { min-height: 30px; display: inline-flex; align-items: center; gap: 5px; padding: 0 9px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-subtle); font-size: var(--type-caption); font-weight: var(--weight-emphasis); cursor: pointer; }
 .media-upload-button input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .media-upload-button svg { width: 13px; }
-.media-drop-state { position: absolute; inset: 0; display: grid; place-items: center; border-radius: inherit; background: color-mix(in oklch, var(--asset-soft) 94%, transparent); font-size: var(--type-small); font-weight: 720; pointer-events: none; }
+.media-drop-state { position: absolute; inset: 0; display: grid; place-items: center; border-radius: inherit; background: color-mix(in oklch, var(--asset-soft) 94%, transparent); font-size: var(--type-small); font-weight: var(--weight-emphasis); pointer-events: none; }
 .venture-asset-list { display: grid; gap: 7px; max-height: min(520px, 65dvh); overflow: auto; }
 .venture-asset-list article { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 9px; border: 1px solid var(--border); border-radius: var(--radius); }
 .venture-asset-list article > div { min-width: 0; display: grid; gap: 2px; }
@@ -181,11 +181,11 @@
 
 /* Existing creation and management flows retain their proven behavior. */
 .resource-create-fields, .project-create-form, .venture-create-form { display: grid; gap: 14px; }
-.resource-create-fields label { display: grid; gap: 6px; font-size: var(--type-small); font-weight: 600; }
-.resource-create-fields label small { color: color-mix(in oklch, var(--foreground) 65%, transparent); font-weight: 400; }
+.resource-create-fields label { display: grid; gap: 6px; font-size: var(--type-small); font-weight: var(--weight-emphasis); }
+.resource-create-fields label small { color: color-mix(in oklch, var(--foreground) 65%, transparent); font-weight: var(--weight-regular); }
 .field-error { color: var(--destructive); }
 .create-production-dialog { width: min(640px, calc(100vw - 32px)); }
-.create-production-location { display: grid; gap: 7px; padding-top: 4px; font-size: var(--type-small); font-weight: 650; }
+.create-production-location { display: grid; gap: 7px; padding-top: 4px; font-size: var(--type-small); font-weight: var(--weight-emphasis); }
 .create-production-paths { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 8px 0; }
 .create-production-paths > button { min-height: 10rem; display: grid; align-content: start; gap: 9px; padding: 20px; border: 1px solid var(--border); border-radius: calc(var(--radius) * 1.1); background: var(--surface-raised); color: var(--foreground); text-align: left; }
 .create-production-paths > button:hover { border-color: var(--primary); background: color-mix(in oklch, var(--primary-soft) 30%, var(--surface-raised)); }
@@ -201,7 +201,7 @@
 .project-parent-context { display: grid; grid-template-columns: 42px minmax(0, 1fr) 32px; align-items: center; gap: 11px; padding: 11px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-subtle); }
 .project-parent-context > .venture-mark { width: 42px; height: 42px; border-radius: 11px; background: var(--venture-soft); }
 .project-parent-context > span { min-width: 0; display: flex; flex-direction: column; }
-.project-parent-context small { color: var(--venture); font-size: var(--type-caption); font-weight: 730; }
+.project-parent-context small { color: var(--venture); font-size: var(--type-caption); font-weight: var(--weight-emphasis); }
 .project-parent-context em { overflow: hidden; color: color-mix(in oklch, var(--foreground) 65%, transparent); font-size: var(--type-caption); font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
 .project-parent-context > a { width: 32px; height: 32px; display: grid; place-items: center; }
 .project-cover-field { display: grid; gap: 9px; }

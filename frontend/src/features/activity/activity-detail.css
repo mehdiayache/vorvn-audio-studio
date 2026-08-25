@@ -10,12 +10,12 @@
 .activity-cost span, .activity-cost small { color: var(--muted-foreground); font-size: var(--type-small); }
 .activity-cost b { font-size: 1.65rem; }
 .activity-deletion-receipt { display: grid; gap: 5px; padding: 16px; border-left: 3px solid var(--destructive); background: var(--surface-subtle); }
-.activity-deletion-receipt span { color: var(--destructive); font-size: var(--type-caption); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.activity-deletion-receipt span { color: var(--destructive); font-size: var(--type-caption); font-weight: var(--weight-emphasis); letter-spacing: .06em; text-transform: uppercase; }
 .activity-deletion-receipt b { font-size: 1.1rem; }
 .activity-deletion-receipt p { margin: 0; color: var(--muted-foreground); font-size: var(--type-small); line-height: 1.55; }
 .activity-detail dl { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; margin: 0; }
 .activity-detail dl div { min-width: 0; }
-.activity-detail dt { color: var(--muted-foreground); font-size: var(--type-caption); font-weight: 650; text-transform: uppercase; letter-spacing: .05em; }
+.activity-detail dt { color: var(--muted-foreground); font-size: var(--type-caption); font-weight: var(--weight-emphasis); text-transform: uppercase; letter-spacing: .05em; }
 .activity-detail dd { margin: 3px 0 0; overflow-wrap: anywhere; }
 .activity-detail h3 { margin: 0 0 8px; font-size: var(--type-body); }
 .activity-identifiers code { display: block; overflow-wrap: anywhere; margin-bottom: 10px; padding: 10px; border-radius: 9px; background: var(--surface-subtle); font-size: var(--type-small); }

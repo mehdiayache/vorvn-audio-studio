@@ -10,7 +10,8 @@
     "test:web": "vitest run",
     "test:web:watch": "vitest",
     "generate:api": ".venv/bin/python scripts/export_openapi.py && openapi-typescript openapi/audio-studio-v1.json -o frontend/src/types/api.generated.ts",
-    "check": "pnpm generate:api && pnpm build:web && pnpm test:web"
+    "check:typography": "node frontend/scripts/check-typography.mjs",
+    "check": "pnpm check:typography && pnpm generate:api && pnpm build:web && pnpm test:web"
   },
   "dependencies": {
     "@dawcore/transport": "0.0.14",

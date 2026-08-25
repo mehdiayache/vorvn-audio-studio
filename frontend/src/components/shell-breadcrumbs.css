@@ -28,4 +28,4 @@
 .shell-breadcrumb-item > a:hover { color: var(--foreground); }
 .shell-breadcrumb-item > svg { width: 13px; height: 13px; flex: none; }
 .shell-breadcrumb-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.shell-breadcrumb-item > b { color: var(--foreground); font-weight: 650; }
+.shell-breadcrumb-item > b { color: var(--foreground); font-weight: var(--weight-emphasis); }

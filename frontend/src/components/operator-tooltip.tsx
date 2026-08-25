@@ -12,7 +12,7 @@ export function OperatorTooltip({ label, detail, children, side = "top", disable
   return <TooltipProvider delayDuration={300}><Tooltip>
       <TooltipTrigger asChild>{disabledTrigger ? <span className="inline-flex items-center justify-center" tabIndex={0}>{children}</span> : children}</TooltipTrigger>
       <TooltipContent side={side} sideOffset={7} className="grid max-w-72 gap-0.5">
-        <b className="font-semibold">{label}</b>
+        <b className="font-medium">{label}</b>
         {detail && <span className="text-background/75">{detail}</span>}
       </TooltipContent>
     </Tooltip></TooltipProvider>

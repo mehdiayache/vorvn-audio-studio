@@ -7,7 +7,7 @@
 .page-loading { width: min(100% - 3rem, 70rem); margin: 0 auto; padding: 34px 0 72px; opacity: 0; animation: page-loading-enter 140ms ease 120ms forwards; }
 .page-loading-header { min-height: 60px; display: flex; align-items: center; gap: 13px; border-bottom: 1px solid var(--border); }
 .page-loading-header > div { display: grid; gap: 7px; }
-.page-loading-header span { display: flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: 560; }
+.page-loading-header span { display: flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: var(--weight-emphasis); }
 .page-loading-header span svg { width: 14px; }
 .page-loading-mark { width: 38px; height: 38px; border-radius: var(--radius); }
 .page-loading-title { width: clamp(9rem, 20vw, 15rem); height: 15px; border-radius: 4px; }
@@ -27,7 +27,7 @@
 .state-centered { min-height: 260px; place-items: center; text-align: center; align-content: center; }
 .state-copy { display: flex; align-items: center; gap: 8px; }
 .scoped-resource-error { align-items: center; background: var(--warning-soft); border-bottom: 1px solid color-mix(in oklab, var(--warning) 34%, var(--border)); color: var(--foreground); display: flex; font-size: var(--type-small); gap: 1rem; justify-content: center; padding: .55rem 1rem; }
-.scoped-resource-error button { color: inherit; font-weight: 750; text-decoration: underline; }
+.scoped-resource-error button { color: inherit; font-weight: var(--weight-emphasis); text-decoration: underline; }
 .inline-resource-error { display: flex; align-items: center; justify-content: center; gap: .65rem; margin: -10px 0 18px; padding: .55rem .75rem; border: 1px solid color-mix(in oklab, var(--warning) 30%, var(--border)); border-radius: var(--radius); background: var(--warning-soft); color: var(--foreground); font-size: var(--type-small); }
 .inline-resource-error > svg { width: 1rem; flex: none; color: var(--warning); }
 @media (max-width: 600px) {

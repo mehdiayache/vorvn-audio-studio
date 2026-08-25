@@ -1,6 +1,6 @@
 .activity-page { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 48px 0 140px; }
 .activity-page > .studio-page-header { margin-bottom: 34px; }
-.activity-section header small { color: var(--muted-foreground); font-size: var(--type-caption); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.activity-section header small { color: var(--muted-foreground); font-size: var(--type-caption); font-weight: var(--weight-emphasis); letter-spacing: .1em; text-transform: uppercase; }
 .activity-totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 34px 0; }
 .activity-totals article { padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-raised); }
 .activity-totals small { display: block; color: var(--muted-foreground); }

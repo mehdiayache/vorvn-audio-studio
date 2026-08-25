@@ -59,6 +59,7 @@
 
   /* Auvi Studio semantic extensions. */
   --surface-subtle: oklch(0.986 0.002 67.8);
+  --workspace-background: oklch(0.972 0.004 62);
   --surface-raised: oklch(1 0 0);
   --surface-inverse: oklch(0.147 0.004 49.3);
   --surface-inverse-soft: oklch(0.27 0.008 43.1);
@@ -115,10 +116,13 @@
   --type-display-page: 1.75rem;
   --type-display-hero: 2.25rem;
   --font-mono: "SFMono-Regular", Consolas, ui-monospace, monospace;
+  /* Calm editorial hierarchy: no interface text exceeds medium weight. */
   --weight-regular: 400;
-  --weight-body: 500;
-  --weight-label: 650;
-  --weight-title: 680;
+  --weight-body: 400;
+  --weight-medium: 450;
+  --weight-emphasis: 500;
+  --weight-label: 500;
+  --weight-title: 500;
 
   --layer-page: 0;
   --layer-sticky: 20;
@@ -162,6 +166,7 @@
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.66 0.2 292.7);
   --surface-subtle: oklch(0.18 0.006 43.1);
+  --workspace-background: oklch(0.165 0.006 43.1);
   --surface-raised: oklch(0.214 0.009 43.1);
   --surface-inverse: oklch(0.986 0.002 67.8);
   --surface-inverse-soft: oklch(0.84 0.006 43.1);

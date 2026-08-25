@@ -75,6 +75,11 @@ For every Auvi Studio UI/UX task, use the installed
 - Use restrained purple as the functional accent for primary action, active
   selection, generation, focus, playhead, and track identity. Semantic success,
   warning, and failure colors remain distinct.
+- Keep Auvi Studio typography calm and editorial. Use the semantic weight
+  tokens in `frontend/src/styles/tokens.css`; no interface text may exceed
+  weight `500`. Establish hierarchy with size, spacing, position and contrast,
+  never heavier bold. `pnpm check:typography` enforces this contract for new
+  pages and components.
 - Prefer the established Tailwind CSS 4.x tokens and local shadcn/Base UI/Radix
   primitives when they solve the interaction cleanly. Treat shadcn preset
   `b6FUDGQoi` as a baseline, not a ceiling, and query the shadcn MCP for likely

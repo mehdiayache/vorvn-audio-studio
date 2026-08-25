@@ -30,7 +30,7 @@ const metrics = { series_count: 1, standalone_count: 1, production_count: 2, par
 const production = { id: 6, public_id: "prd_falling", key: "production:6", type: "production" as const, name: "Falling asleep", description: "A finished episode", status: "draft", series_id: 1, part_count: 7, duration_ms: 90000, total_cost: .12, current_sequence_cost: .12 }
 
 describe("canonical work pages", () => {
-  it("puts direct Productions before Series in a Project", () => {
+  it("puts Series before direct Productions in a Project", () => {
     const data: ProjectOverview = {
       resource: projectResource,
       trail: [{ id: 2, public_id: "vnt_heartsnotes", type: "venture", name: "Heartsnotes" }],
@@ -41,7 +41,7 @@ describe("canonical work pages", () => {
     renderPage(<ProjectPage data={data} refresh={() => undefined} />)
     expect(screen.getByText("Series")).toBeTruthy()
     const headings = screen.getAllByRole("heading").map((heading) => heading.textContent)
-    expect(headings.indexOf("Productions")).toBeLessThan(headings.indexOf("Series"))
+    expect(headings.indexOf("Series")).toBeLessThan(headings.indexOf("Productions"))
     expect(screen.queryByText("Inside this Project")).toBeNull()
     expect(screen.getByRole("button", { name: "Create" })).toBeTruthy()
     expect(screen.getByRole("button", { name: /Project settings for Sleeping guides/ })).toBeTruthy()

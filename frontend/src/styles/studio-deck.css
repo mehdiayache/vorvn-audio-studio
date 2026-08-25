@@ -55,7 +55,7 @@
   border-radius: 0.625rem;
   color: var(--muted-foreground);
   font-size: var(--type-small);
-  font-weight: 600;
+  font-weight: var(--weight-emphasis);
   text-decoration: none;
   white-space: nowrap;
   transition: color 140ms ease, background 140ms ease;
@@ -82,7 +82,7 @@
   color: var(--primary-foreground);
   background: var(--primary);
   font-size: var(--type-small);
-  font-weight: 650;
+  font-weight: var(--weight-emphasis);
   text-decoration: none;
 }
 
@@ -114,7 +114,7 @@
   gap: 0.625rem;
   color: var(--foreground);
   font-size: 0.9375rem;
-  font-weight: 700;
+  font-weight: var(--weight-emphasis);
   letter-spacing: -0.02em;
   text-decoration: none;
 }
@@ -161,7 +161,7 @@
   border-radius: var(--radius-md);
   color: var(--muted-foreground);
   font-size: var(--type-small);
-  font-weight: 570;
+  font-weight: var(--weight-emphasis);
   text-decoration: none;
   transition: color 140ms ease, background 140ms ease;
 }
@@ -173,7 +173,7 @@
 
 .studio-deck-tools-trigger {
   color: var(--muted-foreground);
-  font-weight: 570;
+  font-weight: var(--weight-emphasis);
 }
 
 .studio-deck-tools-trigger.is-active { color: var(--primary); background: var(--primary-soft); }
@@ -192,7 +192,7 @@
   color: var(--muted-foreground);
   background: transparent;
   font-size: var(--type-caption);
-  font-weight: 600;
+  font-weight: var(--weight-emphasis);
   text-decoration: none;
 }
 
@@ -220,7 +220,7 @@
   border-radius: var(--radius-md);
   color: var(--foreground);
   font-size: var(--type-body);
-  font-weight: 570;
+  font-weight: var(--weight-emphasis);
   text-decoration: none;
 }
 .studio-deck-mobile-link svg { inline-size: 1rem; block-size: 1rem; color: var(--muted-foreground); }
@@ -238,7 +238,7 @@
     overflow: hidden;
     color: var(--foreground);
     font-size: var(--type-body);
-    font-weight: 650;
+    font-weight: var(--weight-emphasis);
     text-overflow: ellipsis;
     white-space: nowrap;
   }

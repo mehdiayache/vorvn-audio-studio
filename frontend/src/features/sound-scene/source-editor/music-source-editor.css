@@ -3,9 +3,9 @@
 .music-waveform-heading { min-width: 0; display: grid; gap: 3px; }
 .music-waveform-heading small { color: color-mix(in oklch,var(--foreground) 76%,transparent); font-size: var(--type-caption); font-weight: var(--weight-body); line-height: 1.35; }
 .music-waveform-selection { display: grid; grid-template-columns: auto auto; align-items: baseline; justify-items: end; gap: 1px 8px; font-variant-numeric: tabular-nums; }
-.music-waveform-selection small { color: color-mix(in oklch,var(--foreground) 72%,transparent); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .045em; }
+.music-waveform-selection small { color: color-mix(in oklch,var(--foreground) 72%,transparent); font-size: 11px; font-weight: var(--weight-emphasis); text-transform: uppercase; letter-spacing: .045em; }
 .music-waveform-selection strong { color: var(--primary); white-space: nowrap; }
-.music-waveform-selection em { grid-column: 1 / -1; color: var(--foreground); font-size: var(--type-caption); font-style: normal; font-weight: 700; }
+.music-waveform-selection em { grid-column: 1 / -1; color: var(--foreground); font-size: var(--type-caption); font-style: normal; font-weight: var(--weight-emphasis); }
 .music-waveform-header button { white-space: nowrap; }
 .music-waveform-editor.is-loop [part="region"] { min-width: 3px !important; width: 3px !important; border-radius: 999px; background: var(--primary) !important; }
 .music-waveform-canvas { position: relative; min-width: 0; min-height: 104px; overflow: hidden; border-radius: var(--radius-sm); background: color-mix(in oklab, var(--surface-raised) 86%, var(--primary-soft)); user-select: none; }
