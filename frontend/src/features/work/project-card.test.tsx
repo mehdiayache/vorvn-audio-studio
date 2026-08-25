@@ -29,7 +29,7 @@ describe("ProjectCard", () => {
     renderCard(<ProjectCard project={project} onUpdated={() => undefined} />)
     expect(screen.getByRole("link", { name: /Open Project Sleeping guides/ }).getAttribute("href")).toBe("/audio-studio/projects/prj_sleeping")
     expect(screen.getByRole("heading", { name: project.name })).toBeTruthy()
-    expect(screen.getByText("Project")).toBeTruthy()
+    expect(screen.queryByText("Project")).toBeNull()
     expect(screen.getByText("3 productions")).toBeTruthy()
     expect(screen.getByText("1:28")).toBeTruthy()
     expect(screen.getByRole("button", { name: /Project settings for Sleeping guides/ })).toBeTruthy()

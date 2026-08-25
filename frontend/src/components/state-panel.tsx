@@ -7,8 +7,9 @@ import "./state-panel.css"
 
 export function PageLoading({ label = "Loading Production" }: { label?: string }) {
   const subject = label.replace(/^Loading\s+/i, "")
+  const library = /work|venture|project|series/i.test(label)
   return (
-    <main className="page-loading" aria-label={label} aria-live="polite" role="status">
+    <main className={`page-loading${library ? " is-library" : ""}`} aria-label={label} aria-live="polite" role="status">
       <header className="page-loading-header">
         <Skeleton className="page-loading-mark" />
         <div>
@@ -16,19 +17,7 @@ export function PageLoading({ label = "Loading Production" }: { label?: string }
           <span><LoaderCircle className="spin" /> Opening {subject}…</span>
         </div>
       </header>
-      <div className="page-loading-layout" aria-hidden="true">
-        <aside>
-          <Skeleton />
-          <Skeleton />
-          <Skeleton />
-        </aside>
-        <section>
-          <Skeleton className="page-loading-section-title" />
-          <Skeleton />
-          <Skeleton />
-          <Skeleton />
-        </section>
-      </div>
+      {library ? <div className="page-loading-library" aria-hidden="true"><Skeleton className="page-loading-toolbar" /><div>{Array.from({ length: 8 }, (_, index) => <Skeleton key={index} />)}</div></div> : <div className="page-loading-layout" aria-hidden="true"><aside><Skeleton /><Skeleton /><Skeleton /></aside><section><Skeleton className="page-loading-section-title" /><Skeleton /><Skeleton /><Skeleton /></section></div>}
     </main>
   )
 }

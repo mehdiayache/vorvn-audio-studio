@@ -32,7 +32,8 @@ function MediaCollection({ item, refresh, onOpen }: { item: MediaKind; refresh: 
     }
   }
 
-  return <article className={`media-collection ${dragging ? "dragging" : ""}`} onDragEnter={(event) => { event.preventDefault(); setDragging(true) }} onDragOver={(event) => event.preventDefault()} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false) }} onDrop={(event) => { event.preventDefault(); void upload(event.dataTransfer.files[0]) }}>
+  const music = item.name.toLowerCase().includes("music")
+  return <article className={`media-collection${music ? " is-music" : ""}${dragging ? " dragging" : ""}`} onDragEnter={(event) => { event.preventDefault(); setDragging(true) }} onDragOver={(event) => event.preventDefault()} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false) }} onDrop={(event) => { event.preventDefault(); void upload(event.dataTransfer.files[0]) }}>
     <span className="media-collection-icon">{item.name === "Music" ? <Music2 /> : <AudioLines />}</span>
     <div><h3>{item.name}</h3><p>{item.count} file{item.count === 1 ? "" : "s"}{item.duration_ms ? ` · ${formatDuration(item.duration_ms / 1000)}` : ""}</p></div>
     <div className="media-collection-actions"><Button variant="ghost" size="sm" onClick={onOpen}><Library /> Open</Button><label className="media-upload-button" aria-label={`Upload to ${item.name}`}><input type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" disabled={uploading} onChange={(event) => { void upload(event.target.files?.[0]); event.currentTarget.value = "" }} /><Upload /> {uploading ? "Uploading…" : "Add file"}</label></div>

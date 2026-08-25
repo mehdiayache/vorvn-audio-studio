@@ -47,9 +47,9 @@ function ProductionRoute({ productionId }: { productionId: number }) {
 function HomeRoute() {
   const hierarchy = useHierarchy()
   return <>
-    {hierarchy.status === "loading" && !hierarchy.data && <PageLoading label="Loading Work" />}
+    {hierarchy.status === "loading" && !hierarchy.data && <PageLoading label="Loading Ventures" />}
     {hierarchy.status === "error" && !hierarchy.data && <ErrorState title="Ventures unavailable" message={hierarchy.error || "Unable to load Ventures."} retry={() => void hierarchy.refresh()} />}
-    {hierarchy.data && <LazyRoute label="Loading Work"><VentureDirectoryPage items={hierarchy.data} /></LazyRoute>}
+    {hierarchy.data && <LazyRoute label="Loading Ventures"><VentureDirectoryPage items={hierarchy.data} /></LazyRoute>}
   </>
 }
 
