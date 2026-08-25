@@ -5,14 +5,13 @@ import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialo
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { formatAuthoredRole, formatPartNumber } from "@/lib/format"
-import type { CatalogKeepResult, DurableJob, GeneratePayload, GenerateResult, GeneratedKeepResult, PartEditorialUpdate, PlayerSource, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
-import type { ProductionImportCounts, ProductionImportDocument } from "@/features/production/production-import"
+import type { CatalogKeepResult, DurableJob, GeneratePayload, GenerateResult, GeneratedKeepResult, PartEditorialUpdate, PlayerSource, Production, ProductionPart, StudioConfig, VentureAsset, VoiceDirectory } from "@/types/domain"
 
 export type ConfirmAction = { title: string; description: string; action: () => void | Promise<void>; confirmLabel?: string; kind?: "confirm" | "delete"; variant?: "default" | "destructive" }
 
-export default function ProductionOverlays({ tool, productionId, nextPartNumber, insertAt, insertBeforePartId, composerPart, replacingAssetId, initialAudioAssetId, config, directory, assets, usedAssetIds, assetCollectionIds, playingKey, playerPlaying, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertAsset, onPlaceAudio, onUploadAsset, onKeepAsset, onKeepGenerated, onImport, onImported, onPlay, onConfirmAction }: {
+export default function ProductionOverlays({ tool, production, nextPartNumber, insertAt, insertBeforePartId, composerPart, replacingAssetId, initialAudioAssetId, config, directory, assets, usedAssetIds, assetCollectionIds, playingKey, playerPlaying, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertAsset, onPlaceAudio, onUploadAsset, onKeepAsset, onKeepGenerated, onImported, onPlay, onConfirmAction }: {
   tool: ToolKind
-  productionId: number
+  production: Production
   nextPartNumber: number
   insertAt: number | null
   insertBeforePartId: string | null
@@ -37,11 +36,11 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
   onUploadAsset: (folder: string, input: AssetUploadInput) => Promise<VentureAsset>
   onKeepAsset: (folder: string, input: CatalogKeepInput) => Promise<CatalogKeepResult>
   onKeepGenerated: (folder: string, input: GeneratedKeepInput) => Promise<GeneratedKeepResult>
-  onImport: (document: ProductionImportDocument, roleVoices: Record<string, string>) => Promise<ProductionImportCounts>
   onImported: () => void
   onPlay: (source: PlayerSource) => void
   onConfirmAction: (action: ConfirmAction | null) => void
 }) {
+  const productionId = production.id
   const [confirmBusy, setConfirmBusy] = useState(false)
   const confirm = async () => {
     if (!confirmAction || confirmBusy) return
@@ -74,7 +73,7 @@ export default function ProductionOverlays({ tool, productionId, nextPartNumber,
       onGenerate={onGenerate}
       onPlay={onPlay}
     />}
-    <ProductionToolDialog open={tool === "speech" ? null : tool} productionId={productionId} nextPartNumber={nextPartNumber} beforePartId={insertBeforePartId} replacingAssetId={replacingAssetId} initialAudioAssetId={initialAudioAssetId} assets={assets} usedAssetIds={usedAssetIds} assetCollectionIds={assetCollectionIds} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseTool} onAddSilence={onAddSilence} onInsertAsset={onInsertAsset} onPlaceAudio={onPlaceAudio} onUploadAsset={onUploadAsset} onKeepAsset={onKeepAsset} onKeepGenerated={onKeepGenerated} onImport={onImport} onImported={onImported} onPlay={onPlay} />
+    <ProductionToolDialog open={tool === "speech" ? null : tool} production={production} config={config} nextPartNumber={nextPartNumber} beforePartId={insertBeforePartId} replacingAssetId={replacingAssetId} initialAudioAssetId={initialAudioAssetId} assets={assets} usedAssetIds={usedAssetIds} assetCollectionIds={assetCollectionIds} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseTool} onAddSilence={onAddSilence} onInsertAsset={onInsertAsset} onPlaceAudio={onPlaceAudio} onUploadAsset={onUploadAsset} onKeepAsset={onKeepAsset} onKeepGenerated={onKeepGenerated} onImported={onImported} onPlay={onPlay} />
     {confirmAction?.kind === "delete" ? <DeleteConfirmationDialog
       open
       onOpenChange={(open) => { if (!open && !confirmBusy) onConfirmAction(null) }}

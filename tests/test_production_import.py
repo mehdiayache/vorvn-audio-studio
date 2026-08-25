@@ -216,6 +216,33 @@ class ProductionImportTests(unittest.TestCase):
             self.assertEqual(part["voice_identity_id"],
                              self.identity_ids["narrator"])
 
+    def test_resolved_route_identity_is_valid_canonical_voice_truth(self):
+        document = {
+            "schema": "audio-studio-production-import",
+            "version": 1,
+            "title": "Resolved route",
+            "items": [{
+                "type": "speech", "role": "Narrator",
+                "text": "The selected route remains attached to this Draft.",
+            }],
+        }
+        route = {
+            "identity_id": self.identity_ids["narrator"],
+            "capability_id": "expressive_tags",
+            "provider": "fixture",
+            "model_id": "fixture-model",
+        }
+
+        result = self.timeline.import_document(
+            self.production["id"], document, {"narrator": route},
+            {"language": "English", "output_format": "mp3"},
+        )
+
+        self.assertEqual(result["speech"], 1)
+        draft = self.repository.parts(self.production["id"])[0]
+        self.assertEqual(draft["voice_identity_id"],
+                         self.identity_ids["narrator"])
+
     def test_invalid_document_and_missing_mapping_mutate_nothing(self):
         invalid = json.loads(json.dumps(self.document))
         invalid["items"][3]["text"] = "   "

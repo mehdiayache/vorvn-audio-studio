@@ -95,6 +95,8 @@ type TimelineMoveEnvelope = paths["/api/v1/productions/{production_id}/parts/mov
 type TimelineOkEnvelope = paths["/api/v1/productions/{production_id}/parts/{part_id}/draft"]["patch"]["responses"][200]["content"]["application/json"]
 type ProductionImportBody = paths["/api/v1/productions/{production_id}/import"]["post"]["requestBody"]["content"]["application/json"]
 type ProductionImportEnvelope = paths["/api/v1/productions/{production_id}/import"]["post"]["responses"][200]["content"]["application/json"]
+type ProductionImportValidationEnvelope = paths["/api/v1/production-imports/validate"]["post"]["responses"][200]["content"]["application/json"]
+type ProductionImportExecuteBody = paths["/api/v1/production-imports"]["post"]["requestBody"]["content"]["application/json"]
 
 export { ApiError } from "@/lib/api-error"
 
@@ -305,6 +307,20 @@ export const studioApi = {
     method: "POST",
     body: JSON.stringify({ document, role_voices: roleVoices } satisfies ProductionImportBody),
   }).then((response) => response.data),
+  validateProductionImport: (document: unknown) =>
+    request<ProductionImportValidationEnvelope>("/api/v1/production-imports/validate", {
+      method: "POST",
+      body: JSON.stringify({ document }),
+    }).then((response) => response.data),
+  enqueueProductionImport: async <T>(plan: ProductionImportExecuteBody) => {
+    const response = await request<{ data: DurableJob<T> }>("/api/v1/production-imports", {
+      method: "POST",
+      headers: { "Idempotency-Key": `production-import-${crypto.randomUUID()}` },
+      body: JSON.stringify(plan),
+    })
+    return registerJob(response.data)
+  },
+  productionImportResult: <T>(jobId: string) => jobObserver.completion<T>(jobId),
   job: <T>(id: string) => v1<DurableJob<T>>(`/api/v1/jobs/${encodeURIComponent(id)}`),
   confirmJob: async <T>(id: string) => {
     const response = await request<{ data: DurableJob<T> }>(`/api/v1/jobs/${encodeURIComponent(id)}/confirm`, {

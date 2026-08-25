@@ -17,6 +17,10 @@ vi.mock("@/hooks/use-voice-directory", () => ({
   }),
 }))
 
+vi.mock("@/components/global-player-provider", () => ({
+  useGlobalPlayer: () => ({ source: null, state: "idle", toggleSource: vi.fn() }),
+}))
+
 function renderPage(node: React.ReactNode) {
   return render(<MemoryRouter>{node}</MemoryRouter>)
 }

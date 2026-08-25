@@ -595,6 +595,17 @@
 .resource-create-fields { display: grid; gap: 14px; padding: 4px 0; }
 .resource-create-fields label { display: grid; gap: 6px; font-size: var(--type-small); font-weight: 600; }
 .resource-create-fields label small { color: var(--muted-foreground); font-weight: 400; }
+.create-production-dialog { width: min(640px, calc(100vw - 32px)); }
+.create-production-location { display: grid; gap: 7px; padding-top: 4px; color: var(--foreground); font-size: var(--type-small); font-weight: 650; }
+.create-production-paths { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 8px 0; }
+.create-production-paths > button { min-height: 174px; display: grid; align-content: start; gap: 9px; padding: 22px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-raised); color: var(--foreground); text-align: left; transition: border-color 120ms ease, background 120ms ease, transform 120ms ease; }
+.create-production-paths > button:hover { border-color: var(--primary); background: color-mix(in oklab, var(--primary) 4%, var(--surface-raised)); transform: translateY(-1px); }
+.create-production-paths > button:focus-visible { outline: 3px solid color-mix(in oklab, var(--primary) 28%, transparent); outline-offset: 2px; }
+.create-production-paths > button > span { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 11px; background: var(--primary-soft); color: var(--primary); }
+.create-production-paths > button svg { width: 21px; }
+.create-production-paths > button b { margin-top: 7px; font-size: var(--type-heading-sm); }
+.create-production-paths > button small { color: var(--foreground); font-size: var(--type-small); line-height: 1.5; opacity: .66; }
+@media (max-width: 600px) { .create-production-paths { grid-template-columns: 1fr; } }
 .media-collection-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
 .media-collection { min-width: 0; display: grid; grid-template-columns: 38px minmax(0,1fr); align-items: center; gap: 10px; padding: 13px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); transition: border-color .15s, background .15s; }
 .media-collection.dragging { border-color: var(--asset); background: var(--asset-soft); }

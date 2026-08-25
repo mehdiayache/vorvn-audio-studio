@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { studioApi } from "@/lib/api"
 import { resourceHref } from "@/lib/links"
+import { CreateProductionDialog, type ProductionParent } from "./create-production-dialog"
 
 export type CreateKind = "venture" | "project" | "series" | "production"
 
@@ -19,9 +20,10 @@ const labels: Record<CreateKind, string> = {
   production: "Production",
 }
 
-export function CreateResourceDialog({ kind, parent, open, onOpenChange, onCreated }: {
+export function CreateResourceDialog({ kind, parent, productionParents, open, onOpenChange, onCreated }: {
   kind: CreateKind
   parent: Parent
+  productionParents?: ProductionParent[]
   open: boolean
   onOpenChange: (open: boolean) => void
   onCreated?: () => void
@@ -53,6 +55,10 @@ export function CreateResourceDialog({ kind, parent, open, onOpenChange, onCreat
     } finally {
       setSaving(false)
     }
+  }
+
+  if (kind === "production" && parent && (parent.type === "project" || parent.type === "series")) {
+    return <CreateProductionDialog parents={productionParents || [parent as ProductionParent]} open={open} onOpenChange={onOpenChange} onCreated={onCreated} />
   }
 
   return <Dialog open={open} onOpenChange={(next) => { if (!saving) onOpenChange(next) }}>

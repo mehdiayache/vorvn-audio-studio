@@ -200,7 +200,8 @@ class TimelineService:
                 "Remove role mappings that are not in this document: "
                 + ", ".join(extra))
         for role, route in mapped_roles.values():
-            if not str(route.get("voice_identity_id") or "").strip():
+            if not str(route.get("voice_identity_id")
+                       or route.get("identity_id") or "").strip():
                 raise TimelineError(f"Choose a Voice for role {role}.")
 
         durable_import = preparation is not None

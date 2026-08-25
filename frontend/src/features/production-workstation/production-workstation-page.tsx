@@ -614,7 +614,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     <PartCaptionsDialog productionId={production.id} part={captionPart} directory={directory} onOpenChange={(open) => { if (!open) setCaptionPartId(null) }} onChanged={async () => { actions.invalidatePreview(); await refresh() }} />
     <MovePartPositionDialog part={movePositionPart} count={sourceParts.length} onClose={() => setMovePositionPart(null)} onMove={actions.movePartToPosition} />
     {overlaysOpen && <Suspense fallback={<ProductionOverlayLoading tool={tool} />}><ProductionOverlays
-      tool={tool} productionId={production.id} nextPartNumber={sourceParts.length + 1} insertAt={composerInsertAt} insertBeforePartId={insertBeforePartId}
+      tool={tool} production={production} nextPartNumber={sourceParts.length + 1} insertAt={composerInsertAt} insertBeforePartId={insertBeforePartId}
       composerPart={null} replacingAssetId={replacingAsset?.asset_id} initialAudioAssetId={audioClip?.asset_id} config={config} directory={directory} assets={assets} usedAssetIds={usedAssetIds} assetCollectionIds={assetCollectionIds}
       playingKey={player.source?.key} playerPlaying={actions.playerPlaying} confirmAction={confirmAction}
       onCloseTool={() => { setTool(null); setReplacingAsset(null); setAudioTarget(null) }} onSaveDraft={actions.saveDraft} onUpdateEditorial={async () => undefined} onGenerate={queueRender}
@@ -629,7 +629,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
       onUploadAsset={async (folder, input) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); return actions.uploadAsset(collectionId, folder, input) }}
       onKeepAsset={async (folder, input) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); return actions.keepFreesound(collectionId, input) }}
       onKeepGenerated={async (folder, input) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); return actions.keepGeneratedAudio(collectionId, input) }}
-      onImport={(document, roleVoices) => studioApi.importProduction(production.id, document, roleVoices)} onImported={() => { actions.invalidatePreview(); void refresh().then(() => setTool(null)) }}
+      onImported={() => { actions.invalidatePreview(); void refresh().then(() => setTool(null)) }}
       onPlay={(source) => void playSource(source)} onConfirmAction={setConfirmAction}
     /></Suspense>}
   </>

@@ -265,6 +265,7 @@ export function ProjectPage({ data, refresh }: { data: ProjectOverview; refresh:
         <CreateResourceDialog
           kind={creating}
           parent={parent}
+          productionParents={creating === "production" ? [parent, ...data.series.map((series) => ({ id: series.id, type: "series" as const, name: series.name }))] : undefined}
           open
           onOpenChange={(open) => { if (!open) setCreating(null) }}
           onCreated={refresh}

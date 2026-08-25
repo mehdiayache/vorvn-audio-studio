@@ -157,6 +157,7 @@ export function SeriesPage({ data, refresh }: { data: SeriesOverview; refresh: (
       <CreateResourceDialog
         kind="production"
         parent={parent}
+        productionParents={[parent]}
         open={creating}
         onOpenChange={setCreating}
         onCreated={refresh}
