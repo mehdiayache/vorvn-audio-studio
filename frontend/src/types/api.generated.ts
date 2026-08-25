@@ -2438,6 +2438,49 @@ export interface components {
             /** Voice Identity Id */
             voice_identity_id?: string | null;
         };
+        /** CompressorEffect */
+        CompressorEffect: {
+            /**
+             * Attack Ms
+             * @default 12
+             */
+            attack_ms: number;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Makeup Db
+             * @default 0
+             */
+            makeup_db: number;
+            /**
+             * Ratio
+             * @default 4
+             */
+            ratio: number;
+            /**
+             * Release Ms
+             * @default 180
+             */
+            release_ms: number;
+            /**
+             * Threshold Db
+             * @default -18
+             */
+            threshold_db: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "compressor";
+        };
         /** CostBasisResponse */
         CostBasisResponse: {
             /** Basis */
@@ -2539,6 +2582,34 @@ export interface components {
             };
             /** Scratch Total */
             scratch_total: number;
+        };
+        /** DistortionEffect */
+        DistortionEffect: {
+            /**
+             * Amount
+             * @default 0.2
+             */
+            amount: number;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Mix
+             * @default 0.25
+             */
+            mix: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "distortion";
         };
         /** DraftBody */
         DraftBody: {
@@ -2719,6 +2790,40 @@ export interface components {
         EnabledBody: {
             /** Enabled */
             enabled: boolean;
+        };
+        /** FilterEffect */
+        FilterEffect: {
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * Frequency Hz
+             * @default 3400
+             */
+            frequency_hz: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Mode
+             * @default lowpass
+             * @enum {string}
+             */
+            mode: "lowpass" | "highpass";
+            /**
+             * Q
+             * @default 0.707
+             */
+            q: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "filter";
         };
         /** FreesoundSettingsUpdate */
         FreesoundSettingsUpdate: {
@@ -3091,6 +3196,29 @@ export interface components {
             next_cursor: string | null;
             /** Total */
             total: number;
+        };
+        /** PanEffect */
+        PanEffect: {
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Pan
+             * @default 0
+             */
+            pan: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "pan";
         };
         /** PartAnchor */
         PartAnchor: {
@@ -4054,7 +4182,7 @@ export interface components {
              */
             effect_tail_ms: number;
             /** Effects */
-            effects?: (components["schemas"]["TelephoneEffect"] | components["schemas"]["EchoEffect"])[];
+            effects?: (components["schemas"]["TelephoneEffect"] | components["schemas"]["EchoEffect"] | components["schemas"]["FilterEffect"] | components["schemas"]["CompressorEffect"] | components["schemas"]["ReverbEffect"] | components["schemas"]["DistortionEffect"] | components["schemas"]["PanEffect"])[];
             /**
              * Fade In Ms
              * @default 0
@@ -4187,6 +4315,34 @@ export interface components {
             /** Status */
             status?: string | null;
         };
+        /** ReverbEffect */
+        ReverbEffect: {
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Mix
+             * @default 0.2
+             */
+            mix: number;
+            /**
+             * Room Size
+             * @default 0.45
+             */
+            room_size: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "reverb";
+        };
         /** RouteState */
         RouteState: {
             /** Binding Id */
@@ -4215,7 +4371,7 @@ export interface components {
         /** SequenceMixOverride */
         SequenceMixOverride: {
             /** Effects */
-            effects?: (components["schemas"]["TelephoneEffect"] | components["schemas"]["EchoEffect"])[];
+            effects?: (components["schemas"]["TelephoneEffect"] | components["schemas"]["EchoEffect"] | components["schemas"]["FilterEffect"] | components["schemas"]["CompressorEffect"] | components["schemas"]["ReverbEffect"] | components["schemas"]["DistortionEffect"] | components["schemas"]["PanEffect"])[];
             /**
              * Fade In Ms
              * @default 0
@@ -4494,7 +4650,7 @@ export interface components {
             /** Duration Ms */
             duration_ms?: number | null;
             /** Effects */
-            effects?: (components["schemas"]["TelephoneEffect"] | components["schemas"]["EchoEffect"])[];
+            effects?: (components["schemas"]["TelephoneEffect"] | components["schemas"]["EchoEffect"] | components["schemas"]["FilterEffect"] | components["schemas"]["CompressorEffect"] | components["schemas"]["ReverbEffect"] | components["schemas"]["DistortionEffect"] | components["schemas"]["PanEffect"])[];
             /**
              * Fade In Ms
              * @default 0

@@ -57,8 +57,58 @@ class EchoEffect(BaseModel):
     mix: float = Field(default=.22, ge=0, le=1)
 
 
+class FilterEffect(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: UUID
+    type: Literal["filter"]
+    enabled: bool = True
+    mode: Literal["lowpass", "highpass"] = "lowpass"
+    frequency_hz: int = Field(default=3_400, ge=40, le=20_000)
+    q: float = Field(default=.707, ge=.1, le=18)
+
+
+class CompressorEffect(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: UUID
+    type: Literal["compressor"]
+    enabled: bool = True
+    threshold_db: float = Field(default=-18, ge=-60, le=0)
+    ratio: float = Field(default=4, ge=1, le=20)
+    attack_ms: float = Field(default=12, ge=.1, le=1_000)
+    release_ms: float = Field(default=180, ge=10, le=3_000)
+    makeup_db: float = Field(default=0, ge=0, le=24)
+
+
+class ReverbEffect(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: UUID
+    type: Literal["reverb"]
+    enabled: bool = True
+    room_size: float = Field(default=.45, ge=.1, le=1)
+    mix: float = Field(default=.2, ge=0, le=1)
+
+
+class DistortionEffect(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: UUID
+    type: Literal["distortion"]
+    enabled: bool = True
+    amount: float = Field(default=.2, ge=0, le=1)
+    mix: float = Field(default=.25, ge=0, le=1)
+
+
+class PanEffect(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: UUID
+    type: Literal["pan"]
+    enabled: bool = True
+    pan: float = Field(default=0, ge=-1, le=1)
+
+
 SoundSceneEffect = Annotated[
-    TelephoneEffect | EchoEffect, Field(discriminator="type")]
+    TelephoneEffect | EchoEffect | FilterEffect | CompressorEffect
+    | ReverbEffect | DistortionEffect | PanEffect,
+    Field(discriminator="type")]
 
 
 class SequenceMixOverride(BaseModel):

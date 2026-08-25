@@ -43,6 +43,39 @@ def _measure(target: Path) -> int | None:
         return None
 
 
+def _measure_loudness(target: Path) -> dict[str, float] | None:
+    """Measure the finished master without changing its programme loudness."""
+    if not target.is_file() or not shutil.which("ffmpeg"):
+        return None
+    try:
+        result = subprocess.run(
+            [
+                "ffmpeg", "-hide_banner", "-nostats", "-i", str(target),
+                "-af", "loudnorm=print_format=json", "-f", "null", "-",
+            ],
+            capture_output=True, text=True, timeout=600,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    output = result.stderr or ""
+    start = output.rfind("{")
+    end = output.rfind("}")
+    if start < 0 or end <= start:
+        return None
+    try:
+        report = json.loads(output[start:end + 1])
+        measurements = {
+            "integrated_lufs": float(report["input_i"]),
+            "true_peak_dbtp": float(report["input_tp"]),
+            "loudness_range_lu": float(report["input_lra"]),
+        }
+        if not all(math.isfinite(value) for value in measurements.values()):
+            return None
+        return measurements
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return None
+
+
 def _name(stem: str, suffix: str = "mp3") -> str:
     extension = suffix if suffix.startswith(".") else f".{suffix}"
     return (f"{speech_text.slugify(stem)}-{datetime.now():%Y%m%d-%H%M%S-%f}-"
@@ -135,7 +168,81 @@ def _append_effects(
             )
             current = f"[{output}]"
             continue
-        if effect.get("type") != "echo":
+        effect_type = effect.get("type")
+        if effect_type == "filter":
+            mode = ("highpass" if effect.get("mode") == "highpass"
+                    else "lowpass")
+            frequency = max(40, min(
+                20_000, int(effect.get("frequency_hz") or 3_400)))
+            q = max(.1, min(18, float(effect.get("q") or .707)))
+            filters.append(
+                f"{current}{mode}=f={frequency}:t=q:w={q:.4f}[{output}]"
+            )
+            current = f"[{output}]"
+            continue
+        if effect_type == "compressor":
+            threshold_db = max(-60, min(
+                0, float(effect.get("threshold_db") or -18)))
+            threshold = math.pow(10, threshold_db / 20)
+            ratio = max(1, min(20, float(effect.get("ratio") or 4)))
+            attack = max(.1, min(
+                1_000, float(effect.get("attack_ms") or 12)))
+            release = max(10, min(
+                3_000, float(effect.get("release_ms") or 180)))
+            makeup = math.pow(10, max(0, min(
+                24, float(effect.get("makeup_db") or 0))) / 20)
+            filters.append(
+                f"{current}acompressor=threshold={threshold:.8f}:"
+                f"ratio={ratio:.3f}:attack={attack:.3f}:release={release:.3f}:"
+                f"makeup={makeup:.6f}[{output}]"
+            )
+            current = f"[{output}]"
+            continue
+        if effect_type == "pan":
+            pan = max(-1, min(1, float(effect.get("pan") or 0)))
+            filters.append(
+                f"{current}stereotools=balance_out={pan:.6f}[{output}]"
+            )
+            current = f"[{output}]"
+            continue
+        if effect_type in {"reverb", "distortion"}:
+            mix = max(0, min(1, float(effect.get("mix") or 0)))
+            if mix <= 0:
+                continue
+            dry_input = f"{prefix}dryin{index}"
+            wet_input = f"{prefix}wetin{index}"
+            dry = f"{prefix}dry{index}"
+            wet = f"{prefix}wet{index}"
+            filters.extend([
+                f"{current}asplit=2[{dry_input}][{wet_input}]",
+                f"[{dry_input}]volume={1 - mix:.6f}[{dry}]",
+            ])
+            if effect_type == "reverb":
+                room_size = max(.1, min(
+                    1, float(effect.get("room_size") or .45)))
+                scale = .6 + 1.8 * room_size
+                delays = "|".join(str(round(value * scale))
+                                  for value in (35, 67, 113, 173))
+                decays = "0.640000|0.440000|0.290000|0.180000"
+                filters.append(
+                    f"[{wet_input}]aecho=0:1:{delays}:{decays},"
+                    f"volume={mix:.6f}[{wet}]"
+                )
+            else:
+                amount = max(0, min(
+                    1, float(effect.get("amount") or .2)))
+                threshold = max(.08, 1 - amount * .85)
+                filters.append(
+                    f"[{wet_input}]asoftclip=type=tanh:threshold={threshold:.6f}:"
+                    f"output=1:oversample=4,volume={mix:.6f}[{wet}]"
+                )
+            filters.append(
+                f"[{dry}][{wet}]amix=inputs=2:duration=longest:"
+                f"dropout_transition=0:normalize=0[{output}]"
+            )
+            current = f"[{output}]"
+            continue
+        if effect_type != "echo":
             continue
         delay_ms = max(50, min(1_000, int(effect.get("delay_ms") or 180)))
         feedback = max(0, min(.85, float(effect.get("feedback") or 0)))
@@ -383,7 +490,8 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
         final_source = "[sequence]"
     filters.append(
         f"{final_source}apad=whole_dur={scene_duration:.3f},"
-        f"atrim=duration={scene_duration:.3f}[out]"
+        f"atrim=duration={scene_duration:.3f},"
+        "alimiter=limit=0.891251:attack=5:release=50:level=0:latency=1[out]"
     )
     command.extend([
         "-filter_complex", ";".join(filters), "-map", "[out]", "-vn",
@@ -604,6 +712,7 @@ class FFmpegRenderWorkspace:
             renderer = "ffmpeg-sound-scene-v1"
             size = target.stat().st_size
             duration = _measure(target)
+            loudness = _measure_loudness(target)
             manifest = {
                 "version": 1, "production_id": production_id,
                 "production_name": production_name, "parts": manifest_parts,
@@ -614,7 +723,8 @@ class FFmpegRenderWorkspace:
                 },
                 "output": {"filename": name, "codec": "mp3",
                            "bitrate": "192k", "sample_rate": 48000,
-                           "channels": 2},
+                           "channels": 2, "peak_limiter_dbtp": -1.0,
+                           "loudness": loudness},
                 "renderer": renderer,
                 "created_at": datetime.now().isoformat(timespec="seconds"),
             }

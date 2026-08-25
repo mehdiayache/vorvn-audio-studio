@@ -31,6 +31,7 @@ const mocks = vi.hoisted(() => {
     connect: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn>
   }> = []
   const contexts: Array<{ currentTime: number }> = []
+  const audioNodes = { filters: 0, compressors: 0, panners: 0, shapers: 0 }
   const state = { deferSeek: false }
   class FakeAdapter {
     setTracks = vi.fn()
@@ -51,7 +52,7 @@ const mocks = vi.hoisted(() => {
     }
     constructor() { adapters.push(this) }
   }
-  return { adapters, media, gains, contexts, state, FakeAdapter }
+  return { adapters, media, gains, contexts, audioNodes, state, FakeAdapter }
 })
 
 vi.mock("@dawcore/transport", () => ({ NativePlayoutAdapter: mocks.FakeAdapter }))
@@ -85,6 +86,7 @@ describe("SoundScenePlayout", () => {
     mocks.media.length = 0
     mocks.gains.length = 0
     mocks.contexts.length = 0
+    Object.assign(mocks.audioNodes, { filters: 0, compressors: 0, panners: 0, shapers: 0 })
     mocks.state.deferSeek = false
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(8)) }))
     const parameter = () => ({
@@ -136,7 +138,25 @@ describe("SoundScenePlayout", () => {
         return gain
       })
       createDelay = vi.fn(() => ({ ...node(), delayTime: parameter() }))
-      createBiquadFilter = vi.fn(() => ({ ...node(), type: "lowpass", frequency: parameter() }))
+      createBiquadFilter = vi.fn(() => {
+        mocks.audioNodes.filters += 1
+        return { ...node(), type: "lowpass", frequency: parameter(), Q: parameter() }
+      })
+      createDynamicsCompressor = vi.fn(() => {
+        mocks.audioNodes.compressors += 1
+        return {
+          ...node(), threshold: parameter(), knee: parameter(), ratio: parameter(),
+          attack: parameter(), release: parameter(),
+        }
+      })
+      createStereoPanner = vi.fn(() => {
+        mocks.audioNodes.panners += 1
+        return { ...node(), pan: parameter() }
+      })
+      createWaveShaper = vi.fn(() => {
+        mocks.audioNodes.shapers += 1
+        return { ...node(), curve: null, oversample: "none" }
+      })
       createAnalyser = vi.fn(() => ({
         ...node(), fftSize: 1024, smoothingTimeConstant: 0,
         getFloatTimeDomainData: vi.fn(),
@@ -224,6 +244,29 @@ describe("SoundScenePlayout", () => {
     expect(updated.clips.at(-1).fadeOut.duration).toBe(.75)
     expect(mocks.gains.some((node) => node.gain.value === .6)).toBe(true)
     expect(mocks.gains.some((node) => node.gain.value === .4)).toBe(true)
+
+    playout.dispose()
+    vi.unstubAllGlobals()
+  })
+
+  it("previews the complete primitive effect chain through native Web Audio nodes", async () => {
+    const source = scene()
+    const clipId = source.document.tracks[0]!.clips[0]!.id
+    const playout = new SoundScenePlayout(source)
+    await playout.play(0)
+
+    playout.setClipMix("music", clipId, { effects: [
+      { id: "filter", type: "filter", enabled: true, mode: "highpass", frequency_hz: 120, q: .8 },
+      { id: "compressor", type: "compressor", enabled: true, threshold_db: -18, ratio: 4, attack_ms: 12, release_ms: 180, makeup_db: 2 },
+      { id: "reverb", type: "reverb", enabled: true, room_size: .5, mix: .2 },
+      { id: "distortion", type: "distortion", enabled: true, amount: .3, mix: .25 },
+      { id: "pan", type: "pan", enabled: true, pan: -.4 },
+    ] })
+
+    expect(mocks.audioNodes.filters).toBeGreaterThan(0)
+    expect(mocks.audioNodes.compressors).toBeGreaterThan(0)
+    expect(mocks.audioNodes.panners).toBeGreaterThan(0)
+    expect(mocks.audioNodes.shapers).toBeGreaterThan(0)
 
     playout.dispose()
     vi.unstubAllGlobals()

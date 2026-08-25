@@ -1,6 +1,8 @@
 """Filesystem rollback checks for the Production render workspace."""
 
 from pathlib import Path
+import json
+import math
 import shutil
 import subprocess
 import struct
@@ -14,6 +16,157 @@ from audio_studio.infrastructure.render_workspace import FFmpegRenderWorkspace
 
 
 class RenderWorkspaceTests(unittest.TestCase):
+    def test_mix_builds_every_supported_primitive_and_master_safety(self):
+        commands: list[list[str]] = []
+
+        def run(command, **_kwargs):
+            commands.append(command)
+            Path(command[-1]).write_bytes(b"mixed")
+            return type("Result", (), {"returncode": 0, "stderr": b""})()
+
+        with TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            sequence = root / "sequence.mp3"
+            source = root / "source.wav"
+            sequence.write_bytes(b"sequence")
+            source.write_bytes(b"source")
+            scene = {
+                "duration_ms": 1_500,
+                "sequence_projection": {"duration_ms": 1_000, "spans": []},
+                "tracks": [{
+                    "id": "audio", "kind": "audio", "volume": 1,
+                    "muted": False, "clips": [{
+                        "filename": source.name, "gain": 1,
+                        "resolved_start_ms": 0, "resolved_duration_ms": 1_000,
+                        "source_offset_ms": 0, "fade_in_ms": 0,
+                        "fade_out_ms": 0, "loop": False, "ducking": False,
+                        "orphan": False, "missing": False,
+                        "effects": [
+                            {"type": "filter", "enabled": True,
+                             "mode": "highpass", "frequency_hz": 120, "q": .8},
+                            {"type": "compressor", "enabled": True,
+                             "threshold_db": -18, "ratio": 4, "attack_ms": 12,
+                             "release_ms": 180, "makeup_db": 2},
+                            {"type": "reverb", "enabled": True,
+                             "room_size": .5, "mix": .2},
+                            {"type": "distortion", "enabled": True,
+                             "amount": .3, "mix": .25},
+                            {"type": "pan", "enabled": True, "pan": -.4},
+                        ],
+                    }],
+                }],
+            }
+            with (
+                patch.object(render_workspace, "_output", return_value=root),
+                patch.object(render_workspace.subprocess, "run", side_effect=run),
+            ):
+                self.assertTrue(render_workspace._mix_scene(
+                    sequence, scene, root / "mixed.mp3"))
+
+        graph = commands[0][commands[0].index("-filter_complex") + 1]
+        self.assertIn("highpass=f=120:t=q:w=0.8000", graph)
+        self.assertIn("acompressor=threshold=", graph)
+        self.assertIn("aecho=0:1:", graph)
+        self.assertIn("asoftclip=type=tanh", graph)
+        self.assertIn("stereotools=balance_out=-0.400000", graph)
+        self.assertIn(
+            "alimiter=limit=0.891251:attack=5:release=50:level=0:latency=1",
+            graph,
+        )
+
+    @unittest.skipUnless(shutil.which("ffmpeg"), "FFmpeg is required")
+    def test_real_ffmpeg_master_is_limited_and_reports_loudness(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            sequence = root / "sequence.wav"
+            source = root / "source.wav"
+            target = root / "master.mp3"
+            for path, frequency in ((sequence, 440), (source, 880)):
+                subprocess.run([
+                    "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                    "-f", "lavfi", "-i",
+                    f"sine=frequency={frequency}:duration=0.6",
+                    "-filter:a", "volume=1.8", "-ar", "48000", "-ac", "2",
+                    str(path),
+                ], check=True)
+            scene = {
+                "duration_ms": 1_000,
+                "sequence_projection": {"duration_ms": 600, "spans": []},
+                "tracks": [{
+                    "id": "audio", "kind": "audio", "volume": 1,
+                    "muted": False, "clips": [{
+                        "filename": source.name, "gain": 1,
+                        "resolved_start_ms": 0, "resolved_duration_ms": 600,
+                        "source_offset_ms": 0, "fade_in_ms": 0,
+                        "fade_out_ms": 0, "loop": False, "ducking": False,
+                        "orphan": False, "missing": False,
+                        "effects": [
+                            {"type": "filter", "enabled": True,
+                             "mode": "lowpass", "frequency_hz": 8_000, "q": .707},
+                            {"type": "compressor", "enabled": True,
+                             "threshold_db": -18, "ratio": 4, "attack_ms": 12,
+                             "release_ms": 180, "makeup_db": 1},
+                            {"type": "reverb", "enabled": True,
+                             "room_size": .4, "mix": .15},
+                            {"type": "distortion", "enabled": True,
+                             "amount": .2, "mix": .15},
+                            {"type": "pan", "enabled": True, "pan": .25},
+                        ],
+                    }],
+                }],
+            }
+
+            with patch.object(render_workspace, "_output", return_value=root):
+                self.assertTrue(render_workspace._mix_scene(sequence, scene, target))
+            loudness = render_workspace._measure_loudness(target)
+
+        self.assertIsNotNone(loudness)
+        self.assertLessEqual(loudness["true_peak_dbtp"], -.8)
+        self.assertTrue(math.isfinite(loudness["integrated_lufs"]))
+        self.assertTrue(math.isfinite(loudness["loudness_range_lu"]))
+
+    def test_finished_export_manifest_records_master_safety_and_measurement(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+
+            def stem(_production_id, _parts, _signature):
+                (root / "sequence.mp3").write_bytes(b"sequence")
+                return {"filename": "sequence.mp3"}
+
+            def mix(_sequence, _scene, target):
+                target.write_bytes(b"master")
+                return True
+
+            measurement = {
+                "integrated_lufs": -18.4,
+                "true_peak_dbtp": -1.03,
+                "loudness_range_lu": 4.2,
+            }
+            workspace = FFmpegRenderWorkspace()
+            with (
+                patch.object(render_workspace, "_output", return_value=root),
+                patch.object(render_workspace, "_name", return_value="final.mp3"),
+                patch.object(workspace, "sequence_stem", side_effect=stem),
+                patch.object(render_workspace, "_mix_scene", side_effect=mix),
+                patch.object(render_workspace, "_measure", return_value=1_000),
+                patch.object(render_workspace, "_measure_loudness",
+                             return_value=measurement),
+            ):
+                artifact = workspace.finish_export(
+                    6, "Evening Reset", [], {
+                        "signature": "scene",
+                        "sequence_projection": {"signature": "sequence", "spans": []},
+                        "tracks": [], "orphans": [],
+                    }, {"srt": "", "vtt": ""},
+                )
+
+            self.assertEqual(artifact.manifest["output"]["peak_limiter_dbtp"], -1)
+            self.assertEqual(artifact.manifest["output"]["loudness"], measurement)
+            self.assertEqual(
+                json.loads(artifact.manifest_path.read_text())["output"]["loudness"],
+                measurement,
+            )
+
     def test_sequence_stem_keeps_a_bounded_window_for_in_flight_players(self):
         def sequence(_parts: list[dict], target: Path):
             target.write_bytes(b"sequence")

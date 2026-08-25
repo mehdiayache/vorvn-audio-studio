@@ -44,6 +44,46 @@ def anchored_scene(part_public_id: str) -> dict:
 
 
 class SoundSceneDomainTests(unittest.TestCase):
+    def test_effect_primitives_normalize_to_one_bounded_canonical_chain(self):
+        effect_id = lambda suffix: f"00000000-0000-0000-0000-{suffix:012d}"
+        scene = empty_scene()
+        scene["sequence_overrides"][speech(1, 1_000, 0)["public_id"]] = {
+            "effects": [
+                {"id": effect_id(1), "type": "filter", "enabled": True,
+                 "mode": "highpass", "frequency_hz": 9, "q": 99},
+                {"id": effect_id(2), "type": "compressor", "enabled": True,
+                 "threshold_db": -99, "ratio": 99, "attack_ms": 0,
+                 "release_ms": 9_999, "makeup_db": 99},
+                {"id": effect_id(3), "type": "reverb", "enabled": True,
+                 "room_size": 2, "mix": -.5},
+                {"id": effect_id(4), "type": "distortion", "enabled": True,
+                 "amount": 2, "mix": 2},
+                {"id": effect_id(5), "type": "pan", "enabled": True,
+                 "pan": -2},
+            ],
+        }
+
+        effects = normalize_scene(scene)["sequence_overrides"][
+            speech(1, 1_000, 0)["public_id"]]["effects"]
+
+        self.assertEqual(effects[0], {
+            "id": effect_id(1), "type": "filter", "enabled": True,
+            "mode": "highpass", "frequency_hz": 40, "q": 18,
+        })
+        self.assertEqual(effects[1]["threshold_db"], -60)
+        self.assertEqual(effects[1]["ratio"], 20)
+        self.assertEqual(effects[1]["attack_ms"], .1)
+        self.assertEqual(effects[1]["release_ms"], 3_000)
+        self.assertEqual(effects[1]["makeup_db"], 24)
+        self.assertEqual(effects[2]["room_size"], 1)
+        self.assertEqual(effects[2]["mix"], 0)
+        self.assertEqual(effects[3]["amount"], 1)
+        self.assertEqual(effects[3]["mix"], 1)
+        self.assertEqual(effects[4]["pan"], -1)
+        self.assertEqual(effect_tail_ms(effects), 0)
+        effects[2]["mix"] = .2
+        self.assertEqual(effect_tail_ms(effects), 415)
+
     def test_legacy_ducking_defaults_to_minus_twelve_db(self):
         document = normalize_scene({
             "version": 1, "sequence_overrides": {}, "tracks": [{

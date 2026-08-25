@@ -21,6 +21,12 @@ import { loopBoundaryTimes, waveformPeakIndex, type WaveformProjection } from ".
 
 import "./sound-scene-workspace.css"
 
+export function acceptsSoundSceneShortcut(target: EventTarget | null) {
+  if (!(target instanceof Element)) return true
+  if (target.matches("[data-sound-shortcut-surface='true']")) return true
+  return !target.closest("input, textarea, select, button, a[href], [contenteditable='true'], [role='slider'], [role='menu'], [role='menuitem'], [role='listbox'], [role='option'], [role='dialog']")
+}
+
 const SAMPLE_RATE = 48_000
 const LANE_HEIGHT = 92
 const RULER_HEIGHT = 38
@@ -445,9 +451,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
 
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
-      const target = event.target
-      const editing = target instanceof Element && target.matches("input, textarea, select, [contenteditable='true']")
-      if (editing) return
+      if (event.defaultPrevented || !acceptsSoundSceneShortcut(event.target)) return
       const command = event.metaKey || event.ctrlKey
       if (command && event.key.toLowerCase() === "z") { event.preventDefault(); void (event.shiftKey ? session.redo() : session.undo()); return }
       if (command && event.key.toLowerCase() === "d" && selectedRefs.length) { event.preventDefault(); void session.duplicateClips(selectedRefs); return }
@@ -549,7 +553,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
                 const gainHeight = Math.max(8, Math.min(82, 50 - (20 * Math.log10(Math.max(.001, live.gain))) * 1.25))
                 const category = audioCategory(live.asset_kind)
                 const ClipIcon = category === "sfx" ? AudioWaveform : Music2
-                return <div key={clip.id} role="button" tabIndex={0} className={cn("sound-music-clip", `is-category-${category}`, selected && "is-selected", live.locked && "is-locked")} style={styleFor(start, duration, 24)} onPointerDown={(event) => gesture(event, track.id, clip.id, "move")} onClick={(event) => { if (event.detail === 0) session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey) }} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey) }}>
+                return <div key={clip.id} role="button" tabIndex={0} data-sound-shortcut-surface="true" className={cn("sound-music-clip", `is-category-${category}`, selected && "is-selected", live.locked && "is-locked")} style={styleFor(start, duration, 24)} onPointerDown={(event) => gesture(event, track.id, clip.id, "move")} onClick={(event) => { if (event.detail === 0) session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey) }} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey) }}>
                   <CanvasWaveform url={clip.filename ? audioUrl(clip.filename) : undefined} projection={{
                     clipDuration: duration,
                     sourceDuration: Math.max(.001, Number(live.source_duration_ms || live.resolved_duration_ms || live.duration_ms || 0) / 1_000),

@@ -16,7 +16,9 @@ TRACK_KIND = "audio"
 LEGACY_TRACK_KINDS = {"music", "sfx", "ambience"}
 ANCHOR_KINDS = {"absolute", "part"}
 ANCHOR_EDGES = {"start", "end"}
-EFFECT_TYPES = {"telephone", "echo"}
+EFFECT_TYPES = {
+    "telephone", "echo", "filter", "compressor", "reverb", "distortion", "pan",
+}
 ECHO_AUDIBLE_THRESHOLD = .01
 
 
@@ -96,6 +98,41 @@ def _effects(value: Any) -> list[dict[str, Any]]:
                     .85, _number(raw.get("feedback"), .28))),
                 "mix": max(0, min(1, _number(raw.get("mix"), .22))),
             })
+        elif effect_type == "filter":
+            mode = str(raw.get("mode") or "lowpass").strip().lower()
+            if mode not in {"lowpass", "highpass"}:
+                raise SoundSceneError("That filter mode is unsupported.")
+            effect.update({
+                "mode": mode,
+                "frequency_hz": max(40, min(
+                    20_000, _integer(raw.get("frequency_hz"), 3_400))),
+                "q": max(.1, min(18, _number(raw.get("q"), .707))),
+            })
+        elif effect_type == "compressor":
+            effect.update({
+                "threshold_db": max(-60, min(
+                    0, _number(raw.get("threshold_db"), -18))),
+                "ratio": max(1, min(20, _number(raw.get("ratio"), 4))),
+                "attack_ms": max(.1, min(
+                    1_000, _number(raw.get("attack_ms"), 12))),
+                "release_ms": max(10, min(
+                    3_000, _number(raw.get("release_ms"), 180))),
+                "makeup_db": max(0, min(
+                    24, _number(raw.get("makeup_db"), 0))),
+            })
+        elif effect_type == "reverb":
+            effect.update({
+                "room_size": max(.1, min(
+                    1, _number(raw.get("room_size"), .45))),
+                "mix": max(0, min(1, _number(raw.get("mix"), .2))),
+            })
+        elif effect_type == "distortion":
+            effect.update({
+                "amount": max(0, min(1, _number(raw.get("amount"), .2))),
+                "mix": max(0, min(1, _number(raw.get("mix"), .25))),
+            })
+        elif effect_type == "pan":
+            effect["pan"] = max(-1, min(1, _number(raw.get("pan"), 0)))
         effects.append(effect)
     return effects
 
@@ -127,6 +164,11 @@ def effect_tail_ms(effects: list[dict[str, Any]]) -> int:
     """
     tail_ms = 0
     for effect in effects:
+        if (effect.get("enabled") and effect.get("type") == "reverb"
+                and _number(effect.get("mix")) > 0):
+            room_size = max(.1, min(1, _number(effect.get("room_size"), .45)))
+            tail_ms = max(tail_ms, round(173 * (.6 + 1.8 * room_size)))
+            continue
         if (not effect.get("enabled") or effect.get("type") != "echo"
                 or _number(effect.get("mix")) <= 0):
             continue

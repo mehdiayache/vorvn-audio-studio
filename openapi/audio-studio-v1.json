@@ -1897,6 +1897,67 @@
         "title": "ComposerState",
         "type": "object"
       },
+      "CompressorEffect": {
+        "additionalProperties": false,
+        "properties": {
+          "attack_ms": {
+            "default": 12,
+            "maximum": 1000.0,
+            "minimum": 0.1,
+            "title": "Attack Ms",
+            "type": "number"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "makeup_db": {
+            "default": 0,
+            "maximum": 24.0,
+            "minimum": 0.0,
+            "title": "Makeup Db",
+            "type": "number"
+          },
+          "ratio": {
+            "default": 4,
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Ratio",
+            "type": "number"
+          },
+          "release_ms": {
+            "default": 180,
+            "maximum": 3000.0,
+            "minimum": 10.0,
+            "title": "Release Ms",
+            "type": "number"
+          },
+          "threshold_db": {
+            "default": -18,
+            "maximum": 0.0,
+            "minimum": -60.0,
+            "title": "Threshold Db",
+            "type": "number"
+          },
+          "type": {
+            "const": "compressor",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "CompressorEffect",
+        "type": "object"
+      },
       "CostBasisResponse": {
         "properties": {
           "basis": {
@@ -2138,6 +2199,46 @@
           "keep_days"
         ],
         "title": "DiskSnapshotResponse",
+        "type": "object"
+      },
+      "DistortionEffect": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "default": 0.2,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Amount",
+            "type": "number"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mix": {
+            "default": 0.25,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Mix",
+            "type": "number"
+          },
+          "type": {
+            "const": "distortion",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "DistortionEffect",
         "type": "object"
       },
       "DraftBody": {
@@ -2601,6 +2702,55 @@
           "enabled"
         ],
         "title": "EnabledBody",
+        "type": "object"
+      },
+      "FilterEffect": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "frequency_hz": {
+            "default": 3400,
+            "maximum": 20000.0,
+            "minimum": 40.0,
+            "title": "Frequency Hz",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mode": {
+            "default": "lowpass",
+            "enum": [
+              "lowpass",
+              "highpass"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "q": {
+            "default": 0.707,
+            "maximum": 18.0,
+            "minimum": 0.1,
+            "title": "Q",
+            "type": "number"
+          },
+          "type": {
+            "const": "filter",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "FilterEffect",
         "type": "object"
       },
       "FreesoundSettingsUpdate": {
@@ -3694,6 +3844,39 @@
           "next_cursor"
         ],
         "title": "PaginationMetaResponse",
+        "type": "object"
+      },
+      "PanEffect": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "pan": {
+            "default": 0,
+            "maximum": 1.0,
+            "minimum": -1.0,
+            "title": "Pan",
+            "type": "number"
+          },
+          "type": {
+            "const": "pan",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "PanEffect",
         "type": "object"
       },
       "PartAnchor": {
@@ -6540,7 +6723,12 @@
             "items": {
               "discriminator": {
                 "mapping": {
+                  "compressor": "#/components/schemas/CompressorEffect",
+                  "distortion": "#/components/schemas/DistortionEffect",
                   "echo": "#/components/schemas/EchoEffect",
+                  "filter": "#/components/schemas/FilterEffect",
+                  "pan": "#/components/schemas/PanEffect",
+                  "reverb": "#/components/schemas/ReverbEffect",
                   "telephone": "#/components/schemas/TelephoneEffect"
                 },
                 "propertyName": "type"
@@ -6551,6 +6739,21 @@
                 },
                 {
                   "$ref": "#/components/schemas/EchoEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/FilterEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/CompressorEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/ReverbEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/DistortionEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/PanEffect"
                 }
               ]
             },
@@ -6936,6 +7139,46 @@
         "title": "ResourceUpdate",
         "type": "object"
       },
+      "ReverbEffect": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mix": {
+            "default": 0.2,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Mix",
+            "type": "number"
+          },
+          "room_size": {
+            "default": 0.45,
+            "maximum": 1.0,
+            "minimum": 0.1,
+            "title": "Room Size",
+            "type": "number"
+          },
+          "type": {
+            "const": "reverb",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "ReverbEffect",
+        "type": "object"
+      },
       "RouteState": {
         "additionalProperties": false,
         "properties": {
@@ -7027,7 +7270,12 @@
             "items": {
               "discriminator": {
                 "mapping": {
+                  "compressor": "#/components/schemas/CompressorEffect",
+                  "distortion": "#/components/schemas/DistortionEffect",
                   "echo": "#/components/schemas/EchoEffect",
+                  "filter": "#/components/schemas/FilterEffect",
+                  "pan": "#/components/schemas/PanEffect",
+                  "reverb": "#/components/schemas/ReverbEffect",
                   "telephone": "#/components/schemas/TelephoneEffect"
                 },
                 "propertyName": "type"
@@ -7038,6 +7286,21 @@
                 },
                 {
                   "$ref": "#/components/schemas/EchoEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/FilterEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/CompressorEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/ReverbEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/DistortionEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/PanEffect"
                 }
               ]
             },
@@ -7805,7 +8068,12 @@
             "items": {
               "discriminator": {
                 "mapping": {
+                  "compressor": "#/components/schemas/CompressorEffect",
+                  "distortion": "#/components/schemas/DistortionEffect",
                   "echo": "#/components/schemas/EchoEffect",
+                  "filter": "#/components/schemas/FilterEffect",
+                  "pan": "#/components/schemas/PanEffect",
+                  "reverb": "#/components/schemas/ReverbEffect",
                   "telephone": "#/components/schemas/TelephoneEffect"
                 },
                 "propertyName": "type"
@@ -7816,6 +8084,21 @@
                 },
                 {
                   "$ref": "#/components/schemas/EchoEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/FilterEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/CompressorEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/ReverbEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/DistortionEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/PanEffect"
                 }
               ]
             },

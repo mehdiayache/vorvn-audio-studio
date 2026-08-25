@@ -196,6 +196,11 @@ export type SoundSceneAnchor =
 export type SoundSceneEffect =
   | { id: string; type: "telephone"; enabled: boolean }
   | { id: string; type: "echo"; enabled: boolean; delay_ms: number; feedback: number; mix: number }
+  | { id: string; type: "filter"; enabled: boolean; mode: "lowpass" | "highpass"; frequency_hz: number; q: number }
+  | { id: string; type: "compressor"; enabled: boolean; threshold_db: number; ratio: number; attack_ms: number; release_ms: number; makeup_db: number }
+  | { id: string; type: "reverb"; enabled: boolean; room_size: number; mix: number }
+  | { id: string; type: "distortion"; enabled: boolean; amount: number; mix: number }
+  | { id: string; type: "pan"; enabled: boolean; pan: number }
 
 export type SequenceMixOverride = {
   muted: boolean

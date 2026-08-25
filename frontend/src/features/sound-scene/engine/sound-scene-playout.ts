@@ -54,7 +54,7 @@ type StreamDescriptor = {
   clip: SoundSceneClip
 }
 
-type EchoBus = { key: string; send: GainNode }
+type SequenceEffectBus = { key: string; send: GainNode; nodes: AudioNode[] }
 
 type EffectRoute = {
   input: AudioNode
@@ -64,10 +64,9 @@ type EffectRoute = {
 }
 
 type SequenceStream = StreamHandle & {
-  rawGain: GainNode
-  telephoneGain: GainNode
+  source: MediaElementAudioSourceNode
   detectorGain: GainNode
-  echoBuses: EchoBus[]
+  effectBuses: SequenceEffectBus[]
   analyser: AnalyserNode
 }
 
@@ -124,12 +123,8 @@ function repeatedClips(
   return result
 }
 
-function effectIndex(effects: SoundSceneEffect[], type: SoundSceneEffect["type"]) {
-  return effects.findIndex((effect) => effect.enabled && effect.type === type)
-}
-
-function echoKey(effect: Extract<SoundSceneEffect, { type: "echo" }>, telephoneBefore: boolean, telephoneAfter: boolean) {
-  return [effect.delay_ms, effect.feedback, effect.mix, telephoneBefore ? 1 : 0, telephoneAfter ? 1 : 0].join(":")
+function effectKey(effects: SoundSceneEffect[]) {
+  return JSON.stringify(effects.filter((effect) => effect.enabled))
 }
 
 function valueAt(mix: SequenceMixOverride, local: number, duration: number, base: number) {
@@ -369,6 +364,88 @@ export class SoundScenePlayout {
         current = this.telephone(current, nodes)
         continue
       }
+      if (effect.type === "filter") {
+        const filter = this.context!.createBiquadFilter()
+        filter.type = effect.mode
+        filter.frequency.value = effect.frequency_hz
+        filter.Q.value = effect.q
+        current.connect(filter)
+        nodes.push(filter)
+        current = filter
+        continue
+      }
+      if (effect.type === "compressor") {
+        const compressor = this.context!.createDynamicsCompressor()
+        compressor.threshold.value = effect.threshold_db
+        // FFmpeg acompressor's fixed knee=2.82843 is approximately 9 dB.
+        // Keeping the Web Audio knee explicit avoids browser-default drift.
+        compressor.knee.value = 9
+        compressor.ratio.value = effect.ratio
+        compressor.attack.value = effect.attack_ms / 1_000
+        compressor.release.value = effect.release_ms / 1_000
+        const makeup = this.context!.createGain()
+        makeup.gain.value = 10 ** (effect.makeup_db / 20)
+        current.connect(compressor)
+        compressor.connect(makeup)
+        nodes.push(compressor, makeup)
+        current = makeup
+        continue
+      }
+      if (effect.type === "pan") {
+        const panner = this.context!.createStereoPanner()
+        panner.pan.value = effect.pan
+        current.connect(panner)
+        nodes.push(panner)
+        current = panner
+        continue
+      }
+      if (effect.type === "reverb") {
+        const sum = this.context!.createGain()
+        const dry = this.context!.createGain()
+        dry.gain.value = 1 - effect.mix
+        current.connect(dry)
+        dry.connect(sum)
+        const scale = .6 + 1.8 * effect.room_size
+        ;[[.035, .64], [.067, .44], [.113, .29], [.173, .18]].forEach(([delaySeconds, decay]) => {
+          const delay = this.context!.createDelay(1)
+          const tap = this.context!.createGain()
+          delay.delayTime.value = delaySeconds! * scale
+          tap.gain.value = decay! * effect.mix
+          current.connect(delay)
+          delay.connect(tap)
+          tap.connect(sum)
+          nodes.push(delay, tap)
+        })
+        nodes.push(sum, dry)
+        current = sum
+        continue
+      }
+      if (effect.type === "distortion") {
+        const sum = this.context!.createGain()
+        const dry = this.context!.createGain()
+        const shaper = this.context!.createWaveShaper()
+        const wet = this.context!.createGain()
+        const threshold = Math.max(.08, 1 - effect.amount * .85)
+        const curve = new Float32Array(2_048)
+        const normalizer = Math.tanh(1 / threshold)
+        for (let index = 0; index < curve.length; index += 1) {
+          const inputValue = index / (curve.length - 1) * 2 - 1
+          curve[index] = Math.tanh(inputValue / threshold) / normalizer
+        }
+        shaper.curve = curve
+        shaper.oversample = "4x"
+        dry.gain.value = 1 - effect.mix
+        wet.gain.value = effect.mix
+        current.connect(dry)
+        dry.connect(sum)
+        current.connect(shaper)
+        shaper.connect(wet)
+        wet.connect(sum)
+        nodes.push(sum, dry, shaper, wet)
+        current = sum
+        continue
+      }
+      if (effect.type !== "echo") continue
       const sum = this.context!.createGain()
       const dry = this.context!.createGain()
       const delay = this.context!.createDelay(1)
@@ -428,45 +505,6 @@ export class SoundScenePlayout {
     const element = this.mediaElement(url)
     const source = this.context!.createMediaElementSource(element)
     const nodes: AudioNode[] = [source]
-    const rawGain = this.context!.createGain()
-    const telephoneSource = this.telephone(source, nodes)
-    const telephoneGain = this.context!.createGain()
-    rawGain.gain.value = 0
-    telephoneGain.gain.value = 0
-    source.connect(rawGain)
-    rawGain.connect(this.audibleMaster!)
-    telephoneSource.connect(telephoneGain)
-    telephoneGain.connect(this.audibleMaster!)
-    nodes.push(rawGain, telephoneGain)
-
-    const echoBuses: EchoBus[] = []
-    const keys = new Set<string>()
-    for (const span of scene.resolved.sequence_projection.spans) {
-      const effects = span.mix.effects.filter((effect) => effect.enabled)
-      const telephone = effectIndex(effects, "telephone")
-      effects.forEach((candidate, index) => {
-        if (candidate.type !== "echo") return
-        const before = telephone >= 0 && telephone < index
-        const after = telephone > index
-        const key = echoKey(candidate, before, after)
-        if (keys.has(key)) return
-        keys.add(key)
-        const send = this.context!.createGain()
-        const delay = this.context!.createDelay(1)
-        const feedback = this.context!.createGain()
-        send.gain.value = 0
-        delay.delayTime.value = candidate.delay_ms / 1_000
-        feedback.gain.value = candidate.feedback
-        ;(before ? telephoneSource : source).connect(send)
-        send.connect(delay)
-        delay.connect(feedback)
-        feedback.connect(delay)
-        const output = after ? this.telephone(delay, nodes) : delay
-        output.connect(this.audibleMaster!)
-        nodes.push(send, delay, feedback)
-        echoBuses.push({ key, send })
-      })
-    }
     const analyser = this.context!.createAnalyser()
     const detectorGain = this.context!.createGain()
     const silentTap = this.context!.createGain()
@@ -479,11 +517,51 @@ export class SoundScenePlayout {
     silentTap.connect(this.audibleMaster!)
     nodes.push(detectorGain, analyser, silentTap)
     const handle: SequenceStream = {
-      element, nodes, gain: rawGain, trackVolume: 1, muted: false,
-      rawGain, telephoneGain, detectorGain, echoBuses, analyser,
+      element, nodes, gain: detectorGain, trackVolume: 1, muted: false,
+      source, detectorGain, effectBuses: [], analyser,
     }
     this.streams.push(handle)
     this.sequenceStream = handle
+    this.syncSequenceEffectBuses(handle)
+  }
+
+  private sequenceEffectChains() {
+    const chains = new Map<string, SoundSceneEffect[]>()
+    for (const span of this.scene.resolved.sequence_projection.spans) {
+      const preview = this.sequenceMixPreviews.get(span.part_public_id)
+      const effects = (preview?.effects || span.mix.effects).filter((effect) => effect.enabled)
+      chains.set(effectKey(effects), effects)
+    }
+    if (!chains.size) chains.set("[]", [])
+    return chains
+  }
+
+  private syncSequenceEffectBuses(stream: SequenceStream) {
+    const desired = this.sequenceEffectChains()
+    const retained: SequenceEffectBus[] = []
+    for (const bus of stream.effectBuses) {
+      if (desired.has(bus.key)) {
+        retained.push(bus)
+        desired.delete(bus.key)
+        continue
+      }
+      try { stream.source.disconnect(bus.send) } catch { /* route already detached */ }
+      for (const node of bus.nodes) {
+        try { node.disconnect() } catch { /* route already detached */ }
+        const index = stream.nodes.indexOf(node)
+        if (index >= 0) stream.nodes.splice(index, 1)
+      }
+    }
+    for (const [key, effects] of desired) {
+      const send = this.context!.createGain()
+      send.gain.value = 0
+      const nodes: AudioNode[] = [send]
+      stream.source.connect(send)
+      this.fixedEffects(send, effects, nodes).connect(this.audibleMaster!)
+      stream.nodes.push(...nodes)
+      retained.push({ key, send, nodes })
+    }
+    stream.effectBuses = retained
   }
 
   private scheduleParameter(
@@ -521,24 +599,11 @@ export class SoundScenePlayout {
   private scheduleSequenceMix(from: number) {
     const stream = this.sequenceStream
     if (!stream || !this.context) return
-    const dryLevel = (mix: SequenceMixOverride, telephone: boolean) => {
-      const effects = mix.effects.filter((effect) => effect.enabled)
-      if ((effectIndex(effects, "telephone") >= 0) !== telephone) return 0
-      const echo = effects.find((effect) => effect.type === "echo")
-      return mix.gain * (echo?.type === "echo" ? 1 - echo.mix : 1)
-    }
-    this.scheduleParameter(stream.rawGain.gain, from, (mix) => dryLevel(mix, false))
-    this.scheduleParameter(stream.telephoneGain.gain, from, (mix) => dryLevel(mix, true))
+    this.syncSequenceEffectBuses(stream)
     this.scheduleParameter(stream.detectorGain.gain, from, (mix) => mix.gain)
-    for (const bus of stream.echoBuses) {
-      this.scheduleParameter(bus.send.gain, from, (mix) => {
-        const effects = mix.effects.filter((effect) => effect.enabled)
-        const telephone = effectIndex(effects, "telephone")
-        const match = effects.find((candidate, index) => candidate.type === "echo"
-          && echoKey(candidate, telephone >= 0 && telephone < index, telephone > index) === bus.key)
-        return match?.type === "echo" ? mix.gain * match.mix : 0
-      })
-    }
+    for (const bus of stream.effectBuses)
+      this.scheduleParameter(bus.send.gain, from, (mix) =>
+        effectKey(mix.effects) === bus.key ? mix.gain : 0)
   }
 
   private createAudioStream(descriptor: StreamDescriptor) {
