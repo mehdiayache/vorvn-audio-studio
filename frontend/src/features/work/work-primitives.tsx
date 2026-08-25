@@ -2,7 +2,6 @@ import { ArrowRight, Clock3, FileAudio2, FolderKanban, Layers3, MoreHorizontal }
 import type { ReactNode } from "react"
 import { Link } from "react-router-dom"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { ShellBreadcrumbs } from "@/components/shell-breadcrumbs"
@@ -14,6 +13,10 @@ import type { ProductionSummary, SeriesSummary, TrailItem, WorkMetrics } from "@
 
 function countLabel(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`
+}
+
+function WorkMetric({ value, label, title }: { value: string; label?: string; title?: string }) {
+  return <div title={title}>{label && <dt>{label}</dt>}<dd>{value}</dd></div>
 }
 
 export function WorkPageHeader({ kind, name, description, trail, actions, metrics, icon }: {
@@ -30,7 +33,7 @@ export function WorkPageHeader({ kind, name, description, trail, actions, metric
   return <header className={`work-page-header work-page-header-${kind.toLowerCase()}`}>
     <ShellBreadcrumbs trail={trail} current={{ type: kind.toLowerCase() as "venture" | "project" | "series", name, icon }} />
     <div className="work-title-row"><span className="work-title-icon">{kind === "Venture" ? <VentureMark identity={icon} name={name} /> : imageIcon ? <img src={icon} alt="" /> : <Icon />}</span><div className="work-title-copy"><small>{kind}</small><h1>{name}</h1>{description && <p>{description}</p>}</div>{actions && <div className="work-title-actions">{actions}</div>}</div>
-    {metrics && <div className="work-metrics">{metrics.project_count !== undefined && <span><b>{countLabel(metrics.project_count, "project")}</b></span>}{metrics.series_count !== undefined && <span><b>{countLabel(metrics.series_count, "series", "series")}</b></span>}<span><b>{countLabel(metrics.production_count, "production")}</b></span><span><b>{countLabel(metrics.part_count, "part")}</b></span><span><b>{formatDuration(metrics.duration_ms / 1000)}</b> audio</span><span title="Includes spend for work later removed from the edit"><b>{formatMoney(metrics.total_cost)}</b> historical spend</span>{metrics.current_sequence_cost !== undefined && Math.abs(metrics.total_cost - metrics.current_sequence_cost) > 0.000001 && <span title="Only audio currently present in these Productions"><b>{formatMoney(metrics.current_sequence_cost)}</b> current sequences</span>}</div>}
+    {metrics && <dl className="work-metrics">{metrics.project_count !== undefined && <WorkMetric value={String(metrics.project_count)} label={metrics.project_count === 1 ? "project" : "projects"} />}{metrics.series_count !== undefined && <WorkMetric value={String(metrics.series_count)} label="series" />}<WorkMetric value={String(metrics.production_count)} label={metrics.production_count === 1 ? "production" : "productions"} /><WorkMetric value={String(metrics.part_count)} label={metrics.part_count === 1 ? "part" : "parts"} /><WorkMetric value={formatDuration(metrics.duration_ms / 1000)} label="audio" /><WorkMetric value={formatMoney(metrics.total_cost)} label="historical spend" title="Includes provider spend for work later removed from the edit" />{metrics.current_sequence_cost !== undefined && Math.abs(metrics.total_cost - metrics.current_sequence_cost) > 0.000001 && <WorkMetric value={formatMoney(metrics.current_sequence_cost)} label="current sequences" title="Only audio currently present in these Productions" />}</dl>}
   </header>
 }
 
@@ -45,7 +48,9 @@ export function SeriesCard({ series }: { series: SeriesSummary }) {
 
 export function ProductionRow({ production, menu }: { production: ProductionSummary; menu?: ReactNode }) {
   const duration = formatDuration(production.duration_ms / 1000)
-  return <article className="production-summary-row"><Link className="production-summary-main" to={resourceHref("production", production.public_id)}><span className="production-summary-icon"><FileAudio2 /></span><span className="production-summary-copy"><span><Badge variant="outline">{production.status.replaceAll("_", " ")}</Badge><small>{production.part_count} parts</small>{formatUpdated(production.updated_at) && <small>{formatUpdated(production.updated_at)}</small>}</span><b>{production.name}</b><p>{production.description || "Audio Production"}</p></span><span className="production-summary-stats"><b><Clock3 /> {duration}</b><small title="Historical spend">{formatMoney(production.total_cost)}</small></span><ArrowRight className="production-summary-open" /></Link>{menu}</article>
+  const status = production.status.toLowerCase().replaceAll("_", " ")
+  const statusTone = /ready|complete|published/.test(status) ? "ready" : /fail|error|blocked|attention/.test(status) ? "attention" : status === "draft" ? "draft" : "neutral"
+  return <article className="production-summary-row"><Link className="production-summary-main" to={resourceHref("production", production.public_id)}><span className="production-summary-icon"><FileAudio2 /></span><span className="production-summary-copy"><span><span className={`work-production-status is-${statusTone}`}><i />{status}</span><small>{countLabel(production.part_count, "part")}</small>{formatUpdated(production.updated_at) && <small>{formatUpdated(production.updated_at)}</small>}</span><b>{production.name}</b><p>{production.description || "Audio Production"}</p></span><span className="production-summary-stats"><b><Clock3 /> {duration}</b><small title="Historical spend">{formatMoney(production.total_cost)}</small></span><ArrowRight className="production-summary-open" /></Link>{menu}</article>
 }
 
 export function ProductionMenu({ children, label }: { children: ReactNode; label: string }) {

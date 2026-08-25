@@ -4,10 +4,33 @@
 .state-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; background: var(--muted); }
 .state-icon.error { color: var(--destructive); background: var(--danger-soft); }
 .page-state { width: min(900px, calc(100% - 48px)); margin: 34px auto; }
+.page-loading { width: min(100% - 3rem, 70rem); margin: 0 auto; padding: 34px 0 72px; opacity: 0; animation: page-loading-enter 140ms ease 120ms forwards; }
+.page-loading-header { min-height: 60px; display: flex; align-items: center; gap: 13px; border-bottom: 1px solid var(--border); }
+.page-loading-header > div { display: grid; gap: 7px; }
+.page-loading-header span { display: flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-size: var(--type-small); font-weight: 560; }
+.page-loading-header span svg { width: 14px; }
+.page-loading-mark { width: 38px; height: 38px; border-radius: var(--radius); }
+.page-loading-title { width: clamp(9rem, 20vw, 15rem); height: 15px; border-radius: 4px; }
+.page-loading-layout { display: grid; grid-template-columns: minmax(11rem, 15rem) minmax(0, 1fr); gap: 32px; padding-top: 28px; }
+.page-loading-layout aside,
+.page-loading-layout section { display: grid; align-content: start; gap: 11px; }
+.page-loading-layout aside > span { height: 42px; border-radius: var(--radius-sm); }
+.page-loading-layout section > span { height: 72px; border-radius: var(--radius); }
+.page-loading-layout section > .page-loading-section-title { width: 36%; height: 18px; margin-bottom: 4px; border-radius: 4px; }
+@keyframes page-loading-enter { to { opacity: 1; } }
 .state-centered { min-height: 260px; place-items: center; text-align: center; align-content: center; }
 .state-copy { display: flex; align-items: center; gap: 8px; }
 .scoped-resource-error { align-items: center; background: var(--warning-soft); border-bottom: 1px solid color-mix(in oklab, var(--warning) 34%, var(--border)); color: var(--foreground); display: flex; font-size: var(--type-small); gap: 1rem; justify-content: center; padding: .55rem 1rem; }
 .scoped-resource-error button { color: inherit; font-weight: 750; text-decoration: underline; }
 .inline-resource-error { display: flex; align-items: center; justify-content: center; gap: .65rem; margin: -10px 0 18px; padding: .55rem .75rem; border: 1px solid color-mix(in oklab, var(--warning) 30%, var(--border)); border-radius: var(--radius); background: var(--warning-soft); color: var(--foreground); font-size: var(--type-small); }
 .inline-resource-error > svg { width: 1rem; flex: none; color: var(--warning); }
-@media (max-width: 600px) { .empty-sequence { grid-template-columns: 1fr; text-align: center; place-items: center; } }
+@media (max-width: 600px) {
+  .empty-sequence { grid-template-columns: 1fr; text-align: center; place-items: center; }
+  .page-loading { width: calc(100% - 2rem); padding-top: 22px; }
+  .page-loading-layout { grid-template-columns: 1fr; }
+  .page-loading-layout aside { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-loading { opacity: 1; animation: none; }
+}

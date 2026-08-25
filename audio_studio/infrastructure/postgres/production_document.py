@@ -191,7 +191,7 @@ class ProductionDocumentRepository:
                        clip.raw_text, clip.spoken_text, clip.tagged_text,
                        clip.delivery, clip.usage, clip.segmentation,
                        clip.binding_resolution_status,
-                       collection.kind, collection.name,
+                       asset.kind, collection.name,
                        NULL::bigint,
                        caption_job.public_id, caption_job.status,
                        CASE WHEN caption_job.total > 0

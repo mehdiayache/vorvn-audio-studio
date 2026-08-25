@@ -148,7 +148,7 @@ class ProductionDocumentTests(unittest.TestCase):
         linked_part = next(item for item in self.repository.parts(first_id)
                            if item["id"] == linked["id"])
         self.assertEqual(linked_part["kind"], "asset")
-        self.assertEqual(linked_part["asset_kind"], "intros")
+        self.assertEqual(linked_part["asset_kind"], "intro")
         self.assertEqual(linked_part["asset_collection"], "Intros")
 
         self.timeline.edit_silence(first_id, silence["id"], 3.5)
@@ -261,10 +261,11 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual(saved_scene["document"]["tracks"][0]["kind"], "audio")
         self.assertEqual(
             (music_clip["asset_id"], music_clip["filename"],
+             music_clip["asset_kind"],
              music_clip["gain"], music_clip["source_offset_ms"],
              music_clip["fade_in_ms"], music_clip["ducking"]),
             (music_asset["id"], f"music-{self.marker}.wav",
-             .25, 1_500, 3_000, False),
+             "music", .25, 1_500, 3_000, False),
         )
         self.assertIsNotNone(persisted_music_clip["asset_version_id"])
         self.assertNotIn("start_ms", persisted_music_clip)

@@ -6,12 +6,29 @@ import { Skeleton } from "@/components/ui/skeleton"
 import "./state-panel.css"
 
 export function PageLoading({ label = "Loading Production" }: { label?: string }) {
+  const subject = label.replace(/^Loading\s+/i, "")
   return (
-    <main className="page-state" aria-label={label}>
-      <div className="state-copy"><LoaderCircle className="spin" /> {label}…</div>
-      <Skeleton className="h-28 w-full rounded-2xl" />
-      <Skeleton className="h-20 w-full rounded-2xl" />
-      <Skeleton className="h-44 w-full rounded-2xl" />
+    <main className="page-loading" aria-label={label} aria-live="polite" role="status">
+      <header className="page-loading-header">
+        <Skeleton className="page-loading-mark" />
+        <div>
+          <Skeleton className="page-loading-title" />
+          <span><LoaderCircle className="spin" /> Opening {subject}…</span>
+        </div>
+      </header>
+      <div className="page-loading-layout" aria-hidden="true">
+        <aside>
+          <Skeleton />
+          <Skeleton />
+          <Skeleton />
+        </aside>
+        <section>
+          <Skeleton className="page-loading-section-title" />
+          <Skeleton />
+          <Skeleton />
+          <Skeleton />
+        </section>
+      </div>
     </main>
   )
 }
