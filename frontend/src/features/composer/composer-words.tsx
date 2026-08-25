@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button"
 import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import type { TextView } from "@/hooks/use-composer-text"
 import { formatMicroMoney } from "@/lib/format"
@@ -39,7 +39,8 @@ export function ComposerWords() {
   const compareView = candidateView || savedCompareView
   const compareText = text.review?.result.after || (compareView ? text.states[compareView] : "")
   const displayedText = text.review?.result.after || text.text
-  const spokenLabel = text.spokenProfile === "spoken_2" ? "Speech editing" : "Natural phrasing"
+  const spokenLabel = text.spokenProfile === "spoken_2" ? "Speech edit" : "Natural"
+  const densityLabel = `${text.density.slice(0, 1).toUpperCase()}${text.density.slice(1)}`
   const textToolDisabled = !composer.currentRoute || !text.text.trim() || Boolean(text.busy) || composer.recovery.status === "loading"
 
   const copy = async () => {
@@ -50,19 +51,30 @@ export function ComposerWords() {
 
   return <section className={cn("composer-section script-section", focusMode && "is-focus")} aria-label="Script workspace">
     <div className="script-command-row">
-      <div className="speech-states" role="tablist" aria-label="Script versions">{states.map((state) => <Button key={state} role="tab" aria-selected={text.view === state && !text.review} variant="ghost" size="sm" className={text.view === state && !text.review ? "active" : ""} disabled={Boolean(text.review) || (state !== "raw" && !text.states[state])} onClick={() => text.select(state)}>{textLabel(state)}{state === text.view && !text.review && <small>Recording input</small>}</Button>)}</div>
+      <div className="script-version-row">
+        <Tabs value={text.review ? "" : text.view} onValueChange={(value) => text.select(value as TextView)}>
+          <TabsList variant="line" aria-label="Script versions" className="speech-states">{states.map((state) => <TabsTrigger key={state} value={state} disabled={Boolean(text.review) || (state !== "raw" && !text.states[state])}>{textLabel(state)}</TabsTrigger>)}</TabsList>
+        </Tabs>
+        {!text.review && <span className="recording-input-label">Recording input · <b>{textLabel(text.view)}</b></span>}
+      </div>
       <div className="script-command-actions">
         {!text.review && <div className="text-tools" aria-label="Text tools">
-          <div className="spoken-split-action">
-            <Button variant="ghost" size="sm" disabled={textToolDisabled} onClick={() => void text.run("shape", false, text.spokenProfile)}><AudioLines />{text.busy === "shape" ? "Preparing…" : `Make spoken · ${spokenLabel}`}</Button>
-            <DropdownMenu><OperatorTooltip label="Choose Spoken preparation method" detail="Selects how the text is prepared before you review it." disabledTrigger={textToolDisabled}><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Choose Spoken preparation method" disabled={textToolDisabled}><ChevronDown /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent align="end" className="spoken-method-menu">
-              <DropdownMenuItem onSelect={() => void text.run("shape", false, "spoken_1")}><span><b>Spoken 1 · Natural phrasing</b><small>Reshapes sentences for comfortable listening.</small></span>{text.spokenProfile === "spoken_1" && <Check />}</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => void text.run("shape", false, "spoken_2")}><span><b>Spoken 2 · Speech editing</b><small>Cuts and reshapes written prose for spoken rhythm.</small></span>{text.spokenProfile === "spoken_2" && <Check />}</DropdownMenuItem>
-            </DropdownMenuContent></DropdownMenu>
+          <div className="text-preparation-action">
+            <Button variant="outline" size="sm" disabled={textToolDisabled} onClick={() => void text.run("shape", false, text.spokenProfile)}><AudioLines />{text.busy === "shape" ? "Preparing…" : "Make spoken"}</Button>
+            <DropdownMenu><OperatorTooltip label="Spoken preparation" detail={`Current method: ${spokenLabel}. Choose how the words are prepared.`} side="bottom" disabledTrigger={textToolDisabled}><DropdownMenuTrigger asChild><Button variant="outline" size="sm" aria-label="Choose Spoken preparation method" disabled={textToolDisabled}>{spokenLabel}<ChevronDown /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent align="end" className="spoken-method-menu"><DropdownMenuGroup><DropdownMenuRadioGroup value={text.spokenProfile} onValueChange={text.setSpokenProfile}>
+              <DropdownMenuRadioItem value="spoken_1"><span><b>Spoken 1 · Natural phrasing</b><small>Reshapes sentences for comfortable listening.</small></span></DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="spoken_2"><span><b>Spoken 2 · Speech editing</b><small>Cuts and reshapes written prose for spoken rhythm.</small></span></DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup></DropdownMenuGroup></DropdownMenuContent></DropdownMenu>
           </div>
           {composer.capabilityControls.deliveryTags && <>
-            <Select value={text.density} onValueChange={text.setDensity}><SelectTrigger aria-label="Tag density"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="light">Light tags</SelectItem><SelectItem value="normal">Normal tags</SelectItem><SelectItem value="heavy">Heavy tags</SelectItem></SelectContent></Select>
-            <Button variant="ghost" size="sm" disabled={!text.text.trim() || Boolean(text.busy) || composer.recovery.status === "loading"} onClick={() => void text.run("tag")}><WandSparkles />{text.busy === "tag" ? "Tagging…" : "Add tags"}</Button>
+            <div className="text-preparation-action">
+              <Button variant="outline" size="sm" disabled={textToolDisabled} onClick={() => void text.run("tag")}><WandSparkles />{text.busy === "tag" ? "Tagging…" : "Add tags"}</Button>
+              <DropdownMenu><OperatorTooltip label="Tag density" detail={`Current density: ${densityLabel}. Choose how many supported delivery tags to add.`} side="bottom" disabledTrigger={textToolDisabled}><DropdownMenuTrigger asChild><Button variant="outline" size="sm" aria-label="Choose tag density" disabled={textToolDisabled}>{densityLabel}<ChevronDown /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent align="end"><DropdownMenuGroup><DropdownMenuRadioGroup value={text.density} onValueChange={text.setDensity}>
+                <DropdownMenuRadioItem value="light">Light · only important moments</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="normal">Normal · balanced direction</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="heavy">Heavy · frequent direction</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup></DropdownMenuGroup></DropdownMenuContent></DropdownMenu>
+            </div>
           </>}
         </div>}
         <div className="script-utility-actions" aria-label="Script actions">

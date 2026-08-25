@@ -93,15 +93,12 @@
 .ws-inspector-content .production-composer-stage { min-height: 100%; }
 .ws-inspector-content .speech-composer.is-stage { min-height: 100%; border: 0; border-radius: 0; box-shadow: none; }
 .ws-inspector-content .speech-composer.is-stage .composer-context-bar { display: none; }
-.ws-inspector-content .speech-composer.is-stage .composer-stage { padding-top: 1rem; }
+.ws-inspector-content .speech-composer.is-stage .composer-stage { padding-top: 0; }
 .ws-inspector-content .speech-composer.is-stage .composer-actions { position: sticky; bottom: 0; }
 .ws-inspector-content .speech-composer.is-stage .composer-recording-summary { grid-template-columns: auto minmax(0, 1fr) auto; }
 .ws-inspector-content .speech-composer.is-stage .composer-recording-facts { display: none; }
 .ws-inspector-content .speech-composer.is-stage .composer-recording-trigger { max-width: 7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ws-inspector-content .speech-composer.is-stage .composer-recording-bar { grid-template-columns: minmax(0, 1fr); }
-.ws-inspector-content .speech-composer.is-stage .script-command-row { grid-template-columns: minmax(0, 1fr); align-items: stretch; display: grid; }
-.ws-inspector-content .speech-composer.is-stage .script-command-actions { justify-content: space-between; flex-wrap: wrap; }
-.ws-inspector-content .speech-composer.is-stage .speech-states button { padding-inline: .55rem; }
 
 .ws-outline, .ws-track-list, .ws-mix-outline { height: 100%; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); }
 .ws-pane-header { min-height: 2.85rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .45rem .45rem .35rem .8rem; }

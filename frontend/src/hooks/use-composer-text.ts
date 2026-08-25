@@ -191,6 +191,9 @@ export function useComposerText(
     setDensity: (value: string) => {
       if (["none", "light", "normal", "heavy"].includes(value)) setDensityState(value as TagDensity)
     },
+    setSpokenProfile: (value: string) => {
+      if (["spoken_1", "spoken_2"].includes(value)) setSpokenProfile(value as SpokenProfile)
+    },
     updateText, select, restore, run, accept, reject, cancelPending,
     confirmPending,
   }

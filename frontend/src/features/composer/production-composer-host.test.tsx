@@ -37,5 +37,8 @@ describe("ProductionComposerSession", () => {
     expect((screen.getByRole("textbox", { name: "Original script" }) as HTMLTextAreaElement).value).toBe("The same live Production Draft")
     expect(inline.querySelector("textarea")).toBeNull()
     expect(stage.querySelector("textarea")).toBeTruthy()
+    expect(screen.getByRole("tablist", { name: "Part editor sections" })).toBeTruthy()
+    expect(screen.getByRole("tab", { name: "Performance" })).toBeTruthy()
+    expect(screen.getByRole("tab", { name: "Output" })).toBeTruthy()
   })
 })
