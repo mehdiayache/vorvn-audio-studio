@@ -57,44 +57,60 @@ const profile: VoiceProfile = {
 }
 
 describe("VoiceProfileDialog", () => {
-  it("opens on the human voice overview instead of the source-window implementation", () => {
+  it("opens on recording methods with the preserved source in context", () => {
     render(<VoiceProfileDialog profile={profile} open onOpenChange={() => undefined} onEditIdentity={() => undefined} onChanged={() => undefined} />)
 
-    expect(screen.getByRole("tab", { name: "Voice" }).getAttribute("data-state")).toBe("active")
-    expect(screen.getByRole("tab", { name: "Recording methods" })).toBeTruthy()
+    expect(screen.getByRole("tab", { name: "Recording methods" }).getAttribute("data-state")).toBe("active")
     expect(screen.getByRole("tab", { name: "Voice tests" })).toBeTruthy()
+    expect(screen.queryByRole("tab", { name: "Voice" })).toBeNull()
     expect(screen.getByText("Original recording")).toBeTruthy()
-    expect(screen.queryByText("Choose the performance evidence")).toBeNull()
-    expect(screen.queryByText(/Methods 1/)).toBeNull()
+    expect(screen.getByText("Preserved master")).toBeTruthy()
+    expect(screen.getByText("Ready")).toBeTruthy()
   })
 
   it("reveals source selection only while preparing a specific recording method", async () => {
     render(<VoiceProfileDialog profile={profile} open onOpenChange={() => undefined} onEditIdentity={() => undefined} onChanged={() => undefined} />)
 
-    await waitFor(() => expect(screen.getByRole("tab", { name: "Voice" }).getAttribute("data-state")).toBe("active"))
-    const voiceTab = screen.getByRole("tab", { name: "Voice" })
-    voiceTab.focus()
-    fireEvent.keyDown(voiceTab, { key: "ArrowRight" })
     await waitFor(() => expect(screen.getByRole("tab", { name: "Recording methods" }).getAttribute("data-state")).toBe("active"))
-    await waitFor(() => expect(screen.getByText("Ready to use")).toBeTruthy())
     fireEvent.click(screen.getByRole("button", { name: "Reclone" }))
 
-    expect(screen.getByRole("heading", { name: "Reclone for Qwen Audio TTS · Flash" })).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "Reclone Qwen Audio TTS · Flash" })).toBeTruthy()
     expect(screen.getByText("Best result")).toBeTruthy()
     expect(screen.getByText("Required range")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Recording cleanup" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: /Create test version/ })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Reclone method" })).toBeTruthy()
   })
 
   it("shows expression controls only for a method that supports inline tags", async () => {
     render(<VoiceProfileDialog profile={profile} open onOpenChange={() => undefined} onEditIdentity={() => undefined} onChanged={() => undefined} />)
-    await waitFor(() => expect(screen.getByRole("tab", { name: "Voice" }).getAttribute("data-state")).toBe("active"))
-    const voiceTab = screen.getByRole("tab", { name: "Voice" })
-    voiceTab.focus()
-    fireEvent.keyDown(voiceTab, { key: "ArrowLeft" })
+    fireEvent.click(screen.getByRole("button", { name: "Test voice" }))
     await waitFor(() => expect(screen.getByRole("tab", { name: "Voice tests" }).getAttribute("data-state")).toBe("active"))
 
     await waitFor(() => expect(screen.getByText("Expression")).toBeTruthy())
     expect(screen.getByDisplayValue("The morning arrived quietly, carrying the promise of a new beginning.")).toBeTruthy()
+  })
+
+  it("keeps Voice tests open when refreshed profile truth arrives", async () => {
+    const view = render(<VoiceProfileDialog profile={profile} open onOpenChange={() => undefined} onEditIdentity={() => undefined} onChanged={() => undefined} />)
+    fireEvent.click(screen.getByRole("button", { name: "Test voice" }))
+    await waitFor(() => expect(screen.getByRole("tab", { name: "Voice tests" }).getAttribute("data-state")).toBe("active"))
+
+    view.rerender(<VoiceProfileDialog profile={{ ...profile, updated_at: "2026-08-25T12:00:00Z" }} open onOpenChange={() => undefined} onEditIdentity={() => undefined} onChanged={() => undefined} />)
+
+    expect(screen.getByRole("tab", { name: "Voice tests" }).getAttribute("data-state")).toBe("active")
+  })
+
+  it("shows only tests from the selected recording method and truthful states", async () => {
+    const profileWithTests: VoiceProfile = { ...profile, previews: [
+      { id: "ready", identity_id: profile.id, binding_id: "binding-eva", model_id: route.model_id, tag: null, text: "A ready sample.", instruction: "", seed: 0, status: "ready", approval_state: "unreviewed", filename: "ready.wav", error: "", created_at: "" },
+      { id: "other", identity_id: profile.id, binding_id: "historical-binding", model_id: "other", tag: null, text: "An unrelated sample.", instruction: "", seed: 0, status: "failed", approval_state: "unreviewed", filename: "", error: "failed", created_at: "" },
+    ] }
+    render(<VoiceProfileDialog profile={profileWithTests} open onOpenChange={() => undefined} onEditIdentity={() => undefined} onChanged={() => undefined} />)
+    fireEvent.click(screen.getByRole("button", { name: "Test voice" }))
+
+    await waitFor(() => expect(screen.getByText("A ready sample.")).toBeTruthy())
+    expect(screen.getByText("Ready")).toBeTruthy()
+    expect(screen.queryByText("An unrelated sample.")).toBeNull()
+    expect(screen.queryByText("Saved test")).toBeNull()
   })
 })

@@ -28,12 +28,12 @@ const profile: VoiceProfile = {
 }
 
 describe("VoiceProfileCard", () => {
-  it("keeps the card focused on the human identity and review state", () => {
+  it("keeps the card focused on the human identity and active methods", () => {
     render(<VoiceProfileCard profile={profile} onOpen={() => undefined} onPreview={() => undefined} />)
     expect(screen.getByRole("heading", { name: "Serinity" })).toBeTruthy()
     expect(screen.getByText("Female")).toBeTruthy()
     expect(screen.getByText("English")).toBeTruthy()
-    expect(screen.getByText("1 new version to review")).toBeTruthy()
+    expect(screen.getByText("1 method ready")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Open Serinity" })).toBeTruthy()
   })
 

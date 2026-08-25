@@ -68,6 +68,7 @@ class MigrationTests(unittest.TestCase):
                     "041_audio_library_truth.sql",
                     "042_auvi_studio_identity.sql",
                     "043_voice_source_windows_and_previews.sql",
+                    "044_activate_successful_voice_reclones.sql",
         ])
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:

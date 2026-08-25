@@ -1,6 +1,7 @@
 """Native Voice package tests. Alibaba creation is always faked."""
 
 from pathlib import Path
+from dataclasses import replace
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
@@ -453,6 +454,35 @@ class VoicePackageWorkerTests(unittest.TestCase):
                 price_version="fixture", estimated_cost=.01, cost=.01,
                 cost_basis="catalog_creation",
             ))
+            # Start the replacement atomically in the fixture. A real worker
+            # may be running beside this suite, so do not expose a queued test
+            # job that it could claim between assertions.
+            reclone_id = f"vjob_{uuid4().hex}"
+            with psycopg.connect(settings.database_url) as database:
+                database.execute("""
+                    INSERT INTO voice_package_jobs
+                        (id,identity_id,reference_id,reference_window_id,
+                         model_id,engine,tier,provider,provider_region,
+                         provider_model_id,adapter_key,classification,status,
+                         attempts)
+                    SELECT %s,identity_id,reference_id,reference_window_id,
+                           model_id,engine,tier,provider,provider_region,
+                           provider_model_id,adapter_key,classification,
+                           'creating',1
+                      FROM voice_package_jobs WHERE id=%s
+                """, (reclone_id, job_id))
+                database.commit()
+            reclone = replace(claimed, id=reclone_id, attempts=1)
+            reclone_activity_id = repository.start_attempt(reclone, .01)
+            replacement_voice_id = f"fixture-provider-reclone-{marker}"
+            repository.complete(reclone, reclone_activity_id,
+                                CreatedVoiceBinding(
+                provider_voice_id=replacement_voice_id,
+                provider_region="intl",
+                provider_endpoint="https://provider.test",
+                price_version="fixture", estimated_cost=.01, cost=.01,
+                cost_basis="catalog_creation",
+            ))
             with psycopg.connect(settings.database_url) as database:
                 with database.cursor() as cursor:
                     cursor.execute("""
@@ -468,6 +498,28 @@ class VoicePackageWorkerTests(unittest.TestCase):
                     status, basis, region = cursor.fetchone()
                     self.assertEqual((status, basis, region),
                                      ("ok", "catalog_creation", "intl"))
+                    cursor.execute("""
+                        SELECT id,provider_voice_id,validation_state,superseded_by
+                          FROM voice_bindings
+                         WHERE identity_id=%s AND provider='alibaba'
+                           AND provider_region='intl'
+                           AND model_id='qwen-audio-3.0-tts-flash'
+                         ORDER BY created_at,id
+                    """, (identity_id,))
+                    bindings = cursor.fetchall()
+                    self.assertEqual(len(bindings), 2)
+                    self.assertEqual(bindings[0][1:3],
+                                     (f"fixture-provider-{marker}",
+                                      "superseded"))
+                    self.assertEqual(bindings[1][1:3],
+                                     (replacement_voice_id, "approved"))
+                    self.assertEqual(bindings[0][3], bindings[1][0])
+                    cursor.execute("""
+                        SELECT count(*) FROM voice_bindings
+                         WHERE identity_id=%s AND validation_state='approved'
+                           AND archived_at IS NULL
+                    """, (identity_id,))
+                    self.assertEqual(cursor.fetchone()[0], 1)
         finally:
             with psycopg.connect(settings.database_url) as database:
                 with database.cursor() as cursor:

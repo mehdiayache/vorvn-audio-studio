@@ -534,6 +534,10 @@ class VoicePackageRepository:
                 job.model_id,
             ))
             approved = cursor.fetchone()
+            # Insert as a candidate only long enough to satisfy the one-active
+            # database constraint. A successful, explicitly requested reclone
+            # becomes active atomically below; the old binding remains as
+            # historical truth for recordings that already reference it.
             validation_state = "candidate" if approved else "approved"
             cursor.execute("""
                 INSERT INTO voice_bindings
@@ -566,6 +570,17 @@ class VoicePackageRepository:
                     raise RuntimeError(
                         "Provider voice ID collision; no binding was replaced.")
                 binding_id = existing[0]
+            if created and approved and approved[0] != binding_id:
+                cursor.execute("""
+                    UPDATE voice_bindings
+                       SET validation_state='superseded',superseded_by=%s
+                     WHERE id=%s
+                """, (binding_id, approved[0]))
+                cursor.execute("""
+                    UPDATE voice_bindings
+                       SET validation_state='approved',superseded_by=NULL
+                     WHERE id=%s
+                """, (binding_id,))
             cursor.execute("""
                 UPDATE voice_references SET identity_id = %s WHERE id = %s
             """, (job.identity_id, job.reference_id))
