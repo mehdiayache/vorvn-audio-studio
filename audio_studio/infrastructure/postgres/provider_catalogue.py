@@ -138,6 +138,11 @@ class ProviderCatalogueRepository:
                                    if item.get("id")],
                 "estimated_creation_cost": float(
                     (row[8] or {}).get("enrollment_cost_usd") or 0),
+                "clone_source_duration_ms": dict(
+                    provider_catalog.CAPABILITIES.get(
+                        str(row[5] or ""), {}
+                    ).get("clone_source_duration_ms") or {}
+                ),
             })
         return methods
 

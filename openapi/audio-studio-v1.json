@@ -11709,6 +11709,13 @@
             "title": "Capability Ids",
             "type": "array"
           },
+          "clone_source_duration_ms": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Clone Source Duration Ms",
+            "type": "object"
+          },
           "documented_output_languages": {
             "items": {
               "type": "string"

@@ -32,7 +32,7 @@ describe("VoiceProfileCard", () => {
     render(<VoiceProfileCard profile={profile} onOpen={() => undefined} onPreview={() => undefined} />)
     expect(screen.getByRole("heading", { name: "Serinity" })).toBeTruthy()
     expect(screen.getByText("Female")).toBeTruthy()
-    expect(screen.getByText("1 candidate to review")).toBeTruthy()
+    expect(screen.getByText("1 new version to review")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Open Serinity" })).toBeTruthy()
   })
 

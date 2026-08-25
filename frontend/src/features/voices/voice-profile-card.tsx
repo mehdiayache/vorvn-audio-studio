@@ -13,13 +13,13 @@ export function VoiceProfileCard({ profile, playing = false, onOpen, onPreview }
 }) {
   const ready = profile.available_routes.filter((route) =>
     profile.bindings.some((binding) => binding.validation_state === "approved" && bindingMatchesRoute(binding, route))).length
-  const candidates = profile.bindings.filter((binding) => binding.validation_state === "candidate").length
+  const newVersions = profile.bindings.filter((binding) => binding.validation_state === "candidate").length
   const working = profile.jobs.some((job) => ["queued", "creating"].includes(job.status))
   const failed = profile.jobs.some((job) => ["failed", "interrupted"].includes(job.status))
   const initials = profile.name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()
   const image = String(profile.metadata.image || "")
   const canPreview = Boolean(profile.usage?.preview_filename)
-  const state = working ? "Building methods" : candidates ? `${candidates} candidate${candidates === 1 ? "" : "s"} to review` : failed ? "Needs attention" : `${ready} method${ready === 1 ? "" : "s"} ready`
+  const state = working ? "Creating recording methods" : newVersions ? `${newVersions} new version${newVersions === 1 ? "" : "s"} to review` : failed ? "Needs attention" : `${ready} method${ready === 1 ? "" : "s"} ready`
   return <article className="voice-profile-card" onClick={onOpen}>
     <button className="voice-card-main" type="button" aria-label={`Open ${profile.name}`}>
       <span className="voice-profile-mark">{image ? <img src={image} alt="" /> : initials}</span>

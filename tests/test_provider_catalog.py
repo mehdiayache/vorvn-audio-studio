@@ -46,15 +46,18 @@ class ProviderCatalogTests(unittest.TestCase):
         self.assertEqual(
             provider_catalog.CAPABILITIES["audio"]
             ["clone_source_duration_ms"],
-            {"minimum": 5_000, "maximum": 60_000})
+            {"minimum": 5_000, "recommended_minimum": 10_000,
+             "recommended_maximum": 20_000, "maximum": 60_000})
         self.assertEqual(
             provider_catalog.CAPABILITIES["cosyvoice"]
             ["clone_source_duration_ms"],
-            {"minimum": 5_000, "maximum": 60_000})
+            {"minimum": 5_000, "recommended_minimum": 10_000,
+             "recommended_maximum": 20_000, "maximum": 60_000})
         self.assertEqual(
             provider_catalog.CAPABILITIES["qwen_tts"]
             ["clone_source_duration_ms"],
-            {"minimum": 3_000, "maximum": 60_000})
+            {"minimum": 3_000, "recommended_minimum": 10_000,
+             "recommended_maximum": 20_000, "maximum": 60_000})
 
 
 if __name__ == "__main__":

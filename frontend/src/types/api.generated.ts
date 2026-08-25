@@ -5912,6 +5912,10 @@ export interface components {
             adapter_key: string;
             /** Capability Ids */
             capability_ids?: string[];
+            /** Clone Source Duration Ms */
+            clone_source_duration_ms?: {
+                [key: string]: number;
+            };
             /** Documented Output Languages */
             documented_output_languages: string[];
             /** Engine */

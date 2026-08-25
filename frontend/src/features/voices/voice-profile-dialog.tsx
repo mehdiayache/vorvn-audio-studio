@@ -1,40 +1,54 @@
-import { Check, CircleAlert, LoaderCircle, Pause, Play, RefreshCw, Save, SlidersHorizontal, Sparkles, X } from "lucide-react"
+import { ArrowLeft, Check, CircleAlert, FileAudio, LoaderCircle, Pause, Play, RefreshCw, SlidersHorizontal, Sparkles, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { OperatorIconButton } from "@/components/operator-action"
+import { VoiceGenderBadge } from "@/components/voice-gender-badge"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import { AudioSourceEditor } from "@/features/sound-scene/source-editor/music-source-editor"
 import { audioUrl, studioApi } from "@/lib/api"
 import { formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import type { VoiceProfile, VoiceProfileBinding, VoicePackageRoute } from "@/types/domain"
-import { VoiceGenderBadge } from "@/components/voice-gender-badge"
+import type { VoicePackageRoute, VoiceProfile } from "@/types/domain"
+import { VoiceMethodSourceEditor, routeSourceGuidance, type VoiceSourceDraft } from "./voice-method-source-editor"
 import { bindingMatchesRoute, jobMatchesRoute } from "./voice-route"
 
 const TAG_SAMPLES: Record<string, string> = {
-  whispers: "[whispers] The house is quiet now. You can let the whole day go.",
-  curious: "[curious] Wait... did that light just move behind the trees?",
-  empathetic: "[empathetic] I know this has been heavy. You do not have to carry it alone.",
-  sad: "[sad] She kept the old letter, even after the ink had begun to fade.",
-  excited: "[excited] We found it! The door was here the entire time!",
-  angry: "[angry] You knew the truth, and you still let them walk into that room.",
-  sighing: "[sighing] I thought we would have more time.",
-  "clears throat": "[clears throat] All right. Let us begin from the first page.",
-  serious: "[serious] What happens next depends on the choice we make now.",
-  asmr: "[asmr] Listen closely to the rain brushing softly against the window.",
+  whispers: "[whispers]Keep your voice low. Someone is waiting beyond that door.",
+  curious: "[curious]Wait... did that light just move behind the trees?",
+  empathetic: "[empathetic]I know this has been heavy. You do not have to carry it alone.",
+  sad: "[sad]She kept the old letter, even after the ink had begun to fade.",
+  excited: "[excited]We found it! The door was here the entire time!",
+  angry: "[angry]You knew the truth, and you still let them walk into that room.",
+  sighing: "[sighing]I thought we would have more time.",
+  "clears throat": "[clears throat]All right. Let us begin from the first page.",
+  serious: "[serious]What happens next depends on the choice we make now.",
+  asmr: "[asmr]Listen closely to the rain brushing softly against the window.",
 }
+
+const NEUTRAL_TEST = "The morning arrived quietly, carrying the promise of a new beginning."
 
 function routeLabel(route: VoicePackageRoute) {
   return route.label || route.model_id
+}
+
+function languageLabel(value: string | null | undefined) {
+  if (!value) return "Not documented"
+  try { return new Intl.DisplayNames(["en"], { type: "language" }).of(value) || value.toUpperCase() }
+  catch { return value.toUpperCase() }
+}
+
+function methodFailureMessage(error: string | null | undefined) {
+  if (!error) return "The previous setup did not complete. Choose a passage and try again."
+  if (/duration|too long|maximum allowed/i.test(error)) return "The previous passage was too long. Choose a shorter section and try again."
+  if (/transcript/i.test(error)) return "The spoken words did not match the supplied transcript. Check the exact words and try again."
+  return "The previous setup did not complete. Choose a passage and try again."
 }
 
 export function VoiceProfileDialog({ profile, open, onOpenChange, onEditIdentity, onChanged }: {
@@ -45,106 +59,110 @@ export function VoiceProfileDialog({ profile, open, onOpenChange, onEditIdentity
   onChanged: () => void
 }) {
   const player = useGlobalPlayer()
+  const [tab, setTab] = useState("voice")
   const [referenceId, setReferenceId] = useState("")
-  const [modelScope, setModelScope] = useState("default")
-  const [startMs, setStartMs] = useState(0)
-  const [durationMs, setDurationMs] = useState(20_000)
-  const [language, setLanguage] = useState("")
-  const [transcript, setTranscript] = useState("")
-  const [preprocess, setPreprocess] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const [setupRouteId, setSetupRouteId] = useState("")
+  const [sourceDraft, setSourceDraft] = useState<VoiceSourceDraft>({ startMs: 0, durationMs: 20_000, transcript: "", preprocess: false })
+  const [setupBusy, setSetupBusy] = useState(false)
   const [testingBinding, setTestingBinding] = useState("")
   const [testingTag, setTestingTag] = useState("neutral")
-  const [testText, setTestText] = useState("")
+  const [testText, setTestText] = useState(NEUTRAL_TEST)
   const [testBusy, setTestBusy] = useState(false)
+
   const reference = profile?.references.find((item) => item.id === referenceId) || profile?.references[0]
-  const selectedWindow = useMemo(() => {
-    if (!reference) return undefined
-    const windows = reference.windows || []
-    const exact = modelScope === "default" ? undefined : windows.find((item) => item.provider_model_id === modelScope)
-    return exact || windows.find((item) => !item.provider_model_id)
-  }, [modelScope, reference])
-  const selectedBinding = profile?.bindings.find((item) => item.binding_id === testingBinding) || profile?.bindings[0]
+  const setupRoute = profile?.available_routes.find((item) => item.provider_model_id === setupRouteId)
+  const selectedBinding = profile?.bindings.find((item) => item.binding_id === testingBinding)
+    || profile?.bindings.find((item) => item.validation_state === "approved")
+    || profile?.bindings[0]
   const supportsTags = selectedBinding?.engine === "audio" && selectedBinding?.tier === "flash"
   const usedTags = profile?.used_tags || []
   const previews = profile?.previews || []
-  const tagOptions = useMemo(() => {
-    const used = profile?.used_tags || []
-    return [...new Set([...used, ...Object.keys(TAG_SAMPLES)])]
-  }, [profile?.used_tags])
+  const tagOptions = useMemo(() => [...new Set([...(profile?.used_tags || []), ...Object.keys(TAG_SAMPLES)])], [profile?.used_tags])
 
   useEffect(() => {
     if (!profile || !open) return
     const nextReference = profile.references.find((item) => item.id === profile.preferred_reference_id) || profile.references[0]
+    const nextBinding = profile.bindings.find((item) => item.validation_state === "candidate")
+      || profile.bindings.find((item) => item.validation_state === "approved")
+      || profile.bindings[0]
     setReferenceId(nextReference?.id || "")
-    setTestingBinding((profile.bindings.find((item) => item.validation_state === "candidate") || profile.bindings.find((item) => item.validation_state === "approved") || profile.bindings[0])?.binding_id || "")
-    setModelScope("default")
+    setTestingBinding(nextBinding?.binding_id || "")
+    setTestingTag("neutral")
+    setTestText(NEUTRAL_TEST)
+    setSetupRouteId("")
+    setTab("voice")
   }, [open, profile])
 
   useEffect(() => {
-    if (!reference) return
-    setStartMs(selectedWindow?.start_ms || 0)
-    setDurationMs(selectedWindow?.duration_ms || Math.min(reference.duration_ms || 20_000, 20_000))
-    setLanguage(selectedWindow?.source_language || reference.source_language || "")
-    setTranscript(selectedWindow?.transcript || reference.transcript || "")
-    setPreprocess(Boolean(selectedWindow?.enable_preprocess))
-  }, [reference, selectedWindow])
+    if (!supportsTags && testingTag !== "neutral") setTestingTag("neutral")
+  }, [supportsTags, testingTag])
 
   useEffect(() => {
-    if (testingTag === "neutral") {
-      setTestText("The morning arrived quietly, carrying the promise of a new beginning.")
-    } else {
-      setTestText(TAG_SAMPLES[testingTag] || `[${testingTag}] Read this line as a deliberate voice test.`)
-    }
+    setTestText(testingTag === "neutral" ? NEUTRAL_TEST : TAG_SAMPLES[testingTag] || `[${testingTag}]Read this line as a deliberate voice test.`)
   }, [testingTag])
 
   if (!profile) return null
   const initials = profile.name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()
   const image = String(profile.metadata.image || "")
   const sourceDurationMs = reference?.duration_ms || 0
-  const exactWindow = modelScope !== "default" && (reference?.windows || []).some((item) => item.provider_model_id === modelScope)
+  const approvedCount = profile.bindings.filter((binding) => binding.validation_state === "approved").length
 
-  async function saveWindow() {
-    if (!reference) return
-    setSaving(true)
-    try {
-      await studioApi.saveVoiceReferenceWindow(profile!.id, reference.id, {
-        provider_model_id: modelScope === "default" ? null : modelScope,
-        start_ms: startMs,
-        duration_ms: durationMs,
-        source_language: language,
-        transcript,
-        enable_preprocess: modelScope.includes("qwen-audio") ? preprocess : null,
-      })
-      toast.success("Voice Source window saved")
-      onChanged()
-    } catch (reason) {
-      toast.error(reason instanceof Error ? reason.message : "The source window could not be saved.")
-    } finally { setSaving(false) }
-  }
-
-  async function reclone(route: VoicePackageRoute) {
+  function beginMethodSetup(route: VoicePackageRoute) {
     if (!reference) return
     const windows = reference.windows || []
-    const targetWindow = windows.find((item) => item.provider_model_id === route.provider_model_id)
+    const existing = windows.find((item) => item.provider_model_id === route.provider_model_id)
       || windows.find((item) => !item.provider_model_id)
-    if (!targetWindow) return
+    const guidance = routeSourceGuidance(route)
+    setSourceDraft({
+      startMs: existing?.start_ms || 0,
+      durationMs: Math.min(existing?.duration_ms || guidance.recommendedMaximumMs, sourceDurationMs || guidance.recommendedMaximumMs, guidance.maximumMs),
+      transcript: existing?.transcript || reference.transcript || "",
+      preprocess: route.adapter_key === "audio" && Boolean(existing?.enable_preprocess),
+    })
+    setSetupRouteId(route.provider_model_id)
+    setTab("methods")
+  }
+
+  async function createMethodVersion() {
+    if (!reference || !setupRoute) return
+    const guidance = routeSourceGuidance(setupRoute)
+    if (sourceDraft.durationMs < guidance.minimumMs || sourceDraft.durationMs > guidance.maximumMs) {
+      toast.error(`${routeLabel(setupRoute)} needs a source between ${guidance.minimumMs / 1000} and ${guidance.maximumMs / 1000} seconds.`)
+      return
+    }
+    if (setupRoute.adapter_key === "qwen_tts" && !sourceDraft.transcript.trim()) {
+      toast.error("Paste the exact words spoken in this selection for Qwen3 TTS Voice Clone.")
+      return
+    }
+    setSetupBusy(true)
     try {
+      const updated = await studioApi.saveVoiceReferenceWindow(profile!.id, reference.id, {
+        provider_model_id: setupRoute.provider_model_id,
+        start_ms: sourceDraft.startMs,
+        duration_ms: sourceDraft.durationMs,
+        source_language: reference.source_language || profile!.metadata.recording_language || "en",
+        transcript: sourceDraft.transcript,
+        enable_preprocess: setupRoute.adapter_key === "audio" ? sourceDraft.preprocess : null,
+      })
+      const savedReference = updated.references.find((item) => item.id === reference.id)
+      const savedWindow = savedReference?.windows?.find((item) => item.provider_model_id === setupRoute.provider_model_id)
+      if (!savedWindow) throw new Error("The selected source could not be prepared for this recording method.")
       await studioApi.createVoicePackage({
         name: profile!.name,
         identity_id: profile!.id,
         reference_id: reference.id,
-        reference_window_id: targetWindow.id,
-        provider_model_ids: [route.provider_model_id],
-        language: targetWindow.source_language || reference.source_language || "en",
+        reference_window_ids: { [setupRoute.provider_model_id]: savedWindow.id },
+        provider_model_ids: [setupRoute.provider_model_id],
+        language: savedWindow.source_language || reference.source_language || "en",
         package: "complete",
         confirmed: true,
       })
-      toast.success(`${routeLabel(route)} candidate queued`, { description: "The current working binding remains available until you validate the new one." })
+      toast.success(`${routeLabel(setupRoute)} is creating a test version`, { description: "Your current ready version stays available until you approve the new one." })
+      setSetupRouteId("")
       onChanged()
     } catch (reason) {
-      toast.error(reason instanceof Error ? reason.message : "That method could not be rebuilt.")
-    }
+      toast.error(reason instanceof Error ? reason.message : "That recording method could not be created.")
+    } finally { setSetupBusy(false) }
   }
 
   async function createPreview() {
@@ -155,7 +173,7 @@ export function VoiceProfileDialog({ profile, open, onOpenChange, onEditIdentity
         binding_id: selectedBinding.binding_id,
         tag: testingTag === "neutral" ? null : testingTag,
         text: testText.trim(), instruction: "", seed: 0,
-        language: language || profile!.metadata.recording_language || "Auto",
+        language: reference?.source_language || profile!.metadata.recording_language || "Auto",
       })
       await studioApi.voicePreviewResult(created.job_id)
       toast.success("Voice test ready")
@@ -168,7 +186,7 @@ export function VoiceProfileDialog({ profile, open, onOpenChange, onEditIdentity
   async function decidePreview(previewId: string, approvalState: "unreviewed" | "approved" | "rejected") {
     try {
       await studioApi.approveVoicePreview(profile!.id, previewId, approvalState)
-      toast.success(approvalState === "approved" ? "Method approved for Production" : approvalState === "rejected" ? "Candidate rejected" : "Voice test returned to review")
+      toast.success(approvalState === "approved" ? "New recording method approved" : approvalState === "rejected" ? "Test version rejected" : "Voice test returned to review")
       onChanged()
     } catch (reason) {
       toast.error(reason instanceof Error ? reason.message : "That Voice test decision could not be saved.")
@@ -177,30 +195,31 @@ export function VoiceProfileDialog({ profile, open, onOpenChange, onEditIdentity
 
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="voice-profile-dialog">
     <DialogHeader className="voice-profile-dialog-header"><div className="voice-profile-dialog-identity"><span className="voice-profile-dialog-avatar">{image ? <img src={image} alt="" /> : initials}</span><span><DialogTitle>{profile.name}</DialogTitle><DialogDescription>{profile.metadata.trait || "Cloned production voice"}</DialogDescription><VoiceGenderBadge gender={profile.metadata.gender} /></span></div><Button variant="outline" size="sm" onClick={onEditIdentity}><SlidersHorizontal /> Edit identity</Button></DialogHeader>
-    <Tabs defaultValue="source" className="voice-profile-tabs">
-      <TabsList><TabsTrigger value="source">Voice Source</TabsTrigger><TabsTrigger value="methods">Methods <span>{profile.bindings.length}</span></TabsTrigger><TabsTrigger value="lab">Test Lab <span>{previews.length}</span></TabsTrigger></TabsList>
+    <Tabs value={tab} onValueChange={(next) => { setTab(next); if (next !== "methods") setSetupRouteId("") }} className="voice-profile-tabs">
+      <TabsList><TabsTrigger value="voice">Voice</TabsTrigger><TabsTrigger value="methods">Recording methods</TabsTrigger><TabsTrigger value="tests">Voice tests</TabsTrigger></TabsList>
       <ScrollArea className="voice-profile-dialog-scroll">
-        <TabsContent value="source" className="voice-profile-panel">
-          {!reference ? <div className="voice-profile-empty"><CircleAlert /><h3>No preserved Voice Source</h3><p>Add a clean source recording before rebuilding this Voice.</p></div> : <>
-            <header className="voice-profile-section-heading"><span><h3>Choose the performance evidence</h3><p>The master stays untouched. Every method receives only this selected window.</p></span><Select value={modelScope} onValueChange={setModelScope}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="default">Default for all methods</SelectItem>{profile.available_routes.map((route) => <SelectItem key={route.provider_model_id} value={route.provider_model_id}>{routeLabel(route)} override</SelectItem>)}</SelectContent></Select></header>
-            <div className="voice-source-facts"><span><b>{reference.original_name}</b> immutable master</span><span>{formatDuration(sourceDurationMs / 1000)}</span><span>{reference.sample_rate ? `${reference.sample_rate / 1000} kHz` : "Sample rate unknown"}</span><span>{reference.channels === 1 ? "Mono" : reference.channels === 2 ? "Stereo" : "Channels unknown"}</span></div>
-            <AudioSourceEditor url={`/api/v1/voice-references/${encodeURIComponent(reference.id)}/audio`} peaksUrl={`/api/v1/voice-references/${encodeURIComponent(reference.id)}/peaks`} sourceDuration={sourceDurationMs / 1000} sourceOffset={startMs / 1000} usedDuration={durationMs / 1000} loop={false} onChange={(window) => { setStartMs(window.sourceOffsetMs); setDurationMs(window.durationMs || durationMs) }} onCommit={(window) => { setStartMs(window.sourceOffsetMs); setDurationMs(window.durationMs || durationMs) }} />
-            <div className="voice-source-fields"><label><span>Source language</span><Input value={language} onChange={(event) => setLanguage(event.target.value)} placeholder="English" /></label><label className="wide"><span>Exact transcript of this selected window</span><Textarea value={transcript} onChange={(event) => setTranscript(event.target.value)} placeholder="Required for the strongest Qwen3 TTS VC result" /></label>{modelScope.includes("qwen-audio") && <label className="voice-source-switch wide"><Switch checked={preprocess} onCheckedChange={setPreprocess} /><span><b>Clean noisy source</b><small>Enable only when the selected recording contains room noise or interference.</small></span></label>}</div>
-            <footer className="voice-profile-panel-actions"><span>{exactWindow ? "This method has its own source window." : modelScope === "default" ? "Used by every method without an override." : "Currently inheriting the default window."}</span><Button onClick={() => void saveWindow()} disabled={saving}>{saving ? <LoaderCircle className="spin" /> : <Save />} {saving ? "Saving…" : "Save selection"}</Button></footer>
-          </>}
+        <TabsContent value="voice" className="voice-profile-panel voice-overview-panel">
+          <header className="voice-profile-section-heading"><span><h3>Ready to create with {profile.name}</h3><p>Listen to the voice, see which recording methods are ready, or prepare a new version for one method.</p></span></header>
+          <div className="voice-overview-summary"><section><strong>{approvedCount}</strong><span>recording {approvedCount === 1 ? "method" : "methods"} ready</span><Button variant="outline" size="sm" onClick={() => setTab("methods")}>Manage methods</Button></section><section><strong>{previews.filter((item) => item.status === "ready").length}</strong><span>saved voice tests</span><Button variant="outline" size="sm" onClick={() => setTab("tests")}>Open voice tests</Button></section></div>
+          {reference ? <section className="voice-master-summary"><span className="voice-master-icon"><FileAudio /></span><div><h4>Original recording</h4><b>{reference.original_name}</b><p>{formatDuration(sourceDurationMs / 1000)} · {reference.sample_rate ? `${reference.sample_rate / 1000} kHz` : "Sample rate unavailable"} · {reference.channels === 1 ? "Mono" : reference.channels === 2 ? "Stereo" : "Channels unavailable"} · {languageLabel(reference.source_language || profile.metadata.recording_language)}</p></div><Badge variant="outline">Preserved master</Badge></section> : <div className="voice-profile-empty compact"><CircleAlert /><h3>No original recording</h3><p>Add a source recording before setting up another method.</p></div>}
         </TabsContent>
-        <TabsContent value="methods" className="voice-profile-panel"><header className="voice-profile-section-heading"><span><h3>Installed recording methods</h3><p>Exact model, source evidence and candidate state stay visible here—not on every casting card.</p></span></header><div className="voice-method-list">{profile.available_routes.map((route) => {
-          const bindings = profile.bindings.filter((binding) => bindingMatchesRoute(binding, route))
-          const approved = bindings.find((binding) => binding.validation_state === "approved")
-          const candidates = bindings.filter((binding) => binding.validation_state === "candidate")
-          const job = profile.jobs.find((item) => jobMatchesRoute(item, route) && ["queued", "creating", "failed", "interrupted"].includes(item.status))
-          return <article key={route.provider_model_id}><span className={cn("voice-method-state", approved && "ready", job && ["queued", "creating"].includes(job.status) && "working", job && ["failed", "interrupted"].includes(job.status) && "failed")}>{job && ["queued", "creating"].includes(job.status) ? <LoaderCircle className="spin" /> : approved ? <Check /> : job ? <CircleAlert /> : <X />}</span><div><h4>{routeLabel(route)}</h4><p>{route.provider} · {route.region} · {route.model_id}</p><span>{candidates.length ? `${candidates.length} candidate${candidates.length === 1 ? "" : "s"} waiting for a Test Lab decision` : approved ? "Approved for Production" : job?.error || "Not built"}</span></div><Button variant="outline" size="sm" disabled={!reference || Boolean(job && ["queued", "creating"].includes(job.status))} onClick={() => void reclone(route)}><RefreshCw /> {approved ? "Build candidate" : "Create"}</Button></article>
-        })}</div></TabsContent>
-        <TabsContent value="lab" className="voice-profile-panel"><header className="voice-profile-section-heading"><span><h3>Hear what this Voice can actually do</h3><p>Each sample keeps its method, text, tag, seed and approval—not just an anonymous audio file.</p></span></header><div className="voice-lab-compose"><label><span>Recording method</span><Select value={selectedBinding?.binding_id || ""} onValueChange={setTestingBinding}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{profile.bindings.filter((binding) => ["approved", "candidate"].includes(binding.validation_state)).map((binding) => <SelectItem value={binding.binding_id} key={binding.binding_id}>{binding.validation_state === "candidate" ? "Candidate · " : "Approved · "}{binding.model_id}</SelectItem>)}</SelectContent></Select></label><label><span>Delivery test</span><Select value={testingTag} onValueChange={setTestingTag}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="neutral">Neutral method test</SelectItem>{supportsTags && tagOptions.map((tag) => <SelectItem value={tag} key={tag}>{usedTags.includes(tag) ? `${tag} · used in Studio` : tag}</SelectItem>)}</SelectContent></Select></label><label className="wide"><span>Meaningful test line</span><Textarea value={testText} onChange={(event) => setTestText(event.target.value)} /></label><div className="voice-lab-submit"><span>{supportsTags ? "Qwen Audio Flash can test the selected delivery tag." : "This method receives a neutral exact-reading test."}</span><Button onClick={() => void createPreview()} disabled={!selectedBinding || testBusy}>{testBusy ? <LoaderCircle className="spin" /> : <Sparkles />} {testBusy ? "Generating…" : "Generate test"}</Button></div></div><div className="voice-preview-list">{previews.map((preview) => {
-          const isPlaying = player.source?.key === `voice-preview:${preview.id}` && player.state === "playing"
-          const binding = profile.bindings.find((item) => item.binding_id === preview.binding_id)
-          return <article key={preview.id}><OperatorIconButton label={isPlaying ? "Pause voice test" : "Play voice test"} disabled={preview.status !== "ready"} onClick={() => preview.filename && void player.toggleSource({ key: `voice-preview:${preview.id}`, url: audioUrl(preview.filename), title: profile.name, subtitle: preview.tag || preview.model_id, kind: "voice" })}>{isPlaying ? <Pause /> : <Play />}</OperatorIconButton><div><b>{preview.tag || "Neutral"}</b><p>{preview.text}</p><small>{binding?.validation_state === "candidate" ? "Candidate · " : ""}{preview.model_id} · seed {preview.seed} · {preview.status}</small></div><Select value={preview.approval_state} onValueChange={(value) => void decidePreview(preview.id, value as "unreviewed" | "approved" | "rejected")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unreviewed">Unreviewed</SelectItem><SelectItem value="approved">Approve method</SelectItem><SelectItem value="rejected">Reject candidate</SelectItem></SelectContent></Select></article>
-        })}{!previews.length && <div className="voice-profile-empty compact"><Sparkles /><h3>No saved tests yet</h3><p>Create a neutral method test or a meaningful delivery-tag sample.</p></div>}</div></TabsContent>
+        <TabsContent value="methods" className="voice-profile-panel">
+          {setupRoute && reference ? <><button type="button" className="voice-method-back" onClick={() => setSetupRouteId("")}><ArrowLeft /> All recording methods</button><header className="voice-profile-section-heading voice-method-setup-heading"><span><h3>Prepare {routeLabel(setupRoute)}</h3><p>Choose the strongest passage for this method. The original recording stays unchanged.</p></span></header><VoiceMethodSourceEditor route={setupRoute} referenceId={reference.id} sourceDurationMs={sourceDurationMs} value={sourceDraft} onChange={setSourceDraft} /><footer className="voice-profile-panel-actions"><span>This creates a test version. Nothing ready today is replaced until you approve it.</span><Button onClick={() => void createMethodVersion()} disabled={setupBusy}>{setupBusy ? <LoaderCircle className="spin" /> : <Sparkles />} {setupBusy ? "Creating…" : "Create test version"}</Button></footer></> : <><header className="voice-profile-section-heading"><span><h3>Recording methods</h3><p>Each method gets its own carefully chosen passage from the preserved original recording.</p></span></header><div className="voice-method-list">{profile.available_routes.map((route) => {
+            const bindings = profile.bindings.filter((binding) => bindingMatchesRoute(binding, route))
+            const approved = bindings.find((binding) => binding.validation_state === "approved")
+            const candidates = bindings.filter((binding) => binding.validation_state === "candidate")
+            const job = profile.jobs.find((item) => jobMatchesRoute(item, route) && ["queued", "creating", "failed", "interrupted"].includes(item.status))
+            const working = Boolean(job && ["queued", "creating"].includes(job.status))
+            const failed = Boolean(job && ["failed", "interrupted"].includes(job.status))
+            const state = candidates.length ? "New version ready to review" : approved ? "Ready to use" : failed ? methodFailureMessage(job?.error) : working ? "Creating test version…" : "Needs setup"
+            return <article key={route.provider_model_id}><span className={cn("voice-method-state", approved && "ready", working && "working", failed && "failed")}>{working ? <LoaderCircle className="spin" /> : approved ? <Check /> : failed ? <CircleAlert /> : <X />}</span><div><h4>{routeLabel(route)}</h4><p>{route.role}</p><span>{state}</span></div><Button variant="outline" size="sm" disabled={!reference || working} onClick={() => beginMethodSetup(route)}><RefreshCw /> {approved ? "Prepare new version" : "Set up"}</Button></article>
+          })}</div></>}
+        </TabsContent>
+        <TabsContent value="tests" className="voice-profile-panel">
+          <header className="voice-profile-section-heading"><span><h3>Hear what this voice can do</h3><p>Create useful listening samples for the exact recording method you plan to use.</p></span></header>
+          <div className="voice-lab-compose"><label><span>Recording method</span><Select value={selectedBinding?.binding_id || ""} onValueChange={(value) => { setTestingBinding(value); setTestingTag("neutral") }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{profile.bindings.filter((binding) => ["approved", "candidate"].includes(binding.validation_state)).map((binding) => { const route = profile.available_routes.find((item) => bindingMatchesRoute(binding, item)); return <SelectItem value={binding.binding_id} key={binding.binding_id}>{binding.validation_state === "candidate" ? "New version · " : ""}{route ? routeLabel(route) : binding.model_id}</SelectItem> })}</SelectContent></Select></label>{supportsTags && <label><span>Expression</span><Select value={testingTag} onValueChange={setTestingTag}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="neutral">Natural reading</SelectItem>{tagOptions.map((tag) => <SelectItem value={tag} key={tag}>{usedTags.includes(tag) ? `${tag} · used before` : tag}</SelectItem>)}</SelectContent></Select></label>}<label className="wide"><span>Test sentence</span><Textarea value={testText} onChange={(event) => setTestText(event.target.value)} /></label><div className="voice-lab-submit"><span>{supportsTags ? "The expression marker controls the words that follow it." : "This method reads the test sentence without inline expression markers."}</span><Button onClick={() => void createPreview()} disabled={!selectedBinding || testBusy}>{testBusy ? <LoaderCircle className="spin" /> : <Sparkles />} {testBusy ? "Generating…" : "Generate voice test"}</Button></div></div>
+          <div className="voice-preview-list">{previews.map((preview) => { const isPlaying = player.source?.key === `voice-preview:${preview.id}` && player.state === "playing"; const binding = profile.bindings.find((item) => item.binding_id === preview.binding_id); const route = profile.available_routes.find((item) => binding && bindingMatchesRoute(binding, item)); const newVersion = binding?.validation_state === "candidate"; return <article key={preview.id}><OperatorIconButton label={isPlaying ? "Pause voice test" : "Play voice test"} disabled={preview.status !== "ready"} onClick={() => preview.filename && void player.toggleSource({ key: `voice-preview:${preview.id}`, url: audioUrl(preview.filename), title: profile.name, subtitle: preview.tag || route?.label || preview.model_id, kind: "voice" })}>{isPlaying ? <Pause /> : <Play />}</OperatorIconButton><div><b>{preview.tag || "Natural reading"}</b><p>{preview.text}</p><small>{newVersion ? "New version · " : ""}{route ? routeLabel(route) : preview.model_id} · {preview.status}</small></div>{newVersion && preview.status === "ready" ? <div className="voice-preview-decisions"><Button size="sm" variant="outline" onClick={() => void decidePreview(preview.id, "rejected")}>Reject</Button><Button size="sm" onClick={() => void decidePreview(preview.id, "approved")}>Approve</Button></div> : <Badge variant="outline">{preview.approval_state === "approved" ? "Approved" : preview.approval_state === "rejected" ? "Rejected" : "Saved test"}</Badge>}</article> })}{!previews.length && <div className="voice-profile-empty compact"><Sparkles /><h3>No voice tests yet</h3><p>Choose a ready recording method and create one useful listening sample.</p></div>}</div>
+        </TabsContent>
       </ScrollArea>
     </Tabs>
   </DialogContent></Dialog>

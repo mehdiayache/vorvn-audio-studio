@@ -15,19 +15,21 @@ vi.mock("@/lib/api", () => ({ studioApi: {
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 const route = {
-  provider_model_id: "alibaba:intl:cosyvoice-v3-plus",
-  provider: "alibaba", region: "intl", adapter_key: "cosyvoice",
-  engine: "cosyvoice", tier: "plus", model_id: "cosyvoice-v3-plus",
-  label: "CosyVoice V3 Plus", role: "Controlled exact reading",
+  provider_model_id: "alibaba:intl:qwen3-tts-vc-2026-01-22",
+  provider: "alibaba", region: "intl", adapter_key: "qwen_tts",
+  engine: "qwen_tts", tier: "vc", model_id: "qwen3-tts-vc-2026-01-22",
+  label: "Qwen3 TTS Voice Clone", role: "Exact long reading",
   language: "en", source_language_documented: true,
   documented_output_languages: ["English"], estimated_creation_cost: 0,
+  capability_ids: ["exact_longform"],
+  clone_source_duration_ms: { minimum: 3_000, recommended_minimum: 10_000, recommended_maximum: 20_000, maximum: 60_000 },
 }
 
 describe("CreateVoiceDialog", () => {
   it("requires sex during identity setup and sends it with the new voice", async () => {
     vi.mocked(studioApi.uploadVoiceReference).mockResolvedValue({ reference_id: "ref-new", name: "voice.wav", duration_ms: 15_000, sample_rate: 24_000, channels: 1 })
     vi.mocked(studioApi.saveUploadedVoiceReferenceWindow).mockResolvedValue({
-      id: "vwin-new", reference_id: "ref-new", provider_model_id: null,
+      id: "vwin-new", reference_id: "ref-new", provider_model_id: route.provider_model_id,
       start_ms: 0, duration_ms: 15_000, source_language: "en",
       transcript: "A faithful reference sentence.", enable_preprocess: null,
       derived_path: "", created_at: "", updated_at: "",
@@ -51,16 +53,16 @@ describe("CreateVoiceDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Continue" }))
     const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]')
     fireEvent.change(fileInput!, { target: { files: [new File(["voice"], "voice.wav", { type: "audio/wav" })] } })
-    fireEvent.click(screen.getByRole("button", { name: "Choose source window" }))
-    await screen.findByRole("textbox", { name: "Exact words in this selection" })
-    fireEvent.change(screen.getByRole("textbox", { name: "Exact words in this selection" }), { target: { value: "A faithful reference sentence." } })
-    fireEvent.click(screen.getByRole("button", { name: "Review methods" }))
-    await screen.findByText("1 installed versions will be attempted")
+    fireEvent.click(screen.getByRole("button", { name: "Prepare recording" }))
+    const transcript = await screen.findByPlaceholderText("Paste exactly what the speaker says in this selected window")
+    fireEvent.change(transcript, { target: { value: "A faithful reference sentence." } })
+    fireEvent.click(screen.getByRole("button", { name: "Review voice" }))
+    await screen.findByText("1 recording methods are ready")
     fireEvent.click(screen.getByRole("button", { name: "Create voice" }))
 
     await waitFor(() => expect(studioApi.createVoicePackage).toHaveBeenCalledWith(expect.objectContaining({
       name: "New narrator", gender: "female", language: "en", reference_id: "ref-new",
-      reference_window_id: "vwin-new",
+      reference_window_ids: { [route.provider_model_id]: "vwin-new" },
     })))
   })
 })

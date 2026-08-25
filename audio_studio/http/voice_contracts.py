@@ -26,6 +26,7 @@ class VoicePackageRouteResponse(BaseModel):
     documented_output_languages: list[str]
     estimated_creation_cost: float
     capability_ids: list[str] = Field(default_factory=list)
+    clone_source_duration_ms: dict[str, int] = Field(default_factory=dict)
 
 
 class VoicePackageOptionResponse(BaseModel):
