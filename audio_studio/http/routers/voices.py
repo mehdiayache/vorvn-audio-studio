@@ -55,6 +55,7 @@ class VoicePackageCreate(VoicePackagePreflight):
     gender: str | None = Field(default=None, max_length=160)
     trait: str | None = Field(default=None, max_length=160)
     editorial_language: str | None = Field(default=None, max_length=160)
+    provider_model_ids: list[str] | None = Field(default=None, max_length=20)
     confirmed: bool = False
 
 

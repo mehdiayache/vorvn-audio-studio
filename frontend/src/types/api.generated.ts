@@ -5400,10 +5400,16 @@ export interface components {
         };
         /** UploadedVoiceReferenceResponse */
         UploadedVoiceReferenceResponse: {
+            /** Channels */
+            channels: number;
+            /** Duration Ms */
+            duration_ms: number;
             /** Name */
             name: string;
             /** Reference Id */
             reference_id: string;
+            /** Sample Rate */
+            sample_rate: number;
         };
         /** ValidationError */
         ValidationError: {
@@ -5680,6 +5686,8 @@ export interface components {
              * @default complete
              */
             package: string;
+            /** Provider Model Ids */
+            provider_model_ids?: string[] | null;
             /** Reference Id */
             reference_id: string;
             /** Trait */

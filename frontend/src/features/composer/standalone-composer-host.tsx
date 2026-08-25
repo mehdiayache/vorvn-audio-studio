@@ -16,12 +16,12 @@ export function StandaloneComposerHost(props: ComposerSurfaceProps) {
 
   return <Sheet open={open} onOpenChange={setOpen}>
     <div className="composer-mobile-launcher">
-      <div><span className="eyebrow">Recording setup</span><h2>Create a recording</h2><p>Choose the exact voice route, write the words, then generate.</p></div>
+      <div><span className="eyebrow">Speak</span><h2>Generate standalone audio</h2><p>Choose the exact voice route, write the words, then listen in this session.</p></div>
       <SheetTrigger asChild><Button><Mic2 /> Open Composer</Button></SheetTrigger>
     </div>
     <SheetContent side="bottom" className="composer-mobile-sheet" showCloseButton>
       <SheetHeader className="composer-mobile-sheet-header">
-        <SheetTitle>Create a recording</SheetTitle>
+        <SheetTitle>Generate standalone audio</SheetTitle>
         <SheetDescription>Standalone recording. Closing this sheet does not cancel a running Job.</SheetDescription>
       </SheetHeader>
       <ComposerSurface {...props} />

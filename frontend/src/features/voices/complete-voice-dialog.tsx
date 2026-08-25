@@ -20,14 +20,17 @@ export function CompleteVoiceDialog({ profile, config, onOpenChange, onQueued }:
   const [busy, setBusy] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [referenceId, setReferenceId] = useState("")
+  const [useNewReference, setUseNewReference] = useState(false)
   const [recordingLanguage, setRecordingLanguage] = useState("")
   const [error, setError] = useState("")
-  const missing = useMemo(() => profile?.available_routes.filter((route) =>
-    !profile.bindings.some((binding) => binding.reference_id === referenceId && bindingMatchesRoute(binding, route)) &&
-    !profile.jobs.some((job) => job.reference_id === referenceId && jobMatchesRoute(job, route)),
-  ) || [], [profile, referenceId])
   const selectedReference = profile?.references.find((reference) => reference.id === referenceId)
-  const requiresUpload = !profile?.references.length
+  const selectedDuration = selectedReference?.duration_ms
+  const selectedReferenceInvalid = selectedDuration !== null && selectedDuration !== undefined && (selectedDuration < 5_000 || selectedDuration > 60_000)
+  const requiresUpload = !profile?.references.length || useNewReference || selectedReferenceInvalid
+  const missing = useMemo(() => profile?.available_routes.filter((route) =>
+    !profile.bindings.some((binding) => bindingMatchesRoute(binding, route)) &&
+    !profile.jobs.some((job) => ["queued", "creating"].includes(job.status) && jobMatchesRoute(job, route)),
+  ) || [], [profile])
   const languages = useMemo(() => {
     const map = new Map<string, string>()
     Object.values(config?.capabilities || {}).forEach((capability) => {
@@ -38,6 +41,7 @@ export function CompleteVoiceDialog({ profile, config, onOpenChange, onQueued }:
 
   useEffect(() => {
     setFile(null)
+    setUseNewReference(false)
     const preferred = profile?.references.find((reference) => reference.id === profile.preferred_reference_id) || profile?.references[0]
     setReferenceId(preferred?.id || "")
     setRecordingLanguage(String(preferred?.source_language || profile?.metadata.recording_language || profile?.metadata.language || ""))
@@ -56,6 +60,7 @@ export function CompleteVoiceDialog({ profile, config, onOpenChange, onQueued }:
         editorial_language: String(profile.metadata.editorial_language || ""),
         reference_id: explicitReferenceId,
         package: "complete",
+        provider_model_ids: missing.map((route) => route.provider_model_id),
         confirmed: true,
       })
       onOpenChange(false)
@@ -75,15 +80,17 @@ export function CompleteVoiceDialog({ profile, config, onOpenChange, onQueued }:
         <DialogDescription>Create only the missing provider model versions. Existing working versions remain untouched.</DialogDescription>
       </DialogHeader>
       {requiresUpload && <section className="voice-complete-source">
-        <h3>Reference recording needed</h3>
-        <p>This historical voice has no preserved reference. Add one clean recording to attempt its missing installed methods. An undocumented source language is Experimental, never blocked.</p>
+        <h3>{selectedReferenceInvalid ? "Use a shorter reference recording" : "Reference recording needed"}</h3>
+        <p>{selectedReferenceInvalid ? `The saved source is ${((selectedDuration || 0) / 1000).toFixed(1)} seconds, outside the 5–60 second provider contract. Add 10–20 seconds of clean speech to create only the missing model version.` : "Add 10–20 seconds of clean speech to attempt only the missing installed methods. An undocumented source language is Experimental, never blocked."}</p>
         <RecordingLanguageField value={recordingLanguage} onChange={setRecordingLanguage} suggestions={languages} label="Language spoken in the new recording" />
-        <FileDropZone file={file} accept="audio/wav,audio/mpeg,audio/mp4,.wav,.mp3,.m4a" disabled={busy} onFile={(next) => { setFile(next); setError("") }} hint="WAV, MP3 or M4A · up to 10 MB" />
+        <FileDropZone file={file} accept="audio/wav,audio/mpeg,audio/mp4,.wav,.mp3,.m4a" disabled={busy} onFile={(next) => { setFile(next); setError("") }} hint="WAV, MP3 or M4A · 5–60 seconds · up to 10 MB" />
+        {profile?.references.length && !selectedReferenceInvalid && <Button type="button" variant="ghost" onClick={() => { setUseNewReference(false); setFile(null) }}>Use saved recording instead</Button>}
       </section>}
       {!requiresUpload && <section className="voice-complete-source">
         <h3>Reference recording</h3>
         <p>Every model version queued below will use this exact source recording. Existing bindings remain untouched.</p>
-        {profile && profile.references.length > 1 ? <label><span>Source for these model versions</span><Select value={referenceId} onValueChange={(next) => { setReferenceId(next); const reference = profile.references.find((item) => item.id === next); setRecordingLanguage(reference?.source_language || "") }}><SelectTrigger aria-label="Source for these model versions"><SelectValue /></SelectTrigger><SelectContent>{profile.references.map((reference) => <SelectItem value={reference.id} key={reference.id}>{reference.original_name || reference.id} · {reference.source_language || "language not recorded"}</SelectItem>)}</SelectContent></Select></label> : <div><b>{selectedReference?.original_name || selectedReference?.id}</b><small>{selectedReference?.source_language || "Recording language not recorded"}</small></div>}
+        {profile && profile.references.length > 1 ? <label><span>Source for these model versions</span><Select value={referenceId} onValueChange={(next) => { setReferenceId(next); const reference = profile.references.find((item) => item.id === next); setRecordingLanguage(reference?.source_language || "") }}><SelectTrigger aria-label="Source for these model versions"><SelectValue /></SelectTrigger><SelectContent>{profile.references.map((reference) => <SelectItem value={reference.id} key={reference.id}>{reference.original_name || reference.id} · {reference.duration_ms ? `${(reference.duration_ms / 1000).toFixed(1)} sec` : "duration unknown"} · {reference.source_language || "language not recorded"}</SelectItem>)}</SelectContent></Select></label> : <div><b>{selectedReference?.original_name || selectedReference?.id}</b><small>{selectedReference?.duration_ms ? `${(selectedReference.duration_ms / 1000).toFixed(1)} seconds · ` : ""}{selectedReference?.source_language || "Recording language not recorded"}</small></div>}
+        <Button type="button" variant="outline" onClick={() => setUseNewReference(true)}>Use a better recording</Button>
       </section>}
       <div className="voice-complete-routes">{missing.map((route) => <div key={route.provider_model_id}><span><b>{route.role}</b><small>{route.provider} · {route.label} · {route.region} · {route.documented_output_languages.length} documented output languages</small></span><em>{route.estimated_creation_cost ? `up to $${route.estimated_creation_cost.toFixed(2)}` : "Free creation"}</em></div>)}</div>
       {error && <p className="voice-create-error">{error}</p>}

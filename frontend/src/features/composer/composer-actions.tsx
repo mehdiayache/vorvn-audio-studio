@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button"
 import { useComposer } from "./composer-controller"
 
 function primaryLabel(composer: ReturnType<typeof useComposer>) {
-  if (composer.busy === "generate") return "Generating…"
-  if (!composer.productionId) return "Create recording"
+  if (composer.generationState === "recovering") return "Checking current session…"
+  if (composer.busy === "generate" || composer.generationState === "active") return "Generating audio…"
+  if (!composer.productionId) return "Generate audio"
   if (composer.part?.clip_id) return "Generate again"
   if (composer.part) return `Generate Part ${(composer.part.position ?? 0) + 1}`
   return `Generate and add Part ${composer.insertAt === null ? composer.nextPartNumber : composer.insertAt + 1}`
@@ -15,7 +16,7 @@ export function ComposerActions() {
   const composer = useComposer()
   const textUnresolved = Boolean(composer.textSession.busy || composer.textSession.review || composer.textSession.pending)
   const ssmlInvalid = composer.enableSsml && !composer.ssmlValidation.valid
-  const blocked = !composer.config?.has_key || !composer.textSession.text.trim() || !composer.currentRoute || !composer.outputFormatSupported || Boolean(composer.busy) || textUnresolved || composer.taggedIncompatible || ssmlInvalid || composer.recovery.status === "loading" || composer.recovery.status === "conflict"
+  const blocked = !composer.config?.has_key || !composer.textSession.text.trim() || !composer.currentRoute || !composer.outputFormatSupported || Boolean(composer.busy) || Boolean(composer.generationState) || textUnresolved || composer.taggedIncompatible || ssmlInvalid || composer.recovery.status === "loading" || composer.recovery.status === "conflict"
   return <>
     <footer className="composer-footer">
       <div className="composer-cost" role="status" aria-live="polite">

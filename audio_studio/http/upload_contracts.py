@@ -16,6 +16,9 @@ class UploadedImageEnvelope(BaseModel):
 class UploadedVoiceReferenceResponse(BaseModel):
     name: str
     reference_id: str
+    duration_ms: int
+    sample_rate: int
+    channels: int
 
 
 class UploadedVoiceReferenceEnvelope(BaseModel):

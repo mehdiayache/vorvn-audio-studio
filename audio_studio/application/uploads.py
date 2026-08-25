@@ -28,6 +28,8 @@ ASSET_SCOPES = frozenset({"venture", "studio"})
 MAX_ASSET_NAME_LENGTH = 120
 MAX_ASSET_TAGS = 12
 MAX_ASSET_TAG_LENGTH = 32
+MIN_VOICE_REFERENCE_DURATION_MS = 5_000
+MAX_VOICE_REFERENCE_DURATION_MS = 60_000
 
 
 class UploadError(ValueError):
@@ -132,7 +134,7 @@ class UploadService:
     def save_voice_reference(
         self, raw: bytes, encoded_name: str, *, source_language: str = "",
         transcript: str = "", metadata: dict | None = None,
-    ) -> dict[str, str]:
+    ) -> dict[str, str | int]:
         if not raw:
             raise UploadError("Choose a recording first.")
         if len(raw) > 10_000_000:
@@ -147,6 +149,19 @@ class UploadService:
                 raw, original, reference_id)
         except ValueError as exc:
             raise UploadError(str(exc)) from exc
+        duration_ms = stored.duration_ms
+        if duration_ms is None:
+            self.workspace.discard_voice_reference(reference_id)
+            raise UploadError(
+                "That recording could not be measured. Use a valid audio file.")
+        if duration_ms < MIN_VOICE_REFERENCE_DURATION_MS:
+            self.workspace.discard_voice_reference(reference_id)
+            raise UploadError(
+                "That recording is too short. Use at least 5 seconds of clear speech.")
+        if duration_ms > MAX_VOICE_REFERENCE_DURATION_MS:
+            self.workspace.discard_voice_reference(reference_id)
+            raise UploadError(
+                "That recording is over 60 seconds. Use 10–20 seconds of clear speech for the strongest clone.")
         try:
             saved_id = self.records.create_voice_reference(
                 reference_id=reference_id,
@@ -175,7 +190,13 @@ class UploadService:
         except Exception:
             self.workspace.discard_voice_reference(reference_id)
             raise
-        return {"name": stored.name, "reference_id": saved_id}
+        return {
+            "name": stored.name,
+            "reference_id": saved_id,
+            "duration_ms": duration_ms,
+            "sample_rate": stored.sample_rate or 0,
+            "channels": stored.channels or 0,
+        }
 
     def save_asset_file(
         self, collection_id: int, source: Path, size_bytes: int,

@@ -22,6 +22,7 @@ class FakeWorkspace:
         self.assets = []
         self.discarded_media = []
         self.transcriptions = []
+        self.voice_duration_ms = 15_000
 
     def store_image(self, raw, original_name):
         self.images.append((raw, original_name))
@@ -31,7 +32,9 @@ class FakeWorkspace:
         self.references.append((raw, original_name, reference_id))
         return StoredVoiceReference(
             "normalized-24k.wav", f"{reference_id}/original.mp3",
-            f"{reference_id}/normalized-24k.wav")
+            f"{reference_id}/normalized-24k.wav",
+            duration_ms=self.voice_duration_ms, sample_rate=24_000,
+            channels=1)
 
     def discard_voice_reference(self, reference_id):
         self.discarded_references.append(reference_id)
@@ -136,10 +139,27 @@ class UploadServiceTests(unittest.TestCase):
         self.assertEqual(records.references[0]["source_language"], "ar")
         self.assertEqual(records.references[0]["transcript"], "words spoken")
         self.assertEqual(records.references[0]["metadata"]["job_id"], 148)
+        self.assertEqual(result["duration_ms"], 15_000)
+        self.assertEqual(result["sample_rate"], 24_000)
+        self.assertEqual(result["channels"], 1)
         records.fail_reference = True
         with self.assertRaisesRegex(RuntimeError, "database"):
             service.save_voice_reference(b"audio", "second.mp3")
         self.assertEqual(len(workspace.discarded_references), 1)
+
+    def test_voice_reference_rejects_provider_incompatible_duration_before_db(self):
+        service, workspace, records = self.service()
+        workspace.voice_duration_ms = 4_999
+        with self.assertRaisesRegex(UploadError, "at least 5 seconds"):
+            service.save_voice_reference(b"audio", "short.wav")
+        self.assertFalse(records.references)
+        self.assertEqual(len(workspace.discarded_references), 1)
+
+        workspace.voice_duration_ms = 60_001
+        with self.assertRaisesRegex(UploadError, "over 60 seconds"):
+            service.save_voice_reference(b"audio", "long.wav")
+        self.assertFalse(records.references)
+        self.assertEqual(len(workspace.discarded_references), 2)
 
     def test_asset_record_failure_removes_the_new_media_object(self):
         service, workspace, records = self.service()

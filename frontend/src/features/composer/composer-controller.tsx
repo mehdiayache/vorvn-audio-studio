@@ -38,6 +38,8 @@ export type ComposerSurfaceProps = {
   onUpdateEditorial?: (values: PartEditorialUpdate) => Promise<void>
   onGenerate: (payload: GeneratePayload) => Promise<DurableJob<GenerateResult>>
   onPlay: (source: PlayerSource) => void
+  /** Standalone hosts keep this active for the full durable Job, not only enqueue. */
+  generationState?: "recovering" | "active" | null
   /** Visual hosts may hide the Composer without unmounting it. */
   visible?: boolean
 }
@@ -47,7 +49,7 @@ type PendingGeneration = {
   updateEditorial: boolean
 }
 
-export function useComposerController({ productionId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, visible = true }: ComposerSurfaceProps) {
+export function useComposerController({ productionId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, generationState = null, visible = true }: ComposerSurfaceProps) {
   const [route, setRoute] = useState(routeSelectionFromPart(part))
   const [identityId, setIdentityId] = useState(part?.voice_identity_id || "")
   const [language, setLanguage] = useState(part?.language || "Auto")
@@ -306,7 +308,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   const methodLabel = selectedCapability?.name || "Choose a route first"
 
   return {
-    productionId, nextPartNumber, insertAt, insertBeforePartId, part, config, directory, playingKey, playerPlaying, onSave, onPlay,
+    productionId, nextPartNumber, insertAt, insertBeforePartId, part, config, directory, playingKey, playerPlaying, onSave, onPlay, generationState,
     route, identityId, language, format, deliveryModeRequest, instruction, rate, pitch, volume, seed, enableSsml,
     busy, roleBusy, authoredRole, confirmationEstimate, pendingCommand, editorialCommand, textReviewReference,
     identities, selectedIdentity, compatibleRoutes, visibleRoutes, currentRoute, selectedCapability, capabilityControls, deliveryMode,

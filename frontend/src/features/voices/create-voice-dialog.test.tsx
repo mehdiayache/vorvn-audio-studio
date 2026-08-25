@@ -24,7 +24,7 @@ const route = {
 
 describe("CreateVoiceDialog", () => {
   it("requires sex during identity setup and sends it with the new voice", async () => {
-    vi.mocked(studioApi.uploadVoiceReference).mockResolvedValue({ reference_id: "ref-new", name: "voice.wav" })
+    vi.mocked(studioApi.uploadVoiceReference).mockResolvedValue({ reference_id: "ref-new", name: "voice.wav", duration_ms: 15_000, sample_rate: 24_000, channels: 1 })
     vi.mocked(studioApi.voicePackagePreflight).mockResolvedValue({
       region: "intl", region_label: "Singapore", language: "en",
       package: "complete", routes: [route], available_routes: [route],

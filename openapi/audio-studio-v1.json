@@ -10334,6 +10334,14 @@
       },
       "UploadedVoiceReferenceResponse": {
         "properties": {
+          "channels": {
+            "title": "Channels",
+            "type": "integer"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -10341,11 +10349,18 @@
           "reference_id": {
             "title": "Reference Id",
             "type": "string"
+          },
+          "sample_rate": {
+            "title": "Sample Rate",
+            "type": "integer"
           }
         },
         "required": [
           "name",
-          "reference_id"
+          "reference_id",
+          "duration_ms",
+          "sample_rate",
+          "channels"
         ],
         "title": "UploadedVoiceReferenceResponse",
         "type": "object"
@@ -11261,6 +11276,21 @@
             "maxLength": 40,
             "title": "Package",
             "type": "string"
+          },
+          "provider_model_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Model Ids"
           },
           "reference_id": {
             "maxLength": 120,

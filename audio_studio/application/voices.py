@@ -131,6 +131,30 @@ class VoiceService:
             raise ValueError("Upload a reference recording first.")
         plan = self.package_plan(
             language, str(payload.get("package") or "complete"))
+        requested_model_ids = {
+            str(item).strip() for item in payload.get("provider_model_ids") or []
+            if str(item).strip()
+        }
+        if requested_model_ids:
+            available_ids = {
+                str(route.get("provider_model_id") or "")
+                for route in plan["routes"]
+            }
+            unknown = requested_model_ids - available_ids
+            if unknown:
+                raise ValueError(
+                    "One requested voice model is not installed for this recording language.")
+            plan = {
+                **plan,
+                "routes": [
+                    route for route in plan["routes"]
+                    if route.get("provider_model_id") in requested_model_ids
+                ],
+            }
+            plan["total_estimated_creation_cost"] = round(sum(
+                float(route.get("estimated_creation_cost") or 0)
+                for route in plan["routes"]
+            ), 4)
         if not plan["routes"]:
             raise ValueError("No cloned-voice capability is installed.")
         estimate = float(plan["total_estimated_creation_cost"])

@@ -68,7 +68,13 @@ describe("shared Composer contract", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Choose a voice" })).toBeTruthy())
     expect(screen.getByText("Recording method")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Recording method" }).hasAttribute("disabled")).toBe(true)
-    expect(screen.getByRole("button", { name: "Create recording" }).hasAttribute("disabled")).toBe(true)
+    expect(screen.getByRole("button", { name: "Generate audio" }).hasAttribute("disabled")).toBe(true)
+  })
+
+  it("keeps standalone generation visibly locked for the full durable job", async () => {
+    render(<ComposerSurface {...common} generationState="active" />)
+    const button = await screen.findByRole("button", { name: "Generating audio…" })
+    expect(button.hasAttribute("disabled")).toBe(true)
   })
 
   it("restores the exact persisted Part route for editing", async () => {
@@ -378,7 +384,7 @@ describe("shared Composer contract", () => {
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "A recoverable recording" } })
     await waitFor(() => expect(saveDraft).toHaveBeenCalled())
     expect(saveDraft.mock.calls.some(([, saved]) => saved.voiceIdentityId === "identity-sarah" && saved.route?.kind === "catalogue")).toBe(true)
-    fireEvent.click(screen.getByRole("button", { name: "Create recording" }))
+    fireEvent.click(screen.getByRole("button", { name: "Generate audio" }))
 
     await waitFor(() => expect(onGenerate).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(studioApi.deleteComposerDraft).toHaveBeenCalledWith(expect.anything(), 1))

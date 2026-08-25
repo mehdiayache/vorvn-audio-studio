@@ -47,4 +47,30 @@ describe("VoiceProfileCard", () => {
     expect(screen.getAllByText("Source recording needed").length).toBe(2)
     expect(screen.getByRole("button", { name: "Add reference for 2 provider models" })).toBeTruthy()
   })
+
+  it("keeps a failed enrollment available as a missing method", () => {
+    render(<VoiceProfileCard profile={{
+      ...profile,
+      jobs: [{
+        id: "job-failed",
+        identity_id: profile.id,
+        reference_id: "ref-1",
+        provider: "alibaba",
+        region: "intl",
+        provider_model_id: "alibaba:intl:qwen3-tts",
+        adapter_key: "qwen_tts",
+        engine: "qwen_tts",
+        tier: "vc",
+        model_id: "qwen3-tts-vc-2026-01-22",
+        status: "failed",
+        classification: "provider_rejected",
+        attempts: 2,
+        error: "Audio.DurationLimitError",
+        updated_at: "2026-08-08",
+      }],
+    }} onComplete={() => undefined} onRetry={() => undefined} onEdit={() => undefined} onPreview={() => undefined} />)
+
+    expect(screen.getByRole("button", { name: "Create 1 missing method" })).toBeTruthy()
+    expect(screen.queryByText("Ready to create")).toBeNull()
+  })
 })

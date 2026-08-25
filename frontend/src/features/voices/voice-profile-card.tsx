@@ -27,7 +27,7 @@ export function VoiceProfileCard({ profile, playing = false, onComplete, onRetry
   const sourceAvailable = Boolean(preferredReference?.id)
   const missingForPreferred = profile.available_routes.filter((route) =>
     !profile.bindings.some((binding) => binding.reference_id === preferredReference?.id && bindingMatchesRoute(binding, route)) &&
-    !profile.jobs.some((job) => job.reference_id === preferredReference?.id && jobMatchesRoute(job, route))).length
+    !profile.jobs.some((job) => ["queued", "creating"].includes(job.status) && job.reference_id === preferredReference?.id && jobMatchesRoute(job, route))).length
   const readyLabel = `${ready} of ${profile.available_routes.length} installed provider models · ${profile.bindings.length} exact binding${profile.bindings.length === 1 ? "" : "s"}`
   return <article className="voice-profile-card">
     <header><span className="voice-profile-mark">{image ? <img src={image} alt="" /> : initials || <AudioLines />}</span><div><small>{profile.metadata.favourite && <Star />} Your voice{editorialLanguage ? ` · ${languageFlag(editorialLanguage)} ${languageDisplay(editorialLanguage)} focus` : " · no editorial tag"}</small><div className="voice-profile-name"><h2>{profile.name}</h2><VoiceGenderBadge gender={profile.metadata.gender} /></div><p>{profile.metadata.trait || "Ready for a creative note"}</p></div><div className="voice-profile-actions"><OperatorIconButton label={`Edit ${profile.name}`} detail="Change identity details or archive this Voice."><MoreHorizontal /></OperatorIconButton></div></header>

@@ -158,6 +158,32 @@ class VoicePackageWorkerTests(unittest.TestCase):
                 AlibabaVoiceCloningProvider().create(job, Path("source.wav"))
         upload.assert_not_called()
 
+    def test_cosyvoice_clone_uses_only_documented_enrollment_options(self):
+        job = package_job(
+            engine="cosyvoice", tier="plus",
+            model_id="cosyvoice-v3-plus",
+            metadata={"language": "en"},
+        )
+        with TemporaryDirectory() as directory:
+            local = Path(directory) / "source.wav"
+            local.write_bytes(b"RIFF-test")
+            with patch.dict("os.environ", {"DASHSCOPE_API_KEY": "fixture"}), \
+                    patch(
+                        "audio_studio.providers.alibaba.voice_cloning.storage.configured",
+                        return_value=True), \
+                    patch(
+                        "audio_studio.providers.alibaba.voice_cloning.storage.upload",
+                        return_value="https://storage.test/reference.wav"), \
+                    patch("dashscope.audio.tts_v2.VoiceEnrollmentService") as service:
+                service.return_value.create_voice.return_value = "cosy-fixture"
+                binding = AlibabaVoiceCloningProvider().create(job, local)
+        self.assertEqual(binding.provider_voice_id, "cosy-fixture")
+        service.return_value.create_voice.assert_called_once_with(
+            target_model="cosyvoice-v3-plus", prefix="testvoice",
+            url="https://storage.test/reference.wav",
+            language_hints=["en"],
+        )
+
     def test_qwen_tts_clone_uses_qwen_enrollment_with_transcript(self):
         job = package_job(
             engine="qwen_tts", tier="vc",

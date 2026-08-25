@@ -4,6 +4,7 @@ import { toast } from "sonner"
 import { RecordingClipCard, type RecordingClipView } from "@/components/recording-clip-card"
 import { StandaloneComposerHost } from "@/features/composer/standalone-composer-host"
 import { ErrorState, InlineResourceError, PageLoading } from "@/components/state-panel"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { useJobExecution } from "@/hooks/use-job-execution"
 import { useVoiceDirectory } from "@/hooks/use-voice-directory"
@@ -41,7 +42,7 @@ function PendingSpeakExecution({ execution, directory, onTerminal }: {
   }, [execution, job, onTerminal, terminal])
   const status = job?.status === "blocked" ? "review" : job && ["failed", "lost", "cancelled"].includes(job.status) ? "failed" : job?.status === "warning" ? "warning" : "pending"
   const route = resolveRequestRoute(execution.payload, directory)
-  return <RecordingClipCard clip={{
+  return <RecordingClipCard compact clip={{
     id: execution.jobId,
     status,
     voice: route?.provider_voice_id,
@@ -63,6 +64,7 @@ export function SpeakPage() {
   const [history, setHistory] = useState<RecordingHistory | null>(null)
   const [historyLoading, setHistoryLoading] = useState(true)
   const [executions, setExecutions] = useState<SpeakExecution[]>([])
+  const generationLock = useRef<string | null>(null)
 
   const refreshHistory = useCallback(async () => {
     setHistoryLoading(true)
@@ -78,12 +80,28 @@ export function SpeakPage() {
     setExecutions((current) => recoverSpeakExecutions(current, history))
   }, [history])
 
+  useEffect(() => {
+    if (executions.length && !generationLock.current) {
+      generationLock.current = executions[0]?.jobId || null
+    } else if (!executions.length && generationLock.current !== "submitting") {
+      generationLock.current = null
+    }
+  }, [executions])
+
   async function generate(payload: GeneratePayload): Promise<DurableJob<GenerateResult>> {
+    if (generationLock.current) {
+      const reason = new Error("One standalone recording is already generating. Listen to it or wait for it to finish before starting another.")
+      toast.warning(reason.message)
+      throw reason
+    }
+    generationLock.current = "submitting"
     try {
       const job = await studioApi.enqueueGenerate(payload)
+      generationLock.current = job.id
       setExecutions((current) => [...current, { jobId: job.id, payload }])
       return job
     } catch (reason) {
+      generationLock.current = null
       toast.error(reason instanceof Error ? reason.message : "Generation failed.")
       throw reason
     }
@@ -116,6 +134,7 @@ export function SpeakPage() {
       }
       await refreshHistory()
     } finally {
+      if (generationLock.current === execution.jobId) generationLock.current = null
       setExecutions((current) => current.filter((item) => item.jobId !== execution.jobId))
     }
   }, [player, refreshHistory, voices.directory])
@@ -146,19 +165,33 @@ export function SpeakPage() {
     ...(history?.recordings.map((attempt) => attempt.id) || []),
     ...executions.map((execution) => execution.jobId),
   ]).size
+  const generationState = historyLoading ? "recovering" : executions.length ? "active" : null
+  const visibleAttempts = history?.recordings.filter(
+    (attempt) => !executions.some((execution) => execution.jobId === attempt.id),
+  ) || []
 
   return <main className="speak-page">
     <h1 className="sr-only">Speak</h1>
     {voices.error && voices.config && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void voices.refresh()} />}
-    <section className="speak-workspace"><StandaloneComposerHost config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} /></section>
-    <section className="speak-recordings" aria-live="polite">
-      <header><div><small>Sandbox</small><h2>Your recordings</h2><p>Every result stays here with its real voice, route, script, language, cost and status.</p></div><span>{attemptCount} recordings · ${Number(history?.total_cost || 0).toFixed(4)}</span></header>
-      {executions.map((execution) => <PendingSpeakExecution key={execution.jobId} execution={execution} directory={voices.directory} onTerminal={(item, job) => void settleExecution(item, job)} />)}
-      {historyLoading && !history?.recordings.length ? <p className="speak-empty">Loading recording history…</p> : history?.recordings.length ? history.recordings.filter((attempt) => !executions.some((execution) => execution.jobId === attempt.id)).map((attempt) => {
+    <div className="speak-workbench">
+      <section className="speak-workspace"><StandaloneComposerHost config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} generationState={generationState} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} /></section>
+      <aside className="speak-session" aria-live="polite">
+        <header>
+          <div><span className="eyebrow">Sandbox</span><h2>This session</h2></div>
+          <span>{attemptCount} audio files · ${Number(history?.total_cost || 0).toFixed(4)}</span>
+        </header>
+        <p className="speak-session-intro">The active generation stays visible here. Finished audio remains reusable in your Sandbox.</p>
+        <ScrollArea className="speak-session-scroll">
+          {executions.length > 0 && <section className="speak-session-group"><h3>Generating now</h3>{executions.map((execution) => <PendingSpeakExecution key={execution.jobId} execution={execution} directory={voices.directory} onTerminal={(item, job) => void settleExecution(item, job)} />)}</section>}
+          <section className="speak-session-group"><h3>Recent audio</h3>
+          {historyLoading && !visibleAttempts.length ? <p className="speak-empty">Loading your Sandbox…</p> : visibleAttempts.length ? visibleAttempts.map((attempt) => {
         const sourceKey = `job:${attempt.id}`
         const confirmation = attempt.status === "blocked" && attempt.needs_confirmation && !attempt.requires_review && !attempt.continued_by_job_id
-        return <RecordingClipCard key={attempt.id} clip={clipView(attempt)} directory={voices.directory} active={player.source?.key === sourceKey && player.state === "playing"} onPlay={attempt.audio_url ? () => void player.toggleSource({ key: sourceKey, url: attempt.audio_url!, title: "Generated recording", subtitle: resolveRequestVoice(attempt.request, voices.directory).name, kind: "standalone" }) : undefined} onSecondaryAction={confirmation ? () => void confirmAttempt(attempt) : attempt.status === "blocked" ? undefined : () => void generate(reusableGeneratePayload(attempt.request))} secondaryLabel={confirmation ? `Confirm $${Number(attempt.estimate || 0).toFixed(4)}` : "Record again · same setup"} />
-      }) : !executions.length && <p className="speak-empty">Your first recording will appear here and remain available for reuse.</p>}
-    </section>
+        return <RecordingClipCard compact key={attempt.id} clip={clipView(attempt)} directory={voices.directory} active={player.source?.key === sourceKey && player.state === "playing"} onPlay={attempt.audio_url ? () => void player.toggleSource({ key: sourceKey, url: attempt.audio_url!, title: "Generated audio", subtitle: resolveRequestVoice(attempt.request, voices.directory).name, kind: "standalone" }) : undefined} onSecondaryAction={confirmation ? () => void confirmAttempt(attempt) : attempt.status === "blocked" ? undefined : () => void generate(reusableGeneratePayload(attempt.request))} secondaryDisabled={Boolean(generationState)} secondaryLabel={confirmation ? `Confirm $${Number(attempt.estimate || 0).toFixed(4)}` : "Generate again"} />
+          }) : !executions.length && <p className="speak-empty">Your first generated audio will appear here and remain available for reuse.</p>}
+          </section>
+        </ScrollArea>
+      </aside>
+    </div>
   </main>
 }

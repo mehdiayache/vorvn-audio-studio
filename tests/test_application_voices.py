@@ -74,7 +74,9 @@ class FakePackageStore:
 
     def create_package(self, **values):
         self.created.append(values)
-        return "voice_fixture", ["job-1", "job-2", "job-3"]
+        return "voice_fixture", [
+            f"job-{index + 1}" for index, _ in enumerate(values["routes"])
+        ]
 
     def retry(self, enrollment_job_id):
         self.retried.append(enrollment_job_id)
@@ -205,6 +207,26 @@ class VoiceServiceTests(unittest.TestCase):
         self.assertEqual(
             service.retry_binding(" job-retry "),
             {"ok": True, "job_id": "job-retry"},
+        )
+
+    def test_completion_can_target_only_the_missing_installed_model(self):
+        service, _, packages = self.service()
+        plan = service.package_plan("English")
+        target = plan["routes"][1]
+        result = service.create_package({
+            "name": "Fixture", "language": "English",
+            "reference_id": "ref_fixture", "package": "complete",
+            "provider_model_ids": [target["provider_model_id"]],
+            "confirmed": True,
+        })
+        self.assertEqual(result["queued"], 1)
+        self.assertEqual(
+            [route["provider_model_id"] for route in packages.created[0]["routes"]],
+            [target["provider_model_id"]],
+        )
+        self.assertEqual(
+            result["plan"]["total_estimated_creation_cost"],
+            target["estimated_creation_cost"],
         )
 
 

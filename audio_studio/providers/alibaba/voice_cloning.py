@@ -93,10 +93,19 @@ class AlibabaVoiceCloningProvider:
                 "clone_languages", {})
             language_hint = language if language in documented_sources else None
             on_sent()
+            enrollment_options = {
+                "target_model": job.model_id,
+                "prefix": prefix,
+                "url": url,
+                "language_hints": [language_hint] if language_hint else None,
+            }
+            # Alibaba documents source-window control for Qwen Audio, but not
+            # for cosyvoice-v3-plus. Never send an undocumented option merely
+            # because both models share the SDK transport.
+            if job.engine == "audio":
+                enrollment_options["max_prompt_audio_length"] = 30.0
             provider_voice_id = VoiceEnrollmentService().create_voice(
-                target_model=job.model_id, prefix=prefix, url=url,
-                language_hints=[language_hint] if language_hint else None,
-                max_prompt_audio_length=30.0,
+                **enrollment_options,
             )
             endpoint = config.http_base()
         else:

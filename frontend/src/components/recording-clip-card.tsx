@@ -31,12 +31,14 @@ export type RecordingClipView = {
   inputState?: string | null
 }
 
-export function RecordingClipCard({ clip, directory, active = false, onPlay, onSecondaryAction, secondaryLabel = "Record again" }: {
+export function RecordingClipCard({ clip, directory, active = false, compact = false, onPlay, onSecondaryAction, secondaryDisabled = false, secondaryLabel = "Record again" }: {
   clip: RecordingClipView
   directory: VoiceDirectory
   active?: boolean
+  compact?: boolean
   onPlay?: () => void
   onSecondaryAction?: () => void
+  secondaryDisabled?: boolean
   secondaryLabel?: string
 }) {
   const working = clip.status === "pending"
@@ -47,7 +49,7 @@ export function RecordingClipCard({ clip, directory, active = false, onPlay, onS
   const statusLabel = clip.statusLabel || (working ? "Generating" : failed ? "Generation failed" : review ? "Review required" : clip.status === "continued" ? "Cost confirmed · continued" : outdated ? "Outdated" : clip.status === "warning" ? "Ready · review wording" : clip.status === "current" ? "Current recording" : "Ready")
   const created = clip.createdAt ? new Date(clip.createdAt).toLocaleString() : ""
 
-  return <article className={cn("recording-clip-card", `is-${outdated || review ? "warning" : clip.status}`)}>
+  return <article className={cn("recording-clip-card", compact && "is-compact", `is-${outdated || review ? "warning" : clip.status}`)}>
     <div className="recording-clip-leading">
       {clip.audioUrl && onPlay
         ? <OperatorIconButton label={active ? "Pause recording" : "Play recording"} variant="outline" size="icon" onClick={onPlay}>{active ? <Pause /> : <Play />}</OperatorIconButton>
@@ -72,7 +74,7 @@ export function RecordingClipCard({ clip, directory, active = false, onPlay, onS
       {clip.message && <p className="recording-clip-message">{clip.message}</p>}
     </div>
     <div className="recording-clip-actions">
-      {onSecondaryAction && <Button variant="outline" onClick={onSecondaryAction}><RotateCw /> {secondaryLabel}</Button>}
+      {onSecondaryAction && <Button variant="outline" disabled={secondaryDisabled} onClick={onSecondaryAction}><RotateCw /> {secondaryLabel}</Button>}
     </div>
   </article>
 }

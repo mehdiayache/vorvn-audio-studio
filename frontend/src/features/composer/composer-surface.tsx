@@ -31,9 +31,9 @@ export function ControlledComposerSurface({ composer, presentation = "mega", onE
     <div className={cn("speech-composer composer-surface", `is-${presentation}`)}>
       <header className="composer-context-bar">
         <div className="composer-context-copy">
-          <span className="eyebrow">{standalone ? "Create" : "Production recording"}</span>
-          <b>{standalone ? "New recording" : composer.destination}</b>
-          <small>{standalone ? "Prepare the voice, words, and delivery" : "Voice, script, and performance in one workspace"}</small>
+          <span className="eyebrow">{standalone ? "Speak" : "Production recording"}</span>
+          <b>{standalone ? "Generate standalone audio" : composer.destination}</b>
+          <small>{standalone ? "Choose a voice, shape the delivery, then listen in this session" : "Voice, script, and performance in one workspace"}</small>
         </div>
         <div className="composer-context-actions">
           {!standalone && <ComposerRoleEditor composer={composer} />}
