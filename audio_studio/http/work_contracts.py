@@ -163,7 +163,12 @@ class ProductionSummaryResponse(BaseModel):
     name: str
     description: str
     status: str
+    project_id: int | None = None
+    project_public_id: str | None = None
+    project_name: str | None = None
     series_id: int | None
+    series_public_id: str | None = None
+    series_name: str | None = None
     part_count: int
     duration_ms: int
     total_cost: float

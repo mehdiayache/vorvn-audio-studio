@@ -106,6 +106,13 @@ class WorkRepositoryTests(unittest.TestCase):
             work.overview("series", series["id"])["metrics"]["production_count"],
             1,
         )
+        recent = work.overview("ventures", venture_id)["recent_productions"][0]
+        self.assertEqual(recent["project_id"], project["id"])
+        self.assertEqual(recent["project_public_id"], project["public_id"])
+        self.assertEqual(recent["project_name"], project["name"])
+        self.assertEqual(recent["series_id"], series["id"])
+        self.assertEqual(recent["series_public_id"], series["public_id"])
+        self.assertEqual(recent["series_name"], series["name"])
 
         with self.assertRaises(DomainConflict):
             work.update("productions", production["id"],

@@ -200,16 +200,21 @@ def _production_summaries(cur, where_sql: str, params: tuple = ()) -> list[Produ
     """Compact, durable Production cards shared by all overview DTOs."""
     cur.execute(f"""
         SELECT production.id, production.public_id, production.name, production.description,
-               production.status, production.series_id, production.updated_at,
+               production.status,
+               project.id, project.public_id, project.name,
+               production.series_id, series.public_id, series.name,
+               production.updated_at,
                count(part.id),
                coalesce(sum(coalesce(clip.duration_ms, part.duration_ms, 0)), 0),
                coalesce(sum(clip.cost), 0)
           FROM productions production
+          JOIN work_projects project ON project.id = production.project_id
+          LEFT JOIN series ON series.id = production.series_id
           LEFT JOIN production_parts part ON part.production_id = production.id
            AND part.archived_at IS NULL
           LEFT JOIN clips clip ON clip.part_id = part.id
          WHERE production.archived_at IS NULL AND ({where_sql})
-         GROUP BY production.id
+         GROUP BY production.id, project.id, series.id
          ORDER BY production.position NULLS LAST, production.updated_at DESC,
                   production.name
     """, params)
@@ -218,12 +223,19 @@ def _production_summaries(cur, where_sql: str, params: tuple = ()) -> list[Produ
     return [{
         "id": ident, "public_id": str(public_id), "type": "production", "key": f"production:{ident}",
         "name": name, "description": description or "", "status": status,
-        "series_id": series_id, "part_count": int(part_count or 0),
+        "project_id": project_id, "project_public_id": str(project_public_id),
+        "project_name": project_name,
+        "series_id": series_id,
+        "series_public_id": str(series_public_id) if series_public_id else None,
+        "series_name": series_name,
+        "part_count": int(part_count or 0),
         "duration_ms": int(duration_ms or 0),
         "total_cost": accounting.get(ident, {}).get("historical_spend", float(total_cost or 0)),
         "current_sequence_cost": accounting.get(ident, {}).get("current_sequence_cost", float(total_cost or 0)),
         "updated_at": _iso(updated_at),
-    } for (ident, public_id, name, description, status, series_id, updated_at,
+    } for (ident, public_id, name, description, status,
+           project_id, project_public_id, project_name,
+           series_id, series_public_id, series_name, updated_at,
            part_count, duration_ms, total_cost) in rows]
 
 

@@ -3601,10 +3601,20 @@ export interface components {
             name: string;
             /** Part Count */
             part_count: number;
+            /** Project Id */
+            project_id?: number | null;
+            /** Project Name */
+            project_name?: string | null;
+            /** Project Public Id */
+            project_public_id?: string | null;
             /** Public Id */
             public_id: string;
             /** Series Id */
             series_id: number | null;
+            /** Series Name */
+            series_name?: string | null;
+            /** Series Public Id */
+            series_public_id?: string | null;
             /** Status */
             status: string;
             /** Total Cost */
