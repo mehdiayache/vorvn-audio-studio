@@ -21,6 +21,7 @@ export type SoundSceneSessionSnapshot = {
   saving: boolean
   error: string
   soloTrackIds: string[]
+  playbackRange: { start: number; end: number; loop: boolean } | null
 }
 
 export type SoundScenePersistence = {
@@ -111,6 +112,7 @@ export class SoundSceneSession {
       saving: false,
       error: "",
       soloTrackIds: [],
+      playbackRange: null,
     }
     this.editor.onChange((engine) => this.set({ engine }))
   }
@@ -168,6 +170,21 @@ export class SoundSceneSession {
     if (this.frame) cancelAnimationFrame(this.frame)
     this.frame = 0
     this.set({ playback: "idle", playhead })
+  }
+
+  selectedRange(refs = this.selectedClips()) {
+    const clips = refs.flatMap((ref) => {
+      const clip = this.currentClip(ref.trackId, ref.clipId)
+      if (!clip || clip.orphan) return []
+      const start = Number(clip.resolved_start_ms || 0) / 1_000
+      const duration = Number(clip.resolved_duration_ms || clip.duration_ms || 0) / 1_000
+      return duration > 0 ? [{ start, end: start + duration }] : []
+    })
+    if (!clips.length) return null
+    return {
+      start: Math.min(...clips.map((clip) => clip.start)),
+      end: Math.max(...clips.map((clip) => clip.end)),
+    }
   }
 
   reconcile(scene: SoundScene, force = false) {
@@ -373,6 +390,106 @@ export class SoundSceneSession {
     this.select(created.length === 1 ? { kind: "clip", ...created[0]! } : { kind: "clips", clips: created })
   }
 
+  async splitClipsAtPlayhead(refs = this.selectedClips(), playheadSeconds = this.snapshotValue.playhead) {
+    if (!refs.length) return false
+    const playheadMs = Math.round(this.boundedTime(playheadSeconds) * 1_000)
+    const candidates = refs.flatMap((ref) => {
+      const clip = this.currentClip(ref.trackId, ref.clipId)
+      if (!clip || clip.orphan) return []
+      const startMs = Number(clip.resolved_start_ms || 0)
+      const durationMs = Number(clip.resolved_duration_ms || clip.duration_ms || 0)
+      const localMs = playheadMs - startMs
+      return localMs >= 100 && durationMs - localMs >= 100 ? [{ ref, clip, localMs, durationMs }] : []
+    })
+    if (!candidates.length) {
+      this.reportError("Place the playhead inside a selected clip, at least 0.1 seconds from either edge.")
+      return false
+    }
+    if (candidates.some(({ clip }) => clip.locked)) {
+      this.reportError("Unlock every clip under the playhead before splitting.")
+      return false
+    }
+    const created: SoundClipRef[] = []
+    await this.persist(this.nextDocument((document) => {
+      for (const { ref, clip: resolved, localMs, durationMs } of candidates) {
+        const track = document.tracks.find((item) => item.id === ref.trackId)
+        const source = track?.clips.find((item) => item.id === ref.clipId)
+        if (!track || !source) continue
+        const right = structuredClone(source)
+        right.id = crypto.randomUUID()
+        right.duration_ms = durationMs - localMs
+        right.source_offset_ms = source.source_offset_ms + localMs
+        const physicalDuration = Number(resolved.source_duration_ms || 0)
+        if (source.loop && physicalDuration > 0) right.source_offset_ms %= physicalDuration
+        right.anchor = source.anchor.kind === "part"
+          ? { ...source.anchor, offset_ms: source.anchor.offset_ms + localMs }
+          : { ...source.anchor, position_ms: Number(resolved.resolved_start_ms || source.anchor.position_ms) + localMs }
+        right.fade_in_ms = 0
+        source.duration_ms = localMs
+        source.fade_out_ms = 0
+        track.clips.push(right)
+        created.push(ref, { trackId: track.id, clipId: right.id })
+      }
+    }))
+    this.select(created.length === 1 ? { kind: "clip", ...created[0]! } : { kind: "clips", clips: created })
+    return true
+  }
+
+  async nudgeClips(deltaMs: number, refs = this.selectedClips()) {
+    if (!refs.length || !deltaMs) return false
+    const resolved = refs.flatMap((ref) => {
+      const clip = this.currentClip(ref.trackId, ref.clipId)
+      return clip ? [{ ref, clip }] : []
+    })
+    if (resolved.some(({ clip }) => clip.locked)) {
+      this.reportError("Unlock every selected clip before nudging the group.")
+      return false
+    }
+    const earliest = Math.min(...resolved.map(({ clip }) => Number(clip.resolved_start_ms || 0)))
+    const boundedDelta = Math.max(Math.round(deltaMs), -earliest)
+    await this.persist(this.nextDocument((document) => {
+      for (const { ref } of resolved) {
+        const clip = document.tracks.find((track) => track.id === ref.trackId)?.clips.find((item) => item.id === ref.clipId)
+        if (!clip) continue
+        clip.anchor = clip.anchor.kind === "part"
+          ? { ...clip.anchor, offset_ms: clip.anchor.offset_ms + boundedDelta }
+          : { ...clip.anchor, position_ms: clip.anchor.position_ms + boundedDelta }
+      }
+    }))
+    return true
+  }
+
+  crossfadeOverlap(refs = this.selectedClips()) {
+    if (refs.length !== 2 || refs[0]?.trackId !== refs[1]?.trackId) return null
+    const clips = refs.flatMap((ref) => {
+      const clip = this.currentClip(ref.trackId, ref.clipId)
+      return clip ? [{ ref, clip }] : []
+    }).sort((left, right) => Number(left.clip.resolved_start_ms || 0) - Number(right.clip.resolved_start_ms || 0))
+    if (clips.length !== 2 || clips.some(({ clip }) => clip.locked)) return null
+    const leftEnd = Number(clips[0]!.clip.resolved_start_ms || 0)
+      + Number(clips[0]!.clip.resolved_duration_ms || clips[0]!.clip.duration_ms || 0)
+    const rightStart = Number(clips[1]!.clip.resolved_start_ms || 0)
+    const overlapMs = leftEnd - rightStart
+    return overlapMs >= 20 ? { left: clips[0]!.ref, right: clips[1]!.ref, overlapMs } : null
+  }
+
+  async crossfadeSelected(refs = this.selectedClips()) {
+    const overlap = this.crossfadeOverlap(refs)
+    if (!overlap) {
+      this.reportError("Select two overlapping, unlocked clips on the same track to create a crossfade.")
+      return false
+    }
+    await this.persist(this.nextDocument((document) => {
+      const track = document.tracks.find((item) => item.id === overlap.left.trackId)
+      const left = track?.clips.find((clip) => clip.id === overlap.left.clipId)
+      const right = track?.clips.find((clip) => clip.id === overlap.right.clipId)
+      if (!left || !right) return
+      left.fade_out_ms = overlap.overlapMs
+      right.fade_in_ms = overlap.overlapMs
+    }))
+    return true
+  }
+
   async commitClipChanges(trackId: string, clipId: string, changes: Partial<SoundSceneClip>) {
     this.updateClip(trackId, clipId, changes)
     await this.commitClip()
@@ -454,17 +571,33 @@ export class SoundSceneSession {
     this.set({ playhead: next })
   }
 
+  async playSelection(loop = false, refs = this.selectedClips()) {
+    const range = this.selectedRange(refs)
+    if (!range || range.end - range.start < .01) {
+      this.reportError("Select one or more audio clips to play their range.")
+      return false
+    }
+    if (this.snapshotValue.playback !== "idle") this.pause()
+    this.seek(range.start)
+    this.set({ playbackRange: { ...range, loop } })
+    await this.togglePlayback(true)
+    return this.snapshotValue.playback === "playing"
+  }
+
+  clearPlaybackRange() { this.set({ playbackRange: null }) }
+
   duration() {
     const resolved = this.snapshotValue.scene.resolved
     return Number(resolved.duration_ms ?? resolved.sequence_projection.duration_ms) / 1000
   }
 
-  async togglePlayback() {
+  async togglePlayback(preserveRange = false) {
     if (this.snapshotValue.playback === "playing") {
       this.pause()
       return
     }
     if (this.snapshotValue.playback === "preparing") return
+    if (!preserveRange) this.set({ playbackRange: null })
     this.set({ error: "", playback: "preparing" })
     try {
       this.beforePlay?.()
@@ -490,7 +623,20 @@ export class SoundSceneSession {
         })
         return
       }
-      this.set({ playhead: this.boundedTime(this.playout.currentTime()) })
+      const playhead = this.boundedTime(this.playout.currentTime())
+      const range = this.snapshotValue.playbackRange
+      if (range && playhead >= range.end - .005) {
+        if (range.loop) {
+          this.seek(range.start)
+          this.frame = requestAnimationFrame(update)
+          return
+        }
+        this.pause()
+        this.seek(range.end)
+        this.set({ playbackRange: null })
+        return
+      }
+      this.set({ playhead })
       this.frame = requestAnimationFrame(update)
     }
     this.frame = requestAnimationFrame(update)

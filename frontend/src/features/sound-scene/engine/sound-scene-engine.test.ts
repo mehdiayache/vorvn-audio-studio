@@ -529,6 +529,103 @@ describe("SoundSceneSession", () => {
     session.dispose()
   })
 
+  it("splits selected clips at the playhead without duplicating their Asset", async () => {
+    const source = scene()
+    const update = vi.fn().mockImplementation(async (document) => ({ ...source, revision: 2, document }))
+    const playout = {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      currentTime: vi.fn().mockReturnValue(4), isPlaying: vi.fn().mockReturnValue(false),
+      muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    }
+    const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, playout)
+    session.selectClip("music", clipId)
+
+    expect(await session.splitClipsAtPlayhead(undefined, 4)).toBe(true)
+
+    const [left, right] = update.mock.calls[0]![0].tracks[0].clips
+    expect(update).toHaveBeenCalledOnce()
+    expect(left).toMatchObject({ id: clipId, asset_id: 9, duration_ms: 4_000, source_offset_ms: 0, fade_in_ms: 2_000, fade_out_ms: 0 })
+    expect(right).toMatchObject({ asset_id: 9, duration_ms: 6_000, source_offset_ms: 4_000, fade_in_ms: 0, fade_out_ms: 4_000, anchor: { kind: "absolute", position_ms: 4_000 } })
+    expect(right.id).not.toBe(left.id)
+    expect(session.snapshot().selection?.kind).toBe("clips")
+    session.dispose()
+  })
+
+  it("nudges absolute and Part-anchored clips as one persisted group", async () => {
+    const source = scene()
+    const second = structuredClone(source.document.tracks[0]!.clips[0]!)
+    second.id = "88af885c-aeb4-49bf-9edb-d3fc14496b2c"
+    second.anchor = { kind: "part", part_public_id: "part-7", edge: "end", offset_ms: 500 }
+    source.document.tracks.push({ id: "audio-2", kind: "audio", name: "Audio 2", volume: 1, muted: false, clips: [second] })
+    source.resolved.tracks.push({ ...source.document.tracks[1]!, clips: [{ ...second, resolved_start_ms: 10_500, resolved_duration_ms: 2_000 }] })
+    const update = vi.fn().mockImplementation(async (document) => ({ ...source, revision: 2, document }))
+    const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(false), muteTrack: vi.fn(),
+      setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    })
+
+    await session.nudgeClips(100, [{ trackId: "music", clipId }, { trackId: "audio-2", clipId: second.id }])
+
+    const document = update.mock.calls[0]![0]
+    expect(document.tracks[0].clips[0].anchor.position_ms).toBe(100)
+    expect(document.tracks[1].clips[0].anchor.offset_ms).toBe(600)
+    session.dispose()
+  })
+
+  it("creates a quick crossfade only from a real same-track overlap", async () => {
+    const source = scene()
+    source.resolved.tracks = structuredClone(source.resolved.tracks)
+    const second = structuredClone(source.document.tracks[0]!.clips[0]!)
+    second.id = "88af885c-aeb4-49bf-9edb-d3fc14496b2c"
+    second.duration_ms = 4_000
+    second.anchor = { kind: "absolute", position_ms: 8_000 }
+    second.resolved_start_ms = 8_000
+    second.resolved_duration_ms = 4_000
+    second.fade_in_ms = 0
+    second.fade_out_ms = 0
+    source.document.tracks[0]!.clips.push(second)
+    source.resolved.tracks[0]!.clips.push({ ...second, resolved_start_ms: 8_000, resolved_duration_ms: 4_000 })
+    const update = vi.fn().mockImplementation(async (document) => ({ ...source, revision: 2, document }))
+    const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(false), muteTrack: vi.fn(),
+      setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    })
+    const refs = [{ trackId: "music", clipId }, { trackId: "music", clipId: second.id }]
+
+    expect(session.crossfadeOverlap(refs)?.overlapMs).toBe(2_000)
+    expect(await session.crossfadeSelected(refs)).toBe(true)
+
+    const [left, right] = update.mock.calls[0]![0].tracks[0].clips
+    expect(left.fade_out_ms).toBe(2_000)
+    expect(right.fade_in_ms).toBe(2_000)
+    session.dispose()
+  })
+
+  it("plays and loops the exact selected clip range without persisting audition state", async () => {
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(7))
+    vi.stubGlobal("cancelAnimationFrame", vi.fn())
+    const source = scene()
+    const update = vi.fn()
+    const play = vi.fn().mockResolvedValue(undefined)
+    const seek = vi.fn()
+    const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, {
+      replace: vi.fn().mockResolvedValue(undefined), play, pause: vi.fn(), seek,
+      currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(true), muteTrack: vi.fn(),
+      setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    })
+    session.selectClip("music", clipId)
+
+    expect(await session.playSelection(true)).toBe(true)
+    expect(seek).toHaveBeenCalledWith(0)
+    expect(play).toHaveBeenCalledWith(0)
+    expect(session.snapshot().playbackRange).toEqual({ start: 0, end: 10, loop: true })
+    expect(update).not.toHaveBeenCalled()
+    session.dispose()
+    vi.unstubAllGlobals()
+  })
+
   it("moves a multi-track selection in one persisted transaction while preserving anchor kinds", async () => {
     const source = scene()
     const second = structuredClone(source.document.tracks[0]!.clips[0]!)

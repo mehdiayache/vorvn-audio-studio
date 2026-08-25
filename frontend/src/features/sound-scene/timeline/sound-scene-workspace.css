@@ -167,6 +167,7 @@
 .sound-fade-overlay path { fill: color-mix(in oklab, var(--primary) 9%, transparent); stroke: var(--primary); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .sound-fade-handle { position: absolute; z-index: 9; top: .15rem; width: .65rem; height: .65rem; transform: translateX(-50%); padding: 0; border: 2px solid white; border-radius: 999px; background: var(--primary); box-shadow: var(--shadow-xs); cursor: ew-resize; }
 .sound-scene-playhead, .sound-scene-snap-guide { position: absolute; z-index: 6; top: 0; bottom: 0; width: 1px; pointer-events: none; background: var(--primary); }
+.sound-scene-playback-range { position: absolute; z-index: 1; top: 2.35rem; bottom: 0; pointer-events: none; border-inline: 1px solid color-mix(in oklab, var(--primary) 38%, transparent); background: color-mix(in oklab, var(--primary) 5%, transparent); }
 .sound-scene-playhead i { position: absolute; top: 2.05rem; left: 50%; width: .5rem; height: .5rem; transform: translate(-50%, -50%) rotate(45deg); background: var(--primary); }
 .sound-scene-snap-guide { z-index: 10; background: var(--info); box-shadow: 0 0 0 1px color-mix(in oklab, var(--info) 18%, transparent); }
 @media (max-width: 1180px) {

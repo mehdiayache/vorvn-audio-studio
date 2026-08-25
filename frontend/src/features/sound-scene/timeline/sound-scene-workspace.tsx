@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
-import { AudioWaveform, ChevronLeft, ChevronRight, LocateFixed, Lock, Maximize2, Minus, MoreHorizontal, Music2, PanelLeftClose, PanelLeftOpen, Pause, PencilLine, Plus, RadioTower, Redo2, Repeat2, Trash2, Undo2, Volume1, Volume2, VolumeX } from "lucide-react"
+import { AudioWaveform, ChevronLeft, ChevronRight, LocateFixed, Lock, Magnet, Maximize2, Minus, MoreHorizontal, Music2, PanelLeftClose, PanelLeftOpen, Pause, PencilLine, Plus, RadioTower, Redo2, Repeat2, Trash2, Undo2, Volume1, Volume2, VolumeX } from "lucide-react"
 
 import { useAudioPeaks } from "@/components/audio-waveform"
 import { OperatorIconButton } from "@/components/operator-action"
@@ -182,10 +182,11 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
   onRemoveTrack: (track: SoundSceneTrack) => void
   onOpenSequence?: (partId: number) => void
 }) {
-  const { scene, engine, selection, playhead, saving, error, soloTrackIds } = useSoundSceneSession(session)
+  const { scene, engine, selection, playhead, saving, error, soloTrackIds, playbackRange } = useSoundSceneSession(session)
   const [tracksCollapsed, setTracksCollapsed] = useState(false)
   const [snapGuide, setSnapGuide] = useState<number | null>(null)
   const [followPlayhead, setFollowPlayhead] = useState(true)
+  const [snapping, setSnapping] = useState(true)
   const [panning, setPanning] = useState(false)
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(920)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -232,6 +233,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
     gainMixed: selectedClips.some(({ clip }) => Math.abs(gainToDb(clip.gain) - gainToDb(selectedClips[0]!.clip.gain)) > .05),
     effects: selectedClips[0]!.clip.effects,
   } : null
+  const canCrossfade = Boolean(session.crossfadeOverlap(selectedRefs))
 
   const snapTargets = useMemo(() => {
     const values = new Set<number>([0, playhead])
@@ -249,7 +251,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
   }, [playhead, scene.resolved.sequence_projection.spans, tracks])
 
   function snapped(value: number, bypass: boolean) {
-    if (bypass) { setSnapGuide(null); return value }
+    if (!snapping || bypass) { setSnapGuide(null); return value }
     const tolerance = 8 / pixelsPerSecond
     const nearest = snapTargets.reduce<number | null>((best, target) =>
       Math.abs(target - value) <= tolerance && (best === null || Math.abs(target - value) < Math.abs(best - value)) ? target : best, null)
@@ -448,7 +450,16 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
       if (editing) return
       const command = event.metaKey || event.ctrlKey
       if (command && event.key.toLowerCase() === "z") { event.preventDefault(); void (event.shiftKey ? session.redo() : session.undo()); return }
+      if (command && event.key.toLowerCase() === "d" && selectedRefs.length) { event.preventDefault(); void session.duplicateClips(selectedRefs); return }
+      if (command && event.key.toLowerCase() === "l" && selectedRefs.length) { event.preventDefault(); setFollowPlayhead(true); void session.playSelection(true, selectedRefs); return }
       if (event.code === "Space") { event.preventDefault(); setFollowPlayhead(true); void session.togglePlayback(); return }
+      if (event.key.toLowerCase() === "s" && selectedRefs.length && !command) { event.preventDefault(); void session.splitClipsAtPlayhead(selectedRefs); return }
+      if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && selectedRefs.length) {
+        event.preventDefault()
+        const amount = event.altKey ? 10 : event.shiftKey ? 1_000 : 100
+        void session.nudgeClips((event.key === "ArrowLeft" ? -1 : 1) * amount, selectedRefs)
+        return
+      }
       if (event.key === "Home" || event.key === "0") { event.preventDefault(); session.seek(0); return }
       if (event.key === "-" || event.key === "_") { event.preventDefault(); setCenteredZoom(zoomIndex - 1); return }
       if (event.key === "=" || event.key === "+") { event.preventDefault(); setCenteredZoom(zoomIndex + 1); return }
@@ -460,7 +471,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
     }
     window.addEventListener("keydown", keydown)
     return () => window.removeEventListener("keydown", keydown)
-  }, [onRemoveClip, selectedClips, selectedRefs, session])
+  }, [onRemoveClip, selectedClips, selectedRefs, session, zoomIndex])
 
   return <section className={cn("sound-scene-workspace", tracksCollapsed && "tracks-collapsed", panning && "is-panning")}>
     <div className="sound-scene-toolbar">
@@ -472,6 +483,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
         <div className="sound-scene-zoom"><OperatorTooltip label="Zoom out" disabledTrigger={zoomIndex === 0}><Button variant="ghost" size="icon-sm" disabled={zoomIndex === 0} onClick={() => setCenteredZoom(zoomIndex - 1)} aria-label="Zoom out"><Minus /></Button></OperatorTooltip><Slider aria-label="Timeline zoom" aria-valuetext={`${Math.round(pixelsPerSecond)} pixels per second`} value={[zoomIndex]} min={0} max={SOUND_SCENE_ZOOM_LEVELS.length - 1} step={1} onValueChange={([value = zoomIndex]) => setCenteredZoom(value)} /><OperatorTooltip label="Zoom in" disabledTrigger={zoomIndex === SOUND_SCENE_ZOOM_LEVELS.length - 1}><Button variant="ghost" size="icon-sm" disabled={zoomIndex === SOUND_SCENE_ZOOM_LEVELS.length - 1} onClick={() => setCenteredZoom(zoomIndex + 1)} aria-label="Zoom in"><Plus /></Button></OperatorTooltip></div>
         <OperatorTooltip label="Move one view later"><Button variant="ghost" size="icon-sm" aria-label="Next view" onClick={() => { if (scrollRef.current) { scrollRef.current.scrollLeft += scrollRef.current.clientWidth * .6; setFollowPlayhead(false) } }}><ChevronRight /></Button></OperatorTooltip>
         <OperatorTooltip label="Fit the entire Production in view"><Button variant="ghost" size="sm" onClick={fitTimeline} aria-label="Fit entire timeline"><Maximize2 /><span>Fit</span></Button></OperatorTooltip>
+        <OperatorTooltip label={snapping ? "Turn snapping off" : "Turn snapping on"} detail="Aligns clip edges to the playhead, Sequence Parts, and other clip edges. Hold Alt while dragging to bypass it temporarily."><Button variant="ghost" size="icon-sm" className={snapping ? "is-active" : undefined} aria-label={snapping ? "Turn snapping off" : "Turn snapping on"} aria-pressed={snapping} onClick={() => { setSnapping((value) => !value); setSnapGuide(null) }}><Magnet /></Button></OperatorTooltip>
         <OperatorTooltip label="Keep the playhead visible during playback"><Button variant="ghost" size="sm" className={followPlayhead ? "is-active" : undefined} aria-pressed={followPlayhead} onClick={() => setFollowPlayhead((value) => !value)}><LocateFixed /><span>Follow</span></Button></OperatorTooltip>
       </div>
       <span className="sound-scene-save-state">{saving && <b>Saving…</b>}{error && <b className="is-error" role="alert">{error}</b>}</span>
@@ -500,6 +512,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
           <div className="sound-scene-grid" aria-hidden="true">{marks.map((mark) => <i key={mark} style={{ left: mark * pixelsPerSecond }} />)}</div>
           <div className="sound-scene-ruler" onPointerDown={seekFromPointer}>{marks.map((mark) => <span key={mark} style={{ left: mark * pixelsPerSecond }}>{formatDuration(mark)}</span>)}</div>
           <div className="sound-scene-playhead" style={{ left: playhead * pixelsPerSecond }}><i /></div>
+          {playbackRange && <div className="sound-scene-playback-range" style={{ left: playbackRange.start * pixelsPerSecond, width: Math.max(1, (playbackRange.end - playbackRange.start) * pixelsPerSecond) }} aria-hidden="true" />}
           {snapGuide !== null && <div className="sound-scene-snap-guide" style={{ left: snapGuide * pixelsPerSecond }} />}
           <div className="sound-scene-lane is-sequence" onPointerDown={panTimeline}>
             {scene.resolved.sequence_projection.spans.map((span) => {
@@ -587,7 +600,11 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
         else if (selectedRefs[0]) void session.commitClipChanges(selectedRefs[0].trackId, selectedRefs[0].clipId, { effects })
       }}
       onLock={() => void session.commitSelectedClipChanges({ locked: context?.lockState !== "locked" }, selectedRefs)}
+      onSplit={() => void session.splitClipsAtPlayhead(selectedRefs)}
       onDuplicate={() => void session.duplicateClips(selectedRefs)}
+      onCrossfade={canCrossfade ? () => void session.crossfadeSelected(selectedRefs) : undefined}
+      onPlaySelection={() => { setFollowPlayhead(true); void session.playSelection(false, selectedRefs) }}
+      onLoopSelection={() => { setFollowPlayhead(true); void session.playSelection(true, selectedRefs) }}
       onDelete={() => onRemoveClip({ clips: selectedRefs })}
       onOptions={selectedClips.length === 1 || selectedPart ? () => document.querySelector(".ws-right-pane")?.scrollIntoView({ block: "nearest" }) : undefined}
       onOpenSequence={selectedPart ? () => onOpenSequence?.(selectedPart.part_id) : undefined}

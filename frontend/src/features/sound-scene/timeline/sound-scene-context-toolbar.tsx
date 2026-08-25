@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react"
 import {
-  ArrowDown, ArrowUp, Copy, Lock, MoreHorizontal, RadioTower, SlidersHorizontal, Trash2,
-  Unlock, Volume2, VolumeX,
+  ArrowDown, ArrowUp, Blend, Copy, Lock, MoreHorizontal, Play, RadioTower, Repeat2,
+  Scissors, SlidersHorizontal, Trash2, Unlock, Volume2, VolumeX,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -90,7 +91,7 @@ export type SoundContext = {
   count?: number
 }
 
-export function SoundSceneContextToolbar({ context, saving, onMute, onGainPreview, onGain, onEffectsPreview, onEffects, onLock, onDuplicate, onDelete, onOptions, onOpenSequence }: {
+export function SoundSceneContextToolbar({ context, saving, onMute, onGainPreview, onGain, onEffectsPreview, onEffects, onLock, onSplit, onDuplicate, onCrossfade, onPlaySelection, onLoopSelection, onDelete, onOptions, onOpenSequence }: {
   context: SoundContext | null
   saving: boolean
   onMute: () => void
@@ -99,7 +100,11 @@ export function SoundSceneContextToolbar({ context, saving, onMute, onGainPrevie
   onEffectsPreview?: (effects: SoundSceneEffect[]) => void
   onEffects: (effects: SoundSceneEffect[]) => void
   onLock?: () => void
+  onSplit?: () => void
   onDuplicate?: () => void
+  onCrossfade?: () => void
+  onPlaySelection?: () => void
+  onLoopSelection?: () => void
   onDelete?: () => void
   onOptions?: () => void
   onOpenSequence?: () => void
@@ -126,7 +131,13 @@ export function SoundSceneContextToolbar({ context, saving, onMute, onGainPrevie
     </div>}
     {context.kind === "audio" && <div className="sound-context-group is-object">
       <Button className={`sound-context-command${hasLockedClips ? " is-active" : ""}`} variant="ghost" size="sm" disabled={saving} onClick={onLock}>{lockState === "locked" ? <Unlock /> : <Lock />}{lockState === "locked" ? "Unlock" : lockState === "mixed" ? "Lock all" : "Lock"}</Button>
+      <OperatorTooltip label="Split at playhead" detail="Creates two non-destructive placements that continue to reference the same Audio Library Asset. Shortcut: S"><Button className="sound-context-command" variant="ghost" size="sm" disabled={saving || hasLockedClips} onClick={onSplit}><Scissors /> Split</Button></OperatorTooltip>
       <Button className="sound-context-command" variant="ghost" size="sm" disabled={saving || hasLockedClips} onClick={onDuplicate} aria-label="Duplicate selected clips"><Copy /> Duplicate</Button>
+      <DropdownMenu><DropdownMenuTrigger asChild><Button className="sound-context-command" variant="ghost" size="sm" disabled={saving}><MoreHorizontal /> More</Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={onPlaySelection}><Play /> Play selection</DropdownMenuItem>
+        <DropdownMenuItem onSelect={onLoopSelection}><Repeat2 /> Loop selection</DropdownMenuItem>
+        {onCrossfade && <DropdownMenuItem onSelect={onCrossfade}><Blend /> Crossfade overlap</DropdownMenuItem>}
+      </DropdownMenuContent></DropdownMenu>
       <Button className="sound-context-command danger" variant="ghost" size="sm" disabled={saving || hasLockedClips} onClick={onDelete} aria-label="Delete selected clips"><Trash2 /> Delete</Button>
     </div>}
     {(context.kind === "sequence" || context.kind === "silence") && onOpenSequence && <div className="sound-context-group is-object"><Button className="sound-context-command" variant="ghost" size="sm" disabled={saving} onClick={onOpenSequence}>Open Sequence</Button></div>}
