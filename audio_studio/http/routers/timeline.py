@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field
@@ -10,14 +10,15 @@ from pydantic import BaseModel, ConfigDict, Field
 from audio_studio.application.timeline import TimelineConflict, TimelineError
 from audio_studio.composition.timeline import timeline_service
 from audio_studio.http.errors import ApiProblem
+from audio_studio.http.production_import_contracts import ProductionImportBody
 from audio_studio.http.timeline_contracts import (
     DeletedPartsEnvelope,
     MovedPartsEnvelope,
     OkEnvelope,
     PartCreatedEnvelope,
-    ProductionImportEnvelope,
     TranscriptSummaryListEnvelope,
 )
+from audio_studio.http.production_import_contracts import ProductionImportEnvelope
 
 
 router = APIRouter(prefix="/api/v1/productions/{production_id}", tags=["timeline"])
@@ -72,47 +73,6 @@ class DraftBody(BaseModel):
     seed: int = 0
     enable_ssml: bool = False
     confirmed: bool = False
-
-
-class ImportSpeechItem(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    type: Literal["speech"]
-    role: str = Field(min_length=1, max_length=120)
-    text: str = Field(min_length=1, max_length=500_000)
-    language: str = Field(default="Auto", min_length=1, max_length=80)
-    speech_mode: Literal["exact", "directed"] = "exact"
-    instruction: str = ""
-    rate: float = Field(default=1, ge=.5, le=2)
-    pitch: float = Field(default=1, ge=.5, le=2)
-    volume: int = Field(default=50, ge=0, le=100)
-    seed: int = Field(default=0, ge=0, le=2_147_483_647)
-    format: Literal["mp3", "mp3-24k", "wav", "opus"] = "mp3"
-
-
-class ImportSilenceItem(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    type: Literal["silence"]
-    seconds: float = Field(ge=.1, le=120)
-
-
-ImportItem = Annotated[
-    ImportSpeechItem | ImportSilenceItem,
-    Field(discriminator="type"),
-]
-
-
-class ProductionImportDocument(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-    schema_name: Literal["audio-studio-production-import"] = Field(alias="schema")
-    version: Literal[1]
-    title: str = Field(min_length=1, max_length=200)
-    items: list[ImportItem] = Field(min_length=1, max_length=1_000)
-
-
-class ProductionImportBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    document: ProductionImportDocument
-    role_voices: dict[str, str]
 
 
 class MoveBody(BaseModel):
@@ -190,7 +150,8 @@ def import_production(
     production_id: int, payload: ProductionImportBody,
 ) -> dict:
     return _run(lambda: timeline_service.import_document(
-        production_id, payload.document.model_dump(by_alias=True),
+        production_id, payload.document.model_dump(
+            by_alias=True, exclude_none=True),
         payload.role_voices))
 
 

@@ -31,10 +31,14 @@ from audio_studio.application.transcription import (
     TranscriptionService,
 )
 from audio_studio.application.voice_cloning import VoiceCloningService
+from audio_studio.application.production_import import ProductionImportJobHandler
 
 from audio_studio.composition.jobs import job_service
 from audio_studio.composition.renders import render_service
 from audio_studio.composition.audio_generation import audio_generation_service
+from audio_studio.composition.catalog import catalog_service
+from audio_studio.composition.timeline import timeline_service
+from audio_studio.composition.work import work_service
 from audio_studio.providers.alibaba.text_preparation import AlibabaTextProvider
 from audio_studio.providers.alibaba.speech_generation import AlibabaSpeechProvider
 from audio_studio.providers.alibaba.translation import AlibabaTranslationProvider
@@ -98,10 +102,12 @@ def main() -> int:
             load_preferences, provider_operations,
         )
     ))
-    service.register("rewrite", TextPreparationJobHandler(TextPreparationService(
-        PostgresTextPreparationRepository(), AlibabaTextProvider(), load_preferences,
-        provider_operations,
-    )))
+    text_preparation = TextPreparationService(
+        PostgresTextPreparationRepository(), AlibabaTextProvider(),
+        load_preferences, provider_operations)
+    service.register("rewrite", TextPreparationJobHandler(text_preparation))
+    service.register("production_import", ProductionImportJobHandler(
+        work_service, timeline_service, catalog_service, text_preparation))
     service.register(
         "sound_recipe_normalize",
         SoundRecipeNormalizationJobHandler(SoundRecipeNormalizationService(

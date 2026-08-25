@@ -42,9 +42,10 @@ class PostgresTimelineRecords:
     def import_parts(
         self, production_id: int, items: list[dict],
         voice_identity_ids: set[str],
-    ) -> dict[str, int] | None:
+        exact_routes: list[dict] | None = None,
+    ) -> dict | None:
         return self.documents.import_parts(
-            production_id, items, voice_identity_ids)
+            production_id, items, voice_identity_ids, exact_routes)
 
     def asset(self, asset_id: int) -> dict | None:
         return self.assets.get(asset_id)

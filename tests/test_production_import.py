@@ -148,13 +148,13 @@ class ProductionImportTests(unittest.TestCase):
             self.assertEqual(
                 draft["voice_identity_id"], self.identity_ids[source["role"]])
             self.assertEqual(draft["language"], source["language"])
-            self.assertEqual(draft["speech_mode"], source["speech_mode"])
+            self.assertEqual(draft["speech_mode"], "exact")
             self.assertEqual(draft["instruction"], source["instruction"])
-            self.assertEqual(draft["rate"], source["rate"])
-            self.assertEqual(draft["pitch"], source["pitch"])
-            self.assertEqual(draft["volume"], source["volume"])
-            self.assertEqual(draft["seed"], source["seed"])
-            self.assertEqual(draft["format"], source["format"])
+            self.assertEqual(draft["rate"], 1)
+            self.assertEqual(draft["pitch"], 1)
+            self.assertEqual(draft["volume"], 50)
+            self.assertEqual(draft["seed"], 0)
+            self.assertEqual(draft["format"], "mp3")
             self.assertIsNone(draft["binding_id"])
             self.assertIsNone(draft["catalogue_voice_id"])
             self.assertIsNone(draft["capability_id"])
@@ -375,7 +375,7 @@ class ProductionImportHttpTests(unittest.TestCase):
             document["items"][0]["instruction"],
         )
 
-    def test_endpoint_applies_studio_defaults_to_lean_speech(self):
+    def test_endpoint_does_not_invent_generation_configuration(self):
         client = TestClient(app)
         document = {
             "schema": "audio-studio-production-import",
@@ -397,14 +397,36 @@ class ProductionImportHttpTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200, response.text)
         speech = run.call_args.args[1]["items"][0]
-        self.assertEqual(speech["language"], "Auto")
-        self.assertEqual(speech["speech_mode"], "exact")
         self.assertEqual(speech["instruction"], "")
-        self.assertEqual(speech["rate"], 1)
-        self.assertEqual(speech["pitch"], 1)
-        self.assertEqual(speech["volume"], 50)
-        self.assertEqual(speech["seed"], 0)
-        self.assertEqual(speech["format"], "mp3")
+        for field in ("language", "speech_mode", "rate", "pitch",
+                      "volume", "seed", "format"):
+            self.assertNotIn(field, speech)
+
+    def test_canonical_validation_preserves_authoring_truth_only(self):
+        client = TestClient(app)
+        document = {
+            "schema": "audio-studio-production-import",
+            "version": 1,
+            "title": "Evening story",
+            "description": "A quiet test.",
+            "language": "fr",
+            "items": [
+                {"type": "speech", "role": "Théa", "text": "Bonsoir.",
+                 "speech_mode": "directed", "rate": 1.4},
+                {"type": "silence", "seconds": 1.2},
+            ],
+        }
+
+        response = client.post(
+            "/api/v1/production-imports/validate", json={"document": document})
+
+        self.assertEqual(response.status_code, 200, response.text)
+        data = response.json()["data"]
+        self.assertEqual(data["document"]["title"], "Evening story")
+        self.assertEqual(data["document"]["description"], "A quiet test.")
+        self.assertEqual(data["summary"]["roles"], [{"name": "Théa", "count": 1}])
+        self.assertEqual(data["summary"]["legacy_generation_hints"], 1)
+        self.assertNotIn("pitch", data["document"]["items"][0])
 
 
 if __name__ == "__main__":

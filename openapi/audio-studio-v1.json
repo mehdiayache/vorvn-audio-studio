@@ -2939,17 +2939,24 @@
       },
       "ImportSpeechItem": {
         "additionalProperties": false,
+        "description": "Authored speech truth plus tolerated V1 legacy generation hints.\n\nLegacy hints remain readable so existing documents do not break, but the\nimport use case never promotes them into a recording route or delivery\nconfiguration without an explicit operator choice.",
         "properties": {
           "format": {
-            "default": "mp3",
-            "enum": [
-              "mp3",
-              "mp3-24k",
-              "wav",
-              "opus"
+            "anyOf": [
+              {
+                "enum": [
+                  "mp3",
+                  "mp3-24k",
+                  "wav",
+                  "opus"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Format",
-            "type": "string"
+            "title": "Format"
           },
           "instruction": {
             "default": "",
@@ -2957,25 +2964,43 @@
             "type": "string"
           },
           "language": {
-            "default": "Auto",
-            "maxLength": 80,
-            "minLength": 1,
-            "title": "Language",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
           },
           "pitch": {
-            "default": 1,
-            "maximum": 2.0,
-            "minimum": 0.5,
-            "title": "Pitch",
-            "type": "number"
+            "anyOf": [
+              {
+                "maximum": 2.0,
+                "minimum": 0.5,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pitch"
           },
           "rate": {
-            "default": 1,
-            "maximum": 2.0,
-            "minimum": 0.5,
-            "title": "Rate",
-            "type": "number"
+            "anyOf": [
+              {
+                "maximum": 2.0,
+                "minimum": 0.5,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate"
           },
           "role": {
             "maxLength": 120,
@@ -2984,20 +3009,32 @@
             "type": "string"
           },
           "seed": {
-            "default": 0,
-            "maximum": 2147483647.0,
-            "minimum": 0.0,
-            "title": "Seed",
-            "type": "integer"
+            "anyOf": [
+              {
+                "maximum": 2147483647.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
           },
           "speech_mode": {
-            "default": "exact",
-            "enum": [
-              "exact",
-              "directed"
+            "anyOf": [
+              {
+                "enum": [
+                  "exact",
+                  "directed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Speech Mode",
-            "type": "string"
+            "title": "Speech Mode"
           },
           "text": {
             "maxLength": 500000,
@@ -3011,11 +3048,17 @@
             "type": "string"
           },
           "volume": {
-            "default": 50,
-            "maximum": 100.0,
-            "minimum": 0.0,
-            "title": "Volume",
-            "type": "integer"
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume"
           }
         },
         "required": [
@@ -4327,6 +4370,7 @@
       },
       "ProductionImportBody": {
         "additionalProperties": false,
+        "description": "Compatibility shape for the original append-only endpoint.",
         "properties": {
           "document": {
             "$ref": "#/components/schemas/ProductionImportDocument"
@@ -4346,9 +4390,72 @@
         "title": "ProductionImportBody",
         "type": "object"
       },
+      "ProductionImportDestination": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "existing",
+              "new"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "parent_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "project",
+                  "series"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Type"
+          },
+          "production_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Production Id"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "ProductionImportDestination",
+        "type": "object"
+      },
       "ProductionImportDocument": {
         "additionalProperties": false,
         "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
           "items": {
             "items": {
               "discriminator": {
@@ -4371,6 +4478,19 @@
             "minItems": 1,
             "title": "Items",
             "type": "array"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
           },
           "schema": {
             "const": "audio-studio-production-import",
@@ -4410,6 +4530,96 @@
         "title": "ProductionImportEnvelope",
         "type": "object"
       },
+      "ProductionImportExecuteBody": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "destination": {
+            "$ref": "#/components/schemas/ProductionImportDestination"
+          },
+          "document": {
+            "$ref": "#/components/schemas/ProductionImportDocument"
+          },
+          "preparation": {
+            "$ref": "#/components/schemas/ProductionImportPreparation"
+          },
+          "role_routes": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ProductionImportRouteSelection"
+            },
+            "title": "Role Routes",
+            "type": "object"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document",
+          "destination",
+          "title",
+          "role_routes",
+          "preparation"
+        ],
+        "title": "ProductionImportExecuteBody",
+        "type": "object"
+      },
+      "ProductionImportPreparation": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Language",
+            "type": "string"
+          },
+          "output_format": {
+            "default": "mp3",
+            "enum": [
+              "mp3",
+              "mp3-24k",
+              "wav",
+              "opus"
+            ],
+            "title": "Output Format",
+            "type": "string"
+          },
+          "tag_density": {
+            "default": "normal",
+            "enum": [
+              "none",
+              "light",
+              "normal",
+              "heavy"
+            ],
+            "title": "Tag Density",
+            "type": "string"
+          },
+          "text_version": {
+            "default": "spoken_1",
+            "enum": [
+              "imported",
+              "spoken_1",
+              "spoken_2"
+            ],
+            "title": "Text Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "language"
+        ],
+        "title": "ProductionImportPreparation",
+        "type": "object"
+      },
       "ProductionImportResponse": {
         "properties": {
           "items": {
@@ -4431,6 +4641,148 @@
           "silence"
         ],
         "title": "ProductionImportResponse",
+        "type": "object"
+      },
+      "ProductionImportRoleResponse": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "count"
+        ],
+        "title": "ProductionImportRoleResponse",
+        "type": "object"
+      },
+      "ProductionImportRouteSelection": {
+        "additionalProperties": false,
+        "properties": {
+          "binding_id": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Binding Id",
+            "type": "string"
+          },
+          "capability_id": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Capability Id",
+            "type": "string"
+          },
+          "voice_identity_id": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Voice Identity Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "voice_identity_id",
+          "binding_id",
+          "capability_id"
+        ],
+        "title": "ProductionImportRouteSelection",
+        "type": "object"
+      },
+      "ProductionImportSummaryResponse": {
+        "properties": {
+          "estimated_duration_ms": {
+            "title": "Estimated Duration Ms",
+            "type": "integer"
+          },
+          "items": {
+            "title": "Items",
+            "type": "integer"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "legacy_generation_hints": {
+            "title": "Legacy Generation Hints",
+            "type": "integer"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/ProductionImportRoleResponse"
+            },
+            "title": "Roles",
+            "type": "array"
+          },
+          "silence": {
+            "title": "Silence",
+            "type": "integer"
+          },
+          "speech": {
+            "title": "Speech",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "speech",
+          "silence",
+          "items",
+          "roles",
+          "language",
+          "estimated_duration_ms",
+          "legacy_generation_hints"
+        ],
+        "title": "ProductionImportSummaryResponse",
+        "type": "object"
+      },
+      "ProductionImportValidationBody": {
+        "additionalProperties": false,
+        "properties": {
+          "document": {
+            "$ref": "#/components/schemas/ProductionImportDocument"
+          }
+        },
+        "required": [
+          "document"
+        ],
+        "title": "ProductionImportValidationBody",
+        "type": "object"
+      },
+      "ProductionImportValidationEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProductionImportValidationResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ProductionImportValidationEnvelope",
+        "type": "object"
+      },
+      "ProductionImportValidationResponse": {
+        "properties": {
+          "document": {
+            "$ref": "#/components/schemas/ProductionImportDocument"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ProductionImportSummaryResponse"
+          }
+        },
+        "required": [
+          "document",
+          "summary"
+        ],
+        "title": "ProductionImportValidationResponse",
         "type": "object"
       },
       "ProductionPartResponse": {
@@ -14230,6 +14582,106 @@
         "summary": "Get Audio Peaks",
         "tags": [
           "media"
+        ]
+      }
+    },
+    "/api/v1/production-imports": {
+      "post": {
+        "operationId": "createProductionImport",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductionImportExecuteBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobCreatedEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Import",
+        "tags": [
+          "production-imports"
+        ]
+      }
+    },
+    "/api/v1/production-imports/validate": {
+      "post": {
+        "operationId": "validateProductionImport",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductionImportValidationBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionImportValidationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Validate Import",
+        "tags": [
+          "production-imports"
         ]
       }
     },

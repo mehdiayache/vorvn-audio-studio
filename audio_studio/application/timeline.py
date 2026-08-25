@@ -19,7 +19,8 @@ class TimelineRecords(Protocol):
     def import_parts(
         self, production_id: int, items: list[dict],
         voice_identity_ids: set[str],
-    ) -> dict[str, int] | None: ...
+        exact_routes: list[dict] | None = None,
+    ) -> dict[str, Any] | None: ...
     def asset(self, asset_id: int) -> dict | None: ...
     def asset_allowed(
         self, production_id: int, asset_id: int,
@@ -158,8 +159,9 @@ class TimelineService:
 
     def import_document(
         self, production_id: int, document: dict[str, Any],
-        role_voices: dict[str, str],
-    ) -> dict[str, int]:
+        role_voices: dict[str, str | dict[str, Any]],
+        preparation: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Append validated V1 authoring items to the canonical Production."""
         self._production(production_id)
         items = list(document.get("items") or [])
@@ -173,14 +175,16 @@ class TimelineService:
             key = label.casefold()
             roles.setdefault(key, {"label": label, "item_number": index})
 
-        mapped_roles: dict[str, tuple[str, str]] = {}
-        for label, identity_id in role_voices.items():
+        mapped_roles: dict[str, tuple[str, dict[str, Any]]] = {}
+        for label, selection in role_voices.items():
             normalized_label = " ".join(str(label).split())
             key = normalized_label.casefold()
-            if key in mapped_roles and mapped_roles[key][1] != identity_id:
+            route = (dict(selection) if isinstance(selection, dict)
+                     else {"voice_identity_id": str(selection)})
+            if key in mapped_roles and mapped_roles[key][1] != route:
                 raise TimelineError(
                     f"Role {normalized_label} has more than one Voice mapping.")
-            mapped_roles[key] = (normalized_label, str(identity_id))
+            mapped_roles[key] = (normalized_label, route)
 
         missing = sorted(
             roles[key]["label"] for key in set(roles) - set(mapped_roles))
@@ -195,10 +199,15 @@ class TimelineService:
             raise TimelineError(
                 "Remove role mappings that are not in this document: "
                 + ", ".join(extra))
-        for role, identity_id in mapped_roles.values():
-            if not str(identity_id).strip():
+        for role, route in mapped_roles.values():
+            if not str(route.get("voice_identity_id") or "").strip():
                 raise TimelineError(f"Choose a Voice for role {role}.")
 
+        durable_import = preparation is not None
+        preparation = preparation or {}
+        default_language = str(
+            preparation.get("language") or document.get("language") or "Auto")
+        output_format = str(preparation.get("output_format") or "mp3")
         canonical_items: list[dict[str, Any]] = []
         for number, item in enumerate(items, start=1):
             if item["type"] == "silence":
@@ -211,11 +220,11 @@ class TimelineService:
                 })
                 continue
             text = str(item["text"])
-            language = str(item.get("language") or "Auto")
+            language = str(item.get("language") or default_language)
             instruction = str(item.get("instruction") or "")
-            output_format = str(item.get("format") or "mp3")
             role_key = " ".join(str(item["role"]).split()).casefold()
             role = roles[role_key]["label"]
+            route = mapped_roles[role_key][1]
             for label, value in (
                 ("text", text), ("language", language),
                 ("format", output_format),
@@ -231,28 +240,35 @@ class TimelineService:
                 "text_shaped": None,
                 "text_tagged": None,
                 "text_state": "raw",
-                "voice_identity_id": mapped_roles[role_key][1],
-                "binding_id": None,
-                "catalogue_voice_id": None,
-                "capability_id": None,
+                "voice_identity_id": route.get("voice_identity_id")
+                    or route.get("identity_id"),
+                "binding_id": route.get("binding_id"),
+                "catalogue_voice_id": route.get("catalogue_voice_id"),
+                "capability_id": route.get("capability_id"),
                 "language": language,
-                "speech_mode": item.get("speech_mode") or "exact",
+                "speech_mode": "directed" if route.get("capability_id")
+                    == "expressive_tags" else "exact",
                 "instruction": instruction,
-                "rate": float(item.get("rate", 1)),
-                "pitch": float(item.get("pitch", 1)),
-                "volume": int(item.get("volume", 50)),
-                "seed": int(item.get("seed", 0)),
+                "rate": 1.0,
+                "pitch": 1.0,
+                "volume": 50,
+                "seed": 0,
                 "format": output_format,
                 "duration_ms": 0,
             })
         try:
             result = self.records.import_parts(
                 production_id, canonical_items,
-                {identity_id for _, identity_id in mapped_roles.values()})
+                {str(route.get("voice_identity_id") or route.get("identity_id"))
+                 for _, route in mapped_roles.values()},
+                [route for _, route in mapped_roles.values()
+                 if route.get("binding_id") or route.get("catalogue_voice_id")])
         except ValueError as exc:
             raise TimelineError(str(exc)) from exc
         if result is None:
             raise TimelineError("That Production no longer exists.")
+        if not durable_import:
+            return {key: result[key] for key in ("items", "speech", "silence")}
         return result
 
     def edit_silence(

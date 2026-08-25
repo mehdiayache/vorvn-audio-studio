@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
+
 
 class OkResponse(BaseModel):
     ok: bool
@@ -25,16 +26,6 @@ class PartCreatedResponse(BaseModel):
 
 class PartCreatedEnvelope(BaseModel):
     data: PartCreatedResponse
-
-
-class ProductionImportResponse(BaseModel):
-    items: int
-    speech: int
-    silence: int
-
-
-class ProductionImportEnvelope(BaseModel):
-    data: ProductionImportResponse
 
 
 class DeletedPartsResponse(BaseModel):

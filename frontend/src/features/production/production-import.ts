@@ -145,6 +145,7 @@ export function parseProductionImportText(source: string): ParsedProductionImpor
       schema: "audio-studio-production-import",
       version: 1,
       title: document.title as string,
+      description: typeof document.description === "string" ? document.description : "",
       items,
     },
     speechCount,

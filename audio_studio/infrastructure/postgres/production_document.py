@@ -479,7 +479,8 @@ class ProductionDocumentRepository:
     def import_parts(
         self, production_id: int, items: list[dict[str, Any]],
         voice_identity_ids: set[str],
-    ) -> dict[str, int] | None:
+        exact_routes: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any] | None:
         """Append one import atomically with optional authored role labels."""
         with transaction() as cursor:
             if not self._production_exists(cursor, production_id, lock=True):
@@ -503,9 +504,37 @@ class ProductionDocumentRepository:
                     raise ValueError(
                         "Every role must use an active owned Voice. Invalid: "
                         + ", ".join(invalid))
+            for route in exact_routes or []:
+                binding_id = str(route.get("binding_id") or "")
+                if not binding_id:
+                    raise ValueError(
+                        "Production import currently requires an owned Voice binding.")
+                cursor.execute("""
+                    SELECT binding.identity_id, capability.id
+                      FROM voice_bindings binding
+                      JOIN voice_identities identity
+                        ON identity.id=binding.identity_id
+                      JOIN provider_model_capabilities model_capability
+                        ON model_capability.provider_model_id=binding.provider_model_id
+                      JOIN capabilities capability
+                        ON capability.id=model_capability.capability_id
+                     WHERE binding.id::text=%s
+                       AND binding.identity_id=%s
+                       AND capability.id=%s
+                       AND binding.source='custom'
+                       AND binding.status IN ('active','ready')
+                       AND binding.archived_at IS NULL
+                       AND identity.status='active'
+                """, (binding_id, route.get("identity_id")
+                       or route.get("voice_identity_id"),
+                       route.get("capability_id")))
+                if not cursor.fetchone():
+                    raise ValueError(
+                        "An exact Voice route changed before import. Reload and choose it again.")
             release_archived_positions(cursor, production_id)
             position = self._next_position(cursor, production_id)
             counts = {"items": len(items), "speech": 0, "silence": 0}
+            speech_parts: list[dict[str, Any]] = []
             for offset, values in enumerate(items):
                 kind = str(values["kind"])
                 cursor.execute("""
@@ -530,9 +559,14 @@ class ProductionDocumentRepository:
                         VALUES (%s,%s,%s::jsonb)
                     """, (part_id, production_id, json.dumps(values)))
                     counts["speech"] += 1
+                    speech_parts.append({
+                        "id": part_id,
+                        "text": str(values.get("text") or ""),
+                        "capability_id": values.get("capability_id"),
+                    })
                 else:
                     counts["silence"] += 1
-            return counts
+            return {**counts, "speech_parts": speech_parts}
 
     def insert_asset(self, production_id: int, asset_id: int,
                      before_part_public_id: str | None = None) -> int | None:

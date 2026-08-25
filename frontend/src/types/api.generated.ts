@@ -499,6 +499,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/production-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Import */
+        post: operations["createProductionImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production-imports/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate Import */
+        post: operations["validateProductionImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/productions/{production_id}/assets": {
         parameters: {
             query?: never;
@@ -2723,47 +2757,34 @@ export interface components {
              */
             type: "silence";
         };
-        /** ImportSpeechItem */
+        /**
+         * ImportSpeechItem
+         * @description Authored speech truth plus tolerated V1 legacy generation hints.
+         *
+         *     Legacy hints remain readable so existing documents do not break, but the
+         *     import use case never promotes them into a recording route or delivery
+         *     configuration without an explicit operator choice.
+         */
         ImportSpeechItem: {
-            /**
-             * Format
-             * @default mp3
-             * @enum {string}
-             */
-            format: "mp3" | "mp3-24k" | "wav" | "opus";
+            /** Format */
+            format?: ("mp3" | "mp3-24k" | "wav" | "opus") | null;
             /**
              * Instruction
              * @default
              */
             instruction: string;
-            /**
-             * Language
-             * @default Auto
-             */
-            language: string;
-            /**
-             * Pitch
-             * @default 1
-             */
-            pitch: number;
-            /**
-             * Rate
-             * @default 1
-             */
-            rate: number;
+            /** Language */
+            language?: string | null;
+            /** Pitch */
+            pitch?: number | null;
+            /** Rate */
+            rate?: number | null;
             /** Role */
             role: string;
-            /**
-             * Seed
-             * @default 0
-             */
-            seed: number;
-            /**
-             * Speech Mode
-             * @default exact
-             * @enum {string}
-             */
-            speech_mode: "exact" | "directed";
+            /** Seed */
+            seed?: number | null;
+            /** Speech Mode */
+            speech_mode?: ("exact" | "directed") | null;
             /** Text */
             text: string;
             /**
@@ -2771,11 +2792,8 @@ export interface components {
              * @enum {string}
              */
             type: "speech";
-            /**
-             * Volume
-             * @default 50
-             */
-            volume: number;
+            /** Volume */
+            volume?: number | null;
         };
         /** JobCreatedEnvelope */
         JobCreatedEnvelope: {
@@ -3227,7 +3245,10 @@ export interface components {
             /** Size Bytes */
             size_bytes: number;
         };
-        /** ProductionImportBody */
+        /**
+         * ProductionImportBody
+         * @description Compatibility shape for the original append-only endpoint.
+         */
         ProductionImportBody: {
             document: components["schemas"]["ProductionImportDocument"];
             /** Role Voices */
@@ -3235,10 +3256,31 @@ export interface components {
                 [key: string]: string;
             };
         };
+        /** ProductionImportDestination */
+        ProductionImportDestination: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "existing" | "new";
+            /** Parent Id */
+            parent_id?: number | null;
+            /** Parent Type */
+            parent_type?: ("project" | "series") | null;
+            /** Production Id */
+            production_id?: number | null;
+        };
         /** ProductionImportDocument */
         ProductionImportDocument: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
             /** Items */
             items: (components["schemas"]["ImportSpeechItem"] | components["schemas"]["ImportSilenceItem"])[];
+            /** Language */
+            language?: string | null;
             /**
              * Schema
              * @constant
@@ -3256,6 +3298,46 @@ export interface components {
         ProductionImportEnvelope: {
             data: components["schemas"]["ProductionImportResponse"];
         };
+        /** ProductionImportExecuteBody */
+        ProductionImportExecuteBody: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            destination: components["schemas"]["ProductionImportDestination"];
+            document: components["schemas"]["ProductionImportDocument"];
+            preparation: components["schemas"]["ProductionImportPreparation"];
+            /** Role Routes */
+            role_routes: {
+                [key: string]: components["schemas"]["ProductionImportRouteSelection"];
+            };
+            /** Title */
+            title: string;
+        };
+        /** ProductionImportPreparation */
+        ProductionImportPreparation: {
+            /** Language */
+            language: string;
+            /**
+             * Output Format
+             * @default mp3
+             * @enum {string}
+             */
+            output_format: "mp3" | "mp3-24k" | "wav" | "opus";
+            /**
+             * Tag Density
+             * @default normal
+             * @enum {string}
+             */
+            tag_density: "none" | "light" | "normal" | "heavy";
+            /**
+             * Text Version
+             * @default spoken_1
+             * @enum {string}
+             */
+            text_version: "imported" | "spoken_1" | "spoken_2";
+        };
         /** ProductionImportResponse */
         ProductionImportResponse: {
             /** Items */
@@ -3264,6 +3346,52 @@ export interface components {
             silence: number;
             /** Speech */
             speech: number;
+        };
+        /** ProductionImportRoleResponse */
+        ProductionImportRoleResponse: {
+            /** Count */
+            count: number;
+            /** Name */
+            name: string;
+        };
+        /** ProductionImportRouteSelection */
+        ProductionImportRouteSelection: {
+            /** Binding Id */
+            binding_id: string;
+            /** Capability Id */
+            capability_id: string;
+            /** Voice Identity Id */
+            voice_identity_id: string;
+        };
+        /** ProductionImportSummaryResponse */
+        ProductionImportSummaryResponse: {
+            /** Estimated Duration Ms */
+            estimated_duration_ms: number;
+            /** Items */
+            items: number;
+            /** Language */
+            language: string | null;
+            /** Legacy Generation Hints */
+            legacy_generation_hints: number;
+            /** Roles */
+            roles: components["schemas"]["ProductionImportRoleResponse"][];
+            /** Silence */
+            silence: number;
+            /** Speech */
+            speech: number;
+        };
+        /** ProductionImportValidationBody */
+        ProductionImportValidationBody: {
+            document: components["schemas"]["ProductionImportDocument"];
+        };
+        /** ProductionImportValidationEnvelope */
+        ProductionImportValidationEnvelope: {
+            data: components["schemas"]["ProductionImportValidationResponse"];
+        };
+        /** ProductionImportValidationResponse */
+        ProductionImportValidationResponse: {
+            document: components["schemas"]["ProductionImportDocument"];
+            summary: components["schemas"]["ProductionImportSummaryResponse"];
         };
         /** ProductionPartResponse */
         ProductionPartResponse: {
@@ -7060,6 +7188,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AudioPeaksEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createProductionImport: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductionImportExecuteBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobCreatedEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validateProductionImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductionImportValidationBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionImportValidationEnvelope"];
                 };
             };
             /** @description Validation Error */
