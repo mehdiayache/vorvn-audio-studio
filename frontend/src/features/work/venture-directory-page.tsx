@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { StudioPageHeader } from "@/components/studio-page-header"
 import { VentureMark } from "@/components/venture-mark"
 import { resourceHref } from "@/lib/links"
+import { productIdentity } from "@/lib/product-identity"
 import type { HierarchyNode } from "@/types/domain"
 import { CreateVentureDialog } from "./create-venture-dialog"
 import "./work.css"
@@ -34,7 +35,7 @@ export function VentureDirectoryPage({ items }: { items: HierarchyNode[] }) {
 
   return (
     <main className="work-page work-directory-page">
-      <StudioPageHeader eyebrow="Audio Studio" title="Work" description="Ventures organize brands and production boundaries." actions={<Button onClick={() => setCreating(true)}><Plus /> New Venture</Button>} />
+      <StudioPageHeader eyebrow={productIdentity.name} title="Work" description="Ventures organize brands and production boundaries." actions={<Button onClick={() => setCreating(true)}><Plus /> New Venture</Button>} />
       <section className="venture-directory-grid" aria-label="Ventures">
         {ventures.map((venture) => {
           const { projects, productions } = descendantsFor(venture, items)

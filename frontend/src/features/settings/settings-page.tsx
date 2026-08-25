@@ -5,6 +5,7 @@ import { ErrorState, PageLoading } from "@/components/state-panel"
 import { Input } from "@/components/ui/input"
 import { StudioPageHeader } from "@/components/studio-page-header"
 import { studioApi } from "@/lib/api"
+import { productIdentity } from "@/lib/product-identity"
 import type { SettingsSnapshot } from "@/types/domain"
 
 import "./settings-page.css"
@@ -46,10 +47,10 @@ export function SettingsPage() {
   if (!data) return <ErrorState title="Settings unavailable" message={error} retry={() => void load()} />
 
   return <main className="settings-page">
-    <StudioPageHeader eyebrow="Audio Studio" title="Settings" description="Connection, storage and production defaults used by every tool. Each section saves only its own changes." />
+    <StudioPageHeader eyebrow={productIdentity.name} title="Settings" description="Connection, storage and production defaults used by every tool. Each section saves only its own changes." />
 
     <section className="settings-readiness" aria-labelledby="product-readiness-title"><header><h2 id="product-readiness-title">Product readiness</h2><p>Live application, provider and durable storage status.</p></header><div className="settings-status-grid">
-      <article><Server /><div><b>Audio Studio</b><span>{data.database.connected ? data.provider.configured ? "Ready" : "Setup required" : "Audio Studio unavailable"}</span></div><i className={data.database.connected && data.provider.configured ? "healthy" : "warning"} /></article>
+      <article><Server /><div><b>{productIdentity.name}</b><span>{data.database.connected ? data.provider.configured ? "Ready" : "Setup required" : `${productIdentity.name} unavailable`}</span></div><i className={data.database.connected && data.provider.configured ? "healthy" : "warning"} /></article>
       <article><Server /><div><b>Alibaba</b><span>{data.provider.configured ? `Connected · ${data.provider.region_label}` : "API key needed"}</span></div><i className={data.provider.configured ? "healthy" : "warning"} /></article>
       <article><Database /><div><b>Database</b><span>{statusText(data.database)}</span></div><i className={data.database.connected ? "healthy" : "warning"} /></article>
       <article><FolderOpen /><div><b>Reference storage</b><span>{statusText(data.storage)}</span></div><i className={data.storage.configured ? "healthy" : "warning"} /></article>

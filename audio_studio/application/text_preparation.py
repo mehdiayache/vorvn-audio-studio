@@ -298,7 +298,7 @@ def assert_tag_fidelity(before: str, tagged: str) -> None:
     if returned != requested:
         raise ValueError(
             "Alibaba changed the script while adding delivery tags. "
-            "Audio Studio rejected that version so your original words stay safe."
+            "Auvi Studio rejected that version so your original words stay safe."
         )
 
 

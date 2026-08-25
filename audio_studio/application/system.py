@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from audio_studio import __version__
+from audio_studio.config import settings
 
 
 class DatabaseStatus(Protocol):
@@ -25,7 +26,7 @@ class SystemService:
         worker = (self.worker.status() if database.get("connected") else
                   {"ready": False, "status": "database_unavailable"})
         return {
-            "name": "VORVN Audio Studio", "version": __version__,
+            "name": settings.name, "version": __version__,
             "status": (
                 "ok" if database.get("connected") and worker["ready"]
                 else "degraded"),

@@ -6,6 +6,7 @@ import { SpeechModelIdentity } from "@/components/speech-model-identity"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { formatMoney } from "@/lib/format"
 import { operationStatusLabel } from "@/lib/operation-language"
+import { productIdentity } from "@/lib/product-identity"
 import type { ActivityRun } from "@/types/domain"
 import { costBasisLabel } from "./activity-run-card"
 
@@ -60,7 +61,7 @@ export function ActivityDetailSheet({ run, onClose }: { run: ActivityRun | null;
           {Object.keys(run.review_evidence || {}).length > 0 && <section><h3>Review evidence</h3><pre>{JSON.stringify(run.review_evidence, null, 2)}</pre></section>}
           <ProviderDiagnostics diagnostics={run.provider_diagnostics} />
           {Object.keys(run.usage || {}).length > 0 && <section><h3>Provider usage</h3><pre>{JSON.stringify(run.usage, null, 2)}</pre></section>}
-          {run.error && <section className="activity-detail-error"><h3>Operation problem</h3><p>{run.requires_review ? "The provider result needs an operator decision." : "Audio Studio retained the failure record. Technical diagnostics are shown below for support and debugging."}</p><details><summary>Technical error</summary><pre>{run.error}</pre></details></section>}
+          {run.error && <section className="activity-detail-error"><h3>Operation problem</h3><p>{run.requires_review ? "The provider result needs an operator decision." : `${productIdentity.name} retained the failure record. Technical diagnostics are shown below for support and debugging.`}</p><details><summary>Technical error</summary><pre>{run.error}</pre></details></section>}
         </div>}</>}
     </SheetContent>
   </Sheet>

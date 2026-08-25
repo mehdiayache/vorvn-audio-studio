@@ -1,4 +1,4 @@
-"""Reload the small set of provider settings owned by Audio Studio."""
+"""Reload the small set of provider settings owned by Auvi Studio."""
 
 from __future__ import annotations
 

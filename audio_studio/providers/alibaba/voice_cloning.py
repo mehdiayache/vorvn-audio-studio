@@ -44,7 +44,7 @@ class AlibabaVoiceCloningProvider:
         if job.provider != "alibaba" or job.region != config.region():
             raise ValueError(
                 "That exact Alibaba enrollment region is not active in this "
-                "Audio Studio deployment.")
+                "Auvi Studio deployment.")
         if not expected_model or expected_model != job.model_id:
             raise ValueError(
                 "That exact Alibaba model and tier are not installed for "

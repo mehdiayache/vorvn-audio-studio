@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import { productIdentity } from "@/lib/product-identity"
 import { cn } from "@/lib/utils"
 
 export type AudioStudioMountMode = "standalone" | "embedded"
@@ -38,7 +39,7 @@ const AudioStudioShellContext = createContext<AudioStudioShellContextValue>({
 export function AudioStudioRailToggle({ className, tooltipSide = "right" }: { className?: string; tooltipSide?: "right" | "bottom" }) {
   const shell = useContext(AudioStudioShellContext)
   if (!shell.railNavigation) return null
-  const label = shell.railExpanded ? "Collapse Audio Studio navigation" : "Expand Audio Studio navigation"
+  const label = shell.railExpanded ? `Collapse ${productIdentity.name} navigation` : `Expand ${productIdentity.name} navigation`
   return <Tooltip>
     <TooltipTrigger asChild>
       <Button variant="ghost" size="icon-sm" className={className} aria-label={label} onClick={shell.toggleRail}>
@@ -72,14 +73,14 @@ export function activeAudioStudioDestination(pathname: string) {
       ? pathname === "/audio-studio" || pathname === "/audio-studio/" || /^\/audio-studio\/(ventures|projects|series|productions|workspaces)\//.test(pathname)
       : pathname === item.href || pathname.startsWith(`${item.href}/`)
   ))
-  return match?.label || "Audio Studio"
+  return match?.label || productIdentity.name
 }
 
 function StudioBrand() {
   return (
-    <NavLink className="studio-deck-brand" to="/audio-studio/" aria-label="Audio Studio Work">
+    <NavLink className="studio-deck-brand" to="/audio-studio/" aria-label={`${productIdentity.name} Work`}>
       <span className="studio-deck-mark"><AudioLines aria-hidden="true" /></span>
-      <span>Audio Studio</span>
+      <span>{productIdentity.name}</span>
     </NavLink>
   )
 }
@@ -120,7 +121,7 @@ function PrimaryNavigation() {
   const toolsActive = toolItems.some((item) => location.pathname === item.href || location.pathname.startsWith(`${item.href}/`))
 
   return (
-    <nav className="studio-deck-navigation" aria-label="Audio Studio tools">
+    <nav className="studio-deck-navigation" aria-label={`${productIdentity.name} tools`}>
       <div className="studio-deck-primary-links">
         {primaryItems.map((item) => {
           const Icon = item.icon
@@ -207,12 +208,12 @@ function StudioRail({ showToggle }: { showToggle: boolean }) {
   const primary = audioStudioNavigation.filter((item) => item.group === "primary")
   const tools = audioStudioNavigation.filter((item) => item.group === "tools")
   const settings = audioStudioNavigation.find((item) => item.id === "settings")!
-  return <aside className="studio-rail" aria-label="Audio Studio navigation">
+  return <aside className="studio-rail" aria-label={`${productIdentity.name} navigation`}>
     <div className="studio-rail-head">
       <StudioBrand />
       {showToggle && <AudioStudioRailToggle className="studio-rail-toggle" />}
     </div>
-    <nav className="studio-rail-navigation" aria-label="Audio Studio tools">
+    <nav className="studio-rail-navigation" aria-label={`${productIdentity.name} tools`}>
       <div className="studio-rail-group">
         {primary.map((item) => <StudioRailLink key={item.id} item={item} pathname={location.pathname} />)}
       </div>
@@ -232,16 +233,16 @@ function MobileNavigation({ destination }: { destination: string }) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="studio-deck-mobile-menu" aria-label="Open Audio Studio menu">
+        <Button variant="ghost" size="icon" className="studio-deck-mobile-menu" aria-label={`Open ${productIdentity.name} menu`}>
           <Menu />
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="studio-deck-mobile-sheet">
         <SheetHeader>
-          <SheetTitle>Audio Studio</SheetTitle>
+          <SheetTitle>{productIdentity.name}</SheetTitle>
           <SheetDescription>{destination}</SheetDescription>
         </SheetHeader>
-        <nav aria-label="Audio Studio mobile tools">
+        <nav aria-label={`${productIdentity.name} mobile tools`}>
           {audioStudioNavigation.map((item) => {
             const Icon = item.icon
             return (
@@ -289,7 +290,7 @@ export function AppShell({ mode = "standalone" }: { mode?: AudioStudioMountMode 
   return (
     <AudioStudioShellContext.Provider value={{ railNavigation, railExpanded, toggleRail: () => setRailExpanded((expanded) => !expanded) }}>
       <div className="studio-app-shell" data-mount-mode={mode} data-presentation="standard" data-navigation={railNavigation ? "rail" : "top"} data-rail-expanded={railExpanded ? "true" : "false"}>
-        <a className="studio-skip-link" href="#audio-studio-content">Skip to Audio Studio content</a>
+        <a className="studio-skip-link" href="#audio-studio-content">Skip to {productIdentity.name} content</a>
         {railNavigation ? <StudioRail showToggle={!productionWorkspace} /> : <StudioDeckChrome mode={mode} destination={activeDestination} />}
         <main id="audio-studio-content" className="audio-studio-viewport" tabIndex={-1}>
           <AppErrorBoundary key={location.pathname}>

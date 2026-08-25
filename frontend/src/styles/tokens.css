@@ -57,7 +57,7 @@
   --ring: oklch(0.58 0.22 292.8);
   --radius: 0.625rem;
 
-  /* Audio Studio semantic extensions. */
+  /* Auvi Studio semantic extensions. */
   --surface-subtle: oklch(0.986 0.002 67.8);
   --surface-raised: oklch(1 0 0);
   --surface-inverse: oklch(0.147 0.004 49.3);

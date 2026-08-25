@@ -23,7 +23,7 @@ class WorkerRuntimeRepository:
         self._lock_connection: psycopg.Connection | None = None
 
     def acquire(self) -> bool:
-        """Become the one queue consumer for this Audio Studio database."""
+        """Become the one queue consumer for this Auvi Studio database."""
         if self._lock_connection is not None:
             return True
         connection = psycopg.connect(settings.database_url, autocommit=True)

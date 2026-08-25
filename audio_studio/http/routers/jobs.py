@@ -149,12 +149,12 @@ class TranscriptionJobCreate(BaseModel):
     def source_is_present(self):
         has_url, has_file = bool(self.url.strip()), bool(self.file.strip())
         if not has_url and not has_file:
-            raise ValueError("Provide either an uploaded URL or an Audio Studio file.")
+            raise ValueError("Provide either an uploaded URL or an Auvi Studio file.")
         if has_url and (has_file or self.part_id or self.production_id):
             raise ValueError(
                 "Uploaded audio and Production Parts are separate sources.")
         if has_file and not self.part_id:
-            raise ValueError("Audio Studio files require their Part ID.")
+            raise ValueError("Auvi Studio files require their Part ID.")
         if self.production_id and not has_file:
             raise ValueError("A Production ID requires one of its Parts.")
         return self

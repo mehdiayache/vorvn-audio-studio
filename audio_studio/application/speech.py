@@ -331,7 +331,7 @@ class SpeechGenerationService:
         except Exception as exc:
             raise JobFailed(
                 "The provider completed and may have billed this recording, "
-                "but Audio Studio could not retain the audio locally. Provider "
+                "but Auvi Studio could not retain the audio locally. Provider "
                 "evidence was preserved; an operator must decide whether to "
                 "make a new paid attempt.",
                 {"provider_attempt_id": attempt_id,

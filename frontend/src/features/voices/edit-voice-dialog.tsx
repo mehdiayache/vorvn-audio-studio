@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { studioApi } from "@/lib/api"
+import { productIdentity } from "@/lib/product-identity"
 import type { VoiceProfile } from "@/types/domain"
 
 type FormState = {
@@ -90,7 +91,7 @@ export function EditVoiceDialog({ profile, onOpenChange, onSaved, onArchived }: 
   const recordingLanguage = String(profile?.metadata.recording_language || profile?.metadata.language || "")
   return <Dialog open={Boolean(profile)} onOpenChange={(open) => { if (!busy) onOpenChange(open) }}>
     <DialogContent className="voice-edit-dialog">
-      <DialogHeader><DialogTitle>Edit voice</DialogTitle><DialogDescription>This identity supplies its name, portrait and casting details everywhere in Audio Studio.</DialogDescription></DialogHeader>
+      <DialogHeader><DialogTitle>Edit voice</DialogTitle><DialogDescription>This identity supplies its name, portrait and casting details everywhere in {productIdentity.name}.</DialogDescription></DialogHeader>
       <div className="voice-edit-content">
         <section className="voice-edit-portrait">
           <div className="voice-edit-current-image">{profile?.metadata.image ? <img src={String(profile.metadata.image)} alt="" /> : <ImageIcon />}</div>

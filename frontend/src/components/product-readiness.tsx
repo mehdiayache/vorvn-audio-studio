@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 
 import { studioApi } from "@/lib/api"
+import { productIdentity } from "@/lib/product-identity"
 import type { StudioConfig } from "@/types/domain"
 
 export type ProductReadiness =
@@ -17,18 +18,18 @@ export function ProductReadinessProvider({ children }: { children: React.ReactNo
   const [readiness, setReadiness] = useState<ProductReadiness>({
     status: "checking",
     config: null,
-    message: "Checking Audio Studio",
+    message: `Checking ${productIdentity.name}`,
   })
 
   const refresh = useCallback(async () => {
-    setReadiness({ status: "checking", config: null, message: "Checking Audio Studio" })
+    setReadiness({ status: "checking", config: null, message: `Checking ${productIdentity.name}` })
     try {
       const config = await studioApi.config()
       setReadiness(config.has_key
-        ? { status: "ready", config, message: "Audio Studio ready" }
+        ? { status: "ready", config, message: `${productIdentity.name} ready` }
         : { status: "setup_required", config, message: "Setup required" })
     } catch {
-      setReadiness({ status: "unavailable", config: null, message: "Audio Studio unavailable" })
+      setReadiness({ status: "unavailable", config: null, message: `${productIdentity.name} unavailable` })
     }
   }, [])
 

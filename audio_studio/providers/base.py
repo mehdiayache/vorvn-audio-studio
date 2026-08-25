@@ -1,4 +1,4 @@
-"""Small provider interfaces owned by Audio Studio, never by a vendor SDK."""
+"""Small provider interfaces owned by Auvi Studio, never by a vendor SDK."""
 
 from __future__ import annotations
 

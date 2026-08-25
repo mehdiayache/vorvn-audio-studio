@@ -1,1 +1,1 @@
-"""Native Audio Studio API routers."""
+"""Native Auvi Studio API routers."""

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from audio_studio.config import PRODUCT_NAME
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 
@@ -43,7 +44,7 @@ def _public_error(value: str | None, public_id) -> tuple[str, str | None]:
     ))
     if technical:
         diagnostic = f"job-{str(public_id)[:8]}"
-        return ("Audio Studio could not save this result. "
+        return (f"{PRODUCT_NAME} could not save this result. "
                 f"Use diagnostic ID {diagnostic} if the problem repeats.", diagnostic)
     return raw, None
 
@@ -91,7 +92,7 @@ def _run(row) -> dict[str, Any]:
             "requires_review", "ambiguous", "continued_by_job_id")
                             if key in (result or {})},
         "production_id": production_id, "production_name": production_name,
-        "where": production_name or source_tool or "Audio Studio",
+        "where": production_name or source_tool or PRODUCT_NAME,
         "cost_basis": _basis(cost_basis),
         "cost_basis_raw": cost_basis or "unknown", "children": 0,
         "record_type": "job", "event_detail": {},
@@ -126,7 +127,7 @@ def _deletion_receipt(row) -> dict[str, Any]:
         "provider_attempt_status": None, "provider_attempt_id": None,
         "requires_review": False, "needs_confirmation": False,
         "review_evidence": {}, "production_id": None,
-        "production_name": None, "where": "Audio Studio",
+        "production_name": None, "where": PRODUCT_NAME,
         "cost_basis": "not_billed", "cost_basis_raw": "not_billed",
         "children": 0, "record_type": "audit", "event_detail": receipt,
     }

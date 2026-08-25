@@ -1,4 +1,4 @@
-"""Private S3-compatible object storage owned by Audio Studio.
+"""Private S3-compatible object storage owned by Auvi Studio.
 
 Keys contain durable application IDs, never display names. Provider access is
 granted with a short-lived presigned URL; durable and temporary objects are

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Direct Qwen Audio CLI built on Audio Studio's native adapters.
+"""Direct Qwen Audio CLI built on Auvi Studio's native adapters.
 
 Run from the repository root with ``python -m scripts.say``.
 """

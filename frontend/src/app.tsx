@@ -15,6 +15,7 @@ import { useProduction } from "@/hooks/use-production"
 import { useStudioResources } from "@/hooks/use-studio-resources"
 import { useProjectOverview, useSeriesOverview, useVentureOverview } from "@/hooks/use-work-overview"
 import { normalizeStudioLocation } from "@/lib/routes"
+import { productIdentity } from "@/lib/product-identity"
 import type { ResourceType } from "@/types/domain"
 
 const VoicesPage = lazy(() => import("@/features/voices/voices-page").then((module) => ({ default: module.VoicesPage })))
@@ -123,7 +124,7 @@ function AudioStudioRoutes({ mode }: { mode: AudioStudioMountMode }) {
         <Route path="productions/:identifier" element={<ResourceRoute type="production" />} />
         <Route path="productions/:identifier/workstation" element={<LegacyProductionPathRedirect />} />
         <Route path="workspaces/:identifier" element={<LegacyProductionPathRedirect />} />
-        <Route path="*" element={<ErrorState title="Page unavailable" message="That Audio Studio destination does not exist." retry={() => window.history.back()} />} />
+        <Route path="*" element={<ErrorState title="Page unavailable" message={`That ${productIdentity.name} destination does not exist.`} retry={() => window.history.back()} />} />
       </Route>
       <Route path="*" element={<Navigate replace to="/audio-studio/" />} />
     </Routes>

@@ -1,4 +1,4 @@
-"""FastAPI composition root; the only public Audio Studio HTTP process."""
+"""FastAPI composition root; the only public Auvi Studio HTTP process."""
 
 from __future__ import annotations
 
@@ -56,7 +56,7 @@ async def lifespan(_: FastAPI):
         yield
 
 
-app = FastAPI(title="VORVN Audio Studio API", version=__version__,
+app = FastAPI(title=f"{settings.name} API", version=__version__,
               docs_url="/api/docs", redoc_url="/api/redoc",
               openapi_url="/api/v1/openapi.json", lifespan=lifespan)
 app.middleware("http")(request_context)

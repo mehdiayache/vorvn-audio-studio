@@ -1,4 +1,4 @@
-"""Provider-neutral identities for files accepted by Audio Studio."""
+"""Provider-neutral identities for files accepted by Auvi Studio."""
 
 from dataclasses import dataclass
 from typing import Literal

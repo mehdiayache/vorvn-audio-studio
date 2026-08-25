@@ -79,7 +79,7 @@ function renderQueryWorkspace(path: string, queryKey: "subtitle-job") {
   )
 }
 
-describe("Audio Studio shell", () => {
+describe("Auvi Studio shell", () => {
   it("derives one honest destination from tool and Work resource routes", () => {
     expect(activeAudioStudioDestination("/audio-studio/speak")).toBe("Create")
     expect(activeAudioStudioDestination("/audio-studio/productions/production-id")).toBe("Productions")
@@ -87,18 +87,18 @@ describe("Audio Studio shell", () => {
   })
   it("renders one standalone identity and the Studio-owned navigation", async () => {
     const { container } = renderShell("standalone", "/audio-studio/", true)
-    expect(screen.getByRole("link", { name: "Audio Studio Work" })).toBeTruthy()
-    expect(screen.getByRole("navigation", { name: "Audio Studio tools" })).toBeTruthy()
+    expect(screen.getByRole("link", { name: "Auvi Studio Work" })).toBeTruthy()
+    expect(screen.getByRole("navigation", { name: "Auvi Studio tools" })).toBeTruthy()
     expect(screen.getByRole("heading", { name: "Work content" })).toBeTruthy()
     expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
-    await waitFor(() => expect(screen.getByText("Audio Studio ready")).toBeTruthy())
+    await waitFor(() => expect(screen.getByText("Auvi Studio ready")).toBeTruthy())
     expect(studioApi.config).toHaveBeenCalledTimes(1)
   })
 
-  it("keeps the common Audio Studio navigation beside desktop Production", () => {
+  it("keeps the common Auvi Studio navigation beside desktop Production", () => {
     const { container } = renderShell("standalone", "/audio-studio/productions/production-id", true)
-    expect(screen.getByRole("link", { name: "Audio Studio Work" })).toBeTruthy()
-    expect(screen.getByRole("navigation", { name: "Audio Studio tools" })).toBeTruthy()
+    expect(screen.getByRole("link", { name: "Auvi Studio Work" })).toBeTruthy()
+    expect(screen.getByRole("navigation", { name: "Auvi Studio tools" })).toBeTruthy()
     expect(screen.getByRole("link", { name: "Productions" }).getAttribute("aria-current")).toBe("page")
     expect(screen.getByRole("heading", { name: "Production content" })).toBeTruthy()
     expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
@@ -111,9 +111,9 @@ describe("Audio Studio shell", () => {
     expect(shell?.getAttribute("data-rail-expanded")).toBe("false")
     expect(container.querySelector(".studio-rail .studio-rail-toggle")).toBeNull()
     expect(container.querySelector(".production-header-toggle")).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Expand Audio Studio navigation" }))
+    fireEvent.click(screen.getByRole("button", { name: "Expand Auvi Studio navigation" }))
     expect(shell?.getAttribute("data-rail-expanded")).toBe("true")
-    expect(screen.getByRole("button", { name: "Collapse Audio Studio navigation" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Collapse Auvi Studio navigation" })).toBeTruthy()
   })
 
   it("keeps Subtitles with primary creation navigation", () => {
@@ -125,22 +125,22 @@ describe("Audio Studio shell", () => {
 
   it("preserves the normal standalone chrome for mobile Production", () => {
     const { container } = renderShell("standalone", "/audio-studio/productions/production-id")
-    expect(screen.getByRole("link", { name: "Audio Studio Work" })).toBeTruthy()
-    expect(screen.getByRole("navigation", { name: "Audio Studio tools" })).toBeTruthy()
+    expect(screen.getByRole("link", { name: "Auvi Studio Work" })).toBeTruthy()
+    expect(screen.getByRole("navigation", { name: "Auvi Studio tools" })).toBeTruthy()
     expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
   })
 
   it("does not infer authority over an embedded host on desktop Production", () => {
     const { container } = renderShell("embedded", "/audio-studio/productions/production-id", true)
-    expect(screen.queryByRole("link", { name: "Audio Studio Work" })).toBeNull()
-    expect(screen.getByRole("navigation", { name: "Audio Studio tools" })).toBeTruthy()
+    expect(screen.queryByRole("link", { name: "Auvi Studio Work" })).toBeNull()
+    expect(screen.getByRole("navigation", { name: "Auvi Studio tools" })).toBeTruthy()
     expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
   })
 
   it("omits the standalone identity when mounted inside Origins", async () => {
     renderShell("embedded")
-    expect(screen.queryByRole("link", { name: "Audio Studio Work" })).toBeNull()
-    expect(screen.getByRole("navigation", { name: "Audio Studio tools" })).toBeTruthy()
+    expect(screen.queryByRole("link", { name: "Auvi Studio Work" })).toBeNull()
+    expect(screen.getByRole("navigation", { name: "Auvi Studio tools" })).toBeTruthy()
     await waitFor(() => expect(studioApi.config).toHaveBeenCalledTimes(1))
   })
 

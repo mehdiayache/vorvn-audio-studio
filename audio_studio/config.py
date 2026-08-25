@@ -9,11 +9,13 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
+PRODUCT_NAME = "Auvi Studio"
+PRODUCT_TITLE = f"VORVN {PRODUCT_NAME}"
 
 
 @dataclass(frozen=True, slots=True)
 class Settings:
-    name: str = "VORVN Audio Studio"
+    name: str = PRODUCT_TITLE
     host: str = "127.0.0.1"
     port: int = 7860
     web_prefix: str = "/audio-studio"
@@ -87,6 +89,6 @@ def require_local_bind() -> None:
     except ValueError:
         pass
     raise RuntimeError(
-        "Audio Studio has no remote authentication yet. "
+        f"{PRODUCT_NAME} has no remote authentication yet. "
         "AUDIO_STUDIO_HOST must remain a loopback address."
     )

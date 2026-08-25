@@ -1,1 +1,1 @@
-"""Alibaba provider adapters for native Audio Studio application services."""
+"""Alibaba provider adapters for native Auvi Studio application services."""

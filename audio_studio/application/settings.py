@@ -107,7 +107,7 @@ class SettingsService:
         if "output_directory" in changes:
             raise ValueError(
                 "The media folder is deployment configuration. Set "
-                "AUDIO_STUDIO_OUTPUT_DIR before starting Audio Studio."
+                "AUDIO_STUDIO_OUTPUT_DIR before starting Auvi Studio."
             )
         if "warn_above" in changes:
             preferences["warn_above"] = _non_negative(

@@ -57,14 +57,14 @@ class WorkerSupervisor:
             if code == 75:
                 if not ownership_notice_shown:
                     print(
-                        "Audio Studio queue is owned by another worker; "
+                        "Auvi Studio queue is owned by another worker; "
                         "waiting for it to stop.")
                     ownership_notice_shown = True
                 if self._stopping.wait(4):
                     return
             else:
                 ownership_notice_shown = False
-                print(f"Audio Studio worker exited ({code}); restarting.")
+                print(f"Auvi Studio worker exited ({code}); restarting.")
             with self._lock:
                 if self._stopping.is_set():
                     return
@@ -101,7 +101,7 @@ def main() -> int:
         require_local_bind()
         applied = run_migrations()
         if applied:
-            print(f"Applied {len(applied)} Audio Studio migration(s): {', '.join(applied)}")
+            print(f"Applied {len(applied)} Auvi Studio migration(s): {', '.join(applied)}")
         provider_catalogue_sync.refresh()
         # A provider request has ambiguous billing semantics after a crash, so
         # it becomes explicitly retryable instead of being silently replayed.
@@ -112,7 +112,7 @@ def main() -> int:
             print(f"Protected {migrated_references} legacy voice reference(s).")
         voice_repository.abandon_running()
         supervisor.start()
-        print(f"Audio Studio: http://localhost:{settings.port}{settings.web_prefix}/")
+        print(f"{settings.name}: http://localhost:{settings.port}{settings.web_prefix}/")
         uvicorn.run("audio_studio.http.app:app", host=settings.host,
                     port=settings.port, log_level="info")
     finally:

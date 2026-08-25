@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { OperatorIconButton } from "@/components/operator-action"
 import { audioUrl, studioApi } from "@/lib/api"
+import { productIdentity } from "@/lib/product-identity"
 import type { HistoricalVoiceReference, VoiceProfile } from "@/types/domain"
 
 function historicalName(providerId: string) {
@@ -51,7 +52,7 @@ export function HistoricalVoicePanel({ profiles, onLinked, onPreview }: {
   if (!items.length) return null
   return <details className="voice-history-panel">
     <summary><span><History /><span><b>Older cloned-voice history</b><small>{items.length} provider voice {items.length === 1 ? "reference needs" : "references need"} a human identity</small></span></span><span>{items.reduce((sum, item) => sum + item.uses, 0)} recordings</span></summary>
-    <div className="voice-history-intro"><p>These recordings are safe and playable, but they were created before Audio Studio had stable voice identities. Link only the ones you recognize.</p></div>
+    <div className="voice-history-intro"><p>These recordings are safe and playable, but they were created before {productIdentity.name} had stable voice identities. Link only the ones you recognize.</p></div>
     <div className="voice-history-list">{items.map((item) => {
       const label = historicalName(item.provider_voice_id)
       return <article key={item.provider_voice_id}>

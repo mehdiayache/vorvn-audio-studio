@@ -1,4 +1,4 @@
-"""Versioned PostgreSQL migrations for Audio Studio."""
+"""Versioned PostgreSQL migrations for Auvi Studio."""
 
 from __future__ import annotations
 

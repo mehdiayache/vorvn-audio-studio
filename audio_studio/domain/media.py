@@ -1,4 +1,4 @@
-"""Provider-neutral media objects exposed by Audio Studio."""
+"""Provider-neutral media objects exposed by Auvi Studio."""
 
 from dataclasses import dataclass
 from pathlib import Path

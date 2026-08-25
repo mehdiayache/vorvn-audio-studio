@@ -1,1 +1,1 @@
-"""HTTP composition for Audio Studio."""
+"""HTTP composition for Auvi Studio."""

@@ -55,7 +55,7 @@ Follow these strict rules on every file, function, and architecture you generate
 
 ## 6. PRODUCT DESIGN DIRECTIVE — CREATOR-FIRST AUDIO SOFTWARE
 
-For every Audio Studio UI/UX task, use the installed
+For every Auvi Studio UI/UX task, use the installed
 `$audio-studio-product-design` skill.
 
 - The current UI is functional documentation, never the design reference.

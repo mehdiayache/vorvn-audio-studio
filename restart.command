@@ -1,5 +1,5 @@
 #!/bin/zsh
-# VORVN Audio Studio — stop whatever is running, start it again, open it.
+# VORVN Auvi Studio — stop whatever is running, start it again, open it.
 #
 # Double-click this file in Finder. That is the whole procedure.
 # It is safe to run when nothing is running: it just starts it.
@@ -7,7 +7,7 @@
 cd "$(dirname "$0")"
 PORT=7860
 
-echo "VORVN Audio Studio"
+echo "VORVN Auvi Studio"
 echo "────────────"
 
 # Whoever is holding the port is the old copy. Ask it to stop, then insist.
@@ -39,7 +39,7 @@ for i in $(seq 1 40); do
     echo "· running at http://127.0.0.1:$PORT/audio-studio/"
     open "http://127.0.0.1:$PORT/audio-studio/"
     echo
-    echo "You can close this window. Audio Studio keeps running."
+    echo "You can close this window. Auvi Studio keeps running."
     exit 0
   fi
   sleep 0.25

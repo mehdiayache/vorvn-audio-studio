@@ -1,4 +1,4 @@
-"""Apply Audio Studio's pending database migrations."""
+"""Apply Auvi Studio's pending database migrations."""
 
 from audio_studio.migrations import run
 

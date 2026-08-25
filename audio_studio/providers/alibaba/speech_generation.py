@@ -1,4 +1,4 @@
-"""One Alibaba adapter for every Audio Studio speech-producing capability."""
+"""One Alibaba adapter for every Auvi Studio speech-producing capability."""
 
 from __future__ import annotations
 

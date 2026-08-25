@@ -122,7 +122,7 @@ def main() -> int:
     stopping = False
     runtime = WorkerRuntimeRepository()
     if not runtime.acquire():
-        print("Another Audio Studio worker already owns this queue; exiting.")
+        print("Another Auvi Studio worker already owns this queue; exiting.")
         return 75
     last_maintenance = 0.0
     loaded_revision = environment_revision()
@@ -155,7 +155,7 @@ def main() -> int:
         while not stopping:
             if expected_parent_pid and os.getppid() != expected_parent_pid:
                 print(
-                    "Audio Studio worker parent disappeared; "
+                    "Auvi Studio worker parent disappeared; "
                     "releasing the queue.")
                 break
             now = time.monotonic()

@@ -1,4 +1,4 @@
-# Audio Studio
+# Auvi Studio
 
 ## Run
 

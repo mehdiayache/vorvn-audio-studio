@@ -1,4 +1,4 @@
-"""VORVN Audio Studio modular application package."""
+"""VORVN Auvi Studio modular application package."""
 
 __all__ = ["__version__"]
 
