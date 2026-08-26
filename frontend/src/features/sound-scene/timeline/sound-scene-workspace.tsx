@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
-import { AudioWaveform, ChevronLeft, ChevronRight, LocateFixed, Lock, Magnet, Maximize2, Minus, MoreHorizontal, Music2, PanelLeftClose, PanelLeftOpen, Pause, PencilLine, Plus, RadioTower, Redo2, Repeat2, Trash2, Undo2, Volume1, Volume2, VolumeX } from "lucide-react"
+import { AudioWaveform, ChevronLeft, ChevronRight, CircleAlert, LocateFixed, Lock, Magnet, Maximize2, Minus, MoreHorizontal, Music2, PanelLeftClose, PanelLeftOpen, Pause, PencilLine, Plus, RadioTower, Redo2, Repeat2, Trash2, Undo2, Volume1, Volume2, VolumeX, X } from "lucide-react"
 
 import { useAudioPeaks } from "@/components/audio-waveform"
 import { OperatorIconButton } from "@/components/operator-action"
@@ -240,6 +240,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
     effects: selectedClips[0]!.clip.effects,
   } : null
   const canCrossfade = Boolean(session.crossfadeOverlap(selectedRefs))
+  const canSplit = session.canSplitClipsAtPlayhead(selectedRefs, playhead)
 
   const snapTargets = useMemo(() => {
     const values = new Set<number>([0, playhead])
@@ -490,7 +491,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
         <OperatorTooltip label={snapping ? "Turn snapping off" : "Turn snapping on"} detail="Aligns clip edges to the playhead, Sequence Parts, and other clip edges. Hold Alt while dragging to bypass it temporarily."><Button variant="ghost" size="icon-sm" className={snapping ? "is-active" : undefined} aria-label={snapping ? "Turn snapping off" : "Turn snapping on"} aria-pressed={snapping} onClick={() => { setSnapping((value) => !value); setSnapGuide(null) }}><Magnet /></Button></OperatorTooltip>
         <OperatorTooltip label="Keep the playhead visible during playback"><Button variant="ghost" size="sm" className={followPlayhead ? "is-active" : undefined} aria-pressed={followPlayhead} onClick={() => setFollowPlayhead((value) => !value)}><LocateFixed /><span>Follow</span></Button></OperatorTooltip>
       </div>
-      <span className="sound-scene-save-state">{saving && <b>Saving…</b>}{error && <b className="is-error" role="alert">{error}</b>}</span>
+      <span className="sound-scene-save-state">{saving && <b>Saving…</b>}</span>
       <Button variant="outline" size="sm" onClick={() => onAddAudio({ mode: "new-track" })}><Plus /> Audio Track</Button>
     </div>
     <div className="sound-scene-editor">
@@ -604,6 +605,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
         else if (selectedRefs[0]) void session.commitClipChanges(selectedRefs[0].trackId, selectedRefs[0].clipId, { effects })
       }}
       onLock={() => void session.commitSelectedClipChanges({ locked: context?.lockState !== "locked" }, selectedRefs)}
+      canSplit={canSplit}
       onSplit={() => void session.splitClipsAtPlayhead(selectedRefs)}
       onDuplicate={() => void session.duplicateClips(selectedRefs)}
       onCrossfade={canCrossfade ? () => void session.crossfadeSelected(selectedRefs) : undefined}
@@ -612,6 +614,12 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
       onDelete={() => onRemoveClip({ clips: selectedRefs })}
       onOptions={selectedClips.length === 1 || selectedPart ? () => document.querySelector(".ws-right-pane")?.scrollIntoView({ block: "nearest" }) : undefined}
       onOpenSequence={selectedPart ? () => onOpenSequence?.(selectedPart.part_id) : undefined}
-    /> : <span className="sound-context-empty">Select a clip or Sequence Part to edit it</span>}</footer>
+    /> : <span className="sound-context-empty">Select a clip or Sequence Part to edit it</span>}
+      {error && <div className="sound-context-feedback" role="alert" aria-live="assertive">
+        <CircleAlert aria-hidden="true" />
+        <OperatorTooltip label={error} side="top"><span>{error}</span></OperatorTooltip>
+        <OperatorIconButton label="Dismiss Sound Design message" onClick={() => session.clearError()}><X /></OperatorIconButton>
+      </div>}
+    </footer>
   </section>
 }

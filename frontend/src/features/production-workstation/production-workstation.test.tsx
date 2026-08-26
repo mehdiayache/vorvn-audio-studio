@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import type { DurableJob, GeneratePayload, GenerateResult, ProductionPart, SoundScene, VoiceDirectory } from "@/types/domain"
@@ -233,6 +233,27 @@ describe("Production Workstation", () => {
     expect(screen.getAllByText("2 clips").length).toBeGreaterThan(0)
     expect(screen.queryByRole("button", { name: /Effects/ })).toBeNull()
     expect(screen.getByRole("button", { name: "Duplicate selected clips" })).toBeTruthy()
+  })
+
+  it("prevents an invalid split without covering the Sound Design controls", () => {
+    const soundScene = scene([part({ duration_ms: 120_000 })])
+    const session = sessionFor(soundScene)
+    const { container } = render(<SoundSceneWorkspace session={session} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const clip = container.querySelector(".sound-music-clip") as HTMLElement
+
+    fireEvent.pointerDown(clip, { button: 0, clientX: 100 })
+    fireEvent.pointerUp(window, { clientX: 100 })
+
+    expect(screen.getByRole("button", { name: "Split at playhead" }).hasAttribute("disabled")).toBe(true)
+
+    fireEvent.keyDown(window, { key: "s" })
+    const feedback = screen.getByRole("alert")
+    expect(feedback.textContent).toContain("Place the playhead inside a selected clip")
+    expect(feedback.closest(".sound-scene-context-bar")).toBeTruthy()
+
+    act(() => session.seek(1))
+    expect(screen.queryByRole("alert")).toBeNull()
+    expect(screen.getByRole("button", { name: "Split at playhead" }).hasAttribute("disabled")).toBe(false)
   })
 
   it("shows durable lock and effect states directly on a Music clip", () => {

@@ -18,9 +18,12 @@
 .sound-scene-zoom [data-slot="slider-track"] { height: 3px; }
 .sound-scene-zoom [data-slot="slider-thumb"] { width: .72rem; height: .72rem; border-color: var(--muted-foreground); background: white; }
 .sound-scene-save-state { min-width: 0; margin-left: auto; color: var(--primary); font-size: .6rem; white-space: nowrap; }
-.sound-scene-save-state .is-error { color: var(--destructive); }
 .sound-scene-context-bar { min-width: 0; display: flex; align-items: stretch; border-top: 1px solid var(--border); color: var(--foreground); background: white; box-shadow: 0 -2px 7px color-mix(in oklab, var(--foreground) 4%, transparent); }
-.sound-scene-context { width: 100%; min-width: 0; display: flex; align-items: stretch; color: var(--foreground); }
+.sound-scene-context { min-width: 0; display: flex; flex: 1 1 auto; align-items: stretch; color: var(--foreground); }
+.sound-context-feedback { min-width: 0; max-width: min(24rem, 36vw); display: flex; flex: 0 1 24rem; align-items: center; gap: .35rem; padding: .25rem .35rem .25rem .6rem; border-left: 1px solid color-mix(in oklab, var(--destructive) 24%, var(--border)); color: var(--destructive); background: color-mix(in oklab, var(--destructive) 6%, white); font-size: .62rem; }
+.sound-context-feedback > svg { width: .76rem; flex: none; }
+.sound-context-feedback > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sound-context-feedback [data-slot="button"] { flex: none; color: var(--destructive); }
 .sound-context-group { min-width: 0; display: flex; align-items: center; gap: .08rem; padding: .25rem .42rem; }
 .sound-context-group + .sound-context-group { border-left: 1px solid var(--border); }
 .sound-context-group.is-identity { min-width: 11rem; padding-inline: .65rem; }

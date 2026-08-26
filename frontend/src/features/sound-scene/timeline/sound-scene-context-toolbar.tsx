@@ -163,9 +163,10 @@ export type SoundContext = {
   count?: number
 }
 
-export function SoundSceneContextToolbar({ context, saving, onMute, onGainPreview, onGain, onEffectsPreview, onEffects, onLock, onSplit, onDuplicate, onCrossfade, onPlaySelection, onLoopSelection, onDelete, onOptions, onOpenSequence }: {
+export function SoundSceneContextToolbar({ context, saving, canSplit, onMute, onGainPreview, onGain, onEffectsPreview, onEffects, onLock, onSplit, onDuplicate, onCrossfade, onPlaySelection, onLoopSelection, onDelete, onOptions, onOpenSequence }: {
   context: SoundContext | null
   saving: boolean
+  canSplit?: boolean
   onMute: () => void
   onGainPreview?: (gainDb: number, relative: boolean) => void
   onGain: (gainDb: number, relative: boolean) => void
@@ -203,7 +204,15 @@ export function SoundSceneContextToolbar({ context, saving, onMute, onGainPrevie
     </div>}
     {context.kind === "audio" && <div className="sound-context-group is-object">
       <Button className={`sound-context-command${hasLockedClips ? " is-active" : ""}`} variant="ghost" size="sm" disabled={saving} onClick={onLock}>{lockState === "locked" ? <Unlock /> : <Lock />}{lockState === "locked" ? "Unlock" : lockState === "mixed" ? "Lock all" : "Lock"}</Button>
-      <OperatorTooltip label="Split at playhead" detail="Creates two non-destructive placements that continue to reference the same Audio Library Asset. Shortcut: S"><Button className="sound-context-command" variant="ghost" size="sm" disabled={saving || hasLockedClips} onClick={onSplit}><Scissors /> Split</Button></OperatorTooltip>
+      <OperatorTooltip
+        label={hasLockedClips ? "Unlock before splitting" : canSplit === false ? "Move the playhead inside the clip" : "Split at playhead"}
+        detail={hasLockedClips
+          ? "Every clip under the playhead must be unlocked."
+          : canSplit === false
+            ? "Keep the playhead at least 0.1 seconds away from either edge."
+            : "Creates two non-destructive placements that continue to reference the same Audio Library Asset. Shortcut: S"}
+        disabledTrigger={saving || hasLockedClips || canSplit === false}
+      ><Button className="sound-context-command" variant="ghost" size="sm" disabled={saving || hasLockedClips || canSplit === false} onClick={onSplit} aria-label="Split at playhead"><Scissors /> Split</Button></OperatorTooltip>
       <Button className="sound-context-command" variant="ghost" size="sm" disabled={saving || hasLockedClips} onClick={onDuplicate} aria-label="Duplicate selected clips"><Copy /> Duplicate</Button>
       <DropdownMenu><DropdownMenuTrigger asChild><Button className="sound-context-command" variant="ghost" size="sm" disabled={saving}><MoreHorizontal /> More</Button></DropdownMenuTrigger><DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={onPlaySelection}><Play /> Play selection</DropdownMenuItem>

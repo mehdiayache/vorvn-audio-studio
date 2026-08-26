@@ -129,8 +129,9 @@ export class SoundSceneSession {
     this.listeners.forEach((listener) => listener())
   }
 
-  select(selection: SoundSelection) { this.set({ selection }) }
+  select(selection: SoundSelection) { this.set({ selection, error: "" }) }
   reportError(error: string) { this.set({ error }) }
+  clearError() { this.set({ error: "" }) }
   selectClip(trackId: string, clipId: string, additive = false) {
     const next = { trackId, clipId }
     if (!additive) { this.select({ kind: "clip", ...next }); return }
@@ -392,15 +393,7 @@ export class SoundSceneSession {
 
   async splitClipsAtPlayhead(refs = this.selectedClips(), playheadSeconds = this.snapshotValue.playhead) {
     if (!refs.length) return false
-    const playheadMs = Math.round(this.boundedTime(playheadSeconds) * 1_000)
-    const candidates = refs.flatMap((ref) => {
-      const clip = this.currentClip(ref.trackId, ref.clipId)
-      if (!clip || clip.orphan) return []
-      const startMs = Number(clip.resolved_start_ms || 0)
-      const durationMs = Number(clip.resolved_duration_ms || clip.duration_ms || 0)
-      const localMs = playheadMs - startMs
-      return localMs >= 100 && durationMs - localMs >= 100 ? [{ ref, clip, localMs, durationMs }] : []
-    })
+    const candidates = this.splitCandidatesAtPlayhead(refs, playheadSeconds)
     if (!candidates.length) {
       this.reportError("Place the playhead inside a selected clip, at least 0.1 seconds from either edge.")
       return false
@@ -433,6 +426,22 @@ export class SoundSceneSession {
     }))
     this.select(created.length === 1 ? { kind: "clip", ...created[0]! } : { kind: "clips", clips: created })
     return true
+  }
+
+  private splitCandidatesAtPlayhead(refs: SoundClipRef[], playheadSeconds: number) {
+    const playheadMs = Math.round(this.boundedTime(playheadSeconds) * 1_000)
+    return refs.flatMap((ref) => {
+      const clip = this.currentClip(ref.trackId, ref.clipId)
+      if (!clip || clip.orphan) return []
+      const startMs = Number(clip.resolved_start_ms || 0)
+      const durationMs = Number(clip.resolved_duration_ms || clip.duration_ms || 0)
+      const localMs = playheadMs - startMs
+      return localMs >= 100 && durationMs - localMs >= 100 ? [{ ref, clip, localMs, durationMs }] : []
+    })
+  }
+
+  canSplitClipsAtPlayhead(refs = this.selectedClips(), playheadSeconds = this.snapshotValue.playhead) {
+    return this.splitCandidatesAtPlayhead(refs, playheadSeconds).length > 0
   }
 
   async nudgeClips(deltaMs: number, refs = this.selectedClips()) {
@@ -568,7 +577,7 @@ export class SoundSceneSession {
     const next = Math.max(0, Math.min(this.duration(), seconds))
     this.playout.seek(next)
     this.editor.seek(next)
-    this.set({ playhead: next })
+    this.set({ playhead: next, error: "" })
   }
 
   async playSelection(loop = false, refs = this.selectedClips()) {
