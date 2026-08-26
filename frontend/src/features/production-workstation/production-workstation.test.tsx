@@ -148,6 +148,16 @@ describe("Production Workstation", () => {
     expect(screen.getByRole("button", { name: "Redo Sound edit" })).toBeTruthy()
   })
 
+  it("opens the new Audio Track flow without altering an existing track first", () => {
+    const onAddAudio = vi.fn()
+    render(<SoundSceneWorkspace session={sessionFor(scene([part({ duration_ms: 30_000 })]))} onAddAudio={onAddAudio} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Audio Track" }))
+
+    expect(onAddAudio).toHaveBeenCalledOnce()
+    expect(onAddAudio).toHaveBeenCalledWith({ mode: "new-track" })
+  })
+
   it("keeps a muted track level editable for the value that applies on unmute", () => {
     const soundScene = scene([part({ id: 1, authored_role: "Narrator", duration_ms: 8_000 })])
     const musicTrack = soundScene.document.tracks[0]
