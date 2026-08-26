@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import mimetypes
 import hashlib
-import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -13,28 +12,8 @@ from uuid import uuid4
 from audio_studio.config import settings
 from audio_studio.domain.uploads import StoredAsset, StoredVoiceReference
 from audio_studio.infrastructure import object_storage
+from audio_studio.infrastructure.media_metadata import inspect_media
 from audio_studio.infrastructure.media_paths import media_root, voice_reference_root
-
-
-_AUDIO_MIME_TYPES = {
-    "mp3": "audio/mpeg",
-    "wav": "audio/wav",
-    "ogg": "audio/ogg",
-    "flac": "audio/flac",
-    "m4a": "audio/mp4",
-    "aac": "audio/aac",
-    "aiff": "audio/aiff",
-}
-
-
-def _canonical_audio_format(container: str) -> str | None:
-    containers = {item.strip().lower() for item in container.split(",")}
-    for audio_format in ("wav", "mp3", "flac", "ogg", "aac", "aiff"):
-        if audio_format in containers:
-            return audio_format
-    if containers.intersection({"mov", "mp4", "m4a", "3gp", "3g2", "mj2"}):
-        return "m4a"
-    return None
 
 
 def _audio_duration_ms(target: Path) -> int | None:
@@ -43,40 +22,16 @@ def _audio_duration_ms(target: Path) -> int | None:
 
 
 def inspect_audio(target: Path) -> dict | None:
-    """Inspect one audio file once and return its canonical technical facts."""
-    if not shutil.which("ffprobe"):
-        return None
-    result = subprocess.run([
-        "ffprobe", "-v", "error", "-show_entries",
-        "format=duration,format_name:stream=codec_type,codec_name,sample_rate,channels",
-        "-of", "json", str(target),
-    ], capture_output=True, text=True)
-    if result.returncode:
-        return None
-    try:
-        payload = json.loads(result.stdout)
-        stream = next(
-            item for item in payload.get("streams", [])
-            if item.get("codec_type") == "audio")
-        container = str(payload["format"]["format_name"])
-        audio_format = _canonical_audio_format(container)
-        duration_ms = int(float(payload["format"]["duration"]) * 1000)
-        sample_rate = int(stream["sample_rate"])
-        channels = int(stream["channels"])
-    except (KeyError, StopIteration, TypeError, ValueError, json.JSONDecodeError):
-        return None
-    if (not audio_format or duration_ms <= 0 or sample_rate <= 0 or
-            channels <= 0):
+    """Compatibility projection for audio-only consumers."""
+    inspection = inspect_media(target, original_name=target.name)
+    if inspection is None or inspection.media_type != "audio":
         return None
     return {
-        "audio_format": audio_format,
-        "duration_ms": duration_ms,
-        "sample_rate": sample_rate,
-        "channels": channels,
-        "metadata": {
-            "codec": stream.get("codec_name") or "",
-            "container": container,
-        },
+        "audio_format": inspection.audio_format,
+        "duration_ms": inspection.duration_ms,
+        "sample_rate": inspection.sample_rate,
+        "channels": inspection.channels,
+        "metadata": inspection.metadata or {},
     }
 
 
@@ -190,11 +145,11 @@ class LocalUploadWorkspace:
         target: Path | None = None
         try:
             shutil.move(str(source), staging)
-            inspection = inspect_audio(staging)
+            inspection = inspect_media(staging, original_name=original_name)
             if inspection is None:
-                raise ValueError("That file could not be decoded as audio.")
-            audio_format = inspection["audio_format"]
-            target = self.output / f"{object_id}.{audio_format}"
+                raise ValueError(
+                    "That file is not a supported audio, image or video file.")
+            target = self.output / f"{object_id}.{inspection.extension}"
             staging.replace(target)
         except Exception:
             staging.unlink(missing_ok=True)
@@ -203,12 +158,18 @@ class LocalUploadWorkspace:
             raise
         return StoredAsset(
             filename=target.name, path=str(target),
-            duration_ms=inspection["duration_ms"],
-            audio_format=audio_format,
-            mime_type=_AUDIO_MIME_TYPES[audio_format],
-            sample_rate=inspection["sample_rate"],
-            channels=inspection["channels"],
-            metadata=inspection["metadata"],
+            duration_ms=inspection.duration_ms,
+            audio_format=inspection.audio_format,
+            mime_type=inspection.mime_type,
+            sample_rate=inspection.sample_rate,
+            channels=inspection.channels,
+            metadata=inspection.metadata,
+            media_type=inspection.media_type,
+            media_format=inspection.media_format,
+            width=inspection.width,
+            height=inspection.height,
+            video_codec=inspection.video_codec,
+            frame_rate=inspection.frame_rate,
         )
 
     def discard_media(self, filename: str) -> None:

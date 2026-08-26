@@ -307,6 +307,7 @@ export type SoundScene = {
 
 export type VentureAsset = {
   id: number
+  media_type?: "audio" | "image" | "video"
   name?: string
   title?: string
   text?: string
@@ -321,11 +322,18 @@ export type VentureAsset = {
   filename?: string
   duration_ms?: number | null
   audio_format?: string | null
+  media_format?: string | null
   sample_rate?: number | null
   channels?: number | null
+  width?: number | null
+  height?: number | null
+  video_codec?: string | null
+  frame_rate?: number | null
   size_bytes?: number | null
   mime_type?: string | null
   version_metadata?: Record<string, unknown>
+  created_at?: string
+  updated_at?: string
   missing?: boolean
   [key: string]: unknown
 }

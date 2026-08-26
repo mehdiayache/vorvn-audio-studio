@@ -83,7 +83,7 @@ class SoundSceneRepository:
             return result
         with read_only() as cursor:
             cursor.execute("""
-                SELECT asset.id, asset.name, asset.kind,
+                SELECT asset.id, asset.name, asset.kind, asset.media_type,
                        version.id, version.filename, version.duration_ms
                   FROM assets asset
                   JOIN productions production ON production.id=%s
@@ -102,7 +102,7 @@ class SoundSceneRepository:
                 candidates = versions.get(int(clip["asset_id"]), [])
                 requested = clip.get("asset_version_id")
                 source = (next(
-                    (row for row in candidates if row[3] == requested), None,
+                    (row for row in candidates if row[4] == requested), None,
                 ) if requested is not None else
                     (candidates[0] if candidates else None))
                 if not source:
@@ -111,13 +111,20 @@ class SoundSceneRepository:
                         "source_duration_ms": 0, "missing": True,
                     })
                     continue
+                if source[3] != "audio":
+                    clip.update({
+                        "asset_name": source[1] or "Visual asset",
+                        "filename": "", "source_duration_ms": 0,
+                        "missing": True, "incompatible_media_type": source[3],
+                    })
+                    continue
                 clip.update({
                     "asset_name": source[1] or "Untitled audio",
                     "asset_kind": source[2],
-                    "asset_version_id": int(source[3]) if source[3] else None,
-                    "filename": source[4] or "",
-                    "source_duration_ms": int(source[5] or 0),
-                    "missing": not bool(source[4]),
+                    "asset_version_id": int(source[4]) if source[4] else None,
+                    "filename": source[5] or "",
+                    "source_duration_ms": int(source[6] or 0),
+                    "missing": not bool(source[5]),
                 })
         return result
 
@@ -128,6 +135,8 @@ class SoundSceneRepository:
         hydrated = self.hydrate(production_id, scene)
         for track in hydrated["tracks"]:
             for clip in track["clips"]:
+                if clip.get("incompatible_media_type"):
+                    raise ValueError("Sound Scene clips require audio Assets.")
                 if clip.get("missing"):
                     raise ValueError("A Sound Scene Asset is unavailable.")
         return normalize_scene(hydrated)

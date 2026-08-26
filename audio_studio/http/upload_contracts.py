@@ -2,6 +2,7 @@
 
 from pydantic import BaseModel
 
+from audio_studio.domain.media import AssetMediaType
 from audio_studio.domain.uploads import AssetCategory, AssetScope
 
 
@@ -30,18 +31,26 @@ class UploadedAssetResponse(BaseModel):
     version_id: int
     name: str
     filename: str
-    duration_ms: int
+    media_type: AssetMediaType
+    duration_ms: int | None = None
     url: str
     category: AssetCategory
     scope: AssetScope
     tags: list[str]
     metadata: dict
-    audio_format: str
+    media_format: str
+    audio_format: str | None = None
     sample_rate: int | None = None
     channels: int | None = None
+    width: int | None = None
+    height: int | None = None
+    video_codec: str | None = None
+    frame_rate: float | None = None
     size_bytes: int
     mime_type: str
     version_metadata: dict
+    created_at: str
+    updated_at: str
 
 
 class UploadedAssetEnvelope(BaseModel):

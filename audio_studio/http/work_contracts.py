@@ -251,16 +251,24 @@ class VentureAssetResponse(BaseModel):
     missing: bool | None = None
     venture_id: int | None = None
     scope: Literal["venture", "studio"] = "venture"
+    media_type: Literal["audio", "image", "video"] = "audio"
     category: str | None = None
     kind: str | None = None
     tags: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
     audio_format: str | None = None
+    media_format: str | None = None
     sample_rate: int | None = None
     channels: int | None = None
+    width: int | None = None
+    height: int | None = None
+    video_codec: str | None = None
+    frame_rate: float | None = None
     size_bytes: int | None = None
     mime_type: str | None = None
     version_metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: str | None = None
+    updated_at: str | None = None
 
 
 class VentureAssetLibraryResponse(BaseModel):

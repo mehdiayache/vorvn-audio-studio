@@ -23,6 +23,10 @@ class FakeWorkspace:
         self.discarded_media = []
         self.transcriptions = []
         self.voice_duration_ms = 15_000
+        self.stored_asset = StoredAsset(
+            "asset_fixture.mp3", "/media/asset_fixture.mp3", 1250,
+            "mp3", "audio/mpeg", 48000, 2,
+            {"codec": "mp3", "container": "mp3"})
 
     def store_image(self, raw, original_name):
         self.images.append((raw, original_name))
@@ -41,10 +45,7 @@ class FakeWorkspace:
 
     def store_asset(self, source, *, original_name, size_bytes):
         self.assets.append((source, original_name, size_bytes))
-        return StoredAsset(
-            "asset_fixture.mp3", "/media/asset_fixture.mp3", 1250,
-            "mp3", "audio/mpeg", 48000, 2,
-            {"codec": "mp3", "container": "mp3"})
+        return self.stored_asset
 
     def discard_media(self, filename):
         self.discarded_media.append(filename)
@@ -95,11 +96,18 @@ class FakeRecords:
                 "duration_ms": stored.duration_ms,
                 "category": category or "music", "scope": scope,
                 "tags": list(tags), "metadata": metadata or {},
+                "media_type": stored.media_type,
+                "media_format": stored.media_format or stored.audio_format,
                 "audio_format": stored.audio_format,
                 "sample_rate": stored.sample_rate,
-                "channels": stored.channels, "size_bytes": size_bytes,
+                "channels": stored.channels, "width": stored.width,
+                "height": stored.height,
+                "video_codec": stored.video_codec,
+                "frame_rate": stored.frame_rate, "size_bytes": size_bytes,
                 "mime_type": stored.mime_type,
-                "version_metadata": stored.metadata or {}}
+                "version_metadata": stored.metadata or {},
+                "created_at": "2026-08-26T00:00:00+00:00",
+                "updated_at": "2026-08-26T00:00:00+00:00"}
 
     def create_generated_asset(self, collection_id, **values):
         asset = self.create_uploaded_asset(collection_id, **{
@@ -183,6 +191,47 @@ class UploadServiceTests(unittest.TestCase):
                 service.save_asset_file(
                     41, source, source.stat().st_size, "Second.mp3")
         self.assertEqual(workspace.discarded_media, ["asset_fixture.mp3"])
+
+    def test_visual_asset_uses_the_same_ingestion_path_and_generic_url(self):
+        service, workspace, records = self.service()
+        workspace.stored_asset = StoredAsset(
+            filename="visual_fixture.png", path="/media/visual_fixture.png",
+            duration_ms=None, audio_format=None, mime_type="image/png",
+            media_type="image", media_format="png", width=1280, height=720,
+            metadata={"codec": "png", "container": "image2"},
+        )
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / "incoming"
+            source.write_bytes(b"image")
+            result = service.save_asset_file(
+                41, source, source.stat().st_size, "Story frame.png",
+                name="Story frame",
+            )
+
+        self.assertEqual(result["url"], "/media/visual_fixture.png")
+        self.assertEqual(result["media_type"], "image")
+        self.assertEqual((result["width"], result["height"]), (1280, 720))
+        self.assertEqual(records.created_assets[0]["stored"].media_type, "image")
+
+    def test_visual_asset_rejects_an_audio_only_classification(self):
+        service, workspace, records = self.service()
+        workspace.stored_asset = StoredAsset(
+            filename="visual_fixture.mp4", path="/media/visual_fixture.mp4",
+            duration_ms=2_000, audio_format=None, mime_type="video/mp4",
+            media_type="video", media_format="mp4", width=1920, height=1080,
+            video_codec="h264", frame_rate=24,
+        )
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / "incoming"
+            source.write_bytes(b"video")
+            with self.assertRaisesRegex(UploadError, "apply only to audio"):
+                service.save_asset_file(
+                    41, source, source.stat().st_size, "Scene.mp4",
+                    category="music",
+                )
+
+        self.assertFalse(records.created_assets)
+        self.assertEqual(workspace.discarded_media, ["visual_fixture.mp4"])
 
     def test_generated_duplicate_removes_only_the_losing_media_object(self):
         service, workspace, records = self.service()

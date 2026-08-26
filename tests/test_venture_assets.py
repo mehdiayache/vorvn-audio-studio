@@ -14,6 +14,7 @@ import psycopg
 
 from audio_studio.application.uploads import UploadService
 from audio_studio.config import settings
+from audio_studio.domain.media import MediaInspection
 from audio_studio.infrastructure import upload_workspace
 from audio_studio.infrastructure.postgres.uploads import PostgresUploadRecords
 from audio_studio.infrastructure.postgres.sound_scenes import SoundSceneRepository
@@ -107,12 +108,11 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                                      references=root / "references"),
                 PostgresUploadRecords(assets=self.repository),
             )
-            with patch.object(upload_workspace, "inspect_audio", return_value={
-                    "audio_format": "wav", "duration_ms": 1200,
-                    "sample_rate": 48000,
-                    "channels": 2,
-                    "metadata": {"codec": "pcm_s16le", "container": "wav"},
-                    }):
+            with patch.object(upload_workspace, "inspect_media", return_value=MediaInspection(
+                    media_type="audio", media_format="wav", extension="wav",
+                    mime_type="audio/wav", audio_format="wav",
+                    duration_ms=1200, sample_rate=48000, channels=2,
+                    metadata={"codec": "pcm_s16le", "container": "wav"})):
                 created = service.save_asset_file(
                     music["id"], source, source.stat().st_size,
                     "Quiet bed.wav", name="Quiet evening bed",
@@ -181,6 +181,52 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         self.assertFalse(shared_clip["missing"])
         self.assertEqual(shared_clip["asset_version_id"], created["version_id"])
 
+    def test_visual_asset_persists_media_truth_without_a_parallel_library(self):
+        collections = self.repository.ensure_collections(self.venture_id)
+        compatibility_collection = next(
+            item for item in collections if item["kind"] == "stingers")
+
+        created = self.repository.create_uploaded_asset(
+            compatibility_collection["id"], name="Harbour at dusk",
+            filename="harbour.jpg", path="/media/harbour.jpg",
+            size_bytes=12_345, duration_ms=None, audio_format=None,
+            mime_type="image/jpeg", media_type="image",
+            media_format="jpg", width=1600, height=900,
+            metadata={"origin": "upload", "original_filename": "harbour.jpg"},
+            version_metadata={"codec": "mjpeg", "container": "image2"},
+        )
+
+        asset = self.repository.get(created["id"])
+        self.assertEqual(asset["media_type"], "image")
+        self.assertEqual(asset["kind"], "other")
+        self.assertEqual(asset["mime_type"], "image/jpeg")
+        self.assertEqual(asset["media_format"], "jpg")
+        self.assertEqual((asset["width"], asset["height"]), (1600, 900))
+        self.assertIsNone(asset["duration_ms"])
+        self.assertTrue(asset["created_at"])
+        self.assertTrue(asset["updated_at"])
+
+        listed = next(
+            item for item in self.repository.list_for_venture(self.venture_id)
+            if item["id"] == created["id"])
+        self.assertEqual(listed["media_type"], "image")
+        scenes = SoundSceneRepository()
+        production_id = self._production()
+        current = scenes.get(production_id)
+        with self.assertRaisesRegex(ValueError, "require audio Assets"):
+            scenes.commit(production_id, current["revision"], {
+                "version": 1,
+                "tracks": [{
+                    "id": "visual-leak", "kind": "audio", "name": "Audio",
+                    "clips": [{
+                        "id": str(uuid4()), "asset_id": created["id"],
+                        "asset_version_id": created["version_id"],
+                        "anchor": {"kind": "absolute", "position_ms": 0},
+                        "duration_ms": 5_000,
+                    }],
+                }],
+            })
+
     def test_uploaded_studio_asset_is_reusable_by_another_venture(self):
         collections = self.repository.ensure_collections(self.venture_id)
         stingers = next(
@@ -195,12 +241,11 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                                      references=root / "references"),
                 PostgresUploadRecords(assets=self.repository),
             )
-            with patch.object(upload_workspace, "inspect_audio", return_value={
-                    "audio_format": "wav", "duration_ms": 450,
-                    "sample_rate": 48000,
-                    "channels": 1,
-                    "metadata": {"codec": "pcm_s16le", "container": "wav"},
-                    }):
+            with patch.object(upload_workspace, "inspect_media", return_value=MediaInspection(
+                    media_type="audio", media_format="wav", extension="wav",
+                    mime_type="audio/wav", audio_format="wav",
+                    duration_ms=450, sample_rate=48000, channels=1,
+                    metadata={"codec": "pcm_s16le", "container": "wav"})):
                 created = service.save_asset_file(
                     stingers["id"], source, source.stat().st_size,
                     "knock.wav", name="Wooden door knock", category="sfx",
@@ -362,12 +407,11 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                                      references=root / "references"),
                 PostgresUploadRecords(assets=self.repository),
             )
-            with patch.object(upload_workspace, "inspect_audio", return_value={
-                    "audio_format": "wav", "duration_ms": 1200,
-                    "sample_rate": 44100,
-                    "channels": 1,
-                    "metadata": {"codec": "pcm_s16le", "container": "wav"},
-                    }):
+            with patch.object(upload_workspace, "inspect_media", return_value=MediaInspection(
+                    media_type="audio", media_format="wav", extension="wav",
+                    mime_type="audio/wav", audio_format="wav",
+                    duration_ms=1200, sample_rate=44100, channels=1,
+                    metadata={"codec": "pcm_s16le", "container": "wav"})):
                 for category in ("ambience", "sfx", "other"):
                     source = root / f"{category}.upload"
                     source.write_bytes(b"RIFF" + bytes(40))

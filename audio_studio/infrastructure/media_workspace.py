@@ -44,6 +44,7 @@ class LocalMediaWorkspace:
     ) -> MediaFile | None:
         roots = {
             "audio": self.output,
+            "media": self.output,
             "icon": self.root / ".icons",
             "inbox": self.root / ".inbox",
             "block-audio": self.root / ".blocks",

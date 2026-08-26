@@ -10419,8 +10419,15 @@
       "UploadedAssetResponse": {
         "properties": {
           "audio_format": {
-            "title": "Audio Format",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Format"
           },
           "category": {
             "enum": [
@@ -10445,17 +10452,63 @@
             ],
             "title": "Channels"
           },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
           "duration_ms": {
-            "title": "Duration Ms",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
           },
           "filename": {
             "title": "Filename",
             "type": "string"
           },
+          "frame_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frame Rate"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
+          },
+          "media_format": {
+            "title": "Media Format",
+            "type": "string"
+          },
+          "media_type": {
+            "enum": [
+              "audio",
+              "image",
+              "video"
+            ],
+            "title": "Media Type",
+            "type": "string"
           },
           "metadata": {
             "additionalProperties": true,
@@ -10500,6 +10553,10 @@
             "title": "Tags",
             "type": "array"
           },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
           "url": {
             "title": "Url",
             "type": "string"
@@ -10512,6 +10569,28 @@
             "additionalProperties": true,
             "title": "Version Metadata",
             "type": "object"
+          },
+          "video_codec": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Codec"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
           }
         },
         "required": [
@@ -10519,16 +10598,18 @@
           "version_id",
           "name",
           "filename",
-          "duration_ms",
+          "media_type",
           "url",
           "category",
           "scope",
           "tags",
           "metadata",
-          "audio_format",
+          "media_format",
           "size_bytes",
           "mime_type",
-          "version_metadata"
+          "version_metadata",
+          "created_at",
+          "updated_at"
         ],
         "title": "UploadedAssetResponse",
         "type": "object"
@@ -10775,6 +10856,17 @@
             ],
             "title": "Collection"
           },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
           "duration_ms": {
             "anyOf": [
               {
@@ -10808,6 +10900,28 @@
             ],
             "title": "Folder"
           },
+          "frame_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frame Rate"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -10822,6 +10936,27 @@
               }
             ],
             "title": "Kind"
+          },
+          "media_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Format"
+          },
+          "media_type": {
+            "default": "audio",
+            "enum": [
+              "audio",
+              "image",
+              "video"
+            ],
+            "title": "Media Type",
+            "type": "string"
           },
           "metadata": {
             "additionalProperties": true,
@@ -10910,6 +11045,17 @@
             ],
             "title": "Title"
           },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
           "venture_id": {
             "anyOf": [
               {
@@ -10937,6 +11083,17 @@
             "title": "Version Metadata",
             "type": "object"
           },
+          "video_codec": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Codec"
+          },
           "voice": {
             "anyOf": [
               {
@@ -10947,6 +11104,17 @@
               }
             ],
             "title": "Voice"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
           }
         },
         "required": [

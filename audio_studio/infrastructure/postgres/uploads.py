@@ -63,6 +63,10 @@ class PostgresUploadRecords:
                 duration_ms=stored.duration_ms,
                 audio_format=stored.audio_format, mime_type=stored.mime_type,
                 sample_rate=stored.sample_rate, channels=stored.channels,
+                media_type=stored.media_type,
+                media_format=stored.media_format,
+                width=stored.width, height=stored.height,
+                video_codec=stored.video_codec, frame_rate=stored.frame_rate,
                 version_metadata=stored.metadata or {}, category=category,
                 scope=scope, tags=tags, metadata=metadata or {})
         except psycopg.OperationalError as exc:
@@ -83,6 +87,10 @@ class PostgresUploadRecords:
                 size_bytes=size_bytes, duration_ms=stored.duration_ms,
                 audio_format=stored.audio_format, mime_type=stored.mime_type,
                 sample_rate=stored.sample_rate, channels=stored.channels,
+                media_type=stored.media_type,
+                media_format=stored.media_format,
+                width=stored.width, height=stored.height,
+                video_codec=stored.video_codec, frame_rate=stored.frame_rate,
                 version_metadata=stored.metadata or {}, category=category,
                 scope=scope, tags=tags, metadata=metadata or {})
         except psycopg.OperationalError as exc:
@@ -104,6 +112,10 @@ class PostgresUploadRecords:
                 audio_format=stored.audio_format,
                 mime_type=stored.mime_type,
                 sample_rate=stored.sample_rate, channels=stored.channels,
+                media_type=stored.media_type,
+                media_format=stored.media_format,
+                width=stored.width, height=stored.height,
+                video_codec=stored.video_codec, frame_rate=stored.frame_rate,
                 version_metadata=stored.metadata or {}, category=category,
                 scope=scope, tags=tags, metadata=metadata or {})
         except psycopg.OperationalError as exc:

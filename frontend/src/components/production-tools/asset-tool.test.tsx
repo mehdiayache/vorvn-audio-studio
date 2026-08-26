@@ -318,6 +318,20 @@ describe("AssetTool", () => {
     expect(view.queryByRole("button", { name: "Select Night room" })).toBeNull()
   })
 
+  it("keeps visual Assets out of the audio-only Library surface", () => {
+    const library = [
+      { id: 21, name: "Night room", media_type: "audio" as const, filename: "night.wav" },
+      { id: 22, name: "Harbor still", media_type: "image" as const, filename: "harbor.png" },
+      { id: 23, name: "Slow harbor pan", media_type: "video" as const, filename: "harbor.mp4" },
+    ]
+    render(<AssetTool assets={library} initialSelectedId={22} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
+
+    expect(screen.getByRole("button", { name: "Select Night room" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Select Harbor still" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Select Slow harbor pan" })).toBeNull()
+    expect(screen.getByRole("button", { name: "Add to Audio Track" }).hasAttribute("disabled")).toBe(true)
+  })
+
   it("combines duration, actual tags and Production usage filters with a clear count", () => {
     const library = [
       { id: 21, name: "Short rain", duration_ms: 2_000, tags: ["rain", "soft"] },

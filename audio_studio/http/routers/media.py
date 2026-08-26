@@ -38,6 +38,12 @@ def get_audio(name: str) -> FileResponse:
     return _response(media_service.resolve("audio", name))
 
 
+@router.api_route("/media/{name}", methods=["GET", "HEAD"], include_in_schema=False)
+def get_media(name: str) -> FileResponse:
+    """Serve canonical visual Assets without exposing filesystem paths."""
+    return _response(media_service.resolve("media", name))
+
+
 @router.api_route(
     "/api/v1/media/segments/{name}", methods=["GET", "HEAD"],
     include_in_schema=False,

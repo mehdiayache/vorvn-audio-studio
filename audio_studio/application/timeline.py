@@ -294,6 +294,9 @@ class TimelineService:
         asset = self.records.asset(asset_id)
         if not asset or not asset.get("filename"):
             raise TimelineError("That Asset does not exist.")
+        if asset.get("media_type", "audio") != "audio":
+            raise TimelineError(
+                "Only audio Assets can be inserted into the Script.")
         if not self.records.asset_allowed(production_id, asset_id):
             raise TimelineError(
                 "That audio is not available to this Production.")
@@ -312,6 +315,9 @@ class TimelineService:
         asset = self.records.asset(asset_id)
         if not asset or not asset.get("filename"):
             raise TimelineError("That Asset does not exist.")
+        if asset.get("media_type", "audio") != "audio":
+            raise TimelineError(
+                "Only audio Assets can replace a linked Script source.")
         if not self.records.asset_allowed(production_id, asset_id):
             raise TimelineError(
                 "That audio is not available to this Production.")

@@ -89,10 +89,14 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, produc
   const [keepingId, setKeepingId] = useState<string | null>(null)
   const [kept, setKept] = useState<Record<string, number>>({})
 
+  const audioAssets = useMemo(
+    () => assets.filter((asset) => (asset.media_type || "audio") === "audio"),
+    [assets],
+  )
   const usedIds = useMemo(() => new Set(usedAssetIds), [usedAssetIds])
-  const existingTags = useMemo(() => [...new Set(assets.flatMap((asset) => asset.tags || []))]
-    .sort((left, right) => left.localeCompare(right)), [assets])
-  const eligible = useMemo(() => assets.filter((asset) => {
+  const existingTags = useMemo(() => [...new Set(audioAssets.flatMap((asset) => asset.tags || []))]
+    .sort((left, right) => left.localeCompare(right)), [audioAssets])
+  const eligible = useMemo(() => audioAssets.filter((asset) => {
     const matchesCategory = category === "all" || (asset.category || asset.kind || "other") === category
     const matchesScope = scopeFilter === "all" || (asset.scope || "venture") === scopeFilter
     const seconds = Number(asset.duration_ms || 0) / 1000
@@ -109,7 +113,7 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, produc
       || (usageFilter === "unused" && !used)
     return matchesCategory && matchesScope && matchesDuration && matchesTags && matchesUsage
       && (sourceFilter === "all" || assetSource(asset) === sourceFilter)
-  }), [assets, category, durationFilter, scopeFilter, sourceFilter, tagFilters, usageFilter, usedIds])
+  }), [audioAssets, category, durationFilter, scopeFilter, sourceFilter, tagFilters, usageFilter, usedIds])
   const normalizedQuery = query.trim().toLocaleLowerCase()
   const shown = eligible.filter((asset) => `${assetTitle(asset)} ${asset.category || asset.kind || ""} ${(asset.tags || []).join(" ")}`.toLocaleLowerCase().includes(normalizedQuery)).sort((left, right) => {
     if (assetSort === "name") return assetTitle(left).localeCompare(assetTitle(right))
@@ -120,13 +124,13 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, produc
   })
   const activeFilterCount = [category !== "all", scopeFilter !== "all", sourceFilter !== "all", durationFilter !== "all", usageFilter !== "all", assetSort !== "recent"].filter(Boolean).length + tagFilters.length
   const clearFilters = () => { setCategory("all"); setScopeFilter("all"); setSourceFilter("all"); setDurationFilter("all"); setUsageFilter("all"); setTagFilters([]); setAssetSort("recent") }
-  const selected = assets.find((asset) => asset.id === selectedId) || null
+  const selected = audioAssets.find((asset) => asset.id === selectedId) || null
   const selectedCatalog = catalogResults.find((result) => result.external_id === selectedCatalogId) || null
 
   useEffect(() => {
-    if (selectedId && !assets.some((asset) => asset.id === selectedId)) setSelectedId(null)
-    if (!selectedId && initialSelectedId && assets.some((asset) => asset.id === initialSelectedId)) setSelectedId(initialSelectedId)
-  }, [assets, initialSelectedId, selectedId])
+    if (selectedId && !audioAssets.some((asset) => asset.id === selectedId)) setSelectedId(null)
+    if (!selectedId && initialSelectedId && audioAssets.some((asset) => asset.id === initialSelectedId)) setSelectedId(initialSelectedId)
+  }, [audioAssets, initialSelectedId, selectedId])
   useEffect(() => {
     if (selectedCatalogId && !catalogResults.some((item) => item.external_id === selectedCatalogId)) setSelectedCatalogId(null)
   }, [catalogResults, selectedCatalogId])

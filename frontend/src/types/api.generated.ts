@@ -5567,7 +5567,7 @@ export interface components {
         /** UploadedAssetResponse */
         UploadedAssetResponse: {
             /** Audio Format */
-            audio_format: string;
+            audio_format?: string | null;
             /**
              * Category
              * @enum {string}
@@ -5575,12 +5575,25 @@ export interface components {
             category: "music" | "ambience" | "sfx" | "intro" | "outro" | "other";
             /** Channels */
             channels?: number | null;
+            /** Created At */
+            created_at: string;
             /** Duration Ms */
-            duration_ms: number;
+            duration_ms?: number | null;
             /** Filename */
             filename: string;
+            /** Frame Rate */
+            frame_rate?: number | null;
+            /** Height */
+            height?: number | null;
             /** Id */
             id: number;
+            /** Media Format */
+            media_format: string;
+            /**
+             * Media Type
+             * @enum {string}
+             */
+            media_type: "audio" | "image" | "video";
             /** Metadata */
             metadata: {
                 [key: string]: unknown;
@@ -5600,6 +5613,8 @@ export interface components {
             size_bytes: number;
             /** Tags */
             tags: string[];
+            /** Updated At */
+            updated_at: string;
             /** Url */
             url: string;
             /** Version Id */
@@ -5608,6 +5623,10 @@ export interface components {
             version_metadata: {
                 [key: string]: unknown;
             };
+            /** Video Codec */
+            video_codec?: string | null;
+            /** Width */
+            width?: number | null;
         };
         /** UploadedImageEnvelope */
         UploadedImageEnvelope: {
@@ -5687,16 +5706,30 @@ export interface components {
             channels?: number | null;
             /** Collection */
             collection?: string | null;
+            /** Created At */
+            created_at?: string | null;
             /** Duration Ms */
             duration_ms?: number | null;
             /** Filename */
             filename?: string | null;
             /** Folder */
             folder?: string | null;
+            /** Frame Rate */
+            frame_rate?: number | null;
+            /** Height */
+            height?: number | null;
             /** Id */
             id: number;
             /** Kind */
             kind?: string | null;
+            /** Media Format */
+            media_format?: string | null;
+            /**
+             * Media Type
+             * @default audio
+             * @enum {string}
+             */
+            media_type: "audio" | "image" | "video";
             /** Metadata */
             metadata?: {
                 [key: string]: unknown;
@@ -5721,6 +5754,8 @@ export interface components {
             text?: string | null;
             /** Title */
             title?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
             /** Venture Id */
             venture_id?: number | null;
             /** Version Id */
@@ -5729,8 +5764,12 @@ export interface components {
             version_metadata?: {
                 [key: string]: unknown;
             };
+            /** Video Codec */
+            video_codec?: string | null;
             /** Voice */
             voice?: string | null;
+            /** Width */
+            width?: number | null;
         } & {
             [key: string]: unknown;
         };

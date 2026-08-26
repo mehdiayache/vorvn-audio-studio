@@ -24,6 +24,11 @@ VOICE_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".webm"}
 AUDIO_EXTENSIONS = {
     ".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".aif", ".aiff",
 }
+VISUAL_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+VISUAL_VIDEO_EXTENSIONS = {".mp4", ".mov", ".webm"}
+ASSET_EXTENSIONS = (
+    AUDIO_EXTENSIONS | VISUAL_IMAGE_EXTENSIONS | VISUAL_VIDEO_EXTENSIONS
+)
 ASSET_SCOPES = frozenset({"venture", "studio"})
 MAX_ASSET_NAME_LENGTH = 120
 MAX_ASSET_TAGS = 12
@@ -224,7 +229,7 @@ class UploadService:
             self.workspace.discard_media(stored.filename)
             raise RuntimeError("That Asset collection no longer exists.")
         return {**created,
-                "url": f"/audio/{stored.filename}"}
+                "url": self._asset_url(stored)}
 
     def save_catalog_asset_file(
         self, collection_id: int, source: Path, size_bytes: int, *,
@@ -280,18 +285,30 @@ class UploadService:
             raise UploadError(
                 "Choose an Intros, Outros, Music or Stingers library first.")
         if size_bytes <= 0 or not source.is_file():
-            raise UploadError("That audio file is empty.")
+            raise UploadError("That media file is empty.")
         if size_bytes > 250_000_000:
             raise UploadError("That file is over 250 MB.")
-        if Path(details.original_name).suffix.lower() not in AUDIO_EXTENSIONS:
+        if Path(details.original_name).suffix.lower() not in ASSET_EXTENSIONS:
             raise UploadError(
-                "Use MP3, WAV, M4A, AAC, OGG, FLAC or AIFF audio.")
+                "Use supported audio, JPG, PNG, WebP, MP4, MOV or WebM media.")
         try:
-            return self.workspace.store_asset(
+            stored = self.workspace.store_asset(
                 source, original_name=details.original_name,
                 size_bytes=size_bytes)
         except ValueError as exc:
             raise UploadError(str(exc)) from exc
+        if (stored.media_type != "audio" and details.category
+                not in (None, "other")):
+            self.workspace.discard_media(stored.filename)
+            raise UploadError(
+                "Music, ambience and SFX categories apply only to audio."
+            )
+        return stored
+
+    @staticmethod
+    def _asset_url(stored: StoredAsset) -> str:
+        prefix = "audio" if stored.media_type == "audio" else "media"
+        return f"/{prefix}/{stored.filename}"
 
     def prepare_asset_upload(
         self, encoded_name: str, *, name: str | None = None,
@@ -302,16 +319,16 @@ class UploadService:
     ) -> AssetUploadDetails:
         """Validate human Asset facts before streaming or storing media."""
         original = clean_name(encoded_name, "audio.mp3")
-        if Path(original).suffix.lower() not in AUDIO_EXTENSIONS:
+        if Path(original).suffix.lower() not in ASSET_EXTENSIONS:
             raise UploadError(
-                "Use MP3, WAV, M4A, AAC, OGG, FLAC or AIFF audio.")
+                "Use supported audio, JPG, PNG, WebP, MP4, MOV or WebM media.")
         canonical_name = " ".join(
             (unquote(name) if name is not None else Path(original).stem).split())
         if not canonical_name:
-            raise UploadError("Give this audio a name.")
+            raise UploadError("Give this Asset a name.")
         if len(canonical_name) > MAX_ASSET_NAME_LENGTH:
             raise UploadError(
-                f"Keep the audio name under {MAX_ASSET_NAME_LENGTH} characters.")
+                f"Keep the Asset name under {MAX_ASSET_NAME_LENGTH} characters.")
 
         canonical_category = category.strip().lower() if category else None
         if canonical_category and canonical_category not in ASSET_CATEGORIES:

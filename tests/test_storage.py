@@ -2,11 +2,13 @@
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import base64
+import subprocess
 import unittest
 from unittest.mock import Mock, patch
 
 from audio_studio.infrastructure import object_storage as storage
-from audio_studio.infrastructure import upload_workspace
+from audio_studio.infrastructure import media_metadata, upload_workspace
 
 from audio_studio.infrastructure.media_paths import contained
 from audio_studio.infrastructure.upload_workspace import LocalUploadWorkspace
@@ -48,9 +50,9 @@ class StorageContracts(unittest.TestCase):
                        "sample_rate": "48000", "channels": 2}],
           "format": {"duration": "2.500", "format_name": "flac"}
         }''')
-        with patch.object(upload_workspace.shutil, "which",
+        with patch.object(media_metadata.shutil, "which",
                           return_value="/usr/bin/ffprobe"), patch.object(
-                upload_workspace.subprocess, "run", return_value=completed) as run:
+                media_metadata.subprocess, "run", return_value=completed) as run:
             inspection = upload_workspace.inspect_audio(Path("source.flac"))
         self.assertEqual(run.call_count, 1)
         self.assertEqual(inspection, {
@@ -98,6 +100,123 @@ class StorageContracts(unittest.TestCase):
             self.assertEqual(stored.metadata["container"], "mp3")
             self.assertTrue(Path(stored.path).is_file())
 
+    @unittest.skipUnless(
+        upload_workspace.shutil.which("ffmpeg") and
+        upload_workspace.shutil.which("ffprobe"),
+        "FFmpeg and FFprobe are required",
+    )
+    def test_image_asset_uses_real_dimensions_and_visual_identity(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            encoded = root / "cover.png"
+            subprocess.run([
+                "ffmpeg", "-nostdin", "-loglevel", "error", "-y",
+                "-f", "lavfi", "-i", "color=c=blue:s=320x180",
+                "-frames:v", "1", "-update", "1", str(encoded),
+            ], check=True)
+            incoming = root / "incoming.upload"
+            encoded.replace(incoming)
+            workspace = LocalUploadWorkspace(
+                root=root, output=root / "media",
+                references=root / "references")
+
+            stored = workspace.store_asset(
+                incoming, original_name="cover.png",
+                size_bytes=incoming.stat().st_size)
+
+            self.assertEqual(stored.media_type, "image")
+            self.assertEqual(stored.media_format, "png")
+            self.assertEqual(stored.mime_type, "image/png")
+            self.assertEqual((stored.width, stored.height), (320, 180))
+            self.assertIsNone(stored.duration_ms)
+            self.assertTrue(stored.filename.endswith(".png"))
+
+    @unittest.skipUnless(
+        upload_workspace.shutil.which("ffmpeg") and
+        upload_workspace.shutil.which("ffprobe"),
+        "FFmpeg and FFprobe are required",
+    )
+    def test_video_asset_uses_real_duration_dimensions_codec_and_rate(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            encoded = root / "scene.mp4"
+            subprocess.run([
+                "ffmpeg", "-nostdin", "-loglevel", "error", "-y",
+                "-f", "lavfi", "-i", "testsrc=size=320x180:rate=24",
+                "-t", "0.5", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                str(encoded),
+            ], check=True)
+            incoming = root / "incoming.upload"
+            encoded.replace(incoming)
+            workspace = LocalUploadWorkspace(
+                root=root, output=root / "media",
+                references=root / "references")
+
+            stored = workspace.store_asset(
+                incoming, original_name="scene.mp4",
+                size_bytes=incoming.stat().st_size)
+
+            self.assertEqual(stored.media_type, "video")
+            self.assertEqual(stored.media_format, "mp4")
+            self.assertEqual(stored.mime_type, "video/mp4")
+            self.assertEqual((stored.width, stored.height), (320, 180))
+            self.assertEqual(stored.video_codec, "h264")
+            self.assertAlmostEqual(stored.frame_rate or 0, 24, places=3)
+            self.assertGreaterEqual(stored.duration_ms or 0, 450)
+            self.assertTrue(stored.filename.endswith(".mp4"))
+
+    @unittest.skipUnless(
+        upload_workspace.shutil.which("ffmpeg") and
+        upload_workspace.shutil.which("ffprobe"),
+        "FFmpeg and FFprobe are required",
+    )
+    def test_declared_visual_formats_match_the_deployed_ffmpeg_runtime(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            image_cases = (("jpg", "mjpeg"), ("png", "png"))
+            for extension, codec in image_cases:
+                with self.subTest(extension=extension):
+                    target = root / f"still.{extension}"
+                    subprocess.run([
+                        "ffmpeg", "-nostdin", "-loglevel", "error", "-y",
+                        "-f", "lavfi", "-i", "color=c=purple:s=160x90",
+                        "-frames:v", "1", "-c:v", codec, "-update", "1",
+                        str(target),
+                    ], check=True)
+                    inspection = media_metadata.inspect_media(
+                        target, original_name=target.name)
+                    self.assertIsNotNone(inspection)
+                    self.assertEqual(inspection.media_type, "image")
+                    self.assertEqual(inspection.media_format, extension)
+
+            webp = root / "still.webp"
+            webp.write_bytes(base64.b64decode(
+                "UklGRjgAAABXRUJQVlA4ICwAAADQAQCdASoQABAAAgA0JaACdLoB+AADsAD+"
+                "9j/f/jduMN+C7/zNExzH8QAAAA=="
+            ))
+            webp_inspection = media_metadata.inspect_media(
+                webp, original_name=webp.name)
+            self.assertIsNotNone(webp_inspection)
+            self.assertEqual(webp_inspection.media_type, "image")
+            self.assertEqual(webp_inspection.media_format, "webp")
+
+            video_cases = (("mp4", "libx264"), ("mov", "libx264"),
+                           ("webm", "libvpx"))
+            for extension, codec in video_cases:
+                with self.subTest(extension=extension):
+                    target = root / f"motion.{extension}"
+                    subprocess.run([
+                        "ffmpeg", "-nostdin", "-loglevel", "error", "-y",
+                        "-f", "lavfi", "-i", "testsrc=size=160x90:rate=12",
+                        "-t", "0.25", "-c:v", codec, "-pix_fmt", "yuv420p",
+                        str(target),
+                    ], check=True)
+                    inspection = media_metadata.inspect_media(
+                        target, original_name=target.name)
+                    self.assertIsNotNone(inspection)
+                    self.assertEqual(inspection.media_type, "video")
+                    self.assertEqual(inspection.media_format, extension)
+
     def test_invalid_asset_audio_removes_the_moved_media_file(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
@@ -106,9 +225,9 @@ class StorageContracts(unittest.TestCase):
             output = root / "media"
             workspace = LocalUploadWorkspace(
                 root=root, output=output, references=root / "references")
-            with patch.object(upload_workspace, "inspect_audio",
+            with patch.object(upload_workspace, "inspect_media",
                               return_value=None):
-                with self.assertRaisesRegex(ValueError, "decoded as audio"):
+                with self.assertRaisesRegex(ValueError, "supported audio"):
                     workspace.store_asset(
                         source, original_name="broken.wav", size_bytes=9)
             self.assertEqual(list(output.iterdir()), [])

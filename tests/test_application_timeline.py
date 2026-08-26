@@ -161,6 +161,14 @@ class TimelineServiceTests(unittest.TestCase):
         self.records.assets[55] = {"filename": "music.mp3", "kind": "music"}
         self.assertEqual(self.service.insert_asset(6, 55), {"id": 102})
 
+    def test_visual_assets_cannot_leak_into_audio_only_script_parts(self):
+        self.records.assets[55] = {
+            "filename": "story-frame.png", "media_type": "image",
+        }
+        with self.assertRaisesRegex(TimelineError, "Only audio Assets"):
+            self.service.insert_asset(6, 55)
+        self.assertFalse(self.records.inserted_assets)
+
     def test_public_part_anchor_is_the_stable_insertion_contract(self):
         self.service.add_silence(6, 2, "part-before")
         self.assertEqual(self.records.created[0][2], "part-before")

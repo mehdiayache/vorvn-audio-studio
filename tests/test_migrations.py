@@ -69,6 +69,7 @@ class MigrationTests(unittest.TestCase):
                     "042_auvi_studio_identity.sql",
                     "043_voice_source_windows_and_previews.sql",
                     "044_activate_successful_voice_reclones.sql",
+                    "045_audiovisual_assets.sql",
         ])
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:
@@ -100,6 +101,18 @@ class MigrationTests(unittest.TestCase):
                     JOIN ventures venture ON venture.id = collection.venture_id
                     WHERE venture.system_role = 'sandbox'
                 """).fetchone()[0], 4)
+                version_columns = {row[0] for row in database.execute("""
+                    SELECT column_name FROM information_schema.columns
+                     WHERE table_name = 'asset_versions'
+                """).fetchall()}
+                self.assertTrue({
+                    "media_format", "width", "height", "video_codec",
+                    "frame_rate",
+                }.issubset(version_columns))
+                self.assertEqual(database.execute("""
+                    SELECT column_default FROM information_schema.columns
+                     WHERE table_name = 'assets' AND column_name = 'media_type'
+                """).fetchone()[0], "'audio'::text")
         finally:
             migrations.settings = original
             with psycopg.connect(admin_url, autocommit=True) as admin:
