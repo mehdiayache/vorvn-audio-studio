@@ -2,6 +2,7 @@ import { AlertCircle, LoaderCircle, RotateCcw, X } from "lucide-react"
 
 import { OperatorIconButton } from "@/components/operator-action"
 import { Skeleton } from "@/components/ui/skeleton"
+import type { DirectorGalleryView } from "./director-gallery"
 
 export type DirectorUploadItem = {
   id: string
@@ -12,8 +13,9 @@ export type DirectorUploadItem = {
   assetId?: number
 }
 
-export function DirectorUploadCard({ item, onRetry, onDismiss }: {
+export function DirectorUploadCard({ item, view = "cards", onRetry, onDismiss }: {
   item: DirectorUploadItem
+  view?: DirectorGalleryView
   onRetry: (item: DirectorUploadItem) => void
   onDismiss: (item: DirectorUploadItem) => void
 }) {
@@ -25,7 +27,7 @@ export function DirectorUploadCard({ item, onRetry, onDismiss }: {
       : failed
         ? "Upload needs attention"
         : "Uploading…"
-  return <article className="visual-asset-card director-upload-card" data-status={item.status}>
+  return <article className="visual-asset-card director-upload-card" data-status={item.status} data-view={view}>
     <div className="visual-asset-preview director-upload-preview">
       {item.previewUrl
         ? item.file.type.startsWith("video/")

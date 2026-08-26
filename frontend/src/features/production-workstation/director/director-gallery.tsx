@@ -1,0 +1,67 @@
+import { Images, LayoutGrid, List } from "lucide-react"
+import { useMemo, useState } from "react"
+
+import { Button } from "@/components/ui/button"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import type { VentureAsset } from "@/types/domain"
+import { DirectorUploadCard, type DirectorUploadItem } from "./director-upload-card"
+import { VisualAssetCard } from "./visual-asset-card"
+
+export type DirectorGalleryView = "cards" | "list"
+
+const directorViewStorageKey = "auvi-director-gallery-view"
+
+function initialGalleryView(): DirectorGalleryView {
+  if (typeof window === "undefined") return "cards"
+  try {
+    return window.localStorage.getItem(directorViewStorageKey) === "list" ? "list" : "cards"
+  } catch {
+    return "cards"
+  }
+}
+
+export function DirectorGallery({ assets, uploads, pendingId, onPreview, onRemove, onRetryUpload, onDismissUpload, onUpload, onOpenLibrary }: {
+  assets: VentureAsset[]
+  uploads: DirectorUploadItem[]
+  pendingId: number | null
+  onPreview: (asset: VentureAsset) => void
+  onRemove: (asset: VentureAsset) => void
+  onRetryUpload: (item: DirectorUploadItem) => void
+  onDismissUpload: (item: DirectorUploadItem) => void
+  onUpload: () => void
+  onOpenLibrary: () => void
+}) {
+  const [view, setView] = useState<DirectorGalleryView>(initialGalleryView)
+  const items = useMemo(() => [
+    ...uploads.map((item) => ({ kind: "upload" as const, item })),
+    ...assets.map((asset) => ({ kind: "asset" as const, asset })),
+  ], [assets, uploads])
+
+  function changeView(next: string) {
+    if (next !== "cards" && next !== "list") return
+    setView(next)
+    try { window.localStorage.setItem(directorViewStorageKey, next) } catch { /* Storage can be unavailable. */ }
+  }
+
+  if (!items.length) return <section className="director-empty" aria-label="Director is empty">
+    <span><Images aria-hidden="true" /></span>
+    <h2>Create the visual world for this Production</h2>
+    <p>Upload images or video, or choose existing visuals from your Library. Nothing is placed on the Timeline until you choose to place it there.</p>
+    <div><Button onClick={onUpload}>Upload visuals</Button><Button variant="outline" onClick={onOpenLibrary}>Open Visual Library</Button></div>
+  </section>
+
+  return <section className="director-gallery" aria-labelledby="director-gallery-title">
+    <header>
+      <div><h2 id="director-gallery-title">Production visuals</h2><p>{assets.length} collected {assets.length === 1 ? "asset" : "assets"}{uploads.length ? ` · ${uploads.length} in progress` : ""}</p></div>
+      <ToggleGroup type="single" variant="outline" size="sm" value={view} onValueChange={changeView} aria-label="Director view">
+        <ToggleGroupItem value="cards" aria-label="Cards view"><LayoutGrid /> Cards</ToggleGroupItem>
+        <ToggleGroupItem value="list" aria-label="List view"><List /> List</ToggleGroupItem>
+      </ToggleGroup>
+    </header>
+    <div className={`director-gallery-items is-${view}`} data-view={view}>
+      {items.map((entry) => entry.kind === "upload"
+        ? <DirectorUploadCard key={entry.item.id} item={entry.item} view={view} onRetry={onRetryUpload} onDismiss={onDismissUpload} />
+        : <VisualAssetCard key={entry.asset.id} asset={entry.asset} view={view} pending={pendingId === entry.asset.id} onPreview={onPreview} onRemove={onRemove} />)}
+    </div>
+  </section>
+}

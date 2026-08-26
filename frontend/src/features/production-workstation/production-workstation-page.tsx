@@ -395,6 +395,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
           assets={assets}
           directorAssetIds={directorAssetIds}
           onRefresh={refreshAssets}
+          onConfirmAction={setConfirmAction}
           onUpload={async (file) => {
             const collectionId = assetCollectionIds.Stingers
             if (!collectionId) throw new Error("The visual library is unavailable.")

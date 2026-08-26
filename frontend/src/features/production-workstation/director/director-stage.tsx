@@ -3,23 +3,25 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { ImagePlus } from "lucide-react"
 import { toast } from "sonner"
 
+import type { ConfirmAction } from "@/features/production/production-overlays"
 import { studioApi } from "@/lib/api"
 import type { VentureAsset } from "@/types/domain"
 import { acceptedVisualFiles, isVisualAsset, visualFileAccept } from "./director-assets"
 import { DirectorComposer } from "./director-composer"
+import { DirectorGallery } from "./director-gallery"
 import { DirectorLibraryDialog } from "./director-library-dialog"
-import { DirectorMasonry } from "./director-masonry"
 import { DirectorPreviewDialog } from "./director-preview-dialog"
 import type { DirectorUploadItem } from "./director-upload-card"
 import "./director-stage.css"
 
-export function DirectorStage({ centerPaneRef, productionId, assets, directorAssetIds, onUpload, onRefresh }: {
+export function DirectorStage({ centerPaneRef, productionId, assets, directorAssetIds, onUpload, onRefresh, onConfirmAction }: {
   centerPaneRef?: RefObject<HTMLElement | null>
   productionId: number
   assets: VentureAsset[]
   directorAssetIds: number[]
   onUpload: (file: File) => Promise<VentureAsset>
   onRefresh: () => Promise<void>
+  onConfirmAction?: (action: ConfirmAction) => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [libraryOpen, setLibraryOpen] = useState(false)
@@ -57,7 +59,10 @@ export function DirectorStage({ centerPaneRef, productionId, assets, directorAss
       await onRefresh()
       toast.success(`${asset.name || asset.title || "Visual"} removed from Director`, { description: "It remains available in Visual Library." })
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "The visual could not be removed from Director.")
+      const message = reason instanceof Error ? reason.message : "The visual could not be removed from Director."
+      setError(message)
+      toast.error("The visual remains in Director.", { description: message })
+      throw reason
     } finally {
       setPendingId(null)
     }
@@ -161,7 +166,17 @@ export function DirectorStage({ centerPaneRef, productionId, assets, directorAss
     }} />
     <DirectorComposer uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel} onFiles={upload} onOpenLibrary={() => setLibraryOpen(true)} />
     {error && <div className="director-error" role="alert"><b>Director could not finish that action.</b><span>{error}</span></div>}
-    <DirectorMasonry assets={collected} uploads={uploads} pendingId={pendingId} onPreview={setPreviewAsset} onRemove={(asset) => void remove(asset)} onRetryUpload={retryUpload} onDismissUpload={releaseUpload} onUpload={() => inputRef.current?.click()} onOpenLibrary={() => setLibraryOpen(true)} />
+    <DirectorGallery assets={collected} uploads={uploads} pendingId={pendingId} onPreview={setPreviewAsset} onRemove={(asset) => {
+      const name = asset.name || asset.title || asset.filename || "this visual"
+      if (!onConfirmAction) return
+      onConfirmAction({
+        title: `Remove “${name}” from Director?`,
+        description: "This removes the visual from this Production’s Director workspace. The reusable Asset and its media file remain available in Visual Library. Timeline placements are not changed.",
+        confirmLabel: "Remove from Director",
+        variant: "default",
+        action: () => remove(asset),
+      })
+    }} onRetryUpload={retryUpload} onDismissUpload={releaseUpload} onUpload={() => inputRef.current?.click()} onOpenLibrary={() => setLibraryOpen(true)} />
     <DirectorLibraryDialog open={libraryOpen} assets={available} pendingId={pendingId} onOpenChange={setLibraryOpen} onPreview={setPreviewAsset} onAdd={(asset) => void attach(asset)} />
     <DirectorPreviewDialog asset={previewAsset} onOpenChange={(open) => { if (!open) setPreviewAsset(null) }} />
   </main>

@@ -8,6 +8,7 @@ vi.mock("@/lib/api", () => ({ studioApi: api }))
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  window.localStorage.clear()
 })
 
 import { DirectorStage } from "../director/director-stage"
@@ -115,16 +116,62 @@ describe("Production workflow", () => {
     })
   })
 
-  it("names Director removal as a reversible collection action", async () => {
+  it("marks Director removal as a confirmation-opening collection action", async () => {
     const asset = { id: 88, media_type: "image" as const, name: "Harbour dusk", filename: "harbour.webp", width: 1200, height: 800 }
     const remove = vi.fn()
     render(<VisualAssetCard asset={asset} onPreview={vi.fn()} onRemove={remove} />)
 
     fireEvent.pointerDown(screen.getByRole("button", { name: "Actions for Harbour dusk" }), { button: 0, ctrlKey: false })
-    const action = await screen.findByText("Remove from Director")
+    const action = await screen.findByText("Remove from Director…")
     expect(screen.queryByText("Remove from Production")).toBeNull()
     fireEvent.click(action)
     expect(remove).toHaveBeenCalledWith(asset)
+  })
+
+  it("requires confirmation before detaching a visual from Director", async () => {
+    const refresh = vi.fn().mockResolvedValue(undefined)
+    const confirm = vi.fn()
+    const asset = { id: 88, media_type: "image" as const, name: "Harbour dusk", filename: "harbour.webp", width: 1200, height: 800 }
+    api.detachDirectorAsset.mockResolvedValue({ asset_id: 88 })
+    render(<DirectorStage productionId={7} assets={[asset]} directorAssetIds={[88]} onUpload={vi.fn()} onRefresh={refresh} onConfirmAction={confirm} />)
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Actions for Harbour dusk" }), { button: 0, ctrlKey: false })
+    fireEvent.click(await screen.findByText("Remove from Director…"))
+
+    expect(api.detachDirectorAsset).not.toHaveBeenCalled()
+    expect(confirm).toHaveBeenCalledOnce()
+    const request = confirm.mock.calls[0]?.[0]
+    expect(request).toMatchObject({
+      title: "Remove “Harbour dusk” from Director?",
+      confirmLabel: "Remove from Director",
+      variant: "default",
+    })
+
+    await request.action()
+    expect(api.detachDirectorAsset).toHaveBeenCalledWith(7, 88)
+    expect(refresh).toHaveBeenCalledOnce()
+  })
+
+  it("offers dense Cards and List views and remembers the operator choice", () => {
+    const assets = Array.from({ length: 6 }, (_, index) => ({
+      id: index + 1,
+      media_type: "image" as const,
+      name: `Visual ${index + 1}`,
+      filename: `visual-${index + 1}.webp`,
+      width: 1200,
+      height: 800,
+    }))
+    render(<DirectorStage productionId={7} assets={assets} directorAssetIds={assets.map(({ id }) => id)} onUpload={vi.fn()} onRefresh={vi.fn()} />)
+
+    const cards = screen.getByRole("radio", { name: "Cards view" })
+    const list = screen.getByRole("radio", { name: "List view" })
+    expect(cards.getAttribute("data-state")).toBe("on")
+    expect(document.querySelector('[data-view="cards"]')).toBeTruthy()
+
+    fireEvent.click(list)
+    expect(list.getAttribute("data-state")).toBe("on")
+    expect(document.querySelector('.director-gallery-items[data-view="list"]')).toBeTruthy()
+    expect(window.localStorage.getItem("auvi-director-gallery-view")).toBe("list")
   })
 
   it("shows canonical technical and library facts beside the full media preview", () => {
