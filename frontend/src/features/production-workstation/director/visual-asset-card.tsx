@@ -8,7 +8,7 @@ import type { VentureAsset } from "@/types/domain"
 import { visualAssetFacts, visualAssetName, visualAssetUrl } from "./director-assets"
 import type { DirectorGalleryView } from "./director-gallery"
 
-export function VisualAssetCard({ asset, mode = "director", view = "cards", pending = false, onPreview, onAdd, onRemove }: {
+export function VisualAssetCard({ asset, mode = "director", view = "gallery", pending = false, onPreview, onAdd, onRemove }: {
   asset: VentureAsset
   mode?: "director" | "library"
   view?: DirectorGalleryView
@@ -20,7 +20,7 @@ export function VisualAssetCard({ asset, mode = "director", view = "cards", pend
   const name = visualAssetName(asset)
   const url = visualAssetUrl(asset)
   const facts = visualAssetFacts(asset)
-  const ratio = mode === "library" && asset.width && asset.height ? `${asset.width} / ${asset.height}` : view === "list" ? "16 / 9" : "4 / 3"
+  const ratio = view === "list" ? "16 / 9" : asset.width && asset.height ? `${asset.width} / ${asset.height}` : "4 / 3"
   return <article className="visual-asset-card" data-media-type={asset.media_type} data-view={view}>
     <button className="visual-asset-preview" style={{ aspectRatio: ratio }} onClick={() => onPreview(asset)} aria-label={`Preview ${name}`}>
       {asset.media_type === "video" ? <video src={url} muted preload="metadata" playsInline /> : <img src={url} alt="" loading="lazy" />}

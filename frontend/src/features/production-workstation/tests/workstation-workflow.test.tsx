@@ -152,7 +152,7 @@ describe("Production workflow", () => {
     expect(refresh).toHaveBeenCalledOnce()
   })
 
-  it("offers dense Cards and List views and remembers the operator choice", () => {
+  it("preserves a five-lane masonry Gallery and remembers the List choice", () => {
     const assets = Array.from({ length: 6 }, (_, index) => ({
       id: index + 1,
       media_type: "image" as const,
@@ -163,10 +163,11 @@ describe("Production workflow", () => {
     }))
     render(<DirectorStage productionId={7} assets={assets} directorAssetIds={assets.map(({ id }) => id)} onUpload={vi.fn()} onRefresh={vi.fn()} />)
 
-    const cards = screen.getByRole("radio", { name: "Cards view" })
+    const gallery = screen.getByRole("radio", { name: "Gallery view" })
     const list = screen.getByRole("radio", { name: "List view" })
-    expect(cards.getAttribute("data-state")).toBe("on")
-    expect(document.querySelector('[data-view="cards"]')).toBeTruthy()
+    expect(gallery.getAttribute("data-state")).toBe("on")
+    expect(document.querySelector('[data-view="gallery"]')).toBeTruthy()
+    expect(document.querySelectorAll(".director-gallery-column")).toHaveLength(5)
 
     fireEvent.click(list)
     expect(list.getAttribute("data-state")).toBe("on")

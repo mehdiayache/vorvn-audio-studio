@@ -13,7 +13,7 @@ export type DirectorUploadItem = {
   assetId?: number
 }
 
-export function DirectorUploadCard({ item, view = "cards", onRetry, onDismiss }: {
+export function DirectorUploadCard({ item, view = "gallery", onRetry, onDismiss }: {
   item: DirectorUploadItem
   view?: DirectorGalleryView
   onRetry: (item: DirectorUploadItem) => void
