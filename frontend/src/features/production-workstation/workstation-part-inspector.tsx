@@ -137,7 +137,7 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
             <Fact label="Collection" value={part.asset_collection} />
             <Fact label="Asset kind" value={part.asset_kind} />
             <Fact label="Filename" value={part.filename} mono />
-            <Fact label="Cost in Sequence" value={part.cost > 0 ? formatMoney(part.cost) : "Free / reuse"} />
+            <Fact label="Cost in Script" value={part.cost > 0 ? formatMoney(part.cost) : "Free / reuse"} />
             <Fact label="Asset ID" value={part.asset_id || part.asset_of} mono />
             <Fact label="Asset version" value={part.asset_version_id} mono />
           </dl> : <dl className="ws-inspector-details">

@@ -43,12 +43,13 @@ import type {
 import { WorkstationOutline, WorkstationSequence, workstationPartState, type SequenceInsertKind, type WorkstationPartActions, type WorkstationPartState } from "./workstation-sequence"
 import { WorkstationPartInspector } from "./workstation-part-inspector"
 import { WorkstationPaneHeader } from "./workstation-pane-header"
+import { DirectorStage } from "./director/director-stage"
+import { WORKSTATION_STAGES, type WorkstationStage } from "./workstation-workflow"
 
 import "./production-workstation.css"
 
 const ProductionOverlays = lazy(() => import("@/features/production/production-overlays"))
 
-type WorkstationStage = "sequence" | "sound" | "mix"
 type AudioTarget = { mode: "new-track" } | { mode: "add-clip"; trackId: string } | { mode: "replace"; trackId: string; clipId: string }
 
 const overlayLoadingLabels: Partial<Record<NonNullable<ToolKind>, string>> = {
@@ -175,14 +176,15 @@ function WorkstationHeader({ production, tree, duration, stage, issueCount, prev
       <ProductionParentSwitcher production={production} tree={tree} />
       <ChevronRight className="ws-breadcrumb-separator" aria-hidden="true" />
       <InlineProductionName name={production.name} onRename={onRename} />
-      <dl><div><dt>Parts</dt><dd>{production.parts.filter((part) => part.kind !== "stitch").length}</dd></div><div><dt>Duration</dt><dd>{formatDuration(duration)}</dd></div><div><dt title="Cost of audio currently active in this Sequence">Current cost</dt><dd>{formatMoney(production.current_sequence_cost)}</dd></div></dl>
+      <dl><div aria-label={`${production.parts.filter((part) => part.kind !== "stitch").length} Parts`}><dt>Parts</dt><dd>{production.parts.filter((part) => part.kind !== "stitch").length}</dd></div><div aria-label={`Duration ${formatDuration(duration)}`}><dt>Duration</dt><dd>{formatDuration(duration)}</dd></div><div aria-label={`Current cost ${formatMoney(production.current_sequence_cost)}`}><dt title="Cost of audio currently active in this Script">Current cost</dt><dd>{formatMoney(production.current_sequence_cost)}</dd></div></dl>
       {production.status && production.status !== "draft" && <span className="ws-status">{production.status.replaceAll("_", " ")}</span>}
       {mutationStatus !== "idle" && <span className={`ws-save-state is-${mutationStatus}`} role="status" aria-live="polite">{mutationStatus === "saving" ? <LoaderCircle className="spin" /> : <Check />}{mutationStatus === "saving" ? "Saving…" : "Saved"}</span>}
     </div>
     <nav className="ws-workflow" aria-label="Production workflow">
-      <button className={stage === "sequence" ? "is-active" : ""} onClick={() => onStage("sequence")}><span>1</span><ListMusic /><b>Sequence</b><small>Voice and story</small></button>
-      <button className={stage === "sound" ? "is-active" : ""} onClick={() => onStage("sound")}><span>2</span><AudioLines /><b>Sound Design</b><small>Tracks and timing</small></button>
-      <button className={stage === "mix" ? "is-active" : ""} onClick={() => onStage("mix")}><span>3</span><SlidersHorizontal /><b>Mix & Export</b><small>Finish and deliver</small></button>
+      {WORKSTATION_STAGES.map((item, index) => {
+        const Icon = item.icon
+        return <OperatorTooltip key={item.id} label={item.label} detail={item.description} side="bottom"><button className={stage === item.id ? "is-active" : ""} aria-current={stage === item.id ? "step" : undefined} aria-label={`${index + 1} ${item.label} · ${item.description}`} onClick={() => onStage(item.id)}><span>{index + 1}</span><Icon /><b>{item.label}</b><small className="sr-only">{item.description}</small></button></OperatorTooltip>
+      })}
     </nav>
     <div className="ws-header-actions">
       <div className="ws-action-buttons">
@@ -225,7 +227,7 @@ function MixOutline({ production, soundScene, onCollapse }: { production: Produc
     : linkedSounds ? `${linkedSounds} linked sound${linkedSounds === 1 ? "" : "s"}` : "Voice only"
   return <div className="ws-mix-outline">
     <WorkstationPaneHeader title="Release" meta="Output checklist" onCollapse={onCollapse} />
-    <div className="ws-mix-step is-current"><span>1</span><div><b>Sequence</b><small>{drafts ? `${drafts} planned for later` : "All speech recorded"}</small></div></div>
+    <div className="ws-mix-step is-current"><span>1</span><div><b>Script</b><small>{drafts ? `${drafts} planned for later` : "All speech recorded"}</small></div></div>
     <div className="ws-mix-step"><span>2</span><div><b>Sound</b><small>{soundSummary}</small></div></div>
     <div className="ws-mix-step"><span>3</span><div><b>Quality</b><small>{issues.length + staleOverrides ? `${issues.length + staleOverrides} items to review` : "Ready to finish"}</small></div></div>
     <div className="ws-mix-step"><span>4</span><div><b>Exports</b><small>{production.exports.length} saved versions</small></div></div>
@@ -234,9 +236,9 @@ function MixOutline({ production, soundScene, onCollapse }: { production: Produc
 
 function EmptyInspector({ stage }: { stage: WorkstationStage }) {
   const copy = stage === "sequence"
-    ? ["Select a story part", "Its text, captions and technical details stay here while the full sequence remains visible."]
+    ? ["Select a story part", "Its text, captions and technical details stay here while the full Script remains visible."]
     : stage === "sound"
-      ? ["Select a clip or track", "Choose Sequence or Audio Library clips directly on the timeline to shape them here."]
+      ? ["Select a clip or track", "Choose Script or Audio Library clips directly on the timeline to shape them here."]
       : ["Release inspector", "Issues and finishing evidence stay beside the output workspace."]
   return <div className="ws-empty-inspector"><span><Search /></span><h3>{copy[0]}</h3><p>{copy[1]}</p></div>
 }
@@ -260,7 +262,7 @@ function ReleaseInspector({ issues, staleOverrides, onLocate, onRemoveOverride }
   return <div className="ws-release-inspector">
     <section className={blocking ? "has-blockers" : review ? "has-review" : "is-clear"}><CircleAlert /><div><span className="ws-kicker">Release status</span><h3>{blocking ? `${blocking} blocking issue${blocking === 1 ? "" : "s"}` : review ? `${review} item${review === 1 ? "" : "s"} to review` : "Ready to export"}</h3><p>{blocking ? "Restore missing or broken media before making the final file." : review ? "These states do not silently block export, but remain explicit." : "No blocking audio issues remain."}</p></div></section>
     <div className="ws-release-issue-list">{issues.map((issue) => <button key={`${issue.part.id}:${issue.title}`} onClick={() => onLocate(issue.part.id)}><span>{formatPartNumber(issue.part.position ?? 0)}</span><div><b>{issue.title}</b><small>{formatAuthoredRole(issue.part.authored_role) || issue.detail}</small></div><i className={issue.severity} /></button>)}
-      {staleOverrides.map((partPublicId) => <div className="ws-release-stale-override" key={partPublicId}><span><SlidersHorizontal /></span><div><b>Obsolete Sequence mix override</b><small>Its original Part no longer exists. It is not applied to another Part.</small></div><Button variant="ghost" size="sm" onClick={() => onRemoveOverride(partPublicId)}><Trash2 /> Remove</Button></div>)}
+      {staleOverrides.map((partPublicId) => <div className="ws-release-stale-override" key={partPublicId}><span><SlidersHorizontal /></span><div><b>Obsolete Script mix override</b><small>Its original Part no longer exists. It is not applied to another Part.</small></div><Button variant="ghost" size="sm" onClick={() => onRemoveOverride(partPublicId)}><Trash2 /> Remove</Button></div>)}
     </div>
   </div>
 }
@@ -420,9 +422,9 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   const requestPartDeletion = useCallback((part: ProductionPart) => setConfirmAction({
     title: `Delete “${partDeletionLabel(part)}” permanently?`,
     description: part.kind === "asset"
-      ? "This removes this linked-audio Part from the Sequence. The reusable Venture asset remains available."
+      ? "This removes this linked-audio Part from the Script. The reusable Venture asset remains available."
       : part.kind === "silence"
-        ? "This permanently removes this Silence Part from the Sequence."
+        ? "This permanently removes this Silence Part from the Script."
         : "This removes the whole story part: its text, recording and captions. Previous provider spend remains in Activity.",
     confirmLabel: "Delete Part permanently",
     kind: "confirm",
@@ -432,7 +434,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     if (!pendingDraftCount) { void actions.exportMp3(); return }
     setConfirmAction({
       title: "Export the recorded audio?",
-      description: `${pendingDraftCount} planned Speech Part${pendingDraftCount === 1 ? " has" : "s have"} no recording yet. They stay safely in Sequence and will not be included in this MP3.`,
+      description: `${pendingDraftCount} planned Speech Part${pendingDraftCount === 1 ? " has" : "s have"} no recording yet. They stay safely in Script and will not be included in this MP3.`,
       confirmLabel: "Export recorded audio",
       kind: "confirm",
       variant: "default",
@@ -505,7 +507,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     : stage === "sequence" && selectedPart ? `Part ${formatPartNumber(selectedPart.position ?? 0)} · ${formatAuthoredRole(selectedPart.authored_role) || partKindLabel(selectedPart)}`
       : stage === "sound" && soundSelection?.kind === "clip" ? "Audio clip"
         : stage === "sound" && soundSelection?.kind === "clips" ? `${soundSelection.clips.length} audio clips`
-        : stage === "sound" && soundSpan ? `${soundSpan.role || soundSpan.voice_name || "Sequence Part"} · Mix`
+          : stage === "sound" && soundSpan ? `${soundSpan.role || soundSpan.voice_name || "Script Part"} · Mix`
           : stage === "mix" ? "Release checks" : "Inspector"
   const composerInsertAt = insertBeforePartId ? Math.max(0, sourceParts.findIndex((part) => part.public_id === insertBeforePartId)) : null
 
@@ -523,7 +525,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     track={audioTrack} clip={audioClip} asset={audioAsset} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)}
     onClipChange={(changes) => { if (audioClip) soundSession.updateClip(audioTrack.id, audioClip.id, changes) }} onClipCommit={() => soundSession.commitClip()}
     onTrackVolumeChange={(volume) => soundSession.setTrackVolume(audioTrack.id, volume)} onTrackVolumeCommit={(volume) => soundSession.commitTrackVolume(audioTrack.id, volume)}
-    onChoose={() => { setAudioTarget({ mode: "replace", trackId: soundSelection.trackId, clipId: soundSelection.clipId }); setTool("audio") }} onRemove={() => setConfirmAction({ title: `Remove “${audioClipName}”?`, description: "The reusable Audio Library asset remains available. Only this Sound Scene placement is removed.", action: () => soundSession.removeClip(soundSelection.trackId, soundSelection.clipId) })}
+    onChoose={() => { setAudioTarget({ mode: "replace", trackId: soundSelection.trackId, clipId: soundSelection.clipId }); setTool("audio") }} onRemove={() => setConfirmAction({ title: `Remove “${audioClipName}”?`, description: "The reusable Audio Library asset remains available. Only this Timeline placement is removed.", action: () => soundSession.removeClip(soundSelection.trackId, soundSelection.clipId) })}
   /> : stage === "sound" && soundSpan ? <SequenceMixInspector
     span={soundSpan} saving={soundState.saving}
     onPreview={(changes) => soundSession.previewSequenceOverride(soundSpan.part_public_id, changes)}
@@ -562,7 +564,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     <section className="production-workstation" data-stage={stage} data-outline-open={outlineOpen ? "true" : "false"} data-inspector-open={inspectorOpen ? "true" : "false"} data-inspector-expanded={composerOpen ? "true" : "false"}>
       <WorkstationHeader production={production} tree={tree} duration={duration} stage={stage} issueCount={issues.length + staleOverrides.length} previewing={stage === "sound" ? soundState.playback === "preparing" : actions.previewing} playing={stage === "sound" ? soundState.playback === "playing" : actions.productionPlaying} mutationStatus={actions.mutationStatus} onStage={changeStage} onPreview={() => { if (stage === "sound") void soundSession.togglePlayback(); else void actions.toggleProduction() }} onAdd={openTool} onDelete={() => setDeleteProductionOpen(true)} onRename={renameProduction} />
       <div className="ws-body">
-        {stage !== "sound" && <aside className={cn("ws-left-pane", !outlineOpen && "is-collapsed")} aria-label={`${stage} navigation`}>
+        {(stage === "sequence" || stage === "mix") && <aside className={cn("ws-left-pane", !outlineOpen && "is-collapsed")} aria-label={`${stage === "sequence" ? "Script" : "Export"} navigation`}>
           {outlineOpen ? <>
             {stage === "sequence" && <WorkstationOutline parts={sourceParts} selectedId={selectedId} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} directory={directory} onSelect={selectPart} onCollapse={() => setOutlineOpen(false)} />}
             {stage === "mix" && <MixOutline production={production} soundScene={soundScene} onCollapse={() => setOutlineOpen(false)} />}
@@ -570,6 +572,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
         </aside>}
         <main className="ws-center-pane" ref={centerPaneRef}>
           {stage === "sequence" && <WorkstationSequence parts={sourceParts} selectedId={selectedId} playingKey={player.source?.key} playerPlaying={actions.playerPlaying} liveJobs={liveJobs} directory={directory} actions={partActions} onAddEnd={(kind) => openSequenceInsert(kind)} />}
+          {stage === "director" && <DirectorStage />}
           {stage === "sound" && <SoundSceneWorkspace
             session={soundSession}
             onAddAudio={(target) => { setAudioTarget(target); setTool("audio") }}
@@ -580,7 +583,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
               })
               setConfirmAction({
                 title: clips.length === 1 ? `Remove this clip: “${names[0] || "Audio clip"}”?` : `Remove ${clips.length} selected audio clips?`,
-                description: "Reusable Audio Library assets remain available. Only the selected Sound Scene placements are removed.",
+                description: "Reusable Audio Library assets remain available. Only the selected Timeline placements are removed.",
                 action: () => soundSession.removeClips(clips),
               })
             }}

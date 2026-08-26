@@ -351,7 +351,7 @@ export function ProductionImportTool({ existing, newParent, config, directory, p
         <header><span className="eyebrow">Preflight</span><h2>Review the Production before preparing it</h2><p>This creates editable Draft truth. Audio generation remains a separate operator action.</p></header>
         <dl className="import-preflight">
           <div><dt>Production</dt><dd>{title}</dd></div><div><dt>Destination</dt><dd>{destinationChoice === "current" ? existing?.name : parent?.name}</dd></div>
-          <div><dt>Sequence</dt><dd>{validation.summary.speech} Speech · {validation.summary.silence} Pause</dd></div><div><dt>Estimated duration</dt><dd>{formatEstimatedDuration(validation.summary.estimated_duration_ms)}</dd></div>
+          <div><dt>Script</dt><dd>{validation.summary.speech} Speech · {validation.summary.silence} Pause</dd></div><div><dt>Estimated duration</dt><dd>{formatEstimatedDuration(validation.summary.estimated_duration_ms)}</dd></div>
           <div><dt>Roles</dt><dd>{validation.summary.roles.map((role) => role.name).join(", ")}</dd></div><div><dt>Method</dt><dd>{selectedCapability?.name || capabilityId}</dd></div>
           <div><dt>Text</dt><dd>{textVersion === "imported" ? "Imported" : textVersion === "spoken_1" ? "Spoken 1" : "Spoken 2"}</dd></div><div><dt>Delivery tags</dt><dd>{supportsTags ? tagDensity : "None"}</dd></div>
           <div><dt>Language</dt><dd>{language}</dd></div><div><dt>Format</dt><dd>{outputFormat.toUpperCase()}</dd></div>

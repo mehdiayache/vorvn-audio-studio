@@ -14,12 +14,12 @@ export function SoundSceneTransport({ session }: { session: SoundSceneSession })
   const duration = Number(scene.resolved.duration_ms ?? scene.resolved.sequence_projection.duration_ms) / 1000
   const boundedPlayhead = Math.max(0, Math.min(duration, Number(playhead) || 0))
   const available = Boolean(scene.sequence_stem.url || scene.resolved.tracks.some((track) => track.clips.some((clip) => clip.filename && !clip.missing && !clip.orphan)))
-  return <section className="transport-strip is-production is-sound-scene" aria-label="Sound Scene player">
+  return <section className="transport-strip is-production is-sound-scene" aria-label="Timeline player">
     <span className="transport-strip-art" aria-hidden="true"><AudioLines /></span>
-    <div className="transport-strip-copy"><small>Sound Scene</small><b>Sequence + {scene.resolved.tracks.reduce((count, track) => count + track.clips.length, 0)} sound clips</b></div>
-    <OperatorIconButton className="transport-strip-play" size="icon" variant="default" disabled={!available} busy={preparing} busyLabel="Preparing Sound Scene audio" label={playing ? "Pause Sound Scene" : "Play Sound Scene"} detail={!available ? "Add or record audible material before playback." : undefined} onClick={() => void session.togglePlayback()}>{playing ? <Pause /> : <Play />}</OperatorIconButton>
+    <div className="transport-strip-copy"><small>Timeline</small><b>Script + {scene.resolved.tracks.reduce((count, track) => count + track.clips.length, 0)} sound clips</b></div>
+    <OperatorIconButton className="transport-strip-play" size="icon" variant="default" disabled={!available} busy={preparing} busyLabel="Preparing Timeline audio" label={playing ? "Pause Timeline" : "Play Timeline"} detail={!available ? "Add or record audible material before playback." : undefined} onClick={() => void session.togglePlayback()}>{playing ? <Pause /> : <Play />}</OperatorIconButton>
     <span className="transport-strip-time">{formatDuration(boundedPlayhead)}</span>
-    <Slider className="transport-strip-seek" value={[boundedPlayhead]} max={Math.max(duration, 1)} step={0.05} onValueChange={([value = 0]) => session.seek(value)} aria-label="Sound Scene playback position" />
+    <Slider className="transport-strip-seek" value={[boundedPlayhead]} max={Math.max(duration, 1)} step={0.05} onValueChange={([value = 0]) => session.seek(value)} aria-label="Timeline playback position" />
     <span className="transport-strip-time">{formatDuration(duration)}</span>
     <div className="transport-meter" aria-label={`Master level. Left ${Math.round(meter.left * 100)} percent. Right ${Math.round(meter.right * 100)} percent${meter.clipping ? ". Clipping detected" : ""}.`} role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(meter.peak * 100)}>
       <small>L</small>

@@ -481,14 +481,14 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
   return <section className={cn("sound-scene-workspace", tracksCollapsed && "tracks-collapsed", panning && "is-panning")}>
     <div className="sound-scene-toolbar">
       <OperatorTooltip label={tracksCollapsed ? "Show track controls" : "Hide track controls"}><Button variant="ghost" size="icon-sm" onClick={() => setTracksCollapsed((value) => !value)} aria-label={tracksCollapsed ? "Show track controls" : "Hide track controls"}>{tracksCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button></OperatorTooltip>
-      <span className="sound-scene-toolbar-title"><b>Sound Design</b><small>{tracks.length} track{tracks.length === 1 ? "" : "s"} · {formatDuration(total)}</small></span>
-      <div className="sound-scene-history"><OperatorTooltip label="Undo the last Sound Design edit" disabledTrigger={!scene.can_undo || saving}><Button variant="ghost" size="sm" disabled={!scene.can_undo || saving} onClick={() => void session.undo()} aria-label="Undo Sound edit"><Undo2 /><span>Undo</span></Button></OperatorTooltip><OperatorTooltip label="Redo the last undone Sound Design edit" disabledTrigger={!scene.can_redo || saving}><Button variant="ghost" size="sm" disabled={!scene.can_redo || saving} onClick={() => void session.redo()} aria-label="Redo Sound edit"><Redo2 /><span>Redo</span></Button></OperatorTooltip></div>
+      <span className="sound-scene-toolbar-title"><b>Timeline</b><small>{tracks.length} track{tracks.length === 1 ? "" : "s"} · {formatDuration(total)}</small></span>
+      <div className="sound-scene-history"><OperatorTooltip label="Undo the last Timeline edit" disabledTrigger={!scene.can_undo || saving}><Button variant="ghost" size="sm" disabled={!scene.can_undo || saving} onClick={() => void session.undo()} aria-label="Undo Timeline edit"><Undo2 /><span>Undo</span></Button></OperatorTooltip><OperatorTooltip label="Redo the last undone Timeline edit" disabledTrigger={!scene.can_redo || saving}><Button variant="ghost" size="sm" disabled={!scene.can_redo || saving} onClick={() => void session.redo()} aria-label="Redo Timeline edit"><Redo2 /><span>Redo</span></Button></OperatorTooltip></div>
       <div className="sound-scene-viewport-tools">
         <OperatorTooltip label="Move one view earlier"><Button variant="ghost" size="icon-sm" aria-label="Previous view" onClick={() => { if (scrollRef.current) { scrollRef.current.scrollLeft -= scrollRef.current.clientWidth * .6; setFollowPlayhead(false) } }}><ChevronLeft /></Button></OperatorTooltip>
         <div className="sound-scene-zoom"><OperatorTooltip label="Zoom out" disabledTrigger={zoomIndex === 0}><Button variant="ghost" size="icon-sm" disabled={zoomIndex === 0} onClick={() => setCenteredZoom(zoomIndex - 1)} aria-label="Zoom out"><Minus /></Button></OperatorTooltip><Slider aria-label="Timeline zoom" aria-valuetext={`${Math.round(pixelsPerSecond)} pixels per second`} value={[zoomIndex]} min={0} max={SOUND_SCENE_ZOOM_LEVELS.length - 1} step={1} onValueChange={([value = zoomIndex]) => setCenteredZoom(value)} /><OperatorTooltip label="Zoom in" disabledTrigger={zoomIndex === SOUND_SCENE_ZOOM_LEVELS.length - 1}><Button variant="ghost" size="icon-sm" disabled={zoomIndex === SOUND_SCENE_ZOOM_LEVELS.length - 1} onClick={() => setCenteredZoom(zoomIndex + 1)} aria-label="Zoom in"><Plus /></Button></OperatorTooltip></div>
         <OperatorTooltip label="Move one view later"><Button variant="ghost" size="icon-sm" aria-label="Next view" onClick={() => { if (scrollRef.current) { scrollRef.current.scrollLeft += scrollRef.current.clientWidth * .6; setFollowPlayhead(false) } }}><ChevronRight /></Button></OperatorTooltip>
         <OperatorTooltip label="Fit the entire Production in view"><Button variant="ghost" size="sm" onClick={fitTimeline} aria-label="Fit entire timeline"><Maximize2 /><span>Fit</span></Button></OperatorTooltip>
-        <OperatorTooltip label={snapping ? "Turn snapping off" : "Turn snapping on"} detail="Aligns clip edges to the playhead, Sequence Parts, and other clip edges. Hold Alt while dragging to bypass it temporarily."><Button variant="ghost" size="icon-sm" className={snapping ? "is-active" : undefined} aria-label={snapping ? "Turn snapping off" : "Turn snapping on"} aria-pressed={snapping} onClick={() => { setSnapping((value) => !value); setSnapGuide(null) }}><Magnet /></Button></OperatorTooltip>
+        <OperatorTooltip label={snapping ? "Turn snapping off" : "Turn snapping on"} detail="Aligns clip edges to the playhead, Script Parts, and other clip edges. Hold Alt while dragging to bypass it temporarily."><Button variant="ghost" size="icon-sm" className={snapping ? "is-active" : undefined} aria-label={snapping ? "Turn snapping off" : "Turn snapping on"} aria-pressed={snapping} onClick={() => { setSnapping((value) => !value); setSnapGuide(null) }}><Magnet /></Button></OperatorTooltip>
         <OperatorTooltip label="Keep the playhead visible during playback"><Button variant="ghost" size="sm" className={followPlayhead ? "is-active" : undefined} aria-pressed={followPlayhead} onClick={() => setFollowPlayhead((value) => !value)}><LocateFixed /><span>Follow</span></Button></OperatorTooltip>
       </div>
       <span className="sound-scene-save-state">{saving && <b>Saving…</b>}</span>
@@ -497,7 +497,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
     <div className="sound-scene-editor">
       <aside ref={controlsRef} className="sound-scene-track-controls" style={{ gridTemplateRows: rowTemplate }} onWheel={(event) => { if (scrollRef.current) scrollRef.current.scrollTop += event.deltaY }}>
         <div className="sound-scene-track-head"><span>Tracks</span></div>
-        <div className="sound-sequence-control" title={tracksCollapsed ? `Sequence · ${sequenceSummary}` : undefined}><span className="sound-track-icon is-sequence"><Volume2 /></span>{!tracksCollapsed && <span className="sound-track-copy"><b>Sequence</b><small>{sequenceSummary}</small></span>}</div>
+        <div className="sound-sequence-control" title={tracksCollapsed ? `Script · ${sequenceSummary}` : undefined}><span className="sound-track-icon is-sequence"><Volume2 /></span>{!tracksCollapsed && <span className="sound-track-copy"><b>Script</b><small>{sequenceSummary}</small></span>}</div>
         {tracks.map((track) => <SoundTrackControl
           key={track.id} track={track} collapsed={tracksCollapsed}
           soloed={soloTrackIds.includes(track.id)}
@@ -614,11 +614,11 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
       onDelete={() => onRemoveClip({ clips: selectedRefs })}
       onOptions={selectedClips.length === 1 || selectedPart ? () => document.querySelector(".ws-right-pane")?.scrollIntoView({ block: "nearest" }) : undefined}
       onOpenSequence={selectedPart ? () => onOpenSequence?.(selectedPart.part_id) : undefined}
-    /> : <span className="sound-context-empty">Select a clip or Sequence Part to edit it</span>}
+    /> : <span className="sound-context-empty">Select a clip or Script Part to edit it</span>}
       {error && <div className="sound-context-feedback" role="alert" aria-live="assertive">
         <CircleAlert aria-hidden="true" />
         <OperatorTooltip label={error} side="top"><span>{error}</span></OperatorTooltip>
-        <OperatorIconButton label="Dismiss Sound Design message" onClick={() => session.clearError()}><X /></OperatorIconButton>
+        <OperatorIconButton label="Dismiss Timeline message" onClick={() => session.clearError()}><X /></OperatorIconButton>
       </div>}
     </footer>
   </section>

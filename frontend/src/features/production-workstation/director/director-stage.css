@@ -1,0 +1,27 @@
+.director-stage {
+  width: min(44rem, calc(100% - 3rem));
+  min-height: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: center;
+  gap: 1.15rem;
+  margin: 0 auto;
+  padding: clamp(2rem, 6vw, 5rem);
+}
+.director-stage-mark {
+  width: 3rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  border-radius: .8rem;
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+.director-stage-mark svg { width: 1.35rem; }
+.director-stage span { color: var(--primary); font-size: .72rem; font-weight: var(--weight-emphasis); letter-spacing: .08em; text-transform: uppercase; }
+.director-stage h2 { max-width: 29rem; margin: .45rem 0 .7rem; font-size: clamp(1.45rem, 3vw, 2.25rem); line-height: 1.08; letter-spacing: -.035em; }
+.director-stage p { max-width: 34rem; margin: 0; color: var(--foreground); font-size: .92rem; line-height: 1.6; }
+
+@media (max-width: 720px) {
+  .director-stage { width: calc(100% - 1.5rem); grid-template-columns: 1fr; padding: 1.5rem; }
+}

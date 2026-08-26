@@ -194,13 +194,13 @@ export function useProductionActions({ production, soundScene, player, refresh, 
 
   const updateSoundScene = useCallback((document: SoundSceneDocument, expectedRevision: number) => mutate(
     `sound-scene:save:${expectedRevision}`, () => studioApi.updateSoundScene(production.id, expectedRevision, document),
-    "Sound Scene saved",
+    "Timeline saved",
   ), [mutate, production.id])
   const undoSoundScene = useCallback(() => mutate(
-    "sound-scene:undo", () => studioApi.undoSoundScene(production.id), "Sound Scene undone",
+    "sound-scene:undo", () => studioApi.undoSoundScene(production.id), "Timeline undone",
   ), [mutate, production.id])
   const redoSoundScene = useCallback(() => mutate(
-    "sound-scene:redo", () => studioApi.redoSoundScene(production.id), "Sound Scene redone",
+    "sound-scene:redo", () => studioApi.redoSoundScene(production.id), "Timeline redone",
   ), [mutate, production.id])
   const duplicatePart = useCallback((part: ProductionPart) => mutate(`part:${part.id}:duplicate`, () => studioApi.duplicatePart(production.id, part.id), "Part duplicated"), [mutate, production.id])
   const deletePart = useCallback((part: ProductionPart) => mutate(`part:${part.id}:delete`, () => studioApi.deletePart(production.id, part.id), "Part permanently deleted", true), [mutate, production.id])

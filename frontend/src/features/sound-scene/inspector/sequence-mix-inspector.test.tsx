@@ -9,8 +9,8 @@ vi.mock("@/components/ui/slider", () => ({
     onValueCommit?: (value: number[]) => void
     disabled?: boolean
   }) => {
-    const value = label === "Sequence Part gain" ? -6
-      : label === "Sequence Part fade in" ? 1.2
+    const value = label === "Script Part gain" ? -6
+      : label === "Script Part fade in" ? 1.2
         : label === "Echo delay" ? 440
           : label === "Echo feedback" ? 60
             : label === "Echo mix" ? 75 : 1.8
@@ -40,14 +40,14 @@ describe("SequenceMixInspector", () => {
       onOpenSequence={vi.fn()}
     />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Sequence Part gain" }))
+    fireEvent.click(screen.getByRole("button", { name: "Script Part gain" }))
 
     expect(onPreview).toHaveBeenCalledTimes(1)
     expect(onPreview).toHaveBeenCalledWith({ gain: expect.closeTo(.501, 2) })
     expect(onCommit).toHaveBeenCalledTimes(1)
     expect(onCommit).toHaveBeenCalledWith({ gain: expect.closeTo(.501, 2) })
     expect(screen.getByRole("switch", { name: "Mute Part audio" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: /Open in Sequence/ })).toBeTruthy()
+    expect(screen.getByRole("button", { name: /Open in Script/ })).toBeTruthy()
   })
 
   it("previews an Echo parameter locally and persists it once on release", () => {

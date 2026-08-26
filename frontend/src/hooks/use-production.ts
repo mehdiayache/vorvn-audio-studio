@@ -34,7 +34,7 @@ export function useProduction(id: number | null) {
     if (soundSceneResult.status === "fulfilled") {
       setSoundScene({ status: "ready", data: soundSceneResult.value })
     } else {
-      setSoundScene((state) => ({ status: "error", data: state.data, error: soundSceneResult.reason?.message || "Unable to load Sound Scene." }))
+      setSoundScene((state) => ({ status: "error", data: state.data, error: soundSceneResult.reason?.message || "Unable to load Timeline." }))
     }
   }, [id])
 

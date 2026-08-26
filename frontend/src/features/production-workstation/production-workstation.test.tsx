@@ -144,8 +144,8 @@ describe("Production Workstation", () => {
     expect(screen.getAllByText("Quiet room")).toHaveLength(2)
     expect(screen.getByText("2 audio · 1 pause")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Pause Part 02 · 1.5 seconds" }).className).toContain("sound-sequence-silence")
-    expect(screen.getByRole("button", { name: "Undo Sound edit" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Redo Sound edit" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Undo Timeline edit" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Redo Timeline edit" })).toBeTruthy()
   })
 
   it("opens the new Audio Track flow without altering an existing track first", () => {
@@ -245,7 +245,7 @@ describe("Production Workstation", () => {
     expect(screen.getByRole("button", { name: "Duplicate selected clips" })).toBeTruthy()
   })
 
-  it("prevents an invalid split without covering the Sound Design controls", () => {
+  it("prevents an invalid split without covering the Timeline controls", () => {
     const soundScene = scene([part({ duration_ms: 120_000 })])
     const session = sessionFor(soundScene)
     const { container } = render(<SoundSceneWorkspace session={session} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)

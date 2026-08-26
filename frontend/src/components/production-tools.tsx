@@ -41,8 +41,8 @@ export function ProductionToolDialog({ open, production, config, nextPartNumber,
   const productionId = production.id
   const replacingAsset = Boolean(replacingAssetId)
   const title = open === "import" ? "Import JSON" : open === "silence" ? "Add silence" : replacingAsset ? "Audio Library · Replace linked audio" : "Audio Library"
-  const destination = beforePartId ? "Insert at the selected Sequence position." : `Add as Part ${nextPartNumber}.`
-  const description = open === "import" ? "Append authored Speech Drafts and Silence to this existing Production. Validate locally, map roles to owned Voices, then confirm once." : assetMode === "sound" ? "Audition freely. Nothing enters this Audio Track until you confirm." : `${destination} Audition freely; the Sequence changes only after confirmation.`
+  const destination = beforePartId ? "Insert at the selected Script position." : `Add as Part ${nextPartNumber}.`
+  const description = open === "import" ? "Append authored Speech Drafts and Silence to this existing Production. Validate locally, map roles to owned Voices, then confirm once." : assetMode === "sound" ? "Audition freely. Nothing enters this Audio Track until you confirm." : `${destination} Audition freely; the Script changes only after confirmation.`
   return <Dialog open={Boolean(open)} onOpenChange={(next) => { if (!next) onClose() }}>
     <DialogContent className={`tool-dialog ${open === "import" ? "import-dialog" : open === "silence" ? "silence-dialog" : "asset-dialog"}`}>
       <DialogHeader className={open === "asset" || open === "audio" ? "asset-dialog-a11y-header" : undefined}><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>

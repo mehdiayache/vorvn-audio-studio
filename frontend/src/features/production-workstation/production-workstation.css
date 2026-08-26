@@ -63,6 +63,7 @@
 .production-workstation[data-stage="sound"] .ws-body { grid-template-columns: minmax(38rem, 1fr); }
 .production-workstation[data-stage="sound"][data-inspector-open="true"] .ws-body { grid-template-columns: minmax(38rem, 1fr) var(--ws-right); }
 .production-workstation[data-stage="sound"] .ws-body { padding-bottom: 4.45rem; }
+.production-workstation[data-stage="director"] .ws-body { grid-template-columns: minmax(28rem, 1fr); }
 .ws-left-pane, .ws-center-pane, .ws-right-pane { min-width: 0; min-height: 0; overflow: hidden; }
 .ws-left-pane, .ws-center-pane, .ws-right-pane { border: 1px solid var(--border); border-radius: .82rem; background: var(--surface-raised); box-shadow: 0 8px 24px rgb(var(--shadow-color) / 4%); }
 .ws-left-pane { background: white; }
@@ -88,7 +89,9 @@
 .studio-app-shell[data-navigation="rail"] .production-workstation .production-transport-host { left: calc(var(--studio-rail-current) + var(--ws-left-current) + 1.4rem); }
 .production-workstation[data-inspector-open="true"] .production-transport-host { right: calc(var(--ws-right) + 1.4rem); }
 .production-workstation[data-stage="sound"] .production-transport-host { left: 1.4rem; }
+.production-workstation[data-stage="director"] .production-transport-host { left: 1.4rem; }
 .studio-app-shell[data-navigation="rail"] .production-workstation[data-stage="sound"] .production-transport-host { left: calc(var(--studio-rail-current) + 1.4rem); }
+.studio-app-shell[data-navigation="rail"] .production-workstation[data-stage="director"] .production-transport-host { left: calc(var(--studio-rail-current) + 1.4rem); }
 .production-workstation .transport-strip.is-production { width: min(58rem, calc(100% - 2rem)); max-width: calc(100% - 2rem); }
 .ws-inspector-content .production-composer-stage { min-height: 100%; }
 .ws-inspector-content .speech-composer.is-stage { min-height: 100%; border: 0; border-radius: 0; box-shadow: none; }
@@ -340,11 +343,13 @@
 .ws-release-stale-override > span svg { width: .78rem; }.ws-release-stale-override > div { min-width: 0; display: grid; }
 .ws-release-stale-override b { font-size: .7rem; }.ws-release-stale-override small { color: var(--muted-foreground); font-size: .61rem; line-height: 1.35; }
 
-@media (max-width: 80rem) {
+@media (max-width: 92rem) {
   .production-workstation { --ws-left: 12.5rem; --ws-right: 22rem; }
   .production-workstation[data-inspector-expanded="true"] { --ws-right: 37rem; }
   .ws-workflow button { padding-inline: .42rem; }
   .ws-workflow button > svg { display: none; }
+  .ws-header dl { gap: .48rem; padding-left: .5rem; }
+  .ws-header dt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 }
 @media (max-width: 64rem) {
   .production-workstation { height: auto; min-height: calc(100dvh - var(--studio-standalone-header-height) - var(--studio-local-chrome-height)); grid-template-rows: auto minmax(0, 1fr); overflow: visible; }

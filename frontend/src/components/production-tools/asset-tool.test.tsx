@@ -241,7 +241,7 @@ describe("AssetTool", () => {
     expect(onChoose).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole("button", { name: "Select Harbor Intro" }))
     expect(screen.getAllByText("Harbor Intro").length).toBeGreaterThan(1)
-    fireEvent.click(screen.getByRole("button", { name: "Insert in Sequence" }))
+    fireEvent.click(screen.getByRole("button", { name: "Insert in Script" }))
     await waitFor(() => expect(onChoose).toHaveBeenCalledWith(assets[0]))
   })
 

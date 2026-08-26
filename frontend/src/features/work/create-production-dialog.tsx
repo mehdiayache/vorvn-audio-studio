@@ -51,7 +51,7 @@ export function CreateProductionDialog({ parents, open, onOpenChange, onCreated 
 
   return <Dialog open={open} onOpenChange={(next) => { if (!saving) onOpenChange(next) }}>
     <DialogContent className={path === "import" ? "tool-dialog import-dialog" : "create-production-dialog"}>
-      <DialogHeader><DialogTitle>New Production</DialogTitle><DialogDescription>{path === "choose" ? "Start with an empty Sequence or bring in an authored JSON Production." : path === "empty" ? "Create an empty Production and start in Sequence." : "Validate, configure and prepare the imported Production."}</DialogDescription></DialogHeader>
+      <DialogHeader><DialogTitle>New Production</DialogTitle><DialogDescription>{path === "choose" ? "Start with an empty Script or bring in an authored JSON Production." : path === "empty" ? "Create an empty Production and start in Script." : "Validate, configure and prepare the imported Production."}</DialogDescription></DialogHeader>
       {path === "choose" && <>
         {parents.length > 1 && <label className="create-production-location"><span>Create inside</span><Select value={parentId} onValueChange={setParentId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{parents.map((item) => <SelectItem value={String(item.id)} key={`${item.type}:${item.id}`}>{item.type === "series" ? "Series" : "Project"} · {item.name}</SelectItem>)}</SelectContent></Select></label>}
         <div className="create-production-paths">

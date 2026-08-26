@@ -154,7 +154,7 @@ export class SoundSceneSession {
       await this.playout.activatePlayout?.()
     } catch (reason) {
       this.set({
-        error: reason instanceof Error ? reason.message : "Sound Design audio could not be prepared.",
+        error: reason instanceof Error ? reason.message : "Timeline audio could not be prepared.",
       })
     }
   }
@@ -215,7 +215,7 @@ export class SoundSceneSession {
       this.set({ playback: playing ? "playing" : "idle", playhead: this.playout.currentTime() })
       if (playing) this.followPlayhead()
     }).catch((reason) => this.set({
-      error: reason instanceof Error ? reason.message : "The updated Sound Scene could not be prepared.",
+      error: reason instanceof Error ? reason.message : "The updated Timeline could not be prepared.",
       playback: "idle",
     }))
   }
@@ -522,7 +522,7 @@ export class SoundSceneSession {
 
   async updateSequenceOverride(partPublicId: string, changes: Partial<SequenceMixOverride>) {
     const span = this.snapshotValue.scene.resolved.sequence_projection.spans.find((item) => item.part_public_id === partPublicId)
-    if (!span) throw new Error("That Sequence Part is no longer available.")
+    if (!span) throw new Error("That Script Part is no longer available.")
     this.previewSequenceOverride(partPublicId, changes)
     await this.persist(this.nextDocument((document) => {
       document.sequence_overrides[partPublicId] = { ...span.mix, ...document.sequence_overrides[partPublicId], ...changes }
@@ -616,7 +616,7 @@ export class SoundSceneSession {
     } catch (reason) {
       this.set({
         playback: "idle",
-        error: reason instanceof Error ? reason.message : "The Sound Scene could not be played.",
+        error: reason instanceof Error ? reason.message : "The Timeline could not be played.",
       })
     }
   }
@@ -694,7 +694,7 @@ export class SoundSceneSession {
           this.editor.replace(this.snapshotValue.scene)
           this.set({
             engine: this.editor.state(),
-            error: reason instanceof Error ? reason.message : "That Sound Scene change could not be saved.",
+            error: reason instanceof Error ? reason.message : "That Timeline change could not be saved.",
           })
           return
         }
@@ -715,7 +715,7 @@ export class SoundSceneSession {
     this.set({ saving: true, error: "" })
     try { this.reconcile(await this.persistence.undo()) }
     catch (reason) {
-      this.set({ error: reason instanceof Error ? reason.message : "The last Sound Design edit could not be undone." })
+      this.set({ error: reason instanceof Error ? reason.message : "The last Timeline edit could not be undone." })
     }
     finally { this.set({ saving: false }) }
   }
@@ -724,7 +724,7 @@ export class SoundSceneSession {
     this.set({ saving: true, error: "" })
     try { this.reconcile(await this.persistence.redo()) }
     catch (reason) {
-      this.set({ error: reason instanceof Error ? reason.message : "The Sound Design edit could not be restored." })
+      this.set({ error: reason instanceof Error ? reason.message : "The Timeline edit could not be restored." })
     }
     finally { this.set({ saving: false }) }
   }

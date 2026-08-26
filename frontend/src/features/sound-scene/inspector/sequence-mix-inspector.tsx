@@ -40,16 +40,16 @@ export function SequenceMixInspector({ span, saving, onPreview, onCommit, onOpen
   return <div className="sequence-mix-inspector">
     <section className="sequence-mix-identity">
       <span><AudioLines /></span>
-      <div><small>Canonical Sequence audio</small><h3>{span.role || span.voice_name || span.title || "Sequence Part"}</h3><p>{formatDuration(span.start_ms / 1_000)} · {formatDuration(span.duration_ms / 1_000)}</p></div>
+      <div><small>Canonical Script audio</small><h3>{span.role || span.voice_name || span.title || "Script Part"}</h3><p>{formatDuration(span.start_ms / 1_000)} · {formatDuration(span.duration_ms / 1_000)}</p></div>
     </section>
 
     <section className="sequence-mix-controls">
-      <header><span><SlidersHorizontal /></span><div><h3>Part mix</h3><p>Changes affect Sound Design and final export, never Sequence timing.</p></div></header>
+      <header><span><SlidersHorizontal /></span><div><h3>Part mix</h3><p>Changes affect Timeline and final export, never Script timing.</p></div></header>
       <SwitchLike label="Mute Part audio" checked={span.mix.muted} disabled={saving} onChange={(muted) => { onPreview({ muted }); void onCommit({ muted }) }} />
-      <label><span><Volume2 /> Gain <b>{formatDb(gainDb)}</b></span><Slider aria-label="Sequence Part gain" disabled={saving} min={-60} max={6} step={.5} value={[gainDb]} onValueChange={([value = 0]) => { setGainDb(value); onPreview({ gain: dbToGain(value) }) }} onValueCommit={([value = gainDb]) => { setGainDb(value); void onCommit({ gain: dbToGain(value) }) }} /></label>
+      <label><span><Volume2 /> Gain <b>{formatDb(gainDb)}</b></span><Slider aria-label="Script Part gain" disabled={saving} min={-60} max={6} step={.5} value={[gainDb]} onValueChange={([value = 0]) => { setGainDb(value); onPreview({ gain: dbToGain(value) }) }} onValueCommit={([value = gainDb]) => { setGainDb(value); void onCommit({ gain: dbToGain(value) }) }} /></label>
       <div className="sequence-mix-fades">
-        <label><span>Fade in <b>{fadeIn.toFixed(1)}s</b></span><Slider aria-label="Sequence Part fade in" disabled={saving} min={0} max={maximumFade} step={.1} value={[fadeIn]} onValueChange={([value = 0]) => { setFadeIn(value); onPreview({ fade_in_ms: Math.round(value * 1_000) }) }} onValueCommit={([value = fadeIn]) => { setFadeIn(value); void onCommit({ fade_in_ms: Math.round(value * 1_000) }) }} /></label>
-        <label><span>Fade out <b>{fadeOut.toFixed(1)}s</b></span><Slider aria-label="Sequence Part fade out" disabled={saving} min={0} max={maximumFade} step={.1} value={[fadeOut]} onValueChange={([value = 0]) => { setFadeOut(value); onPreview({ fade_out_ms: Math.round(value * 1_000) }) }} onValueCommit={([value = fadeOut]) => { setFadeOut(value); void onCommit({ fade_out_ms: Math.round(value * 1_000) }) }} /></label>
+        <label><span>Fade in <b>{fadeIn.toFixed(1)}s</b></span><Slider aria-label="Script Part fade in" disabled={saving} min={0} max={maximumFade} step={.1} value={[fadeIn]} onValueChange={([value = 0]) => { setFadeIn(value); onPreview({ fade_in_ms: Math.round(value * 1_000) }) }} onValueCommit={([value = fadeIn]) => { setFadeIn(value); void onCommit({ fade_in_ms: Math.round(value * 1_000) }) }} /></label>
+        <label><span>Fade out <b>{fadeOut.toFixed(1)}s</b></span><Slider aria-label="Script Part fade out" disabled={saving} min={0} max={maximumFade} step={.1} value={[fadeOut]} onValueChange={([value = 0]) => { setFadeOut(value); onPreview({ fade_out_ms: Math.round(value * 1_000) }) }} onValueCommit={([value = fadeOut]) => { setFadeOut(value); void onCommit({ fade_out_ms: Math.round(value * 1_000) }) }} /></label>
       </div>
     </section>
 
@@ -63,6 +63,6 @@ export function SequenceMixInspector({ span, saving, onPreview, onCommit, onOpen
       />
     </section>
 
-    <Button variant="outline" onClick={onOpenSequence}><ExternalLink /> Open in Sequence</Button>
+    <Button variant="outline" onClick={onOpenSequence}><ExternalLink /> Open in Script</Button>
   </div>
 }
