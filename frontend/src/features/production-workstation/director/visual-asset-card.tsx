@@ -1,4 +1,4 @@
-import { Check, Clock3, Image as ImageIcon, LoaderCircle, MoreHorizontal, Plus, Trash2, Video } from "lucide-react"
+import { Check, Clock3, Image as ImageIcon, LoaderCircle, MoreHorizontal, Plus, X, Video } from "lucide-react"
 
 import { ActionButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
@@ -38,7 +38,7 @@ export function VisualAssetCard({ asset, mode = "director", pending = false, onP
               <DropdownMenuItem onSelect={() => onPreview(asset)}>{asset.media_type === "video" ? <Video /> : <ImageIcon />} Preview</DropdownMenuItem>
               <DropdownMenuItem disabled><Check /> Add to Timeline · next checkpoint</DropdownMenuItem>
             </DropdownMenuGroup>
-            {onRemove && <><DropdownMenuSeparator /><DropdownMenuGroup><DropdownMenuItem variant="destructive" onSelect={() => onRemove(asset)}><Trash2 /> Remove from Production</DropdownMenuItem></DropdownMenuGroup></>}
+            {onRemove && <><DropdownMenuSeparator /><DropdownMenuGroup><DropdownMenuItem onSelect={() => onRemove(asset)}><X /> Remove from Director</DropdownMenuItem></DropdownMenuGroup></>}
           </DropdownMenuContent>
         </DropdownMenu>}
     </footer>

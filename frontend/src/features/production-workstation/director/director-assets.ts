@@ -24,6 +24,47 @@ export function visualAssetFacts(asset: VentureAsset) {
   }
 }
 
+export function formatVisualBytes(value?: number | null) {
+  if (!value || value < 0) return null
+  const units = ["B", "KB", "MB", "GB"]
+  let amount = value
+  let unit = 0
+  while (amount >= 1024 && unit < units.length - 1) {
+    amount /= 1024
+    unit += 1
+  }
+  const digits = amount >= 10 || unit === 0 ? 0 : 1
+  return `${amount.toFixed(digits)} ${units[unit]}`
+}
+
+export function formatVisualDate(value?: string) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date)
+}
+
+export function visualAssetDetails(asset: VentureAsset) {
+  const facts = visualAssetFacts(asset)
+  const technical = [
+    { label: "Dimensions", value: facts.dimensions === "Dimensions unavailable" ? null : facts.dimensions },
+    { label: "Duration", value: facts.duration },
+    { label: "Format", value: facts.format },
+    { label: "Codec", value: asset.video_codec ? String(asset.video_codec).toUpperCase() : null },
+    { label: "Frame rate", value: asset.frame_rate ? `${Math.round(asset.frame_rate * 100) / 100} fps` : null },
+    { label: "File size", value: formatVisualBytes(asset.size_bytes) },
+    { label: "MIME type", value: asset.mime_type || null },
+  ].filter((item): item is { label: string; value: string } => Boolean(item.value))
+  const library = [
+    { label: "Available in", value: asset.scope === "studio" ? "Studio Library" : asset.scope === "venture" ? "Venture Library" : null },
+    { label: "Category", value: asset.category ? String(asset.category) : null },
+    { label: "Tags", value: asset.tags?.length ? asset.tags.join(", ") : null },
+    { label: "Added", value: formatVisualDate(asset.created_at) },
+    { label: "Updated", value: formatVisualDate(asset.updated_at) },
+  ].filter((item): item is { label: string; value: string } => Boolean(item.value))
+  return { technical, library }
+}
+
 export const visualFileAccept = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm,.jpg,.jpeg,.png,.webp,.mp4,.mov,.webm"
 
 const visualMimeTypes = new Set([

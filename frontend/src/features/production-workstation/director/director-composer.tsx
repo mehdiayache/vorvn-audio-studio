@@ -1,9 +1,8 @@
 import { ImagePlus, Images, Upload } from "lucide-react"
-import { useRef, useState } from "react"
+import { useRef } from "react"
 
 import { ActionButton } from "@/components/operator-action"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 import { acceptedVisualFiles, visualFileAccept } from "./director-assets"
 
 export function DirectorComposer({ uploading, uploadLabel, onFiles, onOpenLibrary }: {
@@ -13,27 +12,13 @@ export function DirectorComposer({ uploading, uploadLabel, onFiles, onOpenLibrar
   onOpenLibrary: () => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [dragging, setDragging] = useState(false)
 
   function receive(files: FileList | File[]) {
     const accepted = acceptedVisualFiles(files)
     if (accepted.length) onFiles(accepted)
   }
 
-  return <section
-    className={cn("director-composer", dragging && "is-dragging")}
-    aria-label="Add visual material"
-    onDragEnter={(event) => { event.preventDefault(); if (!uploading) setDragging(true) }}
-    onDragOver={(event) => event.preventDefault()}
-    onDragLeave={(event) => {
-      if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false)
-    }}
-    onDrop={(event) => {
-      event.preventDefault()
-      setDragging(false)
-      if (!uploading) receive(event.dataTransfer.files)
-    }}
-  >
+  return <section className="director-composer" aria-label="Add visual material">
     <input ref={inputRef} hidden multiple type="file" accept={visualFileAccept} disabled={uploading} onChange={(event) => {
       if (event.target.files) receive(event.target.files)
       event.target.value = ""
