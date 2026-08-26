@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import type { DurableJob, GeneratePayload, GenerateResult, ProductionPart, SoundScene, VoiceDirectory } from "@/types/domain"
-import { InlineProductionName } from "./production-workstation-page"
+import { InlineProductionName } from "./workstation-header"
 import { WorkstationAssetCard, WorkstationOutline, WorkstationSequence, WorkstationSequenceCard, workstationPartState, type WorkstationPartActions } from "./workstation-sequence"
 import { SoundSceneWorkspace } from "@/features/sound-scene/timeline/sound-scene-workspace"
 import { SoundSceneSession } from "@/features/sound-scene/engine/sound-scene-session"
