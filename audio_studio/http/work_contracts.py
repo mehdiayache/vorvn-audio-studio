@@ -275,10 +275,24 @@ class VentureAssetLibraryResponse(BaseModel):
     venture: HierarchyNodeResponse
     collections: list[AssetCollectionResponse]
     assets: list[VentureAssetResponse]
+    director_asset_ids: list[int] = Field(default_factory=list)
 
 
 class VentureAssetLibraryEnvelope(BaseModel):
     data: VentureAssetLibraryResponse
+
+
+class DirectorAssetMutationRequest(BaseModel):
+    asset_id: int = Field(gt=0)
+
+
+class DirectorAssetMutationResponse(BaseModel):
+    asset_id: int
+    attached: bool
+
+
+class DirectorAssetMutationEnvelope(BaseModel):
+    data: DirectorAssetMutationResponse
 
 
 class PartSpeechJobResponse(BaseModel):

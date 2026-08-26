@@ -339,7 +339,12 @@ export type VentureAsset = {
 }
 
 export type AssetCollection = { id: number; venture_id: number; kind: string; name: string }
-export type VentureAssetLibrary = { venture: WorkResource; collections: AssetCollection[]; assets: VentureAsset[] }
+export type VentureAssetLibrary = {
+  venture: WorkResource
+  collections: AssetCollection[]
+  assets: VentureAsset[]
+  director_asset_ids: number[]
+}
 
 export type PreviewResult = {
   url?: string

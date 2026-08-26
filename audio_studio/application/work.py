@@ -21,6 +21,13 @@ class WorkRecords(Protocol):
     def asset_collections(self, venture_id: int) -> list[dict]: ...
     def assets(self, venture_id: int) -> list[dict]: ...
     def production_assets(self, production_id: int) -> list[dict]: ...
+    def director_asset_ids(self, production_id: int) -> list[int]: ...
+    def attach_director_asset(
+        self, production_id: int, asset_id: int,
+    ) -> bool | None: ...
+    def detach_director_asset(
+        self, production_id: int, asset_id: int,
+    ) -> bool | None: ...
     def parts(self, production_id: int) -> list[dict]: ...
     def exports(self, production_id: int) -> list[dict]: ...
     def latest_render_job(
@@ -112,7 +119,31 @@ class WorkService:
         return {
             **library,
             "assets": self.records.production_assets(internal_id),
+            "director_asset_ids": self.records.director_asset_ids(internal_id),
         }
+
+    def attach_director_asset(
+        self, production_id: int | str, asset_id: int,
+    ) -> dict[str, Any] | None:
+        internal_id = self._internal_id("productions", production_id)
+        if internal_id is None:
+            return None
+        attached = self.records.attach_director_asset(internal_id, asset_id)
+        if attached is None:
+            raise DomainValidation(
+                "Director accepts image and video Assets available to this Production.")
+        return {"asset_id": asset_id, "attached": True}
+
+    def detach_director_asset(
+        self, production_id: int | str, asset_id: int,
+    ) -> dict[str, Any] | None:
+        internal_id = self._internal_id("productions", production_id)
+        if internal_id is None:
+            return None
+        detached = self.records.detach_director_asset(internal_id, asset_id)
+        if detached is None:
+            return None
+        return {"asset_id": asset_id, "attached": False}
 
     def production_editor(self, production_id: int | str) -> dict[str, Any] | None:
         internal_id = self._internal_id("productions", production_id)

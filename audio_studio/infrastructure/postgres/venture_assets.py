@@ -224,6 +224,62 @@ class VentureAssetRepository:
             )
         """, (production_id,))
 
+    def director_asset_ids(self, production_id: int) -> list[int]:
+        """Return visual material deliberately collected for Director."""
+        with read_only() as cursor:
+            cursor.execute("""
+                SELECT selection.asset_id
+                  FROM production_director_assets selection
+                  JOIN assets asset ON asset.id = selection.asset_id
+                 WHERE selection.production_id = %s
+                   AND asset.media_type IN ('image', 'video')
+                 ORDER BY selection.created_at, selection.asset_id
+            """, (production_id,))
+            return [int(row[0]) for row in cursor.fetchall()]
+
+    def attach_to_director(
+        self, production_id: int, asset_id: int,
+    ) -> bool | None:
+        """Collect one allowed visual Asset; idempotent by database truth."""
+        with transaction() as cursor:
+            cursor.execute("""
+                SELECT 1
+                  FROM assets asset
+                  JOIN productions production ON production.id = %s
+                  JOIN work_projects project ON project.id = production.project_id
+                 WHERE asset.id = %s
+                   AND asset.media_type IN ('image', 'video')
+                   AND (asset.venture_id = project.venture_id
+                        OR asset.scope = 'studio')
+                   AND production.archived_at IS NULL
+            """, (production_id, asset_id))
+            if not cursor.fetchone():
+                return None
+            cursor.execute("""
+                INSERT INTO production_director_assets
+                    (production_id, asset_id)
+                VALUES (%s, %s)
+                ON CONFLICT (production_id, asset_id) DO NOTHING
+            """, (production_id, asset_id))
+        return True
+
+    def detach_from_director(
+        self, production_id: int, asset_id: int,
+    ) -> bool | None:
+        """Remove Director availability without deleting the reusable Asset."""
+        with transaction() as cursor:
+            cursor.execute(
+                "SELECT 1 FROM productions WHERE id = %s AND archived_at IS NULL",
+                (production_id,),
+            )
+            if not cursor.fetchone():
+                return None
+            cursor.execute("""
+                DELETE FROM production_director_assets
+                 WHERE production_id = %s AND asset_id = %s
+            """, (production_id, asset_id))
+        return True
+
     def get(self, asset_id: int) -> dict | None:
         with read_only() as cursor:
             cursor.execute("""

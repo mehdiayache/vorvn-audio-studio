@@ -2106,6 +2106,50 @@
         "title": "DeliveryState",
         "type": "object"
       },
+      "DirectorAssetMutationEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DirectorAssetMutationResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "DirectorAssetMutationEnvelope",
+        "type": "object"
+      },
+      "DirectorAssetMutationRequest": {
+        "properties": {
+          "asset_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Asset Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "asset_id"
+        ],
+        "title": "DirectorAssetMutationRequest",
+        "type": "object"
+      },
+      "DirectorAssetMutationResponse": {
+        "properties": {
+          "asset_id": {
+            "title": "Asset Id",
+            "type": "integer"
+          },
+          "attached": {
+            "title": "Attached",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "asset_id",
+          "attached"
+        ],
+        "title": "DirectorAssetMutationResponse",
+        "type": "object"
+      },
       "DiskLocationResponse": {
         "properties": {
           "bytes": {
@@ -10797,6 +10841,13 @@
             "title": "Collections",
             "type": "array"
           },
+          "director_asset_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Director Asset Ids",
+            "type": "array"
+          },
           "venture": {
             "$ref": "#/components/schemas/HierarchyNodeResponse"
           }
@@ -15713,6 +15764,109 @@
           }
         },
         "summary": "List Production Assets",
+        "tags": [
+          "work"
+        ]
+      }
+    },
+    "/api/v1/productions/{production_id}/director-assets": {
+      "post": {
+        "operationId": "attachProductionDirectorAsset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectorAssetMutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectorAssetMutationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Attach Production Director Asset",
+        "tags": [
+          "work"
+        ]
+      }
+    },
+    "/api/v1/productions/{production_id}/director-assets/{asset_id}": {
+      "delete": {
+        "operationId": "detachProductionDirectorAsset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "title": "Asset Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectorAssetMutationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Detach Production Director Asset",
         "tags": [
           "work"
         ]

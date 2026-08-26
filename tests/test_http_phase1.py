@@ -335,6 +335,28 @@ class NativeHttpTests(unittest.TestCase):
             404,
         )
 
+    def test_director_asset_contract_attaches_and_detaches_without_timeline_placement(self):
+        with patch.object(
+                work_router.work_service, "attach_director_asset",
+                return_value={"asset_id": 88, "attached": True}) as attach:
+            added = self.client.post(
+                "/api/v1/productions/7/director-assets",
+                json={"asset_id": 88})
+        self.assertEqual(added.status_code, 200, added.text)
+        self.assertEqual(added.json()["data"], {
+            "asset_id": 88, "attached": True})
+        attach.assert_called_once_with("7", 88)
+
+        with patch.object(
+                work_router.work_service, "detach_director_asset",
+                return_value={"asset_id": 88, "attached": False}) as detach:
+            removed = self.client.delete(
+                "/api/v1/productions/7/director-assets/88")
+        self.assertEqual(removed.status_code, 200, removed.text)
+        self.assertEqual(removed.json()["data"], {
+            "asset_id": 88, "attached": False})
+        detach.assert_called_once_with("7", 88)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -77,12 +77,13 @@ function partDeletionLabel(part: ProductionPart) {
   return `Part ${number} · ${formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"}`
 }
 
-export function ProductionWorkstationPage({ production, tree, soundScene, assets, assetCollections, config, directory, refresh, refreshAssets }: {
+export function ProductionWorkstationPage({ production, tree, soundScene, assets, assetCollections, directorAssetIds, config, directory, refresh, refreshAssets }: {
   production: Production
   tree: HierarchyNode[] | null
   soundScene: SoundScene
   assets: VentureAsset[]
   assetCollections: AssetCollection[]
+  directorAssetIds: number[]
   config: StudioConfig | null
   directory: VoiceDirectory
   refresh: () => Promise<void>
@@ -388,7 +389,23 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
           onOutlineOpenChange={setOutlineOpen}
           onAddEnd={(kind) => openSequenceInsert(kind)}
         />}
-        {stage === "director" && <DirectorStage centerPaneRef={centerPaneRef} />}
+        {stage === "director" && <DirectorStage
+          centerPaneRef={centerPaneRef}
+          productionId={production.id}
+          assets={assets}
+          directorAssetIds={directorAssetIds}
+          onRefresh={refreshAssets}
+          onUpload={async (file) => {
+            const collectionId = assetCollectionIds.Stingers
+            if (!collectionId) throw new Error("The visual library is unavailable.")
+            return await studioApi.uploadAsset(collectionId, file, {
+              name: file.name.replace(/\.[^.]+$/, ""),
+              category: "other",
+              scope: "venture",
+              tags: [],
+            }) as VentureAsset
+          }}
+        />}
         {stage === "sound" && <TimelineStage
           centerPaneRef={centerPaneRef}
           session={soundSession}

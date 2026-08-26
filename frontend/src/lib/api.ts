@@ -91,6 +91,9 @@ type PronunciationPreviewEnvelope = paths["/api/v1/settings/pronunciations/previ
 type HierarchyPageEnvelope = paths["/api/v1/hierarchy"]["get"]["responses"][200]["content"]["application/json"]
 type VentureOverviewEnvelope = paths["/api/v1/ventures/{resource_id}/overview"]["get"]["responses"][200]["content"]["application/json"]
 type VentureAssetsEnvelope = paths["/api/v1/ventures/{resource_id}/assets"]["get"]["responses"][200]["content"]["application/json"]
+type DirectorAssetBody = paths["/api/v1/productions/{production_id}/director-assets"]["post"]["requestBody"]["content"]["application/json"]
+type DirectorAssetEnvelope = paths["/api/v1/productions/{production_id}/director-assets"]["post"]["responses"][200]["content"]["application/json"]
+type DirectorAssetDeleteEnvelope = paths["/api/v1/productions/{production_id}/director-assets/{asset_id}"]["delete"]["responses"][200]["content"]["application/json"]
 type ProjectOverviewEnvelope = paths["/api/v1/projects/{resource_id}/overview"]["get"]["responses"][200]["content"]["application/json"]
 type SeriesOverviewEnvelope = paths["/api/v1/series/{resource_id}/overview"]["get"]["responses"][200]["content"]["application/json"]
 type TimelineReorderEnvelope = paths["/api/v1/productions/{production_id}/parts/reorder"]["post"]["responses"][200]["content"]["application/json"]
@@ -275,7 +278,16 @@ export const studioApi = {
   deleteProduction: (id: number) =>
     request<{ data: { id: number; type: "production"; deleted: boolean } }>(`/api/v1/productions/${id}`, { method: "DELETE" }).then((response) => response.data),
   soundScene: (id: number) => v1<SoundScene>(`/api/v1/productions/${id}/sound-scene`),
-  assets: (id: number) => v1<{ assets?: VentureAsset[]; collections?: AssetCollection[] }>(`/api/v1/productions/${id}/assets`),
+  assets: (id: number) => v1<{ assets?: VentureAsset[]; collections?: AssetCollection[]; director_asset_ids?: number[] }>(`/api/v1/productions/${id}/assets`),
+  attachDirectorAsset: (productionId: number, assetId: number) => request<DirectorAssetEnvelope>(
+    `/api/v1/productions/${productionId}/director-assets`, {
+      method: "POST",
+      body: JSON.stringify({ asset_id: assetId } satisfies DirectorAssetBody),
+    },
+  ).then((response) => response.data),
+  detachDirectorAsset: (productionId: number, assetId: number) => request<DirectorAssetDeleteEnvelope>(
+    `/api/v1/productions/${productionId}/director-assets/${assetId}`, { method: "DELETE" },
+  ).then((response) => response.data),
   preview: async (id: number) => {
     const response = await request<{ data: DurableJob<PreviewResult> }>("/api/v1/jobs/render", { method: "POST", headers: { "Idempotency-Key": `preview-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ production_id: id, operation: "preview" }) })
     return waitForJob<PreviewResult>(response.data.id)

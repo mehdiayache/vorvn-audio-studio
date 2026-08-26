@@ -65,6 +65,19 @@ class PostgresWorkRecords:
     def production_assets(self, production_id: int) -> list[dict]:
         return self.asset_records.list_for_production(production_id)
 
+    def director_asset_ids(self, production_id: int) -> list[int]:
+        return self.asset_records.director_asset_ids(production_id)
+
+    def attach_director_asset(
+        self, production_id: int, asset_id: int,
+    ) -> bool | None:
+        return self.asset_records.attach_to_director(production_id, asset_id)
+
+    def detach_director_asset(
+        self, production_id: int, asset_id: int,
+    ) -> bool | None:
+        return self.asset_records.detach_from_director(production_id, asset_id)
+
     def parts(self, production_id: int) -> list[dict]:
         return self.documents.parts(production_id)
 

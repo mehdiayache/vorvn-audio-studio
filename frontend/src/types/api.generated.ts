@@ -550,6 +550,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/productions/{production_id}/director-assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach Production Director Asset */
+        post: operations["attachProductionDirectorAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/productions/{production_id}/director-assets/{asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Detach Production Director Asset */
+        delete: operations["detachProductionDirectorAsset"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/productions/{production_id}/editor": {
         parameters: {
             query?: never;
@@ -2549,6 +2583,22 @@ export interface components {
              * @default 50
              */
             volume: number;
+        };
+        /** DirectorAssetMutationEnvelope */
+        DirectorAssetMutationEnvelope: {
+            data: components["schemas"]["DirectorAssetMutationResponse"];
+        };
+        /** DirectorAssetMutationRequest */
+        DirectorAssetMutationRequest: {
+            /** Asset Id */
+            asset_id: number;
+        };
+        /** DirectorAssetMutationResponse */
+        DirectorAssetMutationResponse: {
+            /** Asset Id */
+            asset_id: number;
+            /** Attached */
+            attached: boolean;
         };
         /** DiskLocationResponse */
         DiskLocationResponse: {
@@ -5694,6 +5744,8 @@ export interface components {
             assets: components["schemas"]["VentureAssetResponse"][];
             /** Collections */
             collections: components["schemas"]["AssetCollectionResponse"][];
+            /** Director Asset Ids */
+            director_asset_ids?: number[];
             venture: components["schemas"]["HierarchyNodeResponse"];
         };
         /** VentureAssetResponse */
@@ -7766,6 +7818,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VentureAssetLibraryEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attachProductionDirectorAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DirectorAssetMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectorAssetMutationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detachProductionDirectorAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: string;
+                asset_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectorAssetMutationEnvelope"];
                 };
             };
             /** @description Validation Error */

@@ -212,6 +212,16 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         self.assertEqual(listed["media_type"], "image")
         scenes = SoundSceneRepository()
         production_id = self._production()
+        self.assertEqual(self.repository.director_asset_ids(production_id), [])
+        self.assertTrue(self.repository.attach_to_director(
+            production_id, created["id"]))
+        self.assertTrue(self.repository.attach_to_director(
+            production_id, created["id"]))
+        self.assertEqual(
+            self.repository.director_asset_ids(production_id), [created["id"]])
+        self.assertTrue(self.repository.detach_from_director(
+            production_id, created["id"]))
+        self.assertEqual(self.repository.director_asset_ids(production_id), [])
         current = scenes.get(production_id)
         with self.assertRaisesRegex(ValueError, "require audio Assets"):
             scenes.commit(production_id, current["revision"], {
@@ -226,6 +236,29 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                     }],
                 }],
             })
+
+    def test_director_rejects_audio_and_visuals_from_another_venture(self):
+        collections = self.repository.ensure_collections(self.venture_id)
+        music = next(item for item in collections if item["kind"] == "music")
+        audio = self.repository.create_uploaded_asset(
+            music["id"], name="Audio only", filename="audio.wav",
+            path="/audio/audio.wav", size_bytes=10, duration_ms=1000,
+            audio_format="wav", mime_type="audio/wav")
+        production_id = self._production()
+        self.assertIsNone(self.repository.attach_to_director(
+            production_id, audio["id"]))
+
+        other_collections = self.repository.ensure_collections(
+            self.other_venture_id)
+        other = next(
+            item for item in other_collections if item["kind"] == "stingers")
+        image = self.repository.create_uploaded_asset(
+            other["id"], name="Other visual", filename="other.png",
+            path="/media/other.png", size_bytes=10, duration_ms=None,
+            audio_format=None, mime_type="image/png", media_type="image",
+            media_format="png", width=100, height=100)
+        self.assertIsNone(self.repository.attach_to_director(
+            production_id, image["id"]))
 
     def test_uploaded_studio_asset_is_reusable_by_another_venture(self):
         collections = self.repository.ensure_collections(self.venture_id)

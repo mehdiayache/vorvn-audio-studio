@@ -14,6 +14,8 @@ from audio_studio.http.contracts import ResourceCreate, ResourceUpdate
 from audio_studio.http.errors import ApiProblem
 from audio_studio.http.work_contracts import (
     ArchivedResourceEnvelope,
+    DirectorAssetMutationEnvelope,
+    DirectorAssetMutationRequest,
     HierarchyPageEnvelope,
     ProductionEditorEnvelope,
     ProjectOverviewEnvelope,
@@ -102,6 +104,40 @@ def list_production_assets(production_id: str) -> dict:
     if not item:
         raise ApiProblem(404, "production_not_found", "That Production does not exist.")
     return {"data": item}
+
+
+@router.post(
+    "/productions/{production_id}/director-assets",
+    operation_id="attachProductionDirectorAsset",
+    response_model=DirectorAssetMutationEnvelope,
+)
+def attach_production_director_asset(
+    production_id: str, payload: DirectorAssetMutationRequest,
+) -> dict:
+    try:
+        result = work_service.attach_director_asset(
+            production_id, payload.asset_id)
+    except DomainValidation as exc:
+        raise ApiProblem(400, "invalid_director_asset", str(exc)) from exc
+    if not result:
+        raise ApiProblem(404, "production_not_found",
+                         "That Production does not exist.")
+    return {"data": result}
+
+
+@router.delete(
+    "/productions/{production_id}/director-assets/{asset_id}",
+    operation_id="detachProductionDirectorAsset",
+    response_model=DirectorAssetMutationEnvelope,
+)
+def detach_production_director_asset(
+    production_id: str, asset_id: int,
+) -> dict:
+    result = work_service.detach_director_asset(production_id, asset_id)
+    if not result:
+        raise ApiProblem(404, "production_not_found",
+                         "That Production does not exist.")
+    return {"data": result}
 
 
 @router.post("/ventures", status_code=status.HTTP_201_CREATED,
