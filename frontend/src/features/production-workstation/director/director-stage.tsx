@@ -35,7 +35,13 @@ export function DirectorStage({ centerPaneRef, productionId, assets, directorAss
   const dragDepth = useRef(0)
   const selectedIds = useMemo(() => new Set(directorAssetIds), [directorAssetIds])
   const visualAssets = useMemo(() => assets.filter(isVisualAsset), [assets])
-  const collected = useMemo(() => visualAssets.filter((asset) => selectedIds.has(asset.id)), [selectedIds, visualAssets])
+  const collected = useMemo(() => {
+    const byId = new Map(visualAssets.map((asset) => [asset.id, asset]))
+    return [...directorAssetIds].reverse().flatMap((id) => {
+      const asset = byId.get(id)
+      return asset ? [asset] : []
+    })
+  }, [directorAssetIds, visualAssets])
   const available = useMemo(() => visualAssets.filter((asset) => !selectedIds.has(asset.id)), [selectedIds, visualAssets])
 
   async function attach(asset: VentureAsset) {

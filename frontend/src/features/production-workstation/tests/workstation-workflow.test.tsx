@@ -168,10 +168,14 @@ describe("Production workflow", () => {
     expect(gallery.getAttribute("data-state")).toBe("on")
     expect(document.querySelector('[data-view="gallery"]')).toBeTruthy()
     expect(document.querySelectorAll(".director-gallery-column")).toHaveLength(5)
+    expect(screen.getAllByRole("heading", { level: 3 })[0]?.textContent).toBe("Visual 6")
 
     fireEvent.click(list)
     expect(list.getAttribute("data-state")).toBe("on")
     expect(document.querySelector('.director-gallery-items[data-view="list"]')).toBeTruthy()
+    expect(screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual([
+      "Visual 6", "Visual 5", "Visual 4", "Visual 3", "Visual 2", "Visual 1",
+    ])
     expect(window.localStorage.getItem("auvi-director-gallery-view")).toBe("list")
   })
 
