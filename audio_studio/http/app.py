@@ -35,6 +35,7 @@ from audio_studio.http.routers.speak import router as speak_router
 from audio_studio.http.routers.composer_drafts import router as composer_drafts_router
 from audio_studio.http.routers.audio_projects import router as audio_projects_router
 from audio_studio.http.routers.sound_scenes import router as sound_scenes_router
+from audio_studio.http.routers.visual_scenes import router as visual_scenes_router
 from audio_studio.http.routers.audio_catalogs import router as audio_catalogs_router
 from audio_studio.http.routers.audio_generations import router as audio_generations_router
 from audio_studio.http.routers.production_imports import router as production_imports_router
@@ -79,6 +80,7 @@ app.include_router(speak_router)
 app.include_router(composer_drafts_router)
 app.include_router(audio_projects_router)
 app.include_router(sound_scenes_router)
+app.include_router(visual_scenes_router)
 app.include_router(audio_catalogs_router)
 app.include_router(audio_generations_router)
 app.include_router(production_imports_router)

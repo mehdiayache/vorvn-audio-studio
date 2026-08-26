@@ -11226,6 +11226,174 @@
         "title": "VentureOverviewResponse",
         "type": "object"
       },
+      "VisualSceneClipDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Asset Id",
+            "type": "integer"
+          },
+          "duration_ms": {
+            "minimum": 100.0,
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "locked": {
+            "default": false,
+            "title": "Locked",
+            "type": "boolean"
+          },
+          "source_offset_ms": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Source Offset Ms",
+            "type": "integer"
+          },
+          "start_ms": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Start Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "asset_id",
+          "duration_ms"
+        ],
+        "title": "VisualSceneClipDocument",
+        "type": "object"
+      },
+      "VisualSceneDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "tracks": {
+            "items": {
+              "$ref": "#/components/schemas/VisualSceneTrackDocument"
+            },
+            "maxItems": 64,
+            "title": "Tracks",
+            "type": "array"
+          },
+          "version": {
+            "const": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "tracks"
+        ],
+        "title": "VisualSceneDocument",
+        "type": "object"
+      },
+      "VisualSceneEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/VisualSceneResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "VisualSceneEnvelope",
+        "type": "object"
+      },
+      "VisualSceneResponse": {
+        "properties": {
+          "document": {
+            "$ref": "#/components/schemas/VisualSceneDocument"
+          },
+          "production_id": {
+            "title": "Production Id",
+            "type": "integer"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "production_id",
+          "revision",
+          "document",
+          "updated_at"
+        ],
+        "title": "VisualSceneResponse",
+        "type": "object"
+      },
+      "VisualSceneTrackDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "clips": {
+            "items": {
+              "$ref": "#/components/schemas/VisualSceneClipDocument"
+            },
+            "maxItems": 1000,
+            "title": "Clips",
+            "type": "array"
+          },
+          "id": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "locked": {
+            "default": false,
+            "title": "Locked",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "visible": {
+            "default": true,
+            "title": "Visible",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "clips"
+        ],
+        "title": "VisualSceneTrackDocument",
+        "type": "object"
+      },
+      "VisualSceneUpdateBody": {
+        "additionalProperties": false,
+        "properties": {
+          "document": {
+            "$ref": "#/components/schemas/VisualSceneDocument"
+          },
+          "expected_revision": {
+            "exclusiveMinimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "document"
+        ],
+        "title": "VisualSceneUpdateBody",
+        "type": "object"
+      },
       "VoiceBindingResponse": {
         "additionalProperties": false,
         "properties": {
@@ -16900,6 +17068,98 @@
         "summary": "Undo Sound Scene",
         "tags": [
           "sound-scene"
+        ]
+      }
+    },
+    "/api/v1/productions/{production_id}/visual-scene": {
+      "get": {
+        "operationId": "getProductionVisualScene",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisualSceneEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Visual Scene",
+        "tags": [
+          "visual-scene"
+        ]
+      },
+      "patch": {
+        "operationId": "updateProductionVisualScene",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VisualSceneUpdateBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisualSceneEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Visual Scene",
+        "tags": [
+          "visual-scene"
         ]
       }
     },

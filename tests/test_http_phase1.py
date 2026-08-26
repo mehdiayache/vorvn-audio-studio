@@ -13,6 +13,7 @@ from audio_studio.http.app import app
 from audio_studio.http.routers import media as media_router
 from audio_studio.http.routers import timeline as timeline_router
 from audio_studio.http.routers import sound_scenes as sound_scene_router
+from audio_studio.http.routers import visual_scenes as visual_scene_router
 from audio_studio.http.routers import work as work_router
 from audio_studio.http.routers import jobs as jobs_router
 from audio_studio.domain.work import DomainConflict
@@ -356,6 +357,29 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(removed.json()["data"], {
             "asset_id": 88, "attached": False})
         detach.assert_called_once_with("7", 88)
+
+    def test_visual_scene_contract_is_revisioned_and_independent_from_sound_scene(self):
+        document = {"version": 1, "tracks": [{
+            "id": "visual-1", "name": "Visual 1",
+            "visible": True, "locked": False, "clips": [{
+                "id": "87ef4b3b-e0c5-47a0-a503-7cc30deca901",
+                "asset_id": 88, "start_ms": 0, "duration_ms": 5_000,
+                "source_offset_ms": 0, "locked": False,
+            }],
+        }]}
+        with patch.object(
+                visual_scene_router.visual_scene_service, "update",
+                return_value={
+                    "production_id": 7, "revision": 2,
+                    "document": document,
+                    "updated_at": "2026-08-26T00:00:00",
+                }) as update:
+            response = self.client.patch(
+                "/api/v1/productions/7/visual-scene",
+                json={"expected_revision": 1, "document": document})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["data"]["revision"], 2)
+        update.assert_called_once_with(7, 1, document)
 
 
 if __name__ == "__main__":

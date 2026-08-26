@@ -38,6 +38,7 @@ class AudioStudioArchitectureTests(unittest.TestCase):
             "/api/v1/config",
             "/api/v1/hierarchy",
             "/api/v1/productions/{production_id}/sound-scene",
+            "/api/v1/productions/{production_id}/visual-scene",
             "/api/v1/productions/{production_id}/parts/silence",
             "/api/v1/jobs/speech",
             "/api/v1/jobs/transcription",

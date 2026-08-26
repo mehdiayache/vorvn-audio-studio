@@ -18,6 +18,8 @@ from audio_studio.domain.media import MediaInspection
 from audio_studio.infrastructure import upload_workspace
 from audio_studio.infrastructure.postgres.uploads import PostgresUploadRecords
 from audio_studio.infrastructure.postgres.sound_scenes import SoundSceneRepository
+from audio_studio.infrastructure.postgres.visual_scenes import VisualSceneRepository
+from audio_studio.domain.visual_scene import VisualSceneRevisionConflict
 from audio_studio.infrastructure.postgres.venture_assets import (
     VentureAssetRepository,
 )
@@ -236,6 +238,26 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                     }],
                 }],
             })
+
+        visual_scenes = VisualSceneRepository()
+        visual = visual_scenes.get(production_id)
+        document = {
+            "version": 1, "tracks": [{
+                "id": "visual-1", "name": "Visual 1",
+                "visible": True, "locked": False, "clips": [{
+                    "id": str(uuid4()), "asset_id": created["id"],
+                    "start_ms": 2_000, "duration_ms": 5_000,
+                    "source_offset_ms": 0, "locked": False,
+                }],
+            }],
+        }
+        saved = visual_scenes.commit(
+            production_id, visual["revision"], document)
+        self.assertEqual(saved["revision"], 2)
+        self.assertEqual(saved["document"], document)
+        with self.assertRaises(VisualSceneRevisionConflict) as conflict:
+            visual_scenes.commit(production_id, 1, document)
+        self.assertEqual(conflict.exception.current_revision, 2)
 
     def test_director_rejects_audio_and_visuals_from_another_venture(self):
         collections = self.repository.ensure_collections(self.venture_id)

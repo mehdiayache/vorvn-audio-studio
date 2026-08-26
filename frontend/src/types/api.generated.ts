@@ -908,6 +908,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/productions/{production_id}/visual-scene": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Visual Scene */
+        get: operations["getProductionVisualScene"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Visual Scene */
+        patch: operations["updateProductionVisualScene"];
+        trace?: never;
+    };
     "/api/v1/productions/{resource_id}": {
         parameters: {
             query?: never;
@@ -5840,6 +5858,82 @@ export interface components {
             /** Trail */
             trail: components["schemas"]["TrailItemResponse"][];
         };
+        /** VisualSceneClipDocument */
+        VisualSceneClipDocument: {
+            /** Asset Id */
+            asset_id: number;
+            /** Duration Ms */
+            duration_ms: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Locked
+             * @default false
+             */
+            locked: boolean;
+            /**
+             * Source Offset Ms
+             * @default 0
+             */
+            source_offset_ms: number;
+            /**
+             * Start Ms
+             * @default 0
+             */
+            start_ms: number;
+        };
+        /** VisualSceneDocument */
+        VisualSceneDocument: {
+            /** Tracks */
+            tracks: components["schemas"]["VisualSceneTrackDocument"][];
+            /**
+             * Version
+             * @constant
+             */
+            version: 1;
+        };
+        /** VisualSceneEnvelope */
+        VisualSceneEnvelope: {
+            data: components["schemas"]["VisualSceneResponse"];
+        };
+        /** VisualSceneResponse */
+        VisualSceneResponse: {
+            document: components["schemas"]["VisualSceneDocument"];
+            /** Production Id */
+            production_id: number;
+            /** Revision */
+            revision: number;
+            /** Updated At */
+            updated_at: string;
+        };
+        /** VisualSceneTrackDocument */
+        VisualSceneTrackDocument: {
+            /** Clips */
+            clips: components["schemas"]["VisualSceneClipDocument"][];
+            /** Id */
+            id: string;
+            /**
+             * Locked
+             * @default false
+             */
+            locked: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Visible
+             * @default true
+             */
+            visible: boolean;
+        };
+        /** VisualSceneUpdateBody */
+        VisualSceneUpdateBody: {
+            document: components["schemas"]["VisualSceneDocument"];
+            /** Expected Revision */
+            expected_revision: number;
+        };
         /** VoiceBindingResponse */
         VoiceBindingResponse: {
             /** Accent */
@@ -8564,6 +8658,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SoundSceneEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getProductionVisualScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisualSceneEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateProductionVisualScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VisualSceneUpdateBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisualSceneEnvelope"];
                 };
             };
             /** @description Validation Error */
