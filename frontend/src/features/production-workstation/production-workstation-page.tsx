@@ -34,6 +34,7 @@ import { DirectorStage } from "./director/director-stage"
 import { ExportStage, ReleaseInspector } from "./export/export-stage"
 import { ScriptStage } from "./script/script-stage"
 import { TimelineStage } from "./timeline/timeline-stage"
+import { VisualClipInspector } from "./timeline/visual-clip-inspector"
 import { WorkstationHeader } from "./workstation-header"
 import { AudioGroupInspector, EmptyInspector } from "./workstation-stage-support"
 import type { WorkstationStage } from "./workstation-workflow"
@@ -319,12 +320,17 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     : null
   const audioAsset = audioClip ? assets.find((asset) => asset.id === audioClip.asset_id) : undefined
   const audioClipName = audioClip?.asset_name || "Audio clip"
+  const visualSelection = visualState.selection
+  const visualTrack = visualSelection ? visualState.document.tracks.find((track) => track.id === visualSelection.trackId) || null : null
+  const visualClip = visualSelection ? visualTrack?.clips.find((clip) => clip.id === visualSelection.clipId) || null : null
+  const visualAsset = visualClip ? assets.find((asset) => asset.id === visualClip.asset_id) : undefined
   const playingPart = actions.playerPlaying && player.source?.key.startsWith("part:")
     ? sourceParts.find((part) => part.id === Number(player.source?.key.slice(5))) || null
     : null
   const inspectorTitle = composerOpen ? (composerPart ? `Edit Part ${formatPartNumber(composerPart.position ?? 0)}` : "New speech")
     : stage === "sequence" && selectedPart ? `Part ${formatPartNumber(selectedPart.position ?? 0)} · ${formatAuthoredRole(selectedPart.authored_role) || partKindLabel(selectedPart)}`
-      : stage === "sound" && soundSelection?.kind === "clip" ? "Audio clip"
+      : stage === "sound" && visualClip ? `${visualTrack?.media_type === "video" ? "Video" : "Image"} clip`
+        : stage === "sound" && soundSelection?.kind === "clip" ? "Audio clip"
         : stage === "sound" && soundSelection?.kind === "clips" ? `${soundSelection.clips.length} audio clips`
           : stage === "sound" && soundSpan ? `${soundSpan.role || soundSpan.voice_name || "Script Part"} · Mix`
           : stage === "mix" ? "Release checks" : "Inspector"
@@ -340,6 +346,8 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     productionId={production.id} part={selectedPart} directory={directory} playingKey={player.source?.key} playerPlaying={actions.playerPlaying}
     onPlay={(source) => void playSource(source)} onChanged={async () => { actions.invalidatePreview(); await refresh() }}
     onDuplicate={(part) => void actions.duplicatePart(part)} onDelete={requestPartDeletion} onEdit={editPart} onOpenCaptions={(part) => setCaptionPartId(part.id)} onReplaceAsset={openAssetReplacement}
+  /> : stage === "sound" && visualSelection && visualTrack && visualClip ? <VisualClipInspector
+    clipRef={visualSelection} track={visualTrack} clip={visualClip} asset={visualAsset} session={visualSession} saving={visualState.saving}
   /> : stage === "sound" && soundSelection?.kind === "clip" && audioTrack ? <AudioClipInspector
     track={audioTrack} clip={audioClip} asset={audioAsset} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)}
     onClipChange={(changes) => { if (audioClip) soundSession.updateClip(audioTrack.id, audioClip.id, changes) }} onClipCommit={() => soundSession.commitClip()}
@@ -357,7 +365,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
       onRemoveOverride={(partPublicId) => { void soundSession.removeSequenceOverride(partPublicId) }}
     /> : <EmptyInspector stage={stage} />
 
-  const inspectorOpen = composerOpen || stage === "sequence" && Boolean(selectedPart) || stage === "sound" && Boolean(soundSelection) || stage === "mix" && releaseInspectorOpen
+  const inspectorOpen = composerOpen || stage === "sequence" && Boolean(selectedPart) || stage === "sound" && Boolean(soundSelection || visualSelection) || stage === "mix" && releaseInspectorOpen
   const collapsedPart = playingPart || (stage === "sequence" ? selectedPart : null)
   const collapsedState = collapsedPart ? workstationPartState(collapsedPart) : issues.length || staleOverrides.length ? "issue" : sourceParts.some((part) => workstationPartState(part) === "draft") ? "draft" : "ready"
   const collapsedNumber = collapsedPart
@@ -366,7 +374,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
   const closeInspector = () => {
     if (composerOpen) { closeComposer(); return }
     if (stage === "sequence") setSelectedId(null)
-    else if (stage === "sound") soundSession.select(null)
+    else if (stage === "sound") { soundSession.select(null); visualSession.select(null) }
     else setReleaseInspectorOpen(false)
   }
 

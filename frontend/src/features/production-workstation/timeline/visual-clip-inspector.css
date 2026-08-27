@@ -1,0 +1,22 @@
+.visual-clip-inspector { min-height: 100%; display: grid; align-content: start; }
+.visual-inspector-identity { min-width: 0; display: flex; align-items: center; gap: .7rem; padding: .85rem 1rem; border-bottom: 1px solid var(--border); }
+.visual-inspector-identity > span:last-child { min-width: 0; display: grid; }
+.visual-inspector-identity b, .visual-inspector-identity small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.visual-inspector-identity b { font-size: .78rem; font-weight: var(--weight-emphasis); }.visual-inspector-identity small { color: var(--muted-foreground); font-size: .62rem; }
+.visual-inspector-thumb { width: 3.5rem; height: 2.5rem; display: grid; flex: none; place-items: center; overflow: hidden; border-radius: .45rem; color: var(--primary); background: var(--primary-soft); }
+.visual-inspector-thumb img { width: 100%; height: 100%; object-fit: cover; }.visual-inspector-thumb svg { width: 1rem; }
+.visual-clip-inspector section { padding: .9rem 1rem; border-bottom: 1px solid var(--border); }
+.visual-clip-inspector section > header { display: flex; align-items: start; justify-content: space-between; gap: 1rem; margin-bottom: .65rem; }
+.visual-clip-inspector section > header > span { display: grid; gap: .12rem; }
+.visual-clip-inspector section header b { font-size: .72rem; font-weight: var(--weight-emphasis); }
+.visual-clip-inspector section header small { color: var(--muted-foreground); font-size: .59rem; }
+.visual-inspector-framing [data-slot="toggle-group"] { width: 100%; gap: .35rem; }
+.visual-inspector-framing [data-slot="toggle-group-item"] { min-width: 0; flex: 1; border-left-width: 1px; border-radius: .42rem; color: var(--foreground); background: var(--surface-raised); font-size: .65rem; }
+.visual-inspector-framing [data-slot="toggle-group-item"][data-state="on"] { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); box-shadow: inset 0 0 0 1px var(--primary); }
+.visual-inspector-placement dl, .visual-inspector-details dl { display: grid; gap: .4rem; margin: 0; }
+.visual-inspector-placement dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.visual-inspector-placement dl > div, .visual-inspector-details dl > div { min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+.visual-inspector-placement dt, .visual-inspector-details dt { color: var(--muted-foreground); font-size: .6rem; }
+.visual-inspector-placement dd, .visual-inspector-details dd { min-width: 0; margin: 0; overflow: hidden; color: var(--foreground); font: var(--weight-emphasis) .62rem/1.3 var(--font-mono); text-align: right; text-overflow: ellipsis; }
+.visual-inspector-placement p { display: flex; gap: .4rem; margin: .75rem 0 0; color: var(--foreground); font-size: .6rem; line-height: 1.45; }.visual-inspector-placement p svg { width: .75rem; flex: none; color: var(--primary); }
+.visual-inspector-lock { display: grid; justify-items: start; gap: .35rem; padding: .9rem 1rem; }.visual-inspector-lock small { color: var(--muted-foreground); font-size: .59rem; }

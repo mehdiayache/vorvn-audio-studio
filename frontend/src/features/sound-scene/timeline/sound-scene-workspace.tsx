@@ -16,7 +16,7 @@ import type { VentureAsset, VisualSceneTrack } from "@/types/domain"
 import { visualAssetName } from "@/features/production-workstation/director/director-assets"
 import { VisualSceneSession, useVisualSceneSession, type VisualClipRef } from "@/features/visual-scene/engine/visual-scene-session"
 import { VisualContextToolbar, VisualTimelineClip, VisualTrackControl } from "@/features/visual-scene/timeline/visual-timeline-parts"
-import { VisualSceneMonitor } from "@/features/visual-scene/timeline/visual-scene-monitor"
+import { TimelineViewer } from "@/features/production-workstation/timeline/timeline-viewer"
 import { SOUND_SCENE_ZOOM_LEVELS, soundSceneFitZoomIndex, soundSceneZoomIndex, soundSceneZoomLevel } from "../engine/sound-scene-engine"
 import { SoundSceneSession, soundTrackDisplayName, useSoundSceneSession, type SoundClipRef } from "../engine/sound-scene-session"
 import { dbToGain, formatDb, gainToDb, MAX_GAIN_DB, MIN_GAIN_DB } from "../sound-scene-gain"
@@ -570,7 +570,7 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-    {visual && <VisualSceneMonitor document={visualState.document} assets={visual.assets} playheadMs={playhead * 1000} playback={session.snapshot().playback} />}
+    {visual && <TimelineViewer document={visualState.document} assets={visual.assets} playheadMs={playhead * 1000} playback={session.snapshot().playback} selection={selectedVisualRef} session={visual.session} saving={visualState.saving} />}
     <div className="sound-scene-editor">
       <aside ref={controlsRef} className="sound-scene-track-controls" style={{ gridTemplateRows: rowTemplate }} onWheel={(event) => { if (scrollRef.current) scrollRef.current.scrollTop += event.deltaY }}>
         <div className="sound-scene-track-head"><span>Tracks</span><DropdownMenu><OperatorTooltip label="Add Timeline track" detail="Create an empty typed track, then add compatible media."><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Add Timeline track"><Plus /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent side="right" align="start"><DropdownMenuItem onSelect={() => void visual?.session.addTrack("image")} disabled={!visual}><ImageIcon /> Image track</DropdownMenuItem><DropdownMenuItem onSelect={() => void visual?.session.addTrack("video")} disabled={!visual}><Film /> Video track</DropdownMenuItem><DropdownMenuItem onSelect={() => onAddAudio({ mode: "new-track" })}><AudioWaveform /> Audio track</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>

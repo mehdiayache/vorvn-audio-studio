@@ -60,12 +60,17 @@ export function formatVisualDate(value?: string) {
 
 export function visualAssetDetails(asset: VentureAsset) {
   const facts = visualAssetFacts(asset)
+  const audioCodec = typeof asset.metadata?.audio_codec === "string" ? asset.metadata.audio_codec.toUpperCase() : null
+  const audioFacts = asset.media_type === "video" && (audioCodec || asset.channels || asset.sample_rate)
+    ? [audioCodec, asset.channels ? `${asset.channels === 1 ? "Mono" : asset.channels === 2 ? "Stereo" : `${asset.channels} channels`}` : null, asset.sample_rate ? `${Math.round(asset.sample_rate / 100) / 10} kHz` : null].filter(Boolean).join(" · ")
+    : null
   const technical = [
     { label: "Dimensions", value: facts.dimensions === "Dimensions unavailable" ? null : facts.dimensions },
     { label: "Duration", value: facts.duration },
     { label: "Format", value: facts.format },
     { label: "Codec", value: asset.video_codec ? String(asset.video_codec).toUpperCase() : null },
     { label: "Frame rate", value: asset.frame_rate ? `${Math.round(asset.frame_rate * 100) / 100} fps` : null },
+    { label: "Embedded audio", value: audioFacts },
     { label: "File size", value: formatVisualBytes(asset.size_bytes) },
     { label: "MIME type", value: asset.mime_type || null },
   ].filter((item): item is { label: string; value: string } => Boolean(item.value))
