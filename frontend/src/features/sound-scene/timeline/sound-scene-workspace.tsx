@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Slider } from "@/components/ui/slider"
 import { audioUrl } from "@/lib/api"
 import { soundClipSourceUrl } from "../engine/sound-clip-source"
+import { videoHasEmbeddedAudio } from "../engine/video-audio-sync"
 import { formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { SoundSceneClip, SoundSceneTrack } from "@/types/domain"
@@ -752,7 +753,7 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
       </div>
       </div>
     </div>
-    <footer className="sound-scene-context-bar">{selectedVisualRef && selectedVisualTrack && selectedVisualClip && visual ? <VisualContextToolbar track={selectedVisualTrack} clip={selectedVisualClip} asset={selectedVisualAsset} saving={visualState.saving || saving} canSplit={canSplitVisual} audioMuted={selectedVideoAudio?.clip.muted} onAudioMute={selectedVideoAudio ? () => void session.commitClipChanges(selectedVideoAudio.trackId, selectedVideoAudio.clip.id, { muted: !selectedVideoAudio.clip.muted }) : undefined} onSplit={() => void visual.session.splitVideo(selectedVisualRef, playhead * 1000, selectedVisualAsset)} onLock={() => void visual.session.setClipLocked(selectedVisualRef, !selectedVisualClip.locked)} onDuplicate={() => void visual.session.duplicate(selectedVisualRef)} onDelete={() => visual.onRemoveClip(selectedVisualRef, selectedVisualAsset ? visualAssetName(selectedVisualAsset) : "Visual")} /> : context ? <SoundSceneContextToolbar
+    <footer className="sound-scene-context-bar">{selectedVisualRef && selectedVisualTrack && selectedVisualClip && visual ? <VisualContextToolbar track={selectedVisualTrack} clip={selectedVisualClip} asset={selectedVisualAsset} saving={visualState.saving || saving} canSplit={canSplitVisual} hasAudio={videoHasEmbeddedAudio(selectedVisualAsset)} audioMuted={selectedVideoAudio?.clip.muted} onAudioMute={selectedVideoAudio ? () => void session.commitClipChanges(selectedVideoAudio.trackId, selectedVideoAudio.clip.id, { muted: !selectedVideoAudio.clip.muted }) : undefined} onSplit={() => void visual.session.splitVideo(selectedVisualRef, playhead * 1000, selectedVisualAsset)} onLock={() => void visual.session.setClipLocked(selectedVisualRef, !selectedVisualClip.locked)} onDuplicate={() => void visual.session.duplicate(selectedVisualRef)} onDelete={() => visual.onRemoveClip(selectedVisualRef, selectedVisualAsset ? visualAssetName(selectedVisualAsset) : "Visual")} /> : context ? <SoundSceneContextToolbar
       context={context} saving={saving}
       onMute={() => {
         if (selectedPart) void session.updateSequenceOverride(selectedPart.part_public_id, { muted: !selectedPart.mix.muted })

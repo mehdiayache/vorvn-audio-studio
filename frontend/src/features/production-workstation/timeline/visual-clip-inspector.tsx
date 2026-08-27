@@ -1,8 +1,11 @@
+import { useEffect, useState } from "react"
 import { Clock3, Film, Image as ImageIcon, Lock, LockOpen, Volume2, VolumeX } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { visualAssetDetails, visualAssetFacts, visualAssetName, visualAssetPosterUrl, visualAssetUrl } from "@/features/production-workstation/director/director-assets"
+import { dbToGain, formatDb, gainToDb, MAX_GAIN_DB, MIN_GAIN_DB } from "@/features/sound-scene/sound-scene-gain"
 import type { VisualClipRef, VisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
 import type { VentureAsset, VisualSceneClip, VisualSceneTrack } from "@/types/domain"
 
@@ -15,7 +18,7 @@ function milliseconds(value: number) {
   return minutes ? `${minutes}:${remainder.toFixed(1).padStart(4, "0")}` : `${remainder.toFixed(1)}s`
 }
 
-export function VisualClipInspector({ clipRef, track, clip, asset, session, saving, hasEmbeddedAudio = false, audioMuted = false, onAudioMutedChange }: {
+export function VisualClipInspector({ clipRef, track, clip, asset, session, saving, hasEmbeddedAudio = false, audioMuted = false, audioGain = 1, onAudioMutedChange, onAudioGainChange, onAudioGainCommit }: {
   clipRef: VisualClipRef
   track: VisualSceneTrack
   clip: VisualSceneClip
@@ -24,8 +27,13 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
   saving: boolean
   hasEmbeddedAudio?: boolean
   audioMuted?: boolean
+  audioGain?: number
   onAudioMutedChange?: (muted: boolean) => void | Promise<void>
+  onAudioGainChange?: (gain: number) => void
+  onAudioGainCommit?: () => void | Promise<void>
 }) {
+  const [audioGainDb, setAudioGainDb] = useState(gainToDb(audioGain))
+  useEffect(() => setAudioGainDb(gainToDb(audioGain)), [audioGain])
   const details = asset ? visualAssetDetails(asset) : { technical: [], library: [] }
   const facts = asset ? visualAssetFacts(asset) : null
   const name = asset ? visualAssetName(asset) : "Missing media"
@@ -46,8 +54,11 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
     </section>
 
     {track.media_type === "video" && <section className="visual-inspector-audio">
-      <header><span><b>Video audio</b><small>{hasEmbeddedAudio ? "Follows this video placement in Timeline and Export." : "This source has no embedded audio stream."}</small></span>{hasEmbeddedAudio ? audioMuted ? <VolumeX /> : <Volume2 /> : null}</header>
-      {hasEmbeddedAudio && <label><span><b>Play embedded audio</b><small>Turn off to keep the picture silent without changing its timing.</small></span><Switch checked={!audioMuted} disabled={saving || !onAudioMutedChange} onCheckedChange={(checked) => void onAudioMutedChange?.(!checked)} aria-label="Play embedded video audio" /></label>}
+      <header><span><b>Audio</b><small>{hasEmbeddedAudio ? "This video's sound follows the visual clip in Timeline and Export." : "This source has no audio."}</small></span>{hasEmbeddedAudio ? audioMuted ? <VolumeX /> : <Volume2 /> : null}</header>
+      {hasEmbeddedAudio && <div className="visual-inspector-audio-controls">
+        <label className="visual-inspector-audio-toggle"><span><b>Mute audio</b><small>Keeps the picture and timing unchanged.</small></span><Switch checked={audioMuted} disabled={saving || !onAudioMutedChange} onCheckedChange={(checked) => void onAudioMutedChange?.(checked)} aria-label="Mute video audio" /></label>
+        <label className="visual-inspector-audio-level"><span><b>Audio level</b><small>Adjust only this video's sound.</small></span><strong>{formatDb(audioGainDb)}</strong><Slider aria-label="Video audio level" disabled={saving || !onAudioGainChange || !onAudioGainCommit} value={[audioGainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setAudioGainDb(value); onAudioGainChange?.(dbToGain(value)) }} onValueCommit={([value = audioGainDb]) => { setAudioGainDb(value); onAudioGainChange?.(dbToGain(value)); void onAudioGainCommit?.() }} /></label>
+      </div>}
     </section>}
 
     {details.technical.length > 0 && <DetailSection title="Source" items={details.technical} />}

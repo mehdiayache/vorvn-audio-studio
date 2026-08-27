@@ -7,6 +7,12 @@ import type { VisualSceneSession } from "@/features/visual-scene/engine/visual-s
 import type { VentureAsset, VisualSceneClip, VisualSceneTrack } from "@/types/domain"
 import { VisualClipInspector } from "./visual-clip-inspector"
 
+globalThis.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as typeof ResizeObserver
+
 afterEach(cleanup)
 
 describe("VisualClipInspector", () => {
@@ -25,5 +31,19 @@ describe("VisualClipInspector", () => {
     expect(screen.queryByText("Fill and crop")).toBeNull()
     fireEvent.click(screen.getByRole("button", { name: "Lock placement" }))
     expect(setClipLocked).toHaveBeenCalledWith({ trackId: "track", clipId: "clip" }, true)
+  })
+
+  it("uses human video-audio controls and exposes the canonical clip level", () => {
+    const clip: VisualSceneClip = { id: "clip", asset_id: 5, start_ms: 0, duration_ms: 8_500, source_offset_ms: 0, fit: "contain", locked: false }
+    const track: VisualSceneTrack = { id: "track", name: "Video", media_type: "video", visible: true, locked: false, clips: [clip] }
+    const asset = { id: 5, media_type: "video", name: "Evening shore", filename: "shore.mp4", duration_ms: 12_000, channels: 2, sample_rate: 48_000, metadata: { audio_codec: "aac" } } as VentureAsset
+    const session = { setClipLocked: vi.fn() } as unknown as VisualSceneSession
+
+    render(<VisualClipInspector clipRef={{ trackId: "track", clipId: "clip" }} track={track} clip={clip} asset={asset} session={session} saving={false} hasEmbeddedAudio audioGain={1} onAudioMutedChange={vi.fn()} onAudioGainChange={vi.fn()} onAudioGainCommit={vi.fn()} />)
+
+    expect(screen.getByText("Mute audio")).toBeTruthy()
+    expect(screen.queryByText("Play embedded audio")).toBeNull()
+    expect(screen.getByRole("slider", { name: "Video audio level" })).toBeTruthy()
+    expect(screen.getByText("0.0 dB")).toBeTruthy()
   })
 })

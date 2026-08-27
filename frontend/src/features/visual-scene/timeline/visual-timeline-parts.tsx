@@ -95,12 +95,13 @@ export function VisualTimelineClip({ clip, asset, selected, trackLocked, style, 
   </div>
 }
 
-export function VisualContextToolbar({ track, clip, asset, saving, canSplit, audioMuted, onAudioMute, onSplit, onLock, onDuplicate, onDelete }: {
+export function VisualContextToolbar({ track, clip, asset, saving, canSplit, hasAudio = false, audioMuted, onAudioMute, onSplit, onLock, onDuplicate, onDelete }: {
   track: VisualSceneTrack
   clip: VisualSceneClip
   asset?: VentureAsset
   saving: boolean
   canSplit: boolean
+  hasAudio?: boolean
   audioMuted?: boolean
   onAudioMute?: () => void
   onSplit: () => void
@@ -110,8 +111,10 @@ export function VisualContextToolbar({ track, clip, asset, saving, canSplit, aud
 }) {
   return <div className="visual-context-toolbar">
     <span>{asset?.media_type === "video" ? <Film /> : <ImageIcon />}<b>{asset ? visualAssetName(asset) : "Missing media"}</b><small>{asset?.media_type === "video" ? `Source ${(clip.source_offset_ms / 1000).toFixed(1)}s · ` : ""}{(clip.start_ms / 1000).toFixed(1)}s · {(clip.duration_ms / 1000).toFixed(1)}s</small></span>
-    {asset?.media_type === "video" && onAudioMute && <OperatorTooltip label={audioMuted ? "Play video audio" : "Mute video audio"} detail="Changes only this video's linked audio; picture timing stays unchanged."><Button variant="ghost" size="sm" disabled={saving} onClick={onAudioMute}>{audioMuted ? <VolumeX /> : <Volume2 />}{audioMuted ? "Audio off" : "Audio on"}</Button></OperatorTooltip>}
     {asset?.media_type === "video" && <OperatorTooltip disabledTrigger={saving || !canSplit} label="Split video at playhead" detail={canSplit ? "Creates two non-destructive placements using the same source Asset." : "Place the playhead inside this video, at least 0.1 seconds from either edge."}><Button variant="ghost" size="sm" disabled={saving || !canSplit} onClick={onSplit}><Scissors /> Split</Button></OperatorTooltip>}
+    {asset?.media_type === "video" && (hasAudio && onAudioMute
+      ? <OperatorTooltip label={audioMuted ? "Unmute video audio" : "Mute video audio"} detail="Changes only this video's sound; picture timing stays unchanged."><Button variant="ghost" size="sm" disabled={saving} onClick={onAudioMute}>{audioMuted ? <VolumeX /> : <Volume2 />}{audioMuted ? "Unmute" : "Mute"}</Button></OperatorTooltip>
+      : <OperatorTooltip disabledTrigger label="No audio" detail="This video source has no audio stream."><Button variant="ghost" size="sm" disabled><VolumeX /> No audio</Button></OperatorTooltip>)}
     <OperatorTooltip label={clip.locked ? "Unlock media clip" : "Lock media clip"}><Button variant="ghost" size="sm" disabled={saving || track.locked} onClick={onLock}>{clip.locked ? <Unlock /> : <Lock />}{clip.locked ? "Unlock" : "Lock"}</Button></OperatorTooltip>
     <OperatorTooltip label="Duplicate media placement" detail="Creates another Timeline placement using the same Director Asset."><Button variant="ghost" size="sm" disabled={saving} onClick={onDuplicate}><Copy /> Duplicate</Button></OperatorTooltip>
     <OperatorTooltip label="Remove media placement" detail="The Director Asset remains available."><Button variant="ghost" size="sm" className="danger" disabled={saving || clip.locked || track.locked} onClick={onDelete}><Trash2 /> Remove</Button></OperatorTooltip>

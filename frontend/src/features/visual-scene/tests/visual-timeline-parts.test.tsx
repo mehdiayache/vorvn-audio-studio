@@ -51,9 +51,15 @@ describe("visual Timeline controls", () => {
 
   it("exposes linked video audio in the same contextual toolbar", () => {
     const onAudioMute = vi.fn()
-    render(<VisualContextToolbar track={track} clip={{ ...clip, asset_id: 92 }} asset={video} saving={false} canSplit={false} audioMuted={false} onAudioMute={onAudioMute} onSplit={vi.fn()} onLock={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
+    render(<VisualContextToolbar track={track} clip={{ ...clip, asset_id: 92 }} asset={video} saving={false} canSplit={false} hasAudio audioMuted={false} onAudioMute={onAudioMute} onSplit={vi.fn()} onLock={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Audio on" }))
+    fireEvent.click(screen.getByRole("button", { name: "Mute" }))
     expect(onAudioMute).toHaveBeenCalledOnce()
+  })
+
+  it("keeps audio truth visible when a video has no audio stream", () => {
+    render(<VisualContextToolbar track={track} clip={{ ...clip, asset_id: 92 }} asset={video} saving={false} canSplit={false} onSplit={vi.fn()} onLock={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
+
+    expect(screen.getByRole("button", { name: "No audio" }).hasAttribute("disabled")).toBe(true)
   })
 })

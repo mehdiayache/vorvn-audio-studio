@@ -369,8 +369,10 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     onDuplicate={(part) => void actions.duplicatePart(part)} onDelete={requestPartDeletion} onEdit={editPart} onOpenCaptions={(part) => setCaptionPartId(part.id)} onReplaceAsset={openAssetReplacement}
   /> : stage === "sound" && visualSelection && visualTrack && visualClip ? <VisualClipInspector
     clipRef={visualSelection} track={visualTrack} clip={visualClip} asset={visualAsset} session={visualSession} saving={visualState.saving || soundState.saving}
-    hasEmbeddedAudio={videoHasEmbeddedAudio(visualAsset)} audioMuted={linkedVideoAudio?.clip.muted}
+    hasEmbeddedAudio={videoHasEmbeddedAudio(visualAsset)} audioMuted={linkedVideoAudio?.clip.muted} audioGain={linkedVideoAudio?.clip.gain}
     onAudioMutedChange={linkedVideoAudio ? (muted) => soundSession.commitClipChanges(linkedVideoAudio.trackId, linkedVideoAudio.clip.id, { muted }) : undefined}
+    onAudioGainChange={linkedVideoAudio ? (gain) => soundSession.updateClip(linkedVideoAudio.trackId, linkedVideoAudio.clip.id, { gain }) : undefined}
+    onAudioGainCommit={linkedVideoAudio ? () => soundSession.commitClip() : undefined}
   /> : stage === "sound" && soundSelection?.kind === "clip" && audioTrack ? <AudioClipInspector
     track={audioTrack} clip={audioClip} asset={audioAsset} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)}
     onClipChange={(changes) => { if (audioClip) soundSession.updateClip(audioTrack.id, audioClip.id, changes) }} onClipCommit={() => soundSession.commitClip()}
