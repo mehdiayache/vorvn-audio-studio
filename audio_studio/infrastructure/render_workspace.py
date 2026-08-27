@@ -379,6 +379,7 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
               scene.get("sequence_projection", {}).get("duration_ms") or
               _measure(sequence) or 1) / 1000,
     )
+    scene_samples = max(1, round(scene_duration * 48_000))
     video_audio_workspace = None
     for _, clip in clips:
         source = (root / Path(clip.get("filename") or "").name).resolve()
@@ -510,7 +511,10 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
         final_source = "[sequence]"
     filters.append(
         f"{final_source}apad=whole_dur={scene_duration:.3f},"
-        f"atrim=duration={scene_duration:.3f},"
+        # Resolved Parts are placed on one 48 kHz master but may retain
+        # discontinuous filter timestamps. A time-based final atrim can then
+        # stop at the first Part boundary. Samples are the stable master clock.
+        f"atrim=end_sample={scene_samples},"
         "alimiter=limit=0.891251:attack=5:release=50:level=0:latency=1[out]"
     )
     command.extend([
@@ -706,7 +710,7 @@ class FFmpegRenderWorkspace:
         self, production_id: int, production_name: str, parts: list[dict],
         scene: dict, subtitles: dict,
     ) -> FinishedExport:
-        name = _name(f"{production_name}-full")
+        name = _name(f"vrn-{production_name}")
         target = _output() / name
         manifest_path = _output() / f"{target.stem}.manifest.json"
         caption_paths: tuple[Path, ...] = ()

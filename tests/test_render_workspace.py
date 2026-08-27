@@ -197,7 +197,7 @@ class RenderWorkspaceTests(unittest.TestCase):
             workspace = FFmpegRenderWorkspace()
             with (
                 patch.object(render_workspace, "_output", return_value=root),
-                patch.object(render_workspace, "_name", return_value="final.mp3"),
+                patch.object(render_workspace, "_name", return_value="final.mp3") as make_name,
                 patch.object(workspace, "sequence_stem", side_effect=stem),
                 patch.object(render_workspace, "_mix_scene", side_effect=mix),
                 patch.object(render_workspace, "_measure", return_value=1_000),
@@ -212,6 +212,7 @@ class RenderWorkspaceTests(unittest.TestCase):
                     }, {"srt": "", "vtt": ""},
                 )
 
+            make_name.assert_called_once_with("vrn-Evening Reset")
             self.assertEqual(artifact.manifest["output"]["peak_limiter_dbtp"], -1)
             self.assertEqual(artifact.manifest["output"]["loudness"], measurement)
             self.assertEqual(
@@ -349,7 +350,70 @@ class RenderWorkspaceTests(unittest.TestCase):
         self.assertIn("aecho=0:1:250|500|750", filters)
         self.assertIn(":1.000000|0.500000|0.250000", filters)
         self.assertIn("adelay=0|0[sequencepart0]", filters)
-        self.assertIn("atrim=duration=3.750", filters)
+        self.assertIn("atrim=end_sample=180000", filters)
+
+    @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"),
+                         "FFmpeg is required for the render acceptance.")
+    def test_real_ffmpeg_final_master_keeps_all_sequence_parts_with_music(self):
+        """The master clock must not stop at the first delayed Part boundary."""
+        with TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            sequence = root / "sequence.wav"
+            music = root / "music.wav"
+            target = root / "mixed.mp3"
+            for source, frequency in ((sequence, 440), (music, 220)):
+                subprocess.run([
+                    "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                    "-f", "lavfi", "-i",
+                    f"sine=frequency={frequency}:duration=4",
+                    "-ar", "48000", "-ac", "2", str(source),
+                ], check=True)
+            scene = {
+                "duration_ms": 4_000,
+                "sequence_projection": {
+                    "duration_ms": 4_000,
+                    "spans": [
+                        {
+                            "start_ms": 0, "duration_ms": 1_000,
+                            "mix": {
+                                "muted": False, "gain": .9,
+                                "fade_in_ms": 0, "fade_out_ms": 0,
+                                "effects": [],
+                            },
+                        },
+                        {
+                            "start_ms": 1_000, "duration_ms": 3_000,
+                            "mix": {
+                                "muted": False, "gain": .8,
+                                "fade_in_ms": 0, "fade_out_ms": 0,
+                                "effects": [],
+                            },
+                        },
+                    ],
+                },
+                "tracks": [{
+                    "id": "music", "kind": "music", "volume": 1,
+                    "muted": False,
+                    "clips": [{
+                        "filename": music.name, "gain": .2,
+                        "resolved_start_ms": 0,
+                        "resolved_duration_ms": 4_000,
+                        "source_offset_ms": 0,
+                        "fade_in_ms": 0, "fade_out_ms": 0,
+                        "loop": False, "ducking": False,
+                        "orphan": False, "missing": False,
+                        "effects": [],
+                    }],
+                }],
+            }
+
+            with patch.object(render_workspace, "_output", return_value=root):
+                self.assertTrue(render_workspace._mix_scene(
+                    sequence, scene, target))
+
+            duration_ms = render_workspace._measure(target)
+            self.assertGreaterEqual(duration_ms or 0, 3_950)
+            self.assertLessEqual(duration_ms or 0, 4_050)
 
     def test_feedback_zero_renders_one_wet_hit_and_preserves_dry_wet_mix(self):
         filters: list[str] = []
