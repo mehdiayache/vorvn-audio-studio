@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Copy, Eye, EyeOff, Film, Image as ImageIcon, Layers3, Lock, MoreHorizontal, Plus, Scissors, Trash2, Unlock } from "lucide-react"
+import { ChevronDown, ChevronUp, Copy, Eye, EyeOff, Film, Image as ImageIcon, Lock, MoreHorizontal, Plus, Scissors, Trash2, Unlock } from "lucide-react"
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react"
 
 import { OperatorIconButton } from "@/components/operator-action"
@@ -34,12 +34,8 @@ function trackMediaSummary(track: VisualSceneTrack, assets: VentureAsset[]) {
 }
 
 export function visualTrackDisplayName(track: VisualSceneTrack, assets: VentureAsset[]) {
-  const media = trackMediaSummary(track, assets)
-  if (media.images && !media.videos && !media.missing) return "Image"
-  if (media.videos && !media.images && !media.missing) return "Video"
-  if (track.clips.length) return "Media"
-  const declaredType = track.name.trim().toLowerCase()
-  return declaredType === "image" ? "Image" : declaredType === "video" ? "Video" : "Media"
+  void assets
+  return track.media_type === "video" ? "Video" : "Image"
 }
 
 export function VisualTrackControl({ track, assets, collapsed, first, last, onVisible, onLocked, onAdd, onMove, onRemove }: {
@@ -56,7 +52,7 @@ export function VisualTrackControl({ track, assets, collapsed, first, last, onVi
 }) {
   const media = trackMediaSummary(track, assets)
   const displayName = visualTrackDisplayName(track, assets)
-  const TrackIcon = media.images && media.videos ? Layers3 : media.videos ? Film : media.images ? ImageIcon : Layers3
+  const TrackIcon = track.media_type === "video" ? Film : ImageIcon
   return <div className={cn("visual-track-control", collapsed && "is-compact", !track.visible && "is-hidden", track.locked && "is-locked")} title={collapsed ? `${displayName} · ${track.visible ? media.label : `Hidden · ${media.label}`}` : undefined}>
     <span className="sound-track-icon is-visual"><TrackIcon /></span>
     {!collapsed && <span className="sound-track-copy"><b>{displayName}</b><small>{track.visible ? media.label : `Hidden · ${media.label}`}</small></span>}

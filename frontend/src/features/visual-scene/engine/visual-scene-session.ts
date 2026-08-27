@@ -21,7 +21,7 @@ const MIN_CLIP_MS = 100
 const DEFAULT_IMAGE_MS = 5_000
 
 function cloneDocument(document: VisualSceneDocument): VisualSceneDocument {
-  return { ...document, tracks: document.tracks.map((track) => ({ ...track, clips: track.clips.map((clip) => ({ ...clip })) })) }
+  return { ...document, canvas: { ...document.canvas }, tracks: document.tracks.map((track) => ({ ...track, clips: track.clips.map((clip) => ({ ...clip })) })) }
 }
 
 function uuid() {
@@ -123,9 +123,9 @@ export class VisualSceneSession {
     this.set({ document })
   }
 
-  async addTrack(name?: string) {
+  async addTrack(mediaType: "image" | "video") {
     const document = cloneDocument(this.state.document)
-    document.tracks.push({ id: uuid(), name: name || "Media", visible: true, locked: false, clips: [] })
+    document.tracks.push({ id: uuid(), name: mediaType === "video" ? "Video" : "Image", media_type: mediaType, visible: true, locked: false, clips: [] })
     await this.commit(document)
   }
 
@@ -136,14 +136,18 @@ export class VisualSceneSession {
     if (asset.media_type === "video" && sourceDurationMs < MIN_CLIP_MS)
       throw new Error("That video has no usable duration.")
     const document = cloneDocument(this.state.document)
-    let track = trackId ? document.tracks.find((item) => item.id === trackId) : document.tracks[0]
+    let track = trackId
+      ? document.tracks.find((item) => item.id === trackId)
+      : document.tracks.find((item) => item.media_type === asset.media_type)
+    if (track && track.media_type !== asset.media_type)
+      throw new Error(`Choose a ${asset.media_type === "video" ? "Video" : "Image"} track for this Asset.`)
     if (!track) {
-      track = { id: uuid(), name: asset.media_type === "video" ? "Video" : "Image", visible: true, locked: false, clips: [] }
+      track = { id: uuid(), name: asset.media_type === "video" ? "Video" : "Image", media_type: asset.media_type, visible: true, locked: false, clips: [] }
       document.tracks.push(track)
     }
     const available = Math.max(MIN_CLIP_MS, this.timelineDurationMs - Math.max(0, startMs))
     const durationMs = asset.media_type === "video" ? sourceDurationMs : DEFAULT_IMAGE_MS
-    const clip: VisualSceneClip = { id: uuid(), asset_id: asset.id, start_ms: Math.max(0, Math.round(startMs)), duration_ms: Math.min(durationMs, available), source_offset_ms: 0, locked: false }
+    const clip: VisualSceneClip = { id: uuid(), asset_id: asset.id, start_ms: Math.max(0, Math.round(startMs)), duration_ms: Math.min(durationMs, available), source_offset_ms: 0, fit: "cover", locked: false }
     this.normalizeClip(clip, sourceDurationMs)
     track.clips.push(clip)
     this.set({ selection: { trackId: track.id, clipId: clip.id } })
@@ -218,6 +222,12 @@ export class VisualSceneSession {
   }
 
   async setClipLocked(ref: VisualClipRef, locked: boolean) { await this.changeClip(ref, { locked }) }
+  async setClipFit(ref: VisualClipRef, fit: "cover" | "contain") { await this.changeClip(ref, { fit }) }
+  async setCanvas(width: number, height: number) {
+    const document = cloneDocument(this.state.document)
+    document.canvas = { width: Math.round(width), height: Math.round(height) }
+    await this.commit(document)
+  }
   async setTrackVisible(trackId: string, visible: boolean) { await this.changeTrack(trackId, { visible }) }
   async setTrackLocked(trackId: string, locked: boolean) { await this.changeTrack(trackId, { locked }) }
   async renameTrack(trackId: string, name: string) { await this.changeTrack(trackId, { name: name.trim() || "Visual" }) }
@@ -281,7 +291,7 @@ export class VisualSceneSession {
   }
 }
 
-const EMPTY_SCENE: VisualScene = { production_id: 0, revision: 0, document: { version: 1, tracks: [] }, updated_at: "" }
+const EMPTY_SCENE: VisualScene = { production_id: 0, revision: 0, document: { version: 1, canvas: { width: 1920, height: 1080 }, tracks: [] }, updated_at: "" }
 const EMPTY_SNAPSHOT: Snapshot = { scene: EMPTY_SCENE, document: EMPTY_SCENE.document, selection: null, saving: false, error: "" }
 const noopSubscribe = () => () => undefined
 const emptySnapshot = () => EMPTY_SNAPSHOT

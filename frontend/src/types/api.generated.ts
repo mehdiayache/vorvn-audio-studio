@@ -5858,12 +5858,31 @@ export interface components {
             /** Trail */
             trail: components["schemas"]["TrailItemResponse"][];
         };
+        /** VisualSceneCanvasDocument */
+        VisualSceneCanvasDocument: {
+            /**
+             * Height
+             * @default 1080
+             */
+            height: number;
+            /**
+             * Width
+             * @default 1920
+             */
+            width: number;
+        };
         /** VisualSceneClipDocument */
         VisualSceneClipDocument: {
             /** Asset Id */
             asset_id: number;
             /** Duration Ms */
             duration_ms: number;
+            /**
+             * Fit
+             * @default cover
+             * @enum {string}
+             */
+            fit: "cover" | "contain";
             /**
              * Id
              * Format: uuid
@@ -5887,6 +5906,7 @@ export interface components {
         };
         /** VisualSceneDocument */
         VisualSceneDocument: {
+            canvas?: components["schemas"]["VisualSceneCanvasDocument"];
             /** Tracks */
             tracks: components["schemas"]["VisualSceneTrackDocument"][];
             /**
@@ -5920,6 +5940,12 @@ export interface components {
              * @default false
              */
             locked: boolean;
+            /**
+             * Media Type
+             * @default image
+             * @enum {string}
+             */
+            media_type: "image" | "video";
             /** Name */
             name: string;
             /**

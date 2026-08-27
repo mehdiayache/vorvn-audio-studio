@@ -147,7 +147,11 @@ def inspect_media(target: Path, *, original_name: str = "") -> MediaInspection |
         media_type="video", media_format=video_format,
         extension=video_format, mime_type=_VIDEO_MIME_TYPES[video_format],
         duration_ms=duration_ms, width=width, height=height,
+        sample_rate=_positive_int(audio.get("sample_rate")) if audio else None,
+        channels=_positive_int(audio.get("channels")) if audio else None,
         video_codec=codec, frame_rate=frame_rate,
         metadata={"codec": codec, "container": ",".join(sorted(containers)),
-                  "major_brand": major_brand},
+                  "major_brand": major_brand,
+                  "audio_codec": str(audio.get("codec_name") or "")
+                  if audio else ""},
     )

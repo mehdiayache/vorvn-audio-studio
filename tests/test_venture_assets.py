@@ -242,12 +242,15 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         visual_scenes = VisualSceneRepository()
         visual = visual_scenes.get(production_id)
         document = {
-            "version": 1, "tracks": [{
+            "version": 1,
+            "canvas": {"width": 1920, "height": 1080},
+            "tracks": [{
                 "id": "visual-1", "name": "Visual 1",
+                "media_type": "image",
                 "visible": True, "locked": False, "clips": [{
                     "id": str(uuid4()), "asset_id": created["id"],
                     "start_ms": 2_000, "duration_ms": 5_000,
-                    "source_offset_ms": 0, "locked": False,
+                    "source_offset_ms": 0, "fit": "cover", "locked": False,
                 }],
             }],
         }

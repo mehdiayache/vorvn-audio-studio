@@ -39,10 +39,10 @@ export function VisualSceneMonitor({ document, assets, playheadMs, playback }: {
       ? [{ track, clip, asset, index }] : []
   }) : [])
   return <section className="visual-scene-monitor" aria-label="Visual monitor">
-    <div className="visual-scene-monitor-frame">
+    <div className="visual-scene-monitor-frame" style={{ aspectRatio: `${document.canvas.width} / ${document.canvas.height}` }}>
       {active.length ? active.map(({ clip, asset, index }) => asset.media_type === "video"
-        ? <VideoLayer key={clip.id} asset={asset} clip={clip} playheadMs={playheadMs} playing={playback === "playing"} style={{ zIndex: document.tracks.length - index }} />
-        : <img key={clip.id} src={visualAssetUrl(asset)} alt={visualAssetName(asset)} style={{ zIndex: document.tracks.length - index }} />)
+        ? <VideoLayer key={clip.id} asset={asset} clip={clip} playheadMs={playheadMs} playing={playback === "playing"} style={{ zIndex: document.tracks.length - index, objectFit: clip.fit }} />
+        : <img key={clip.id} src={visualAssetUrl(asset)} alt={visualAssetName(asset)} style={{ zIndex: document.tracks.length - index, objectFit: clip.fit }} />)
         : <span><ImageIcon /><b>No media at the playhead</b><small>Add media or move the playhead over an image or video.</small></span>}
     </div>
   </section>

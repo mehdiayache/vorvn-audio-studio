@@ -4,9 +4,10 @@ import { soundTrackDisplayName } from "@/features/sound-scene/engine/sound-scene
 import { visualTrackDisplayName } from "@/features/visual-scene/timeline/visual-timeline-parts"
 import type { SoundSceneTrack, VentureAsset, VisualSceneTrack } from "@/types/domain"
 
-const visualTrack = (name: string, assetIds: number[]): VisualSceneTrack => ({
+const visualTrack = (name: string, assetIds: number[], mediaType: "image" | "video" = "image"): VisualSceneTrack => ({
   id: `visual-${name}`,
   name,
+  media_type: mediaType,
   visible: true,
   locked: false,
   clips: assetIds.map((assetId, index) => ({
@@ -15,6 +16,7 @@ const visualTrack = (name: string, assetIds: number[]): VisualSceneTrack => ({
     start_ms: index * 1_000,
     duration_ms: 1_000,
     source_offset_ms: 0,
+    fit: "cover",
     locked: false,
   })),
 })
@@ -50,17 +52,15 @@ const audioTrack = (kinds: string[], name = "Operator custom name"): SoundSceneT
 })
 
 describe("Timeline track type labels", () => {
-  it("labels visual tracks by their real content, including repeated types", () => {
+  it("labels visual tracks by their canonical type, including repeated types", () => {
     expect(visualTrackDisplayName(visualTrack("Visual 1", [1]), assets)).toBe("Image")
     expect(visualTrackDisplayName(visualTrack("Visual 2", [1]), assets)).toBe("Image")
-    expect(visualTrackDisplayName(visualTrack("Visual 3", [2]), assets)).toBe("Video")
-    expect(visualTrackDisplayName(visualTrack("Visual 4", [1, 2]), assets)).toBe("Media")
+    expect(visualTrackDisplayName(visualTrack("Visual 3", [2], "video"), assets)).toBe("Video")
   })
 
   it("preserves the chosen type for an empty visual track", () => {
     expect(visualTrackDisplayName(visualTrack("Image", []), assets)).toBe("Image")
-    expect(visualTrackDisplayName(visualTrack("Video", []), assets)).toBe("Video")
-    expect(visualTrackDisplayName(visualTrack("Visual 7", []), assets)).toBe("Media")
+    expect(visualTrackDisplayName(visualTrack("Video", [], "video"), assets)).toBe("Video")
   })
 
   it("labels audio tracks from canonical clip categories instead of filenames", () => {

@@ -311,12 +311,14 @@ export type VisualSceneClip = {
   start_ms: number
   duration_ms: number
   source_offset_ms: number
+  fit: "cover" | "contain"
   locked: boolean
 }
 
 export type VisualSceneTrack = {
   id: string
   name: string
+  media_type: "image" | "video"
   visible: boolean
   locked: boolean
   clips: VisualSceneClip[]
@@ -324,6 +326,7 @@ export type VisualSceneTrack = {
 
 export type VisualSceneDocument = {
   version: 1
+  canvas: { width: number; height: number }
   tracks: VisualSceneTrack[]
 }
 

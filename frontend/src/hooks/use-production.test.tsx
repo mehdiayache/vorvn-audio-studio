@@ -14,7 +14,7 @@ describe("useProduction partial refreshes", () => {
     const production = { id: 7, title: "Production", parts: [] }
     const tree = [{ id: 1, type: "project", title: "Project" }]
     const soundScene = { production_id: 7, revision: 1, document: { version: 1, tracks: [] } }
-    const visualScene = { production_id: 7, revision: 1, document: { version: 1, tracks: [] }, updated_at: "2026-08-27" }
+    const visualScene = { production_id: 7, revision: 1, document: { version: 1, canvas: { width: 1920, height: 1080 }, tracks: [] }, updated_at: "2026-08-27" }
     api.production.mockResolvedValue(production)
     api.projects.mockResolvedValueOnce(tree)
     api.soundScene.mockResolvedValueOnce(soundScene)

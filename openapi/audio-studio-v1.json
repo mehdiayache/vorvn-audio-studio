@@ -11226,6 +11226,27 @@
         "title": "VentureOverviewResponse",
         "type": "object"
       },
+      "VisualSceneCanvasDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "height": {
+            "default": 1080,
+            "maximum": 7680.0,
+            "minimum": 240.0,
+            "title": "Height",
+            "type": "integer"
+          },
+          "width": {
+            "default": 1920,
+            "maximum": 7680.0,
+            "minimum": 240.0,
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "title": "VisualSceneCanvasDocument",
+        "type": "object"
+      },
       "VisualSceneClipDocument": {
         "additionalProperties": false,
         "properties": {
@@ -11238,6 +11259,15 @@
             "minimum": 100.0,
             "title": "Duration Ms",
             "type": "integer"
+          },
+          "fit": {
+            "default": "cover",
+            "enum": [
+              "cover",
+              "contain"
+            ],
+            "title": "Fit",
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -11273,6 +11303,9 @@
       "VisualSceneDocument": {
         "additionalProperties": false,
         "properties": {
+          "canvas": {
+            "$ref": "#/components/schemas/VisualSceneCanvasDocument"
+          },
           "tracks": {
             "items": {
               "$ref": "#/components/schemas/VisualSceneTrackDocument"
@@ -11354,6 +11387,15 @@
             "default": false,
             "title": "Locked",
             "type": "boolean"
+          },
+          "media_type": {
+            "default": "image",
+            "enum": [
+              "image",
+              "video"
+            ],
+            "title": "Media Type",
+            "type": "string"
           },
           "name": {
             "maxLength": 120,

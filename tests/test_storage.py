@@ -217,6 +217,23 @@ class StorageContracts(unittest.TestCase):
                     self.assertEqual(inspection.media_type, "video")
                     self.assertEqual(inspection.media_format, extension)
 
+            video_with_audio = root / "motion-with-audio.mp4"
+            subprocess.run([
+                "ffmpeg", "-nostdin", "-loglevel", "error", "-y",
+                "-f", "lavfi", "-i", "testsrc=size=160x90:rate=12",
+                "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000",
+                "-t", "0.25", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                "-c:a", "aac", "-ac", "2", "-shortest", str(video_with_audio),
+            ], check=True)
+            video_audio_inspection = media_metadata.inspect_media(
+                video_with_audio, original_name=video_with_audio.name)
+            self.assertIsNotNone(video_audio_inspection)
+            self.assertEqual(video_audio_inspection.media_type, "video")
+            self.assertEqual(video_audio_inspection.sample_rate, 48_000)
+            self.assertEqual(video_audio_inspection.channels, 2)
+            self.assertEqual(
+                video_audio_inspection.metadata["audio_codec"], "aac")
+
     def test_invalid_asset_audio_removes_the_moved_media_file(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)

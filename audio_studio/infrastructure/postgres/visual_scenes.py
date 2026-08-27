@@ -80,24 +80,30 @@ class VisualSceneRepository:
         ]
         sources = self._asset_sources(
             production_id, sorted({clip["asset_id"] for clip in clips}))
-        for clip in clips:
-            source = sources.get(clip["asset_id"])
-            if not source or not source["filename"]:
-                raise ValueError("A Visual Scene Asset is unavailable.")
-            media_type = source["media_type"]
-            if media_type not in {"image", "video"}:
-                raise ValueError(
-                    "Visual Scene clips require image or video Assets.")
-            if media_type == "image" and clip["source_offset_ms"]:
-                raise ValueError("Image clips cannot have a source offset.")
-            if media_type == "video":
-                source_duration = source["duration_ms"]
-                if source_duration <= 0:
-                    raise ValueError("That video Asset has no usable duration.")
-                if (clip["source_offset_ms"] + clip["duration_ms"]
-                        > source_duration):
+        for track in scene["tracks"]:
+            for clip in track["clips"]:
+                source = sources.get(clip["asset_id"])
+                if not source or not source["filename"]:
+                    raise ValueError("A Visual Scene Asset is unavailable.")
+                media_type = source["media_type"]
+                if media_type not in {"image", "video"}:
                     raise ValueError(
-                        "That video clip exceeds its source duration.")
+                        "Visual Scene clips require image or video Assets.")
+                if track["media_type"] != media_type:
+                    raise ValueError(
+                        f"A {media_type} Asset requires a "
+                        f"{media_type.title()} track.")
+                if media_type == "image" and clip["source_offset_ms"]:
+                    raise ValueError("Image clips cannot have a source offset.")
+                if media_type == "video":
+                    source_duration = source["duration_ms"]
+                    if source_duration <= 0:
+                        raise ValueError(
+                            "That video Asset has no usable duration.")
+                    if (clip["source_offset_ms"] + clip["duration_ms"]
+                            > source_duration):
+                        raise ValueError(
+                            "That video clip exceeds its source duration.")
         return scene
 
     def commit(

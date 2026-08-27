@@ -29,6 +29,7 @@ class VisualSceneClipDocument(BaseModel):
     start_ms: int = Field(default=0, ge=0)
     duration_ms: int = Field(ge=100)
     source_offset_ms: int = Field(default=0, ge=0)
+    fit: Literal["cover", "contain"] = "cover"
     locked: bool = False
 
 
@@ -36,14 +37,23 @@ class VisualSceneTrackDocument(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str = Field(min_length=1, max_length=120)
     name: str = Field(min_length=1, max_length=120)
+    media_type: Literal["image", "video"] = "image"
     visible: bool = True
     locked: bool = False
     clips: list[VisualSceneClipDocument] = Field(max_length=1_000)
 
 
+class VisualSceneCanvasDocument(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    width: int = Field(default=1920, ge=240, le=7680)
+    height: int = Field(default=1080, ge=240, le=7680)
+
+
 class VisualSceneDocument(BaseModel):
     model_config = ConfigDict(extra="forbid")
     version: Literal[1]
+    canvas: VisualSceneCanvasDocument = Field(
+        default_factory=VisualSceneCanvasDocument)
     tracks: list[VisualSceneTrackDocument] = Field(max_length=64)
 
 

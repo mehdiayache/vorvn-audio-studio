@@ -15,13 +15,15 @@ from audio_studio.domain.visual_scene import (
 def scene_with_clip(*, asset_id: int = 9) -> dict:
     return {
         "version": 1,
+        "canvas": {"width": 1920, "height": 1080},
         "tracks": [{
             "id": "visual-1", "name": "Visual 1",
+            "media_type": "image",
             "visible": True, "locked": False,
             "clips": [{
                 "id": str(uuid4()), "asset_id": asset_id,
                 "start_ms": 1_500, "duration_ms": 5_000,
-                "source_offset_ms": 0, "locked": False,
+                "source_offset_ms": 0, "fit": "cover", "locked": False,
             }],
         }],
     }
@@ -50,7 +52,11 @@ class Records:
 
 class VisualSceneTests(unittest.TestCase):
     def test_empty_scene_is_one_deliberately_small_document(self):
-        self.assertEqual(empty_scene(), {"version": 1, "tracks": []})
+        self.assertEqual(empty_scene(), {
+            "version": 1,
+            "canvas": {"width": 1920, "height": 1080},
+            "tracks": [],
+        })
 
     def test_normalization_keeps_only_v1_visual_placement_truth(self):
         expected = scene_with_clip()
@@ -66,6 +72,21 @@ class VisualSceneTests(unittest.TestCase):
         self.assertNotIn("expanded", canonical["tracks"][0])
         self.assertNotIn("opacity", canonical["tracks"][0]["clips"][0])
         self.assertEqual(normalize_scene(canonical), canonical)
+
+    def test_old_documents_receive_explicit_canvas_track_and_fit_truth(self):
+        legacy = scene_with_clip()
+        legacy.pop("canvas")
+        legacy["tracks"][0].pop("media_type")
+        legacy["tracks"][0]["clips"][0].pop("fit")
+        legacy["tracks"][0]["name"] = "Video"
+
+        canonical = normalize_scene(legacy)
+
+        self.assertEqual(canonical["canvas"], {
+            "width": 1920, "height": 1080,
+        })
+        self.assertEqual(canonical["tracks"][0]["media_type"], "video")
+        self.assertEqual(canonical["tracks"][0]["clips"][0]["fit"], "cover")
 
     def test_ids_are_unique_and_every_clip_has_real_time(self):
         invalid = scene_with_clip()

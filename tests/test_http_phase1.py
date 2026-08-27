@@ -359,12 +359,13 @@ class NativeHttpTests(unittest.TestCase):
         detach.assert_called_once_with("7", 88)
 
     def test_visual_scene_contract_is_revisioned_and_independent_from_sound_scene(self):
-        document = {"version": 1, "tracks": [{
+        document = {"version": 1, "canvas": {"width": 1920, "height": 1080}, "tracks": [{
             "id": "visual-1", "name": "Visual 1",
+            "media_type": "image",
             "visible": True, "locked": False, "clips": [{
                 "id": "87ef4b3b-e0c5-47a0-a503-7cc30deca901",
                 "asset_id": 88, "start_ms": 0, "duration_ms": 5_000,
-                "source_offset_ms": 0, "locked": False,
+                "source_offset_ms": 0, "fit": "cover", "locked": False,
             }],
         }]}
         with patch.object(

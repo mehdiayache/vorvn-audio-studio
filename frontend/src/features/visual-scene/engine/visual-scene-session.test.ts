@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest"
 import type { VentureAsset, VisualScene } from "@/types/domain"
 import { VisualSceneSession } from "./visual-scene-session"
 
-const scene = (revision = 1): VisualScene => ({ production_id: 7, revision, document: { version: 1, tracks: [] }, updated_at: "2026-08-27" })
+const scene = (revision = 1): VisualScene => ({ production_id: 7, revision, document: { version: 1, canvas: { width: 1920, height: 1080 }, tracks: [] }, updated_at: "2026-08-27" })
 const image = { id: 44, media_type: "image", name: "Harbor", filename: "harbor.jpg", width: 1600, height: 900 } as VentureAsset
 const video = { id: 45, media_type: "video", name: "Harbor move", filename: "harbor.mp4", duration_ms: 12_000, width: 1920, height: 1080 } as VentureAsset
 
@@ -27,7 +27,7 @@ describe("VisualSceneSession", () => {
       return { ...scene(expectedRevision + 1), document }
     })
     const session = new VisualSceneSession(scene(), { update }, 60_000)
-    const add = session.addTrack("Pictures")
+    const add = session.addTrack("image")
     await Promise.resolve()
     const rename = session.renameTrack(session.snapshot().document.tracks[0]!.id, "Story visuals")
     release?.()
@@ -36,6 +36,17 @@ describe("VisualSceneSession", () => {
     expect(update.mock.calls[0]?.[1]).toBe(1)
     expect(update.mock.calls[1]?.[1]).toBe(2)
     expect(session.snapshot().document.tracks[0]!.name).toBe("Story visuals")
+  })
+
+  it("keeps Image and Video tracks explicit and rejects the wrong target type", async () => {
+    const update = vi.fn(async (document, expectedRevision) => ({ ...scene(expectedRevision + 1), document }))
+    const session = new VisualSceneSession(scene(), { update }, 30_000)
+    await session.addTrack("image")
+    const imageTrack = session.snapshot().document.tracks[0]!
+    expect(imageTrack.media_type).toBe("image")
+
+    await expect(session.addVisual(video, 0, imageTrack.id)).rejects.toThrow("Choose a Video track")
+    expect(session.snapshot().document.tracks).toHaveLength(1)
   })
 
   it("moves and trims locally, then persists one gesture commit", async () => {
