@@ -22,11 +22,22 @@ describe("TimelineViewer", () => {
 
     render(<TimelineViewer document={document} assets={[asset]} playheadMs={0} playback="idle" selection={{ trackId: "image-track", clipId: "image-clip" }} session={session} saving={false} />)
 
+    expect((screen.getByLabelText("Visual monitor").firstElementChild as HTMLElement).style.getPropertyValue("--visual-scene-aspect")).toBe("1.7777777777777777")
     fireEvent.pointerDown(screen.getByRole("button", { name: "Production format 16:9" }), { button: 0, ctrlKey: false })
     fireEvent.click(screen.getByRole("menuitemradio", { name: /9:16/ }))
     expect(setCanvas).toHaveBeenCalledWith(1080, 1920)
     expect(screen.queryByText("Fit entire media")).toBeNull()
     expect(screen.queryByText("Fill and crop")).toBeNull()
+  })
+
+  it("publishes the exact portrait aspect used by the responsive Viewer fit", () => {
+    const document: VisualSceneDocument = { version: 1, canvas: { width: 1080, height: 1920 }, tracks: [] }
+    const session = { setCanvas: vi.fn() } as unknown as VisualSceneSession
+    render(<TimelineViewer document={document} assets={[]} playheadMs={0} playback="idle" selection={null} session={session} saving={false} />)
+
+    const frame = screen.getByLabelText("Visual monitor").firstElementChild as HTMLElement
+    expect(frame.style.aspectRatio).toBe("1080 / 1920")
+    expect(frame.style.getPropertyValue("--visual-scene-aspect")).toBe("0.5625")
   })
 
   it("keeps Viewer controls inside the Viewer and collapses to a recoverable rail", () => {

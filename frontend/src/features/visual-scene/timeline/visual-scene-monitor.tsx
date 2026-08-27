@@ -44,8 +44,12 @@ export function VisualSceneMonitor({ document, assets, playheadMs, playback }: {
     return asset && (asset.media_type === "image" || asset.media_type === "video") && playheadMs >= clip.start_ms && playheadMs < clip.start_ms + clip.duration_ms
       ? [{ track, clip, asset, index }] : []
   }) : [])
+  const frameStyle = {
+    aspectRatio: `${document.canvas.width} / ${document.canvas.height}`,
+    "--visual-scene-aspect": document.canvas.width / document.canvas.height,
+  } as CSSProperties
   return <section className="visual-scene-monitor" aria-label="Visual monitor">
-    <div className="visual-scene-monitor-frame" data-orientation={document.canvas.width < document.canvas.height ? "portrait" : "landscape"} style={{ aspectRatio: `${document.canvas.width} / ${document.canvas.height}` }}>
+    <div className="visual-scene-monitor-frame" data-orientation={document.canvas.width < document.canvas.height ? "portrait" : "landscape"} style={frameStyle}>
       {active.length ? active.map(({ clip, asset, index }) => asset.media_type === "video"
         ? <VideoLayer key={clip.id} asset={asset} clip={clip} playheadMs={playheadMs} playing={playback === "playing"} style={{ zIndex: document.tracks.length - index, objectFit: clip.fit }} />
         : <img key={clip.id} src={visualAssetUrl(asset)} alt={visualAssetName(asset)} style={{ zIndex: document.tracks.length - index, objectFit: clip.fit }} />)
