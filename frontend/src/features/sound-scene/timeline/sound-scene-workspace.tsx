@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider"
 import { audioUrl } from "@/lib/api"
+import { soundClipSourceUrl } from "../engine/sound-clip-source"
 import { formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { SoundSceneClip, SoundSceneTrack } from "@/types/domain"
@@ -48,13 +49,14 @@ function roleColor(role?: string | null) {
   return palette[hash % palette.length]
 }
 
-function audioCategory(value?: string | null) {
+function audioCategory(value?: string | null, sourceMediaType?: string | null) {
+  if (sourceMediaType === "video") return "video"
   const category = String(value || "other").toLowerCase()
   return category === "music" ? "music" : category === "sfx" ? "sfx" : "other"
 }
 
 function trackCategory(track: SoundSceneTrack) {
-  const categories = new Set(track.clips.map((clip) => audioCategory(clip.asset_kind)))
+  const categories = new Set(track.clips.map((clip) => audioCategory(clip.asset_kind, clip.source_media_type)))
   return categories.size === 1 ? [...categories][0]! : "other"
 }
 
@@ -136,7 +138,7 @@ function SoundTrackControl({ track, volume, collapsed, soloed, soloSuppressed, o
 }) {
   const name = soundTrackDisplayName(track)
   const category = trackCategory(track)
-  const TrackIcon = category === "sfx" ? AudioWaveform : Music2
+  const TrackIcon = category === "sfx" ? AudioWaveform : category === "video" ? Film : Music2
   const volumeDb = gainToDb(volume)
   const state = track.muted ? "Muted" : soloed ? "Solo" : soloSuppressed ? "Outside solo" : formatDb(volumeDb)
   const summary = `${name} · ${track.clips.length} clip${track.clips.length === 1 ? "" : "s"} · ${state}`
@@ -639,10 +641,10 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
                 const fadeIn = Math.min(duration, live.fade_in_ms / 1000)
                 const fadeOut = Math.min(duration, live.fade_out_ms / 1000)
                 const gainHeight = Math.max(8, Math.min(82, 50 - (20 * Math.log10(Math.max(.001, live.gain))) * 1.25))
-                const category = audioCategory(live.asset_kind)
-                const ClipIcon = category === "sfx" ? AudioWaveform : Music2
+                const category = audioCategory(live.asset_kind, live.source_media_type)
+                const ClipIcon = category === "sfx" ? AudioWaveform : category === "video" ? Film : Music2
                 return <div key={clip.id} role="button" tabIndex={0} data-sound-shortcut-surface="true" className={cn("sound-music-clip", `is-category-${category}`, selected && "is-selected", live.locked && "is-locked")} style={styleFor(start, duration, 24)} onPointerDown={(event) => gesture(event, track.id, clip.id, "move")} onClick={(event) => { if (event.detail === 0) { session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey); visual?.session.select(null) } }} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey); visual?.session.select(null) }}>
-                  <CanvasWaveform url={clip.filename ? audioUrl(clip.filename) : undefined} projection={{
+                  <CanvasWaveform url={soundClipSourceUrl(clip) || undefined} projection={{
                     clipDuration: duration,
                     sourceDuration: Math.max(.001, Number(live.source_duration_ms || live.resolved_duration_ms || live.duration_ms || 0) / 1_000),
                     sourceOffset: Number(live.source_offset_ms || 0) / 1_000,

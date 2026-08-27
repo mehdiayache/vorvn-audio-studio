@@ -577,4 +577,32 @@ describe("SoundScenePlayout", () => {
     playout.dispose()
     vi.unstubAllGlobals()
   })
+
+  it("streams embedded video audio through the normalized audio proxy", async () => {
+    const source = scene()
+    source.sequence_stem = {
+      url: "", filename: "", duration_ms: 120_000,
+      signature: "silent-sequence", cached: true,
+    }
+    const clip = source.document.tracks[0]!.clips[0]!
+    Object.assign(clip, {
+      filename: "camera take.mov", source_media_type: "video",
+      duration_ms: 120_000, source_duration_ms: 120_000,
+      resolved_start_ms: 0, resolved_duration_ms: 120_000,
+    })
+    source.document.tracks[0]!.clips = [clip]
+    source.resolved.tracks[0]!.clips = [clip]
+    source.resolved.duration_ms = 120_000
+    source.resolved.sequence_projection.duration_ms = 120_000
+    source.resolved.signature = "embedded-video-audio"
+    const playout = new SoundScenePlayout(source)
+
+    await playout.activatePlayout()
+
+    expect(mocks.media.map((item) => item.src)).toContain(
+      "/api/v1/media/audio-proxy/camera%20take.mov",
+    )
+    playout.dispose()
+    vi.unstubAllGlobals()
+  })
 })

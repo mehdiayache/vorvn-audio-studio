@@ -6843,6 +6843,18 @@
             "title": "Id",
             "type": "string"
           },
+          "linked_visual_clip_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Visual Clip Id"
+          },
           "locked": {
             "default": false,
             "title": "Locked",
@@ -6909,6 +6921,21 @@
               }
             ],
             "title": "Source Duration Ms"
+          },
+          "source_media_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "audio",
+                  "video"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Media Type"
           },
           "source_offset_ms": {
             "default": 0,
@@ -8176,6 +8203,18 @@
             "minLength": 1,
             "title": "Id",
             "type": "string"
+          },
+          "linked_visual_clip_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Visual Clip Id"
           },
           "locked": {
             "default": false,

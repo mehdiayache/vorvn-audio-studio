@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 from typing import Any
 
@@ -33,12 +34,96 @@ class VisualSceneRepository:
             row = cursor.fetchone()
         if not row:
             return None
+        document = self._upgrade_legacy_track_types(
+            production_id, row[1])
         return {
             "production_id": production_id,
             "revision": int(row[0]),
-            "document": normalize_scene(row[1]),
+            "document": normalize_scene(document),
             "updated_at": row[2].isoformat(),
         }
+
+    def _upgrade_legacy_track_types(
+        self, production_id: int, document: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Infer the real Asset type for pre-typed Visual Scene tracks.
+
+        Early Visual Scene documents used generic tracks and therefore did not
+        persist ``media_type``. The public document now requires explicit Image
+        or Video tracks, so the compatibility repair belongs at this database
+        read boundary. New typed documents still pass through strict validation.
+        """
+        raw_tracks = document.get("tracks") if isinstance(document, dict) else None
+        if not isinstance(raw_tracks, list) or all(
+                isinstance(track, dict) and "media_type" in track
+                for track in raw_tracks):
+            return document
+
+        asset_ids = sorted({
+            int(clip["asset_id"])
+            for track in raw_tracks if isinstance(track, dict)
+            for clip in track.get("clips", []) if isinstance(clip, dict)
+            and str(clip.get("asset_id", "")).isdigit()
+        })
+        sources = self._asset_sources(production_id, asset_ids)
+        upgraded = deepcopy(document)
+        upgraded_tracks: list[dict[str, Any]] = []
+        used_ids = {
+            str(track.get("id")) for track in raw_tracks
+            if isinstance(track, dict) and track.get("id")
+        }
+
+        def unique_track_id(base_id: str, label: str) -> str:
+            candidate = f"{base_id}-{label}"[:120]
+            suffix = 2
+            while candidate in used_ids:
+                ending = f"-{label}-{suffix}"
+                candidate = f"{base_id[:120 - len(ending)]}{ending}"
+                suffix += 1
+            used_ids.add(candidate)
+            return candidate
+
+        for track in upgraded.get("tracks", []):
+            if not isinstance(track, dict) or "media_type" in track:
+                upgraded_tracks.append(track)
+                continue
+            clips_by_type = {"image": [], "video": []}
+            unknown_clips = []
+            for clip in track.get("clips", []):
+                source = sources.get(int(clip.get("asset_id") or 0))
+                media_type = source and source.get("media_type")
+                if media_type in clips_by_type:
+                    clips_by_type[media_type].append(clip)
+                else:
+                    unknown_clips.append(clip)
+            present_types = [
+                media_type for media_type, clips in clips_by_type.items()
+                if clips
+            ]
+            if len(present_types) <= 1:
+                track["media_type"] = present_types[0] if present_types else (
+                    "video" if str(track.get("name") or "").strip().lower()
+                    == "video" else "image")
+                upgraded_tracks.append(track)
+                continue
+
+            base_id = str(track.get("id") or "visual")
+            for media_type in present_types:
+                upgraded_tracks.append({
+                    **track,
+                    "id": unique_track_id(base_id, media_type),
+                    "name": media_type.title(),
+                    "media_type": media_type,
+                    "clips": clips_by_type[media_type],
+                })
+            if unknown_clips:
+                upgraded_tracks.append({
+                    **track,
+                    "id": unique_track_id(base_id, "unavailable"),
+                    "media_type": "image", "clips": unknown_clips,
+                })
+        upgraded["tracks"] = upgraded_tracks
+        return upgraded
 
     @staticmethod
     def _asset_sources(

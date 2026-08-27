@@ -88,6 +88,7 @@
 .sound-track-icon { width: 1.8rem; height: 1.8rem; display: grid; flex: none; place-items: center; border-radius: .48rem; color: var(--primary); background: var(--primary-soft); }
 .sound-track-icon.is-category-music { color: var(--success); background: var(--success-soft); }
 .sound-track-icon.is-category-sfx { color: var(--warning); background: var(--warning-soft); }
+.sound-track-icon.is-category-video { color: var(--info); background: var(--info-soft); }
 .sound-track-icon.is-muted { color: var(--muted-foreground); background: var(--muted); }
 .sound-track-icon svg { width: .85rem; }
 .sound-track-copy { min-width: 0; display: grid; }
@@ -149,6 +150,7 @@
 .sound-music-clip { padding: .4rem .65rem; border: 1px solid color-mix(in oklab, var(--primary) 26%, var(--border)); color: color-mix(in oklab, var(--primary) 72%, var(--foreground)); background: color-mix(in oklab, var(--primary-soft) 72%, white); cursor: grab; touch-action: none; }
 .sound-music-clip.is-category-music { border-color: var(--success-border); color: color-mix(in oklab, var(--success) 76%, var(--foreground)); background: var(--success-soft); }
 .sound-music-clip.is-category-sfx { border-color: var(--warning-border); color: color-mix(in oklab, var(--warning) 78%, var(--foreground)); background: var(--warning-soft); }
+.sound-music-clip.is-category-video { border-color: var(--info-border); color: color-mix(in oklab, var(--info) 78%, var(--foreground)); background: var(--info-soft); }
 .sound-music-clip:active { cursor: grabbing; }
 .sound-music-clip.is-locked { cursor: default; }
 .sound-music-label { right: 1.1rem; }

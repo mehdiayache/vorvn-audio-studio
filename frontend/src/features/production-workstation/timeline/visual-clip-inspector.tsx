@@ -1,7 +1,8 @@
-import { Clock3, Film, Image as ImageIcon, Lock, LockOpen } from "lucide-react"
+import { Clock3, Film, Image as ImageIcon, Lock, LockOpen, Volume2, VolumeX } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Switch } from "@/components/ui/switch"
 import { visualAssetDetails, visualAssetFacts, visualAssetName, visualAssetPosterUrl, visualAssetUrl } from "@/features/production-workstation/director/director-assets"
 import type { VisualClipRef, VisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
 import type { VentureAsset, VisualSceneClip, VisualSceneTrack } from "@/types/domain"
@@ -15,13 +16,16 @@ function milliseconds(value: number) {
   return minutes ? `${minutes}:${remainder.toFixed(1).padStart(4, "0")}` : `${remainder.toFixed(1)}s`
 }
 
-export function VisualClipInspector({ clipRef, track, clip, asset, session, saving }: {
+export function VisualClipInspector({ clipRef, track, clip, asset, session, saving, hasEmbeddedAudio = false, audioMuted = false, onAudioMutedChange }: {
   clipRef: VisualClipRef
   track: VisualSceneTrack
   clip: VisualSceneClip
   asset?: VentureAsset
   session: VisualSceneSession
   saving: boolean
+  hasEmbeddedAudio?: boolean
+  audioMuted?: boolean
+  onAudioMutedChange?: (muted: boolean) => void | Promise<void>
 }) {
   const details = asset ? visualAssetDetails(asset) : { technical: [], library: [] }
   const facts = asset ? visualAssetFacts(asset) : null
@@ -51,6 +55,11 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
       </dl>
       <p><Clock3 /> Drag the clip or its edges in Timeline. Hold Alt to bypass snapping.</p>
     </section>
+
+    {track.media_type === "video" && <section className="visual-inspector-audio">
+      <header><span><b>Video audio</b><small>{hasEmbeddedAudio ? "Follows this video placement in Timeline and Export." : "This source has no embedded audio stream."}</small></span>{hasEmbeddedAudio ? audioMuted ? <VolumeX /> : <Volume2 /> : null}</header>
+      {hasEmbeddedAudio && <label><span><b>Play embedded audio</b><small>Turn off to keep the picture silent without changing its timing.</small></span><Switch checked={!audioMuted} disabled={saving || !onAudioMutedChange} onCheckedChange={(checked) => void onAudioMutedChange?.(!checked)} aria-label="Play embedded video audio" /></label>}
+    </section>}
 
     {details.technical.length > 0 && <DetailSection title="Source" items={details.technical} />}
     {details.library.length > 0 && <DetailSection title="Library" items={details.library} />}

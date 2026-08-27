@@ -264,6 +264,10 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
                            max(100, _integer(duration_value, 100)))
             clips.append({
                 "id": clip_id,
+                "linked_visual_clip_id": (
+                    _uuid(raw_clip.get("linked_visual_clip_id"),
+                          label="Linked visual clip ID")
+                    if raw_clip.get("linked_visual_clip_id") else None),
                 "asset_id": asset_id,
                 "asset_version_id": (
                     _integer(raw_clip.get("asset_version_id")) or None),
@@ -379,7 +383,7 @@ def resolve_scene(
         str(clip.get("id")): {
             key: clip.get(key) for key in (
                 "asset_name", "asset_kind", "filename",
-                "source_duration_ms", "missing",
+                "source_duration_ms", "source_media_type", "missing",
             )
         }
         for track in document.get("tracks", [])

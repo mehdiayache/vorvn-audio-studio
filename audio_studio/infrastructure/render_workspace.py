@@ -379,10 +379,27 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
               scene.get("sequence_projection", {}).get("duration_ms") or
               _measure(sequence) or 1) / 1000,
     )
+    video_audio_workspace = None
     for _, clip in clips:
         source = (root / Path(clip.get("filename") or "").name).resolve()
         if source.parent != root or not source.is_file():
             raise RenderError("A Sound Scene source file is missing.")
+        if clip.get("source_media_type") == "video":
+            # Browser playout and final rendering intentionally share the same
+            # cached, timestamp-safe 48 kHz stereo audio derivative. The video
+            # remains the one canonical Asset; this is only a render source.
+            if video_audio_workspace is None:
+                from audio_studio.infrastructure.media_workspace import (
+                    LocalMediaWorkspace,
+                )
+                video_audio_workspace = LocalMediaWorkspace(output=root)
+            try:
+                derivative = video_audio_workspace.audio_proxy(source.name)
+            except RuntimeError as exc:
+                raise RenderError(str(exc)) from exc
+            if derivative is None:
+                raise RenderError("The video audio source is unavailable.")
+            source = derivative.path
         if clip.get("loop"):
             command.extend(["-stream_loop", "-1"])
         command.extend(["-i", str(source)])
@@ -482,7 +499,10 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
     sound_label = mix_group(sound_labels, "sound")
     if sound_label:
         filters.append(
-            f"{sound_label}[sequence]amix=inputs=2:duration=longest:"
+            # The canonical Sequence is the production clock. Keep it as the
+            # first amix input so delayed/compressed parallel media cannot
+            # contribute container-specific starting timestamps.
+            f"[sequence]{sound_label}amix=inputs=2:duration=longest:"
             "dropout_transition=0:normalize=0[fullscene]"
         )
         final_source = "[fullscene]"

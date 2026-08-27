@@ -4270,6 +4270,8 @@ export interface components {
             gain: number;
             /** Id */
             id: string;
+            /** Linked Visual Clip Id */
+            linked_visual_clip_id?: string | null;
             /**
              * Locked
              * @default false
@@ -4297,6 +4299,8 @@ export interface components {
             resolved_start_ms?: number | null;
             /** Source Duration Ms */
             source_duration_ms?: number | null;
+            /** Source Media Type */
+            source_media_type?: ("audio" | "video") | null;
             /**
              * Source Offset Ms
              * @default 0
@@ -4736,6 +4740,8 @@ export interface components {
             gain: number;
             /** Id */
             id: string;
+            /** Linked Visual Clip Id */
+            linked_visual_clip_id?: string | null;
             /**
              * Locked
              * @default false

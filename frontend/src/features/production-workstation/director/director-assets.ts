@@ -60,7 +60,8 @@ export function formatVisualDate(value?: string) {
 
 export function visualAssetDetails(asset: VentureAsset) {
   const facts = visualAssetFacts(asset)
-  const audioCodec = typeof asset.metadata?.audio_codec === "string" ? asset.metadata.audio_codec.toUpperCase() : null
+  const sourceMetadata = { ...(asset.metadata || {}), ...(asset.version_metadata || {}) }
+  const audioCodec = typeof sourceMetadata.audio_codec === "string" ? sourceMetadata.audio_codec.toUpperCase() : null
   const audioFacts = asset.media_type === "video" && (audioCodec || asset.channels || asset.sample_rate)
     ? [audioCodec, asset.channels ? `${asset.channels === 1 ? "Mono" : asset.channels === 2 ? "Stereo" : `${asset.channels} channels`}` : null, asset.sample_rate ? `${Math.round(asset.sample_rate / 100) / 10} kHz` : null].filter(Boolean).join(" · ")
     : null

@@ -84,7 +84,8 @@ class SoundSceneRepository:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT asset.id, asset.name, asset.kind, asset.media_type,
-                       version.id, version.filename, version.duration_ms
+                       version.id, version.filename, version.duration_ms,
+                       version.sample_rate, version.channels, version.metadata
                   FROM assets asset
                   JOIN productions production ON production.id=%s
                   JOIN work_projects project ON project.id=production.project_id
@@ -111,16 +112,28 @@ class SoundSceneRepository:
                         "source_duration_ms": 0, "missing": True,
                     })
                     continue
-                if source[3] != "audio":
+                source_media_type = str(source[3] or "")
+                version_metadata = source[9] or {}
+                has_embedded_audio = bool(
+                    source[7] and source[8]
+                    or str(version_metadata.get("audio_codec") or "").strip()
+                )
+                if (source_media_type != "audio"
+                        and not (source_media_type == "video"
+                                 and has_embedded_audio)):
                     clip.update({
                         "asset_name": source[1] or "Visual asset",
                         "filename": "", "source_duration_ms": 0,
-                        "missing": True, "incompatible_media_type": source[3],
+                        "missing": True,
+                        "incompatible_media_type": source_media_type,
                     })
                     continue
                 clip.update({
-                    "asset_name": source[1] or "Untitled audio",
+                    "asset_name": source[1] or (
+                        "Untitled video" if source_media_type == "video"
+                        else "Untitled audio"),
                     "asset_kind": source[2],
+                    "source_media_type": source_media_type,
                     "asset_version_id": int(source[4]) if source[4] else None,
                     "filename": source[5] or "",
                     "source_duration_ms": int(source[6] or 0),
@@ -136,7 +149,9 @@ class SoundSceneRepository:
         for track in hydrated["tracks"]:
             for clip in track["clips"]:
                 if clip.get("incompatible_media_type"):
-                    raise ValueError("Sound Scene clips require audio Assets.")
+                    raise ValueError(
+                        "Sound Scene clips require audio Assets or videos "
+                        "with embedded audio.")
                 if clip.get("missing"):
                     raise ValueError("A Sound Scene Asset is unavailable.")
         return normalize_scene(hydrated)

@@ -123,6 +123,7 @@ class SequenceMixOverride(BaseModel):
 class SoundSceneClipDocument(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str = Field(min_length=1, max_length=120)
+    linked_visual_clip_id: UUID | None = None
     asset_id: int = Field(gt=0)
     asset_version_id: int | None = Field(default=None, gt=0)
     duration_ms: int | None = Field(default=None, ge=100)
@@ -192,6 +193,7 @@ class ResolvedSoundSceneClip(SoundSceneClipDocument):
     asset_kind: str | None = None
     filename: str | None = None
     source_duration_ms: int | None = None
+    source_media_type: Literal["audio", "video"] | None = None
     missing: bool | None = None
     resolved_start_ms: int | None = None
     resolved_duration_ms: int

@@ -11,6 +11,7 @@ import { AudioClipInspector } from "@/features/sound-scene/inspector/music-inspe
 import { SequenceMixInspector } from "@/features/sound-scene/inspector/sequence-mix-inspector"
 import { SoundSceneSession, soundTrackDisplayName, useSoundSceneSession, type SoundScenePersistence } from "@/features/sound-scene/engine/sound-scene-session"
 import { VisualSceneSession, useVisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
+import { videoHasEmbeddedAudio } from "@/features/sound-scene/engine/video-audio-sync"
 import { visualTrackDisplayName } from "@/features/visual-scene/timeline/visual-timeline-parts"
 import { ProductionFloatingTransport } from "@/features/production/production-floating-transport"
 import { productionHealth } from "@/features/production/production-health-sheet"
@@ -164,10 +165,26 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     else soundSession.deactivatePlayout()
   }, [soundSession, stage])
   const duration = Number(soundScene.resolved.duration_ms ?? soundScene.resolved.sequence_projection.duration_ms) / 1000
-  visualPersistence.current = (document, expectedRevision) => studioApi.updateVisualScene(production.id, expectedRevision, document)
+  visualPersistence.current = async (document, expectedRevision) => {
+    const saved = await studioApi.updateVisualScene(production.id, expectedRevision, document)
+    try {
+      await soundSession.syncVisualAudio(saved.document, assets)
+    } catch (reason) {
+      soundSession.reportError(reason instanceof Error
+        ? reason.message
+        : "The video audio track could not be synchronized.")
+    }
+    return saved
+  }
   const visualSession = useMemo(() => new VisualSceneSession(visualScene, { update: (document, expectedRevision) => visualPersistence.current(document, expectedRevision) }, duration * 1000), [production.id])
   const visualState = useVisualSceneSession(visualSession)
   useEffect(() => { visualSession.setTimelineDuration(duration * 1000); visualSession.reconcile(visualScene) }, [duration, visualScene, visualSession])
+  useEffect(() => {
+    void soundSession.syncVisualAudio(visualScene.document, assets).catch((reason) =>
+      soundSession.reportError(reason instanceof Error
+        ? reason.message
+        : "The video audio track could not be synchronized."))
+  }, [assets, soundSession, visualScene.document])
   const issues = useMemo(() => productionHealth(production.parts), [production.parts])
   const staleOverrides = useMemo(() => soundState.scene.resolved.orphans.flatMap((orphan) =>
     orphan.kind === "sequence_override" && orphan.part_public_id ? [orphan.part_public_id] : []), [soundState.scene.resolved.orphans])
@@ -324,6 +341,10 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
   const visualTrack = visualSelection ? visualState.document.tracks.find((track) => track.id === visualSelection.trackId) || null : null
   const visualClip = visualSelection ? visualTrack?.clips.find((clip) => clip.id === visualSelection.clipId) || null : null
   const visualAsset = visualClip ? assets.find((asset) => asset.id === visualClip.asset_id) : undefined
+  const linkedVideoAudio = visualClip ? soundState.scene.resolved.tracks.flatMap((track) =>
+    track.clips.flatMap((clip) => clip.linked_visual_clip_id === visualClip.id
+      ? [{ trackId: track.id, clip }]
+      : [])).at(0) : undefined
   const playingPart = actions.playerPlaying && player.source?.key.startsWith("part:")
     ? sourceParts.find((part) => part.id === Number(player.source?.key.slice(5))) || null
     : null
@@ -347,7 +368,9 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     onPlay={(source) => void playSource(source)} onChanged={async () => { actions.invalidatePreview(); await refresh() }}
     onDuplicate={(part) => void actions.duplicatePart(part)} onDelete={requestPartDeletion} onEdit={editPart} onOpenCaptions={(part) => setCaptionPartId(part.id)} onReplaceAsset={openAssetReplacement}
   /> : stage === "sound" && visualSelection && visualTrack && visualClip ? <VisualClipInspector
-    clipRef={visualSelection} track={visualTrack} clip={visualClip} asset={visualAsset} session={visualSession} saving={visualState.saving}
+    clipRef={visualSelection} track={visualTrack} clip={visualClip} asset={visualAsset} session={visualSession} saving={visualState.saving || soundState.saving}
+    hasEmbeddedAudio={videoHasEmbeddedAudio(visualAsset)} audioMuted={linkedVideoAudio?.clip.muted}
+    onAudioMutedChange={linkedVideoAudio ? (muted) => soundSession.commitClipChanges(linkedVideoAudio.trackId, linkedVideoAudio.clip.id, { muted }) : undefined}
   /> : stage === "sound" && soundSelection?.kind === "clip" && audioTrack ? <AudioClipInspector
     track={audioTrack} clip={audioClip} asset={audioAsset} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)}
     onClipChange={(changes) => { if (audioClip) soundSession.updateClip(audioTrack.id, audioClip.id, changes) }} onClipCommit={() => soundSession.commitClip()}

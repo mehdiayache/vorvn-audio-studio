@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Barrier
@@ -284,6 +285,103 @@ class VentureAssetRepositoryTests(unittest.TestCase):
             media_format="png", width=100, height=100)
         self.assertIsNone(self.repository.attach_to_director(
             production_id, image["id"]))
+
+    def test_sound_scene_accepts_only_video_versions_with_embedded_audio(self):
+        collections = self.repository.ensure_collections(self.venture_id)
+        stingers = next(
+            item for item in collections if item["kind"] == "stingers")
+        production_id = self._production()
+        scenes = SoundSceneRepository()
+        audible = self.repository.create_uploaded_asset(
+            stingers["id"], name="Camera interview",
+            filename="camera.mp4", path="/media/camera.mp4",
+            size_bytes=12_000, duration_ms=8_000, audio_format=None,
+            mime_type="video/mp4", media_type="video",
+            media_format="mp4", width=1280, height=720,
+            video_codec="h264", frame_rate=24, sample_rate=48_000,
+            channels=2, version_metadata={
+                "codec": "h264", "audio_codec": "aac"})
+        silent = self.repository.create_uploaded_asset(
+            stingers["id"], name="Silent b-roll",
+            filename="silent.mp4", path="/media/silent.mp4",
+            size_bytes=10_000, duration_ms=8_000, audio_format=None,
+            mime_type="video/mp4", media_type="video",
+            media_format="mp4", width=1280, height=720,
+            video_codec="h264", frame_rate=24,
+            version_metadata={"codec": "h264", "audio_codec": ""})
+
+        current = scenes.get(production_id)
+        document = {
+            "version": 1, "sequence_overrides": {}, "tracks": [{
+                "id": "embedded-video-audio", "kind": "audio",
+                "name": "Video audio", "volume": 1, "muted": False,
+                "clips": [{
+                    "id": str(uuid4()),
+                    "linked_visual_clip_id": str(uuid4()),
+                    "asset_id": audible["id"],
+                    "asset_version_id": audible["version_id"],
+                    "anchor": {"kind": "absolute", "position_ms": 500},
+                    "duration_ms": 4_000, "source_offset_ms": 1_000,
+                }],
+            }],
+        }
+        saved = scenes.commit(production_id, current["revision"], document)
+        clip = saved["hydrated_document"]["tracks"][0]["clips"][0]
+        self.assertEqual(clip["source_media_type"], "video")
+        self.assertEqual(clip["filename"], "camera.mp4")
+        self.assertFalse(clip["missing"])
+
+        document["tracks"][0]["clips"][0].update({
+            "asset_id": silent["id"],
+            "asset_version_id": silent["version_id"],
+        })
+        with self.assertRaisesRegex(ValueError, "videos with embedded audio"):
+            scenes.commit(production_id, saved["revision"], document)
+
+    def test_legacy_visual_track_infers_video_from_its_canonical_asset(self):
+        collections = self.repository.ensure_collections(self.venture_id)
+        stingers = next(
+            item for item in collections if item["kind"] == "stingers")
+        production_id = self._production()
+        video = self.repository.create_uploaded_asset(
+            stingers["id"], name="Legacy camera",
+            filename="legacy-camera.mp4", path="/media/legacy-camera.mp4",
+            size_bytes=12_000, duration_ms=8_000, audio_format=None,
+            mime_type="video/mp4", media_type="video",
+            media_format="mp4", width=1280, height=720,
+            video_codec="h264", frame_rate=24)
+        clip_id = str(uuid4())
+        legacy = {
+            "version": 1,
+            "tracks": [{
+                "id": "visual-legacy", "name": "Visual 1",
+                "visible": True, "locked": False,
+                "clips": [{
+                    "id": clip_id, "asset_id": video["id"],
+                    "start_ms": 0, "duration_ms": 5_000,
+                    "source_offset_ms": 0, "fit": "cover",
+                    "locked": False,
+                }],
+            }],
+        }
+        with psycopg.connect(settings.database_url) as database:
+            with database.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO visual_scenes (production_id, document)
+                    VALUES (%s, %s::jsonb)
+                    ON CONFLICT (production_id) DO UPDATE
+                    SET document=EXCLUDED.document
+                """, (production_id, json.dumps(legacy)))
+            database.commit()
+
+        scenes = VisualSceneRepository()
+        current = scenes.get(production_id)
+        self.assertEqual(
+            current["document"]["tracks"][0]["media_type"], "video")
+        saved = scenes.commit(
+            production_id, current["revision"], current["document"])
+        self.assertEqual(
+            saved["document"]["tracks"][0]["media_type"], "video")
 
     def test_uploaded_studio_asset_is_reusable_by_another_venture(self):
         collections = self.repository.ensure_collections(self.venture_id)

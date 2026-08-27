@@ -18,6 +18,7 @@ class MediaWorkspace(Protocol):
     ) -> MediaFile | None: ...
     def video_poster(self, name: str) -> MediaFile | None: ...
     def video_proxy(self, name: str) -> MediaFile | None: ...
+    def audio_proxy(self, name: str) -> MediaFile | None: ...
 
 
 class MediaRecords(Protocol):
@@ -70,6 +71,9 @@ class MediaService:
 
     def video_proxy(self, name: str) -> MediaFile | None:
         return self.workspace.video_proxy(name)
+
+    def audio_proxy(self, name: str) -> MediaFile | None:
+        return self.workspace.audio_proxy(name)
 
 
 class VoiceReferenceMediaService:

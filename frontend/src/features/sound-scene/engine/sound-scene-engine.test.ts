@@ -257,6 +257,31 @@ describe("SoundSceneSession", () => {
     vi.unstubAllGlobals()
   })
 
+  it("never lets a late parent refresh replace a newer committed scene", async () => {
+    const source = scene()
+    const newer = structuredClone(source)
+    newer.revision = 3
+    newer.resolved.signature = "newer-local-scene"
+    const playout = {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(),
+      seek: vi.fn(), currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(false),
+      muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    }
+    const session = new SoundSceneSession(newer, {
+      update: vi.fn(), undo: vi.fn(), redo: vi.fn(),
+    }, playout)
+
+    const lateParent = structuredClone(source)
+    lateParent.revision = 2
+    lateParent.resolved.signature = "late-parent-scene"
+    session.reconcile(lateParent)
+
+    expect(session.snapshot().scene.revision).toBe(3)
+    expect(session.snapshot().scene.resolved.signature).toBe("newer-local-scene")
+    expect(playout.replace).not.toHaveBeenCalled()
+    session.dispose()
+  })
+
   it("shows that playback is preparing and suppresses duplicate play requests", async () => {
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(7))
     vi.stubGlobal("cancelAnimationFrame", vi.fn())

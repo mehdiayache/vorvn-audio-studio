@@ -212,6 +212,7 @@ export type SequenceMixOverride = {
 
 export type SoundSceneClip = {
   id: string
+  linked_visual_clip_id?: string | null
   asset_id: number
   asset_version_id?: number | null
   duration_ms: number | null
@@ -230,6 +231,7 @@ export type SoundSceneClip = {
   asset_kind?: string
   filename?: string
   source_duration_ms?: number
+  source_media_type?: "audio" | "video"
   missing?: boolean
   resolved_start_ms?: number | null
   resolved_duration_ms?: number

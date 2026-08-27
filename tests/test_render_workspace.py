@@ -125,6 +125,58 @@ class RenderWorkspaceTests(unittest.TestCase):
         self.assertTrue(math.isfinite(loudness["integrated_lufs"]))
         self.assertTrue(math.isfinite(loudness["loudness_range_lu"]))
 
+    @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"),
+                         "FFmpeg is required for video-audio acceptance.")
+    def test_real_ffmpeg_uses_embedded_video_audio_with_visual_timing(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            sequence = root / "sequence.wav"
+            video = root / "camera.mov"
+            target = root / "mixed.mp3"
+            subprocess.run([
+                "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                "-f", "lavfi", "-i", "sine=frequency=220:duration=2",
+                "-filter:a", "volume=0", "-ar", "48000", "-ac", "2",
+                str(sequence),
+            ], check=True)
+            subprocess.run([
+                "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                "-f", "lavfi", "-i", "color=size=320x180:rate=24:color=blue",
+                "-f", "lavfi", "-i", "sine=frequency=880:duration=1",
+                "-t", "1", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                "-c:a", "aac", str(video),
+            ], check=True)
+            scene = {
+                "duration_ms": 2_000,
+                "sequence_projection": {"duration_ms": 2_000, "spans": []},
+                "tracks": [{
+                    "id": "embedded-video-audio", "kind": "audio",
+                    "volume": 1, "muted": False, "clips": [{
+                        "filename": video.name, "source_media_type": "video",
+                        "gain": 1, "resolved_start_ms": 200,
+                        "resolved_duration_ms": 500, "source_offset_ms": 250,
+                        "fade_in_ms": 0, "fade_out_ms": 0, "loop": False,
+                        "ducking": False, "orphan": False, "missing": False,
+                        "muted": False, "effects": [],
+                    }],
+                }],
+            }
+
+            with patch.object(render_workspace, "_output", return_value=root):
+                self.assertTrue(render_workspace._mix_scene(sequence, scene, target))
+            decoded = subprocess.run([
+                "ffmpeg", "-nostdin", "-loglevel", "error", "-i", str(target),
+                "-f", "s16le", "-ac", "1", "-ar", "48000", "-",
+            ], check=True, capture_output=True).stdout
+            samples = struct.unpack(f"<{len(decoded) // 2}h", decoded)
+
+        before = samples[:int(.15 * 48_000)]
+        during = samples[int(.3 * 48_000):int(.6 * 48_000)]
+        after = samples[int(.8 * 48_000):]
+        self.assertLessEqual(max(map(abs, before), default=0), 8)
+        self.assertGreater(max(map(abs, during), default=0), 100)
+        self.assertLessEqual(max(map(abs, after), default=0), 8)
+
     def test_finished_export_manifest_records_master_safety_and_measurement(self):
         with TemporaryDirectory() as folder:
             root = Path(folder).resolve()

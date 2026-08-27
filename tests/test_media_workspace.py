@@ -71,6 +71,35 @@ class MediaWorkspaceTests(unittest.TestCase):
             self.assertIn("pix_fmt=yuv420p", probe.stdout)
             self.assertIsNone(workspace.video_proxy("../source.mov"))
 
+    def test_video_audio_proxy_is_cached_normalized_and_contained(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            source = root / "camera-original.mov"
+            subprocess.run([
+                "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                "-f", "lavfi", "-i", "color=size=320x180:rate=24:color=blue",
+                "-f", "lavfi", "-i", "sine=frequency=440:duration=1",
+                "-t", "1", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                "-c:a", "aac", str(source),
+            ], check=True)
+            workspace = LocalMediaWorkspace(
+                root=root, output=root, voice_samples=root)
+
+            first = workspace.audio_proxy(source.name)
+            second = workspace.audio_proxy(source.name)
+
+            self.assertEqual(first, second)
+            self.assertTrue(first.path.is_file())
+            probe = subprocess.run([
+                "ffprobe", "-v", "error", "-select_streams", "a:0",
+                "-show_entries", "stream=codec_name,sample_rate,channels",
+                "-of", "default=nw=1", str(first.path),
+            ], check=True, capture_output=True, text=True)
+            self.assertIn("codec_name=mp3", probe.stdout)
+            self.assertIn("sample_rate=48000", probe.stdout)
+            self.assertIn("channels=2", probe.stdout)
+            self.assertIsNone(workspace.audio_proxy("../camera-original.mov"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
-import { audioUrl } from "@/lib/api"
+import { soundClipSourceUrl } from "../engine/sound-clip-source"
 import { assetSourceLine } from "@/lib/asset-provenance"
 import { formatDuration } from "@/lib/format"
 import type { PlayerSource, SoundSceneClip, SoundSceneTrack, VentureAsset } from "@/types/domain"
@@ -99,12 +99,12 @@ export function AudioClipInspector({ track, clip, asset, playingKey, playing, on
     <section className="music-workbench-source">
       <span className="music-workbench-art"><SourceIcon /></span>
       <div><span className="eyebrow">{categoryName(category)} · {asset ? assetSourceLine(asset) : "Audio Library"}</span><h3>{asset?.title || asset?.name || clip.asset_name || "Audio"}</h3><p>{technicalSummary(asset, sourceDuration)}</p></div>
-      <OperatorIconButton label={active ? "Pause audio audition" : "Play audio audition"} detail="Auditions the source without changing its timeline placement." variant="outline" size="icon" onClick={() => onPlay({ key, url: audioUrl(clip.filename!), title: clip.asset_name || "Audio", subtitle: "Source audition", kind: "asset" })}>{active ? <Pause /> : <Play />}</OperatorIconButton>
+      <OperatorIconButton label={active ? "Pause audio audition" : "Play audio audition"} detail="Auditions the source without changing its timeline placement." variant="outline" size="icon" onClick={() => onPlay({ key, url: soundClipSourceUrl(clip), title: clip.asset_name || "Audio", subtitle: "Source audition", kind: "asset" })}>{active ? <Pause /> : <Play />}</OperatorIconButton>
     </section>
 
     <section className="music-workbench-section">
       <header><div><h3>Source & timing</h3><p>{placement}</p></div><span>Live preview</span></header>
-      <AudioSourceEditor url={audioUrl(clip.filename)} sourceDuration={sourceDuration} sourceOffset={start} usedDuration={usedDuration} loop={Boolean(clip.loop)} disabled={Boolean(saving) || geometryLocked} onChange={sourceWindow} onCommit={(next) => { sourceWindow(next); void save("source window", onClipCommit) }} />
+      <AudioSourceEditor url={soundClipSourceUrl(clip)} sourceDuration={sourceDuration} sourceOffset={start} usedDuration={usedDuration} loop={Boolean(clip.loop)} disabled={Boolean(saving) || geometryLocked} onChange={sourceWindow} onCommit={(next) => { sourceWindow(next); void save("source window", onClipCommit) }} />
     </section>
 
     <section className="music-workbench-section music-level-section">

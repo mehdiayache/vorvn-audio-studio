@@ -67,6 +67,17 @@ def get_video_proxy(name: str) -> FileResponse:
 
 
 @router.api_route(
+    "/api/v1/media/audio-proxy/{name}", methods=["GET", "HEAD"],
+    include_in_schema=False,
+)
+def get_media_audio_proxy(name: str) -> FileResponse:
+    try:
+        return _response(media_service.audio_proxy(name))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.api_route(
     "/api/v1/media/segments/{name}", methods=["GET", "HEAD"],
     include_in_schema=False,
 )

@@ -1,9 +1,10 @@
 import { useSyncExternalStore } from "react"
 
-import type { SequenceMixOverride, SoundScene, SoundSceneClip, SoundSceneDocument, SoundSceneTrack, VentureAsset } from "@/types/domain"
+import type { SequenceMixOverride, SoundScene, SoundSceneClip, SoundSceneDocument, SoundSceneTrack, VentureAsset, VisualSceneDocument } from "@/types/domain"
 import { dbToGain, gainToDb } from "../sound-scene-gain"
 import { SoundSceneEngine, type SoundSceneEngineState } from "./sound-scene-engine"
 import { SoundScenePlayout } from "./sound-scene-playout"
+import { synchronizeVideoAudio } from "./video-audio-sync"
 
 export type SoundClipRef = { trackId: string; clipId: string }
 export type SoundSelection =
@@ -45,6 +46,8 @@ function assetTrackType(asset?: VentureAsset) {
 }
 
 export function soundTrackDisplayName(track: SoundSceneTrack) {
+  if (track.clips.length > 0 && track.clips.every(
+      (clip) => clip.source_media_type === "video")) return "Video audio"
   const types = new Set(track.clips.map((clip) => audioTrackType(clip.asset_kind)))
   const declared = audioTrackType(track.name)
   if (types.size === 1) {
@@ -83,6 +86,7 @@ function playoutStructure(document: SoundSceneDocument) {
       kind: track.kind,
       clips: track.clips.map((clip) => ({
         id: clip.id,
+        linked_visual_clip_id: clip.linked_visual_clip_id,
         asset_id: clip.asset_id,
         asset_version_id: clip.asset_version_id,
         duration_ms: clip.duration_ms,
@@ -203,6 +207,9 @@ export class SoundSceneSession {
 
   reconcile(scene: SoundScene, force = false) {
     const current = this.snapshotValue.scene
+    // A parent refresh can finish after a newer local commit. Never let that
+    // older response move the canonical Sound Scene revision backwards.
+    if (!force && scene.revision < current.revision) return
     if (this.snapshotValue.saving && !force) {
       if (scene.revision > current.revision) this.set({ scene })
       return
@@ -268,6 +275,15 @@ export class SoundSceneSession {
   }
 
   async commitClip() { await this.persist(this.editor.document()) }
+
+  async syncVisualAudio(visual: VisualSceneDocument, assets: VentureAsset[]) {
+    const synchronized = synchronizeVideoAudio(
+      this.editor.document(), visual, assets,
+    )
+    if (!synchronized.changed) return false
+    await this.persist(synchronized.document)
+    return true
+  }
 
   private nextDocument(transform: (document: SoundSceneDocument) => void) {
     const document = structuredClone(this.editor.document())

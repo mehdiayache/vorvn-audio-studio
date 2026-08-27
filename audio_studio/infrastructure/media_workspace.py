@@ -159,3 +159,45 @@ class LocalMediaWorkspace:
 
     def video_proxy(self, name: str) -> MediaFile | None:
         return self._video_derivative(name, kind="proxy")
+
+    def audio_proxy(self, name: str) -> MediaFile | None:
+        """Return one browser-streamable audio derivative for any media source."""
+        source = contained_file(self.output, name)
+        if source is None:
+            return None
+        if not shutil.which("ffmpeg"):
+            raise RuntimeError("FFmpeg is required to prepare that audio preview.")
+        stat = source.stat()
+        digest = hashlib.sha256(
+            f"{source.name}:{stat.st_size}:{stat.st_mtime_ns}:audio:v1".encode()
+        ).hexdigest()[:24]
+        target = self.output / f"media-audio-{digest}.mp3"
+        if target.is_file() and target.stat().st_size > 0:
+            return MediaFile(target)
+        temporary = target.with_name(f".{target.stem}-{uuid4().hex}.tmp.mp3")
+        command = [
+            "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+            "-i", str(source), "-map", "0:a:0", "-vn",
+            "-ar", "48000", "-ac", "2", "-c:a", "libmp3lame",
+            "-b:a", "192k", str(temporary),
+        ]
+        try:
+            result = subprocess.run(
+                command, capture_output=True, text=True, timeout=300)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            temporary.unlink(missing_ok=True)
+            raise RuntimeError(f"Audio preview preparation failed: {exc}") from exc
+        if (result.returncode or not temporary.is_file()
+                or temporary.stat().st_size <= 0):
+            temporary.unlink(missing_ok=True)
+            detail = (result.stderr or "FFmpeg found no audio stream").strip()
+            raise RuntimeError(
+                f"Audio preview preparation failed: {detail[-240:]}")
+        os.replace(temporary, target)
+        for old in sorted(
+            self.output.glob("media-audio-*.mp3"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )[128:]:
+            old.unlink(missing_ok=True)
+        return MediaFile(target)

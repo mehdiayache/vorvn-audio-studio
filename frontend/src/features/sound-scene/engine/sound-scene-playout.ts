@@ -1,8 +1,8 @@
 import { NativePlayoutAdapter } from "@dawcore/transport"
 
-import { audioUrl } from "@/lib/api"
 import type { SequenceMixOverride, SoundScene, SoundSceneClip, SoundSceneEffect } from "@/types/domain"
 import { DecodedAudioCache, planClipSource } from "./sound-source-manager"
+import { soundClipSourceUrl } from "./sound-clip-source"
 
 const SAMPLE_RATE = 48_000
 const STREAM_PREROLL_SECONDS = 30
@@ -608,7 +608,7 @@ export class SoundScenePlayout {
 
   private createAudioStream(descriptor: StreamDescriptor) {
     const { trackId, trackVolume, trackMuted, clip } = descriptor
-    const element = this.mediaElement(audioUrl(clip.filename!))
+    const element = this.mediaElement(soundClipSourceUrl(clip))
     const source = this.context!.createMediaElementSource(element)
     const nodes: AudioNode[] = [source]
     const gain = this.context!.createGain()
@@ -687,7 +687,7 @@ export class SoundScenePlayout {
         const gain = Number(clip.gain ?? 1)
         liveClipGains.set(clip.id, gain)
         liveClips.set(clip.id, { ...clip, effects: structuredClone(clip.effects) })
-        const plan = planClipSource(clip, audioUrl(clip.filename!), reservedDecodedBytes)
+        const plan = planClipSource(clip, soundClipSourceUrl(clip), reservedDecodedBytes)
         if (plan.mode === "stream") {
           this.streamDescriptors.set(clip.id, {
             trackId: track.id, trackVolume: track.volume,

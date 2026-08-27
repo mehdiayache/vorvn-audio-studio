@@ -70,5 +70,9 @@ describe("Timeline track type labels", () => {
     expect(soundTrackDisplayName(audioTrack(["intro"]))).toBe("Intro")
     expect(soundTrackDisplayName(audioTrack(["outro"]))).toBe("Outro")
     expect(soundTrackDisplayName(audioTrack(["music", "sfx"]))).toBe("Audio")
+    expect(soundTrackDisplayName({
+      ...audioTrack(["other"]),
+      clips: [{ ...audioTrack(["other"]).clips[0]!, source_media_type: "video" }],
+    })).toBe("Video audio")
   })
 })
