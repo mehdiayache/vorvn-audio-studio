@@ -8,11 +8,12 @@ import type { VentureAsset } from "@/types/domain"
 import { visualAssetFacts, visualAssetName, visualAssetPosterUrl, visualAssetUrl } from "./director-assets"
 import type { DirectorGalleryView } from "./director-gallery"
 
-export function VisualAssetCard({ asset, mode = "director", view = "gallery", pending = false, onPreview, onAdd, onAddToTimeline, onRemove }: {
+export function VisualAssetCard({ asset, mode = "director", view = "gallery", pending = false, addLabel = "Add", onPreview, onAdd, onAddToTimeline, onRemove }: {
   asset: VentureAsset
   mode?: "director" | "library"
   view?: DirectorGalleryView
   pending?: boolean
+  addLabel?: string
   onPreview: (asset: VentureAsset) => void
   onAdd?: (asset: VentureAsset) => void
   onAddToTimeline?: (asset: VentureAsset) => void
@@ -31,7 +32,7 @@ export function VisualAssetCard({ asset, mode = "director", view = "gallery", pe
     <footer>
       <div><h3 title={name}>{name}</h3><p>{facts.dimensions} · {facts.format}</p></div>
       {mode === "library" && onAdd
-        ? <ActionButton size="sm" busy={pending} busyLabel="Adding…" onClick={() => onAdd(asset)}><Plus /> Add</ActionButton>
+        ? <ActionButton size="sm" busy={pending} busyLabel="Adding…" onClick={() => onAdd(asset)}><Plus /> {addLabel}</ActionButton>
         : <DropdownMenu>
           <OperatorTooltip label={pending ? "Updating visual" : `Actions for ${name}`} side="left" disabledTrigger={pending}>
             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" disabled={pending} aria-label={`Actions for ${name}`}>{pending ? <LoaderCircle className="spin" /> : <MoreHorizontal />}</Button></DropdownMenuTrigger>

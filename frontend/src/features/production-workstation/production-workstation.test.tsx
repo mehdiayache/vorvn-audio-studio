@@ -193,6 +193,10 @@ describe("Production Workstation", () => {
     render(<SoundSceneWorkspace session={sessionFor(scene([part({ duration_ms: 30_000 })]))} visual={{ ...props, session: visualSessionFor(placedVisual) }} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
     expect(screen.getByLabelText("Production viewer")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Hide Viewer" }))
+    expect(screen.getByLabelText("Production viewer").className).toContain("is-collapsed")
+    fireEvent.click(screen.getByRole("button", { name: "Show Viewer" }))
+    expect(screen.getByRole("button", { name: "Add visual at playhead" })).toBeTruthy()
   })
 
   it("keeps a muted track level editable for the value that applies on unmute", () => {

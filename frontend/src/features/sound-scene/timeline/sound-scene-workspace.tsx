@@ -193,6 +193,7 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
   const { scene, engine, selection, playhead, playback, saving, error, soloTrackIds, playbackRange } = useSoundSceneSession(session)
   const visualState = useVisualSceneSession(visual?.session)
   const [tracksCollapsed, setTracksCollapsed] = useState(false)
+  const [viewerCollapsed, setViewerCollapsed] = useState(false)
   const [snapGuide, setSnapGuide] = useState<number | null>(null)
   const [followPlayhead, setFollowPlayhead] = useState(true)
   const [snapping, setSnapping] = useState(true)
@@ -555,9 +556,8 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
     return () => window.removeEventListener("keydown", keydown)
   }, [canSplitVisual, onRemoveClip, playhead, selectedClips, selectedRefs, selectedVisualAsset, selectedVisualClip, selectedVisualRef, selectedVisualTrack, session, visual, zoomIndex])
 
-  return <section className={cn("sound-scene-workspace", hasVisualPlacements && "has-visual-monitor", tracksCollapsed && "tracks-collapsed", panning && "is-panning")}>
+  return <section className={cn("sound-scene-workspace", hasVisualPlacements && "has-visual-monitor", viewerCollapsed && "viewer-collapsed", tracksCollapsed && "tracks-collapsed", panning && "is-panning")}>
     <div className="sound-scene-toolbar">
-      <OperatorTooltip label={tracksCollapsed ? "Show track controls" : "Hide track controls"}><Button variant="ghost" size="icon-sm" onClick={() => setTracksCollapsed((value) => !value)} aria-label={tracksCollapsed ? "Show track controls" : "Hide track controls"}>{tracksCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button></OperatorTooltip>
       <span className="sound-scene-toolbar-title"><b>Timeline</b><small>{imageTrackCount} image track{imageTrackCount === 1 ? "" : "s"} · {videoTrackCount} video track{videoTrackCount === 1 ? "" : "s"} · {tracks.length} audio track{tracks.length === 1 ? "" : "s"} · {formatDuration(total)}</small></span>
       <div className="sound-scene-history"><OperatorTooltip label="Undo the last Timeline edit" disabledTrigger={!scene.can_undo || saving}><Button variant="ghost" size="sm" disabled={!scene.can_undo || saving} onClick={() => void session.undo()} aria-label="Undo Timeline edit"><Undo2 /><span>Undo</span></Button></OperatorTooltip><OperatorTooltip label="Redo the last undone Timeline edit" disabledTrigger={!scene.can_redo || saving}><Button variant="ghost" size="sm" disabled={!scene.can_redo || saving} onClick={() => void session.redo()} aria-label="Redo Timeline edit"><Redo2 /><span>Redo</span></Button></OperatorTooltip></div>
       <div className="sound-scene-viewport-tools">
@@ -579,10 +579,16 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
       </DropdownMenu>
     </div>
     <div className="sound-scene-stage">
-      {visual && hasVisualPlacements && <TimelineViewer document={visualState.document} assets={visual.assets} playheadMs={playhead * 1000} playback={playback} selection={selectedVisualRef} session={visual.session} saving={visualState.saving} />}
+      {visual && hasVisualPlacements && <TimelineViewer document={visualState.document} assets={visual.assets} playheadMs={playhead * 1000} playback={playback} selection={selectedVisualRef} session={visual.session} saving={visualState.saving} collapsed={viewerCollapsed} onCollapsedChange={setViewerCollapsed} onAddMedia={() => visual.onAddVisual()} />}
       <div className="sound-scene-editor">
       <aside ref={controlsRef} className="sound-scene-track-controls" style={{ gridTemplateRows: rowTemplate }} onWheel={(event) => { if (scrollRef.current) scrollRef.current.scrollTop += event.deltaY }}>
-        <div className="sound-scene-track-head"><span>Tracks</span><DropdownMenu><OperatorTooltip label="Create an empty Timeline track" detail="Choose the media type now, then add compatible sources inside that track."><DropdownMenuTrigger asChild><Button variant="ghost" size={tracksCollapsed ? "icon-sm" : "sm"} aria-label="New Timeline track"><Plus data-icon="inline-start" />{!tracksCollapsed && "New track"}</Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent side="right" align="start"><DropdownMenuLabel>Empty track</DropdownMenuLabel><DropdownMenuGroup><DropdownMenuItem onSelect={() => void visual?.session.addTrack("image")} disabled={!visual}><ImageIcon /> Image</DropdownMenuItem><DropdownMenuItem onSelect={() => void visual?.session.addTrack("video")} disabled={!visual}><Film /> Video</DropdownMenuItem><DropdownMenuItem onSelect={() => void session.addTrack()}><AudioWaveform /> Audio</DropdownMenuItem></DropdownMenuGroup></DropdownMenuContent></DropdownMenu></div>
+        <div className="sound-scene-track-head">
+          <span>Tracks</span>
+          <div className="sound-scene-track-head-actions">
+            <OperatorTooltip label={tracksCollapsed ? "Show track controls" : "Hide track controls"}><Button variant="ghost" size="icon-sm" onClick={() => setTracksCollapsed((value) => !value)} aria-label={tracksCollapsed ? "Show track controls" : "Hide track controls"}>{tracksCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button></OperatorTooltip>
+            {!tracksCollapsed && <DropdownMenu><OperatorTooltip label="Create an empty Timeline track" detail="Choose the media type now, then add compatible sources inside that track."><DropdownMenuTrigger asChild><Button variant="ghost" size="sm" aria-label="New Timeline track"><Plus data-icon="inline-start" />New track</Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent side="right" align="start"><DropdownMenuLabel>Empty track</DropdownMenuLabel><DropdownMenuGroup><DropdownMenuItem onSelect={() => void visual?.session.addTrack("image")} disabled={!visual}><ImageIcon /> Image</DropdownMenuItem><DropdownMenuItem onSelect={() => void visual?.session.addTrack("video")} disabled={!visual}><Film /> Video</DropdownMenuItem><DropdownMenuItem onSelect={() => void session.addTrack()}><AudioWaveform /> Audio</DropdownMenuItem></DropdownMenuGroup></DropdownMenuContent></DropdownMenu>}
+          </div>
+        </div>
         {visualTracks.map((track, index) => <VisualTrackControl key={track.id} track={track} assets={visual?.assets || []} collapsed={tracksCollapsed} first={index === 0} last={index === visualTracks.length - 1}
           onVisible={() => void visual?.session.setTrackVisible(track.id, !track.visible)}
           onLocked={() => void visual?.session.setTrackLocked(track.id, !track.locked)}

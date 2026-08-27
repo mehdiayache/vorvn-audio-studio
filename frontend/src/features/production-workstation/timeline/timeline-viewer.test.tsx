@@ -28,4 +28,23 @@ describe("TimelineViewer", () => {
     expect(screen.queryByText("Fit entire media")).toBeNull()
     expect(screen.queryByText("Fill and crop")).toBeNull()
   })
+
+  it("keeps Viewer controls inside the Viewer and collapses to a recoverable rail", () => {
+    const onCollapsedChange = vi.fn()
+    const document: VisualSceneDocument = {
+      version: 1,
+      canvas: { width: 1920, height: 1080 },
+      tracks: [],
+    }
+    const session = { setCanvas: vi.fn() } as unknown as VisualSceneSession
+    const { rerender } = render(<TimelineViewer document={document} assets={[]} playheadMs={0} playback="idle" selection={null} session={session} saving={false} onCollapsedChange={onCollapsedChange} onAddMedia={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide Viewer" }))
+    expect(onCollapsedChange).toHaveBeenCalledWith(true)
+
+    rerender(<TimelineViewer document={document} assets={[]} playheadMs={0} playback="idle" selection={null} session={session} saving={false} collapsed onCollapsedChange={onCollapsedChange} onAddMedia={vi.fn()} />)
+    expect(screen.getByRole("button", { name: "Show Viewer" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: /Production format/ })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Add visual at playhead" })).toBeNull()
+  })
 })
