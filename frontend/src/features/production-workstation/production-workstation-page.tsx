@@ -10,6 +10,7 @@ import { ProductionComposerStage } from "@/features/composer/production-composer
 import { AudioClipInspector } from "@/features/sound-scene/inspector/music-inspector"
 import { SequenceMixInspector } from "@/features/sound-scene/inspector/sequence-mix-inspector"
 import { SoundSceneSession, useSoundSceneSession, type SoundScenePersistence } from "@/features/sound-scene/engine/sound-scene-session"
+import { VisualSceneSession, useVisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
 import { ProductionFloatingTransport } from "@/features/production/production-floating-transport"
 import { productionHealth } from "@/features/production/production-health-sheet"
 import { useProductionSpeechJobs } from "@/features/production/use-production-speech-jobs"
@@ -24,7 +25,7 @@ import { loadPartCaptionTracks, loadProductionCaptionTracks } from "@/lib/produc
 import { studioApi } from "@/lib/api"
 import type {
   AssetCollection, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, PlayerCaptionTrack,
-  PlayerSource, Production, ProductionPart, SoundScene, StudioConfig, VentureAsset, VoiceDirectory,
+  PlayerSource, Production, ProductionPart, SoundScene, StudioConfig, VentureAsset, VisualScene, VoiceDirectory,
 } from "@/types/domain"
 import { workstationPartState, type SequenceInsertKind, type WorkstationPartActions } from "./workstation-sequence"
 import { WorkstationPartInspector } from "./workstation-part-inspector"
@@ -77,10 +78,11 @@ function partDeletionLabel(part: ProductionPart) {
   return `Part ${number} · ${formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"}`
 }
 
-export function ProductionWorkstationPage({ production, tree, soundScene, assets, assetCollections, directorAssetIds, config, directory, refresh, refreshAssets }: {
+export function ProductionWorkstationPage({ production, tree, soundScene, visualScene, assets, assetCollections, directorAssetIds, config, directory, refresh, refreshAssets }: {
   production: Production
   tree: HierarchyNode[] | null
   soundScene: SoundScene
+  visualScene: VisualScene
   assets: VentureAsset[]
   assetCollections: AssetCollection[]
   directorAssetIds: number[]
@@ -107,6 +109,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   const [replacingAsset, setReplacingAsset] = useState<ProductionPart | null>(null)
   const centerPaneRef = useRef<HTMLElement | null>(null)
   const soundSessionRef = useRef<SoundSceneSession | null>(null)
+  const visualPersistence = useRef((document: VisualScene["document"], expectedRevision: number) => studioApi.updateVisualScene(production.id, expectedRevision, document))
   const sourceParts = useMemo(() => production.parts.filter((part) => part.kind !== "stitch"), [production.parts])
   const activeSourceParts = useMemo(() => sourceParts.filter((part) => part.enabled !== false), [sourceParts])
   const pendingDraftCount = useMemo(() => activeSourceParts.filter((part) => part.kind === "draft").length, [activeSourceParts])
@@ -159,6 +162,10 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
     else soundSession.deactivatePlayout()
   }, [soundSession, stage])
   const duration = Number(soundScene.resolved.duration_ms ?? soundScene.resolved.sequence_projection.duration_ms) / 1000
+  visualPersistence.current = (document, expectedRevision) => studioApi.updateVisualScene(production.id, expectedRevision, document)
+  const visualSession = useMemo(() => new VisualSceneSession(visualScene, { update: (document, expectedRevision) => visualPersistence.current(document, expectedRevision) }, duration * 1000), [production.id])
+  const visualState = useVisualSceneSession(visualSession)
+  useEffect(() => { visualSession.setTimelineDuration(duration * 1000); visualSession.reconcile(visualScene) }, [duration, visualScene, visualSession])
   const issues = useMemo(() => productionHealth(production.parts), [production.parts])
   const staleOverrides = useMemo(() => soundState.scene.resolved.orphans.flatMap((orphan) =>
     orphan.kind === "sequence_override" && orphan.part_public_id ? [orphan.part_public_id] : []), [soundState.scene.resolved.orphans])
@@ -166,7 +173,8 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
   const usedAssetIds = useMemo(() => [...new Set([
     ...sourceParts.flatMap((part) => part.asset_id ? [part.asset_id] : []),
     ...soundState.scene.document.tracks.flatMap((track) => track.clips.map((clip) => clip.asset_id)),
-  ])], [soundState.scene.document.tracks, sourceParts])
+    ...visualState.document.tracks.flatMap((track) => track.clips.map((clip) => clip.asset_id)),
+  ])], [soundState.scene.document.tracks, sourceParts, visualState.document.tracks])
   const renameProduction = useCallback(async (name: string) => {
     await studioApi.updateResource<Production>("productions", production.id, { name })
     await refresh()
@@ -396,6 +404,10 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
           directorAssetIds={directorAssetIds}
           onRefresh={refreshAssets}
           onConfirmAction={setConfirmAction}
+          onAddToTimeline={async (asset) => {
+            await visualSession.addImage(asset, soundSession.snapshot().playhead * 1000)
+            setStage("sound")
+          }}
           onUpload={async (file) => {
             const collectionId = assetCollectionIds.Stingers
             if (!collectionId) throw new Error("The visual library is unavailable.")
@@ -409,7 +421,23 @@ export function ProductionWorkstationPage({ production, tree, soundScene, assets
         />}
         {stage === "sound" && <TimelineStage
           centerPaneRef={centerPaneRef}
+          directorAssetIds={directorAssetIds}
           session={soundSession}
+          visual={{
+            session: visualSession,
+            assets,
+            onAddImage: () => undefined,
+            onRemoveClip: (ref, name) => setConfirmAction({
+              title: `Remove this visual: “${name}”?`,
+              description: "This removes only the Timeline placement. The image remains available in Director and Visual Library.",
+              action: () => visualSession.removeClip(ref),
+            }),
+            onRemoveTrack: (track) => setConfirmAction({
+              title: `Remove this visual track: “${track.name}”?`,
+              description: `This removes the track and its ${track.clips.length} visual placement${track.clips.length === 1 ? "" : "s"}. Director Assets remain available.`,
+              action: () => visualSession.removeTrack(track.id),
+            }),
+          }}
           onAddAudio={(target) => { setAudioTarget(target); setTool("audio") }}
           onRemoveClip={({ clips }) => {
             const names = clips.flatMap((ref) => {

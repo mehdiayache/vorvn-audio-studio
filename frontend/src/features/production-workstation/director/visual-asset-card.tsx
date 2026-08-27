@@ -8,13 +8,14 @@ import type { VentureAsset } from "@/types/domain"
 import { visualAssetFacts, visualAssetName, visualAssetUrl } from "./director-assets"
 import type { DirectorGalleryView } from "./director-gallery"
 
-export function VisualAssetCard({ asset, mode = "director", view = "gallery", pending = false, onPreview, onAdd, onRemove }: {
+export function VisualAssetCard({ asset, mode = "director", view = "gallery", pending = false, onPreview, onAdd, onAddToTimeline, onRemove }: {
   asset: VentureAsset
   mode?: "director" | "library"
   view?: DirectorGalleryView
   pending?: boolean
   onPreview: (asset: VentureAsset) => void
   onAdd?: (asset: VentureAsset) => void
+  onAddToTimeline?: (asset: VentureAsset) => void
   onRemove?: (asset: VentureAsset) => void
 }) {
   const name = visualAssetName(asset)
@@ -38,7 +39,7 @@ export function VisualAssetCard({ asset, mode = "director", view = "gallery", pe
           <DropdownMenuContent align="end">
             <DropdownMenuGroup>
               <DropdownMenuItem onSelect={() => onPreview(asset)}>{asset.media_type === "video" ? <Video /> : <ImageIcon />} Preview</DropdownMenuItem>
-              <DropdownMenuItem disabled><Check /> Add to Timeline · next checkpoint</DropdownMenuItem>
+              <DropdownMenuItem disabled={asset.media_type !== "image" || !onAddToTimeline} onSelect={() => onAddToTimeline?.(asset)}><Check />{asset.media_type === "image" ? "Add to Timeline" : "Video Timeline · next checkpoint"}</DropdownMenuItem>
             </DropdownMenuGroup>
             {onRemove && <><DropdownMenuSeparator /><DropdownMenuGroup><DropdownMenuItem onSelect={() => onRemove(asset)}><X /> Remove from Director…</DropdownMenuItem></DropdownMenuGroup></>}
           </DropdownMenuContent>

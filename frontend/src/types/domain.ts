@@ -305,6 +305,35 @@ export type SoundScene = {
   }
 }
 
+export type VisualSceneClip = {
+  id: string
+  asset_id: number
+  start_ms: number
+  duration_ms: number
+  source_offset_ms: number
+  locked: boolean
+}
+
+export type VisualSceneTrack = {
+  id: string
+  name: string
+  visible: boolean
+  locked: boolean
+  clips: VisualSceneClip[]
+}
+
+export type VisualSceneDocument = {
+  version: 1
+  tracks: VisualSceneTrack[]
+}
+
+export type VisualScene = {
+  production_id: number
+  revision: number
+  document: VisualSceneDocument
+  updated_at: string
+}
+
 export type VentureAsset = {
   id: number
   media_type?: "audio" | "image" | "video"

@@ -7,10 +7,13 @@ import type { VentureAsset } from "@/types/domain"
 import { visualAssetName } from "./director-assets"
 import { VisualAssetCard } from "./visual-asset-card"
 
-export function DirectorLibraryDialog({ open, assets, pendingId, onOpenChange, onPreview, onAdd }: {
+export function DirectorLibraryDialog({ open, assets, pendingId, title = "Visual Library", description = "Choose reusable images and videos already available to this Production.", emptyDescription = "Upload a new image or video from Director.", onOpenChange, onPreview, onAdd }: {
   open: boolean
   assets: VentureAsset[]
   pendingId: number | null
+  title?: string
+  description?: string
+  emptyDescription?: string
   onOpenChange: (open: boolean) => void
   onPreview: (asset: VentureAsset) => void
   onAdd: (asset: VentureAsset) => void
@@ -22,11 +25,11 @@ export function DirectorLibraryDialog({ open, assets, pendingId, onOpenChange, o
   }, [assets, query])
   return <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className="director-library-dialog">
-      <DialogHeader><DialogTitle>Visual Library</DialogTitle><DialogDescription>Choose reusable images and videos already available to this Production.</DialogDescription></DialogHeader>
+      <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
       <label className="director-library-search"><Search aria-hidden="true" /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search visuals" /></label>
       {visible.length
         ? <div className="director-library-grid">{visible.map((asset) => <VisualAssetCard key={asset.id} asset={asset} mode="library" pending={pendingId === asset.id} onPreview={onPreview} onAdd={onAdd} />)}</div>
-        : <div className="director-library-empty"><Images /><h3>{assets.length ? "No matching visuals" : "No other visuals yet"}</h3><p>{assets.length ? "Try a different name." : "Upload a new image or video from Director."}</p></div>}
+        : <div className="director-library-empty"><Images /><h3>{assets.length ? "No matching visuals" : "No visuals available"}</h3><p>{assets.length ? "Try a different name." : emptyDescription}</p></div>}
     </DialogContent>
   </Dialog>
 }

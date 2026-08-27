@@ -28,11 +28,12 @@ function galleryColumnCount(width: number) {
   return 5
 }
 
-export function DirectorGallery({ assets, uploads, pendingId, onPreview, onRemove, onRetryUpload, onDismissUpload, onUpload, onOpenLibrary }: {
+export function DirectorGallery({ assets, uploads, pendingId, onPreview, onAddToTimeline, onRemove, onRetryUpload, onDismissUpload, onUpload, onOpenLibrary }: {
   assets: VentureAsset[]
   uploads: DirectorUploadItem[]
   pendingId: number | null
   onPreview: (asset: VentureAsset) => void
+  onAddToTimeline?: (asset: VentureAsset) => void
   onRemove: (asset: VentureAsset) => void
   onRetryUpload: (item: DirectorUploadItem) => void
   onDismissUpload: (item: DirectorUploadItem) => void
@@ -114,11 +115,11 @@ export function DirectorGallery({ assets, uploads, pendingId, onPreview, onRemov
         ? columns.map((column, index) => <div className="director-gallery-column" key={index}>
           {column.map((entry) => entry.kind === "upload"
             ? <DirectorUploadCard key={entry.item.id} item={entry.item} view={view} onRetry={onRetryUpload} onDismiss={onDismissUpload} />
-            : <VisualAssetCard key={entry.asset.id} asset={entry.asset} view={view} pending={pendingId === entry.asset.id} onPreview={onPreview} onRemove={onRemove} />)}
+            : <VisualAssetCard key={entry.asset.id} asset={entry.asset} view={view} pending={pendingId === entry.asset.id} onPreview={onPreview} onAddToTimeline={onAddToTimeline} onRemove={onRemove} />)}
         </div>)
         : items.map((entry) => entry.kind === "upload"
           ? <DirectorUploadCard key={entry.item.id} item={entry.item} view={view} onRetry={onRetryUpload} onDismiss={onDismissUpload} />
-          : <VisualAssetCard key={entry.asset.id} asset={entry.asset} view={view} pending={pendingId === entry.asset.id} onPreview={onPreview} onRemove={onRemove} />)}
+          : <VisualAssetCard key={entry.asset.id} asset={entry.asset} view={view} pending={pendingId === entry.asset.id} onPreview={onPreview} onAddToTimeline={onAddToTimeline} onRemove={onRemove} />)}
     </div>
   </section>
 }

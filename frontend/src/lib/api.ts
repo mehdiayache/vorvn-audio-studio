@@ -22,6 +22,8 @@ import type {
   CaptionProfile,
   DurableJob,
   VentureAssetLibrary,
+  VisualScene,
+  VisualSceneDocument,
 } from "@/types/domain"
 import type { paths } from "@/types/api.generated"
 import { ApiError } from "@/lib/api-error"
@@ -278,6 +280,7 @@ export const studioApi = {
   deleteProduction: (id: number) =>
     request<{ data: { id: number; type: "production"; deleted: boolean } }>(`/api/v1/productions/${id}`, { method: "DELETE" }).then((response) => response.data),
   soundScene: (id: number) => v1<SoundScene>(`/api/v1/productions/${id}/sound-scene`),
+  visualScene: (id: number) => v1<VisualScene>(`/api/v1/productions/${id}/visual-scene`),
   assets: (id: number) => v1<{ assets?: VentureAsset[]; collections?: AssetCollection[]; director_asset_ids?: number[] }>(`/api/v1/productions/${id}/assets`),
   attachDirectorAsset: (productionId: number, assetId: number) => request<DirectorAssetEnvelope>(
     `/api/v1/productions/${productionId}/director-assets`, {
@@ -317,6 +320,8 @@ export const studioApi = {
   moveParts: (sourceProductionId: number, ids: number[], destinationProductionId: number) => request<TimelineMoveEnvelope>(`/api/v1/productions/${sourceProductionId}/parts/move`, { method: "POST", body: JSON.stringify({ ids, destination_production_id: destinationProductionId }) }).then((response) => response.data),
   updateSoundScene: (id: number, expectedRevision: number, document: SoundSceneDocument) =>
     request<{ data: SoundScene }>(`/api/v1/productions/${id}/sound-scene`, { method: "PATCH", body: JSON.stringify({ expected_revision: expectedRevision, document }) }).then((response) => response.data),
+  updateVisualScene: (id: number, expectedRevision: number, document: VisualSceneDocument) =>
+    request<{ data: VisualScene }>(`/api/v1/productions/${id}/visual-scene`, { method: "PATCH", body: JSON.stringify({ expected_revision: expectedRevision, document }) }).then((response) => response.data),
   undoSoundScene: (id: number) =>
     request<{ data: SoundScene }>(`/api/v1/productions/${id}/sound-scene/undo`, { method: "POST" }).then((response) => response.data),
   redoSoundScene: (id: number) =>

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react"
 
 import { studioApi } from "@/lib/api"
-import type { HierarchyNode, LoadState, Production, SoundScene } from "@/types/domain"
+import type { HierarchyNode, LoadState, Production, SoundScene, VisualScene } from "@/types/domain"
 
 export function useProduction(id: number | null) {
   const [production, setProduction] = useState<LoadState<Production>>({ status: "loading" })
   const [tree, setTree] = useState<LoadState<HierarchyNode[]>>({ status: "loading" })
   const [soundScene, setSoundScene] = useState<LoadState<SoundScene>>({ status: "loading" })
+  const [visualScene, setVisualScene] = useState<LoadState<VisualScene>>({ status: "loading" })
 
   const refresh = useCallback(async () => {
     if (!id) {
@@ -15,12 +16,14 @@ export function useProduction(id: number | null) {
     }
     setProduction((state) => ({ status: "loading", data: state.data }))
     setSoundScene((state) => ({ status: "loading", data: state.data }))
+    setVisualScene((state) => ({ status: "loading", data: state.data }))
     const results = await Promise.allSettled([
       studioApi.production(id),
       studioApi.projects(),
       studioApi.soundScene(id),
+      studioApi.visualScene(id),
     ])
-    const [productionResult, treeResult, soundSceneResult] = results
+    const [productionResult, treeResult, soundSceneResult, visualSceneResult] = results
     if (productionResult.status === "fulfilled") {
       setProduction({ status: "ready", data: productionResult.value })
     } else {
@@ -36,11 +39,16 @@ export function useProduction(id: number | null) {
     } else {
       setSoundScene((state) => ({ status: "error", data: state.data, error: soundSceneResult.reason?.message || "Unable to load Timeline." }))
     }
+    if (visualSceneResult.status === "fulfilled") {
+      setVisualScene({ status: "ready", data: visualSceneResult.value })
+    } else {
+      setVisualScene((state) => ({ status: "error", data: state.data, error: visualSceneResult.reason?.message || "Unable to load visuals." }))
+    }
   }, [id])
 
   useEffect(() => {
     void refresh()
   }, [refresh])
 
-  return { production, tree, soundScene, refresh }
+  return { production, tree, soundScene, visualScene, refresh }
 }

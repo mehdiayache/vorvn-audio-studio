@@ -13,6 +13,11 @@ import { audioUrl } from "@/lib/api"
 import { formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { SoundSceneClip, SoundSceneTrack } from "@/types/domain"
+import type { VentureAsset, VisualSceneTrack } from "@/types/domain"
+import { visualAssetName } from "@/features/production-workstation/director/director-assets"
+import { VisualSceneSession, useVisualSceneSession, type VisualClipRef } from "@/features/visual-scene/engine/visual-scene-session"
+import { VisualContextToolbar, VisualTimelineClip, VisualTrackControl } from "@/features/visual-scene/timeline/visual-timeline-parts"
+import { VisualSceneMonitor } from "@/features/visual-scene/timeline/visual-scene-monitor"
 import { SOUND_SCENE_ZOOM_LEVELS, soundSceneFitZoomIndex, soundSceneZoomIndex, soundSceneZoomLevel } from "../engine/sound-scene-engine"
 import { SoundSceneSession, soundTrackDisplayName, useSoundSceneSession, type SoundClipRef } from "../engine/sound-scene-session"
 import { dbToGain, formatDb, gainToDb, MAX_GAIN_DB, MIN_GAIN_DB } from "../sound-scene-gain"
@@ -20,6 +25,7 @@ import { SoundSceneContextToolbar, type SoundContext } from "./sound-scene-conte
 import { loopBoundaryTimes, waveformPeakIndex, type WaveformProjection } from "./waveform-projection"
 
 import "./sound-scene-workspace.css"
+import "@/features/visual-scene/timeline/visual-scene.css"
 
 export function acceptsSoundSceneShortcut(target: EventTarget | null) {
   if (!(target instanceof Element)) return true
@@ -181,14 +187,22 @@ function SoundTrackControl({ track, volume, collapsed, soloed, soloSuppressed, o
   </div>
 }
 
-export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemoveTrack, onOpenSequence }: {
+export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip, onRemoveTrack, onOpenSequence }: {
   session: SoundSceneSession
+  visual?: {
+    session: VisualSceneSession
+    assets: VentureAsset[]
+    onAddImage: (trackId?: string) => void
+    onRemoveClip: (ref: VisualClipRef, name: string) => void
+    onRemoveTrack: (track: VisualSceneTrack) => void
+  }
   onAddAudio: (target: AddTarget) => void
   onRemoveClip: (target: RemoveTarget) => void
   onRemoveTrack: (track: SoundSceneTrack) => void
   onOpenSequence?: (partId: number) => void
 }) {
   const { scene, engine, selection, playhead, saving, error, soloTrackIds, playbackRange } = useSoundSceneSession(session)
+  const visualState = useVisualSceneSession(visual?.session)
   const [tracksCollapsed, setTracksCollapsed] = useState(false)
   const [snapGuide, setSnapGuide] = useState<number | null>(null)
   const [followPlayhead, setFollowPlayhead] = useState(true)
@@ -199,19 +213,21 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
   const controlsRef = useRef<HTMLElement>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
   const activeCancel = useRef<(() => void) | null>(null)
-  const total = Math.max(Number(scene.resolved.duration_ms ?? scene.resolved.sequence_projection.duration_ms) / 1000, 1)
+  const visualEnd = Math.max(0, ...visualState.document.tracks.flatMap((track) => track.clips.map((clip) => clip.start_ms + clip.duration_ms))) / 1000
+  const total = Math.max(Number(scene.resolved.duration_ms ?? scene.resolved.sequence_projection.duration_ms) / 1000, visualEnd, 1)
   const pixelsPerSecond = SAMPLE_RATE / engine.samplesPerPixel
   const zoomIndex = soundSceneZoomIndex(engine.samplesPerPixel)
   const width = Math.max(timelineViewportWidth, Math.ceil(total * pixelsPerSecond))
   const step = tickStep(pixelsPerSecond)
   const marks = useMemo(() => Array.from({ length: Math.floor(total / step) + 1 }, (_, index) => index * step), [step, total])
   const tracks = scene.resolved.tracks
+  const visualTracks = visualState.document.tracks
   const pauseCount = scene.resolved.sequence_projection.spans.filter((span) => span.silence).length
   const audioCount = scene.resolved.sequence_projection.spans.length - pauseCount
   const sequenceSummary = `${audioCount} audio · ${pauseCount} pause${pauseCount === 1 ? "" : "s"}`
   const trackById = new Map(engine.tracks.map((track) => [track.id, track]))
   const sequence = trackById.get("sequence-projection")
-  const rowTemplate = `${RULER_HEIGHT}px repeat(${tracks.length + 1}, ${LANE_HEIGHT}px)`
+  const rowTemplate = `${RULER_HEIGHT}px repeat(${visualTracks.length + tracks.length + 1}, ${LANE_HEIGHT}px)`
   const styleFor = (start: number, duration: number, minimum = 2) => ({ left: start * pixelsPerSecond, width: Math.max(duration * pixelsPerSecond, minimum) } as CSSProperties)
   const selectedRefs = selection?.kind === "clip"
     ? [{ trackId: selection.trackId, clipId: selection.clipId }]
@@ -223,6 +239,10 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
   const selectedPart = selection?.kind === "part"
     ? scene.resolved.sequence_projection.spans.find((span) => span.part_id === selection.id) || null
     : null
+  const selectedVisualRef = visualState.selection
+  const selectedVisualTrack = selectedVisualRef ? visualTracks.find((track) => track.id === selectedVisualRef.trackId) || null : null
+  const selectedVisualClip = selectedVisualRef ? selectedVisualTrack?.clips.find((clip) => clip.id === selectedVisualRef.clipId) || null : null
+  const selectedVisualAsset = selectedVisualClip && visual ? visual.assets.find((asset) => asset.id === selectedVisualClip.asset_id) : undefined
   const lockedClipCount = selectedClips.filter(({ clip }) => clip.locked).length
   const context: SoundContext | null = selectedPart ? {
     kind: selectedPart.silence ? "silence" : "sequence",
@@ -254,8 +274,12 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
       values.add(start)
       values.add(start + Number(clip.resolved_duration_ms || 0) / 1000)
     }))
+    visualTracks.forEach((track) => track.clips.forEach((clip) => {
+      values.add(clip.start_ms / 1000)
+      values.add((clip.start_ms + clip.duration_ms) / 1000)
+    }))
     return [...values].sort((left, right) => left - right)
-  }, [playhead, scene.resolved.sequence_projection.spans, tracks])
+  }, [playhead, scene.resolved.sequence_projection.spans, tracks, visualTracks])
 
   function snapped(value: number, bypass: boolean) {
     if (!snapping || bypass) { setSnapGuide(null); return value }
@@ -269,6 +293,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
   function gesture(event: ReactPointerEvent, trackId: string, clipId: string, mode: GestureMode) {
     if (event.button !== 0 || saving) return
     event.stopPropagation()
+    visual?.session.select(null)
     const grabbedWasSelected = selectedRefs.some((ref) => ref.trackId === trackId && ref.clipId === clipId)
     const preserveGroup = mode === "move" && grabbedWasSelected && selectedRefs.length > 1
     if (!preserveGroup)
@@ -339,6 +364,49 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
       finished = true; cleanup()
       if (started) session.cancelGesture()
     }
+    activeCancel.current = cancel
+    window.addEventListener("pointermove", move)
+    window.addEventListener("pointerup", finish, { once: true })
+    window.addEventListener("pointercancel", cancel, { once: true })
+    window.addEventListener("blur", cancel, { once: true })
+  }
+
+  function visualGesture(event: ReactPointerEvent, ref: VisualClipRef, mode: "move" | "start" | "end") {
+    const visualSession = visual?.session
+    const initial = visualSession?.currentClip(ref)
+    if (!visualSession || !initial || event.button !== 0 || visualState.saving) return
+    event.preventDefault()
+    event.stopPropagation()
+    visualSession.select(ref)
+    session.select(null)
+    if (initial.locked || visualTracks.find((track) => track.id === ref.trackId)?.locked) {
+      visualSession.reportError("Unlock this visual before changing its timing.")
+      return
+    }
+    const originX = event.clientX
+    const originalStart = initial.start_ms
+    const originalEnd = initial.start_ms + initial.duration_ms
+    let started = false
+    let finished = false
+    const move = (next: PointerEvent) => {
+      const dx = next.clientX - originX
+      if (!started && Math.abs(dx) < 4) return
+      if (!started) { started = true; visualSession.beginGesture() }
+      const deltaMs = dx / pixelsPerSecond * 1000
+      if (mode === "move") visualSession.moveClip(ref, snapped(originalStart / 1000 + deltaMs / 1000, next.altKey) * 1000)
+      else if (mode === "start") visualSession.trimClip(ref, "start", snapped(originalStart / 1000 + deltaMs / 1000, next.altKey) * 1000)
+      else visualSession.trimClip(ref, "end", snapped(originalEnd / 1000 + deltaMs / 1000, next.altKey) * 1000)
+    }
+    const cleanup = () => {
+      window.removeEventListener("pointermove", move)
+      window.removeEventListener("pointerup", finish)
+      window.removeEventListener("pointercancel", cancel)
+      window.removeEventListener("blur", cancel)
+      activeCancel.current = null
+      setSnapGuide(null)
+    }
+    const finish = () => { if (finished) return; finished = true; cleanup(); if (started) void visualSession.commitGesture() }
+    const cancel = () => { if (finished) return; finished = true; cleanup(); if (started) visualSession.cancelGesture() }
     activeCancel.current = cancel
     window.addEventListener("pointermove", move)
     window.addEventListener("pointerup", finish, { once: true })
@@ -456,6 +524,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
       const command = event.metaKey || event.ctrlKey
       if (command && event.key.toLowerCase() === "z") { event.preventDefault(); void (event.shiftKey ? session.redo() : session.undo()); return }
       if (command && event.key.toLowerCase() === "d" && selectedRefs.length) { event.preventDefault(); void session.duplicateClips(selectedRefs); return }
+      if (command && event.key.toLowerCase() === "d" && selectedVisualRef && visual) { event.preventDefault(); void visual.session.duplicate(selectedVisualRef); return }
       if (command && event.key.toLowerCase() === "l" && selectedRefs.length) { event.preventDefault(); setFollowPlayhead(true); void session.playSelection(true, selectedRefs); return }
       if (event.code === "Space") { event.preventDefault(); setFollowPlayhead(true); void session.togglePlayback(); return }
       if (event.key.toLowerCase() === "s" && selectedRefs.length && !command) { event.preventDefault(); void session.splitClipsAtPlayhead(selectedRefs); return }
@@ -465,23 +534,33 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
         void session.nudgeClips((event.key === "ArrowLeft" ? -1 : 1) * amount, selectedRefs)
         return
       }
+      if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && selectedVisualRef && visual) {
+        event.preventDefault()
+        const amount = event.altKey ? 10 : event.shiftKey ? 1_000 : 100
+        void visual.session.nudge(selectedVisualRef, (event.key === "ArrowLeft" ? -1 : 1) * amount)
+        return
+      }
       if (event.key === "Home" || event.key === "0") { event.preventDefault(); session.seek(0); return }
       if (event.key === "-" || event.key === "_") { event.preventDefault(); setCenteredZoom(zoomIndex - 1); return }
       if (event.key === "=" || event.key === "+") { event.preventDefault(); setCenteredZoom(zoomIndex + 1); return }
-      if (event.key === "Escape") { event.preventDefault(); if (activeCancel.current) activeCancel.current(); else session.select(null); return }
+      if (event.key === "Escape") { event.preventDefault(); if (activeCancel.current) activeCancel.current(); else { session.select(null); visual?.session.select(null) } return }
       if ((event.key === "Delete" || event.key === "Backspace") && selectedClips.length) {
         event.preventDefault()
         if (!selectedClips.some(({ clip }) => clip.locked)) onRemoveClip({ clips: selectedRefs })
       }
+      if ((event.key === "Delete" || event.key === "Backspace") && selectedVisualRef && selectedVisualClip && selectedVisualTrack && visual) {
+        event.preventDefault()
+        if (!selectedVisualClip.locked && !selectedVisualTrack.locked) visual.onRemoveClip(selectedVisualRef, selectedVisualAsset ? visualAssetName(selectedVisualAsset) : "Visual")
+      }
     }
     window.addEventListener("keydown", keydown)
     return () => window.removeEventListener("keydown", keydown)
-  }, [onRemoveClip, selectedClips, selectedRefs, session, zoomIndex])
+  }, [onRemoveClip, selectedClips, selectedRefs, selectedVisualAsset, selectedVisualClip, selectedVisualRef, selectedVisualTrack, session, visual, zoomIndex])
 
-  return <section className={cn("sound-scene-workspace", tracksCollapsed && "tracks-collapsed", panning && "is-panning")}>
+  return <section className={cn("sound-scene-workspace", visual && "has-visual-monitor", tracksCollapsed && "tracks-collapsed", panning && "is-panning")}>
     <div className="sound-scene-toolbar">
       <OperatorTooltip label={tracksCollapsed ? "Show track controls" : "Hide track controls"}><Button variant="ghost" size="icon-sm" onClick={() => setTracksCollapsed((value) => !value)} aria-label={tracksCollapsed ? "Show track controls" : "Hide track controls"}>{tracksCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button></OperatorTooltip>
-      <span className="sound-scene-toolbar-title"><b>Timeline</b><small>{tracks.length} track{tracks.length === 1 ? "" : "s"} · {formatDuration(total)}</small></span>
+      <span className="sound-scene-toolbar-title"><b>Timeline</b><small>{visualTracks.length} visual · {tracks.length} audio · {formatDuration(total)}</small></span>
       <div className="sound-scene-history"><OperatorTooltip label="Undo the last Timeline edit" disabledTrigger={!scene.can_undo || saving}><Button variant="ghost" size="sm" disabled={!scene.can_undo || saving} onClick={() => void session.undo()} aria-label="Undo Timeline edit"><Undo2 /><span>Undo</span></Button></OperatorTooltip><OperatorTooltip label="Redo the last undone Timeline edit" disabledTrigger={!scene.can_redo || saving}><Button variant="ghost" size="sm" disabled={!scene.can_redo || saving} onClick={() => void session.redo()} aria-label="Redo Timeline edit"><Redo2 /><span>Redo</span></Button></OperatorTooltip></div>
       <div className="sound-scene-viewport-tools">
         <OperatorTooltip label="Move one view earlier"><Button variant="ghost" size="icon-sm" aria-label="Previous view" onClick={() => { if (scrollRef.current) { scrollRef.current.scrollLeft -= scrollRef.current.clientWidth * .6; setFollowPlayhead(false) } }}><ChevronLeft /></Button></OperatorTooltip>
@@ -491,12 +570,22 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
         <OperatorTooltip label={snapping ? "Turn snapping off" : "Turn snapping on"} detail="Aligns clip edges to the playhead, Script Parts, and other clip edges. Hold Alt while dragging to bypass it temporarily."><Button variant="ghost" size="icon-sm" className={snapping ? "is-active" : undefined} aria-label={snapping ? "Turn snapping off" : "Turn snapping on"} aria-pressed={snapping} onClick={() => { setSnapping((value) => !value); setSnapGuide(null) }}><Magnet /></Button></OperatorTooltip>
         <OperatorTooltip label="Keep the playhead visible during playback"><Button variant="ghost" size="sm" className={followPlayhead ? "is-active" : undefined} aria-pressed={followPlayhead} onClick={() => setFollowPlayhead((value) => !value)}><LocateFixed /><span>Follow</span></Button></OperatorTooltip>
       </div>
-      <span className="sound-scene-save-state">{saving && <b>Saving…</b>}</span>
+      <span className="sound-scene-save-state">{(saving || visualState.saving) && <b>Saving…</b>}</span>
+      {visual && <><Button variant="outline" size="sm" onClick={() => visual.onAddImage()}><Plus /> Add Image</Button><OperatorTooltip label="Add an empty visual track" detail="Use another visual layer for overlaps and stacking."><Button variant="ghost" size="sm" onClick={() => void visual.session.addTrack()}>Visual Track</Button></OperatorTooltip></>}
       <Button variant="outline" size="sm" onClick={() => onAddAudio({ mode: "new-track" })}><Plus /> Audio Track</Button>
     </div>
+    {visual && <VisualSceneMonitor document={visualState.document} assets={visual.assets} playheadMs={playhead * 1000} />}
     <div className="sound-scene-editor">
       <aside ref={controlsRef} className="sound-scene-track-controls" style={{ gridTemplateRows: rowTemplate }} onWheel={(event) => { if (scrollRef.current) scrollRef.current.scrollTop += event.deltaY }}>
         <div className="sound-scene-track-head"><span>Tracks</span></div>
+        {visualTracks.map((track, index) => <VisualTrackControl key={track.id} track={track} collapsed={tracksCollapsed} first={index === 0} last={index === visualTracks.length - 1}
+          onVisible={() => void visual?.session.setTrackVisible(track.id, !track.visible)}
+          onLocked={() => void visual?.session.setTrackLocked(track.id, !track.locked)}
+          onRename={(name) => visual?.session.renameTrack(track.id, name) || Promise.resolve()}
+          onAdd={() => visual?.onAddImage(track.id)}
+          onMove={(direction) => void visual?.session.moveTrack(track.id, direction)}
+          onRemove={() => visual?.onRemoveTrack(track)}
+        />)}
         <div className="sound-sequence-control" title={tracksCollapsed ? `Script · ${sequenceSummary}` : undefined}><span className="sound-track-icon is-sequence"><Volume2 /></span>{!tracksCollapsed && <span className="sound-track-copy"><b>Script</b><small>{sequenceSummary}</small></span>}</div>
         {tracks.map((track) => <SoundTrackControl
           key={track.id} track={track} collapsed={tracksCollapsed}
@@ -519,6 +608,10 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
           <div className="sound-scene-playhead" style={{ left: playhead * pixelsPerSecond }}><i /></div>
           {playbackRange && <div className="sound-scene-playback-range" style={{ left: playbackRange.start * pixelsPerSecond, width: Math.max(1, (playbackRange.end - playbackRange.start) * pixelsPerSecond) }} aria-hidden="true" />}
           {snapGuide !== null && <div className="sound-scene-snap-guide" style={{ left: snapGuide * pixelsPerSecond }} />}
+          {visualTracks.map((track) => <div className={cn("sound-scene-lane visual-scene-lane", !track.visible && "is-hidden")} key={track.id} onPointerDown={panTimeline}>
+            {track.clips.map((clip) => <VisualTimelineClip key={clip.id} clip={clip} trackLocked={track.locked} asset={visual?.assets.find((asset) => asset.id === clip.asset_id)} selected={selectedVisualRef?.trackId === track.id && selectedVisualRef.clipId === clip.id} style={styleFor(clip.start_ms / 1000, clip.duration_ms / 1000, 24)} onSelect={() => { visual?.session.select({ trackId: track.id, clipId: clip.id }); session.select(null) }} onGesture={(event, mode) => visualGesture(event, { trackId: track.id, clipId: clip.id }, mode)} />)}
+            {!track.clips.length && <button className="sound-empty-lane" onClick={() => visual?.onAddImage(track.id)}><Plus /> Add image</button>}
+          </div>)}
           <div className="sound-scene-lane is-sequence" onPointerDown={panTimeline}>
             {scene.resolved.sequence_projection.spans.map((span) => {
               const clip = sequence?.clips.find((item) => item.id === `sequence:${span.part_public_id}`)
@@ -527,12 +620,12 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
               if (span.silence) {
                 const width = duration * pixelsPerSecond
                 const partNumber = String(Number(span.position ?? 0) + 1).padStart(2, "0")
-                return <button key={span.part_public_id} className={cn("sound-sequence-silence", selection?.kind === "part" && selection.id === span.part_id && "is-selected")} style={styleFor(start, duration)} onClick={() => session.select({ kind: "part", id: span.part_id })} aria-label={`Pause Part ${partNumber} · ${duration.toFixed(1)} seconds`} title={`Part ${partNumber} · Pause ${duration.toFixed(1)} seconds`}>
+                return <button key={span.part_public_id} className={cn("sound-sequence-silence", selection?.kind === "part" && selection.id === span.part_id && "is-selected")} style={styleFor(start, duration)} onClick={() => { session.select({ kind: "part", id: span.part_id }); visual?.session.select(null) }} aria-label={`Pause Part ${partNumber} · ${duration.toFixed(1)} seconds`} title={`Part ${partNumber} · Pause ${duration.toFixed(1)} seconds`}>
                   {width >= 28 && <span><Pause />{width >= 54 && <b>{duration.toFixed(1)}s</b>}</span>}
                 </button>
               }
               const activeEffects = span.mix.effects.filter((effect) => effect.enabled).length
-              return <button key={span.part_public_id} className={cn("sound-sequence-clip", `is-${roleColor(span.role)}`, selection?.kind === "part" && selection.id === span.part_id && "is-selected")} style={styleFor(start, duration, 18)} onClick={() => session.select({ kind: "part", id: span.part_id })}><CanvasWaveform url={span.filename ? audioUrl(span.filename) : undefined} /><span><em>{String(Number(span.position ?? 0) + 1).padStart(2, "0")}</em><b>{span.role || span.voice_name || span.title || "Speech"}</b></span>{(span.mix.muted || activeEffects > 0) && <span className="sound-clip-states">{span.mix.muted && <i title="Muted"><VolumeX /></i>}{activeEffects > 0 && <i title={`${activeEffects} active effect${activeEffects === 1 ? "" : "s"}`}><RadioTower /><b>{activeEffects}</b></i>}</span>}</button>
+              return <button key={span.part_public_id} className={cn("sound-sequence-clip", `is-${roleColor(span.role)}`, selection?.kind === "part" && selection.id === span.part_id && "is-selected")} style={styleFor(start, duration, 18)} onClick={() => { session.select({ kind: "part", id: span.part_id }); visual?.session.select(null) }}><CanvasWaveform url={span.filename ? audioUrl(span.filename) : undefined} /><span><em>{String(Number(span.position ?? 0) + 1).padStart(2, "0")}</em><b>{span.role || span.voice_name || span.title || "Speech"}</b></span>{(span.mix.muted || activeEffects > 0) && <span className="sound-clip-states">{span.mix.muted && <i title="Muted"><VolumeX /></i>}{activeEffects > 0 && <i title={`${activeEffects} active effect${activeEffects === 1 ? "" : "s"}`}><RadioTower /><b>{activeEffects}</b></i>}</span>}</button>
             })}
           </div>
           {tracks.map((track) => {
@@ -554,7 +647,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
                 const gainHeight = Math.max(8, Math.min(82, 50 - (20 * Math.log10(Math.max(.001, live.gain))) * 1.25))
                 const category = audioCategory(live.asset_kind)
                 const ClipIcon = category === "sfx" ? AudioWaveform : Music2
-                return <div key={clip.id} role="button" tabIndex={0} data-sound-shortcut-surface="true" className={cn("sound-music-clip", `is-category-${category}`, selected && "is-selected", live.locked && "is-locked")} style={styleFor(start, duration, 24)} onPointerDown={(event) => gesture(event, track.id, clip.id, "move")} onClick={(event) => { if (event.detail === 0) session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey) }} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey) }}>
+                return <div key={clip.id} role="button" tabIndex={0} data-sound-shortcut-surface="true" className={cn("sound-music-clip", `is-category-${category}`, selected && "is-selected", live.locked && "is-locked")} style={styleFor(start, duration, 24)} onPointerDown={(event) => gesture(event, track.id, clip.id, "move")} onClick={(event) => { if (event.detail === 0) { session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey); visual?.session.select(null) } }} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); session.selectClip(track.id, clip.id, event.shiftKey || event.metaKey || event.ctrlKey); visual?.session.select(null) }}>
                   <CanvasWaveform url={clip.filename ? audioUrl(clip.filename) : undefined} projection={{
                     clipDuration: duration,
                     sourceDuration: Math.max(.001, Number(live.source_duration_ms || live.resolved_duration_ms || live.duration_ms || 0) / 1_000),
@@ -579,7 +672,7 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
         </div>
       </div>
     </div>
-    <footer className="sound-scene-context-bar">{context ? <SoundSceneContextToolbar
+    <footer className="sound-scene-context-bar">{selectedVisualRef && selectedVisualTrack && selectedVisualClip && visual ? <VisualContextToolbar track={selectedVisualTrack} clip={selectedVisualClip} asset={selectedVisualAsset} saving={visualState.saving} onLock={() => void visual.session.setClipLocked(selectedVisualRef, !selectedVisualClip.locked)} onDuplicate={() => void visual.session.duplicate(selectedVisualRef)} onDelete={() => visual.onRemoveClip(selectedVisualRef, selectedVisualAsset ? visualAssetName(selectedVisualAsset) : "Visual")} /> : context ? <SoundSceneContextToolbar
       context={context} saving={saving}
       onMute={() => {
         if (selectedPart) void session.updateSequenceOverride(selectedPart.part_public_id, { muted: !selectedPart.mix.muted })
@@ -615,10 +708,10 @@ export function SoundSceneWorkspace({ session, onAddAudio, onRemoveClip, onRemov
       onOptions={selectedClips.length === 1 || selectedPart ? () => document.querySelector(".ws-right-pane")?.scrollIntoView({ block: "nearest" }) : undefined}
       onOpenSequence={selectedPart ? () => onOpenSequence?.(selectedPart.part_id) : undefined}
     /> : <span className="sound-context-empty">Select a clip or Script Part to edit it</span>}
-      {error && <div className="sound-context-feedback" role="alert" aria-live="assertive">
+      {(error || visualState.error) && <div className="sound-context-feedback" role="alert" aria-live="assertive">
         <CircleAlert aria-hidden="true" />
-        <OperatorTooltip label={error} side="top"><span>{error}</span></OperatorTooltip>
-        <OperatorIconButton label="Dismiss Timeline message" onClick={() => session.clearError()}><X /></OperatorIconButton>
+        <OperatorTooltip label={error || visualState.error} side="top"><span>{error || visualState.error}</span></OperatorTooltip>
+        <OperatorIconButton label="Dismiss Timeline message" onClick={() => { session.clearError(); visual?.session.clearError() }}><X /></OperatorIconButton>
       </div>}
     </footer>
   </section>

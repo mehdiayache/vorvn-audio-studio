@@ -128,6 +128,20 @@ describe("Production workflow", () => {
     expect(remove).toHaveBeenCalledWith(asset)
   })
 
+  it("places a Director image on Timeline while keeping video placement out of this checkpoint", async () => {
+    const image = { id: 88, media_type: "image" as const, name: "Harbour dusk", filename: "harbour.webp", width: 1200, height: 800 }
+    const add = vi.fn()
+    render(<VisualAssetCard asset={image} onPreview={vi.fn()} onAddToTimeline={add} />)
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Actions for Harbour dusk" }), { button: 0, ctrlKey: false })
+    fireEvent.click(await screen.findByText("Add to Timeline"))
+    expect(add).toHaveBeenCalledWith(image)
+
+    cleanup()
+    render(<VisualAssetCard asset={{ ...image, media_type: "video", name: "Harbour move", filename: "harbour.mp4" }} onPreview={vi.fn()} onAddToTimeline={add} />)
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Actions for Harbour move" }), { button: 0, ctrlKey: false })
+    expect((await screen.findByText("Video Timeline · next checkpoint")).closest('[role="menuitem"]')?.getAttribute("data-disabled")).not.toBeNull()
+  })
+
   it("requires confirmation before detaching a visual from Director", async () => {
     const refresh = vi.fn().mockResolvedValue(undefined)
     const confirm = vi.fn()

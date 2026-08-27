@@ -14,13 +14,14 @@ import { DirectorPreviewDialog } from "./director-preview-dialog"
 import type { DirectorUploadItem } from "./director-upload-card"
 import "./director-stage.css"
 
-export function DirectorStage({ centerPaneRef, productionId, assets, directorAssetIds, onUpload, onRefresh, onConfirmAction }: {
+export function DirectorStage({ centerPaneRef, productionId, assets, directorAssetIds, onUpload, onRefresh, onAddToTimeline, onConfirmAction }: {
   centerPaneRef?: RefObject<HTMLElement | null>
   productionId: number
   assets: VentureAsset[]
   directorAssetIds: number[]
   onUpload: (file: File) => Promise<VentureAsset>
   onRefresh: () => Promise<void>
+  onAddToTimeline?: (asset: VentureAsset) => Promise<void>
   onConfirmAction?: (action: ConfirmAction) => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -172,7 +173,10 @@ export function DirectorStage({ centerPaneRef, productionId, assets, directorAss
     }} />
     <DirectorComposer uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel} onFiles={upload} onOpenLibrary={() => setLibraryOpen(true)} />
     {error && <div className="director-error" role="alert"><b>Director could not finish that action.</b><span>{error}</span></div>}
-    <DirectorGallery assets={collected} uploads={uploads} pendingId={pendingId} onPreview={setPreviewAsset} onRemove={(asset) => {
+    <DirectorGallery assets={collected} uploads={uploads} pendingId={pendingId} onPreview={setPreviewAsset} onAddToTimeline={onAddToTimeline ? (asset) => {
+      setPendingId(asset.id)
+      void onAddToTimeline(asset).catch((reason) => setError(reason instanceof Error ? reason.message : "The image could not be added to Timeline.")).finally(() => setPendingId(null))
+    } : undefined} onRemove={(asset) => {
       const name = asset.name || asset.title || asset.filename || "this visual"
       if (!onConfirmAction) return
       onConfirmAction({
