@@ -125,7 +125,7 @@ export class VisualSceneSession {
 
   async addTrack(name?: string) {
     const document = cloneDocument(this.state.document)
-    document.tracks.push({ id: uuid(), name: name || `Visual ${document.tracks.length + 1}`, visible: true, locked: false, clips: [] })
+    document.tracks.push({ id: uuid(), name: name || `Layer ${document.tracks.length + 1}`, visible: true, locked: false, clips: [] })
     await this.commit(document)
   }
 
@@ -138,7 +138,7 @@ export class VisualSceneSession {
     const document = cloneDocument(this.state.document)
     let track = trackId ? document.tracks.find((item) => item.id === trackId) : document.tracks[0]
     if (!track) {
-      track = { id: uuid(), name: "Visual 1", visible: true, locked: false, clips: [] }
+      track = { id: uuid(), name: "Layer 1", visible: true, locked: false, clips: [] }
       document.tracks.push(track)
     }
     const available = Math.max(MIN_CLIP_MS, this.timelineDurationMs - Math.max(0, startMs))

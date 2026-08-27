@@ -43,7 +43,7 @@ export function VisualSceneMonitor({ document, assets, playheadMs, playback }: {
       {active.length ? active.map(({ clip, asset, index }) => asset.media_type === "video"
         ? <VideoLayer key={clip.id} asset={asset} clip={clip} playheadMs={playheadMs} playing={playback === "playing"} style={{ zIndex: document.tracks.length - index }} />
         : <img key={clip.id} src={visualAssetUrl(asset)} alt={visualAssetName(asset)} style={{ zIndex: document.tracks.length - index }} />)
-        : <span><ImageIcon /><b>No visual at this time</b><small>Add a visual or move the playhead over a visual clip.</small></span>}
+        : <span><ImageIcon /><b>No media at the playhead</b><small>Add media or move the playhead over an image or video.</small></span>}
     </div>
   </section>
 }

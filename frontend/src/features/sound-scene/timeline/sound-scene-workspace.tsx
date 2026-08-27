@@ -566,25 +566,23 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
   return <section className={cn("sound-scene-workspace", visual && "has-visual-monitor", tracksCollapsed && "tracks-collapsed", panning && "is-panning")}>
     <div className="sound-scene-toolbar">
       <OperatorTooltip label={tracksCollapsed ? "Show track controls" : "Hide track controls"}><Button variant="ghost" size="icon-sm" onClick={() => setTracksCollapsed((value) => !value)} aria-label={tracksCollapsed ? "Show track controls" : "Hide track controls"}>{tracksCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button></OperatorTooltip>
-      <span className="sound-scene-toolbar-title"><b>Timeline</b><small>{visualTracks.length} visual · {tracks.length} audio · {formatDuration(total)}</small></span>
+      <span className="sound-scene-toolbar-title"><b>Timeline</b><small>{visualTracks.length} layer{visualTracks.length === 1 ? "" : "s"} · {tracks.length} audio · {formatDuration(total)}</small></span>
       <div className="sound-scene-history"><OperatorTooltip label="Undo the last Timeline edit" disabledTrigger={!scene.can_undo || saving}><Button variant="ghost" size="sm" disabled={!scene.can_undo || saving} onClick={() => void session.undo()} aria-label="Undo Timeline edit"><Undo2 /><span>Undo</span></Button></OperatorTooltip><OperatorTooltip label="Redo the last undone Timeline edit" disabledTrigger={!scene.can_redo || saving}><Button variant="ghost" size="sm" disabled={!scene.can_redo || saving} onClick={() => void session.redo()} aria-label="Redo Timeline edit"><Redo2 /><span>Redo</span></Button></OperatorTooltip></div>
       <div className="sound-scene-viewport-tools">
         <OperatorTooltip label="Move one view earlier"><Button variant="ghost" size="icon-sm" aria-label="Previous view" onClick={() => { if (scrollRef.current) { scrollRef.current.scrollLeft -= scrollRef.current.clientWidth * .6; setFollowPlayhead(false) } }}><ChevronLeft /></Button></OperatorTooltip>
-        <div className="sound-scene-zoom"><OperatorTooltip label="Zoom out" disabledTrigger={zoomIndex === 0}><Button variant="ghost" size="icon-sm" disabled={zoomIndex === 0} onClick={() => setCenteredZoom(zoomIndex - 1)} aria-label="Zoom out"><Minus /></Button></OperatorTooltip><Slider aria-label="Timeline zoom" aria-valuetext={`${Math.round(pixelsPerSecond)} pixels per second`} value={[zoomIndex]} min={0} max={SOUND_SCENE_ZOOM_LEVELS.length - 1} step={1} onValueChange={([value = zoomIndex]) => setCenteredZoom(value)} /><OperatorTooltip label="Zoom in" disabledTrigger={zoomIndex === SOUND_SCENE_ZOOM_LEVELS.length - 1}><Button variant="ghost" size="icon-sm" disabled={zoomIndex === SOUND_SCENE_ZOOM_LEVELS.length - 1} onClick={() => setCenteredZoom(zoomIndex + 1)} aria-label="Zoom in"><Plus /></Button></OperatorTooltip></div>
         <OperatorTooltip label="Move one view later"><Button variant="ghost" size="icon-sm" aria-label="Next view" onClick={() => { if (scrollRef.current) { scrollRef.current.scrollLeft += scrollRef.current.clientWidth * .6; setFollowPlayhead(false) } }}><ChevronRight /></Button></OperatorTooltip>
-        <OperatorTooltip label="Fit the entire Production in view"><Button variant="ghost" size="sm" onClick={fitTimeline} aria-label="Fit entire timeline"><Maximize2 /><span>Fit</span></Button></OperatorTooltip>
         <OperatorTooltip label={snapping ? "Turn snapping off" : "Turn snapping on"} detail="Aligns clip edges to the playhead, Script Parts, and other clip edges. Hold Alt while dragging to bypass it temporarily."><Button variant="ghost" size="icon-sm" className={snapping ? "is-active" : undefined} aria-label={snapping ? "Turn snapping off" : "Turn snapping on"} aria-pressed={snapping} onClick={() => { setSnapping((value) => !value); setSnapGuide(null) }}><Magnet /></Button></OperatorTooltip>
         <OperatorTooltip label="Keep the playhead visible during playback"><Button variant="ghost" size="sm" className={followPlayhead ? "is-active" : undefined} aria-pressed={followPlayhead} onClick={() => setFollowPlayhead((value) => !value)}><LocateFixed /><span>Follow</span></Button></OperatorTooltip>
       </div>
       <span className="sound-scene-save-state">{(saving || visualState.saving) && <b>Saving…</b>}</span>
-      {visual && <><Button variant="outline" size="sm" onClick={() => visual.onAddVisual()}><Plus /> Add Visual</Button><OperatorTooltip label="Add an empty visual track" detail="Use another visual layer for overlaps and stacking."><Button variant="ghost" size="sm" onClick={() => void visual.session.addTrack()}>Visual Track</Button></OperatorTooltip></>}
+      {visual && <><Button variant="outline" size="sm" onClick={() => visual.onAddVisual()}><Plus /> Add Media</Button><OperatorTooltip label="Add an empty layer" detail="Use another image or video layer for overlaps and stacking."><Button variant="ghost" size="sm" onClick={() => void visual.session.addTrack()}>Add Layer</Button></OperatorTooltip></>}
       <Button variant="outline" size="sm" onClick={() => onAddAudio({ mode: "new-track" })}><Plus /> Audio Track</Button>
     </div>
     {visual && <VisualSceneMonitor document={visualState.document} assets={visual.assets} playheadMs={playhead * 1000} playback={session.snapshot().playback} />}
     <div className="sound-scene-editor">
       <aside ref={controlsRef} className="sound-scene-track-controls" style={{ gridTemplateRows: rowTemplate }} onWheel={(event) => { if (scrollRef.current) scrollRef.current.scrollTop += event.deltaY }}>
         <div className="sound-scene-track-head"><span>Tracks</span></div>
-        {visualTracks.map((track, index) => <VisualTrackControl key={track.id} track={track} collapsed={tracksCollapsed} first={index === 0} last={index === visualTracks.length - 1}
+        {visualTracks.map((track, index) => <VisualTrackControl key={track.id} track={track} assets={visual?.assets || []} collapsed={tracksCollapsed} first={index === 0} last={index === visualTracks.length - 1}
           onVisible={() => void visual?.session.setTrackVisible(track.id, !track.visible)}
           onLocked={() => void visual?.session.setTrackLocked(track.id, !track.locked)}
           onRename={(name) => visual?.session.renameTrack(track.id, name) || Promise.resolve()}
@@ -616,7 +614,7 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
           {snapGuide !== null && <div className="sound-scene-snap-guide" style={{ left: snapGuide * pixelsPerSecond }} />}
           {visualTracks.map((track) => <div className={cn("sound-scene-lane visual-scene-lane", !track.visible && "is-hidden")} key={track.id} onPointerDown={panTimeline}>
             {track.clips.map((clip) => <VisualTimelineClip key={clip.id} clip={clip} trackLocked={track.locked} asset={visual?.assets.find((asset) => asset.id === clip.asset_id)} selected={selectedVisualRef?.trackId === track.id && selectedVisualRef.clipId === clip.id} style={styleFor(clip.start_ms / 1000, clip.duration_ms / 1000, 24)} onSelect={() => { visual?.session.select({ trackId: track.id, clipId: clip.id }); session.select(null) }} onGesture={(event, mode) => visualGesture(event, { trackId: track.id, clipId: clip.id }, mode)} />)}
-            {!track.clips.length && <button className="sound-empty-lane" onClick={() => visual?.onAddVisual(track.id)}><Plus /> Add visual</button>}
+            {!track.clips.length && <button className="sound-empty-lane" onClick={() => visual?.onAddVisual(track.id)}><Plus /> Add media</button>}
           </div>)}
           <div className="sound-scene-lane is-sequence" onPointerDown={panTimeline}>
             {scene.resolved.sequence_projection.spans.map((span) => {
@@ -676,6 +674,10 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
             </div>
           })}
         </div>
+      </div>
+      <div className="sound-scene-zoom-dock" aria-label="Timeline view controls">
+        <div className="sound-scene-zoom"><OperatorTooltip label="Zoom out" disabledTrigger={zoomIndex === 0}><Button variant="ghost" size="icon-sm" disabled={zoomIndex === 0} onClick={() => setCenteredZoom(zoomIndex - 1)} aria-label="Zoom out"><Minus /></Button></OperatorTooltip><Slider aria-label="Timeline zoom" aria-valuetext={`${Math.round(pixelsPerSecond)} pixels per second`} value={[zoomIndex]} min={0} max={SOUND_SCENE_ZOOM_LEVELS.length - 1} step={1} onValueChange={([value = zoomIndex]) => setCenteredZoom(value)} /><OperatorTooltip label="Zoom in" disabledTrigger={zoomIndex === SOUND_SCENE_ZOOM_LEVELS.length - 1}><Button variant="ghost" size="icon-sm" disabled={zoomIndex === SOUND_SCENE_ZOOM_LEVELS.length - 1} onClick={() => setCenteredZoom(zoomIndex + 1)} aria-label="Zoom in"><Plus /></Button></OperatorTooltip></div>
+        <OperatorTooltip label="Fit the entire Production in view"><Button variant="ghost" size="sm" onClick={fitTimeline} aria-label="Fit entire timeline"><Maximize2 /><span>Fit</span></Button></OperatorTooltip>
       </div>
     </div>
     <footer className="sound-scene-context-bar">{selectedVisualRef && selectedVisualTrack && selectedVisualClip && visual ? <VisualContextToolbar track={selectedVisualTrack} clip={selectedVisualClip} asset={selectedVisualAsset} saving={visualState.saving} canSplit={canSplitVisual} onSplit={() => void visual.session.splitVideo(selectedVisualRef, playhead * 1000, selectedVisualAsset)} onLock={() => void visual.session.setClipLocked(selectedVisualRef, !selectedVisualClip.locked)} onDuplicate={() => void visual.session.duplicate(selectedVisualRef)} onDelete={() => visual.onRemoveClip(selectedVisualRef, selectedVisualAsset ? visualAssetName(selectedVisualAsset) : "Visual")} /> : context ? <SoundSceneContextToolbar

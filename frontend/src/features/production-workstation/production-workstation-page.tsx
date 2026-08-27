@@ -11,6 +11,7 @@ import { AudioClipInspector } from "@/features/sound-scene/inspector/music-inspe
 import { SequenceMixInspector } from "@/features/sound-scene/inspector/sequence-mix-inspector"
 import { SoundSceneSession, useSoundSceneSession, type SoundScenePersistence } from "@/features/sound-scene/engine/sound-scene-session"
 import { VisualSceneSession, useVisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
+import { visualTrackDisplayName } from "@/features/visual-scene/timeline/visual-timeline-parts"
 import { ProductionFloatingTransport } from "@/features/production/production-floating-transport"
 import { productionHealth } from "@/features/production/production-health-sheet"
 import { useProductionSpeechJobs } from "@/features/production/use-production-speech-jobs"
@@ -428,13 +429,13 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
             assets,
             onAddVisual: () => undefined,
             onRemoveClip: (ref, name) => setConfirmAction({
-              title: `Remove this visual: “${name}”?`,
-              description: "This removes only the Timeline placement. The visual remains available in Director and Visual Library.",
+              title: `Remove this media placement: “${name}”?`,
+              description: "This removes only the Timeline placement. The source remains available in Director and Visual Library.",
               action: () => visualSession.removeClip(ref),
             }),
             onRemoveTrack: (track) => setConfirmAction({
-              title: `Remove this visual track: “${track.name}”?`,
-              description: `This removes the track and its ${track.clips.length} visual placement${track.clips.length === 1 ? "" : "s"}. Director Assets remain available.`,
+              title: `Remove this layer: “${visualTrackDisplayName(track.name)}”?`,
+              description: `This removes the layer and its ${track.clips.length} media placement${track.clips.length === 1 ? "" : "s"}. Director Assets remain available.`,
               action: () => visualSession.removeTrack(track.id),
             }),
           }}
