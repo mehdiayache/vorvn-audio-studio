@@ -1,9 +1,18 @@
-import { Film, Image as ImageIcon, Ratio } from "lucide-react"
+import { ChevronDown, Film, Image as ImageIcon, MonitorPlay, Ratio } from "lucide-react"
 
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { visualAssetFacts, visualAssetName } from "@/features/production-workstation/director/director-assets"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { visualAssetName } from "@/features/production-workstation/director/director-assets"
 import type { VisualClipRef, VisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
 import { VisualSceneMonitor } from "@/features/visual-scene/timeline/visual-scene-monitor"
+import { formatDuration } from "@/lib/format"
 import type { VentureAsset, VisualSceneDocument } from "@/types/domain"
 
 import "./timeline-viewer.css"
@@ -16,7 +25,7 @@ const CANVAS_PRESETS = [
 ] as const
 
 function canvasPreset(document: VisualSceneDocument) {
-  return CANVAS_PRESETS.find((preset) => preset.width * document.canvas.height === preset.height * document.canvas.width)?.id || ""
+  return CANVAS_PRESETS.find((preset) => preset.width * document.canvas.height === preset.height * document.canvas.width)?.id || "Custom"
 }
 
 export function TimelineViewer({ document, assets, playheadMs, playback, selection, session, saving }: {
@@ -28,39 +37,41 @@ export function TimelineViewer({ document, assets, playheadMs, playback, selecti
   session: VisualSceneSession
   saving: boolean
 }) {
-  const track = selection ? document.tracks.find((item) => item.id === selection.trackId) : null
-  const clip = selection ? track?.clips.find((item) => item.id === selection.clipId) : null
-  const asset = clip ? assets.find((item) => item.id === clip.asset_id) : null
-  const facts = asset ? visualAssetFacts(asset) : null
-  const selectedPreset = canvasPreset(document)
+  const selectedTrack = selection ? document.tracks.find((track) => track.id === selection.trackId) : null
+  const selectedClip = selection ? selectedTrack?.clips.find((clip) => clip.id === selection.clipId) : null
+  const selectedAsset = selectedClip ? assets.find((asset) => asset.id === selectedClip.asset_id) : null
+  const activePlacement = document.tracks.flatMap((track) => track.visible
+    ? track.clips.filter((clip) => playheadMs >= clip.start_ms && playheadMs < clip.start_ms + clip.duration_ms)
+    : []).at(-1)
+  const activeAsset = activePlacement ? assets.find((asset) => asset.id === activePlacement.asset_id) : null
+  const SelectedMediaIcon = selectedAsset?.media_type === "video" ? Film : ImageIcon
+  const preset = canvasPreset(document)
 
-  return <section className="timeline-viewer" aria-label="Production viewer">
-    <div className="timeline-viewer-preview">
+  return <aside className="timeline-viewer" aria-label="Production viewer">
+    <header className="timeline-viewer-header">
+      <span><MonitorPlay /><b>Viewer</b></span>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" aria-label={`Production format ${preset}`}><Ratio />{preset}<ChevronDown /></Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="timeline-viewer-format-menu" align="end">
+          <DropdownMenuLabel>Production format</DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={preset} onValueChange={(value) => {
+            const next = CANVAS_PRESETS.find((item) => item.id === value)
+            if (next) void session.setCanvas(next.width, next.height)
+          }}>
+            {CANVAS_PRESETS.map((item) => <DropdownMenuRadioItem key={item.id} value={item.id}>{item.id}<small>{item.width} × {item.height}</small></DropdownMenuRadioItem>)}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </header>
+    <div className="timeline-viewer-stage">
       <VisualSceneMonitor document={document} assets={assets} playheadMs={playheadMs} playback={playback} />
     </div>
-    <div className="timeline-viewer-controls">
-      <div className="timeline-viewer-output">
-        <span><Ratio /> <b>Output frame</b>{saving && <small>Saving…</small>}</span>
-        <ToggleGroup type="single" variant="outline" size="sm" value={selectedPreset} onValueChange={(value) => {
-          const preset = CANVAS_PRESETS.find((item) => item.id === value)
-          if (preset) void session.setCanvas(preset.width, preset.height)
-        }} aria-label="Production output frame">
-          {CANVAS_PRESETS.map((preset) => <ToggleGroupItem key={preset.id} value={preset.id} aria-label={`${preset.id} output frame`}>{preset.id}</ToggleGroupItem>)}
-        </ToggleGroup>
-        <small>{selectedPreset || "Custom"} · {document.canvas.width} × {document.canvas.height}</small>
-      </div>
-      <div className="timeline-viewer-selection">
-        {asset && clip ? <>
-          <span className="timeline-viewer-media-icon">{asset.media_type === "video" ? <Film /> : <ImageIcon />}</span>
-          <span><b>{visualAssetName(asset)}</b><small>{asset.media_type === "video" ? "Video" : "Image"} · {facts?.dimensions}</small></span>
-          <ToggleGroup type="single" variant="outline" size="sm" value={clip.fit} onValueChange={(value) => {
-            if (selection && (value === "contain" || value === "cover")) void session.setClipFit(selection, value)
-          }} aria-label="Selected media framing">
-            <ToggleGroupItem value="contain" aria-label="Fit entire media in frame">Fit</ToggleGroupItem>
-            <ToggleGroupItem value="cover" aria-label="Fill frame and crop overflow">Fill</ToggleGroupItem>
-          </ToggleGroup>
-        </> : <span className="timeline-viewer-guidance"><b>Frame the Production</b><small>Select an Image or Video clip to choose Fit or Fill.</small></span>}
-      </div>
-    </div>
-  </section>
+    <footer className="timeline-viewer-footer">
+      <span><b>{formatDuration(playheadMs / 1_000)}</b><small>{playback === "preparing" ? "Preparing preview…" : activeAsset ? visualAssetName(activeAsset) : "No visual at playhead"}</small></span>
+      {selectedAsset && <span className="timeline-viewer-selection"><SelectedMediaIcon /><small>Selected</small><b>{visualAssetName(selectedAsset)}</b></span>}
+      {saving && <small className="timeline-viewer-saving">Saving…</small>}
+    </footer>
+  </aside>
 }

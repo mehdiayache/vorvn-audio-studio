@@ -1,7 +1,6 @@
 import { Clock3, Film, Image as ImageIcon, Lock, LockOpen, Volume2, VolumeX } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Switch } from "@/components/ui/switch"
 import { visualAssetDetails, visualAssetFacts, visualAssetName, visualAssetPosterUrl, visualAssetUrl } from "@/features/production-workstation/director/director-assets"
 import type { VisualClipRef, VisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
@@ -35,16 +34,6 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
       <span className="visual-inspector-thumb">{asset?.filename ? <img src={asset.media_type === "video" ? visualAssetPosterUrl(asset) : visualAssetUrl(asset)} alt="" /> : asset?.media_type === "video" ? <Film /> : <ImageIcon />}</span>
       <span><b>{name}</b><small>{track.media_type === "video" ? "Video" : "Image"} · {facts?.dimensions || "Source unavailable"}</small></span>
     </div>
-
-    <section className="visual-inspector-framing">
-      <header><span><b>Framing</b><small>How this media sits inside the Production frame.</small></span>{saving && <small>Saving…</small>}</header>
-      <ToggleGroup type="single" variant="outline" value={clip.fit} onValueChange={(value) => {
-        if (value === "contain" || value === "cover") void session.setClipFit(clipRef, value)
-      }} aria-label="Clip framing">
-        <ToggleGroupItem value="contain">Fit entire media</ToggleGroupItem>
-        <ToggleGroupItem value="cover">Fill and crop</ToggleGroupItem>
-      </ToggleGroup>
-    </section>
 
     <section className="visual-inspector-placement">
       <header><b>Timeline placement</b></header>

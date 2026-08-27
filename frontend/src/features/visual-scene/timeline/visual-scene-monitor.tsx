@@ -17,11 +17,17 @@ function VideoLayer({ asset, clip, playheadMs, playing, style }: {
   useEffect(() => {
     const node = ref.current
     if (!node) return
-    if (!playing) node.pause()
-    if (node.readyState >= 1 && (!playing || Math.abs(node.currentTime - localSeconds) > .16)) {
+    if (!playing) {
+      node.pause()
+      if (node.readyState >= 1 && Math.abs(node.currentTime - localSeconds) > .04) {
+        try { node.currentTime = localSeconds } catch { /* metadata will retry */ }
+      }
+      return
+    }
+    if (node.readyState >= 1 && (node.paused || Math.abs(node.currentTime - localSeconds) > .5)) {
       try { node.currentTime = localSeconds } catch { /* metadata will retry */ }
     }
-    if (playing) void node.play().catch(() => undefined)
+    if (node.paused) void node.play().catch(() => undefined)
   }, [localSeconds, playing])
   return <video ref={ref} src={visualAssetPlaybackUrl(asset)} poster={visualAssetPosterUrl(asset)} style={style} muted playsInline preload="metadata" aria-label={visualAssetName(asset)} onLoadedMetadata={() => {
     const node = ref.current
@@ -39,7 +45,7 @@ export function VisualSceneMonitor({ document, assets, playheadMs, playback }: {
       ? [{ track, clip, asset, index }] : []
   }) : [])
   return <section className="visual-scene-monitor" aria-label="Visual monitor">
-    <div className="visual-scene-monitor-frame" style={{ aspectRatio: `${document.canvas.width} / ${document.canvas.height}` }}>
+    <div className="visual-scene-monitor-frame" data-orientation={document.canvas.width < document.canvas.height ? "portrait" : "landscape"} style={{ aspectRatio: `${document.canvas.width} / ${document.canvas.height}` }}>
       {active.length ? active.map(({ clip, asset, index }) => asset.media_type === "video"
         ? <VideoLayer key={clip.id} asset={asset} clip={clip} playheadMs={playheadMs} playing={playback === "playing"} style={{ zIndex: document.tracks.length - index, objectFit: clip.fit }} />
         : <img key={clip.id} src={visualAssetUrl(asset)} alt={visualAssetName(asset)} style={{ zIndex: document.tracks.length - index, objectFit: clip.fit }} />)

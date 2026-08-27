@@ -1,21 +1,24 @@
-.timeline-viewer { min-width: 0; min-height: 9.4rem; display: grid; grid-template-columns: minmax(12rem, 17rem) minmax(0, 1fr); border-bottom: 1px solid var(--border); background: var(--surface-subtle); }
-.timeline-viewer-preview { min-width: 0; display: grid; place-items: center; padding: .65rem 1rem; background: color-mix(in oklab, var(--foreground) 3%, var(--surface-subtle)); }
-.timeline-viewer .visual-scene-monitor { width: 100%; height: 8rem; padding: 0; border: 0; background: transparent; }
-.timeline-viewer .visual-scene-monitor-frame { width: auto; max-width: 100%; height: 8rem; }
-.timeline-viewer-controls { min-width: 0; display: grid; grid-template-columns: minmax(17rem, .9fr) minmax(18rem, 1.1fr); align-items: stretch; }
-.timeline-viewer-output, .timeline-viewer-selection { min-width: 0; display: flex; align-content: center; align-items: center; flex-wrap: wrap; gap: .45rem .65rem; padding: .85rem 1rem; }
-.timeline-viewer-selection { border-left: 1px solid var(--border); }
-.timeline-viewer-output > span { width: 100%; display: flex; align-items: center; gap: .38rem; }
-.timeline-viewer-output > span svg { width: .85rem; color: var(--primary); }
-.timeline-viewer-output b, .timeline-viewer-selection b { font-size: .72rem; font-weight: var(--weight-emphasis); }
-.timeline-viewer-output > span small { margin-left: auto; color: var(--primary); }
-.timeline-viewer-output > small, .timeline-viewer-selection small { color: var(--muted-foreground); font-size: .58rem; }
-.timeline-viewer-output [data-slot="toggle-group"] { gap: .2rem; }
-.timeline-viewer-output [data-slot="toggle-group-item"], .timeline-viewer-selection [data-slot="toggle-group-item"] { min-width: 2.7rem; border-left-width: 1px; border-radius: .38rem; color: var(--foreground); background: var(--surface-raised); font-size: .62rem; }
-.timeline-viewer-output [data-slot="toggle-group-item"][data-state="on"], .timeline-viewer-selection [data-slot="toggle-group-item"][data-state="on"] { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); box-shadow: inset 0 0 0 1px var(--primary); }
-.timeline-viewer-selection > span:not(.timeline-viewer-media-icon) { min-width: 0; display: grid; flex: 1; }
-.timeline-viewer-selection > span b, .timeline-viewer-selection > span small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.timeline-viewer-media-icon { width: 2rem; height: 2rem; display: grid; flex: none; place-items: center; border-radius: .48rem; color: var(--primary); background: var(--primary-soft); }
-.timeline-viewer-media-icon svg { width: .9rem; }
-.timeline-viewer-guidance { min-width: 0; display: grid; gap: .18rem; }
-@container (max-width: 62rem) { .timeline-viewer { grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr); }.timeline-viewer-controls { grid-template-columns: 1fr; }.timeline-viewer-selection { border-top: 1px solid var(--border); border-left: 0; }.timeline-viewer .visual-scene-monitor, .timeline-viewer .visual-scene-monitor-frame { height: 7rem; } }
+.timeline-viewer { --viewer-rule: color-mix(in oklab, var(--background) 11%, transparent); --viewer-muted: color-mix(in oklab, var(--background) 74%, var(--surface-inverse)); min-width: 0; min-height: 0; display: grid; grid-template-rows: 2.75rem minmax(0, 1fr) auto; overflow: hidden; border-right: 1px solid var(--border); color: var(--background); background: var(--surface-inverse); }
+.timeline-viewer-header { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .35rem .55rem .35rem .75rem; border-bottom: 1px solid var(--viewer-rule); }
+.timeline-viewer-header > span { display: flex; align-items: center; gap: .4rem; }.timeline-viewer-header > span svg { width: .85rem; color: var(--primary); }
+.timeline-viewer-header b { font-size: .72rem; font-weight: var(--weight-emphasis); }
+.timeline-viewer-header [data-slot="button"] { color: inherit; background: color-mix(in oklab, var(--background) 7%, transparent); font-size: .62rem; }
+.timeline-viewer-header [data-slot="button"]:hover { background: color-mix(in oklab, var(--background) 12%, transparent); }
+.timeline-viewer-stage { min-height: 0; display: grid; place-items: center; overflow: hidden; padding: 1rem; }
+.timeline-viewer .visual-scene-monitor { width: 100%; height: 100%; display: grid; place-items: center; padding: 0; border: 0; background: transparent; }
+.timeline-viewer .visual-scene-monitor-frame { width: 100%; max-width: 100%; height: auto; max-height: 100%; border-radius: .45rem; box-shadow: 0 0 0 1px var(--viewer-rule), 0 .75rem 2.5rem rgb(0 0 0 / 28%); }
+.timeline-viewer .visual-scene-monitor-frame[data-orientation="portrait"] { width: auto; height: 100%; }
+.timeline-viewer-footer { position: relative; min-width: 0; display: grid; gap: .55rem; padding: .7rem .75rem .8rem; border-top: 1px solid var(--viewer-rule); }
+.timeline-viewer-footer > span { min-width: 0; display: grid; gap: .12rem; }
+.timeline-viewer-footer > span:first-child b { font: var(--weight-emphasis) .72rem/1.2 var(--font-mono); }
+.timeline-viewer-footer small { overflow: hidden; color: var(--viewer-muted); font-size: .58rem; text-overflow: ellipsis; white-space: nowrap; }
+.timeline-viewer-selection { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: .4rem; padding-top: .55rem; border-top: 1px solid var(--viewer-rule); }
+.timeline-viewer-selection svg { grid-row: 1 / 3; width: .8rem; align-self: center; color: var(--primary); }.timeline-viewer-selection b { overflow: hidden; font-size: .65rem; font-weight: var(--weight-emphasis); text-overflow: ellipsis; white-space: nowrap; }
+.timeline-viewer-saving { position: absolute; top: .7rem; right: .75rem; color: var(--primary) !important; }
+.timeline-viewer-format-menu [data-slot="dropdown-menu-radio-item"] { min-width: 10rem; }
+.timeline-viewer-format-menu [data-slot="dropdown-menu-radio-item"] small { margin-left: auto; color: var(--muted-foreground); font-size: .68rem; }
+@container (max-width: 66rem) {
+  .sound-scene-stage { grid-template-columns: minmax(12.5rem, 16rem) minmax(0, 1fr); }
+  .timeline-viewer-stage { padding: .65rem; }
+  .timeline-viewer-selection { display: none !important; }
+}
