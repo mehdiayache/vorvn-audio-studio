@@ -15,14 +15,19 @@ export function TimelineStage({ centerPaneRef, directorAssetIds, ...workspacePro
   const [previewAsset, setPreviewAsset] = useState<VentureAsset | null>(null)
   const [pendingId, setPendingId] = useState<number | null>(null)
   const visual = workspaceProps.visual
+  const targetMediaType = targetTrackId
+    ? visual?.session.snapshot().document.tracks.find((track) => track.id === targetTrackId)?.media_type
+    : undefined
   const directorVisuals = useMemo(() => {
     const ids = new Set(directorAssetIds)
-    return (visual?.assets || []).filter((asset) => ids.has(asset.id) && (asset.media_type === "image" || asset.media_type === "video"))
-  }, [directorAssetIds, visual?.assets])
+    return (visual?.assets || []).filter((asset) => ids.has(asset.id)
+      && (asset.media_type === "image" || asset.media_type === "video")
+      && (!targetMediaType || asset.media_type === targetMediaType))
+  }, [directorAssetIds, targetMediaType, visual?.assets])
   const workspaceVisual = visual ? { ...visual, onAddVisual: (trackId?: string) => setTargetTrackId(trackId || null) } : undefined
   return <main className="ws-center-pane" ref={centerPaneRef}>
     <SoundSceneWorkspace {...workspaceProps} visual={workspaceVisual} />
-    {visual && <DirectorLibraryDialog open={targetTrackId !== undefined} assets={directorVisuals} pendingId={pendingId} title="Add media to Timeline" description="Choose an image or video collected in Director. It will be placed at the current playhead." emptyDescription="Collect or upload an image or video in Director first." onOpenChange={(open) => { if (!open) setTargetTrackId(undefined) }} onPreview={setPreviewAsset} onAdd={(asset) => {
+    {visual && <DirectorLibraryDialog open={targetTrackId !== undefined} assets={directorVisuals} pendingId={pendingId} title={targetMediaType ? `Add ${targetMediaType} to Timeline` : "Add media to Timeline"} description={targetMediaType ? `Choose a ${targetMediaType} collected in Director. It will be placed on this ${targetMediaType === "video" ? "Video" : "Image"} track at the playhead.` : "Choose an image or video collected in Director. The matching track will be used or created at the playhead."} emptyDescription={`Collect or upload ${targetMediaType ? `a ${targetMediaType}` : "an image or video"} in Director first.`} onOpenChange={(open) => { if (!open) setTargetTrackId(undefined) }} onPreview={setPreviewAsset} onAdd={(asset) => {
       setPendingId(asset.id)
       void visual.session.addVisual(asset, workspaceProps.session.snapshot().playhead * 1000, targetTrackId || undefined).then(() => setTargetTrackId(undefined)).finally(() => setPendingId(null))
     }} />}

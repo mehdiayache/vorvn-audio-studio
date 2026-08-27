@@ -57,12 +57,12 @@ export function VisualTrackControl({ track, assets, collapsed, first, last, onVi
     <span className="sound-track-icon is-visual"><TrackIcon /></span>
     {!collapsed && <span className="sound-track-copy"><b>{displayName}</b><small>{track.visible ? media.label : `Hidden · ${media.label}`}</small></span>}
     <div className="visual-track-actions">
+      <OperatorIconButton label={`Add ${displayName.toLowerCase()} to ${displayName} track`} detail="Choose a compatible Director Asset and place it at the playhead." onClick={onAdd}><Plus /></OperatorIconButton>
       <OperatorIconButton label={track.visible ? `Hide ${displayName}` : `Show ${displayName}`} detail="Controls the monitor without deleting media placements." onClick={onVisible}>{track.visible ? <Eye /> : <EyeOff />}</OperatorIconButton>
       {!collapsed && <OperatorIconButton label={track.locked ? `Unlock ${displayName}` : `Lock ${displayName}`} detail="Prevents accidental movement and trimming on this track." onClick={onLocked}>{track.locked ? <Lock /> : <Unlock />}</OperatorIconButton>}
       <DropdownMenu>
         <OperatorTooltip label={`More actions for ${displayName}`}><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Actions for ${displayName}`}><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip>
         <DropdownMenuContent side="right" align="center">
-          <DropdownMenuItem onSelect={onAdd}><Plus /> Add media</DropdownMenuItem>
           <DropdownMenuItem disabled={first} onSelect={() => onMove(-1)}><ChevronUp /> Move track up</DropdownMenuItem>
           <DropdownMenuItem disabled={last} onSelect={() => onMove(1)}><ChevronDown /> Move track down</DropdownMenuItem>
           <DropdownMenuSeparator />

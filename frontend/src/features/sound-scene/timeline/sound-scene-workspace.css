@@ -79,7 +79,8 @@
 .sound-scene-zoom-dock { position: absolute; z-index: 14; right: .55rem; bottom: 1.15rem; display: flex; align-items: center; gap: .08rem; padding: .12rem .18rem; border: 1px solid color-mix(in oklab, var(--border) 88%, transparent); border-radius: .42rem; background: color-mix(in oklab, white 94%, transparent); box-shadow: var(--shadow-sm); backdrop-filter: blur(8px); }
 .sound-scene-zoom-dock > [data-slot="button"] { color: var(--foreground); font-size: .6rem; }
 .sound-scene-track-controls { z-index: 7; min-height: 100%; display: grid; overflow: hidden; border-right: 1px solid var(--border); background: white; }
-.sound-scene-track-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; padding: 0 .8rem; border-bottom: 1px solid var(--border); color: var(--muted-foreground); background: white; font-size: .62rem; font-weight: var(--weight-emphasis); text-transform: uppercase; }
+.sound-scene-track-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 0 .45rem 0 .8rem; border-bottom: 1px solid var(--border); color: var(--muted-foreground); background: white; font-size: .62rem; font-weight: var(--weight-emphasis); text-transform: uppercase; }
+.sound-scene-track-head [data-slot="button"] { color: var(--foreground); }
 .sound-sequence-control, .sound-track-control { min-width: 0; border: 0; border-bottom: 1px solid var(--border); background: white; }
 .sound-sequence-control { display: flex; align-items: center; gap: .65rem; padding: .75rem; }
 .sound-track-control { display: grid; grid-template-rows: minmax(0, 1fr) auto; padding: .55rem .6rem .45rem; }
@@ -117,6 +118,7 @@
 .sound-track-volume-popover header b { font-size: .7rem; }.sound-track-volume-popover header small { color: var(--muted-foreground); font-size: .58rem; }
 .sound-track-volume-popover header strong { flex: none; font: var(--weight-emphasis) .62rem/1 var(--font-mono); }
 .sound-track-volume-popover > [data-slot="button"] { justify-self: start; }
+.tracks-collapsed .sound-scene-track-head { justify-content: center; padding: 0; }
 .tracks-collapsed .sound-scene-track-head span { display: none; }
 .tracks-collapsed .sound-sequence-control, .tracks-collapsed .sound-track-select { justify-content: center; padding-inline: .3rem; }
 .tracks-collapsed .sound-track-control { grid-template-rows: 2rem minmax(0, 1fr); padding: .28rem .25rem; }

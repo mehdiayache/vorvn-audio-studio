@@ -153,7 +153,8 @@ describe("Production Workstation", () => {
     const onAddAudio = vi.fn()
     render(<SoundSceneWorkspace session={sessionFor(scene([part({ duration_ms: 30_000 })]))} onAddAudio={onAddAudio} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Audio Track" }))
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Add media" }), { button: 0, ctrlKey: false, pointerType: "mouse" })
+    fireEvent.click(screen.getByRole("menuitem", { name: "Audio" }))
 
     expect(onAddAudio).toHaveBeenCalledOnce()
     expect(onAddAudio).toHaveBeenCalledWith({ mode: "new-track" })

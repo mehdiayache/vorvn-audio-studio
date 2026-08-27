@@ -553,7 +553,7 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
   return <section className={cn("sound-scene-workspace", visual && "has-visual-monitor", tracksCollapsed && "tracks-collapsed", panning && "is-panning")}>
     <div className="sound-scene-toolbar">
       <OperatorTooltip label={tracksCollapsed ? "Show track controls" : "Hide track controls"}><Button variant="ghost" size="icon-sm" onClick={() => setTracksCollapsed((value) => !value)} aria-label={tracksCollapsed ? "Show track controls" : "Hide track controls"}>{tracksCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button></OperatorTooltip>
-      <span className="sound-scene-toolbar-title"><b>Timeline</b><small>{visualTracks.length} media track{visualTracks.length === 1 ? "" : "s"} · {tracks.length} audio · {formatDuration(total)}</small></span>
+      <span className="sound-scene-toolbar-title"><b>Timeline</b><small>{visualTracks.filter((track) => track.media_type === "image").length} image · {visualTracks.filter((track) => track.media_type === "video").length} video · {tracks.length} audio · {formatDuration(total)}</small></span>
       <div className="sound-scene-history"><OperatorTooltip label="Undo the last Timeline edit" disabledTrigger={!scene.can_undo || saving}><Button variant="ghost" size="sm" disabled={!scene.can_undo || saving} onClick={() => void session.undo()} aria-label="Undo Timeline edit"><Undo2 /><span>Undo</span></Button></OperatorTooltip><OperatorTooltip label="Redo the last undone Timeline edit" disabledTrigger={!scene.can_redo || saving}><Button variant="ghost" size="sm" disabled={!scene.can_redo || saving} onClick={() => void session.redo()} aria-label="Redo Timeline edit"><Redo2 /><span>Redo</span></Button></OperatorTooltip></div>
       <div className="sound-scene-viewport-tools">
         <OperatorTooltip label="Move one view earlier"><Button variant="ghost" size="icon-sm" aria-label="Previous view" onClick={() => { if (scrollRef.current) { scrollRef.current.scrollLeft -= scrollRef.current.clientWidth * .6; setFollowPlayhead(false) } }}><ChevronLeft /></Button></OperatorTooltip>
@@ -562,13 +562,18 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
         <OperatorTooltip label="Keep the playhead visible during playback"><Button variant="ghost" size="sm" className={followPlayhead ? "is-active" : undefined} aria-pressed={followPlayhead} onClick={() => setFollowPlayhead((value) => !value)}><LocateFixed /><span>Follow</span></Button></OperatorTooltip>
       </div>
       <span className="sound-scene-save-state">{(saving || visualState.saving) && <b>Saving…</b>}</span>
-      {visual && <><Button variant="outline" size="sm" onClick={() => visual.onAddVisual()}><Plus /> Add Media</Button><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="sm"><Plus /> Media Track</Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => void visual.session.addTrack("image")}><ImageIcon /> Image</DropdownMenuItem><DropdownMenuItem onSelect={() => void visual.session.addTrack("video")}><Film /> Video</DropdownMenuItem></DropdownMenuContent></DropdownMenu></>}
-      <Button variant="outline" size="sm" onClick={() => onAddAudio({ mode: "new-track" })}><Plus /> Audio Track</Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild><Button variant="outline" size="sm"><Plus /> Add media</Button></DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {visual && <DropdownMenuItem onSelect={() => visual.onAddVisual()}><ImageIcon /> Image or video</DropdownMenuItem>}
+          <DropdownMenuItem onSelect={() => onAddAudio({ mode: "new-track" })}><AudioWaveform /> Audio</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
     {visual && <VisualSceneMonitor document={visualState.document} assets={visual.assets} playheadMs={playhead * 1000} playback={session.snapshot().playback} />}
     <div className="sound-scene-editor">
       <aside ref={controlsRef} className="sound-scene-track-controls" style={{ gridTemplateRows: rowTemplate }} onWheel={(event) => { if (scrollRef.current) scrollRef.current.scrollTop += event.deltaY }}>
-        <div className="sound-scene-track-head"><span>Tracks</span></div>
+        <div className="sound-scene-track-head"><span>Tracks</span><DropdownMenu><OperatorTooltip label="Add Timeline track" detail="Create an empty typed track, then add compatible media."><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="Add Timeline track"><Plus /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent side="right" align="start"><DropdownMenuItem onSelect={() => void visual?.session.addTrack("image")} disabled={!visual}><ImageIcon /> Image track</DropdownMenuItem><DropdownMenuItem onSelect={() => void visual?.session.addTrack("video")} disabled={!visual}><Film /> Video track</DropdownMenuItem><DropdownMenuItem onSelect={() => onAddAudio({ mode: "new-track" })}><AudioWaveform /> Audio track</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>
         {visualTracks.map((track, index) => <VisualTrackControl key={track.id} track={track} assets={visual?.assets || []} collapsed={tracksCollapsed} first={index === 0} last={index === visualTracks.length - 1}
           onVisible={() => void visual?.session.setTrackVisible(track.id, !track.visible)}
           onLocked={() => void visual?.session.setTrackLocked(track.id, !track.locked)}
