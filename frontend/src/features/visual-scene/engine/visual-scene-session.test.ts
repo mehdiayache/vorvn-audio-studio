@@ -13,7 +13,7 @@ describe("VisualSceneSession", () => {
     const session = new VisualSceneSession(scene(), { update }, 60_000)
     await session.addImage(image, 2_000)
     const track = session.snapshot().document.tracks[0]!
-    expect(track.name).toBe("Layer 1")
+    expect(track.name).toBe("Image")
     expect(track.clips[0]).toMatchObject({ asset_id: 44, start_ms: 2_000, duration_ms: 5_000, source_offset_ms: 0 })
     await session.duplicate({ trackId: track.id, clipId: track.clips[0]!.id })
     expect(session.snapshot().document.tracks[0]!.clips.map((clip) => clip.asset_id)).toEqual([44, 44])

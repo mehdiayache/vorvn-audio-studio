@@ -30,16 +30,29 @@ export type SoundScenePersistence = {
   redo: () => Promise<SoundScene>
 }
 
-function assetTrackName(asset?: VentureAsset) {
-  return String(asset?.title || asset?.name || "Audio").trim() || "Audio"
+function audioTrackType(value?: string | null) {
+  const category = String(value || "").trim().toLowerCase()
+  if (category === "music") return "Music"
+  if (category === "sfx") return "SFX"
+  if (category === "ambience") return "Ambience"
+  if (category === "intro") return "Intro"
+  if (category === "outro") return "Outro"
+  return "Audio"
+}
+
+function assetTrackType(asset?: VentureAsset) {
+  return audioTrackType(String(asset?.category || asset?.kind || ""))
 }
 
 export function soundTrackDisplayName(track: SoundSceneTrack) {
-  const legacyGeneratedName = track.name === "Music" || /^Audio \d+$/.test(track.name)
-  if (legacyGeneratedName && track.clips.length === 1 && track.clips[0]?.asset_name)
-    return track.clips[0].asset_name
-  if (legacyGeneratedName) return "Audio"
-  return track.name || "Audio"
+  const types = new Set(track.clips.map((clip) => audioTrackType(clip.asset_kind)))
+  const declared = audioTrackType(track.name)
+  if (types.size === 1) {
+    const resolved = [...types][0]!
+    return resolved === "Audio" && declared !== "Audio" ? declared : resolved
+  }
+  if (types.size > 1) return "Audio"
+  return declared === "Audio" ? "Audio" : declared
 }
 
 type Playout = Pick<SoundScenePlayout,
@@ -283,7 +296,7 @@ export class SoundSceneSession {
     const id = `audio-${crypto.randomUUID()}`
     const clip = asset ? this.audioClip(asset, Math.max(0, Math.round(timelinePosition * 1000)), true) : null
     await this.persist(this.nextDocument((document) => document.tracks.push({
-      id, kind: "audio", name: assetTrackName(asset),
+      id, kind: "audio", name: assetTrackType(asset),
       volume: 1, muted: false, clips: clip ? [clip] : [],
     })))
     if (clip) this.select({ kind: "clip", trackId: id, clipId: clip.id })
@@ -303,7 +316,7 @@ export class SoundSceneSession {
       const track = document.tracks.find((item) => item.id === trackId)
       if (!track) throw new Error("That Audio Track is no longer available.")
       if (!track.clips.length && (track.name === "Audio" || /^Audio \d+$/.test(track.name)))
-        track.name = assetTrackName(asset)
+        track.name = assetTrackType(asset)
       else if (track.clips.length === 1 && (
         track.name === "Music" || /^Audio \d+$/.test(track.name)
         || track.name === String(track.clips[0]?.asset_name || "").trim()

@@ -15,11 +15,11 @@ function scene(): SoundScene {
 }
 
 describe("SoundSceneEngine", () => {
-  it("replaces legacy generated track labels with the canonical clip identity", () => {
+  it("labels tracks by media type instead of source names", () => {
     const track = scene().resolved.tracks[0]!
-    expect(soundTrackDisplayName(track)).toBe("Night bed")
-    expect(soundTrackDisplayName({ ...track, clips: [...track.clips, { ...track.clips[0]!, id: "second" }] })).toBe("Audio")
-    expect(soundTrackDisplayName({ ...track, name: "Operator mix" })).toBe("Operator mix")
+    expect(soundTrackDisplayName(track)).toBe("Music")
+    expect(soundTrackDisplayName({ ...track, clips: [...track.clips, { ...track.clips[0]!, id: "second" }] })).toBe("Music")
+    expect(soundTrackDisplayName({ ...track, name: "Operator mix", clips: [] })).toBe("Audio")
   })
 
   it("projects looped waveform peaks instead of stretching one source copy", () => {

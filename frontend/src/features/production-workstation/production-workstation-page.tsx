@@ -9,7 +9,7 @@ import { MovePartPositionDialog } from "@/features/production/move-part-position
 import { ProductionComposerStage } from "@/features/composer/production-composer-host"
 import { AudioClipInspector } from "@/features/sound-scene/inspector/music-inspector"
 import { SequenceMixInspector } from "@/features/sound-scene/inspector/sequence-mix-inspector"
-import { SoundSceneSession, useSoundSceneSession, type SoundScenePersistence } from "@/features/sound-scene/engine/sound-scene-session"
+import { SoundSceneSession, soundTrackDisplayName, useSoundSceneSession, type SoundScenePersistence } from "@/features/sound-scene/engine/sound-scene-session"
 import { VisualSceneSession, useVisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
 import { visualTrackDisplayName } from "@/features/visual-scene/timeline/visual-timeline-parts"
 import { ProductionFloatingTransport } from "@/features/production/production-floating-transport"
@@ -434,8 +434,8 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
               action: () => visualSession.removeClip(ref),
             }),
             onRemoveTrack: (track) => setConfirmAction({
-              title: `Remove this layer: “${visualTrackDisplayName(track.name)}”?`,
-              description: `This removes the layer and its ${track.clips.length} media placement${track.clips.length === 1 ? "" : "s"}. Director Assets remain available.`,
+              title: `Remove this ${visualTrackDisplayName(track, assets)} track?`,
+              description: `This removes the track and its ${track.clips.length} media placement${track.clips.length === 1 ? "" : "s"}. Director Assets remain available.`,
               action: () => visualSession.removeTrack(track.id),
             }),
           }}
@@ -452,7 +452,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
             })
           }}
           onRemoveTrack={(track) => setConfirmAction({
-            title: `Remove this track: “${track.name}”?`,
+            title: `Remove this ${soundTrackDisplayName(track)} track?`,
             description: `This removes the track and its ${track.clips.length} placement${track.clips.length === 1 ? "" : "s"}. Reusable Audio Library assets remain available.`,
             action: () => soundSession.removeTrack(track.id),
           })}

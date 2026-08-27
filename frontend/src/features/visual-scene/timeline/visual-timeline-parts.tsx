@@ -1,19 +1,13 @@
-import { ChevronDown, ChevronUp, Copy, Eye, EyeOff, Film, Image as ImageIcon, Layers3, Lock, MoreHorizontal, PencilLine, Plus, Scissors, Trash2, Unlock } from "lucide-react"
-import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
+import { ChevronDown, ChevronUp, Copy, Eye, EyeOff, Film, Image as ImageIcon, Layers3, Lock, MoreHorizontal, Plus, Scissors, Trash2, Unlock } from "lucide-react"
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react"
 
 import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
 import { visualAssetName, visualAssetPosterUrl, visualAssetUrl } from "@/features/production-workstation/director/director-assets"
 import { cn } from "@/lib/utils"
 import type { VentureAsset, VisualSceneClip, VisualSceneTrack } from "@/types/domain"
-
-export function visualTrackDisplayName(name: string) {
-  const legacy = /^Visual(?:\s+(\d+))?$/i.exec(name.trim())
-  return legacy ? `Layer${legacy[1] ? ` ${legacy[1]}` : ""}` : name
-}
 
 function trackMediaSummary(track: VisualSceneTrack, assets: VentureAsset[]) {
   const byId = new Map(assets.map((asset) => [asset.id, asset]))
@@ -34,11 +28,21 @@ function trackMediaSummary(track: VisualSceneTrack, assets: VentureAsset[]) {
   return {
     images,
     videos,
-    label: labels.join(" · ") || "Empty layer",
+    missing,
+    label: labels.join(" · ") || "Empty track",
   }
 }
 
-export function VisualTrackControl({ track, assets, collapsed, first, last, onVisible, onLocked, onRename, onAdd, onMove, onRemove }: {
+export function visualTrackDisplayName(track: VisualSceneTrack, assets: VentureAsset[]) {
+  const media = trackMediaSummary(track, assets)
+  if (media.images && !media.videos && !media.missing) return "Image"
+  if (media.videos && !media.images && !media.missing) return "Video"
+  if (track.clips.length) return "Media"
+  const declaredType = track.name.trim().toLowerCase()
+  return declaredType === "image" ? "Image" : declaredType === "video" ? "Video" : "Media"
+}
+
+export function VisualTrackControl({ track, assets, collapsed, first, last, onVisible, onLocked, onAdd, onMove, onRemove }: {
   track: VisualSceneTrack
   assets: VentureAsset[]
   collapsed: boolean
@@ -46,36 +50,25 @@ export function VisualTrackControl({ track, assets, collapsed, first, last, onVi
   last: boolean
   onVisible: () => void
   onLocked: () => void
-  onRename: (name: string) => Promise<void>
   onAdd: () => void
   onMove: (direction: -1 | 1) => void
   onRemove: () => void
 }) {
-  const [editing, setEditing] = useState(false)
-  const displayName = visualTrackDisplayName(track.name)
   const media = trackMediaSummary(track, assets)
+  const displayName = visualTrackDisplayName(track, assets)
   const TrackIcon = media.images && media.videos ? Layers3 : media.videos ? Film : media.images ? ImageIcon : Layers3
-  const [name, setName] = useState(displayName)
-  useEffect(() => { if (!editing) setName(displayName) }, [displayName, editing])
-  async function commit() {
-    const next = name.trim()
-    if (next && next !== displayName) await onRename(next)
-    else setName(displayName)
-    setEditing(false)
-  }
   return <div className={cn("visual-track-control", collapsed && "is-compact", !track.visible && "is-hidden", track.locked && "is-locked")} title={collapsed ? `${displayName} · ${track.visible ? media.label : `Hidden · ${media.label}`}` : undefined}>
     <span className="sound-track-icon is-visual"><TrackIcon /></span>
-    {!collapsed && <span className="sound-track-copy">{editing ? <Input autoFocus aria-label={`Name ${displayName} layer`} value={name} maxLength={80} onChange={(event) => setName(event.target.value)} onBlur={() => void commit()} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") { setName(displayName); setEditing(false) } }} /> : <button onClick={() => setEditing(true)}><b>{displayName}</b><PencilLine /></button>}<small>{track.visible ? media.label : `Hidden · ${media.label}`}</small></span>}
+    {!collapsed && <span className="sound-track-copy"><b>{displayName}</b><small>{track.visible ? media.label : `Hidden · ${media.label}`}</small></span>}
     <div className="visual-track-actions">
       <OperatorIconButton label={track.visible ? `Hide ${displayName}` : `Show ${displayName}`} detail="Controls the monitor without deleting media placements." onClick={onVisible}>{track.visible ? <Eye /> : <EyeOff />}</OperatorIconButton>
-      {!collapsed && <OperatorIconButton label={track.locked ? `Unlock ${displayName}` : `Lock ${displayName}`} detail="Prevents accidental movement and trimming on this layer." onClick={onLocked}>{track.locked ? <Lock /> : <Unlock />}</OperatorIconButton>}
+      {!collapsed && <OperatorIconButton label={track.locked ? `Unlock ${displayName}` : `Lock ${displayName}`} detail="Prevents accidental movement and trimming on this track." onClick={onLocked}>{track.locked ? <Lock /> : <Unlock />}</OperatorIconButton>}
       <DropdownMenu>
         <OperatorTooltip label={`More actions for ${displayName}`}><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Actions for ${displayName}`}><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip>
         <DropdownMenuContent side="right" align="center">
           <DropdownMenuItem onSelect={onAdd}><Plus /> Add media</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setEditing(true)}><PencilLine /> Rename layer</DropdownMenuItem>
-          <DropdownMenuItem disabled={first} onSelect={() => onMove(-1)}><ChevronUp /> Move layer up</DropdownMenuItem>
-          <DropdownMenuItem disabled={last} onSelect={() => onMove(1)}><ChevronDown /> Move layer down</DropdownMenuItem>
+          <DropdownMenuItem disabled={first} onSelect={() => onMove(-1)}><ChevronUp /> Move track up</DropdownMenuItem>
+          <DropdownMenuItem disabled={last} onSelect={() => onMove(1)}><ChevronDown /> Move track down</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={onRemove}><Trash2 /> Remove “{displayName}”</DropdownMenuItem>
         </DropdownMenuContent>
