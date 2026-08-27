@@ -1,5 +1,6 @@
-import { AudioLines, Captions, Download, LoaderCircle, Pause, Play, RefreshCw, Volume1, X } from "lucide-react"
+import { AudioLines, Captions, LoaderCircle, Pause, Play, RefreshCw, Volume1, X } from "lucide-react"
 
+import { AudioDownloadButton } from "@/components/audio-download-button"
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import type { TransportHost } from "@/components/global-player-provider"
 import { TransportCaptionPanel } from "@/components/transport-caption-panel"
@@ -74,7 +75,7 @@ export function TransportStripView({ source, state, currentTime, duration, volum
       disabled={!captionTracks.length}
       onClick={onToggleCaptions}
     ><Captions /></Button></OperatorTooltip>
-    {source.kind !== "production" && <OperatorTooltip label={`Download ${source.title}`}><Button variant="ghost" size="icon" asChild><a href={source.url} download aria-label={`Download ${source.title}`}><Download /></a></Button></OperatorTooltip>}
+    {source.kind !== "production" && <AudioDownloadButton url={source.url} label={source.title} />}
     <OperatorTooltip label="Close audio player"><Button variant="ghost" size="icon" onClick={onClose} aria-label="Close audio player"><X /></Button></OperatorTooltip>
     {state === "error" && <p className="transport-strip-error" role="alert">This audio could not be played.</p>}
   </section>

@@ -57,7 +57,9 @@ export function VisualTrackControl({ track, assets, collapsed, first, last, onVi
     <span className="sound-track-icon is-visual"><TrackIcon /></span>
     {!collapsed && <span className="sound-track-copy"><b>{displayName}</b><small>{track.visible ? media.label : `Hidden · ${media.label}`}</small></span>}
     <div className="visual-track-actions">
-      <OperatorIconButton label={`Add ${displayName.toLowerCase()} to ${displayName} track`} detail="Choose a compatible Director Asset and place it at the playhead." onClick={onAdd}><Plus /></OperatorIconButton>
+      {collapsed
+        ? <OperatorIconButton label={`Add ${displayName.toLowerCase()} to ${displayName} track`} detail="Choose a compatible Director Asset and place it at the playhead." onClick={onAdd}><Plus /></OperatorIconButton>
+        : <OperatorTooltip label={`Add ${displayName.toLowerCase()} to ${displayName} track`} detail="Choose a compatible Director Asset and place it in this exact track at the playhead."><Button variant="ghost" size="sm" className="visual-track-add" aria-label={`Add ${displayName.toLowerCase()} to ${displayName} track`} onClick={onAdd}><Plus data-icon="inline-start" /> Add</Button></OperatorTooltip>}
       <OperatorIconButton label={track.visible ? `Hide ${displayName}` : `Show ${displayName}`} detail="Controls the monitor without deleting media placements." onClick={onVisible}>{track.visible ? <Eye /> : <EyeOff />}</OperatorIconButton>
       {!collapsed && <OperatorIconButton label={track.locked ? `Unlock ${displayName}` : `Lock ${displayName}`} detail="Prevents accidental movement and trimming on this track." onClick={onLocked}>{track.locked ? <Lock /> : <Unlock />}</OperatorIconButton>}
       <DropdownMenu>

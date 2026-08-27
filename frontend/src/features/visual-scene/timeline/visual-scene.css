@@ -7,6 +7,7 @@
 .visual-track-control.is-hidden { background: var(--surface-subtle); }.visual-track-control.is-hidden > :not(.visual-track-actions) { opacity: .48; }
 .visual-track-control .sound-track-icon.is-visual { color: var(--primary); background: var(--primary-soft); }
 .visual-track-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; align-items: center; gap: .04rem; }.visual-track-actions svg { width: .75rem; }
+.visual-track-add { height: 1.7rem; padding-inline: .38rem; font-size: .6rem; }
 .visual-track-control.is-compact { grid-template-columns: 1fr; justify-items: center; padding: .3rem .2rem; }.visual-track-control.is-compact .visual-track-actions { display: grid; }
 .visual-scene-lane.is-hidden::before { background: var(--surface-subtle); }.visual-scene-lane.is-hidden .visual-timeline-clip { filter: grayscale(.8); opacity: .35; }
 .visual-timeline-clip { position: absolute; z-index: 2; top: .55rem; bottom: .55rem; min-width: 1.5rem; overflow: hidden; border: 1px solid color-mix(in oklab, var(--primary) 35%, var(--border)); border-radius: .45rem; background: var(--primary-soft); cursor: grab; touch-action: none; }

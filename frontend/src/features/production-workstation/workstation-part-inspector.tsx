@@ -5,6 +5,7 @@ import {
 } from "lucide-react"
 
 import { AudioWaveform } from "@/components/audio-waveform"
+import { AudioDownloadButton } from "@/components/audio-download-button"
 import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
 import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
@@ -82,7 +83,10 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
         <h3>{part.kind === "silence" ? "Intentional pause" : part.kind === "asset" ? part.title || "Linked audio" : facts.selectedVoiceName}</h3>
         <p>{part.kind === "silence" ? "Editorial timing" : part.kind === "asset" ? "Venture audio asset" : facts.methodLine}</p>
       </div>
-      {playable && <OperatorIconButton label={currentPlaying ? "Pause selected Part" : "Play selected Part"} variant="outline" size="icon" onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</OperatorIconButton>}
+      {playable && <div className="ws-inspector-media-actions">
+        <OperatorIconButton label={currentPlaying ? "Pause selected Part" : "Play selected Part"} variant="outline" size="icon" onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</OperatorIconButton>
+        <AudioDownloadButton url={audioUrl(part.filename || "")} label={`Part ${formatPartNumber(part.position ?? 0)} audio`} detail="Downloads this Part's original audio file without exporting the whole Production." />
+      </div>}
     </section>
 
     <dl className="ws-inspector-key-facts">

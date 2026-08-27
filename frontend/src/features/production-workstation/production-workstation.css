@@ -256,6 +256,7 @@
 
 .ws-part-inspector { position: relative; min-height: 100%; height: 100%; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; background: var(--surface-raised); }
 .ws-inspector-identity { min-width: 0; display: grid; grid-template-columns: 3rem minmax(0, 1fr) auto; align-items: center; gap: .8rem; padding: 1rem; }
+.ws-inspector-media-actions { display: flex; align-items: center; gap: .2rem; }
 .ws-inspector-portrait { width: 3rem; height: 3rem; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--border); border-radius: .7rem; color: var(--primary); background: var(--primary-soft); }
 .ws-inspector-portrait > svg { width: 1.2rem; }
 .ws-inspector-portrait .voice-portrait { width: 3rem; height: 3rem; flex-basis: 3rem; border: 0; border-radius: 0; font-size: .8rem; }

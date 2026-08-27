@@ -6,6 +6,7 @@ import {
 
 import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
 import { AudioWaveform } from "@/components/audio-waveform"
+import { AudioDownloadButton } from "@/components/audio-download-button"
 import { ActionButton, OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { VoiceIdentity } from "@/components/voice-identity"
@@ -202,6 +203,7 @@ export function WorkstationAssetCard({ part, index, selected, playing, actions, 
       </header>
       <footer className="ws-part-footer ws-asset-footer">
         {playable ? <OperatorIconButton label={playing ? "Pause linked audio" : "Play linked audio"} variant="ghost" size="icon" className="ws-play" onClick={(event) => { event.stopPropagation(); actions.play(source) }}>{playing ? <Pause /> : <Play />}</OperatorIconButton> : <span className="ws-record-state"><CircleAlert /> Source missing</span>}
+        {playable && <AudioDownloadButton url={audioUrl(part.filename || "")} label={`${title} audio`} compact onClick={(event) => event.stopPropagation()} />}
         {playable && <span className={cn("ws-waveform", playing && "is-active")}><AudioWaveform url={audioUrl(part.filename || "")} bars={72} /></span>}
         <span className="ws-duration">{duration}</span>
         <span className="ws-asset-source"><FileAudio /> Reusable Venture audio</span>
@@ -251,6 +253,7 @@ export function WorkstationSequenceCard({ part, index, selected, playing, liveJo
       {facts.operation.kind !== "idle" && <div className={cn("ws-operation", `is-${facts.operation.kind}`)}><Sparkles className={facts.operation.kind === "active" ? "spin" : ""} /><b>{facts.operation.label}</b><span>{facts.operation.detail}</span>{facts.operation.progress !== null && <i style={{ width: `${facts.operation.progress}%` }} />}{speechJob && facts.operation.canConfirm && <Button size="sm" onClick={(event) => { event.stopPropagation(); actions.confirm(part, speechJob) }}>Confirm and continue</Button>}{speechJob && facts.operation.canRetry && <Button size="sm" variant="outline" onClick={(event) => { event.stopPropagation(); actions.retry(part, speechJob) }}><RotateCw /> Retry</Button>}</div>}
       <footer className="ws-part-footer">
         {facts.playable ? <OperatorIconButton label={playing ? "Pause part" : "Play part"} variant="ghost" size="icon" className="ws-play" onClick={(event) => { event.stopPropagation(); actions.play(source) }}>{playing ? <Pause /> : <Play />}</OperatorIconButton> : <span className="ws-record-state"><Mic2 /> Not recorded</span>}
+        {facts.playable && part.filename && <AudioDownloadButton url={audioUrl(part.filename)} label={`Part ${formatPartNumber(part.position ?? index)} recording`} compact onClick={(event) => event.stopPropagation()} />}
         {facts.playable && <span className={cn("ws-waveform", playing && "is-active")}><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={56} /></span>}
         <span className="ws-duration">{facts.durationLabel}</span>
         <button className={cn("ws-caption-state", `is-${facts.captionTone}`)} onClick={(event) => { event.stopPropagation(); actions.captions(part) }}><Captions /> {facts.captionSummary}</button>

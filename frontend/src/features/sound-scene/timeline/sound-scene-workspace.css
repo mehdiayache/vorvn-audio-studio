@@ -103,8 +103,10 @@
 .sound-track-copy > button svg { width: .65rem; flex: none; opacity: 0; transition: opacity 120ms ease; }
 .sound-track-copy > button:hover svg, .sound-track-copy > button:focus-visible svg { opacity: .72; }
 .sound-track-copy > [data-slot="input"] { height: 1.5rem; padding: .12rem .35rem; font-size: .7rem; }
-.sound-track-mix { display: grid; grid-template-columns: 1.7rem 1.7rem minmax(0, 1fr) 1.7rem 1.7rem; align-items: center; gap: .08rem; }
+.sound-track-mix { display: grid; grid-template-columns: 1.7rem 1.7rem minmax(0, 1fr) auto 1.7rem; align-items: center; gap: .08rem; }
 .sound-track-mix svg { width: .75rem; }
+.sound-track-add { height: 1.7rem; padding-inline: .38rem; font-size: .6rem; }
+.sound-scene-add-menu { min-width: 13.5rem; }
 .sound-track-compact-actions { display: grid; grid-template-columns: 1fr; place-items: center; gap: .04rem; }
 .sound-track-compact-actions svg { width: .76rem; }
 .sound-track-letter { width: 1.7rem; height: 1.7rem; padding: 0; border: 1px solid var(--border); border-radius: .35rem; color: var(--foreground); background: white; font: var(--weight-emphasis) .65rem/1 var(--font-mono); }

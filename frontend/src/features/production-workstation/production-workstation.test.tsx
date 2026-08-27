@@ -2,11 +2,13 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import type { DurableJob, GeneratePayload, GenerateResult, ProductionPart, SoundScene, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, ProductionPart, SoundScene, VisualScene, VoiceDirectory } from "@/types/domain"
+import { audioUrl } from "@/lib/api"
 import { InlineProductionName } from "./workstation-header"
 import { WorkstationAssetCard, WorkstationOutline, WorkstationSequence, WorkstationSequenceCard, workstationPartState, type WorkstationPartActions } from "./workstation-sequence"
 import { SoundSceneWorkspace } from "@/features/sound-scene/timeline/sound-scene-workspace"
 import { SoundSceneSession } from "@/features/sound-scene/engine/sound-scene-session"
+import { VisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
 
 class ResizeObserverMock {
   observe() {}
@@ -66,6 +68,12 @@ function sessionFor(soundScene: SoundScene, update = vi.fn().mockImplementation(
   return session
 }
 
+function visualSessionFor(visualScene: VisualScene) {
+  return new VisualSceneSession(visualScene, {
+    update: vi.fn().mockImplementation(async (document) => ({ ...visualScene, revision: visualScene.revision + 1, document })),
+  }, 60_000)
+}
+
 describe("Production Workstation", () => {
   it("renames a Production inline without introducing a settings flow", async () => {
     const rename = vi.fn().mockResolvedValue(undefined)
@@ -121,6 +129,13 @@ describe("Production Workstation", () => {
     expect(setEnabled).toHaveBeenCalledWith(skipped, true)
   })
 
+  it("offers the original Part recording without requiring a Production export", () => {
+    const recorded = part({ id: 8, filename: "narrator.wav", authored_role: "Narrator" })
+    render(<WorkstationSequenceCard part={recorded} index={0} selected={false} playing={false} liveJobs={{}} directory={directory} actions={partActions()} />)
+
+    expect(screen.getByRole("link", { name: "Download Part 01 recording" }).getAttribute("href")).toBe(audioUrl("narrator.wav"))
+  })
+
   it("filters skipped Parts separately from readiness", () => {
     const ready = part({ id: 1, authored_role: "Narrator" })
     const skipped = part({ id: 2, position: 1, authored_role: "Guide", enabled: false })
@@ -153,11 +168,31 @@ describe("Production Workstation", () => {
     const onAddAudio = vi.fn()
     render(<SoundSceneWorkspace session={sessionFor(scene([part({ duration_ms: 30_000 })]))} onAddAudio={onAddAudio} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Add media" }), { button: 0, ctrlKey: false, pointerType: "mouse" })
-    fireEvent.click(screen.getByRole("menuitem", { name: "Audio" }))
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Add to Timeline" }), { button: 0, ctrlKey: false, pointerType: "mouse" })
+    fireEvent.click(screen.getByRole("menuitem", { name: "Audio from Library" }))
 
     expect(onAddAudio).toHaveBeenCalledOnce()
     expect(onAddAudio).toHaveBeenCalledWith({ mode: "new-track" })
+  })
+
+  it("uses the full Timeline when no visual media is placed and reveals the Viewer after a placement exists", () => {
+    const emptyVisual: VisualScene = {
+      production_id: 6,
+      revision: 1,
+      updated_at: "2026-08-27",
+      document: { version: 1, canvas: { width: 1920, height: 1080 }, tracks: [{ id: "image", name: "Image", media_type: "image", visible: true, locked: false, clips: [] }] },
+    }
+    const props = { session: sessionFor(scene([part({ duration_ms: 30_000 })])), assets: [], onAddVisual: vi.fn(), onRemoveClip: vi.fn(), onRemoveTrack: vi.fn() }
+    const { unmount } = render(<SoundSceneWorkspace session={props.session} visual={{ ...props, session: visualSessionFor(emptyVisual) }} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+
+    expect(screen.queryByLabelText("Production viewer")).toBeNull()
+    expect(screen.getByRole("button", { name: "Add image to Image track" })).toBeTruthy()
+    unmount()
+
+    const placedVisual: VisualScene = { ...emptyVisual, document: { ...emptyVisual.document, tracks: [{ ...emptyVisual.document.tracks[0]!, clips: [{ id: "placement", asset_id: 91, start_ms: 0, duration_ms: 5_000, source_offset_ms: 0, fit: "cover", locked: false }] }] } }
+    render(<SoundSceneWorkspace session={sessionFor(scene([part({ duration_ms: 30_000 })]))} visual={{ ...props, session: visualSessionFor(placedVisual) }} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+
+    expect(screen.getByLabelText("Production viewer")).toBeTruthy()
   })
 
   it("keeps a muted track level editable for the value that applies on unmute", () => {
