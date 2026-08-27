@@ -16,6 +16,8 @@ class MediaWorkspace(Protocol):
     def segment(
         self, name: str, *, offset_ms: int, duration_ms: int,
     ) -> MediaFile | None: ...
+    def video_poster(self, name: str) -> MediaFile | None: ...
+    def video_proxy(self, name: str) -> MediaFile | None: ...
 
 
 class MediaRecords(Protocol):
@@ -62,6 +64,12 @@ class MediaService:
     ) -> MediaFile | None:
         return self.workspace.segment(
             name, offset_ms=offset_ms, duration_ms=duration_ms)
+
+    def video_poster(self, name: str) -> MediaFile | None:
+        return self.workspace.video_poster(name)
+
+    def video_proxy(self, name: str) -> MediaFile | None:
+        return self.workspace.video_proxy(name)
 
 
 class VoiceReferenceMediaService:

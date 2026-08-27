@@ -100,3 +100,62 @@ class LocalMediaWorkspace:
         )[128:]:
             old.unlink(missing_ok=True)
         return MediaFile(target)
+
+    def _video_derivative(self, name: str, *, kind: str) -> MediaFile | None:
+        source = contained_file(self.output, name)
+        if source is None:
+            return None
+        if not shutil.which("ffmpeg"):
+            raise RuntimeError("FFmpeg is required to prepare that video preview.")
+        stat = source.stat()
+        digest = hashlib.sha256(
+            f"{source.name}:{stat.st_size}:{stat.st_mtime_ns}:{kind}:v1".encode()
+        ).hexdigest()[:24]
+        extension = "jpg" if kind == "poster" else "mp4"
+        target = self.output / f"video-{kind}-{digest}.{extension}"
+        if target.is_file() and target.stat().st_size > 0:
+            return MediaFile(target)
+        temporary = target.with_name(
+            f".{target.stem}-{uuid4().hex}.tmp.{extension}")
+        if kind == "poster":
+            command = [
+                "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                "-ss", "0.100", "-i", str(source), "-frames:v", "1",
+                "-vf", "scale=w='min(960,iw)':h=-2", "-q:v", "3",
+                str(temporary),
+            ]
+        else:
+            command = [
+                "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                "-i", str(source), "-map", "0:v:0", "-an",
+                "-vf", "scale=w='min(1920,iw)':h=-2",
+                "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+                "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+                str(temporary),
+            ]
+        try:
+            result = subprocess.run(
+                command, capture_output=True, text=True, timeout=300)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            temporary.unlink(missing_ok=True)
+            raise RuntimeError(f"Video preview preparation failed: {exc}") from exc
+        if (result.returncode or not temporary.is_file()
+                or temporary.stat().st_size <= 0):
+            temporary.unlink(missing_ok=True)
+            detail = (result.stderr or "FFmpeg produced no video").strip()
+            raise RuntimeError(
+                f"Video preview preparation failed: {detail[-240:]}")
+        os.replace(temporary, target)
+        for old in sorted(
+            self.output.glob(f"video-{kind}-*.{extension}"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )[128:]:
+            old.unlink(missing_ok=True)
+        return MediaFile(target)
+
+    def video_poster(self, name: str) -> MediaFile | None:
+        return self._video_derivative(name, kind="poster")
+
+    def video_proxy(self, name: str) -> MediaFile | None:
+        return self._video_derivative(name, kind="proxy")

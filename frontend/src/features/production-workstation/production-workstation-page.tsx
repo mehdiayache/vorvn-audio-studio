@@ -405,7 +405,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
           onRefresh={refreshAssets}
           onConfirmAction={setConfirmAction}
           onAddToTimeline={async (asset) => {
-            await visualSession.addImage(asset, soundSession.snapshot().playhead * 1000)
+            await visualSession.addVisual(asset, soundSession.snapshot().playhead * 1000)
             setStage("sound")
           }}
           onUpload={async (file) => {
@@ -426,10 +426,10 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
           visual={{
             session: visualSession,
             assets,
-            onAddImage: () => undefined,
+            onAddVisual: () => undefined,
             onRemoveClip: (ref, name) => setConfirmAction({
               title: `Remove this visual: “${name}”?`,
-              description: "This removes only the Timeline placement. The image remains available in Director and Visual Library.",
+              description: "This removes only the Timeline placement. The visual remains available in Director and Visual Library.",
               action: () => visualSession.removeClip(ref),
             }),
             onRemoveTrack: (track) => setConfirmAction({

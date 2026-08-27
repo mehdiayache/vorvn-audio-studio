@@ -13,7 +13,7 @@ afterEach(() => {
 
 import { DirectorStage } from "../director/director-stage"
 import { DirectorPreviewDialog } from "../director/director-preview-dialog"
-import { visualAssetDetails } from "../director/director-assets"
+import { visualAssetDetails, visualAssetPlaybackUrl, visualAssetPosterUrl } from "../director/director-assets"
 import { VisualAssetCard } from "../director/visual-asset-card"
 import { WORKSTATION_STAGES } from "../workstation-workflow"
 
@@ -128,7 +128,7 @@ describe("Production workflow", () => {
     expect(remove).toHaveBeenCalledWith(asset)
   })
 
-  it("places a Director image on Timeline while keeping video placement out of this checkpoint", async () => {
+  it("offers both Director images and videos for Timeline placement", async () => {
     const image = { id: 88, media_type: "image" as const, name: "Harbour dusk", filename: "harbour.webp", width: 1200, height: 800 }
     const add = vi.fn()
     render(<VisualAssetCard asset={image} onPreview={vi.fn()} onAddToTimeline={add} />)
@@ -137,9 +137,11 @@ describe("Production workflow", () => {
     expect(add).toHaveBeenCalledWith(image)
 
     cleanup()
-    render(<VisualAssetCard asset={{ ...image, media_type: "video", name: "Harbour move", filename: "harbour.mp4" }} onPreview={vi.fn()} onAddToTimeline={add} />)
+    const video = { ...image, media_type: "video" as const, name: "Harbour move", filename: "harbour.mp4", duration_ms: 8_000, media_format: "mp4", video_codec: "h264" }
+    render(<VisualAssetCard asset={video} onPreview={vi.fn()} onAddToTimeline={add} />)
     fireEvent.pointerDown(screen.getByRole("button", { name: "Actions for Harbour move" }), { button: 0, ctrlKey: false })
-    expect((await screen.findByText("Video Timeline · next checkpoint")).closest('[role="menuitem"]')?.getAttribute("data-disabled")).not.toBeNull()
+    fireEvent.click(await screen.findByText("Add to Timeline"))
+    expect(add).toHaveBeenCalledWith(video)
   })
 
   it("requires confirmation before detaching a visual from Director", async () => {
@@ -216,5 +218,17 @@ describe("Production workflow", () => {
     expect(screen.getByText("1920 × 1080")).toBeTruthy()
     expect(screen.getByText("29.97 fps")).toBeTruthy()
     expect(screen.getByText("Venture Library")).toBeTruthy()
+    const video = screen.getByRole("dialog", { name: "Harbour move" }).querySelector("video")
+    expect(video?.getAttribute("src")).toBe("/media/harbour.mp4")
+    expect(video?.getAttribute("poster")).toBe("/api/v1/media/video-poster/harbour.mp4")
+  })
+
+  it("uses a cached browser proxy only when the original video is not reliably playable", () => {
+    const mov = { id: 45, media_type: "video", filename: "camera original.mov", media_format: "mov", video_codec: "prores" } as const
+    const mp4 = { id: 46, media_type: "video", filename: "delivery.mp4", media_format: "mp4", video_codec: "h264" } as const
+
+    expect(visualAssetPosterUrl(mov)).toBe("/api/v1/media/video-poster/camera%20original.mov")
+    expect(visualAssetPlaybackUrl(mov)).toBe("/api/v1/media/video-proxy/camera%20original.mov")
+    expect(visualAssetPlaybackUrl(mp4)).toBe("/media/delivery.mp4")
   })
 })

@@ -5,6 +5,7 @@ import { VisualSceneSession } from "./visual-scene-session"
 
 const scene = (revision = 1): VisualScene => ({ production_id: 7, revision, document: { version: 1, tracks: [] }, updated_at: "2026-08-27" })
 const image = { id: 44, media_type: "image", name: "Harbor", filename: "harbor.jpg", width: 1600, height: 900 } as VentureAsset
+const video = { id: 45, media_type: "video", name: "Harbor move", filename: "harbor.mp4", duration_ms: 12_000, width: 1920, height: 1080 } as VentureAsset
 
 describe("VisualSceneSession", () => {
   it("places one image for five seconds without duplicating the Asset", async () => {
@@ -51,5 +52,36 @@ describe("VisualSceneSession", () => {
     await session.commitGesture()
     expect(update).toHaveBeenCalledTimes(1)
     expect(session.currentClip(ref)).toMatchObject({ start_ms: 3_000, duration_ms: 6_000 })
+  })
+
+  it("places and trims video as a non-destructive source window", async () => {
+    const update = vi.fn(async (document, expectedRevision) => ({ ...scene(expectedRevision + 1), document }))
+    const session = new VisualSceneSession(scene(), { update }, 30_000)
+    await session.addVisual(video, 2_000)
+    const track = session.snapshot().document.tracks[0]!
+    const ref = { trackId: track.id, clipId: track.clips[0]!.id }
+    expect(session.currentClip(ref)).toMatchObject({ start_ms: 2_000, duration_ms: 12_000, source_offset_ms: 0 })
+
+    session.beginGesture()
+    session.trimClip(ref, "start", 5_000, video)
+    session.trimClip(ref, "end", 11_000, video)
+    await session.commitGesture()
+    expect(session.currentClip(ref)).toMatchObject({ start_ms: 5_000, duration_ms: 6_000, source_offset_ms: 3_000 })
+  })
+
+  it("splits a video placement without duplicating its source Asset", async () => {
+    const update = vi.fn(async (document, expectedRevision) => ({ ...scene(expectedRevision + 1), document }))
+    const session = new VisualSceneSession(scene(), { update }, 30_000)
+    await session.addVisual(video, 1_000)
+    const track = session.snapshot().document.tracks[0]!
+    const ref = { trackId: track.id, clipId: track.clips[0]!.id }
+
+    await session.splitVideo(ref, 5_000, video)
+
+    const clips = session.snapshot().document.tracks[0]!.clips
+    expect(clips).toHaveLength(2)
+    expect(clips.map((clip) => clip.asset_id)).toEqual([45, 45])
+    expect(clips[0]).toMatchObject({ start_ms: 1_000, duration_ms: 4_000, source_offset_ms: 0 })
+    expect(clips[1]).toMatchObject({ start_ms: 5_000, duration_ms: 8_000, source_offset_ms: 4_000 })
   })
 })

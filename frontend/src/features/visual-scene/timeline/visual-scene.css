@@ -1,6 +1,6 @@
 .visual-scene-monitor { display: grid; place-items: center; min-height: 0; padding: .55rem; border-bottom: 1px solid var(--border); background: oklch(.96 .004 70); }
 .visual-scene-monitor-frame { position: relative; width: min(25rem, 42vw); aspect-ratio: 16 / 9; overflow: hidden; border-radius: .5rem; background: oklch(.17 .006 285); box-shadow: 0 0 0 1px color-mix(in oklab, black 16%, transparent); }
-.visual-scene-monitor-frame > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.visual-scene-monitor-frame > img, .visual-scene-monitor-frame > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .visual-scene-monitor-frame > span { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: .25rem; color: oklch(.84 .01 285); text-align: center; }
 .visual-scene-monitor-frame > span svg { width: 1rem; }.visual-scene-monitor-frame > span b { font-size: .66rem; }.visual-scene-monitor-frame > span small { font-size: .55rem; }
 .visual-track-control { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .5rem; padding: .55rem .6rem; border-bottom: 1px solid var(--border); background: white; }
@@ -12,7 +12,8 @@
 .visual-timeline-clip { position: absolute; z-index: 2; top: .55rem; bottom: .55rem; min-width: 1.5rem; overflow: hidden; border: 1px solid color-mix(in oklab, var(--primary) 35%, var(--border)); border-radius: .45rem; background: var(--primary-soft); cursor: grab; touch-action: none; }
 .visual-timeline-clip:active { cursor: grabbing; }.visual-timeline-clip.is-locked { cursor: default; }
 .visual-timeline-clip > img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-.visual-timeline-clip > span { position: absolute; right: 0; bottom: 0; left: 0; padding: .28rem .38rem; color: white; background: linear-gradient(transparent, color-mix(in oklab, black 72%, transparent)); }
+.visual-timeline-clip > span { position: absolute; right: 0; bottom: 0; left: 0; display: flex; align-items: center; gap: .25rem; padding: .28rem .38rem; color: white; background: linear-gradient(transparent, color-mix(in oklab, black 72%, transparent)); }
+.visual-timeline-clip > span svg { width: .62rem; flex: none; }
 .visual-timeline-clip > span b { display: block; overflow: hidden; font-size: .58rem; font-weight: var(--weight-emphasis); text-overflow: ellipsis; white-space: nowrap; }
 .visual-timeline-clip > i { position: absolute; top: .25rem; right: .25rem; width: 1rem; height: 1rem; display: grid; place-items: center; border-radius: .25rem; color: white; background: color-mix(in oklab, black 58%, transparent); }.visual-timeline-clip > i svg { width: .58rem; }
 .visual-timeline-clip.is-selected { z-index: 4; border-color: var(--primary); box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 28%, transparent), var(--shadow-sm); }

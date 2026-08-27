@@ -12,6 +12,20 @@ export function visualAssetUrl(asset: VentureAsset) {
   return asset.filename ? `/media/${encodeURIComponent(asset.filename)}` : ""
 }
 
+export function visualAssetPosterUrl(asset: VentureAsset) {
+  if (asset.media_type !== "video" || !asset.filename) return visualAssetUrl(asset)
+  return `/api/v1/media/video-poster/${encodeURIComponent(asset.filename)}`
+}
+
+export function visualAssetPlaybackUrl(asset: VentureAsset) {
+  if (asset.media_type !== "video" || !asset.filename) return visualAssetUrl(asset)
+  const format = String(asset.media_format || "").toLowerCase()
+  const codec = String(asset.video_codec || "").toLowerCase()
+  return format === "mp4" && codec === "h264"
+    ? visualAssetUrl(asset)
+    : `/api/v1/media/video-proxy/${encodeURIComponent(asset.filename)}`
+}
+
 export function visualAssetFacts(asset: VentureAsset) {
   const dimensions = asset.width && asset.height ? `${asset.width} × ${asset.height}` : "Dimensions unavailable"
   const duration = asset.media_type === "video" && asset.duration_ms

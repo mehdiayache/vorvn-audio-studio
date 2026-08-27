@@ -79,11 +79,14 @@ export class VisualSceneSession {
     this.set({ document })
   }
 
-  private normalizeClip(clip: VisualSceneClip) {
+  private normalizeClip(clip: VisualSceneClip, sourceDurationMs = 0) {
     const maximumStart = Math.max(0, this.timelineDurationMs - MIN_CLIP_MS)
     clip.start_ms = Math.min(maximumStart, Math.max(0, Math.round(clip.start_ms)))
     const maximumDuration = Math.max(MIN_CLIP_MS, this.timelineDurationMs - clip.start_ms)
-    clip.duration_ms = Math.min(maximumDuration, Math.max(MIN_CLIP_MS, Math.round(clip.duration_ms)))
+    const sourceRemaining = sourceDurationMs > 0
+      ? Math.max(MIN_CLIP_MS, sourceDurationMs - clip.source_offset_ms)
+      : maximumDuration
+    clip.duration_ms = Math.min(maximumDuration, sourceRemaining, Math.max(MIN_CLIP_MS, Math.round(clip.duration_ms)))
     clip.source_offset_ms = Math.max(0, Math.round(clip.source_offset_ms))
   }
 
@@ -95,17 +98,28 @@ export class VisualSceneSession {
     if (next) { const document = cloneDocument(this.state.document); const changed = document.tracks.find((track) => track.id === ref.trackId)?.clips.find((item) => item.id === ref.clipId); if (changed) this.normalizeClip(changed); this.set({ document }) }
   }
 
-  trimClip(ref: VisualClipRef, edge: "start" | "end", valueMs: number) {
+  trimClip(ref: VisualClipRef, edge: "start" | "end", valueMs: number, asset?: VentureAsset) {
     const clip = this.currentClip(ref)
     if (!clip || clip.locked || this.track(ref.trackId)?.locked) return
     const end = clip.start_ms + clip.duration_ms
+    const sourceDurationMs = asset?.media_type === "video" ? Number(asset.duration_ms || 0) : 0
+    const desiredStart = Math.min(end - MIN_CLIP_MS, Math.max(0, valueMs))
+    const start = asset?.media_type === "video"
+      ? Math.max(clip.start_ms - clip.source_offset_ms, desiredStart)
+      : desiredStart
     const changes = edge === "start"
-      ? { start_ms: Math.min(end - MIN_CLIP_MS, Math.max(0, valueMs)), duration_ms: end - Math.min(end - MIN_CLIP_MS, Math.max(0, valueMs)) }
+      ? {
+        start_ms: start,
+        duration_ms: end - start,
+        source_offset_ms: asset?.media_type === "video"
+          ? clip.source_offset_ms + start - clip.start_ms
+          : 0,
+      }
       : { duration_ms: Math.max(MIN_CLIP_MS, valueMs - clip.start_ms) }
     this.previewClip(ref, changes)
     const document = cloneDocument(this.state.document)
     const changed = document.tracks.find((track) => track.id === ref.trackId)?.clips.find((item) => item.id === ref.clipId)
-    if (changed) this.normalizeClip(changed)
+    if (changed) this.normalizeClip(changed, sourceDurationMs)
     this.set({ document })
   }
 
@@ -115,8 +129,12 @@ export class VisualSceneSession {
     await this.commit(document)
   }
 
-  async addImage(asset: VentureAsset, startMs: number, trackId?: string) {
-    if (asset.media_type !== "image") throw new Error("Video placement belongs to the next Timeline checkpoint.")
+  async addVisual(asset: VentureAsset, startMs: number, trackId?: string) {
+    if (asset.media_type !== "image" && asset.media_type !== "video")
+      throw new Error("Timeline visuals require an image or video Asset.")
+    const sourceDurationMs = asset.media_type === "video" ? Number(asset.duration_ms || 0) : 0
+    if (asset.media_type === "video" && sourceDurationMs < MIN_CLIP_MS)
+      throw new Error("That video has no usable duration.")
     const document = cloneDocument(this.state.document)
     let track = trackId ? document.tracks.find((item) => item.id === trackId) : document.tracks[0]
     if (!track) {
@@ -124,10 +142,46 @@ export class VisualSceneSession {
       document.tracks.push(track)
     }
     const available = Math.max(MIN_CLIP_MS, this.timelineDurationMs - Math.max(0, startMs))
-    const clip: VisualSceneClip = { id: uuid(), asset_id: asset.id, start_ms: Math.max(0, Math.round(startMs)), duration_ms: Math.min(DEFAULT_IMAGE_MS, available), source_offset_ms: 0, locked: false }
-    this.normalizeClip(clip)
+    const durationMs = asset.media_type === "video" ? sourceDurationMs : DEFAULT_IMAGE_MS
+    const clip: VisualSceneClip = { id: uuid(), asset_id: asset.id, start_ms: Math.max(0, Math.round(startMs)), duration_ms: Math.min(durationMs, available), source_offset_ms: 0, locked: false }
+    this.normalizeClip(clip, sourceDurationMs)
     track.clips.push(clip)
     this.set({ selection: { trackId: track.id, clipId: clip.id } })
+    await this.commit(document)
+  }
+
+  async addImage(asset: VentureAsset, startMs: number, trackId?: string) {
+    await this.addVisual(asset, startMs, trackId)
+  }
+
+  canSplitVideo(ref: VisualClipRef, playheadMs: number, asset?: VentureAsset) {
+    const clip = this.currentClip(ref)
+    if (!clip || asset?.media_type !== "video" || clip.locked || this.track(ref.trackId)?.locked) return false
+    const local = Math.round(playheadMs) - clip.start_ms
+    return local >= MIN_CLIP_MS && local <= clip.duration_ms - MIN_CLIP_MS
+  }
+
+  async splitVideo(ref: VisualClipRef, playheadMs: number, asset?: VentureAsset) {
+    if (!this.canSplitVideo(ref, playheadMs, asset)) {
+      this.reportError("Place the playhead inside an unlocked video, at least 0.1 seconds from either edge.")
+      return
+    }
+    const document = cloneDocument(this.state.document)
+    const track = document.tracks.find((item) => item.id === ref.trackId)
+    const index = track?.clips.findIndex((clip) => clip.id === ref.clipId) ?? -1
+    const source = index >= 0 ? track?.clips[index] : undefined
+    if (!track || !source) return
+    const localMs = Math.round(playheadMs) - source.start_ms
+    const tail: VisualSceneClip = {
+      ...source,
+      id: uuid(),
+      start_ms: source.start_ms + localMs,
+      duration_ms: source.duration_ms - localMs,
+      source_offset_ms: source.source_offset_ms + localMs,
+    }
+    source.duration_ms = localMs
+    track.clips.splice(index + 1, 0, tail)
+    this.set({ selection: { trackId: track.id, clipId: tail.id } })
     await this.commit(document)
   }
 

@@ -45,6 +45,28 @@ def get_media(name: str) -> FileResponse:
 
 
 @router.api_route(
+    "/api/v1/media/video-poster/{name}", methods=["GET", "HEAD"],
+    include_in_schema=False,
+)
+def get_video_poster(name: str) -> FileResponse:
+    try:
+        return _response(media_service.video_poster(name))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.api_route(
+    "/api/v1/media/video-proxy/{name}", methods=["GET", "HEAD"],
+    include_in_schema=False,
+)
+def get_video_proxy(name: str) -> FileResponse:
+    try:
+        return _response(media_service.video_proxy(name))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.api_route(
     "/api/v1/media/segments/{name}", methods=["GET", "HEAD"],
     include_in_schema=False,
 )

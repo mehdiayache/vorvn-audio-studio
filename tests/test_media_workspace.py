@@ -41,6 +41,36 @@ class MediaWorkspaceTests(unittest.TestCase):
             self.assertIsNone(workspace.segment(
                 "../long-bed.wav", offset_ms=0, duration_ms=1_000))
 
+    def test_video_poster_and_proxy_are_cached_browser_derivatives(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            source = root / "source.mov"
+            subprocess.run([
+                "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                "-f", "lavfi", "-i", "testsrc=size=320x180:rate=24",
+                "-t", "1", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                str(source),
+            ], check=True)
+            workspace = LocalMediaWorkspace(
+                root=root, output=root, voice_samples=root)
+
+            poster = workspace.video_poster(source.name)
+            proxy = workspace.video_proxy(source.name)
+            self.assertEqual(poster, workspace.video_poster(source.name))
+            self.assertEqual(proxy, workspace.video_proxy(source.name))
+            self.assertTrue(poster.path.is_file())
+            self.assertTrue(proxy.path.is_file())
+            self.assertEqual(poster.path.suffix, ".jpg")
+            self.assertEqual(proxy.path.suffix, ".mp4")
+            probe = subprocess.run([
+                "ffprobe", "-v", "error", "-select_streams", "v:0",
+                "-show_entries", "stream=codec_name,pix_fmt",
+                "-of", "default=nw=1", str(proxy.path),
+            ], check=True, capture_output=True, text=True)
+            self.assertIn("codec_name=h264", probe.stdout)
+            self.assertIn("pix_fmt=yuv420p", probe.stdout)
+            self.assertIsNone(workspace.video_proxy("../source.mov"))
+
 
 if __name__ == "__main__":
     unittest.main()

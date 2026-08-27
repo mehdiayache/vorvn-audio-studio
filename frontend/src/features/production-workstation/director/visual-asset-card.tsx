@@ -5,7 +5,7 @@ import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { VentureAsset } from "@/types/domain"
-import { visualAssetFacts, visualAssetName, visualAssetUrl } from "./director-assets"
+import { visualAssetFacts, visualAssetName, visualAssetPosterUrl, visualAssetUrl } from "./director-assets"
 import type { DirectorGalleryView } from "./director-gallery"
 
 export function VisualAssetCard({ asset, mode = "director", view = "gallery", pending = false, onPreview, onAdd, onAddToTimeline, onRemove }: {
@@ -24,7 +24,7 @@ export function VisualAssetCard({ asset, mode = "director", view = "gallery", pe
   const ratio = view === "list" ? "16 / 9" : asset.width && asset.height ? `${asset.width} / ${asset.height}` : "4 / 3"
   return <article className="visual-asset-card" data-media-type={asset.media_type} data-view={view}>
     <button className="visual-asset-preview" style={{ aspectRatio: ratio }} onClick={() => onPreview(asset)} aria-label={`Preview ${name}`}>
-      {asset.media_type === "video" ? <video src={url} muted preload="metadata" playsInline /> : <img src={url} alt="" loading="lazy" />}
+      <img src={asset.media_type === "video" ? visualAssetPosterUrl(asset) : url} alt="" loading="lazy" />
       <span className="visual-asset-kind">{asset.media_type === "video" ? <Video /> : <ImageIcon />}{asset.media_type === "video" ? "Video" : "Image"}</span>
       {facts.duration && <span className="visual-asset-duration"><Clock3 />{facts.duration}</span>}
     </button>
@@ -39,7 +39,7 @@ export function VisualAssetCard({ asset, mode = "director", view = "gallery", pe
           <DropdownMenuContent align="end">
             <DropdownMenuGroup>
               <DropdownMenuItem onSelect={() => onPreview(asset)}>{asset.media_type === "video" ? <Video /> : <ImageIcon />} Preview</DropdownMenuItem>
-              <DropdownMenuItem disabled={asset.media_type !== "image" || !onAddToTimeline} onSelect={() => onAddToTimeline?.(asset)}><Check />{asset.media_type === "image" ? "Add to Timeline" : "Video Timeline · next checkpoint"}</DropdownMenuItem>
+              <DropdownMenuItem disabled={!onAddToTimeline} onSelect={() => onAddToTimeline?.(asset)}><Check /> Add to Timeline</DropdownMenuItem>
             </DropdownMenuGroup>
             {onRemove && <><DropdownMenuSeparator /><DropdownMenuGroup><DropdownMenuItem onSelect={() => onRemove(asset)}><X /> Remove from Director…</DropdownMenuItem></DropdownMenuGroup></>}
           </DropdownMenuContent>
