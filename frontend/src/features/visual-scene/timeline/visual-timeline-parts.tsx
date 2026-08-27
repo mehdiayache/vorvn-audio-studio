@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Copy, Eye, EyeOff, Film, Image as ImageIcon, Lock, MoreHorizontal, Plus, Scissors, Trash2, Unlock } from "lucide-react"
+import { ChevronDown, ChevronUp, Copy, Eye, EyeOff, Film, Image as ImageIcon, Lock, MoreHorizontal, Plus, Scissors, Trash2, Unlock, Volume2, VolumeX } from "lucide-react"
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react"
 
 import { OperatorIconButton } from "@/components/operator-action"
@@ -87,20 +87,22 @@ export function VisualTimelineClip({ clip, asset, selected, trackLocked, style, 
   const locked = clip.locked || trackLocked
   const name = asset ? visualAssetName(asset) : "Missing media"
   const isVideo = asset?.media_type === "video"
-  return <div className={cn("visual-timeline-clip", selected && "is-selected", locked && "is-locked", !asset && "is-missing")} style={style} role="button" tabIndex={0} aria-label={`${name} media clip`} onPointerDown={(event) => onGesture(event, "move")} onClick={onSelect} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect() } }}>
-    {asset ? <img src={isVideo ? visualAssetPosterUrl(asset) : visualAssetUrl(asset)} alt="" draggable={false} /> : <ImageIcon />}
+  return <div className={cn("visual-timeline-clip", isVideo ? "is-video" : "is-image", selected && "is-selected", locked && "is-locked", !asset && "is-missing")} style={style} role="button" tabIndex={0} aria-label={`${name} media clip`} onPointerDown={(event) => onGesture(event, "move")} onClick={onSelect} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect() } }}>
+    {asset ? <figure className="visual-timeline-thumbnail"><img src={isVideo ? visualAssetPosterUrl(asset) : visualAssetUrl(asset)} alt="" draggable={false} /></figure> : <ImageIcon />}
     <span>{isVideo && <Film />}<b>{name}</b></span>
     {locked && <i><Lock /></i>}
     {selected && !locked && <><button className="visual-trim-handle is-start" aria-label="Resize media start" onPointerDown={(event) => onGesture(event, "start")} /><button className="visual-trim-handle is-end" aria-label="Resize media end" onPointerDown={(event) => onGesture(event, "end")} /></>}
   </div>
 }
 
-export function VisualContextToolbar({ track, clip, asset, saving, canSplit, onSplit, onLock, onDuplicate, onDelete }: {
+export function VisualContextToolbar({ track, clip, asset, saving, canSplit, audioMuted, onAudioMute, onSplit, onLock, onDuplicate, onDelete }: {
   track: VisualSceneTrack
   clip: VisualSceneClip
   asset?: VentureAsset
   saving: boolean
   canSplit: boolean
+  audioMuted?: boolean
+  onAudioMute?: () => void
   onSplit: () => void
   onLock: () => void
   onDuplicate: () => void
@@ -108,6 +110,7 @@ export function VisualContextToolbar({ track, clip, asset, saving, canSplit, onS
 }) {
   return <div className="visual-context-toolbar">
     <span>{asset?.media_type === "video" ? <Film /> : <ImageIcon />}<b>{asset ? visualAssetName(asset) : "Missing media"}</b><small>{asset?.media_type === "video" ? `Source ${(clip.source_offset_ms / 1000).toFixed(1)}s · ` : ""}{(clip.start_ms / 1000).toFixed(1)}s · {(clip.duration_ms / 1000).toFixed(1)}s</small></span>
+    {asset?.media_type === "video" && onAudioMute && <OperatorTooltip label={audioMuted ? "Play video audio" : "Mute video audio"} detail="Changes only this video's linked audio; picture timing stays unchanged."><Button variant="ghost" size="sm" disabled={saving} onClick={onAudioMute}>{audioMuted ? <VolumeX /> : <Volume2 />}{audioMuted ? "Audio off" : "Audio on"}</Button></OperatorTooltip>}
     {asset?.media_type === "video" && <OperatorTooltip disabledTrigger={saving || !canSplit} label="Split video at playhead" detail={canSplit ? "Creates two non-destructive placements using the same source Asset." : "Place the playhead inside this video, at least 0.1 seconds from either edge."}><Button variant="ghost" size="sm" disabled={saving || !canSplit} onClick={onSplit}><Scissors /> Split</Button></OperatorTooltip>}
     <OperatorTooltip label={clip.locked ? "Unlock media clip" : "Lock media clip"}><Button variant="ghost" size="sm" disabled={saving || track.locked} onClick={onLock}>{clip.locked ? <Unlock /> : <Lock />}{clip.locked ? "Unlock" : "Lock"}</Button></OperatorTooltip>
     <OperatorTooltip label="Duplicate media placement" detail="Creates another Timeline placement using the same Director Asset."><Button variant="ghost" size="sm" disabled={saving} onClick={onDuplicate}><Copy /> Duplicate</Button></OperatorTooltip>

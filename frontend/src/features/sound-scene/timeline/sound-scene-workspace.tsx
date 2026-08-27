@@ -38,6 +38,10 @@ const LANE_HEIGHT = 92
 const RULER_HEIGHT = 38
 const PEAK_TIERS = [128, 256, 512, 1024, 2048, 4096] as const
 const TICK_STEPS = [.1, .25, .5, 1, 2, 5, 10, 15, 30, 60]
+const VIEWER_DEFAULT_WIDTH = 320
+const VIEWER_MIN_WIDTH = 240
+const VIEWER_MAX_WIDTH = 520
+const VIEWER_WIDTH_STORAGE_KEY = "auvi.timeline.viewer-width"
 
 type AddTarget = { mode: "new-track" } | { mode: "add-clip"; trackId: string }
 type RemoveTarget = { clips: SoundClipRef[] }
@@ -194,6 +198,16 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
   const visualState = useVisualSceneSession(visual?.session)
   const [tracksCollapsed, setTracksCollapsed] = useState(false)
   const [viewerCollapsed, setViewerCollapsed] = useState(false)
+  const [viewerWidth, setViewerWidth] = useState(() => {
+    if (typeof window === "undefined") return VIEWER_DEFAULT_WIDTH
+    try {
+      const stored = Number(window.localStorage.getItem(VIEWER_WIDTH_STORAGE_KEY))
+      return Number.isFinite(stored) ? Math.min(VIEWER_MAX_WIDTH, Math.max(VIEWER_MIN_WIDTH, stored)) : VIEWER_DEFAULT_WIDTH
+    } catch {
+      return VIEWER_DEFAULT_WIDTH
+    }
+  })
+  const [viewerResizing, setViewerResizing] = useState(false)
   const [snapGuide, setSnapGuide] = useState<number | null>(null)
   const [followPlayhead, setFollowPlayhead] = useState(true)
   const [snapping, setSnapping] = useState(true)
@@ -203,6 +217,10 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
   const controlsRef = useRef<HTMLElement>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
   const activeCancel = useRef<(() => void) | null>(null)
+  const viewerResize = useRef<{ startX: number; startWidth: number } | null>(null)
+  useEffect(() => {
+    try { window.localStorage.setItem(VIEWER_WIDTH_STORAGE_KEY, String(Math.round(viewerWidth))) } catch { /* Browser storage is an optional preference only. */ }
+  }, [viewerWidth])
   const visualEnd = Math.max(0, ...visualState.document.tracks.flatMap((track) => track.clips.map((clip) => clip.start_ms + clip.duration_ms))) / 1000
   const total = Math.max(Number(scene.resolved.duration_ms ?? scene.resolved.sequence_projection.duration_ms) / 1000, visualEnd, 1)
   const pixelsPerSecond = SAMPLE_RATE / engine.samplesPerPixel
@@ -236,6 +254,8 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
   const selectedVisualTrack = selectedVisualRef ? visualTracks.find((track) => track.id === selectedVisualRef.trackId) || null : null
   const selectedVisualClip = selectedVisualRef ? selectedVisualTrack?.clips.find((clip) => clip.id === selectedVisualRef.clipId) || null : null
   const selectedVisualAsset = selectedVisualClip && visual ? visual.assets.find((asset) => asset.id === selectedVisualClip.asset_id) : undefined
+  const selectedVideoAudio = selectedVisualClip ? tracks.flatMap((track) => track.clips.flatMap((clip) =>
+    clip.linked_visual_clip_id === selectedVisualClip.id ? [{ trackId: track.id, clip }] : [])).at(0) : undefined
   const canSplitVisual = Boolean(selectedVisualRef && selectedVisualClip && visual?.session.canSplitVideo(selectedVisualRef, playhead * 1000, selectedVisualAsset))
   const lockedClipCount = selectedClips.filter(({ clip }) => clip.locked).length
   const context: SoundContext | null = selectedPart ? {
@@ -282,6 +302,29 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
       Math.abs(target - value) <= tolerance && (best === null || Math.abs(target - value) < Math.abs(best - value)) ? target : best, null)
     setSnapGuide(nearest)
     return nearest ?? value
+  }
+
+  function resizeViewer(event: ReactPointerEvent<HTMLButtonElement>) {
+    const active = viewerResize.current
+    if (!active) return
+    const stageWidth = event.currentTarget.parentElement?.clientWidth || VIEWER_MAX_WIDTH * 2
+    const maximum = Math.min(VIEWER_MAX_WIDTH, Math.max(VIEWER_MIN_WIDTH, stageWidth * .46))
+    setViewerWidth(Math.min(maximum, Math.max(VIEWER_MIN_WIDTH, active.startWidth + event.clientX - active.startX)))
+  }
+
+  function finishViewerResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (!viewerResize.current) return
+    resizeViewer(event)
+    viewerResize.current = null
+    setViewerResizing(false)
+    event.currentTarget.releasePointerCapture?.(event.pointerId)
+  }
+
+  function adjustViewerWidth(delta: number) {
+    setViewerWidth((current) => {
+      const next = Math.min(VIEWER_MAX_WIDTH, Math.max(VIEWER_MIN_WIDTH, current + delta))
+      return next
+    })
   }
 
   function gesture(event: ReactPointerEvent, trackId: string, clipId: string, mode: GestureMode) {
@@ -578,15 +621,38 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-    <div className="sound-scene-stage">
+    <div className="sound-scene-stage" style={{ "--timeline-viewer-width": `${viewerWidth}px` } as CSSProperties}>
       {visual && hasVisualPlacements && <TimelineViewer document={visualState.document} assets={visual.assets} playheadMs={playhead * 1000} playback={playback} selection={selectedVisualRef} session={visual.session} saving={visualState.saving} collapsed={viewerCollapsed} onCollapsedChange={setViewerCollapsed} onAddMedia={() => visual.onAddVisual()} />}
+      {visual && hasVisualPlacements && !viewerCollapsed && <button
+        type="button"
+        className={cn("timeline-viewer-resize-handle", viewerResizing && "is-resizing")}
+        aria-label="Resize Viewer"
+        aria-valuemin={VIEWER_MIN_WIDTH}
+        aria-valuemax={VIEWER_MAX_WIDTH}
+        aria-valuenow={Math.round(viewerWidth)}
+        onDoubleClick={() => adjustViewerWidth(VIEWER_DEFAULT_WIDTH - viewerWidth)}
+        onKeyDown={(event) => {
+          if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
+          event.preventDefault()
+          adjustViewerWidth(event.key === "ArrowLeft" ? -16 : 16)
+        }}
+        onPointerDown={(event) => {
+          event.preventDefault()
+          event.currentTarget.setPointerCapture?.(event.pointerId)
+          viewerResize.current = { startX: event.clientX, startWidth: viewerWidth }
+          setViewerResizing(true)
+        }}
+        onPointerMove={resizeViewer}
+        onPointerUp={finishViewerResize}
+        onPointerCancel={finishViewerResize}
+      />}
       <div className="sound-scene-editor">
       <aside ref={controlsRef} className="sound-scene-track-controls" style={{ gridTemplateRows: rowTemplate }} onWheel={(event) => { if (scrollRef.current) scrollRef.current.scrollTop += event.deltaY }}>
         <div className="sound-scene-track-head">
           <span>Tracks</span>
           <div className="sound-scene-track-head-actions">
-            <OperatorTooltip label={tracksCollapsed ? "Show track controls" : "Hide track controls"}><Button variant="ghost" size="icon-sm" onClick={() => setTracksCollapsed((value) => !value)} aria-label={tracksCollapsed ? "Show track controls" : "Hide track controls"}>{tracksCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button></OperatorTooltip>
             {!tracksCollapsed && <DropdownMenu><OperatorTooltip label="Create an empty Timeline track" detail="Choose the media type now, then add compatible sources inside that track."><DropdownMenuTrigger asChild><Button variant="ghost" size="sm" aria-label="New Timeline track"><Plus data-icon="inline-start" />New track</Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent side="right" align="start"><DropdownMenuLabel>Empty track</DropdownMenuLabel><DropdownMenuGroup><DropdownMenuItem onSelect={() => void visual?.session.addTrack("image")} disabled={!visual}><ImageIcon /> Image</DropdownMenuItem><DropdownMenuItem onSelect={() => void visual?.session.addTrack("video")} disabled={!visual}><Film /> Video</DropdownMenuItem><DropdownMenuItem onSelect={() => void session.addTrack()}><AudioWaveform /> Audio</DropdownMenuItem></DropdownMenuGroup></DropdownMenuContent></DropdownMenu>}
+            <OperatorTooltip label={tracksCollapsed ? "Show track controls" : "Hide track controls"}><Button variant="ghost" size="icon-sm" onClick={() => setTracksCollapsed((value) => !value)} aria-label={tracksCollapsed ? "Show track controls" : "Hide track controls"}>{tracksCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button></OperatorTooltip>
           </div>
         </div>
         {visualTracks.map((track, index) => <VisualTrackControl key={track.id} track={track} assets={visual?.assets || []} collapsed={tracksCollapsed} first={index === 0} last={index === visualTracks.length - 1}
@@ -686,7 +752,7 @@ export function SoundSceneWorkspace({ session, visual, onAddAudio, onRemoveClip,
       </div>
       </div>
     </div>
-    <footer className="sound-scene-context-bar">{selectedVisualRef && selectedVisualTrack && selectedVisualClip && visual ? <VisualContextToolbar track={selectedVisualTrack} clip={selectedVisualClip} asset={selectedVisualAsset} saving={visualState.saving} canSplit={canSplitVisual} onSplit={() => void visual.session.splitVideo(selectedVisualRef, playhead * 1000, selectedVisualAsset)} onLock={() => void visual.session.setClipLocked(selectedVisualRef, !selectedVisualClip.locked)} onDuplicate={() => void visual.session.duplicate(selectedVisualRef)} onDelete={() => visual.onRemoveClip(selectedVisualRef, selectedVisualAsset ? visualAssetName(selectedVisualAsset) : "Visual")} /> : context ? <SoundSceneContextToolbar
+    <footer className="sound-scene-context-bar">{selectedVisualRef && selectedVisualTrack && selectedVisualClip && visual ? <VisualContextToolbar track={selectedVisualTrack} clip={selectedVisualClip} asset={selectedVisualAsset} saving={visualState.saving || saving} canSplit={canSplitVisual} audioMuted={selectedVideoAudio?.clip.muted} onAudioMute={selectedVideoAudio ? () => void session.commitClipChanges(selectedVideoAudio.trackId, selectedVideoAudio.clip.id, { muted: !selectedVideoAudio.clip.muted }) : undefined} onSplit={() => void visual.session.splitVideo(selectedVisualRef, playhead * 1000, selectedVisualAsset)} onLock={() => void visual.session.setClipLocked(selectedVisualRef, !selectedVisualClip.locked)} onDuplicate={() => void visual.session.duplicate(selectedVisualRef)} onDelete={() => visual.onRemoveClip(selectedVisualRef, selectedVisualAsset ? visualAssetName(selectedVisualAsset) : "Visual")} /> : context ? <SoundSceneContextToolbar
       context={context} saving={saving}
       onMute={() => {
         if (selectedPart) void session.updateSequenceOverride(selectedPart.part_public_id, { muted: !selectedPart.mix.muted })

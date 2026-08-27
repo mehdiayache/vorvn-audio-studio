@@ -12,8 +12,11 @@
 .visual-scene-lane.is-hidden::before { background: var(--surface-subtle); }.visual-scene-lane.is-hidden .visual-timeline-clip { filter: grayscale(.8); opacity: .35; }
 .visual-timeline-clip { position: absolute; z-index: 2; top: .55rem; bottom: .55rem; min-width: 1.5rem; overflow: hidden; border: 1px solid color-mix(in oklab, var(--primary) 35%, var(--border)); border-radius: .45rem; background: var(--primary-soft); cursor: grab; touch-action: none; }
 .visual-timeline-clip:active { cursor: grabbing; }.visual-timeline-clip.is-locked { cursor: default; }
-.visual-timeline-clip > img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-.visual-timeline-clip > span { position: absolute; right: 0; bottom: 0; left: 0; display: flex; align-items: center; gap: .25rem; padding: .28rem .38rem; color: white; background: linear-gradient(transparent, color-mix(in oklab, black 72%, transparent)); }
+.visual-timeline-thumbnail { position: absolute; inset: 0 auto 0 0; width: min(7rem, 100%); margin: 0; overflow: hidden; border-right: 1px solid color-mix(in oklab, var(--primary) 18%, var(--border)); pointer-events: none; }
+.visual-timeline-thumbnail > img { width: 100%; height: 100%; display: block; object-fit: cover; pointer-events: none; }
+.visual-timeline-clip.is-image { background: color-mix(in oklab, var(--primary-soft) 76%, white); }
+.visual-timeline-clip.is-image::after { position: absolute; inset: 0; content: ""; pointer-events: none; background: linear-gradient(90deg, transparent min(6.5rem, 82%), color-mix(in oklab, var(--primary-soft) 32%, transparent)); }
+.visual-timeline-clip > span { position: absolute; z-index: 2; right: 0; bottom: 0; left: 0; display: flex; align-items: center; gap: .25rem; padding: .28rem .38rem; color: white; background: linear-gradient(transparent, color-mix(in oklab, black 72%, transparent)); }
 .visual-timeline-clip > span svg { width: .62rem; flex: none; }
 .visual-timeline-clip > span b { display: block; overflow: hidden; font-size: .58rem; font-weight: var(--weight-emphasis); text-overflow: ellipsis; white-space: nowrap; }
 .visual-timeline-clip > i { position: absolute; top: .25rem; right: .25rem; width: 1rem; height: 1rem; display: grid; place-items: center; border-radius: .25rem; color: white; background: color-mix(in oklab, black 58%, transparent); }.visual-timeline-clip > i svg { width: .58rem; }

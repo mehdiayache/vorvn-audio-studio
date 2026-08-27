@@ -1,5 +1,5 @@
-.timeline-viewer { --viewer-rule: var(--border); --viewer-frame-rule: color-mix(in oklab, var(--foreground) 22%, transparent); --viewer-muted: var(--muted-foreground); min-width: 0; min-height: 0; display: grid; grid-template-rows: 2.75rem minmax(0, 1fr) auto; overflow: hidden; border-right: 1px solid var(--border); color: var(--foreground); background: white; }
-.timeline-viewer.is-collapsed { grid-template-rows: 2.75rem; }
+.timeline-viewer { --viewer-rule: var(--border); --viewer-frame-rule: color-mix(in oklab, var(--foreground) 22%, transparent); --viewer-muted: var(--muted-foreground); min-width: 0; min-height: 0; display: grid; grid-template-rows: var(--timeline-panel-header-height, 2.375rem) minmax(0, 1fr) auto; overflow: hidden; color: var(--foreground); background: white; }
+.timeline-viewer.is-collapsed { grid-template-rows: var(--timeline-panel-header-height, 2.375rem); }
 .timeline-viewer-header { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .35rem .55rem .35rem .75rem; border-bottom: 1px solid var(--viewer-rule); }
 .timeline-viewer-header > span { display: flex; align-items: center; gap: .4rem; }.timeline-viewer-header > span svg { width: .85rem; color: var(--primary); }
 .timeline-viewer-header b { font-size: .72rem; font-weight: var(--weight-emphasis); }
@@ -21,7 +21,6 @@
 .timeline-viewer-format-menu [data-slot="dropdown-menu-radio-item"] { min-width: 10rem; }
 .timeline-viewer-format-menu [data-slot="dropdown-menu-radio-item"] small { margin-left: auto; color: var(--muted-foreground); font-size: .68rem; }
 @container (max-width: 66rem) {
-  .sound-scene-stage { grid-template-columns: minmax(12.5rem, 16rem) minmax(0, 1fr); }
   .timeline-viewer-stage { padding: .65rem; }
   .timeline-viewer-selection { display: none !important; }
 }
