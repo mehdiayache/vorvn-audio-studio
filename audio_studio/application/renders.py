@@ -17,6 +17,7 @@ class RenderRecords(Protocol):
     def production(self, production_id: int) -> dict | None: ...
     def parts(self, production_id: int) -> list[dict]: ...
     def sound_scene(self, production_id: int) -> dict | None: ...
+    def visual_scene(self, production_id: int) -> dict | None: ...
     def transcript(self, part_id: int) -> dict | None: ...
     def create_export(
         self, production_id: int, *, artifact: FinishedExport,
@@ -32,6 +33,10 @@ class RenderWorkspace(Protocol):
     def finish_export(
         self, production_id: int, production_name: str, parts: list[dict],
         scene: dict, subtitles: dict,
+    ) -> FinishedExport: ...
+    def finish_video_export(
+        self, production_id: int, production_name: str, parts: list[dict],
+        scene: dict, visual_scene: dict, subtitles: dict,
     ) -> FinishedExport: ...
     def discard_export(self, artifact: FinishedExport) -> None: ...
 
@@ -100,6 +105,7 @@ class RenderService:
 
     def export(
         self, production_id: int, *, allow_incomplete: bool = False,
+        output_format: str = "mp3",
     ) -> dict:
         production, parts, drafts = self._parts(production_id)
         if drafts and not allow_incomplete:
@@ -114,8 +120,24 @@ class RenderService:
             sound_scene.get("hydrated_document", sound_scene["document"]),
             parts,
         )
-        artifact = self.workspace.finish_export(
-            production_id, production["name"], parts, resolved, subtitles)
+        if output_format == "mp4":
+            visual_scene = self.records.visual_scene(production_id)
+            visible_clips = [
+                clip
+                for track in (visual_scene or {}).get("document", {}).get(
+                    "tracks", [])
+                if track.get("visible", True)
+                for clip in track.get("clips", [])
+            ]
+            if not visual_scene or not visible_clips:
+                raise RenderError(
+                    "Add an image or video to Timeline before exporting MP4.")
+            artifact = self.workspace.finish_video_export(
+                production_id, production["name"], parts, resolved,
+                visual_scene, subtitles)
+        else:
+            artifact = self.workspace.finish_export(
+                production_id, production["name"], parts, resolved, subtitles)
         try:
             recorded = self.records.create_export(
                 production_id, artifact=artifact)
@@ -147,4 +169,5 @@ class RenderService:
                     production_id,
                     allow_incomplete=bool(
                         job.payload.get("allow_incomplete", False)),
+                    output_format=str(job.payload.get("format") or "mp3"),
                 ))

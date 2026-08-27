@@ -535,6 +535,115 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
     return True
 
 
+def _render_visual_scene(
+    visual_scene: dict, audio: Path, target: Path, *, duration_ms: int,
+) -> None:
+    """Compose canonical visual placements over the already-finished audio."""
+    if not shutil.which("ffmpeg"):
+        raise RenderError("FFmpeg is not installed.")
+    document = visual_scene["document"]
+    canvas = document["canvas"]
+    width = int(canvas["width"]) + int(canvas["width"]) % 2
+    height = int(canvas["height"]) + int(canvas["height"]) % 2
+    duration = max(.1, duration_ms / 1000)
+    sources = visual_scene.get("sources") or {}
+    root = _output().resolve()
+
+    # The first canonical track is visually uppermost in the browser. Build
+    # FFmpeg from the bottom track upward so both surfaces share z-order.
+    placements = [
+        (track, clip)
+        for track in reversed(document.get("tracks", []))
+        if track.get("visible", True)
+        for clip in track.get("clips", [])
+    ]
+    if not placements:
+        raise RenderError("Add an image or video to Timeline before exporting MP4.")
+
+    command = [
+        "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+        "-f", "lavfi", "-i",
+        f"color=c=black:s={width}x{height}:r=30:d={duration:.3f}",
+    ]
+    resolved: list[tuple[dict, dict, dict, Path]] = []
+    for track, clip in placements:
+        source = sources.get(str(clip["asset_id"]))
+        if not source or source.get("media_type") != track.get("media_type"):
+            raise RenderError("A Timeline image or video is unavailable.")
+        path = (root / Path(source.get("filename") or "").name).resolve()
+        if path.parent != root or not path.is_file():
+            raise RenderError("A Timeline image or video file is missing.")
+        if track["media_type"] == "image":
+            command.extend(["-loop", "1", "-framerate", "30", "-i", str(path)])
+        else:
+            command.extend(["-i", str(path)])
+        resolved.append((track, clip, source, path))
+    command.extend(["-i", str(audio)])
+    audio_input = len(resolved) + 1
+
+    filters = ["[0:v]format=rgba[visual0]"]
+    previous = "[visual0]"
+    for index, (track, clip, _source, _path) in enumerate(resolved, 1):
+        clip_duration = min(
+            max(.1, int(clip["duration_ms"]) / 1000),
+            max(.1, duration - int(clip["start_ms"]) / 1000),
+        )
+        start = max(0, int(clip["start_ms"])) / 1000
+        offset = max(0, int(clip.get("source_offset_ms") or 0)) / 1000
+        trim = (
+            f"trim=start={offset:.3f}:duration={clip_duration:.3f}"
+            if track["media_type"] == "video"
+            else f"trim=duration={clip_duration:.3f}"
+        )
+        if clip.get("fit") == "contain":
+            geometry = (
+                f"scale={width}:{height}:force_original_aspect_ratio=decrease,"
+                f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:color=black@0"
+            )
+        else:
+            geometry = (
+                f"scale={width}:{height}:force_original_aspect_ratio=increase,"
+                f"crop={width}:{height}"
+            )
+        clip_label = f"visualclip{index}"
+        output_label = f"visual{index}"
+        filters.append(
+            f"[{index}:v]{trim},setpts=PTS-STARTPTS+{start:.3f}/TB,"
+            f"{geometry},setsar=1,format=rgba[{clip_label}]"
+        )
+        filters.append(
+            f"{previous}[{clip_label}]overlay=0:0:eof_action=pass:shortest=0:"
+            f"format=auto:enable='between(t,{start:.3f},"
+            f"{start + clip_duration:.3f})'[{output_label}]"
+        )
+        previous = f"[{output_label}]"
+    filters.append(f"{previous}format=yuv420p[videoout]")
+
+    temporary = target.with_name(f".{target.stem}-{uuid4().hex}.tmp.mp4")
+    command.extend([
+        "-filter_complex", ";".join(filters),
+        "-map", "[videoout]", "-map", f"{audio_input}:a:0",
+        "-t", f"{duration:.3f}", "-r", "30",
+        "-c:v", "libx264", "-preset", "medium", "-crf", "20",
+        "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
+        "-ar", "48000", "-ac", "2", "-movflags", "+faststart",
+        str(temporary),
+    ])
+    try:
+        result = subprocess.run(
+            command, capture_output=True, text=True, timeout=1_800)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        temporary.unlink(missing_ok=True)
+        raise RenderError(f"Video export failed: {exc}") from exc
+    if (result.returncode or not temporary.is_file()
+            or temporary.stat().st_size <= 0):
+        temporary.unlink(missing_ok=True)
+        detail = (result.stderr or "FFmpeg produced no video").strip().splitlines()
+        raise RenderError(
+            f"Video export failed: {(detail[-1] if detail else 'no video')[:300]}")
+    os.replace(temporary, target)
+
+
 class FFmpegRenderWorkspace:
     def sequence_stem(
         self, production_id: int, parts: list[dict], signature: str,
@@ -776,6 +885,83 @@ class FFmpegRenderWorkspace:
             for path in caption_paths:
                 path.unlink(missing_ok=True)
             raise
+
+    def finish_video_export(
+        self, production_id: int, production_name: str, parts: list[dict],
+        scene: dict, visual_scene: dict, subtitles: dict,
+    ) -> FinishedExport:
+        name = _name(f"vrn-{production_name}", "mp4")
+        target = _output() / name
+        manifest_path = _output() / f"{target.stem}.manifest.json"
+        audio = _output() / f".{target.stem}-{uuid4().hex}.audio.mp3"
+        caption_paths: tuple[Path, ...] = ()
+        try:
+            sequence_data = self.sequence_stem(
+                production_id, parts,
+                scene.get("sequence_projection", {}).get("signature", ""),
+            )
+            sequence = _output() / Path(sequence_data["filename"]).name
+            mixed = _mix_scene(sequence, scene, audio)
+            duration = int(
+                scene.get("duration_ms")
+                or scene.get("sequence_projection", {}).get("duration_ms")
+                or _measure(audio)
+                or 0
+            )
+            if duration <= 0:
+                raise RenderError("The Timeline has no exportable duration.")
+            _render_visual_scene(
+                visual_scene, audio, target, duration_ms=duration)
+            measured_duration = _measure(target)
+            document = visual_scene["document"]
+            renderer = "ffmpeg-visual-sound-scene-v1"
+            manifest = {
+                "version": 1,
+                "production_id": production_id,
+                "production_name": production_name,
+                "sound_scene": {
+                    "signature": scene.get("signature"),
+                    "tracks": scene.get("tracks", []),
+                },
+                "visual_scene": {
+                    "revision": visual_scene.get("revision"),
+                    "canvas": document["canvas"],
+                    "tracks": document["tracks"],
+                },
+                "output": {
+                    "filename": name, "container": "mp4",
+                    "video_codec": "h264", "audio_codec": "aac",
+                    "frame_rate": 30, "audio_bitrate": "192k",
+                    "sample_rate": 48_000, "channels": 2,
+                },
+                "renderer": renderer,
+                "created_at": datetime.now().isoformat(timespec="seconds"),
+            }
+            manifest_path.write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2),
+                encoding="utf-8")
+            if subtitles["srt"]:
+                caption_paths = (
+                    _output() / f"{target.stem}.srt",
+                    _output() / f"{target.stem}.vtt",
+                )
+                caption_paths[0].write_text(subtitles["srt"], encoding="utf-8")
+                caption_paths[1].write_text(subtitles["vtt"], encoding="utf-8")
+            return FinishedExport(
+                target=target, manifest_path=manifest_path,
+                caption_paths=caption_paths, filename=name, manifest=manifest,
+                renderer=renderer, duration_ms=measured_duration,
+                size_bytes=target.stat().st_size, part_count=len(parts),
+                subtitles=subtitles, mixed=mixed,
+            )
+        except Exception:
+            target.unlink(missing_ok=True)
+            manifest_path.unlink(missing_ok=True)
+            for path in caption_paths:
+                path.unlink(missing_ok=True)
+            raise
+        finally:
+            audio.unlink(missing_ok=True)
 
     @staticmethod
     def discard_export(artifact: FinishedExport) -> None:

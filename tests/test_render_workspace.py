@@ -16,6 +16,71 @@ from audio_studio.infrastructure.render_workspace import FFmpegRenderWorkspace
 
 
 class RenderWorkspaceTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"),
+                         "FFmpeg is required for MP4 acceptance.")
+    def test_real_mp4_composes_visual_timing_and_finished_audio(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            image = root / "cover.png"
+            video = root / "motion.mp4"
+            audio = root / "master.mp3"
+            target = root / "result.mp4"
+            subprocess.run([
+                "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                "-f", "lavfi", "-i", "color=c=red:s=640x360:d=1",
+                "-frames:v", "1", str(image),
+            ], check=True)
+            subprocess.run([
+                "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                "-f", "lavfi", "-i", "testsrc2=s=320x180:r=30:d=1",
+                "-t", "1", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                str(video),
+            ], check=True)
+            subprocess.run([
+                "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                "-f", "lavfi", "-i", "sine=frequency=220:duration=2",
+                "-ar", "48000", "-ac", "2", str(audio),
+            ], check=True)
+            scene = {
+                "document": {
+                    "canvas": {"width": 640, "height": 360},
+                    "tracks": [
+                        {"id": "image", "media_type": "image",
+                         "visible": True, "clips": [{
+                             "asset_id": 1, "start_ms": 0,
+                             "duration_ms": 1000, "source_offset_ms": 0,
+                             "fit": "contain"}]},
+                        {"id": "video", "media_type": "video",
+                         "visible": True, "clips": [{
+                             "asset_id": 2, "start_ms": 1000,
+                             "duration_ms": 1000, "source_offset_ms": 0,
+                             "fit": "cover"}]},
+                    ],
+                },
+                "sources": {
+                    "1": {"media_type": "image", "filename": image.name},
+                    "2": {"media_type": "video", "filename": video.name},
+                },
+            }
+            with patch.object(render_workspace, "_output", return_value=root):
+                render_workspace._render_visual_scene(
+                    scene, audio, target, duration_ms=2000)
+            result = subprocess.run([
+                "ffprobe", "-v", "error", "-show_entries",
+                "stream=codec_type,codec_name,width,height", "-show_entries",
+                "format=duration", "-of", "json", str(target),
+            ], check=True, capture_output=True, text=True)
+            report = json.loads(result.stdout)
+
+        streams = {stream["codec_type"]: stream for stream in report["streams"]}
+        self.assertEqual(streams["video"]["codec_name"], "h264")
+        self.assertEqual(
+            (streams["video"]["width"], streams["video"]["height"]),
+            (640, 360),
+        )
+        self.assertEqual(streams["audio"]["codec_name"], "aac")
+        self.assertAlmostEqual(float(report["format"]["duration"]), 2, places=2)
+
     def test_mix_builds_every_supported_primitive_and_master_safety(self):
         commands: list[list[str]] = []
 

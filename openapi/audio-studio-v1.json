@@ -6639,6 +6639,15 @@
             "title": "Allow Incomplete",
             "type": "boolean"
           },
+          "format": {
+            "default": "mp3",
+            "enum": [
+              "mp3",
+              "mp4"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
           "operation": {
             "enum": [
               "preview",

@@ -7,7 +7,7 @@ import { productionHealth, type ProductionHealthIssue } from "@/features/product
 import { audibleAudioClips } from "@/features/sound-scene/sound-scene-audibility"
 import { formatAuthoredRole, formatPartNumber } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import type { Production, SoundScene } from "@/types/domain"
+import type { Production, SoundScene, VisualScene } from "@/types/domain"
 import { WorkstationPaneHeader } from "../workstation-pane-header"
 import { CollapsedPaneSummary } from "../workstation-stage-support"
 import type { WorkstationPartState } from "../workstation-sequence"
@@ -49,13 +49,14 @@ export function ReleaseInspector({ issues, staleOverrides, onLocate, onRemoveOve
 
 type ExportWorkspaceProps = ComponentProps<typeof MixExportWorkspace>
 
-export function ExportStage({ centerPaneRef, production, soundScene, outlineOpen, collapsedNumber, collapsedState, collapsedPlaying, onOutlineOpenChange, ...workspaceProps }: ExportWorkspaceProps & {
+export function ExportStage({ centerPaneRef, production, soundScene, visualScene, outlineOpen, collapsedNumber, collapsedState, collapsedPlaying, onOutlineOpenChange, ...workspaceProps }: ExportWorkspaceProps & {
   centerPaneRef: RefObject<HTMLElement | null>
   outlineOpen: boolean
   collapsedNumber: string
   collapsedState: WorkstationPartState
   collapsedPlaying: boolean
   onOutlineOpenChange: (open: boolean) => void
+  visualScene: VisualScene
 }) {
   return <>
     <aside className={cn("ws-left-pane", !outlineOpen && "is-collapsed")} aria-label="Export navigation">
@@ -64,7 +65,7 @@ export function ExportStage({ centerPaneRef, production, soundScene, outlineOpen
         : <CollapsedPaneSummary label="release checklist" number={collapsedNumber} state={collapsedState} playing={collapsedPlaying} onExpand={() => onOutlineOpenChange(true)} />}
     </aside>
     <main className="ws-center-pane" ref={centerPaneRef}>
-      <div className="ws-mix-canvas"><MixExportWorkspace production={production} soundScene={soundScene} {...workspaceProps} /></div>
+      <div className="ws-mix-canvas"><MixExportWorkspace production={production} soundScene={soundScene} visualScene={visualScene} {...workspaceProps} /></div>
     </main>
   </>
 }

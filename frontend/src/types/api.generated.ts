@@ -4208,6 +4208,12 @@ export interface components {
              */
             allow_incomplete: boolean;
             /**
+             * Format
+             * @default mp3
+             * @enum {string}
+             */
+            format: "mp3" | "mp4";
+            /**
              * Operation
              * @enum {string}
              */

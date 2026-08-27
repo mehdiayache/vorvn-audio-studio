@@ -186,6 +186,7 @@ class RenderJobCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     production_id: int = Field(gt=0)
     operation: Literal["preview", "export"]
+    format: Literal["mp3", "mp4"] = "mp3"
     allow_incomplete: bool = False
 
 
@@ -298,11 +299,16 @@ def create_speech_job(payload: SpeechJobCreate,
              response_model=JobCreatedEnvelope)
 def create_render_job(payload: RenderJobCreate,
                       idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
+    operation_label = (
+        "Preview production" if payload.operation == "preview"
+        else "Export video" if payload.format == "mp4"
+        else "Export audio"
+    )
     job, created = job_service.enqueue(
         "render", payload.model_dump(),
         idempotency_key=(idempotency_key or f"render-{uuid4()}")[:200],
         production_id=payload.production_id,
-        source_tool="production", operation_label="Preview production" if payload.operation == "preview" else "Export production",
+        source_tool="production", operation_label=operation_label,
     )
     return {"data": _payload(job), "meta": {"created": created}}
 

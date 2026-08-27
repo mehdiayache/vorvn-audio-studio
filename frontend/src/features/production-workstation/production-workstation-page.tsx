@@ -268,15 +268,16 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     kind: "confirm",
     action: async () => { if (player.source?.key === `part:${part.id}`) player.pause(); await actions.deletePart(part); setSelectedId(null) },
   }), [actions, player])
-  const requestExport = useCallback(() => {
-    if (!pendingDraftCount) { void actions.exportMp3(); return }
+  const requestExport = useCallback((format: "mp3" | "mp4") => {
+    if (!pendingDraftCount) { void actions.exportProduction(format); return }
+    const label = format.toUpperCase()
     setConfirmAction({
-      title: "Export the recorded audio?",
-      description: `${pendingDraftCount} planned Speech Part${pendingDraftCount === 1 ? " has" : "s have"} no recording yet. They stay safely in Script and will not be included in this MP3.`,
-      confirmLabel: "Export recorded audio",
+      title: `Export the current ${label}?`,
+      description: `${pendingDraftCount} planned Speech Part${pendingDraftCount === 1 ? " has" : "s have"} no recording yet. They stay safely in Script and will not be included in this ${label}.`,
+      confirmLabel: `Export ${label}`,
       kind: "confirm",
       variant: "default",
-      action: () => actions.exportMp3(true),
+      action: () => actions.exportProduction(format, true),
     })
   }, [actions, pendingDraftCount])
   const openTool = useCallback((kind: Exclude<ToolKind, null>) => {
@@ -495,17 +496,13 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
           centerPaneRef={centerPaneRef}
           production={production}
           soundScene={soundScene}
+          visualScene={visualScene}
           outlineOpen={outlineOpen}
           collapsedNumber={collapsedNumber}
           collapsedState={collapsedState}
           collapsedPlaying={Boolean(playingPart)}
           onOutlineOpenChange={setOutlineOpen}
-          previewing={actions.previewing}
-          productionPlaying={actions.productionPlaying}
-          previewReady={actions.productionLoaded}
-          previewStale={Boolean(player.source?.kind === "production" && !actions.productionLoaded)}
           exportJob={actions.exportJob}
-          onPreview={actions.toggleProduction}
           onExport={requestExport}
           onLocatePart={(id) => { setStage("sequence"); setSelectedId(id) }}
           onOpenHealth={() => setReleaseInspectorOpen(true)}

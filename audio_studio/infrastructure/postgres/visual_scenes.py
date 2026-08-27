@@ -43,6 +43,25 @@ class VisualSceneRepository:
             "updated_at": row[2].isoformat(),
         }
 
+    def for_render(self, production_id: int) -> dict[str, Any] | None:
+        """Return canonical placements with their current local media sources."""
+        scene = self.get(production_id)
+        if not scene:
+            return None
+        asset_ids = sorted({
+            clip["asset_id"]
+            for track in scene["document"]["tracks"]
+            for clip in track["clips"]
+        })
+        sources = self._asset_sources(production_id, asset_ids)
+        return {
+            **scene,
+            "sources": {
+                str(asset_id): {"asset_id": asset_id, **source}
+                for asset_id, source in sources.items()
+            },
+        }
+
     def _upgrade_legacy_track_types(
         self, production_id: int, document: dict[str, Any],
     ) -> dict[str, Any]:

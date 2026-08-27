@@ -114,9 +114,9 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     void preview()
   }, [player, preview, previewKey, previewing])
 
-  const exportMp3 = useCallback(async (allowIncomplete = false) => {
+  const exportProduction = useCallback(async (format: "mp3" | "mp4", allowIncomplete = false) => {
     try {
-      const job = await studioApi.enqueueRender(production.id, "export", allowIncomplete)
+      const job = await studioApi.enqueueRender(production.id, "export", allowIncomplete, format)
       setExportJobId(job.id)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Export failed.")
@@ -127,12 +127,13 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     if (!exportJob || reportedExportJob.current === exportJob.id) return
     if (exportJob.status === "ok" || exportJob.status === "warning") {
       reportedExportJob.current = exportJob.id
-      toast.success("Final MP3 created", exportJob.result.url ? { action: { label: "Download", onClick: () => { window.location.href = exportJob.result.url! } } } : undefined)
+      const format = exportJob.result.name?.toLowerCase().endsWith(".mp4") ? "MP4" : "MP3"
+      toast.success(`${format} ready`, exportJob.result.url ? { action: { label: "Download", onClick: () => { window.location.href = exportJob.result.url! } } } : undefined)
       void refresh()
     }
     if (["failed", "lost", "cancelled"].includes(exportJob.status)) {
       reportedExportJob.current = exportJob.id
-      toast.error(exportJob.error || exportJob.detail || exportJob.result.error || "Final MP3 could not be created.")
+      toast.error(exportJob.error || exportJob.detail || exportJob.result.error || "The export could not be created.")
     }
   }, [exportJob, refresh])
   const exporting = Boolean(exportJob && ["queued", "running", "retrying"].includes(exportJob.status))
@@ -270,5 +271,5 @@ export function useProductionActions({ production, soundScene, player, refresh, 
       return kept
     }), [mutationActions.run, refreshAssets])
 
-  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, mutationStatus, isActionPending: mutationActions.isPending, invalidatePreview, toggleProduction, exportMp3, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, updateSoundScene, undoSoundScene, redoSoundScene, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, moveParts, uploadAsset, keepFreesound, keepGeneratedAudio }
+  return { previewing, exporting, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, mutationStatus, isActionPending: mutationActions.isPending, invalidatePreview, toggleProduction, exportProduction, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, updateSoundScene, undoSoundScene, redoSoundScene, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, moveParts, uploadAsset, keepFreesound, keepGeneratedAudio }
 }

@@ -34,6 +34,20 @@ class FakeRecords:
         return {"document": empty_scene()}
 
     @staticmethod
+    def visual_scene(_production_id):
+        return {
+            "revision": 2,
+            "document": {
+                "version": 1, "canvas": {"width": 1920, "height": 1080},
+                "tracks": [{
+                    "id": "video", "media_type": "video", "visible": True,
+                    "clips": [{"asset_id": 90, "duration_ms": 1000}],
+                }],
+            },
+            "sources": {"90": {"filename": "visual.mp4", "media_type": "video"}},
+        }
+
+    @staticmethod
     def transcript(generation_id):
         if generation_id != 7:
             return None
@@ -53,6 +67,7 @@ class FakeWorkspace:
         self.finished = []
         self.finished_scenes = []
         self.discarded = []
+        self.finished_visual_scenes = []
 
     @staticmethod
     def duration_for_part(_part):
@@ -77,6 +92,22 @@ class FakeWorkspace:
         )
         self.finished.append(artifact)
         self.finished_scenes.append(scene)
+        return artifact
+
+    def finish_video_export(
+            self, production_id, production_name, parts, scene,
+            visual_scene, subtitles):
+        artifact = FinishedExport(
+            target=Path("/media/final.mp4"),
+            manifest_path=Path("/media/final.manifest.json"),
+            caption_paths=(), filename="final.mp4",
+            manifest={"parts": parts, "visual_scene": visual_scene},
+            renderer="video-fixture", duration_ms=1000, size_bytes=2000,
+            part_count=len(parts), subtitles=subtitles, mixed=True,
+        )
+        self.finished.append(artifact)
+        self.finished_scenes.append(scene)
+        self.finished_visual_scenes.append(visual_scene)
         return artifact
 
     def discard_export(self, artifact):
@@ -169,6 +200,33 @@ class RenderServiceTests(unittest.TestCase):
         service.preview(6)
         service.export(6)
         self.assertEqual(workspace.previews[0][2], workspace.finished_scenes[0])
+
+    def test_mp4_uses_canonical_visual_scene_and_the_same_sound_scene(self):
+        records = FakeRecords()
+        workspace = FakeWorkspace()
+
+        result = RenderService(records, workspace).export(
+            6, output_format="mp4")
+
+        self.assertEqual(result["name"], "final.mp4")
+        self.assertEqual(workspace.finished_visual_scenes[0]["revision"], 2)
+        self.assertEqual(
+            workspace.finished_scenes[0]["sequence_projection"]["duration_ms"],
+            1000,
+        )
+
+    def test_mp4_requires_one_visible_timeline_visual(self):
+        class EmptyVisualRecords(FakeRecords):
+            @staticmethod
+            def visual_scene(_production_id):
+                return {"document": {"version": 1, "canvas": {
+                    "width": 1920, "height": 1080}, "tracks": []}}
+
+        workspace = FakeWorkspace()
+        with self.assertRaisesRegex(RenderError, "image or video"):
+            RenderService(EmptyVisualRecords(), workspace).export(
+                6, output_format="mp4")
+        self.assertFalse(workspace.finished)
 
 
 if __name__ == "__main__":
