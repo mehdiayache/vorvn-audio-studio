@@ -3186,6 +3186,74 @@ export interface components {
             /** Tags */
             tags?: string[];
         };
+        /** LinkedVisualAudioClipSettings */
+        LinkedVisualAudioClipSettings: {
+            /**
+             * Clip Id
+             * Format: uuid
+             */
+            clip_id: string;
+            /**
+             * Duck Amount Db
+             * @default -12
+             */
+            duck_amount_db: number;
+            /**
+             * Ducking
+             * @default false
+             */
+            ducking: boolean;
+            /** Effects */
+            effects?: (components["schemas"]["TelephoneEffect"] | components["schemas"]["EchoEffect"] | components["schemas"]["FilterEffect"] | components["schemas"]["CompressorEffect"] | components["schemas"]["ReverbEffect"] | components["schemas"]["DistortionEffect"] | components["schemas"]["PanEffect"])[];
+            /**
+             * Fade In Ms
+             * @default 0
+             */
+            fade_in_ms: number;
+            /**
+             * Fade Out Ms
+             * @default 0
+             */
+            fade_out_ms: number;
+            /**
+             * Gain
+             * @default 1
+             */
+            gain: number;
+            /**
+             * Locked
+             * @default false
+             */
+            locked: boolean;
+            /**
+             * Muted
+             * @default false
+             */
+            muted: boolean;
+        };
+        /** LinkedVisualAudioSettings */
+        LinkedVisualAudioSettings: {
+            /** Clips */
+            clips: {
+                [key: string]: components["schemas"]["LinkedVisualAudioClipSettings"];
+            };
+            track: components["schemas"]["LinkedVisualAudioTrackSettings"];
+        };
+        /** LinkedVisualAudioTrackSettings */
+        LinkedVisualAudioTrackSettings: {
+            /**
+             * Muted
+             * @default false
+             */
+            muted: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Volume
+             * @default 1
+             */
+            volume: number;
+        };
         /** MoveBody */
         MoveBody: {
             /** Destination Production Id */
@@ -4788,6 +4856,7 @@ export interface components {
         };
         /** SoundSceneDocument */
         SoundSceneDocument: {
+            linked_visual_audio_settings?: components["schemas"]["LinkedVisualAudioSettings"] | null;
             /** Sequence Overrides */
             sequence_overrides?: {
                 [key: string]: components["schemas"]["SequenceMixOverride"];

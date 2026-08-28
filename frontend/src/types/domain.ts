@@ -253,6 +253,20 @@ export type SoundSceneDocument = {
   version: 1
   sequence_overrides: Record<string, SequenceMixOverride>
   tracks: SoundSceneTrack[]
+  linked_visual_audio_settings?: {
+    track: Pick<SoundSceneTrack, "name" | "volume" | "muted">
+    clips: Record<string, {
+      clip_id: string
+      gain: number
+      fade_in_ms: number
+      fade_out_ms: number
+      ducking: boolean
+      duck_amount_db: number
+      muted: boolean
+      locked: boolean
+      effects: SoundSceneEffect[]
+    }>
+  } | null
 }
 
 export type SequenceProjectionSpan = {

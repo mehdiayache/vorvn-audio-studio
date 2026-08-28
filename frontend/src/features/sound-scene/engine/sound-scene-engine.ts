@@ -225,6 +225,10 @@ export class SoundSceneEngine {
     return {
       version: 1,
       sequence_overrides: structuredClone(this.baseDocument.sequence_overrides),
+      ...(this.baseDocument.linked_visual_audio_settings
+        ? { linked_visual_audio_settings: structuredClone(
+          this.baseDocument.linked_visual_audio_settings) }
+        : {}),
       tracks: this.baseDocument.tracks.map((track) => {
         const engineTrack = state.tracks.find((item) => item.id === track.id)
         return {

@@ -93,10 +93,53 @@ describe("video audio synchronization", () => {
       position_x: 0, position_y: 0, scale: 1, opacity: 1,
       locked: false,
     }]), [asset()]).document
+    first.tracks[0]!.name = "Camera sound"
+    first.tracks[0]!.volume = .72
+    first.tracks[0]!.muted = true
+    const originalId = first.tracks[0]!.clips[0]!.id
+    first.tracks[0]!.clips[0]!.gain = .35
+    first.tracks[0]!.clips[0]!.fade_in_ms = 120
+    first.tracks[0]!.clips[0]!.fade_out_ms = 240
+    first.tracks[0]!.clips[0]!.muted = true
     const second = synchronizeVideoAudio(first, visuals([]), [asset()])
 
     expect(second.changed).toBe(true)
     expect(second.document.tracks).toEqual([])
+    expect(second.document.linked_visual_audio_settings?.clips[
+      "20000000-0000-4000-8000-000000000002"]).toMatchObject({
+      clip_id: originalId,
+      gain: .35,
+      fade_in_ms: 120,
+      fade_out_ms: 240,
+      muted: true,
+    })
+
+    const restored = synchronizeVideoAudio(second.document, visuals([{
+      id: "20000000-0000-4000-8000-000000000002",
+      asset_id: 7,
+      start_ms: 4_000,
+      duration_ms: 3_000,
+      source_offset_ms: 2_000,
+      fit: "cover",
+      position_x: 0, position_y: 0, scale: 1, opacity: 1,
+      locked: false,
+    }]), [asset()]).document
+
+    expect(restored.tracks[0]).toMatchObject({
+      name: "Camera sound",
+      volume: .72,
+      muted: true,
+    })
+    expect(restored.tracks[0]?.clips[0]).toMatchObject({
+      id: originalId,
+      gain: .35,
+      fade_in_ms: 120,
+      fade_out_ms: 240,
+      muted: true,
+      duration_ms: 3_000,
+      source_offset_ms: 2_000,
+      anchor: { kind: "absolute", position_ms: 4_000 },
+    })
   })
 
   it("does not invent audio for a silent video", () => {

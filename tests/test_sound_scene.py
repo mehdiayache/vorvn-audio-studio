@@ -77,6 +77,71 @@ class SoundSceneDomainTests(unittest.TestCase):
         )
         self.assertEqual((clip["gain"], clip["muted"]), (.35, True))
 
+    def test_visual_audio_delete_and_restore_preserves_authored_mix(self):
+        linked_id = "10000000-0000-4000-8000-000000000001"
+        clip_id = "20000000-0000-4000-8000-000000000001"
+        effect_id = "30000000-0000-4000-8000-000000000001"
+        history = empty_scene()
+        history["tracks"] = [{
+            "id": "embedded-video-audio", "kind": "audio",
+            "name": "Camera sound", "volume": .72, "muted": True,
+            "clips": [{
+                "id": clip_id, "linked_visual_clip_id": linked_id,
+                "asset_id": 8, "duration_ms": 2_000,
+                "source_offset_ms": 100, "gain": .35,
+                "fade_in_ms": 120, "fade_out_ms": 240,
+                "ducking": True, "duck_amount_db": -9,
+                "muted": True, "locked": True,
+                "effects": [{
+                    "id": effect_id, "type": "pan", "enabled": True,
+                    "pan": -.4,
+                }],
+                "anchor": {"kind": "absolute", "position_ms": 500},
+            }],
+        }]
+
+        deleted = merge_linked_visual_audio(history, empty_scene())
+        self.assertEqual(deleted["tracks"], [])
+        remembered = deleted["linked_visual_audio_settings"]
+        self.assertEqual(remembered["track"], {
+            "name": "Camera sound", "volume": .72, "muted": True,
+        })
+
+        projection = deepcopy(history)
+        projected = projection["tracks"][0]["clips"][0]
+        projected.update({
+            "id": "40000000-0000-4000-8000-000000000001",
+            "gain": 1, "fade_in_ms": 0, "fade_out_ms": 0,
+            "ducking": False, "duck_amount_db": -12,
+            "muted": False, "locked": False, "effects": [],
+            "anchor": {"kind": "absolute", "position_ms": 7_000},
+        })
+        restored = merge_linked_visual_audio(deleted, projection)
+        track = restored["tracks"][0]
+        clip = track["clips"][0]
+
+        self.assertEqual(
+            (track["name"], track["volume"], track["muted"]),
+            ("Camera sound", .72, True),
+        )
+        self.assertEqual(clip["id"], clip_id)
+        self.assertEqual(clip["anchor"]["position_ms"], 7_000)
+        self.assertEqual(
+            {key: clip[key] for key in (
+                "gain", "fade_in_ms", "fade_out_ms", "ducking",
+                "duck_amount_db", "muted", "locked", "effects",
+            )},
+            {
+                "gain": .35, "fade_in_ms": 120, "fade_out_ms": 240,
+                "ducking": True, "duck_amount_db": -9,
+                "muted": True, "locked": True,
+                "effects": [{
+                    "id": effect_id, "type": "pan", "enabled": True,
+                    "pan": -.4,
+                }],
+            },
+        )
+
     def test_effect_primitives_normalize_to_one_bounded_canonical_chain(self):
         effect_id = lambda suffix: f"00000000-0000-0000-0000-{suffix:012d}"
         scene = empty_scene()

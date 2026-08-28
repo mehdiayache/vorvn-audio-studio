@@ -475,6 +475,118 @@ class ProductionDocumentTests(unittest.TestCase):
                 history_count = int(cursor.fetchone()[0])
         self.assertEqual(history_count, 3)
 
+    def test_visual_delete_undo_restores_exact_linked_audio_mix_history(self):
+        production_id = int(self.first["id"])
+        collection = next(
+            item for item in self.asset_repository.collections_for_venture(
+                int(self.venture["id"])) if item["kind"] == "music")
+        asset = self.asset_repository.create_uploaded_asset(
+            collection["id"], name=f"Linked history {self.marker}",
+            filename=f"linked-history-{self.marker}.wav",
+            path=f"/tmp/linked-history-{self.marker}.wav", size_bytes=44,
+            duration_ms=30_000, audio_format="wav", mime_type="audio/wav")
+        records = SoundSceneRepository()
+        initial = records.get(production_id)
+        linked_clip_id = str(uuid4())
+        linked_visual_id = str(uuid4())
+        effect_id = str(uuid4())
+        projection = {
+            "version": 1, "sequence_overrides": {}, "tracks": [{
+                "id": "embedded-video-audio", "kind": "audio",
+                "name": "Video audio", "volume": 1, "muted": False,
+                "clips": [{
+                    "id": linked_clip_id,
+                    "linked_visual_clip_id": linked_visual_id,
+                    "asset_id": asset["id"], "duration_ms": 3_000,
+                    "source_offset_ms": 400, "gain": 1,
+                    "anchor": {"kind": "absolute", "position_ms": 8_000},
+                }],
+            }],
+        }
+        added = records.commit(
+            production_id, initial["revision"], projection,
+            "derived_visual_audio")
+
+        authored = json.loads(json.dumps(added["document"]))
+        track = authored["tracks"][0]
+        track.update({"name": "Camera sound", "volume": .72, "muted": True})
+        clip = track["clips"][0]
+        clip.update({
+            "gain": .35, "fade_in_ms": 120, "fade_out_ms": 240,
+            "ducking": True, "duck_amount_db": -9,
+            "muted": True, "locked": True,
+            "effects": [{
+                "id": effect_id, "type": "pan", "enabled": True,
+                "pan": -.4,
+            }],
+        })
+        mixed = records.commit(production_id, added["revision"], authored)
+
+        # Simulate a legacy client that sends only the visible projection. The
+        # server remains responsible for retaining authored audio truth.
+        deleted_projection = json.loads(json.dumps(mixed["document"]))
+        deleted_projection["tracks"] = []
+        deleted_projection.pop("linked_visual_audio_settings", None)
+        deleted = records.commit(
+            production_id, mixed["revision"], deleted_projection,
+            "derived_visual_audio")
+        self.assertEqual(deleted["document"]["tracks"], [])
+
+        restored_projection = json.loads(json.dumps(deleted["document"]))
+        restored_projection.pop("linked_visual_audio_settings", None)
+        restored_projection["tracks"] = [{
+            "id": "embedded-video-audio", "kind": "audio",
+            "name": "Video audio", "volume": 1, "muted": False,
+            "clips": [{
+                "id": str(uuid4()),
+                "linked_visual_clip_id": linked_visual_id,
+                "asset_id": asset["id"], "duration_ms": 4_000,
+                "source_offset_ms": 700, "gain": 1,
+                "anchor": {"kind": "absolute", "position_ms": 2_000},
+            }],
+        }]
+        restored = records.commit(
+            production_id, deleted["revision"], restored_projection,
+            "derived_visual_audio")
+        restored_track = restored["document"]["tracks"][0]
+        restored_clip = restored_track["clips"][0]
+        self.assertEqual(
+            (restored_track["name"], restored_track["volume"],
+             restored_track["muted"]),
+            ("Camera sound", .72, True),
+        )
+        self.assertEqual(restored_clip["id"], linked_clip_id)
+        self.assertEqual(
+            (restored_clip["duration_ms"],
+             restored_clip["source_offset_ms"],
+             restored_clip["anchor"]["position_ms"]),
+            (4_000, 700, 2_000),
+        )
+        self.assertEqual(
+            {key: restored_clip[key] for key in (
+                "gain", "fade_in_ms", "fade_out_ms", "ducking",
+                "duck_amount_db", "muted", "locked", "effects",
+            )},
+            {
+                "gain": .35, "fade_in_ms": 120, "fade_out_ms": 240,
+                "ducking": True, "duck_amount_db": -9,
+                "muted": True, "locked": True,
+                "effects": [{
+                    "id": effect_id, "type": "pan", "enabled": True,
+                    "pan": -.4,
+                }],
+            },
+        )
+
+        # The older audio history keeps its own default mix; redo returns the
+        # authored state. Derived visual synchronization is never a third step.
+        before_mix = records.step(production_id, -1)
+        self.assertEqual(
+            before_mix["document"]["tracks"][0]["clips"][0]["gain"], 1)
+        after_mix = records.step(production_id, 1)
+        self.assertEqual(
+            after_mix["document"]["tracks"][0]["clips"][0]["gain"], .35)
+
     def test_sequence_accepts_any_accessible_audio_classification(self):
         production_id = int(self.first["id"])
         collections = self.asset_repository.collections_for_venture(

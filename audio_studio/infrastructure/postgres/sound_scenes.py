@@ -165,7 +165,7 @@ class SoundSceneRepository:
         with transaction() as cursor:
             self._ensure(cursor, production_id)
             cursor.execute("""
-                SELECT revision, history_revision FROM sound_scenes
+                SELECT revision, history_revision, document FROM sound_scenes
                  WHERE production_id=%s FOR UPDATE
             """, (production_id,))
             row = cursor.fetchone()
@@ -177,6 +177,10 @@ class SoundSceneRepository:
                 raise SoundSceneRevisionConflict(current)
             next_revision = current + 1
             if mutation_kind == "derived_visual_audio":
+                # The incoming projection owns presence and timing only. Merge
+                # it with the current document so an older client cannot erase
+                # authored linked-audio mix settings during visual deletion.
+                canonical = merge_linked_visual_audio(row[2], canonical)
                 cursor.execute("""
                     SELECT revision, document FROM sound_scene_history
                      WHERE production_id=%s FOR UPDATE

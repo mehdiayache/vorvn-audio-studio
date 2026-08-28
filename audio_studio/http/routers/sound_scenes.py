@@ -150,12 +150,33 @@ class SoundSceneTrackDocument(BaseModel):
     clips: list[SoundSceneClipDocument] = Field(max_length=1_000)
 
 
+class LinkedVisualAudioTrackSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(min_length=1, max_length=120)
+    volume: float = Field(default=1, ge=0, le=2)
+    muted: bool = False
+
+
+class LinkedVisualAudioClipSettings(SequenceMixOverride):
+    clip_id: UUID
+    ducking: bool = False
+    duck_amount_db: float = Field(default=-12, ge=-30, le=0)
+    locked: bool = False
+
+
+class LinkedVisualAudioSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    track: LinkedVisualAudioTrackSettings
+    clips: dict[str, LinkedVisualAudioClipSettings] = Field(max_length=1_000)
+
+
 class SoundSceneDocument(BaseModel):
     model_config = ConfigDict(extra="forbid")
     version: Literal[1]
     sequence_overrides: dict[str, SequenceMixOverride] = Field(
         default_factory=dict, max_length=10_000)
     tracks: list[SoundSceneTrackDocument] = Field(max_length=64)
+    linked_visual_audio_settings: LinkedVisualAudioSettings | None = None
 
 
 class SoundSceneUpdateBody(BaseModel):
@@ -270,9 +291,12 @@ def get_sound_scene(production_id: int) -> dict:
 def update_sound_scene(
     production_id: int, payload: SoundSceneUpdateBody,
 ) -> dict:
+    document = payload.document.model_dump()
+    if document.get("linked_visual_audio_settings") is None:
+        document.pop("linked_visual_audio_settings", None)
     return _run(lambda: sound_scene_service.update(
         production_id, payload.expected_revision,
-        payload.document.model_dump(), payload.mutation_kind,
+        document, payload.mutation_kind,
     ))
 
 

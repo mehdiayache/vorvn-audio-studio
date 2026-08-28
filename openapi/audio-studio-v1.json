@@ -3631,6 +3631,156 @@
         "title": "KeepGeneratedBody",
         "type": "object"
       },
+      "LinkedVisualAudioClipSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "clip_id": {
+            "format": "uuid",
+            "title": "Clip Id",
+            "type": "string"
+          },
+          "duck_amount_db": {
+            "default": -12,
+            "maximum": 0.0,
+            "minimum": -30.0,
+            "title": "Duck Amount Db",
+            "type": "number"
+          },
+          "ducking": {
+            "default": false,
+            "title": "Ducking",
+            "type": "boolean"
+          },
+          "effects": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "compressor": "#/components/schemas/CompressorEffect",
+                  "distortion": "#/components/schemas/DistortionEffect",
+                  "echo": "#/components/schemas/EchoEffect",
+                  "filter": "#/components/schemas/FilterEffect",
+                  "pan": "#/components/schemas/PanEffect",
+                  "reverb": "#/components/schemas/ReverbEffect",
+                  "telephone": "#/components/schemas/TelephoneEffect"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TelephoneEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/EchoEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/FilterEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/CompressorEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/ReverbEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/DistortionEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/PanEffect"
+                }
+              ]
+            },
+            "maxItems": 16,
+            "title": "Effects",
+            "type": "array"
+          },
+          "fade_in_ms": {
+            "default": 0,
+            "maximum": 120000.0,
+            "minimum": 0.0,
+            "title": "Fade In Ms",
+            "type": "integer"
+          },
+          "fade_out_ms": {
+            "default": 0,
+            "maximum": 120000.0,
+            "minimum": 0.0,
+            "title": "Fade Out Ms",
+            "type": "integer"
+          },
+          "gain": {
+            "default": 1,
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Gain",
+            "type": "number"
+          },
+          "locked": {
+            "default": false,
+            "title": "Locked",
+            "type": "boolean"
+          },
+          "muted": {
+            "default": false,
+            "title": "Muted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "clip_id"
+        ],
+        "title": "LinkedVisualAudioClipSettings",
+        "type": "object"
+      },
+      "LinkedVisualAudioSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "clips": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/LinkedVisualAudioClipSettings"
+            },
+            "maxProperties": 1000,
+            "title": "Clips",
+            "type": "object"
+          },
+          "track": {
+            "$ref": "#/components/schemas/LinkedVisualAudioTrackSettings"
+          }
+        },
+        "required": [
+          "track",
+          "clips"
+        ],
+        "title": "LinkedVisualAudioSettings",
+        "type": "object"
+      },
+      "LinkedVisualAudioTrackSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "muted": {
+            "default": false,
+            "title": "Muted",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "volume": {
+            "default": 1,
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Volume",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "LinkedVisualAudioTrackSettings",
+        "type": "object"
+      },
       "MoveBody": {
         "properties": {
           "destination_production_id": {
@@ -8293,6 +8443,16 @@
       "SoundSceneDocument": {
         "additionalProperties": false,
         "properties": {
+          "linked_visual_audio_settings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LinkedVisualAudioSettings"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "sequence_overrides": {
             "additionalProperties": {
               "$ref": "#/components/schemas/SequenceMixOverride"

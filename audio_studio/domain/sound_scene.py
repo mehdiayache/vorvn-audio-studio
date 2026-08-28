@@ -156,6 +156,50 @@ def default_mix_override() -> dict[str, Any]:
     return _mix_override({})
 
 
+def _linked_visual_audio_settings(value: Any) -> dict[str, Any] | None:
+    """Normalize authored audio facts retained across visual deletion.
+
+    Visual Scene owns whether a linked placement exists and where it lives.
+    Sound Scene owns how that audio sounds. Keeping only these authored facts
+    lets visual Undo restore the mix without making an absent clip audible.
+    """
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise SoundSceneError("Linked visual audio settings are invalid.")
+    raw_track = value.get("track", {})
+    raw_clips = value.get("clips", {})
+    if not isinstance(raw_track, dict) or not isinstance(raw_clips, dict):
+        raise SoundSceneError("Linked visual audio settings are invalid.")
+    if len(raw_clips) > 1_000:
+        raise SoundSceneError("Too many linked visual audio settings.")
+    clips: dict[str, dict[str, Any]] = {}
+    for raw_linked_id, raw_clip in raw_clips.items():
+        linked_id = _uuid(raw_linked_id, label="Linked visual clip ID")
+        if not isinstance(raw_clip, dict):
+            raise SoundSceneError("Linked visual audio clip settings are invalid.")
+        mix = _mix_override(raw_clip)
+        clips[linked_id] = {
+            "clip_id": _uuid(
+                raw_clip.get("clip_id"), label="Linked audio clip ID"),
+            **mix,
+            "ducking": bool(raw_clip.get("ducking", False)),
+            "duck_amount_db": max(-30, min(0, _number(
+                raw_clip.get("duck_amount_db"), -12))),
+            "locked": bool(raw_clip.get("locked", False)),
+        }
+    if not clips:
+        return None
+    return {
+        "track": {
+            "name": str(raw_track.get("name") or "Video audio")[:120],
+            "volume": max(0, min(2, _number(raw_track.get("volume"), 1))),
+            "muted": bool(raw_track.get("muted", False)),
+        },
+        "clips": clips,
+    }
+
+
 def effect_tail_ms(effects: list[dict[str, Any]]) -> int:
     """Return the finite render window for an otherwise recursive effect.
 
@@ -299,17 +343,66 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
             "muted": bool(raw_track.get("muted", False)),
             "clips": clips,
         })
-    return {
+    result = {
         "version": 1,
         "sequence_overrides": sequence_overrides,
         "tracks": tracks,
     }
+    linked_settings = _linked_visual_audio_settings(
+        document.get("linked_visual_audio_settings"))
+    if linked_settings:
+        result["linked_visual_audio_settings"] = linked_settings
+    return result
 
 
 _LINKED_VISUAL_FIELDS = {
     "asset_id", "asset_version_id", "duration_ms", "source_offset_ms",
     "loop", "anchor",
 }
+
+
+def _remember_linked_visual_audio(
+    scene: dict[str, Any], track: dict[str, Any], clip: dict[str, Any],
+) -> None:
+    linked_id = clip.get("linked_visual_clip_id")
+    if not linked_id:
+        return
+    settings = scene.setdefault("linked_visual_audio_settings", {
+        "track": {}, "clips": {},
+    })
+    settings["track"] = {
+        "name": track["name"],
+        "volume": track["volume"],
+        "muted": track["muted"],
+    }
+    settings["clips"][linked_id] = {
+        "clip_id": clip["id"],
+        "gain": clip["gain"],
+        "fade_in_ms": clip["fade_in_ms"],
+        "fade_out_ms": clip["fade_out_ms"],
+        "ducking": clip["ducking"],
+        "duck_amount_db": clip["duck_amount_db"],
+        "muted": clip["muted"],
+        "locked": clip["locked"],
+        "effects": deepcopy(clip["effects"]),
+    }
+
+
+def _restore_linked_visual_audio(
+    scene: dict[str, Any], source_clip: dict[str, Any], linked_id: str,
+) -> dict[str, Any]:
+    remembered = scene.get("linked_visual_audio_settings", {}).get(
+        "clips", {}).get(linked_id)
+    if not remembered:
+        return deepcopy(source_clip)
+    return {
+        **deepcopy(source_clip),
+        "id": remembered["clip_id"],
+        **{key: deepcopy(remembered[key]) for key in (
+            "gain", "fade_in_ms", "fade_out_ms", "ducking",
+            "duck_amount_db", "muted", "locked", "effects",
+        )},
+    }
 
 
 def merge_linked_visual_audio(
@@ -339,6 +432,7 @@ def merge_linked_visual_audio(
             if not linked_id:
                 clips.append(clip)
                 continue
+            _remember_linked_visual_audio(result, track, clip)
             incoming = desired.get(linked_id)
             if not incoming:
                 continue
@@ -356,12 +450,23 @@ def merge_linked_visual_audio(
         track = next((item for item in result["tracks"]
                       if item["id"] == source_track["id"]), None)
         if track is None:
+            remembered_track = result.get(
+                "linked_visual_audio_settings", {}).get("track", {})
             track = {
-                key: deepcopy(source_track[key])
-                for key in ("id", "kind", "name", "volume", "muted")
-            } | {"clips": []}
+                "id": source_track["id"],
+                "kind": source_track["kind"],
+                "name": remembered_track.get("name", source_track["name"]),
+                "volume": remembered_track.get(
+                    "volume", source_track["volume"]),
+                "muted": remembered_track.get(
+                    "muted", source_track["muted"]),
+                "clips": [],
+            }
             result["tracks"].insert(0, track)
-        track["clips"].append(deepcopy(source_clip))
+        restored = _restore_linked_visual_audio(
+            result, source_clip, linked_id)
+        track["clips"].append(restored)
+        _remember_linked_visual_audio(result, track, restored)
 
     result["tracks"] = [
         track for track in result["tracks"]
