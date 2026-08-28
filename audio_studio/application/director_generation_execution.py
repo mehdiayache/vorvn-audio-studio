@@ -9,6 +9,7 @@ from typing import Any, Protocol
 from urllib.parse import urlparse
 
 from audio_studio.application.jobs import JobProgress
+from audio_studio.application.provider_operations import ProviderOperationService
 from audio_studio.application.uploads import UploadService
 from audio_studio.domain.jobs import Job, JobCancelled, JobFailed
 from audio_studio.providers.director import (
@@ -38,6 +39,7 @@ class DirectorGenerationHandler:
         model_adapters: dict[str, DirectorModelAdapter],
         assets: DirectorExecutionAssets, uploads: UploadService,
         materializer: DirectorInputMaterializer,
+        operations: ProviderOperationService,
         scratch_root: Path, poll_interval: float = 2,
         timeout_seconds: float = 3600, sleeper=time.sleep,
     ):
@@ -46,6 +48,7 @@ class DirectorGenerationHandler:
         self.assets = assets
         self.uploads = uploads
         self.materializer = materializer
+        self.operations = operations
         self.scratch_root = scratch_root
         self.poll_interval = poll_interval
         self.timeout_seconds = timeout_seconds
@@ -70,6 +73,8 @@ class DirectorGenerationHandler:
         }
         recipe = payload.get("recipe") or {}
         provider_job_id = ""
+        attempt_id = ""
+        attempt_finished = False
         try:
             progress.progress(job.id, 0, 4, "Preparing Director references")
             materialized = []
@@ -115,16 +120,72 @@ class DirectorGenerationHandler:
                 model=snapshot, operation=operation, recipe=recipe,
                 materialized_inputs=materialized,
                 materialized_parameters=materialized_parameters)
-            progress.progress(job.id, 1, 4, "Sending generation request")
-            submission = provider.submit(request)
-            provider_job_id = submission.provider_job_id
+            attempt_operation = "director_generate"
+            attempt = self.operations.repository.attempt_for_job(
+                job.id, attempt_operation)
+            if attempt:
+                attempt_id = str(attempt["id"])
+                provider_job_id = str(
+                    attempt.get("provider_request_id") or "")
+                artifact = (attempt.get("diagnostics") or {}).get(
+                    "local_artifact") or {}
+                output_ids = artifact.get("output_asset_ids") or []
+                if attempt.get("status") == "succeeded" and output_ids:
+                    progress.progress(job.id, 4, 4, "Generated visual is ready")
+                    return {
+                        "output_asset_ids": [int(value) for value in output_ids],
+                        "provider_job_id": provider_job_id,
+                        "provider_state": "succeeded",
+                        "provider_attempt_id": attempt_id,
+                        "estimated_cost": None,
+                        "usage": attempt.get("usage") or {},
+                    }
+                if attempt.get("status") in {
+                    "ambiguous", "definitive_failed",
+                } or not provider_job_id:
+                    raise JobFailed(
+                        "This provider attempt cannot be resumed safely.",
+                        result={"provider_attempt_id": attempt_id,
+                                "requires_review": True})
+            else:
+                attempt_id = self.operations.repository.begin_attempt(
+                    job.id, attempt_operation,
+                    {
+                        "provider": provider_id,
+                        "model": payload.get("provider_model_id"),
+                        "adapter": payload.get("adapter_version"),
+                    },
+                    {
+                        "recipe": recipe,
+                        "capability_manifest_version": payload.get(
+                            "capability_manifest_version"),
+                    },
+                    None,
+                    estimated_cost=0,
+                )
+                progress.progress(job.id, 1, 4, "Sending generation request")
+                submission = provider.submit(request)
+                provider_job_id = submission.provider_job_id
+                self.operations.repository.mark_sent(
+                    attempt_id, provider_job_id)
             started = time.monotonic()
             state = None
             while True:
-                state = provider.task(provider_job_id)
+                attempt = self.operations.repository.attempt_for_job(
+                    job.id, attempt_operation)
+                callback_payload = ((attempt or {}).get("diagnostics") or {}).get(
+                    "provider_callback")
+                state = (provider.state_from_callback(callback_payload)
+                         if callback_payload else provider.task(provider_job_id))
                 if state.state == "succeeded":
                     break
                 if state.state == "failed":
+                    self.operations.repository.finish_attempt(
+                        attempt_id, "definitive_failed", cost=0,
+                        usage=(state.raw or {}).get("usage") or {},
+                        request_ids=[provider_job_id],
+                        error={"message": state.error}, receipt=state.raw)
+                    attempt_finished = True
                     raise JobFailed(
                         state.error or "The provider could not create this visual.",
                         result={"provider_job_id": provider_job_id,
@@ -147,6 +208,11 @@ class DirectorGenerationHandler:
             if not state.output_urls:
                 raise DirectorProviderError(
                     "The provider finished without a downloadable result.")
+            self.operations.repository.finish_attempt(
+                attempt_id, "succeeded", cost=0,
+                usage=(state.raw or {}).get("usage") or {},
+                request_ids=[provider_job_id], error={}, receipt=state.raw)
+            attempt_finished = True
 
             collection_id = self.assets.output_collection_for_production(
                 production_id)
@@ -195,11 +261,14 @@ class DirectorGenerationHandler:
                     asset_id = int(kept["asset"]["id"])
                     self.assets.attach_to_director(production_id, asset_id)
                     output_ids.append(asset_id)
+            self.operations.repository.record_artifact(
+                attempt_id, {"output_asset_ids": output_ids})
             progress.progress(job.id, 4, 4, "Generated visual is ready")
             return {
                 "output_asset_ids": output_ids,
                 "provider_job_id": provider_job_id,
                 "provider_state": state.state,
+                "provider_attempt_id": attempt_id,
                 "estimated_cost": None,
                 "usage": (state.raw or {}).get("usage"),
             }
@@ -210,7 +279,14 @@ class DirectorGenerationHandler:
         except JobFailed:
             raise
         except (DirectorProviderError, RuntimeError, ValueError) as exc:
+            if attempt_id and provider_job_id and not attempt_finished:
+                self.operations.repository.finish_attempt(
+                    attempt_id,
+                    self.operations.failure_status(exc),
+                    cost=0, usage={}, request_ids=[provider_job_id],
+                    error={"message": str(exc)})
             raise JobFailed(str(exc), result={
                 "provider_job_id": provider_job_id or None,
                 "provider_id": provider_id,
+                "provider_attempt_id": attempt_id or None,
             }) from exc

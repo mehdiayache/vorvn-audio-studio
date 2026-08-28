@@ -5,7 +5,8 @@ import type { VentureAsset } from "@/types/domain"
 import type { DirectorAdvancedValues } from "./director-advanced-settings"
 import { DirectorComposerAttachments, type DirectorComposerAttachment } from "./director-composer-attachments"
 import { DirectorComposerToolbar } from "./director-composer-toolbar"
-import type { DirectorAttachmentRole, DirectorModelCapability, DirectorOperation, DirectorOperationCapability, DirectorOperationInfo } from "./director-composer-config"
+import { withParameterValue, type DirectorAttachmentRole, type DirectorModelCapability, type DirectorOperation, type DirectorOperationCapability, type DirectorOperationInfo } from "./director-composer-config"
+import { DirectorPrimaryParameters } from "./director-primary-parameters"
 
 export function DirectorComposerInput({ prompt, operations, operation, capability, model, models, attachments, missingRoles, ratio, resolution, duration, advanced, assets, busy, disabledReason, uploadStatus, fileAccept, onPromptChange, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onFiles, onRemoveAttachment, onOpenLibrary, onPaste, onSubmit }: {
   prompt: string
@@ -70,6 +71,18 @@ export function DirectorComposerInput({ prompt, operations, operation, capabilit
             event.preventDefault()
             onSubmit()
           }
+        }}
+      />
+      <DirectorPrimaryParameters
+        capability={capability}
+        values={advanced.parameters}
+        assets={assets}
+        onChange={(key, value) => {
+          const field = capability.parameters.find((candidate) => candidate.key === key)
+          if (field) onAdvancedChange({
+            ...advanced,
+            parameters: withParameterValue(field, advanced.parameters, value),
+          })
         }}
       />
       {disabledReason && !busy && <div className="director-composer-readiness" role="status">{disabledReason}</div>}

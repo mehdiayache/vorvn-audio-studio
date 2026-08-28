@@ -9,6 +9,7 @@ from uuid import uuid4
 from audio_studio.application.director_generation_execution import (
     DirectorGenerationHandler,
 )
+from audio_studio.application.provider_operations import ProviderOperationService
 from audio_studio.domain.jobs import Job, JobStatus
 from audio_studio.providers.director import (
     DirectorProviderState, DirectorSubmission,
@@ -28,6 +29,9 @@ class FakeProvider:
     def task(self, provider_job_id):
         return DirectorProviderState(
             "succeeded", ("https://provider.test/result.mp4",), raw={})
+
+    def state_from_callback(self, payload):
+        return self.task("provider-job")
 
     def download(self, url, target):
         target.write_bytes(b"generated-video")
@@ -94,6 +98,41 @@ class FakeProgress:
         self.details.append((completed, total, detail))
 
 
+class FakeOperationRepository:
+    def __init__(self):
+        self.attempt = None
+        self.begin_count = 0
+        self.sent = []
+
+    def attempt_for_job(self, job_id, operation):
+        return self.attempt
+
+    def begin_attempt(self, job_id, operation, route, payload,
+                      reservation_id, estimated_cost=None):
+        self.begin_count += 1
+        self.attempt = {
+            "id": "51", "status": "not_sent", "provider": route["provider"],
+            "provider_request_id": None, "diagnostics": {}, "usage": {},
+        }
+        return "51"
+
+    def mark_sent(self, attempt_id, provider_request_id=None):
+        self.sent.append((attempt_id, provider_request_id))
+        self.attempt.update({
+            "status": "sent", "provider_request_id": provider_request_id,
+        })
+
+    def finish_attempt(self, attempt_id, status, **values):
+        self.attempt.update({"status": status, "usage": values.get("usage", {})})
+
+    def record_artifact(self, attempt_id, artifact):
+        self.attempt["diagnostics"]["local_artifact"] = artifact
+
+    def record_callback(self, provider, provider_request_id, payload):
+        self.attempt["diagnostics"]["provider_callback"] = payload
+        return True
+
+
 class DirectorGenerationExecutionTest(unittest.TestCase):
     def test_subject_assets_materialize_temporarily_and_output_becomes_canonical(self):
         provider = FakeProvider()
@@ -142,11 +181,13 @@ class DirectorGenerationExecutionTest(unittest.TestCase):
             progress=0, created_at=datetime.now(timezone.utc),
         )
         with TemporaryDirectory() as directory:
+            operation_records = FakeOperationRepository()
             handler = DirectorGenerationHandler(
                 providers={"kie": provider},
                 model_adapters={recipe["model_id"]: adapter},
                 assets=assets, uploads=uploads,
                 materializer=FakeMaterializer(),
+                operations=ProviderOperationService(operation_records),
                 scratch_root=Path(directory), poll_interval=0, sleeper=lambda _: None,
             )
             result = handler(job, FakeProgress())
@@ -160,6 +201,52 @@ class DirectorGenerationExecutionTest(unittest.TestCase):
         self.assertEqual(assets.attached, [(7, 88)])
         self.assertEqual(uploads.metadata["recipe"], recipe)
         self.assertNotIn("temporary.test", str(uploads.metadata["recipe"]))
+        self.assertEqual(operation_records.sent, [("51", "provider-job")])
+        self.assertEqual(
+            operation_records.attempt["diagnostics"]["local_artifact"],
+            {"output_asset_ids": [88]})
+
+    def test_resumes_persisted_provider_task_without_submitting_again(self):
+        provider = FakeProvider()
+        provider.submit = lambda _request: self.fail("submit must not run")
+        operations = FakeOperationRepository()
+        operations.attempt = {
+            "id": "71", "status": "sent", "provider": "kie",
+            "provider_request_id": "existing-task", "diagnostics": {},
+            "usage": {},
+        }
+        recipe = {
+            "operation": "text_to_video", "prompt": "Quiet harbor",
+            "inputs": [], "controls": {"provider_parameters": {}},
+        }
+        job = Job(
+            id=9, public_id=uuid4(), kind="director_generate",
+            status=JobStatus.RETRYING,
+            payload={
+                "production_id": 7, "provider_id": "kie",
+                "model": "kling-3.0-omni/text-to-video",
+                "provider_model_id": "kling-3.0-omni/text-to-video",
+                "recipe": recipe,
+                "capability_snapshot": {
+                    "provider_model_id": "kling-3.0-omni/text-to-video",
+                    "operations": [{"operation": "text_to_video",
+                                    "parameters": [],
+                                    "output": {"extension": "mp4"}}],
+                },
+            }, progress=0, created_at=datetime.now(timezone.utc),
+        )
+        with TemporaryDirectory() as directory:
+            result = DirectorGenerationHandler(
+                providers={"kie": provider},
+                model_adapters={job.payload["model"]: FakeAdapter()},
+                assets=FakeAssets(), uploads=FakeUploads(),
+                materializer=FakeMaterializer(),
+                operations=ProviderOperationService(operations),
+                scratch_root=Path(directory), poll_interval=0,
+                sleeper=lambda _: None,
+            )(job, FakeProgress())
+        self.assertEqual(result["provider_job_id"], "existing-task")
+        self.assertEqual(operations.begin_count, 0)
 
 
 if __name__ == "__main__":

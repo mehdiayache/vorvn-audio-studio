@@ -18,6 +18,7 @@ class ProviderSettingsResponse(BaseModel):
 class DirectorProviderSettingsResponse(BaseModel):
     name: str
     configured: bool
+    callback_configured: bool = False
     base_url: str
     reason: str = ""
 

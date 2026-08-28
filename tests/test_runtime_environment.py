@@ -109,6 +109,22 @@ class RuntimeEnvironmentTests(unittest.TestCase):
                     "https://worker-space.cn-beijing.maas.aliyuncs.com/api/v1",
                 )
 
+    def test_worker_reload_includes_kie_callback_configuration(self):
+        with TemporaryDirectory() as directory:
+            env_file = Path(directory) / ".env"
+            env_file.write_text(
+                "KIE_CALLBACK_URL=https://studio.test/api/v1/providers/kie/callback\n"
+                "KIE_WEBHOOK_HMAC_KEY=callback-key\n"
+            )
+            with patch.object(runtime_environment, "ENV_FILE", env_file), \
+                    patch.dict(os.environ, {}, clear=False):
+                runtime_environment.reload_owned_environment()
+                self.assertEqual(
+                    os.environ["KIE_CALLBACK_URL"],
+                    "https://studio.test/api/v1/providers/kie/callback")
+                self.assertEqual(
+                    os.environ["KIE_WEBHOOK_HMAC_KEY"], "callback-key")
+
     def test_worker_reload_refreshes_the_imported_sdk_process_state(self):
         with TemporaryDirectory() as directory:
             env_file = Path(directory) / ".env"

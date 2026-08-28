@@ -40,6 +40,32 @@ export function assignInputs(attachments: DirectorComposerAttachment[], capabili
   return retained
 }
 
+export function inputConstraintIssue(
+  capability: DirectorOperationCapability,
+  attachments: DirectorComposerAttachment[],
+  assets: VentureAsset[],
+) {
+  const byId = new Map(assets.map((asset) => [asset.id, asset]))
+  for (const attachment of attachments) {
+    if (!attachment.assetId) continue
+    const slot = capability.inputs.find(({ role }) => role === attachment.role)
+    const asset = byId.get(attachment.assetId)
+    if (!slot || !asset) continue
+    if (slot.mime_types?.length && (!asset.mime_type || !slot.mime_types.includes(asset.mime_type))) return `${slot.label} must use a supported file format.`
+    if (slot.max_bytes && Number(asset.size_bytes || 0) > slot.max_bytes) return `${slot.label} is larger than this model accepts.`
+    if (slot.duration_min_ms !== null && slot.duration_min_ms !== undefined && Number(asset.duration_ms || 0) < slot.duration_min_ms) return `${slot.label} is shorter than this model accepts.`
+    if (slot.duration_max_ms !== null && slot.duration_max_ms !== undefined && Number(asset.duration_ms || 0) > slot.duration_max_ms) return `${slot.label} is longer than this model accepts.`
+    if (slot.min_width !== null && slot.min_width !== undefined && Number(asset.width || 0) < slot.min_width) return `${slot.label} is too narrow for this model.`
+    if (slot.min_height !== null && slot.min_height !== undefined && Number(asset.height || 0) < slot.min_height) return `${slot.label} is too short for this model.`
+    if (asset.width && asset.height) {
+      const ratio = asset.width / asset.height
+      if (slot.aspect_ratio_min !== null && slot.aspect_ratio_min !== undefined && ratio < slot.aspect_ratio_min) return `${slot.label} aspect ratio is too narrow.`
+      if (slot.aspect_ratio_max !== null && slot.aspect_ratio_max !== undefined && ratio > slot.aspect_ratio_max) return `${slot.label} aspect ratio is too wide.`
+    }
+  }
+  return undefined
+}
+
 export function capabilityDefaults(capability: DirectorOperationCapability) {
   const parameters = Object.fromEntries(capability.parameters.map((field) => [field.key, field.default]))
   const ratios = ratioChoices(capability, parameters)

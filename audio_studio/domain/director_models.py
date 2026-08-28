@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 
 ModelStatus = Literal["draft", "verified", "enabled"]
-MANIFEST_VERSION = "2026-08-28.6"
+MANIFEST_VERSION = "2026-08-29.1"
 
 
 AVAILABLE_MODEL_STATUSES = {"enabled"}
@@ -53,21 +53,6 @@ OPERATION_TAXONOMY: tuple[dict[str, str], ...] = (
 )
 
 
-PLANNED_MODEL_IDS = (
-    "wan2.7-image-pro", "wan2.7-image",
-    "wan2.7-t2v-2026-04-25", "wan2.7-i2v-2026-04-25",
-    "wan2.7-r2v", "wan2.7-videoedit", "wan2.6-i2v-flash",
-    "wan2.6-r2v-flash", "wan2.2-kf2v-flash",
-    "wan2.2-animate-move", "wan2.2-animate-mix",
-    "kling-3.0-omni/text-to-video",
-    "kling-3.0-omni/image-to-video",
-    "kling-3.0-omni/reference-to-video",
-    "kling-3.0-omni/transformation",
-    "kling-3.0/motion-control", "kling/ai-avatar-pro",
-    "bytedance/seedance-2-5", "volcengine/video-to-video-lip-sync",
-)
-
-
 def _prompt(*, required: bool = True, maximum: int = 3072) -> dict[str, Any]:
     return {
         "supported": True, "required": required,
@@ -76,10 +61,11 @@ def _prompt(*, required: bool = True, maximum: int = 3072) -> dict[str, Any]:
 
 
 def _slot(role: str, label: str, media_type: str, *, required: bool,
-          maximum: int = 1) -> dict[str, Any]:
+          maximum: int = 1, **constraints: Any) -> dict[str, Any]:
     return {
         "role": role, "label": label, "required": required,
         "media_types": [media_type], "max": maximum,
+        **constraints,
     }
 
 
@@ -112,7 +98,7 @@ def _kling_video_fields() -> list[dict[str, Any]]:
         ),
         _field(
             "elements", "asset_list", "Characters & subjects", default=[],
-            max=7, exposure="advanced",
+            max=3, exposure="advanced",
             item={
                 "name_max_length": 64,
                 "description_max_length": 300,
@@ -138,14 +124,6 @@ def _kling_video_fields() -> list[dict[str, Any]]:
                     "duration_min_ms": 5000,
                     "duration_max_ms": 30000,
                 },
-                "combination_limits": [
-                    {"when": {"images": True, "video": False},
-                     "max": {"images": 7}},
-                    {"when": {"images": False, "video": True},
-                     "max": {"video": 3}},
-                    {"when": {"images": True, "video": True},
-                     "max": {"images": 4, "video": 3}},
-                ],
             },
         ),
     ]
@@ -201,24 +179,62 @@ MODELS: tuple[dict[str, Any], ...] = (
         "adapter_version": "kie-kling-omni-1",
         "capability_manifest_version": MANIFEST_VERSION,
         "status": "enabled",
-        "description": "Animate a canonical image with optional generated audio",
-        "operations": [_kling_operation(
-            "image_to_video",
-            inputs=(_slot("source-image", "Source image", "image",
-                          required=True),),
-            ratios=("auto", "16:9", "9:16", "1:1"),
-            ratio_rules=(
-                {
-                    "when": {"customize_multi_shots": False},
-                    "values": ["auto"], "default": "auto",
-                },
-                {
-                    "when": {"customize_multi_shots": True},
-                    "values": ["16:9", "9:16", "1:1"],
-                    "default": "16:9",
-                },
+        "description": "Animate one source image or direct motion between a start and end frame",
+        "operations": [
+            _kling_operation(
+                "image_to_video",
+                inputs=(_slot(
+                    "source-image", "Source image", "image", required=True,
+                    mime_types=["image/jpeg", "image/png"],
+                    max_bytes=50_000_000,
+                    min_width=300, min_height=300,
+                    aspect_ratio_min=0.4, aspect_ratio_max=2.5,
+                ),),
+                ratios=("auto", "16:9", "9:16", "1:1"),
+                ratio_rules=(
+                    {
+                        "when": {"customize_multi_shots": False},
+                        "values": ["auto"], "default": "auto",
+                    },
+                    {
+                        "when": {"customize_multi_shots": True},
+                        "values": ["16:9", "9:16", "1:1"],
+                        "default": "16:9",
+                    },
+                ),
             ),
-        )],
+            {
+                **_kling_operation(
+                    "frames_to_video",
+                    inputs=(
+                        _slot(
+                            "start-frame", "Start frame", "image",
+                            required=True,
+                            mime_types=["image/jpeg", "image/png"],
+                            max_bytes=50_000_000,
+                            min_width=300, min_height=300,
+                            aspect_ratio_min=0.4, aspect_ratio_max=2.5,
+                        ),
+                        _slot(
+                            "end-frame", "End frame", "image",
+                            required=True,
+                            mime_types=["image/jpeg", "image/png"],
+                            max_bytes=50_000_000,
+                            min_width=300, min_height=300,
+                            aspect_ratio_min=0.4, aspect_ratio_max=2.5,
+                        ),
+                    ),
+                    ratios=("auto",),
+                ),
+                "parameters": [
+                    field for field in _kling_video_fields()
+                    if field["key"] not in {
+                        "customize_multi_shots", "prefer_multi_shots",
+                        "multi_prompt",
+                    }
+                ],
+            },
+        ],
     },
     {
         "id": "kling-3.0-omni/reference-to-video",

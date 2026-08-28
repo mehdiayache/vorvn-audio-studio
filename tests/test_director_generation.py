@@ -10,10 +10,12 @@ class FakeAssets:
     def __init__(self):
         self.exists = True
         self.assets = [
-            {"id": 11, "media_type": "image"},
+            {"id": 11, "media_type": "image", "mime_type": "image/png",
+             "size_bytes": 12_000, "width": 1280, "height": 720},
             {"id": 12, "media_type": "video", "duration_ms": 12_000},
             {"id": 13, "media_type": "audio", "duration_ms": 8_000},
-            {"id": 14, "media_type": "image"},
+            {"id": 14, "media_type": "image", "mime_type": "image/jpeg",
+             "size_bytes": 15_000, "width": 1280, "height": 720},
         ]
 
     def production_exists(self, production_id):
@@ -96,6 +98,7 @@ class DirectorGenerationTest(unittest.TestCase):
         self.assertEqual(fields["multi_prompt"]["item"]["max_items"], 6)
         self.assertEqual(fields["multi_prompt"]["exposure"], "advanced")
         self.assertEqual(fields["elements"]["type"], "asset_list")
+        self.assertEqual(fields["elements"]["max"], 3)
         self.assertEqual(fields["elements"]["exposure"], "advanced")
         self.assertTrue(fields["elements"]["item"]["description_required"])
         self.assertEqual(
@@ -115,6 +118,15 @@ class DirectorGenerationTest(unittest.TestCase):
             {"when": {"customize_multi_shots": True},
              "values": ["16:9", "9:16", "1:1"], "default": "16:9"},
         ])
+        frame_video = image_model["operations"][1]
+        self.assertEqual(frame_video["operation"], "frames_to_video")
+        self.assertEqual(
+            [slot["role"] for slot in frame_video["inputs"]],
+            ["start-frame", "end-frame"])
+        self.assertEqual(frame_video["ratios"], ["auto"])
+        self.assertNotIn(
+            "customize_multi_shots",
+            {field["key"] for field in frame_video["parameters"]})
 
     def test_one_image_is_a_direct_image_to_video_input_not_an_element(self):
         jobs = FakeJobs()
@@ -158,6 +170,48 @@ class DirectorGenerationTest(unittest.TestCase):
         }]
         value["controls"]["ratio"] = "16:9"
         service.enqueue(7, value, idempotency_key="directed-fixed-ratio")
+
+    def test_start_and_end_frames_are_ordered_and_force_automatic_ratio(self):
+        jobs = FakeJobs()
+        service = DirectorGenerationService(jobs, FakeAssets())
+        value = recipe(
+            operation="frames_to_video",
+            model_id="kling-3.0-omni/image-to-video",
+            inputs=[
+                {"asset_id": 11, "role": "start-frame",
+                 "media_type": "image", "position": 0},
+                {"asset_id": 14, "role": "end-frame",
+                 "media_type": "image", "position": 1},
+            ],
+        )
+        value["controls"]["ratio"] = "auto"
+        value["controls"]["provider_parameters"] = {
+            "audio": False, "elements": [],
+        }
+        projected, _ = service.enqueue(
+            7, value, idempotency_key="start-end")
+        self.assertEqual(
+            [item["role"] for item in projected["recipe"]["inputs"]],
+            ["start-frame", "end-frame"])
+
+    def test_image_constraints_fail_before_a_provider_job_is_created(self):
+        assets = FakeAssets()
+        assets.assets[0]["width"] = 240
+        jobs = FakeJobs()
+        service = DirectorGenerationService(jobs, assets)
+        value = recipe(
+            operation="image_to_video",
+            model_id="kling-3.0-omni/image-to-video",
+            inputs=[{
+                "asset_id": 11, "role": "source-image",
+                "media_type": "image", "position": 0,
+            }],
+        )
+        value["controls"]["ratio"] = "auto"
+
+        with self.assertRaisesRegex(ValueError, "too narrow"):
+            service.enqueue(7, value, idempotency_key="too-small")
+        self.assertEqual(jobs.enqueued, [])
 
     def test_multiple_ordinary_images_use_reference_input_slots(self):
         jobs = FakeJobs()

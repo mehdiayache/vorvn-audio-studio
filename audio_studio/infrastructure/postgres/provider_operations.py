@@ -102,12 +102,49 @@ class ProviderOperationRepository:
                            (int(attempt_id), job_id))
             return attempt_id
 
-    def mark_sent(self, attempt_id: str) -> None:
+    def mark_sent(self, attempt_id: str,
+                  provider_request_id: str | None = None) -> None:
         with transaction() as cursor:
             cursor.execute("""
-                UPDATE provider_attempts SET status='sent', sent_at=now()
+                UPDATE provider_attempts
+                   SET status='sent', sent_at=now(),
+                       provider_request_id=coalesce(%s, provider_request_id)
                  WHERE id=%s AND status='not_sent'
-            """, (int(attempt_id),))
+            """, (provider_request_id, int(attempt_id)))
+
+    def attempt_for_job(self, job_id: int, operation: str) -> dict | None:
+        with transaction() as cursor:
+            cursor.execute("""
+                SELECT id, status, provider, provider_request_id, route,
+                       diagnostics, usage, cost, error
+                  FROM provider_attempts
+                 WHERE job_id=%s AND operation=%s
+                 ORDER BY created_at DESC, id DESC LIMIT 1
+            """, (job_id, operation))
+            row = cursor.fetchone()
+        if not row:
+            return None
+        return {
+            "id": str(row[0]), "status": row[1], "provider": row[2],
+            "provider_request_id": row[3], "route": row[4] or {},
+            "diagnostics": row[5] or {}, "usage": row[6] or {},
+            "cost": float(row[7] or 0), "error": row[8] or {},
+        }
+
+    def record_callback(self, provider: str, provider_request_id: str,
+                        payload: dict) -> bool:
+        with transaction() as cursor:
+            cursor.execute("""
+                UPDATE provider_attempts
+                   SET diagnostics=diagnostics || %s::jsonb
+                 WHERE id=(
+                       SELECT id FROM provider_attempts
+                        WHERE provider=%s AND provider_request_id=%s
+                        ORDER BY created_at DESC, id DESC LIMIT 1)
+                   AND status IN ('sent','succeeded')
+            """, (json.dumps({"provider_callback": payload}),
+                  provider, provider_request_id))
+            return cursor.rowcount == 1
 
     def finish_attempt(self, attempt_id: str, status: str, *, cost: float,
                        usage: dict, request_ids: list[str], error: dict,

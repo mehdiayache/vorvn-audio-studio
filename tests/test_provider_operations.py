@@ -127,6 +127,52 @@ class ProviderOperationTests(unittest.TestCase):
         self.assertEqual(job_status[0], "blocked")
         self.assertTrue(job_status[1]["requires_review"])
 
+    def test_stale_director_job_resumes_persisted_provider_task(self):
+        job, _ = self.jobs.enqueue(
+            "director_generate", {"recipe": {"prompt": "harbor"}},
+            idempotency_key=f"director-resume-{uuid4()}",
+            source_tool="director", operation_label="Create visual")
+        self.job_ids.append(job.id)
+        attempt = self.records.begin_attempt(
+            job.id, "director_generate",
+            {"provider": "kie", "model": "kling"},
+            {"recipe": {"prompt": "harbor"}}, None, estimated_cost=0)
+        self.records.mark_sent(attempt, "kie-task-71")
+        with psycopg.connect(settings.database_url) as database:
+            database.execute("""
+                UPDATE jobs SET status='running', started_at=now()-interval '1 hour',
+                       last_heartbeat_at=now()-interval '1 hour'
+                 WHERE id=%s
+            """, (job.id,))
+            database.commit()
+        self.assertGreaterEqual(self.jobs.abandon_stale(30), 1)
+        with psycopg.connect(settings.database_url) as database:
+            job_status = database.execute(
+                "SELECT status FROM jobs WHERE id=%s", (job.id,)).fetchone()[0]
+            attempt_row = database.execute("""
+                SELECT status,provider_request_id FROM provider_attempts
+                 WHERE id=%s
+            """, (int(attempt),)).fetchone()
+        self.assertEqual(job_status, "retrying")
+        self.assertEqual(attempt_row, ("sent", "kie-task-71"))
+
+    def test_provider_callback_is_reconciled_by_task_identity(self):
+        job_id = self.job()
+        attempt = self.records.begin_attempt(
+            job_id, "director_generate",
+            {"provider": "kie", "model": "kling"},
+            {"recipe": {"prompt": "harbor"}}, None, estimated_cost=0)
+        self.records.mark_sent(attempt, "kie-task-99")
+        self.assertTrue(self.records.record_callback(
+            "kie", "kie-task-99",
+            {"data": {"taskId": "kie-task-99", "state": "success"}}))
+        recovered = self.records.attempt_for_job(
+            job_id, "director_generate")
+        self.assertEqual(recovered["provider_request_id"], "kie-task-99")
+        self.assertEqual(
+            recovered["diagnostics"]["provider_callback"]["data"]["state"],
+            "success")
+
     def test_failure_classification_is_conservative_after_send(self):
         self.assertEqual(self.service.failure_status(
             ValueError("invalid request")), "definitive_failed")

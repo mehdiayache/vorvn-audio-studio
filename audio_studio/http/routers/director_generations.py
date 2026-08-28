@@ -22,6 +22,14 @@ class DirectorInputSlot(BaseModel):
     required: bool
     media_types: list[Literal["image", "video", "audio"]]
     max: int
+    mime_types: list[str] = Field(default_factory=list)
+    max_bytes: int | None = None
+    duration_min_ms: int | None = None
+    duration_max_ms: int | None = None
+    min_width: int | None = None
+    min_height: int | None = None
+    aspect_ratio_min: float | None = None
+    aspect_ratio_max: float | None = None
 
 
 class DirectorPromptCapability(BaseModel):
@@ -36,7 +44,7 @@ class DirectorParameterCapability(BaseModel):
     key: str
     type: Literal[
         "boolean", "integer", "number", "select", "text", "textarea",
-        "asset_slot", "asset_list", "structured_shots",
+        "asset_list", "structured_shots",
     ]
     label: str
     exposure: Literal["primary", "advanced"] = "advanced"
@@ -142,7 +150,7 @@ class DirectorGenerationRecipe(BaseModel):
     model_id: str = Field(min_length=1, max_length=120)
     prompt: str = Field(default="", max_length=20_000)
     negative_prompt: str = Field(default="", max_length=20_000)
-    inputs: list[DirectorGenerationInput] = Field(default_factory=list, max_length=12)
+    inputs: list[DirectorGenerationInput] = Field(default_factory=list, max_length=100)
     controls: DirectorGenerationControls
 
 

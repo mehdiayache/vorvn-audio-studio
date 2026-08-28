@@ -4,12 +4,16 @@ from audio_studio.application.director_generation import DirectorGenerationServi
 from audio_studio.application.director_generation_execution import (
     DirectorGenerationHandler,
 )
+from audio_studio.application.provider_operations import ProviderOperationService
 from audio_studio.composition.jobs import job_service
 from audio_studio.composition.uploads import upload_service
 from audio_studio.config import settings
 from audio_studio.domain.director_models import models
 from audio_studio.infrastructure.director_assets import DirectorAssetMaterializer
 from audio_studio.infrastructure.postgres.venture_assets import VentureAssetRepository
+from audio_studio.infrastructure.postgres.provider_operations import (
+    ProviderOperationRepository,
+)
 from audio_studio.providers.kie.models import KieModelAdapter
 from audio_studio.providers.kie.provider import KieDirectorProvider
 
@@ -27,5 +31,6 @@ director_generation_handler = DirectorGenerationHandler(
     assets=director_assets,
     uploads=upload_service,
     materializer=DirectorAssetMaterializer(),
+    operations=ProviderOperationService(ProviderOperationRepository()),
     scratch_root=settings.root / ".incoming",
 )

@@ -434,10 +434,33 @@ class JobRepository:
             if not job_ids:
                 return 0
             cursor.execute("""
+                SELECT DISTINCT job.id
+                  FROM jobs job
+                  JOIN provider_attempts attempt ON attempt.job_id=job.id
+                 WHERE job.id=ANY(%s)
+                   AND job.kind='director_generate'
+                   AND attempt.status IN ('sent','succeeded')
+                   AND attempt.provider_request_id IS NOT NULL
+            """, (job_ids,))
+            resumable_ids = [int(row[0]) for row in cursor.fetchall()]
+            if resumable_ids:
+                cursor.execute("""
+                    UPDATE jobs
+                       SET status='retrying', available_at=now(),
+                           started_at=NULL, last_heartbeat_at=NULL,
+                           error='Resuming the accepted provider task.'
+                     WHERE id=ANY(%s)
+                """, (resumable_ids,))
+            abandoned_ids = [
+                job_id for job_id in job_ids if job_id not in resumable_ids
+            ]
+            if not abandoned_ids:
+                return len(job_ids)
+            cursor.execute("""
                 UPDATE jobs SET status = 'lost', finished_at = now(),
                        error = 'The worker stopped before this Job finished.'
                  WHERE id=ANY(%s)
-            """, (job_ids,))
+            """, (abandoned_ids,))
             cursor.execute("""
                 UPDATE provider_attempts
                    SET status=CASE WHEN status='sent' THEN 'ambiguous'
@@ -450,7 +473,7 @@ class JobRepository:
                            'message','The worker stopped after this provider operation began.',
                            'reason','worker_lease_lost')
                  WHERE job_id=ANY(%s) AND status IN ('not_sent','sent')
-            """, (job_ids,))
+            """, (abandoned_ids,))
             cursor.execute("""
                 UPDATE jobs job
                    SET status='blocked',
@@ -463,7 +486,7 @@ class JobRepository:
                        SELECT 1 FROM provider_attempts attempt
                         WHERE attempt.job_id=job.id
                           AND attempt.status='ambiguous')
-            """, (job_ids,))
+            """, (abandoned_ids,))
             cursor.execute("""
                 UPDATE budget_reservations reservation
                    SET status=CASE WHEN evidence.has_ambiguous
@@ -484,7 +507,7 @@ class JobRepository:
                   ) evidence
                  WHERE reservation.job_id=evidence.job_id
                    AND reservation.status='reserved'
-            """, (job_ids,))
+            """, (abandoned_ids,))
             cursor.execute("""
                 UPDATE budget_reservations reservation
                    SET status='released', actual_cost=0, updated_at=now()
@@ -493,7 +516,7 @@ class JobRepository:
                    AND NOT EXISTS (
                        SELECT 1 FROM provider_attempts attempt
                         WHERE attempt.job_id=reservation.job_id)
-            """, (job_ids,))
+            """, (abandoned_ids,))
             return len(job_ids)
 
     def cancel(self, public_id: UUID) -> Job | None:

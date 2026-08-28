@@ -35,7 +35,7 @@ const kieParameters = [
   { key: "customize_multi_shots", type: "boolean", label: "Direct multiple shots", exposure: "advanced", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: ["prefer_multi_shots"], item: {} },
   { key: "prefer_multi_shots", type: "boolean", label: "Plan shots automatically", exposure: "advanced", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: ["customize_multi_shots"], item: {} },
   { key: "multi_prompt", type: "structured_shots", label: "Shots", exposure: "advanced", required: true, default: [], options: [], min: null, max: null, step: null, max_length: null, visible_when: { customize_multi_shots: true }, conflicts_with: [], item: { prompt_max_length: 512, duration_min: 1, duration_max: 15, max_items: 6 } },
-  { key: "elements", type: "asset_list", label: "Characters & subjects", exposure: "advanced", required: false, default: [], options: [], min: null, max: 7, step: null, max_length: null, visible_when: {}, conflicts_with: [], item: { name_max_length: 64, description_max_length: 300, description_required: true, variants: [{ id: "images", label: "Image subject", media_types: ["image"], min_assets: 2, max_assets: 4 }], audio: { media_types: ["audio"], max_assets: 1 } } },
+  { key: "elements", type: "asset_list", label: "Characters & subjects", exposure: "advanced", required: false, default: [], options: [], min: null, max: 3, step: null, max_length: null, visible_when: {}, conflicts_with: [], item: { name_max_length: 64, description_max_length: 300, description_required: true, variants: [{ id: "images", label: "Image subject", media_types: ["image"], min_assets: 2, max_assets: 4 }], audio: { media_types: ["audio"], max_assets: 1 } } },
 ]
 
 function kieCapability(operation: string, inputs: unknown[], requiredAnyOf: string[][] = [], ratioRules: unknown[] = []) {
@@ -93,6 +93,20 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 describe("Director composer", () => {
+  it("renders manifest-declared primary controls beside the prompt", async () => {
+    const primaryCatalog = structuredClone(catalog) as any
+    primaryCatalog.models[0].operations[0].parameters = [{
+      key: "style", type: "select", label: "Style", exposure: "primary",
+      required: false, default: "natural", options: ["natural", "cinematic"],
+      min: null, max: null, step: null, max_length: null,
+      visible_when: {}, conflicts_with: [], item: {},
+    }]
+    vi.mocked(studioApi.directorModels).mockResolvedValue(primaryCatalog as never)
+    renderComposer()
+    expect(await screen.findByText("Style", { selector: ".director-primary-parameters span" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Model settings" })).toBeTruthy()
+  })
+
   it("renders controls from the selected model-operation capability", async () => {
     renderComposer()
     expect(await screen.findByRole("combobox", { name: "Aspect ratio" })).toBeTruthy()

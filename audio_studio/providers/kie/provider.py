@@ -105,6 +105,9 @@ class KieDirectorProvider:
                 "reason": "", "credits": credits}
 
     def submit(self, request: dict[str, Any]) -> DirectorSubmission:
+        callback_url = (os.getenv("KIE_CALLBACK_URL") or "").strip()
+        if callback_url:
+            request = {**request, "callBackUrl": callback_url}
         payload = self._json(
             "/api/v1/jobs/createTask", method="POST", body=request,
             timeout=45)
@@ -139,10 +142,8 @@ class KieDirectorProvider:
                 return (value,)
         return ()
 
-    def task(self, provider_job_id: str) -> DirectorProviderState:
-        query = urllib.parse.urlencode({"taskId": provider_job_id})
-        payload = self._json(f"/api/v1/jobs/recordInfo?{query}")
-        data = payload.get("data") or {}
+    @classmethod
+    def _state(cls, data: Any) -> DirectorProviderState:
         if not isinstance(data, dict):
             raise DirectorProviderError("KIE returned an invalid task state.")
         state = str(data.get("state") or "").casefold()
@@ -164,10 +165,21 @@ class KieDirectorProvider:
         return DirectorProviderState(
             normalized,
             progress=task_progress,
-            output_urls=self._result_urls(data.get("resultJson")),
+            output_urls=cls._result_urls(data.get("resultJson")),
             error=str(data.get("failMsg") or data.get("errorMessage") or ""),
             raw=data,
         )
+
+    def task(self, provider_job_id: str) -> DirectorProviderState:
+        query = urllib.parse.urlencode({"taskId": provider_job_id})
+        payload = self._json(f"/api/v1/jobs/recordInfo?{query}")
+        return self._state(payload.get("data") or {})
+
+    def state_from_callback(
+        self, payload: dict[str, Any],
+    ) -> DirectorProviderState:
+        data = payload.get("data") if isinstance(payload, dict) else None
+        return self._state(data or payload)
 
     def download(self, url: str, target: Path) -> int:
         # KIE result hosts reject Python's default urllib user agent even when

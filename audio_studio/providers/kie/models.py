@@ -10,6 +10,8 @@ class KieModelAdapter:
 
     _URL_FIELD_BY_ROLE = {
         "source-image": "image_urls",
+        "start-frame": "image_urls",
+        "end-frame": "image_urls",
         "reference-image": "image_urls",
         "reference-video": "video_urls",
         "source-video": "video_urls",
@@ -29,6 +31,18 @@ class KieModelAdapter:
             raise ValueError(
                 "Kling Image-to-Video uses the source image ratio unless "
                 "custom shot direction is enabled.")
+        if operation.get("operation") == "frames_to_video":
+            if controls.get("ratio") != "auto":
+                raise ValueError(
+                    "Kling Start and End Frames require automatic aspect ratio.")
+            parameters = {
+                key: value for key, value in parameters.items()
+                if key not in {
+                    "customize_multi_shots", "prefer_multi_shots",
+                    "multi_prompt",
+                }
+            }
+            parameters["customize_multi_shots"] = False
         input_payload: dict[str, Any] = {
             "prompt": str(recipe.get("prompt") or "").strip(),
             "resolution": controls.get("resolution"),

@@ -40,6 +40,7 @@ from audio_studio.http.routers.audio_catalogs import router as audio_catalogs_ro
 from audio_studio.http.routers.audio_generations import router as audio_generations_router
 from audio_studio.http.routers.production_imports import router as production_imports_router
 from audio_studio.http.routers.director_generations import router as director_generations_router
+from audio_studio.http.routers.provider_callbacks import router as provider_callbacks_router
 from audio_studio.migrations import run as run_migrations
 from audio_studio.composition.provider_catalogue import provider_catalogue_sync
 from audio_studio.composition.runtime_configuration import configured_api_environment
@@ -86,6 +87,7 @@ app.include_router(audio_catalogs_router)
 app.include_router(audio_generations_router)
 app.include_router(production_imports_router)
 app.include_router(director_generations_router)
+app.include_router(provider_callbacks_router)
 
 
 def _spa_file(relative: str) -> Path:

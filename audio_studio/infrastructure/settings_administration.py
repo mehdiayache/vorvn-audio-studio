@@ -86,6 +86,9 @@ class EnvironmentSettings:
         return {
             "name": "KIE",
             "configured": configured,
+            "callback_configured": bool(
+                (os.getenv("KIE_CALLBACK_URL") or "").strip()
+                and (os.getenv("KIE_WEBHOOK_HMAC_KEY") or "").strip()),
             "base_url": (os.getenv("KIE_API_BASE_URL")
                          or "https://api.kie.ai").rstrip("/"),
             "reason": "" if configured else (

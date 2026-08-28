@@ -24,6 +24,7 @@ import {
   fileKind,
   generationAttachments,
   identifier,
+  inputConstraintIssue,
   nestedReferenceAttachments,
   parameterIssue,
   removeNestedReference,
@@ -109,7 +110,8 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
   const pendingAttachment = attachments.some(({ status }) => status === "uploading")
   const failedAttachment = attachments.some(({ status }) => status === "failed")
   const controlsIssue = capability ? parameterIssue(capability, advanced.parameters, duration, libraryAssets) : undefined
-  const disabledReason = !capability ? "Director capabilities are loading." : capability.prompt.required && !prompt.trim() ? "Write what you want to create." : prompt.length > capability.prompt.max_length ? `Keep the direction under ${capability.prompt.max_length.toLocaleString()} characters.` : referenceUploads || pendingAttachment ? "Wait for references to finish uploading." : failedAttachment ? "Remove the reference that failed to upload." : missing.length ? `Add ${missing.map((role) => capability.inputs.find((slot) => slot.role === role)?.label || role).join(" and ")}.` : missingChoice ? `Add ${missingChoice.map((role) => capability.inputs.find((slot) => slot.role === role)?.label || role).join(" or ")}.` : controlsIssue
+  const referenceIssue = capability ? inputConstraintIssue(capability, attachments, libraryAssets) : undefined
+  const disabledReason = !capability ? "Director capabilities are loading." : capability.prompt.required && !prompt.trim() ? "Write what you want to create." : prompt.length > capability.prompt.max_length ? `Keep the direction under ${capability.prompt.max_length.toLocaleString()} characters.` : referenceUploads || pendingAttachment ? "Wait for references to finish uploading." : failedAttachment ? "Remove the reference that failed to upload." : missing.length ? `Add ${missing.map((role) => capability.inputs.find((slot) => slot.role === role)?.label || role).join(" and ")}.` : missingChoice ? `Add ${missingChoice.map((role) => capability.inputs.find((slot) => slot.role === role)?.label || role).join(" or ")}.` : referenceIssue || controlsIssue
   const referenceMediaTypes = capability && catalog ? catalogReferenceMediaTypes(catalog.models, capability, advanced.parameters) : []
   const fileAccept = referenceMediaTypes.map((kind) => `${kind}/*`).join(",")
 

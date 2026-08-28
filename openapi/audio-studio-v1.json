@@ -2429,7 +2429,7 @@
             "items": {
               "$ref": "#/components/schemas/DirectorGenerationInput"
             },
-            "maxItems": 12,
+            "maxItems": 100,
             "title": "Inputs",
             "type": "array"
           },
@@ -2662,6 +2662,50 @@
       },
       "DirectorInputSlot": {
         "properties": {
+          "aspect_ratio_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aspect Ratio Max"
+          },
+          "aspect_ratio_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aspect Ratio Min"
+          },
+          "duration_max_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Max Ms"
+          },
+          "duration_min_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min Ms"
+          },
           "label": {
             "title": "Label",
             "type": "string"
@@ -2669,6 +2713,17 @@
           "max": {
             "title": "Max",
             "type": "integer"
+          },
+          "max_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Bytes"
           },
           "media_types": {
             "items": {
@@ -2681,6 +2736,35 @@
             },
             "title": "Media Types",
             "type": "array"
+          },
+          "mime_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Mime Types",
+            "type": "array"
+          },
+          "min_height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Height"
+          },
+          "min_width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Width"
           },
           "required": {
             "title": "Required",
@@ -3024,7 +3108,6 @@
               "select",
               "text",
               "textarea",
-              "asset_slot",
               "asset_list",
               "structured_shots"
             ],
@@ -3078,6 +3161,11 @@
           "base_url": {
             "title": "Base Url",
             "type": "string"
+          },
+          "callback_configured": {
+            "default": false,
+            "title": "Callback Configured",
+            "type": "boolean"
           },
           "configured": {
             "title": "Configured",

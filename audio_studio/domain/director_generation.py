@@ -198,6 +198,38 @@ def _validate_parameter(
     raise ValueError(f"Unsupported Director field type: {field_type}.")
 
 
+def _validate_input_asset(slot: dict[str, Any], asset: dict[str, Any]) -> None:
+    """Enforce provider media limits before a paid request can be sent."""
+    label = str(slot["label"])
+    mime_types = slot.get("mime_types") or []
+    if mime_types and str(asset.get("mime_type") or "") not in mime_types:
+        raise ValueError(f"{label} must use a supported file format.")
+    size = int(asset.get("size_bytes") or 0)
+    if slot.get("max_bytes") and size > int(slot["max_bytes"]):
+        raise ValueError(f"{label} is larger than this model accepts.")
+    duration = int(asset.get("duration_ms") or 0)
+    if slot.get("duration_min_ms") is not None and duration < int(
+            slot["duration_min_ms"]):
+        raise ValueError(f"{label} is shorter than this model accepts.")
+    if slot.get("duration_max_ms") is not None and duration > int(
+            slot["duration_max_ms"]):
+        raise ValueError(f"{label} is longer than this model accepts.")
+    width = int(asset.get("width") or 0)
+    height = int(asset.get("height") or 0)
+    if slot.get("min_width") is not None and width < int(slot["min_width"]):
+        raise ValueError(f"{label} is too narrow for this model.")
+    if slot.get("min_height") is not None and height < int(slot["min_height"]):
+        raise ValueError(f"{label} is too short for this model.")
+    if width > 0 and height > 0:
+        ratio = width / height
+        if (slot.get("aspect_ratio_min") is not None
+                and ratio < float(slot["aspect_ratio_min"])):
+            raise ValueError(f"{label} aspect ratio is too narrow.")
+        if (slot.get("aspect_ratio_max") is not None
+                and ratio > float(slot["aspect_ratio_max"])):
+            raise ValueError(f"{label} aspect ratio is too wide.")
+
+
 def validate_recipe(recipe: dict[str, Any], assets: dict[int, dict[str, Any]]) -> None:
     _, selected = capability(
         str(recipe.get("model_id") or ""), str(recipe.get("operation") or ""))
@@ -233,6 +265,7 @@ def validate_recipe(recipe: dict[str, Any], assets: dict[int, dict[str, Any]]) -
             raise ValueError(
                 f"{slot['label']} does not accept "
                 f"{media_type or 'that media type'}.")
+        _validate_input_asset(slot, asset)
         if item.get("media_type") != media_type:
             raise ValueError(
                 "The reference media type does not match its canonical Asset.")

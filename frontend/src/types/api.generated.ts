@@ -2897,12 +2897,28 @@ export interface components {
         };
         /** DirectorInputSlot */
         DirectorInputSlot: {
+            /** Aspect Ratio Max */
+            aspect_ratio_max?: number | null;
+            /** Aspect Ratio Min */
+            aspect_ratio_min?: number | null;
+            /** Duration Max Ms */
+            duration_max_ms?: number | null;
+            /** Duration Min Ms */
+            duration_min_ms?: number | null;
             /** Label */
             label: string;
             /** Max */
             max: number;
+            /** Max Bytes */
+            max_bytes?: number | null;
             /** Media Types */
             media_types: ("image" | "video" | "audio")[];
+            /** Mime Types */
+            mime_types?: string[];
+            /** Min Height */
+            min_height?: number | null;
+            /** Min Width */
+            min_width?: number | null;
             /** Required */
             required: boolean;
             /** Role */
@@ -3024,7 +3040,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "boolean" | "integer" | "number" | "select" | "text" | "textarea" | "asset_slot" | "asset_list" | "structured_shots";
+            type: "boolean" | "integer" | "number" | "select" | "text" | "textarea" | "asset_list" | "structured_shots";
             /** Visible When */
             visible_when?: {
                 [key: string]: unknown;
@@ -3048,6 +3064,11 @@ export interface components {
         DirectorProviderSettingsResponse: {
             /** Base Url */
             base_url: string;
+            /**
+             * Callback Configured
+             * @default false
+             */
+            callback_configured: boolean;
             /** Configured */
             configured: boolean;
             /** Name */

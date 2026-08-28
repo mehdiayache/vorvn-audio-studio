@@ -8,6 +8,14 @@ export type DirectorInputSlot = {
   required: boolean
   media_types: DirectorAttachmentKind[]
   max: number
+  mime_types: string[]
+  max_bytes: number | null
+  duration_min_ms: number | null
+  duration_max_ms: number | null
+  min_width: number | null
+  min_height: number | null
+  aspect_ratio_min: number | null
+  aspect_ratio_max: number | null
 }
 
 export type DirectorDurationRange = {
@@ -19,7 +27,7 @@ export type DirectorDurationRange = {
 
 export type DirectorParameterCapability = {
   key: string
-  type: "boolean" | "integer" | "number" | "select" | "text" | "textarea" | "asset_slot" | "asset_list" | "structured_shots"
+  type: "boolean" | "integer" | "number" | "select" | "text" | "textarea" | "asset_list" | "structured_shots"
   label: string
   exposure: "primary" | "advanced"
   required: boolean

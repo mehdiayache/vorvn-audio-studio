@@ -80,6 +80,30 @@ class DirectorProviderTests(unittest.TestCase):
                 materialized_parameters={},
             )
 
+    def test_kie_model_adapter_orders_start_and_end_frames(self):
+        request = KieModelAdapter().request(
+            model={
+                "provider_model_id": "kling-3.0-omni/image-to-video"},
+            operation={"operation": "frames_to_video"},
+            recipe={
+                "prompt": "Move from dawn to dusk",
+                "controls": {
+                    "ratio": "auto", "resolution": "1080p", "duration": 8,
+                    "provider_parameters": {"audio": False},
+                },
+            },
+            materialized_inputs=[
+                {"role": "start-frame", "url": "https://assets.test/start.png"},
+                {"role": "end-frame", "url": "https://assets.test/end.png"},
+            ],
+            materialized_parameters={},
+        )
+        self.assertEqual(request["input"]["image_urls"], [
+            "https://assets.test/start.png", "https://assets.test/end.png",
+        ])
+        self.assertEqual(request["input"]["aspect_ratio"], "auto")
+        self.assertEqual(request["input"]["customize_multi_shots"], False)
+
     def test_kie_model_adapter_materializes_subject_assets_only_at_boundary(self):
         request = KieModelAdapter().request(
             model={"provider_model_id": "kling-3.0-omni/text-to-video"},
@@ -179,6 +203,26 @@ class DirectorProviderTests(unittest.TestCase):
             "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=task-1")
         self.assertEqual(
             requests[0][0].headers["Authorization"], "Bearer secret")
+
+    def test_kie_provider_adds_callback_only_when_configured(self):
+        requests = []
+
+        def opener(request, **_kwargs):
+            requests.append(request)
+            return Response({"code": 200, "data": {"taskId": "task-2"}})
+
+        with patch.dict(os.environ, {
+            "KIE_API_KEY": "secret",
+            "KIE_CALLBACK_URL": "https://studio.test/api/v1/providers/kie/callback",
+        }, clear=True):
+            KieDirectorProvider(opener=opener).submit({
+                "model": "kling-3.0-omni/text-to-video",
+                "input": {"prompt": "Quiet sea"},
+            })
+        payload = json.loads(requests[0].data)
+        self.assertEqual(
+            payload["callBackUrl"],
+            "https://studio.test/api/v1/providers/kie/callback")
 
     def test_kie_download_is_streamed_to_the_requested_file(self):
         requests = []
