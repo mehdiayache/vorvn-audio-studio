@@ -30,27 +30,35 @@ const catalog = {
   ],
 }
 
+const kieParameters = [
+  { key: "audio", type: "boolean", label: "Generate audio", exposure: "advanced", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: [], item: {} },
+  { key: "customize_multi_shots", type: "boolean", label: "Direct multiple shots", exposure: "advanced", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: ["prefer_multi_shots"], item: {} },
+  { key: "prefer_multi_shots", type: "boolean", label: "Plan shots automatically", exposure: "advanced", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: ["customize_multi_shots"], item: {} },
+  { key: "multi_prompt", type: "structured_shots", label: "Shots", exposure: "advanced", required: true, default: [], options: [], min: null, max: null, step: null, max_length: null, visible_when: { customize_multi_shots: true }, conflicts_with: [], item: { prompt_max_length: 512, duration_min: 1, duration_max: 15, max_items: 6 } },
+  { key: "elements", type: "asset_list", label: "Characters & subjects", exposure: "advanced", required: false, default: [], options: [], min: null, max: 7, step: null, max_length: null, visible_when: {}, conflicts_with: [], item: { name_max_length: 64, description_max_length: 300, description_required: true, variants: [{ id: "images", label: "Image subject", media_types: ["image"], min_assets: 2, max_assets: 4 }], audio: { media_types: ["audio"], max_assets: 1 } } },
+]
+
+function kieCapability(operation: string, inputs: unknown[], requiredAnyOf: string[][] = []) {
+  return {
+    operation, output_media_type: "video", prompt: { supported: true, required: true, negative_prompt: false, max_length: 3072 },
+    inputs, required_any_of: requiredAnyOf, ratios: ["16:9", "9:16"], resolutions: ["720p", "1080p", "4k"], durations: [],
+    duration_range: { min: 3, max: 15, step: 1, default: 5 }, fps: [], supports_seed: false, supports_cancel: false,
+    output: { mime_type: "video/mp4", extension: "mp4" }, parameters: kieParameters,
+  }
+}
+
 const kieCatalog = {
   providers: [{ id: "kie", label: "KIE" }],
-  operations: [{ id: "text_to_video", label: "Create video", detail: "Create motion from a written direction" }],
-  models: [{
-    id: "kling-3.0-omni/text-to-video", label: "Kling 3.0 Omni", provider: "KIE", provider_id: "kie",
-    provider_model_id: "kling-3.0-omni/text-to-video", adapter_key: "kie-kling-omni", adapter_version: "adapter-1",
-    capability_manifest_version: "manifest-1", status: "enabled", description: "Video",
-    operations: [{
-      operation: "text_to_video", output_media_type: "video", prompt: { supported: true, required: true, negative_prompt: false, max_length: 3072 },
-      inputs: [], required_any_of: [], ratios: ["16:9", "9:16"], resolutions: ["720p", "1080p", "4k"], durations: [],
-      duration_range: { min: 3, max: 15, step: 1, default: 5 }, fps: [], supports_seed: false, supports_cancel: false,
-      output: { mime_type: "video/mp4", extension: "mp4" },
-      parameters: [
-        { key: "audio", type: "boolean", label: "Generate audio", exposure: "primary", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: [], item: {} },
-        { key: "customize_multi_shots", type: "boolean", label: "Direct multiple shots", exposure: "primary", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: ["prefer_multi_shots"], item: {} },
-        { key: "prefer_multi_shots", type: "boolean", label: "Plan shots automatically", exposure: "primary", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: ["customize_multi_shots"], item: {} },
-        { key: "multi_prompt", type: "structured_shots", label: "Shots", exposure: "primary", required: true, default: [], options: [], min: null, max: null, step: null, max_length: null, visible_when: { customize_multi_shots: true }, conflicts_with: [], item: { prompt_max_length: 512, duration_min: 1, duration_max: 15, max_items: 6 } },
-        { key: "elements", type: "asset_list", label: "Characters & subjects", exposure: "primary", required: false, default: [], options: [], min: null, max: 7, step: null, max_length: null, visible_when: {}, conflicts_with: [], item: { name_max_length: 64, description_max_length: 300, variants: [{ id: "images", label: "Image subject", media_types: ["image"], min_assets: 2, max_assets: 4 }], audio: { media_types: ["audio"], max_assets: 1 } } },
-      ],
-    }],
-  }],
+  operations: [
+    { id: "text_to_video", label: "Create video", detail: "Create motion from a written direction" },
+    { id: "image_to_video", label: "Animate image", detail: "Create motion from a source image" },
+    { id: "reference_to_video", label: "Direct with references", detail: "Use visual references" },
+  ],
+  models: [
+    { id: "kling-3.0-omni/text-to-video", label: "Kling 3.0 Omni", provider: "KIE", provider_id: "kie", provider_model_id: "kling-3.0-omni/text-to-video", adapter_key: "kie-kling-omni", adapter_version: "adapter-1", capability_manifest_version: "manifest-1", status: "enabled", description: "Video", operations: [kieCapability("text_to_video", [])] },
+    { id: "kling-3.0-omni/image-to-video", label: "Kling 3.0 Omni", provider: "KIE", provider_id: "kie", provider_model_id: "kling-3.0-omni/image-to-video", adapter_key: "kie-kling-omni", adapter_version: "adapter-1", capability_manifest_version: "manifest-1", status: "enabled", description: "Animate image", operations: [kieCapability("image_to_video", [{ role: "source-image", label: "Source image", required: true, media_types: ["image"], max: 1 }])] },
+    { id: "kling-3.0-omni/reference-to-video", label: "Kling 3.0 Omni", provider: "KIE", provider_id: "kie", provider_model_id: "kling-3.0-omni/reference-to-video", adapter_key: "kie-kling-omni", adapter_version: "adapter-1", capability_manifest_version: "manifest-1", status: "enabled", description: "References", operations: [kieCapability("reference_to_video", [{ role: "reference-image", label: "Reference images", required: false, media_types: ["image"], max: 7 }], [["reference-image"]])] },
+  ],
 }
 
 function generation(prompt = "A quiet violet horizon"): DirectorGeneration {
@@ -152,28 +160,30 @@ describe("Director composer", () => {
     await waitFor(() => expect(onAddGeneratedToTimeline).toHaveBeenCalledWith(asset))
   })
 
-  it("renders model-declared creative controls in the Composer instead of hiding them in settings", async () => {
+  it("keeps optional provider controls in one explicit settings surface", async () => {
     vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
     renderComposer({ libraryAssets: [
       { id: 41, media_type: "image", name: "Hero front" },
       { id: 42, media_type: "image", name: "Hero side" },
     ] })
+    const settings = await screen.findByRole("button", { name: "Model settings" })
+    expect(screen.queryByText("Generate audio")).toBeNull()
+    fireEvent.click(settings)
     expect(await screen.findByText("Generate audio")).toBeTruthy()
     expect(screen.getByText("Plan shots automatically")).toBeTruthy()
     expect(screen.getByText("Characters & subjects")).toBeTruthy()
-    expect(screen.queryByRole("button", { name: "Model settings" })).toBeNull()
     fireEvent.click(screen.getByRole("button", { name: "Add subject" }))
     expect(screen.getByText("Subject 1")).toBeTruthy()
     expect((screen.getByRole("textbox", { name: "Prompt name" }) as HTMLInputElement).value).toBe("subject_1")
   })
 
-  it("routes a canonical image into the nested provider reference contract", async () => {
+  it("routes one ordinary image to image-to-video without inventing an Element", async () => {
     vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
     renderComposer({ libraryAssets: [
       { id: 41, media_type: "image", name: "Hero front" },
       { id: 42, media_type: "image", name: "Hero side" },
     ] })
-    fireEvent.change(await screen.findByRole("textbox", { name: "Director prompt" }), { target: { value: "@subject1 crosses the room" } })
+    fireEvent.change(await screen.findByRole("textbox", { name: "Director prompt" }), { target: { value: "The product turns slowly" } })
 
     fireEvent.pointerDown(screen.getByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
     fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
@@ -181,23 +191,23 @@ describe("Director composer", () => {
 
     expect(await screen.findByLabelText("Generation references")).toBeTruthy()
     expect(screen.getByText("Hero front", { selector: ".attachment-chip-copy strong" })).toBeTruthy()
-    expect(screen.getByText("@subject1 · Image subject")).toBeTruthy()
+    expect(screen.getByText("Source image")).toBeTruthy()
+    expect(screen.getByRole("button", { name: /Creation type: Animate image/ })).toBeTruthy()
+    expect(screen.queryByText(/subject/i, { selector: ".attachment-chip-role" })).toBeNull()
 
-    expect(await screen.findByText("Subject 1")).toBeTruthy()
-    expect(screen.getByText("Hero front", { selector: ".director-subject-asset" })).toBeTruthy()
-    expect((screen.getByLabelText("Description (optional)") as HTMLInputElement).value).toBe("Hero front")
-    expect(screen.getByText(/Add 1 more reference/)).toBeTruthy()
-    expect(screen.getByText("Add 1 more image to @subject1.")).toBeTruthy()
-
-    fireEvent.click(screen.getByRole("button", { name: "Remove Hero front" }))
-    expect(screen.queryByText("Hero front", { selector: ".attachment-chip-copy strong" })).toBeNull()
-    expect(await screen.findByText(/Optional\. Add a character/)).toBeTruthy()
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
+    fireEvent.click((await screen.findByText("Hero side", { selector: ".director-reference-item strong" })).closest("button")!)
+    expect(await screen.findByRole("button", { name: /Creation type: Direct with references/ })).toBeTruthy()
+    expect(screen.getAllByText("Reference images").length).toBeGreaterThan(0)
+    expect((screen.getByRole("textbox", { name: "Director prompt" }) as HTMLTextAreaElement).value).toBe("The product turns slowly")
   })
 
-  it("shows shot planning at the work surface and explains why Create is unavailable", async () => {
+  it("shows shot planning in settings and explains why Create is unavailable", async () => {
     vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
     renderComposer()
     fireEvent.change(await screen.findByRole("textbox", { name: "Director prompt" }), { target: { value: "A calm harbor at dawn" } })
+    fireEvent.click(await screen.findByRole("button", { name: "Model settings" }))
     fireEvent.click(screen.getByRole("switch", { name: "Direct multiple shots" }))
     expect(await screen.findByRole("button", { name: "Add shot" })).toBeTruthy()
     expect(screen.getByText("Add at least one directed shot.")).toBeTruthy()
@@ -207,7 +217,8 @@ describe("Director composer", () => {
   it("keeps conflicting creative modes mutually exclusive", async () => {
     vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
     renderComposer()
-    const direct = await screen.findByRole("switch", { name: "Direct multiple shots" })
+    fireEvent.click(await screen.findByRole("button", { name: "Model settings" }))
+    const direct = screen.getByRole("switch", { name: "Direct multiple shots" })
     const automatic = screen.getByRole("switch", { name: "Plan shots automatically" })
     fireEvent.click(direct)
     expect(direct.getAttribute("data-state")).toBe("checked")
@@ -216,20 +227,18 @@ describe("Director composer", () => {
     expect(direct.getAttribute("data-state")).toBe("unchecked")
   })
 
-  it("offers nested audio only after a subject can receive it", async () => {
+  it("does not invent a persistent subject when adding an ordinary reference", async () => {
     vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
     renderComposer({ libraryAssets: [
       { id: 41, media_type: "image", name: "Hero front" },
-      { id: 42, media_type: "audio", name: "Hero voice", duration_ms: 8000 },
+      { id: 42, media_type: "image", name: "Hero side" },
     ] })
     fireEvent.pointerDown(await screen.findByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
     fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
     const hero = await screen.findByText("Hero front", { selector: ".director-reference-item strong" })
-    expect(screen.queryByText("Hero voice", { selector: ".director-reference-item strong" })).toBeNull()
     fireEvent.click(hero.closest("button")!)
-
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
-    expect(await screen.findByText("Hero voice", { selector: ".director-reference-item strong" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Model settings" }))
+    expect(await screen.findByText(/Optional\. Add a character/)).toBeTruthy()
+    expect(screen.queryByText("Subject 1")).toBeNull()
   })
 })

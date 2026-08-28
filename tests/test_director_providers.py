@@ -92,6 +92,33 @@ class DirectorProviderTests(unittest.TestCase):
         }])
         self.assertEqual(request["input"]["prefer_multi_shots"], True)
 
+    def test_kie_reference_video_keeps_ordinary_images_out_of_elements(self):
+        request = KieModelAdapter().request(
+            model={
+                "provider_model_id":
+                    "kling-3.0-omni/reference-to-video"},
+            operation={"operation": "reference_to_video"},
+            recipe={
+                "prompt": "Keep the product identity while the camera orbits",
+                "controls": {
+                    "ratio": "1:1", "resolution": "1080p", "duration": 5,
+                    "provider_parameters": {"audio": False},
+                },
+            },
+            materialized_inputs=[
+                {"role": "reference-image",
+                 "url": "https://assets.test/front.png"},
+                {"role": "reference-image",
+                 "url": "https://assets.test/side.png"},
+            ],
+            materialized_parameters={},
+        )
+        self.assertEqual(request["input"]["image_urls"], [
+            "https://assets.test/front.png",
+            "https://assets.test/side.png",
+        ])
+        self.assertNotIn("elements", request["input"])
+
     def test_kie_provider_uses_common_task_lifecycle_and_normalizes_results(self):
         requests = []
         responses = iter([

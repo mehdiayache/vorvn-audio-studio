@@ -4,6 +4,7 @@ import { OperatorTooltip } from "@/components/operator-tooltip"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { InputGroupAddon, InputGroupButton, InputGroupText } from "@/components/ui/input-group"
 import type { DirectorAdvancedValues } from "./director-advanced-settings"
+import type { VentureAsset } from "@/types/domain"
 import { DirectorAdvancedSettings } from "./director-advanced-settings"
 import { DirectorCapabilityControls } from "./director-capability-controls"
 import type { DirectorModelCapability, DirectorOperation, DirectorOperationCapability, DirectorOperationInfo } from "./director-composer-config"
@@ -11,7 +12,7 @@ import { DirectorModelSelector } from "./director-model-selector"
 import { DirectorOperationPicker } from "./director-operation-picker"
 import { DirectorSubmit } from "./director-submit"
 
-export function DirectorComposerToolbar({ operations, operation, capability, model, models, ratio, resolution, duration, advanced, disabledReason, busy, uploadStatus, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onUpload, onOpenLibrary, onPaste, onSubmit }: {
+export function DirectorComposerToolbar({ operations, operation, capability, model, models, ratio, resolution, duration, advanced, assets, disabledReason, busy, uploadStatus, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onUpload, onOpenLibrary, onPaste, onSubmit }: {
   operations: DirectorOperationInfo[]
   operation: DirectorOperation
   capability: DirectorOperationCapability
@@ -21,6 +22,7 @@ export function DirectorComposerToolbar({ operations, operation, capability, mod
   resolution: string
   duration: number
   advanced: DirectorAdvancedValues
+  assets: VentureAsset[]
   disabledReason?: string
   busy: boolean
   uploadStatus?: string
@@ -56,7 +58,7 @@ export function DirectorComposerToolbar({ operations, operation, capability, mod
     </div>
     <div className="director-composer-toolbar-end">
       {uploadStatus && <InputGroupText className="director-upload-status">{uploadStatus}</InputGroupText>}
-      <DirectorAdvancedSettings model={model} capability={capability} values={advanced} onChange={onAdvancedChange} />
+      <DirectorAdvancedSettings model={model} capability={capability} values={advanced} assets={assets} onChange={onAdvancedChange} />
       <DirectorSubmit disabled={Boolean(disabledReason)} busy={busy} reason={disabledReason} onClick={onSubmit} />
     </div>
   </InputGroupAddon>

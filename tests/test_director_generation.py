@@ -94,16 +94,51 @@ class DirectorGenerationTest(unittest.TestCase):
             "negative_prompt": False, "max_length": 3072})
         fields = {field["key"]: field for field in text_video["parameters"]}
         self.assertEqual(fields["multi_prompt"]["item"]["max_items"], 6)
-        self.assertEqual(fields["multi_prompt"]["exposure"], "primary")
+        self.assertEqual(fields["multi_prompt"]["exposure"], "advanced")
         self.assertEqual(fields["elements"]["type"], "asset_list")
-        self.assertEqual(fields["elements"]["exposure"], "primary")
+        self.assertEqual(fields["elements"]["exposure"], "advanced")
         self.assertTrue(fields["elements"]["item"]["description_required"])
         self.assertEqual(
             fields["customize_multi_shots"]["conflicts_with"],
             ["prefer_multi_shots"])
         self.assertEqual(model_c["provider_id"], "kie")
-        self.assertEqual(model_c["status"], "verified")
-        self.assertEqual(len(catalog["models"]), 1)
+        self.assertEqual(model_c["status"], "enabled")
+        self.assertEqual(len(catalog["models"]), 3)
+
+    def test_one_image_is_a_direct_image_to_video_input_not_an_element(self):
+        jobs = FakeJobs()
+        service = DirectorGenerationService(jobs, FakeAssets())
+        value = recipe(
+            operation="image_to_video",
+            model_id="kling-3.0-omni/image-to-video",
+            inputs=[{
+                "asset_id": 11, "role": "source-image",
+                "media_type": "image", "position": 0,
+            }],
+        )
+        projected, _ = service.enqueue(7, value, idempotency_key="one-image")
+        self.assertEqual(projected["recipe"]["inputs"], value["inputs"])
+        self.assertEqual(
+            projected["recipe"]["controls"]["provider_parameters"]["elements"],
+            [],
+        )
+
+    def test_multiple_ordinary_images_use_reference_input_slots(self):
+        jobs = FakeJobs()
+        service = DirectorGenerationService(jobs, FakeAssets())
+        inputs = [
+            {"asset_id": asset_id, "role": "reference-image",
+             "media_type": "image", "position": position}
+            for position, asset_id in enumerate((11, 14))
+        ]
+        value = recipe(
+            operation="reference_to_video",
+            model_id="kling-3.0-omni/reference-to-video",
+            inputs=inputs,
+        )
+        projected, _ = service.enqueue(
+            7, value, idempotency_key="ordinary-references")
+        self.assertEqual(projected["recipe"]["inputs"], inputs)
 
     def test_enqueue_keeps_one_ordered_canonical_input_contract(self):
         jobs = FakeJobs()

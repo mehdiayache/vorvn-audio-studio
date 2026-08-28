@@ -110,29 +110,70 @@ export function compatibleModels(models: DirectorModelCapability[], operation: D
   return models.filter((model) => model.operations.some((capability) => capability.operation === operation))
 }
 
+export function directReferenceMediaTypes(capability: DirectorOperationCapability) {
+  return [...new Set(capability.inputs.flatMap(({ media_types }) => media_types))]
+}
+
+export function compatibleDirectInputTarget(
+  models: DirectorModelCapability[],
+  currentModel: DirectorModelCapability,
+  currentCapability: DirectorOperationCapability,
+  kind: DirectorAttachmentKind,
+  existingKinds: DirectorAttachmentKind[] = [],
+) {
+  const used = existingKinds.filter((candidate) => candidate === kind).length
+  const currentCapacity = currentCapability.inputs
+    .filter(({ media_types }) => media_types.includes(kind))
+    .reduce((total, slot) => total + slot.max, 0)
+  const currentAccepts = currentCapacity > used
+  if (currentAccepts) return { model: currentModel, capability: currentCapability }
+  const candidates = models.flatMap((model) => model.operations.flatMap((capability) => {
+    const slots = capability.inputs.filter(({ media_types }) => media_types.includes(kind))
+    const capacity = slots.reduce((total, slot) => total + slot.max, 0)
+    if (capacity <= used) return []
+    const required = slots.some((slot) => slot.required || capability.required_any_of.some((group) => group.includes(slot.role)))
+    const affinity = Number(model.provider_id === currentModel.provider_id) + Number(model.label === currentModel.label)
+    return [{ model, capability, required, affinity }]
+  }))
+  candidates.sort((left, right) => Number(right.required) - Number(left.required) || right.affinity - left.affinity)
+  return candidates[0] ? { model: candidates[0].model, capability: candidates[0].capability } : undefined
+}
+
 export function operationCapability(model: DirectorModelCapability, operation: DirectorOperation) {
   return model.operations.find((capability) => capability.operation === operation)
 }
 
 export function availableReferenceMediaTypes(capability: DirectorOperationCapability, values: DirectorParameterValues) {
-  const direct = capability.inputs.flatMap(({ media_types }) => media_types)
+  const direct = directReferenceMediaTypes(capability)
   const nested = capability.parameters.flatMap((field) => {
     if (field.type !== "asset_list") return []
     if (!Object.entries(field.visible_when).every(([key, expected]) => values[key] === expected)) return []
-    const variants = Array.isArray(field.item.variants)
-      ? field.item.variants as { media_types?: DirectorAttachmentKind[] }[]
-      : []
     const items = Array.isArray(values[field.key])
-      ? values[field.key] as { audio_asset_ids?: number[] }[]
+      ? values[field.key] as { variant?: string; asset_ids?: number[]; audio_asset_ids?: number[] }[]
+      : []
+    const variants = Array.isArray(field.item.variants)
+      ? field.item.variants as { id?: string; media_types?: DirectorAttachmentKind[]; max_assets?: number }[]
       : []
     const audio = field.item.audio as { media_types?: DirectorAttachmentKind[]; max_assets?: number } | undefined
     const acceptsAudio = audio && items.some(({ audio_asset_ids }) => (audio_asset_ids?.length || 0) < Number(audio.max_assets || 1))
+    const activeVariants = variants.filter((variant) => items.some((item) => item.variant === variant.id && (item.asset_ids?.length || 0) < Number(variant.max_assets || 1)))
     return [
-      ...variants.flatMap(({ media_types }) => media_types || []),
+      ...activeVariants.flatMap(({ media_types }) => media_types || []),
       ...(acceptsAudio ? audio.media_types || [] : []),
     ]
   })
   return [...new Set([...direct, ...nested])]
+}
+
+export function catalogReferenceMediaTypes(
+  models: DirectorModelCapability[],
+  capability: DirectorOperationCapability,
+  values: DirectorParameterValues,
+) {
+  return [...new Set([
+    ...models.flatMap((model) => model.operations.flatMap(directReferenceMediaTypes)),
+    ...availableReferenceMediaTypes(capability, values),
+  ])]
 }
 
 export function attachmentRoleLabel(capability: DirectorOperationCapability, role: DirectorAttachmentRole) {

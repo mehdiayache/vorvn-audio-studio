@@ -10,7 +10,7 @@ import type { DirectorAdvancedValues } from "./director-advanced-settings"
 import type { DirectorComposerAttachment } from "./director-composer-attachments"
 import { DirectorComposerInput } from "./director-composer-input"
 import {
-  availableReferenceMediaTypes, compatibleModels, normalizeCapabilityCatalog, operationCapability,
+  availableReferenceMediaTypes, catalogReferenceMediaTypes, compatibleDirectInputTarget, compatibleModels, directReferenceMediaTypes, normalizeCapabilityCatalog, operationCapability,
   type DirectorCapabilityCatalog, type DirectorModelCapability,
   type DirectorOperation,
 } from "./director-composer-config"
@@ -57,7 +57,6 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
   const [historyOpen, setHistoryOpen] = useState(false)
   const [referenceUploads, setReferenceUploads] = useState(0)
   const [composerError, setComposerError] = useState("")
-  const objectUrls = useRef(new Set<string>())
   const refreshedOutputIds = useRef(new Set<number>())
   const { generations, submitting, create, cancel } = useDirectorGenerations(productionId, setComposerError)
   const activeGenerations = generations.filter(({ status }) => status === "queued" || status === "generating")
@@ -86,8 +85,6 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
     return () => { active = false }
   }, [])
 
-  useEffect(() => () => objectUrls.current.forEach((url) => URL.revokeObjectURL(url)), [])
-
   useEffect(() => {
     const newOutputIds = generations
       .filter(({ status }) => status === "ready")
@@ -113,7 +110,7 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
   const failedAttachment = attachments.some(({ status }) => status === "failed")
   const controlsIssue = capability ? parameterIssue(capability, advanced.parameters, duration, libraryAssets) : undefined
   const disabledReason = !capability ? "Director capabilities are loading." : capability.prompt.required && !prompt.trim() ? "Write what you want to create." : prompt.length > capability.prompt.max_length ? `Keep the direction under ${capability.prompt.max_length.toLocaleString()} characters.` : referenceUploads || pendingAttachment ? "Wait for references to finish uploading." : failedAttachment ? "Remove the reference that failed to upload." : missing.length ? `Add ${missing.map((role) => capability.inputs.find((slot) => slot.role === role)?.label || role).join(" and ")}.` : missingChoice ? `Add ${missingChoice.map((role) => capability.inputs.find((slot) => slot.role === role)?.label || role).join(" or ")}.` : controlsIssue
-  const referenceMediaTypes = capability ? availableReferenceMediaTypes(capability, advanced.parameters) : []
+  const referenceMediaTypes = capability && catalog ? catalogReferenceMediaTypes(catalog.models, capability, advanced.parameters) : []
   const fileAccept = referenceMediaTypes.map((kind) => `${kind}/*`).join(",")
 
   function applyModel(next: DirectorModelCapability, nextOperation = operation) {
@@ -148,58 +145,29 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
   }
 
   function receiveFiles(files: File[]) {
-    if (!capability) return
-    const kinds = availableReferenceMediaTypes(capability, advanced.parameters)
-    let staged = [...attachments]
+    if (!capability || !catalog) return
     for (const file of files) {
       const kind = fileKind(file)
-      if (!kind || !kinds.includes(kind)) {
-        setComposerError(`${file.name} is not a compatible reference for this model operation.`)
+      if (!kind || !referenceMediaTypes.includes(kind)) {
+        setComposerError(`${file.name} is not supported by an available Director operation.`)
         continue
       }
-      const usesNestedReference = !capability.inputs.some(({ media_types }) => media_types.includes(kind))
-      if (usesNestedReference) {
-        setReferenceUploads((count) => count + 1)
-        void onUploadReference(file).then(receiveAsset).catch((reason) => {
-          setComposerError(reason instanceof Error ? reason.message : `${file.name} could not be uploaded.`)
-        }).finally(() => setReferenceUploads((count) => Math.max(0, count - 1)))
-        continue
-      }
-      const previewUrl = URL.createObjectURL(file)
-      objectUrls.current.add(previewUrl)
-      const id = identifier("attachment")
-      const transient: DirectorComposerAttachment = { id, name: file.name, kind, role: "", previewUrl, status: "uploading" }
-      const next = assignInputs([...staged, transient], capability)
-      if (!next.some((attachment) => attachment.id === id)) {
-        URL.revokeObjectURL(previewUrl)
-        objectUrls.current.delete(previewUrl)
-        setComposerError(`${model?.label || "This model"} has no available ${kind} input slot.`)
-        continue
-      }
-      staged = next
-      setAttachments(next)
-      void onUploadReference(file).then((asset) => {
-        const canonicalKind = assetKind(asset)
-        if (!canonicalKind) throw new Error("The upload did not produce a compatible canonical Asset.")
-        setAttachments((current) => assignInputs(current.map((attachment) => attachment.id === id ? {
-          ...attachment, assetId: asset.id, name: visualAssetName(asset), kind: canonicalKind,
-          previewUrl: assetPreview(asset), posterUrl: visualAssetPosterUrl(asset), file: undefined, status: "ready", error: undefined,
-        } : attachment), capability))
-        URL.revokeObjectURL(previewUrl)
-        objectUrls.current.delete(previewUrl)
-      }).catch((reason) => setAttachments((current) => current.map((attachment) => attachment.id === id ? {
-        ...attachment, status: "failed", error: reason instanceof Error ? reason.message : "Upload failed.",
-      } : attachment)))
+      setReferenceUploads((count) => count + 1)
+      void onUploadReference(file).then(receiveAsset).catch((reason) => {
+        setComposerError(reason instanceof Error ? reason.message : `${file.name} could not be uploaded.`)
+      }).finally(() => setReferenceUploads((count) => Math.max(0, count - 1)))
     }
   }
 
   function receiveAsset(asset: VentureAsset) {
     const kind = assetKind(asset)
-    if (!kind || !capability || !availableReferenceMediaTypes(capability, advanced.parameters).includes(kind)) {
-      setComposerError(`${visualAssetName(asset)} is not compatible with this model operation.`)
+    if (!kind || !capability || !catalog || !model) {
+      setComposerError(`${visualAssetName(asset)} is not supported by Director.`)
       return
     }
-    if (!capability.inputs.some(({ media_types }) => media_types.includes(kind))) {
+    const nestedKinds = availableReferenceMediaTypes(capability, advanced.parameters)
+      .filter((candidate) => !directReferenceMediaTypes(capability).includes(candidate))
+    if (nestedKinds.includes(kind)) {
       const next = addNestedReference(capability, advanced.parameters, asset)
       if (!next) {
         setComposerError(`${visualAssetName(asset)} has no available compatible reference position.`)
@@ -210,7 +178,25 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
       setLibraryOpen(false)
       return
     }
-    addAttachments([{ id: identifier(`asset-${asset.id}`), assetId: asset.id, name: visualAssetName(asset), kind, role: "", previewUrl: assetPreview(asset), posterUrl: visualAssetPosterUrl(asset), status: "ready" }])
+    const target = compatibleDirectInputTarget(catalog.models, model, capability, kind, attachments.map((attachment) => attachment.kind))
+    if (!target) {
+      setComposerError(`${visualAssetName(asset)} has no available compatible reference position.`)
+      return
+    }
+    const incoming = { id: identifier(`asset-${asset.id}`), assetId: asset.id, name: visualAssetName(asset), kind, role: "", previewUrl: assetPreview(asset), posterUrl: visualAssetPosterUrl(asset), status: "ready" as const }
+    if (target.capability === capability) {
+      addAttachments([incoming])
+    } else {
+      const initial = capabilityDefaults(target.capability)
+      setOperation(target.capability.operation)
+      setModelId(target.model.id)
+      setRatio(initial.ratio)
+      setResolution(initial.resolution)
+      setDuration(initial.duration)
+      setAdvanced(initial.advanced)
+      setAttachments(assignInputs([...attachments, incoming], target.capability))
+      setComposerError("")
+    }
     setLibraryOpen(false)
   }
 

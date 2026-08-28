@@ -16,10 +16,6 @@
 }
 .director-composer-input [data-slot="input-group-control"]::placeholder { color: color-mix(in srgb, var(--foreground) 58%, transparent); opacity: 1; }
 
-.director-primary-controls { display: grid; gap: .75rem; margin-inline: .65rem; padding: .65rem .45rem .15rem; border-top: 1px solid var(--border); }
-.director-primary-options { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem 1rem; }
-.director-primary-options .director-parameter-toggle { display: inline-flex; align-items: center; gap: .45rem; color: var(--foreground); font-size: var(--type-small); }
-.director-primary-options .director-parameter-toggle > span { white-space: nowrap; }
 .director-composer-readiness { position: relative; margin-inline: .75rem; padding: .1rem 0 .1rem 1rem; color: var(--foreground); font-size: var(--type-caption); line-height: 1.4; }
 .director-composer-readiness::before { position: absolute; top: .48rem; left: .15rem; width: .42rem; height: .42rem; border-radius: 999px; background: var(--warning); content: ""; }
 

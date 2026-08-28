@@ -11,10 +11,10 @@ from typing import Any, Literal
 
 
 ModelStatus = Literal["draft", "verified", "enabled"]
-MANIFEST_VERSION = "2026-08-28.4"
+MANIFEST_VERSION = "2026-08-28.5"
 
 
-AVAILABLE_MODEL_STATUSES = {"verified", "enabled"}
+AVAILABLE_MODEL_STATUSES = {"enabled"}
 
 
 OPERATION_TAXONOMY: tuple[dict[str, str], ...] = (
@@ -91,28 +91,28 @@ def _kling_video_fields() -> list[dict[str, Any]]:
     return [
         _field(
             "audio", "boolean", "Generate audio",
-            default=False, exposure="primary",
+            default=False, exposure="advanced",
         ),
         _field(
             "customize_multi_shots", "boolean", "Direct multiple shots",
-            default=False, exposure="primary",
+            default=False, exposure="advanced",
             conflicts_with=["prefer_multi_shots"],
         ),
         _field(
             "prefer_multi_shots", "boolean", "Plan shots automatically",
-            default=False, exposure="primary",
+            default=False, exposure="advanced",
             conflicts_with=["customize_multi_shots"],
         ),
         _field(
             "multi_prompt", "structured_shots", "Shots", default=[],
-            required=True, exposure="primary",
+            required=True, exposure="advanced",
             visible_when={"customize_multi_shots": True},
             item={"prompt_max_length": 512, "duration_min": 1,
                   "duration_max": 15, "max_items": 6},
         ),
         _field(
             "elements", "asset_list", "Characters & subjects", default=[],
-            max=7, exposure="primary",
+            max=7, exposure="advanced",
             item={
                 "name_max_length": 64,
                 "description_max_length": 300,
@@ -185,8 +185,8 @@ MODELS: tuple[dict[str, Any], ...] = (
         "adapter_key": "kie-kling-omni",
         "adapter_version": "kie-kling-omni-1",
         "capability_manifest_version": MANIFEST_VERSION,
-        "status": "verified",
-        "description": "Prompt generation is verified; optional references, audio and shot controls remain visible for deliberate validation",
+        "status": "enabled",
+        "description": "Create video from a written direction; advanced audio, shot and persistent-subject controls remain available in model settings",
         "operations": [_kling_operation("text_to_video")],
     },
     {
@@ -198,7 +198,7 @@ MODELS: tuple[dict[str, Any], ...] = (
         "adapter_key": "kie-kling-omni",
         "adapter_version": "kie-kling-omni-1",
         "capability_manifest_version": MANIFEST_VERSION,
-        "status": "draft",
+        "status": "enabled",
         "description": "Animate a canonical image with optional generated audio",
         "operations": [_kling_operation(
             "image_to_video",
@@ -215,7 +215,7 @@ MODELS: tuple[dict[str, Any], ...] = (
         "adapter_key": "kie-kling-omni",
         "adapter_version": "kie-kling-omni-1",
         "capability_manifest_version": MANIFEST_VERSION,
-        "status": "draft",
+        "status": "enabled",
         "description": "Create video from image and video references",
         "operations": [_kling_operation(
             "reference_to_video",
