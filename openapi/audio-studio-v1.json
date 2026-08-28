@@ -2195,9 +2195,20 @@
             },
             "title": "Operations",
             "type": "array"
+          },
+          "providers": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "title": "Providers",
+            "type": "array"
           }
         },
         "required": [
+          "providers",
           "operations",
           "models"
         ],
@@ -2214,6 +2225,34 @@
           "data"
         ],
         "title": "DirectorCapabilitiesEnvelope",
+        "type": "object"
+      },
+      "DirectorDurationRange": {
+        "properties": {
+          "default": {
+            "title": "Default",
+            "type": "integer"
+          },
+          "max": {
+            "title": "Max",
+            "type": "integer"
+          },
+          "min": {
+            "title": "Min",
+            "type": "integer"
+          },
+          "step": {
+            "title": "Step",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "min",
+          "max",
+          "step",
+          "default"
+        ],
+        "title": "DirectorDurationRange",
         "type": "object"
       },
       "DirectorGenerationControls": {
@@ -2249,10 +2288,12 @@
             "type": "object"
           },
           "ratio": {
+            "default": "",
             "title": "Ratio",
             "type": "string"
           },
           "resolution": {
+            "default": "",
             "title": "Resolution",
             "type": "string"
           },
@@ -2269,10 +2310,6 @@
             "title": "Seed"
           }
         },
-        "required": [
-          "ratio",
-          "resolution"
-        ],
         "title": "DirectorGenerationControls",
         "type": "object"
       },
@@ -2405,6 +2442,40 @@
       },
       "DirectorGenerationResponse": {
         "properties": {
+          "adapter_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adapter Version"
+          },
+          "capability_manifest_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Manifest Version"
+          },
+          "capability_snapshot": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Snapshot"
+          },
           "created_at": {
             "anyOf": [
               {
@@ -2482,6 +2553,17 @@
             "title": "Provider",
             "type": "string"
           },
+          "provider_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Id"
+          },
           "provider_job_id": {
             "anyOf": [
               {
@@ -2492,6 +2574,17 @@
               }
             ],
             "title": "Provider Job Id"
+          },
+          "provider_model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Model Id"
           },
           "recipe": {
             "$ref": "#/components/schemas/DirectorGenerationRecipe"
@@ -2584,6 +2677,18 @@
       },
       "DirectorModelCapability": {
         "properties": {
+          "adapter_key": {
+            "title": "Adapter Key",
+            "type": "string"
+          },
+          "adapter_version": {
+            "title": "Adapter Version",
+            "type": "string"
+          },
+          "capability_manifest_version": {
+            "title": "Capability Manifest Version",
+            "type": "string"
+          },
           "description": {
             "title": "Description",
             "type": "string"
@@ -2607,8 +2712,21 @@
             "title": "Provider",
             "type": "string"
           },
-          "version": {
-            "title": "Version",
+          "provider_id": {
+            "title": "Provider Id",
+            "type": "string"
+          },
+          "provider_model_id": {
+            "title": "Provider Model Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "verified",
+              "enabled"
+            ],
+            "title": "Status",
             "type": "string"
           }
         },
@@ -2616,7 +2734,12 @@
           "id",
           "label",
           "provider",
-          "version",
+          "provider_id",
+          "provider_model_id",
+          "adapter_key",
+          "adapter_version",
+          "capability_manifest_version",
+          "status",
           "description",
           "operations"
         ],
@@ -2625,6 +2748,16 @@
       },
       "DirectorOperationCapability": {
         "properties": {
+          "duration_range": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DirectorDurationRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "durations": {
             "items": {
               "type": "integer"
@@ -2650,6 +2783,9 @@
             "title": "Operation",
             "type": "string"
           },
+          "output": {
+            "$ref": "#/components/schemas/DirectorOutputCapability"
+          },
           "output_media_type": {
             "enum": [
               "image",
@@ -2657,6 +2793,13 @@
             ],
             "title": "Output Media Type",
             "type": "string"
+          },
+          "parameters": {
+            "items": {
+              "$ref": "#/components/schemas/DirectorParameterCapability"
+            },
+            "title": "Parameters",
+            "type": "array"
           },
           "prompt": {
             "$ref": "#/components/schemas/DirectorPromptCapability"
@@ -2666,6 +2809,16 @@
               "type": "string"
             },
             "title": "Ratios",
+            "type": "array"
+          },
+          "required_any_of": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Required Any Of",
             "type": "array"
           },
           "resolutions": {
@@ -2694,7 +2847,8 @@
           "durations",
           "fps",
           "supports_seed",
-          "supports_cancel"
+          "supports_cancel",
+          "output"
         ],
         "title": "DirectorOperationCapability",
         "type": "object"
@@ -2722,8 +2876,140 @@
         "title": "DirectorOperationInfo",
         "type": "object"
       },
+      "DirectorOutputCapability": {
+        "properties": {
+          "extension": {
+            "title": "Extension",
+            "type": "string"
+          },
+          "mime_type": {
+            "title": "Mime Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mime_type",
+          "extension"
+        ],
+        "title": "DirectorOutputCapability",
+        "type": "object"
+      },
+      "DirectorParameterCapability": {
+        "additionalProperties": false,
+        "properties": {
+          "conflicts_with": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Conflicts With",
+            "type": "array"
+          },
+          "default": {
+            "title": "Default"
+          },
+          "item": {
+            "additionalProperties": true,
+            "title": "Item",
+            "type": "object"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max"
+          },
+          "max_length": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Length"
+          },
+          "min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min"
+          },
+          "options": {
+            "items": {},
+            "title": "Options",
+            "type": "array"
+          },
+          "required": {
+            "default": false,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "step": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step"
+          },
+          "type": {
+            "enum": [
+              "boolean",
+              "integer",
+              "number",
+              "select",
+              "text",
+              "textarea",
+              "asset_slot",
+              "asset_list",
+              "structured_shots"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "visible_when": {
+            "additionalProperties": true,
+            "title": "Visible When",
+            "type": "object"
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "label"
+        ],
+        "title": "DirectorParameterCapability",
+        "type": "object"
+      },
       "DirectorPromptCapability": {
         "properties": {
+          "max_length": {
+            "default": 20000,
+            "title": "Max Length",
+            "type": "integer"
+          },
           "negative_prompt": {
             "title": "Negative Prompt",
             "type": "boolean"
@@ -2743,6 +3029,53 @@
           "negative_prompt"
         ],
         "title": "DirectorPromptCapability",
+        "type": "object"
+      },
+      "DirectorProviderSettingsResponse": {
+        "properties": {
+          "base_url": {
+            "title": "Base Url",
+            "type": "string"
+          },
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "configured",
+          "base_url"
+        ],
+        "title": "DirectorProviderSettingsResponse",
+        "type": "object"
+      },
+      "DirectorProviderUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "api_key": {
+            "default": "",
+            "maxLength": 4000,
+            "title": "Api Key",
+            "type": "string"
+          },
+          "base_url": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Base Url",
+            "type": "string"
+          }
+        },
+        "title": "DirectorProviderUpdate",
         "type": "object"
       },
       "DiskLocationResponse": {
@@ -7238,14 +7571,50 @@
         "type": "object"
       },
       "ProviderConnectionTestResponse": {
+        "additionalProperties": true,
         "properties": {
+          "configured": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configured"
+          },
           "connected": {
             "title": "Connected",
             "type": "boolean"
           },
+          "credits": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credits"
+          },
           "provider": {
-            "title": "Provider",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
           },
           "reason": {
             "anyOf": [
@@ -7259,24 +7628,41 @@
             "title": "Reason"
           },
           "region": {
-            "title": "Region",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
           },
           "region_label": {
-            "title": "Region Label",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Label"
           },
           "workspace_configured": {
-            "title": "Workspace Configured",
-            "type": "boolean"
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Configured"
           }
         },
         "required": [
-          "connected",
-          "provider",
-          "region",
-          "region_label",
-          "workspace_configured"
+          "connected"
         ],
         "title": "ProviderConnectionTestResponse",
         "type": "object"
@@ -8433,6 +8819,9 @@
           "database": {
             "$ref": "#/components/schemas/audio_studio__http__settings_contracts__DatabaseStatusResponse"
           },
+          "director_provider": {
+            "$ref": "#/components/schemas/DirectorProviderSettingsResponse"
+          },
           "naming": {
             "additionalProperties": {
               "anyOf": [
@@ -8482,6 +8871,7 @@
         },
         "required": [
           "provider",
+          "director_provider",
           "audio_catalog",
           "audio_generation",
           "output_directory",
@@ -15950,6 +16340,28 @@
         ]
       }
     },
+    "/api/v1/director/models": {
+      "get": {
+        "description": "Canonical model catalogue consumed by Director and external clients.",
+        "operationId": "getDirectorModels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectorCapabilitiesEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Director Models",
+        "tags": [
+          "director-generations"
+        ]
+      }
+    },
     "/api/v1/exports/{export_id}/download": {
       "get": {
         "operationId": "downloadExport",
@@ -19309,6 +19721,68 @@
           }
         },
         "summary": "Update Freesound",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/settings/providers/kie": {
+      "patch": {
+        "operationId": "updateKieSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectorProviderUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsSnapshotEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Kie",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/settings/providers/kie/test": {
+      "post": {
+        "operationId": "testKieConnection",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderConnectionTestEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Test Kie Connection",
         "tags": [
           "settings"
         ]

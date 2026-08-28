@@ -44,6 +44,12 @@ class ProviderUpdate(BaseModel):
     workspace_id: str = ""
 
 
+class DirectorProviderUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    api_key: str = Field(default="", max_length=4000)
+    base_url: str = Field(default="", max_length=1000)
+
+
 class StorageUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     endpoint: str = ""
@@ -112,6 +118,17 @@ def update_provider(payload: ProviderUpdate) -> dict:
         raise ApiProblem(400, "invalid_provider_settings", str(exc)) from exc
 
 
+@router.patch("/providers/kie", operation_id="updateKieSettings",
+              response_model=SettingsSnapshotEnvelope,
+              response_model_exclude_none=True)
+def update_kie(payload: DirectorProviderUpdate) -> dict:
+    try:
+        return {"data": settings_service.update_director_provider(
+            payload.model_dump())}
+    except (OSError, ValueError) as exc:
+        raise ApiProblem(400, "invalid_kie_settings", str(exc)) from exc
+
+
 @router.patch("/providers/freesound",
               operation_id="updateFreesoundSettings",
               response_model=SettingsSnapshotEnvelope,
@@ -143,6 +160,14 @@ def update_audio_generation(payload: AudioGenerationSettingsUpdate) -> dict:
              response_model_exclude_none=True)
 def test_alibaba_connection() -> dict:
     return {"data": settings_service.test_provider()}
+
+
+@router.post("/providers/kie/test", operation_id="testKieConnection",
+             response_model=ProviderConnectionTestEnvelope,
+             response_model_exclude_none=True)
+def test_kie_connection() -> dict:
+    return {"data": {
+        "provider": "KIE", **settings_service.test_director_provider()}}
 
 
 @router.patch("/storage", operation_id="updateStorageSettings",

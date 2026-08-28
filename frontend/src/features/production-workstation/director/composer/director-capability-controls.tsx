@@ -2,6 +2,7 @@ import { Clock3, Frame, MonitorUp } from "lucide-react"
 
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { OperatorTooltip } from "@/components/operator-tooltip"
+import { Input } from "@/components/ui/input"
 import type { DirectorOperationCapability } from "./director-composer-config"
 
 function InlineSelect({ label, value, values, onValueChange, icon: Icon }: { label: string; value: string; values: string[]; onValueChange: (value: string) => void; icon: typeof Frame }) {
@@ -26,5 +27,13 @@ export function DirectorCapabilityControls({ capability, ratio, resolution, dura
     <InlineSelect label="Aspect ratio" value={ratio} values={capability.ratios} onValueChange={onRatioChange} icon={Frame} />
     <InlineSelect label={video ? "Video resolution" : "Image size"} value={resolution} values={capability.resolutions} onValueChange={onResolutionChange} icon={MonitorUp} />
     {capability.durations.length > 0 && <InlineSelect label="Duration" value={String(duration)} values={capability.durations.map(String)} onValueChange={(value) => onDurationChange(Number(value))} icon={Clock3} />}
+    {capability.duration_range && <OperatorTooltip label="Duration" detail={`${capability.duration_range.min}–${capability.duration_range.max} seconds for this model.`}>
+      <label className="director-duration-control"><Clock3 /><Input
+        aria-label="Duration in seconds" type="number"
+        min={capability.duration_range.min} max={capability.duration_range.max} step={capability.duration_range.step}
+        value={duration}
+        onChange={(event) => onDurationChange(Number(event.target.value))}
+      /><span>s</span></label>
+    </OperatorTooltip>}
   </div>
 }

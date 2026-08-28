@@ -32,7 +32,6 @@ from audio_studio.application.transcription import (
 )
 from audio_studio.application.voice_cloning import VoiceCloningService
 from audio_studio.application.production_import import ProductionImportJobHandler
-from audio_studio.application.director_generation import MockDirectorGenerationHandler
 
 from audio_studio.composition.jobs import job_service
 from audio_studio.composition.renders import render_service
@@ -64,6 +63,9 @@ from audio_studio.infrastructure.postgres.worker_runtime import WorkerRuntimeRep
 from audio_studio.application.provider_operations import ProviderOperationService
 from audio_studio.infrastructure.postgres.provider_operations import ProviderOperationRepository
 from audio_studio.composition.provider_catalogue import provider_catalogue_sync
+from audio_studio.composition.director_generation import (
+    director_generation_handler,
+)
 from audio_studio.infrastructure.runtime_environment import (
     reload_owned_environment,
     revision as environment_revision,
@@ -117,7 +119,7 @@ def main() -> int:
     )
     service.register("render", render_service.handle_job)
     service.register("audio_generate", audio_generation_service.handle_job)
-    service.register("director_generate", MockDirectorGenerationHandler())
+    service.register("director_generate", director_generation_handler)
     alibaba_enrollment = AlibabaVoiceCloningProvider()
     enrollment_provider = ExactEnrollmentProviderRegistry({
         ("alibaba", adapter_key): alibaba_enrollment

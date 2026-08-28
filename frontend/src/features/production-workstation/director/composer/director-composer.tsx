@@ -7,23 +7,26 @@ import type { DirectorAdvancedValues } from "./director-advanced-settings"
 import type { DirectorComposerAttachment } from "./director-composer-attachments"
 import { DirectorComposerInput } from "./director-composer-input"
 import {
-  acceptedMediaTypes, compatibleModels, operationCapability,
+  acceptedMediaTypes, compatibleModels, normalizeCapabilityCatalog, operationCapability,
   type DirectorCapabilityCatalog, type DirectorModelCapability,
   type DirectorOperation,
 } from "./director-composer-config"
-import { assetKind, assetPreview, assignInputs, capabilityDefaults, fileKind, generationAttachments, identifier } from "./director-composer-state"
+import { activeProviderParameters, assetKind, assetPreview, assignInputs, capabilityDefaults, fileKind, generationAttachments, identifier, parameterIssue } from "./director-composer-state"
 import { DirectorGenerationCard } from "./director-generation-card"
 import type { DirectorGeneration, DirectorGenerationRecipe } from "./director-generation-types"
 import { DirectorReferenceLibraryDialog } from "./director-reference-library-dialog"
 import { useDirectorGenerations } from "./use-director-generations"
 import "./director-composer.css"
 
-export function DirectorComposer({ productionId, uploading, uploadLabel, libraryAssets, onUploadReference }: {
+export function DirectorComposer({ productionId, uploading, uploadLabel, libraryAssets, onUploadReference, onGenerationOutputReady, onPreviewGenerated, onAddGeneratedToTimeline }: {
   productionId: number
   uploading: boolean
   uploadLabel: string
   libraryAssets: VentureAsset[]
   onUploadReference: (file: File) => Promise<VentureAsset>
+  onGenerationOutputReady?: () => Promise<void>
+  onPreviewGenerated?: (asset: VentureAsset) => void
+  onAddGeneratedToTimeline?: (asset: VentureAsset) => Promise<void>
 }) {
   const [catalog, setCatalog] = useState<DirectorCapabilityCatalog | null>(null)
   const [prompt, setPrompt] = useState("")
@@ -33,17 +36,18 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
   const [ratio, setRatio] = useState("")
   const [resolution, setResolution] = useState("")
   const [duration, setDuration] = useState(0)
-  const [advanced, setAdvanced] = useState<DirectorAdvancedValues>({ seed: "", fps: 0, negativePrompt: "" })
+  const [advanced, setAdvanced] = useState<DirectorAdvancedValues>({ seed: "", fps: 0, negativePrompt: "", parameters: {} })
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [composerError, setComposerError] = useState("")
   const objectUrls = useRef(new Set<string>())
+  const refreshedOutputIds = useRef(new Set<number>())
   const { generations, submitting, create, cancel } = useDirectorGenerations(productionId, setComposerError)
 
   useEffect(() => {
     let active = true
-    void studioApi.directorGenerationCapabilities().then((capabilities) => {
+    void studioApi.directorModels().then((capabilities) => {
       if (!active) return
-      const next = capabilities as DirectorCapabilityCatalog
+      const next = normalizeCapabilityCatalog(capabilities as DirectorCapabilityCatalog)
       const firstOperation = next.operations[0]?.id || ""
       const firstModel = compatibleModels(next.models, firstOperation)[0]
       const firstCapability = firstModel && operationCapability(firstModel, firstOperation)
@@ -65,13 +69,28 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
 
   useEffect(() => () => objectUrls.current.forEach((url) => URL.revokeObjectURL(url)), [])
 
+  useEffect(() => {
+    const newOutputIds = generations
+      .filter(({ status }) => status === "ready")
+      .flatMap(({ output_asset_ids: outputAssetIds }) => outputAssetIds)
+      .filter((assetId) => !refreshedOutputIds.current.has(assetId))
+    if (!newOutputIds.length || !onGenerationOutputReady) return
+    newOutputIds.forEach((assetId) => refreshedOutputIds.current.add(assetId))
+    void onGenerationOutputReady().catch((reason) => {
+      newOutputIds.forEach((assetId) => refreshedOutputIds.current.delete(assetId))
+      setComposerError(reason instanceof Error ? reason.message : "The generated Asset could not be loaded.")
+    })
+  }, [generations, onGenerationOutputReady])
+
   const models = useMemo(() => catalog ? compatibleModels(catalog.models, operation) : [], [catalog, operation])
   const model = models.find(({ id }) => id === modelId) || models[0]
   const capability = model ? operationCapability(model, operation) : undefined
   const missing = capability?.inputs.filter((slot) => slot.required && !attachments.some((attachment) => attachment.role === slot.role && attachment.assetId)).map(({ role }) => role) || []
+  const missingChoice = capability?.required_any_of.find((roles) => !roles.some((role) => attachments.some((attachment) => attachment.role === role && attachment.assetId)))
   const pendingAttachment = attachments.some(({ status }) => status === "uploading")
   const failedAttachment = attachments.some(({ status }) => status === "failed")
-  const disabledReason = !capability ? "Director capabilities are loading." : capability.prompt.required && !prompt.trim() ? "Write what you want to create." : pendingAttachment ? "Wait for references to finish uploading." : failedAttachment ? "Remove the reference that failed to upload." : missing.length ? `Add ${missing.map((role) => capability.inputs.find((slot) => slot.role === role)?.label || role).join(" and ")}.` : undefined
+  const controlsIssue = capability ? parameterIssue(capability, advanced.parameters, duration, libraryAssets) : undefined
+  const disabledReason = !capability ? "Director capabilities are loading." : capability.prompt.required && !prompt.trim() ? "Write what you want to create." : prompt.length > capability.prompt.max_length ? `Keep the direction under ${capability.prompt.max_length.toLocaleString()} characters.` : pendingAttachment ? "Wait for references to finish uploading." : failedAttachment ? "Remove the reference that failed to upload." : missing.length ? `Add ${missing.map((role) => capability.inputs.find((slot) => slot.role === role)?.label || role).join(" and ")}.` : missingChoice ? `Add ${missingChoice.map((role) => capability.inputs.find((slot) => slot.role === role)?.label || role).join(" or ")}.` : controlsIssue
   const fileAccept = capability ? acceptedMediaTypes(capability).map((kind) => `${kind}/*`).join(",") : ""
 
   function applyModel(next: DirectorModelCapability, nextOperation = operation) {
@@ -178,10 +197,10 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
       inputs: attachments.flatMap((attachment, position) => attachment.assetId ? [{ asset_id: attachment.assetId, role: attachment.role, media_type: attachment.kind, position }] : []),
       controls: {
         ratio, resolution,
-        duration: capability!.durations.length ? duration : null,
+        duration: capability!.durations.length || capability!.duration_range ? duration : null,
         fps: capability!.fps.length ? advanced.fps : null,
         seed: capability!.supports_seed && advanced.seed.trim() && Number.isFinite(parsedSeed) ? parsedSeed : null,
-        provider_parameters: {},
+        provider_parameters: activeProviderParameters(capability!, advanced.parameters),
       },
     }
   }
@@ -205,8 +224,13 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
     setModelId(nextModel.id)
     setRatio(generation.recipe.controls.ratio)
     setResolution(generation.recipe.controls.resolution)
-    setDuration(generation.recipe.controls.duration || nextCapability.durations[0] || 0)
-    setAdvanced({ seed: generation.recipe.controls.seed === null ? "" : String(generation.recipe.controls.seed), fps: generation.recipe.controls.fps || nextCapability.fps[0] || 0, negativePrompt: generation.recipe.negative_prompt })
+    setDuration(generation.recipe.controls.duration || nextCapability.durations[0] || nextCapability.duration_range?.default || 0)
+    setAdvanced({
+      seed: generation.recipe.controls.seed === null ? "" : String(generation.recipe.controls.seed),
+      fps: generation.recipe.controls.fps || nextCapability.fps[0] || 0,
+      negativePrompt: generation.recipe.negative_prompt,
+      parameters: { ...capabilityDefaults(nextCapability).advanced.parameters, ...generation.recipe.controls.provider_parameters },
+    })
     setAttachments(assignInputs(generationAttachments(generation, libraryAssets), nextCapability))
     setComposerError("")
   }
@@ -218,6 +242,7 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
       prompt={prompt} operations={catalog.operations} operation={operation} capability={capability}
       model={model} models={models} attachments={attachments} missingRoles={missing}
       ratio={ratio} resolution={resolution} duration={duration} advanced={advanced}
+      assets={libraryAssets}
       busy={submitting} disabledReason={disabledReason}
       uploadStatus={uploading ? uploadLabel : undefined} fileAccept={fileAccept}
       onPromptChange={setPrompt} onOperationChange={changeOperation}
@@ -232,7 +257,18 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
     {generations.length > 0 && <div className="director-generation-list" aria-label="Recent Director generations">{generations.map((generation) => {
       const generationModel = catalog.models.find(({ id }) => id === generation.recipe.model_id)
       const generationCapability = generationModel && operationCapability(generationModel, generation.recipe.operation)
-      return <DirectorGenerationCard key={generation.id} operations={catalog.operations} generation={generation} canCancel={Boolean(generationCapability?.supports_cancel)} onCancel={() => void cancel(generation)} onRegenerate={() => createGeneration(generation)} onUseSettings={() => useSettings(generation)} />
+      const outputAsset = libraryAssets.find(({ id }) => id === generation.output_asset_ids[0])
+      return <DirectorGenerationCard
+        key={generation.id} operations={catalog.operations} generation={generation}
+        canCancel={Boolean(generationCapability?.supports_cancel)} outputReady={Boolean(outputAsset)}
+        onCancel={() => void cancel(generation)} onRegenerate={() => createGeneration(generation)}
+        onUseSettings={() => useSettings(generation)}
+        onPreview={outputAsset && onPreviewGenerated ? () => onPreviewGenerated(outputAsset) : undefined}
+        onAddToTimeline={outputAsset && onAddGeneratedToTimeline ? () => {
+          void onAddGeneratedToTimeline(outputAsset).catch((reason) => setComposerError(
+            reason instanceof Error ? reason.message : "The generated Asset could not be added to Timeline."))
+        } : undefined}
+      />
     })}</div>}
     <DirectorReferenceLibraryDialog open={libraryOpen} assets={libraryAssets} acceptedMediaTypes={acceptedMediaTypes(capability)} onOpenChange={setLibraryOpen} onAdd={receiveAsset} />
   </section>

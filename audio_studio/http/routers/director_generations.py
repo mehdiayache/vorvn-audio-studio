@@ -1,4 +1,4 @@
-"""Capabilities and durable prototype generations for Director."""
+"""Capabilities and durable provider generations for Director."""
 
 from __future__ import annotations
 
@@ -28,6 +28,39 @@ class DirectorPromptCapability(BaseModel):
     supported: bool
     required: bool
     negative_prompt: bool
+    max_length: int = 20_000
+
+
+class DirectorParameterCapability(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    key: str
+    type: Literal[
+        "boolean", "integer", "number", "select", "text", "textarea",
+        "asset_slot", "asset_list", "structured_shots",
+    ]
+    label: str
+    required: bool = False
+    default: Any = None
+    options: list[Any] = Field(default_factory=list)
+    min: float | None = None
+    max: float | None = None
+    step: float | None = None
+    max_length: int | None = None
+    visible_when: dict[str, Any] = Field(default_factory=dict)
+    conflicts_with: list[str] = Field(default_factory=list)
+    item: dict[str, Any] = Field(default_factory=dict)
+
+
+class DirectorDurationRange(BaseModel):
+    min: int
+    max: int
+    step: int
+    default: int
+
+
+class DirectorOutputCapability(BaseModel):
+    mime_type: str
+    extension: str
 
 
 class DirectorOperationCapability(BaseModel):
@@ -35,19 +68,28 @@ class DirectorOperationCapability(BaseModel):
     output_media_type: Literal["image", "video"]
     prompt: DirectorPromptCapability
     inputs: list[DirectorInputSlot]
+    required_any_of: list[list[str]] = Field(default_factory=list)
     ratios: list[str]
     resolutions: list[str]
     durations: list[int]
+    duration_range: DirectorDurationRange | None = None
     fps: list[int]
     supports_seed: bool
     supports_cancel: bool
+    parameters: list[DirectorParameterCapability] = Field(default_factory=list)
+    output: DirectorOutputCapability
 
 
 class DirectorModelCapability(BaseModel):
     id: str
     label: str
     provider: str
-    version: str
+    provider_id: str
+    provider_model_id: str
+    adapter_key: str
+    adapter_version: str
+    capability_manifest_version: str
+    status: Literal["draft", "verified", "enabled"]
     description: str
     operations: list[DirectorOperationCapability]
 
@@ -59,6 +101,7 @@ class DirectorOperationInfo(BaseModel):
 
 
 class DirectorCapabilities(BaseModel):
+    providers: list[dict[str, str]]
     operations: list[DirectorOperationInfo]
     models: list[DirectorModelCapability]
 
@@ -77,8 +120,8 @@ class DirectorGenerationInput(BaseModel):
 
 class DirectorGenerationControls(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    ratio: str
-    resolution: str
+    ratio: str = ""
+    resolution: str = ""
     duration: int | None = Field(default=None, gt=0)
     fps: int | None = Field(default=None, gt=0)
     seed: int | None = Field(default=None, ge=0)
@@ -104,8 +147,13 @@ class DirectorGenerationResponse(BaseModel):
     error: str | None
     recipe: DirectorGenerationRecipe
     provider: str
+    provider_id: str | None = None
+    provider_model_id: str | None = None
     model_label: str
     model_version: str
+    adapter_version: str | None = None
+    capability_manifest_version: str | None = None
+    capability_snapshot: dict[str, Any] | None = None
     output_media_type: Literal["image", "video"]
     output_asset_ids: list[int]
     provider_job_id: str | None
@@ -127,6 +175,13 @@ class DirectorGenerationListEnvelope(BaseModel):
             operation_id="getDirectorGenerationCapabilities",
             response_model=DirectorCapabilitiesEnvelope)
 def director_capabilities() -> dict:
+    return {"data": director_generation_service.capabilities()}
+
+
+@router.get("/director/models", operation_id="getDirectorModels",
+            response_model=DirectorCapabilitiesEnvelope)
+def director_models() -> dict:
+    """Canonical model catalogue consumed by Director and external clients."""
     return {"data": director_generation_service.capabilities()}
 
 

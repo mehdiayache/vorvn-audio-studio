@@ -1,0 +1,274 @@
+"""Versioned Director model manifests owned by the backend.
+
+The Director UI renders these declarations. Provider request shapes stay in
+model adapters and never leak into React.
+"""
+
+from __future__ import annotations
+
+from copy import deepcopy
+from typing import Any, Literal
+
+
+ModelStatus = Literal["draft", "verified", "enabled"]
+MANIFEST_VERSION = "2026-08-28.2"
+
+
+OPERATION_TAXONOMY: tuple[dict[str, str], ...] = (
+    {"id": "image_generate", "label": "Create image",
+     "detail": "Create a new still visual"},
+    {"id": "image_edit", "label": "Edit image",
+     "detail": "Change an existing image"},
+    {"id": "image_set", "label": "Create image set",
+     "detail": "Create a related set of still visuals"},
+    {"id": "text_to_video", "label": "Create video",
+     "detail": "Create motion from a written direction"},
+    {"id": "image_to_video", "label": "Animate image",
+     "detail": "Create motion from a source image"},
+    {"id": "frames_to_video", "label": "Animate between frames",
+     "detail": "Move from a first frame to a final frame"},
+    {"id": "audio_driven_image_to_video", "label": "Animate from audio",
+     "detail": "Drive an image with an audio performance"},
+    {"id": "video_continue", "label": "Continue video",
+     "detail": "Extend an existing video"},
+    {"id": "video_continue_to_frame", "label": "Continue to frame",
+     "detail": "Extend a video toward a chosen final frame"},
+    {"id": "reference_to_video", "label": "Direct with references",
+     "detail": "Use visual references to guide a new video"},
+    {"id": "video_edit", "label": "Edit video",
+     "detail": "Change an existing video"},
+    {"id": "video_transform", "label": "Transform video",
+     "detail": "Restyle a video while preserving its action"},
+    {"id": "motion_transfer", "label": "Transfer motion",
+     "detail": "Apply motion from one source to another"},
+    {"id": "character_swap", "label": "Replace character",
+     "detail": "Replace a character while preserving motion"},
+    {"id": "talking_video", "label": "Create talking video",
+     "detail": "Animate a character from a voice performance"},
+    {"id": "video_lip_sync", "label": "Lip-sync video",
+     "detail": "Synchronize an existing video to speech"},
+)
+
+
+PLANNED_MODEL_IDS = (
+    "wan2.7-image-pro", "wan2.7-image",
+    "wan2.7-t2v-2026-04-25", "wan2.7-i2v-2026-04-25",
+    "wan2.7-r2v", "wan2.7-videoedit", "wan2.6-i2v-flash",
+    "wan2.6-r2v-flash", "wan2.2-kf2v-flash",
+    "wan2.2-animate-move", "wan2.2-animate-mix",
+    "kling-3.0-omni/text-to-video",
+    "kling-3.0-omni/image-to-video",
+    "kling-3.0-omni/reference-to-video",
+    "kling-3.0-omni/transformation",
+    "kling-3.0/motion-control", "kling/ai-avatar-pro",
+    "bytedance/seedance-2-5", "volcengine/video-to-video-lip-sync",
+)
+
+
+def _prompt(*, required: bool = True, maximum: int = 3072) -> dict[str, Any]:
+    return {
+        "supported": True, "required": required,
+        "negative_prompt": False, "max_length": maximum,
+    }
+
+
+def _slot(role: str, label: str, media_type: str, *, required: bool,
+          maximum: int = 1) -> dict[str, Any]:
+    return {
+        "role": role, "label": label, "required": required,
+        "media_types": [media_type], "max": maximum,
+    }
+
+
+def _field(key: str, field_type: str, label: str, **values: Any) -> dict[str, Any]:
+    return {"key": key, "type": field_type, "label": label, **values}
+
+
+def _kling_video_fields() -> list[dict[str, Any]]:
+    return [
+        _field("audio", "boolean", "Generate audio", default=False),
+        _field(
+            "customize_multi_shots", "boolean", "Direct multiple shots",
+            default=False,
+            conflicts_with=["prefer_multi_shots"],
+        ),
+        _field(
+            "prefer_multi_shots", "boolean", "Plan shots automatically",
+            default=False, conflicts_with=["customize_multi_shots"],
+        ),
+        _field(
+            "multi_prompt", "structured_shots", "Shots", default=[],
+            visible_when={"customize_multi_shots": True},
+            item={"prompt_max_length": 512, "duration_min": 1,
+                  "duration_max": 15, "max_items": 6},
+        ),
+        _field(
+            "elements", "asset_list", "Subject references", default=[],
+            max=7,
+            item={
+                "name_max_length": 64,
+                "description_max_length": 300,
+                "variants": [
+                    {
+                        "id": "images", "label": "Image subject",
+                        "media_types": ["image"],
+                        "min_assets": 2, "max_assets": 4,
+                    },
+                    {
+                        "id": "video", "label": "Video character",
+                        "media_types": ["video"],
+                        "min_assets": 1, "max_assets": 1,
+                        "trim": {
+                            "start_default": 0, "end_default": 8000,
+                            "duration_min": 3000, "duration_max": 8000,
+                        },
+                    },
+                ],
+                "audio": {
+                    "media_types": ["audio"], "max_assets": 1,
+                    "duration_min_ms": 5000,
+                    "duration_max_ms": 30000,
+                },
+                "combination_limits": [
+                    {"when": {"images": True, "video": False},
+                     "max": {"images": 7}},
+                    {"when": {"images": False, "video": True},
+                     "max": {"video": 3}},
+                    {"when": {"images": True, "video": True},
+                     "max": {"images": 4, "video": 3}},
+                ],
+            },
+        ),
+    ]
+
+
+def _kling_operation(
+    operation: str, *, inputs: tuple[dict[str, Any], ...] = (),
+    required_any_of: tuple[tuple[str, ...], ...] = (),
+    ratios: tuple[str, ...] = ("16:9", "9:16", "1:1"),
+) -> dict[str, Any]:
+    return {
+        "operation": operation,
+        "output_media_type": "video",
+        "prompt": _prompt(),
+        "inputs": list(inputs),
+        "required_any_of": [list(group) for group in required_any_of],
+        "ratios": list(ratios),
+        "resolutions": ["720p", "1080p", "4k"],
+        "durations": [],
+        "duration_range": {"min": 3, "max": 15, "step": 1,
+                           "default": 5},
+        "fps": [],
+        "supports_seed": False,
+        "supports_cancel": False,
+        "parameters": _kling_video_fields(),
+        "output": {"mime_type": "video/mp4", "extension": "mp4"},
+    }
+
+
+MODELS: tuple[dict[str, Any], ...] = (
+    {
+        "id": "kling-3.0-omni/text-to-video",
+        "label": "Kling 3.0 Omni",
+        "provider": "KIE",
+        "provider_id": "kie",
+        "provider_model_id": "kling-3.0-omni/text-to-video",
+        "adapter_key": "kie-kling-omni",
+        "adapter_version": "kie-kling-omni-1",
+        "capability_manifest_version": MANIFEST_VERSION,
+        "status": "enabled",
+        "description": "Text-directed video with optional audio and shot planning",
+        "operations": [_kling_operation("text_to_video")],
+    },
+    {
+        "id": "kling-3.0-omni/image-to-video",
+        "label": "Kling 3.0 Omni",
+        "provider": "KIE",
+        "provider_id": "kie",
+        "provider_model_id": "kling-3.0-omni/image-to-video",
+        "adapter_key": "kie-kling-omni",
+        "adapter_version": "kie-kling-omni-1",
+        "capability_manifest_version": MANIFEST_VERSION,
+        "status": "draft",
+        "description": "Animate a canonical image with optional generated audio",
+        "operations": [_kling_operation(
+            "image_to_video",
+            inputs=(_slot("source-image", "Source image", "image",
+                          required=True),),
+        )],
+    },
+    {
+        "id": "kling-3.0-omni/reference-to-video",
+        "label": "Kling 3.0 Omni",
+        "provider": "KIE",
+        "provider_id": "kie",
+        "provider_model_id": "kling-3.0-omni/reference-to-video",
+        "adapter_key": "kie-kling-omni",
+        "adapter_version": "kie-kling-omni-1",
+        "capability_manifest_version": MANIFEST_VERSION,
+        "status": "draft",
+        "description": "Create video from image and video references",
+        "operations": [_kling_operation(
+            "reference_to_video",
+            inputs=(
+                _slot("reference-image", "Reference images", "image",
+                      required=False, maximum=7),
+                _slot("reference-video", "Reference video", "video",
+                      required=False),
+            ),
+            required_any_of=(("reference-image", "reference-video"),),
+            ratios=("auto", "16:9", "9:16", "1:1"),
+        )],
+    },
+    {
+        "id": "kling-3.0-omni/transformation",
+        "label": "Kling 3.0 Omni",
+        "provider": "KIE",
+        "provider_id": "kie",
+        "provider_model_id": "kling-3.0-omni/transformation",
+        "adapter_key": "kie-kling-omni",
+        "adapter_version": "kie-kling-omni-1",
+        "capability_manifest_version": MANIFEST_VERSION,
+        "status": "draft",
+        "description": "Transform an existing video with optional image references",
+        "operations": [_kling_operation(
+            "video_transform",
+            inputs=(
+                _slot("source-video", "Source video", "video",
+                      required=True),
+                _slot("reference-image", "Reference images", "image",
+                      required=False, maximum=4),
+            ),
+            ratios=("auto", "16:9", "9:16", "1:1"),
+        )],
+    },
+)
+
+
+def models(*, include_unavailable: bool = False) -> list[dict[str, Any]]:
+    selected = MODELS if include_unavailable else tuple(
+        model for model in MODELS if model["status"] == "enabled")
+    return deepcopy(list(selected))
+
+
+def model_capability(
+    model_id: str, operation: str, *, require_enabled: bool = True,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    for model in MODELS:
+        if model["id"] != model_id:
+            continue
+        if require_enabled and model["status"] != "enabled":
+            break
+        for item in model["operations"]:
+            if item["operation"] == operation:
+                return deepcopy(model), deepcopy(item)
+    raise ValueError("That model does not support the selected Director operation.")
+
+
+def operations_for(models_value: list[dict[str, Any]]) -> list[dict[str, str]]:
+    available = {
+        operation["operation"]
+        for model in models_value for operation in model["operations"]
+    }
+    return [deepcopy(item) for item in OPERATION_TAXONOMY
+            if item["id"] in available]

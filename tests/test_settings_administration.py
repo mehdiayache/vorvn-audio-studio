@@ -17,6 +17,26 @@ from audio_studio.providers.freesound import FreesoundOAuthTokens
 
 
 class SettingsAdministrationTests(unittest.TestCase):
+    def test_kie_key_is_persisted_but_never_returned(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            env_file = root / ".env"
+            administration = EnvironmentSettings(
+                env_file=env_file, revision_file=root / ".revision",
+                reload_environment=lambda: None,
+            )
+            with patch.dict(os.environ, {}, clear=True):
+                administration.save_director_provider({
+                    "api_key": "private-kie-key",
+                    "base_url": "https://api.kie.ai/",
+                })
+                status = administration.director_provider()
+            saved = env_file.read_text()
+            self.assertIn("KIE_API_KEY=private-kie-key", saved)
+            self.assertIn("KIE_API_BASE_URL=https://api.kie.ai", saved)
+            self.assertTrue(status["configured"])
+            self.assertNotIn("private-kie-key", repr(status))
+
     def test_audio_generation_key_is_persisted_but_never_returned(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)

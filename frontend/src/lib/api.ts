@@ -78,9 +78,11 @@ type VoicePackageRetryBody = paths["/api/v1/voice-packages/retry"]["post"]["requ
 type SettingsEnvelope = paths["/api/v1/settings"]["get"]["responses"][200]["content"]["application/json"]
 type SettingsUpdateBody = paths["/api/v1/settings"]["patch"]["requestBody"]["content"]["application/json"]
 type ProviderUpdateBody = paths["/api/v1/settings/provider"]["patch"]["requestBody"]["content"]["application/json"]
+type KieSettingsBody = paths["/api/v1/settings/providers/kie"]["patch"]["requestBody"]["content"]["application/json"]
 type FreesoundSettingsBody = paths["/api/v1/settings/providers/freesound"]["patch"]["requestBody"]["content"]["application/json"]
 type AudioGenerationSettingsBody = paths["/api/v1/settings/providers/audio-generation"]["patch"]["requestBody"]["content"]["application/json"]
 type AlibabaConnectionTestEnvelope = paths["/api/v1/settings/providers/alibaba/test"]["post"]["responses"][200]["content"]["application/json"]
+type KieConnectionTestEnvelope = paths["/api/v1/settings/providers/kie/test"]["post"]["responses"][200]["content"]["application/json"]
 type StorageUpdateBody = paths["/api/v1/settings/storage"]["patch"]["requestBody"]["content"]["application/json"]
 type StorageTestEnvelope = paths["/api/v1/settings/storage/test"]["post"]["responses"][200]["content"]["application/json"]
 type MaintenanceEnvelope = paths["/api/v1/settings/maintenance"]["get"]["responses"][200]["content"]["application/json"]
@@ -97,6 +99,7 @@ type DirectorAssetBody = paths["/api/v1/productions/{production_id}/director-ass
 type DirectorAssetEnvelope = paths["/api/v1/productions/{production_id}/director-assets"]["post"]["responses"][200]["content"]["application/json"]
 type DirectorAssetDeleteEnvelope = paths["/api/v1/productions/{production_id}/director-assets/{asset_id}"]["delete"]["responses"][200]["content"]["application/json"]
 type DirectorGenerationCapabilitiesEnvelope = paths["/api/v1/director-generation-capabilities"]["get"]["responses"][200]["content"]["application/json"]
+type DirectorModelsEnvelope = paths["/api/v1/director/models"]["get"]["responses"][200]["content"]["application/json"]
 type DirectorGenerationListEnvelope = paths["/api/v1/productions/{production_id}/director-generations"]["get"]["responses"][200]["content"]["application/json"]
 type DirectorGenerationEnvelope = paths["/api/v1/productions/{production_id}/director-generations"]["post"]["responses"][202]["content"]["application/json"]
 type DirectorGenerationBody = paths["/api/v1/productions/{production_id}/director-generations"]["post"]["requestBody"]["content"]["application/json"]
@@ -189,9 +192,11 @@ export const studioApi = {
   }).then((response) => response.data),
   resetNaming: () => request<SettingsEnvelope>("/api/v1/settings/naming/reset", { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
   updateProviderSettings: (changes: ProviderUpdateBody) => request<SettingsEnvelope>("/api/v1/settings/provider", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
+  updateKieSettings: (changes: KieSettingsBody) => request<SettingsEnvelope>("/api/v1/settings/providers/kie", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
   updateFreesoundSettings: (changes: FreesoundSettingsBody) => request<SettingsEnvelope>("/api/v1/settings/providers/freesound", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
   updateAudioGenerationSettings: (changes: AudioGenerationSettingsBody) => request<SettingsEnvelope>("/api/v1/settings/providers/audio-generation", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
   testAlibabaConnection: () => request<AlibabaConnectionTestEnvelope>("/api/v1/settings/providers/alibaba/test", { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
+  testKieConnection: () => request<KieConnectionTestEnvelope>("/api/v1/settings/providers/kie/test", { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
   updateStorageSettings: (changes: StorageUpdateBody) => request<SettingsEnvelope>("/api/v1/settings/storage", { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
   testStorage: () => request<StorageTestEnvelope>("/api/v1/settings/storage/test", { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
   maintenance: () => request<MaintenanceEnvelope>("/api/v1/settings/maintenance").then((response) => response.data),
@@ -441,6 +446,7 @@ export const studioApi = {
     return response.data
   },
   directorGenerationCapabilities: () => request<DirectorGenerationCapabilitiesEnvelope>("/api/v1/director-generation-capabilities").then((response) => response.data),
+  directorModels: () => request<DirectorModelsEnvelope>("/api/v1/director/models").then((response) => response.data),
   directorGenerations: (productionId: number) => request<DirectorGenerationListEnvelope>(`/api/v1/productions/${productionId}/director-generations`).then((response) => response.data),
   createDirectorGeneration: (productionId: number, payload: DirectorGenerationBody) => request<DirectorGenerationEnvelope>(`/api/v1/productions/${productionId}/director-generations`, {
     method: "POST",

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 const api = vi.hoisted(() => ({
   attachDirectorAsset: vi.fn(), detachDirectorAsset: vi.fn(),
-  directorGenerationCapabilities: vi.fn().mockResolvedValue({
+  directorModels: vi.fn().mockResolvedValue({
     operations: [{ id: "image", label: "Image", detail: "Create a still visual" }],
     models: [{ id: "model-a", label: "Model A", provider: "Prototype Lab", version: "a-1", description: "Still images", operations: [{ operation: "image", output_media_type: "image", prompt: { supported: true, required: true, negative_prompt: true }, inputs: [{ role: "reference", label: "Reference", required: false, media_types: ["image"], max: 1 }], ratios: ["1:1", "16:9"], resolutions: ["1K", "2K"], durations: [], fps: [], supports_seed: true, supports_cancel: true }] }],
   }),

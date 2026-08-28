@@ -17,12 +17,14 @@ class ControlPlane(Protocol):
 
 class Configuration(Protocol):
     def provider(self) -> dict[str, Any]: ...
+    def director_provider(self) -> dict[str, Any]: ...
     def audio_catalog(self) -> dict[str, Any]: ...
     def audio_generation(self) -> dict[str, Any]: ...
     def storage(self) -> dict[str, str]: ...
     def storage_configured(self) -> bool: ...
     def test_storage(self) -> dict[str, Any]: ...
     def save_provider(self, values: dict[str, Any]) -> None: ...
+    def save_director_provider(self, values: dict[str, Any]) -> None: ...
     def save_audio_catalog(self, values: dict[str, Any]) -> None: ...
     def save_audio_generation(self, values: dict[str, Any]) -> None: ...
     def save_storage(self, values: dict[str, Any]) -> None: ...
@@ -45,6 +47,7 @@ class SettingsService:
                  configuration: Configuration, maintenance: Maintenance,
                  pronunciations: Pronunciations,
                  provider_connection_test: Callable[[], dict[str, Any]],
+                 director_provider_connection_test: Callable[[], dict[str, Any]],
                  load_preferences: Callable[[], dict[str, Any]],
                  save_preferences: Callable[[dict[str, Any]], dict[str, Any]]):
         self.control_plane = control_plane
@@ -52,6 +55,8 @@ class SettingsService:
         self.maintenance = maintenance
         self.pronunciation_repository = pronunciations
         self.provider_connection_test = provider_connection_test
+        self.director_provider_connection_test = (
+            director_provider_connection_test)
         self.load_preferences = load_preferences
         self.save_preferences = save_preferences
 
@@ -60,6 +65,7 @@ class SettingsService:
         storage_values = self.configuration.storage()
         return {
             "provider": self.configuration.provider(),
+            "director_provider": self.configuration.director_provider(),
             "audio_catalog": self.configuration.audio_catalog(),
             "audio_generation": self.configuration.audio_generation(),
             "output_directory": self.configuration.output_directory(),
@@ -153,6 +159,15 @@ class SettingsService:
         })
         return self.snapshot()
 
+    def update_director_provider(
+        self, values: dict[str, Any],
+    ) -> dict[str, Any]:
+        self.configuration.save_director_provider({
+            "api_key": str(values.get("api_key") or "").strip(),
+            "base_url": str(values.get("base_url") or "").strip(),
+        })
+        return self.snapshot()
+
     def update_storage(self, values: dict[str, Any]) -> dict[str, Any]:
         self.configuration.save_storage(values)
         return self.snapshot()
@@ -178,6 +193,9 @@ class SettingsService:
 
     def test_provider(self) -> dict[str, Any]:
         return self.provider_connection_test()
+
+    def test_director_provider(self) -> dict[str, Any]:
+        return self.director_provider_connection_test()
 
     def maintenance_snapshot(self) -> dict[str, Any]:
         return self.maintenance.snapshot()

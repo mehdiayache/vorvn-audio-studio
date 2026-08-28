@@ -181,7 +181,12 @@ export function DirectorStage({ centerPaneRef, productionId, assets, directorAss
       if (event.target.files) void upload(Array.from(event.target.files))
       event.target.value = ""
     }} />
-    <DirectorComposer productionId={productionId} uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel} libraryAssets={assets} onUploadReference={uploadReference} />
+    <DirectorComposer
+      productionId={productionId} uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel}
+      libraryAssets={assets} onUploadReference={uploadReference}
+      onGenerationOutputReady={onRefresh} onPreviewGenerated={setPreviewAsset}
+      onAddGeneratedToTimeline={onAddToTimeline}
+    />
     {error && <div className="director-error" role="alert"><b>Director could not finish that action.</b><span>{error}</span></div>}
     <DirectorGallery assets={collected} uploads={uploads} pendingId={pendingId} onPreview={setPreviewAsset} onAddToTimeline={onAddToTimeline ? (asset) => {
       setPendingId(asset.id)

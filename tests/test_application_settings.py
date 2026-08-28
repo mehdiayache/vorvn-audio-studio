@@ -31,6 +31,7 @@ class ControlPlaneFake:
 class ConfigurationFake:
     def __init__(self):
         self.saved_provider = None
+        self.saved_director_provider = None
         self.saved_audio_catalog = None
         self.saved_audio_generation = None
         self.saved_storage = None
@@ -47,6 +48,12 @@ class ConfigurationFake:
             "workspace_configured": True, "workspace_id": "workspace",
             "region": "intl", "region_label": "Singapore",
             "http_base": "https://provider.test/api/v1",
+        }
+
+    def director_provider(self):
+        return {
+            "name": "KIE", "configured": True,
+            "base_url": "https://api.kie.ai", "reason": "",
         }
 
     def storage(self):
@@ -75,6 +82,9 @@ class ConfigurationFake:
 
     def save_provider(self, values):
         self.saved_provider = values
+
+    def save_director_provider(self, values):
+        self.saved_director_provider = values
 
     def save_audio_catalog(self, values):
         self.saved_audio_catalog = values
@@ -134,6 +144,8 @@ class SettingsServiceTests(unittest.TestCase):
             pronunciations=self.pronunciations,
             provider_connection_test=lambda: {
                 "connected": True, "provider": "alibaba"},
+            director_provider_connection_test=lambda: {
+                "connected": True, "configured": True},
             load_preferences=lambda: dict(self.preferences),
             save_preferences=self._save_preferences,
         )
@@ -145,6 +157,7 @@ class SettingsServiceTests(unittest.TestCase):
     def test_snapshot_exposes_configuration_state_but_never_secrets(self):
         result = self.service.snapshot()
         self.assertTrue(result["provider"]["configured"])
+        self.assertTrue(result["director_provider"]["configured"])
         self.assertTrue(result["audio_catalog"]["search_configured"])
         self.assertFalse(result["audio_catalog"]["keep_configured"])
         self.assertTrue(result["audio_generation"]["configured"])
@@ -170,6 +183,18 @@ class SettingsServiceTests(unittest.TestCase):
         self.assertEqual(
             self.configuration.saved_storage, {"bucket": "new-private"})
         self.assertTrue(self.service.test_provider()["connected"])
+
+    def test_kie_secret_uses_the_director_provider_port(self):
+        result = self.service.update_director_provider({
+            "api_key": "  private-kie-key  ",
+            "base_url": "  https://api.kie.ai  ",
+        })
+        self.assertEqual(self.configuration.saved_director_provider, {
+            "api_key": "private-kie-key",
+            "base_url": "https://api.kie.ai",
+        })
+        self.assertNotIn("api_key", result["director_provider"])
+        self.assertTrue(self.service.test_director_provider()["connected"])
 
     def test_freesound_secret_updates_use_the_configuration_port(self):
         result = self.service.update_audio_catalog({

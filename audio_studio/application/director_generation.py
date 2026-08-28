@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import time
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 from uuid import UUID
 
-from audio_studio.application.jobs import JobProgress, JobService
+from audio_studio.application.jobs import JobService
 from audio_studio.domain.director_generation import (
-    CAPABILITIES, DIRECTOR_GENERATION_KIND, OPERATIONS, capability,
-    validate_recipe,
+    DIRECTOR_GENERATION_KIND, capability, validate_recipe,
 )
+from audio_studio.domain.director_models import models, operations_for
 from audio_studio.domain.jobs import Job
 
 
@@ -25,7 +24,15 @@ class DirectorGenerationService:
         self.assets = assets
 
     def capabilities(self) -> dict[str, Any]:
-        return {"operations": list(OPERATIONS), "models": list(CAPABILITIES)}
+        available = models()
+        return {
+            "providers": [
+                {"id": "kie", "label": "KIE"},
+                {"id": "alibaba_sg", "label": "Alibaba Singapore"},
+            ],
+            "operations": operations_for(available),
+            "models": available,
+        }
 
     def enqueue(self, production_id: int, recipe: dict[str, Any], *,
                 idempotency_key: str) -> tuple[dict[str, Any], bool]:
@@ -39,9 +46,15 @@ class DirectorGenerationService:
             "production_id": production_id,
             "recipe": recipe,
             "provider": model["provider"],
+            "provider_id": model["provider_id"],
             "model": model["id"],
+            "provider_model_id": model["provider_model_id"],
             "model_label": model["label"],
-            "model_version": model["version"],
+            "model_version": model["provider_model_id"],
+            "adapter_version": model["adapter_version"],
+            "capability_manifest_version": model[
+                "capability_manifest_version"],
+            "capability_snapshot": {**model, "operations": [operation]},
             "output_media_type": operation["output_media_type"],
         }
         job, created = self.jobs.enqueue(
@@ -60,8 +73,11 @@ class DirectorGenerationService:
         if (not job or job.kind != DIRECTOR_GENERATION_KIND
                 or int(job.payload.get("production_id") or 0) != production_id):
             raise LookupError("That Director generation no longer exists.")
-        _, operation = capability(job.payload["recipe"]["model_id"],
-                                  job.payload["recipe"]["operation"])
+        snapshot = job.payload.get("capability_snapshot") or {}
+        operation = next(iter(snapshot.get("operations") or []), None)
+        if operation is None:
+            _, operation = capability(job.payload["recipe"]["model_id"],
+                                      job.payload["recipe"]["operation"])
         if not operation["supports_cancel"]:
             raise ValueError("This model operation cannot be canceled.")
         canceled = self.jobs.cancel(job_id)
@@ -83,8 +99,14 @@ class DirectorGenerationService:
             "detail": job.detail, "error": job.error or None,
             "recipe": job.payload["recipe"],
             "provider": job.payload["provider"],
+            "provider_id": job.payload.get("provider_id"),
+            "provider_model_id": job.payload.get("provider_model_id"),
             "model_label": job.payload["model_label"],
             "model_version": job.payload["model_version"],
+            "adapter_version": job.payload.get("adapter_version"),
+            "capability_manifest_version": job.payload.get(
+                "capability_manifest_version"),
+            "capability_snapshot": job.payload.get("capability_snapshot"),
             "output_media_type": job.payload["output_media_type"],
             "output_asset_ids": job.result.get("output_asset_ids") or [],
             "provider_job_id": job.result.get("provider_job_id"),
@@ -92,19 +114,3 @@ class DirectorGenerationService:
             "created_at": job.created_at, "updated_at": (
                 job.finished_at or job.started_at or job.created_at),
         }
-
-
-class MockDirectorGenerationHandler:
-    """Temporary executor using the same durable boundary as a future provider."""
-
-    def __init__(self, pause: Callable[[float], None] = time.sleep):
-        self.pause = pause
-
-    def __call__(self, job: Job, progress: JobProgress) -> dict[str, Any]:
-        progress.progress(job.id, 1, 3, "Preparing prototype")
-        self.pause(.25)
-        progress.progress(job.id, 2, 3, "Creating prototype")
-        self.pause(.45)
-        progress.progress(job.id, 3, 3, "Prototype ready")
-        return {"output_asset_ids": [], "provider_job_id": None,
-                "estimated_cost": None}

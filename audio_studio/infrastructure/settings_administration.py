@@ -81,6 +81,17 @@ class EnvironmentSettings:
             "http_base": environment.native_http_base,
         }
 
+    def director_provider(self) -> dict[str, Any]:
+        configured = bool((os.getenv("KIE_API_KEY") or "").strip())
+        return {
+            "name": "KIE",
+            "configured": configured,
+            "base_url": (os.getenv("KIE_API_BASE_URL")
+                         or "https://api.kie.ai").rstrip("/"),
+            "reason": "" if configured else (
+                "Add the KIE API key before using KIE Director models."),
+        }
+
     def storage(self) -> dict[str, str]:
         return object_storage.settings()
 
@@ -116,6 +127,19 @@ class EnvironmentSettings:
         if api_key:
             changes["DASHSCOPE_API_KEY"] = api_key
         self._write_environment(changes)
+
+    def save_director_provider(self, values: dict[str, Any]) -> None:
+        changes: dict[str, str | None] = {}
+        api_key = str(values.get("api_key") or "").strip()
+        base_url = str(values.get("base_url") or "").strip().rstrip("/")
+        if api_key:
+            changes["KIE_API_KEY"] = api_key
+        if base_url:
+            if not base_url.startswith("https://"):
+                raise ValueError("KIE must use an HTTPS endpoint.")
+            changes["KIE_API_BASE_URL"] = base_url
+        if changes:
+            self._write_environment(changes)
 
     def save_audio_catalog(self, values: dict[str, Any]) -> None:
         changes: dict[str, str | None] = {}

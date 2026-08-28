@@ -7,7 +7,7 @@ import { DirectorComposer } from "../director/composer/director-composer"
 import type { DirectorGeneration } from "../director/composer/director-generation-types"
 
 vi.mock("@/lib/api", () => ({ studioApi: {
-  directorGenerationCapabilities: vi.fn(), directorGenerations: vi.fn(),
+  directorModels: vi.fn(), directorGenerations: vi.fn(),
   createDirectorGeneration: vi.fn(), cancelDirectorGeneration: vi.fn(),
 } }))
 
@@ -24,6 +24,29 @@ const catalog = {
   ],
 }
 
+const kieCatalog = {
+  providers: [{ id: "kie", label: "KIE" }],
+  operations: [{ id: "text_to_video", label: "Create video", detail: "Create motion from a written direction" }],
+  models: [{
+    id: "kling-3.0-omni/text-to-video", label: "Kling 3.0 Omni", provider: "KIE", provider_id: "kie",
+    provider_model_id: "kling-3.0-omni/text-to-video", adapter_key: "kie-kling-omni", adapter_version: "adapter-1",
+    capability_manifest_version: "manifest-1", status: "enabled", description: "Video",
+    operations: [{
+      operation: "text_to_video", output_media_type: "video", prompt: { supported: true, required: true, negative_prompt: false, max_length: 3072 },
+      inputs: [], required_any_of: [], ratios: ["16:9", "9:16"], resolutions: ["720p", "1080p", "4k"], durations: [],
+      duration_range: { min: 3, max: 15, step: 1, default: 5 }, fps: [], supports_seed: false, supports_cancel: false,
+      output: { mime_type: "video/mp4", extension: "mp4" },
+      parameters: [
+        { key: "audio", type: "boolean", label: "Generate audio", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: [], item: {} },
+        { key: "customize_multi_shots", type: "boolean", label: "Direct multiple shots", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: ["prefer_multi_shots"], item: {} },
+        { key: "prefer_multi_shots", type: "boolean", label: "Plan shots automatically", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: ["customize_multi_shots"], item: {} },
+        { key: "multi_prompt", type: "structured_shots", label: "Shots", required: false, default: [], options: [], min: null, max: null, step: null, max_length: null, visible_when: { customize_multi_shots: true }, conflicts_with: [], item: { prompt_max_length: 512, duration_min: 1, duration_max: 15, max_items: 6 } },
+        { key: "elements", type: "asset_list", label: "Subject references", required: false, default: [], options: [], min: null, max: 7, step: null, max_length: null, visible_when: {}, conflicts_with: [], item: { name_max_length: 64, description_max_length: 300, variants: [{ id: "images", label: "Image subject", media_types: ["image"], min_assets: 2, max_assets: 4 }], audio: { media_types: ["audio"], max_assets: 1 } } },
+      ],
+    }],
+  }],
+}
+
 function generation(prompt = "A quiet violet horizon"): DirectorGeneration {
   return {
     id: "job-1", job_id: "job-1", status: "ready", progress: 100, detail: "Prototype ready", error: null,
@@ -34,7 +57,7 @@ function generation(prompt = "A quiet violet horizon"): DirectorGeneration {
 }
 
 function setup() {
-  vi.mocked(studioApi.directorGenerationCapabilities).mockResolvedValue(catalog as never)
+  vi.mocked(studioApi.directorModels).mockResolvedValue(catalog as never)
   vi.mocked(studioApi.directorGenerations).mockResolvedValue([] as never)
   vi.mocked(studioApi.createDirectorGeneration).mockResolvedValue({} as never)
   vi.mocked(studioApi.cancelDirectorGeneration).mockResolvedValue({} as never)
@@ -96,10 +119,43 @@ describe("Director composer", () => {
     const saved = generation()
     vi.mocked(studioApi.directorGenerations).mockResolvedValue([saved] as never)
     renderComposer()
-    expect(await screen.findByText("Prototype ready")).toBeTruthy()
+    expect(await screen.findByText("Ready")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Remix" }))
     expect((screen.getByRole("textbox", { name: "Director prompt" }) as HTMLTextAreaElement).value).toBe(saved.recipe.prompt)
     fireEvent.click(screen.getByRole("button", { name: "Regenerate" }))
     await waitFor(() => expect(studioApi.createDirectorGeneration).toHaveBeenCalledWith(7, saved.recipe))
+  })
+
+  it("refreshes canonical outputs and exposes preview and Timeline actions", async () => {
+    const saved = { ...generation(), output_asset_ids: [41] }
+    const onGenerationOutputReady = vi.fn().mockResolvedValue(undefined)
+    const onPreviewGenerated = vi.fn()
+    const onAddGeneratedToTimeline = vi.fn().mockResolvedValue(undefined)
+    vi.mocked(studioApi.directorGenerations).mockResolvedValue([saved] as never)
+    const asset = { id: 41, media_type: "image" as const, name: "Generated sunrise", filename: "sunrise.webp" }
+    renderComposer({
+      libraryAssets: [asset], onGenerationOutputReady,
+      onPreviewGenerated, onAddGeneratedToTimeline,
+    })
+    await waitFor(() => expect(onGenerationOutputReady).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole("button", { name: "Preview" }))
+    expect(onPreviewGenerated).toHaveBeenCalledWith(asset)
+    fireEvent.click(screen.getByRole("button", { name: "Add to Timeline" }))
+    await waitFor(() => expect(onAddGeneratedToTimeline).toHaveBeenCalledWith(asset))
+  })
+
+  it("renders model-declared Kling settings without model-specific composer code", async () => {
+    vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
+    renderComposer({ libraryAssets: [
+      { id: 41, media_type: "image", name: "Hero front" },
+      { id: 42, media_type: "image", name: "Hero side" },
+    ] })
+    fireEvent.click(await screen.findByRole("button", { name: "Model settings" }))
+    expect(await screen.findByText("Generate audio")).toBeTruthy()
+    expect(screen.getByText("Plan shots automatically")).toBeTruthy()
+    expect(screen.getByText("Subject references")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Add subject" }))
+    expect(screen.getByText("Subject 1")).toBeTruthy()
+    expect((screen.getByRole("textbox", { name: "Prompt name" }) as HTMLInputElement).value).toBe("subject_1")
   })
 })

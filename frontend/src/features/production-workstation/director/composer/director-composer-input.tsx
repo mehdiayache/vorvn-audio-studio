@@ -1,12 +1,13 @@
 import { useRef } from "react"
 
 import { InputGroup, InputGroupTextarea } from "@/components/ui/input-group"
+import type { VentureAsset } from "@/types/domain"
 import type { DirectorAdvancedValues } from "./director-advanced-settings"
 import { DirectorComposerAttachments, type DirectorComposerAttachment } from "./director-composer-attachments"
 import { DirectorComposerToolbar } from "./director-composer-toolbar"
 import type { DirectorAttachmentRole, DirectorModelCapability, DirectorOperation, DirectorOperationCapability, DirectorOperationInfo } from "./director-composer-config"
 
-export function DirectorComposerInput({ prompt, operations, operation, capability, model, models, attachments, missingRoles, ratio, resolution, duration, advanced, busy, disabledReason, uploadStatus, fileAccept, onPromptChange, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onFiles, onRemoveAttachment, onOpenLibrary, onPaste, onSubmit }: {
+export function DirectorComposerInput({ prompt, operations, operation, capability, model, models, attachments, missingRoles, ratio, resolution, duration, advanced, assets, busy, disabledReason, uploadStatus, fileAccept, onPromptChange, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onFiles, onRemoveAttachment, onOpenLibrary, onPaste, onSubmit }: {
   prompt: string
   operations: DirectorOperationInfo[]
   operation: DirectorOperation
@@ -19,6 +20,7 @@ export function DirectorComposerInput({ prompt, operations, operation, capabilit
   resolution: string
   duration: number
   advanced: DirectorAdvancedValues
+  assets: VentureAsset[]
   busy: boolean
   disabledReason?: string
   uploadStatus?: string
@@ -80,6 +82,7 @@ export function DirectorComposerInput({ prompt, operations, operation, capabilit
         resolution={resolution}
         duration={duration}
         advanced={advanced}
+        assets={assets}
         disabledReason={disabledReason}
         busy={busy}
         uploadStatus={uploadStatus}

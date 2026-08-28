@@ -10,13 +10,16 @@ import { Skeleton } from "@/components/ui/skeleton"
 import type { DirectorGeneration } from "./director-generation-types"
 import { operationLabel, type DirectorOperationInfo } from "./director-composer-config"
 
-export function DirectorGenerationCard({ operations, generation, canCancel, onCancel, onRegenerate, onUseSettings }: {
+export function DirectorGenerationCard({ operations, generation, canCancel, outputReady, onCancel, onRegenerate, onUseSettings, onPreview, onAddToTimeline }: {
   operations: DirectorOperationInfo[]
   generation: DirectorGeneration
   canCancel: boolean
+  outputReady: boolean
   onCancel: () => void
   onRegenerate: () => void
   onUseSettings: () => void
+  onPreview?: () => void
+  onAddToTimeline?: () => void
 }) {
   const running = generation.status === "queued" || generation.status === "generating"
   const ready = generation.status === "ready"
@@ -24,7 +27,7 @@ export function DirectorGenerationCard({ operations, generation, canCancel, onCa
   return <article className="director-generation-card" data-status={generation.status}>
     <div className="director-generation-preview">
       {running ? <Skeleton className="director-generation-skeleton" /> : <div className="director-generation-result"><OperationIcon /><span>{operationLabel(operations, generation.recipe.operation)}</span></div>}
-      <Badge variant="secondary" className="director-generation-status">{generation.status === "queued" ? "Queued" : running ? "Generating" : ready ? "Prototype ready" : generation.status === "failed" ? "Failed" : "Canceled"}</Badge>
+      <Badge variant="secondary" className="director-generation-status">{generation.status === "queued" ? "Queued" : running ? "Generating" : ready ? "Ready" : generation.status === "failed" ? "Failed" : "Canceled"}</Badge>
     </div>
     <div className="director-generation-copy">
       <header><div><strong>{generation.recipe.prompt || operationLabel(operations, generation.recipe.operation)}</strong><span>{generation.model_label} · {generation.recipe.controls.ratio} · {generation.output_media_type === "image" ? generation.recipe.controls.resolution : `${generation.recipe.controls.duration}s · ${generation.recipe.controls.resolution}`}</span></div>
@@ -35,10 +38,10 @@ export function DirectorGenerationCard({ operations, generation, canCancel, onCa
       <div className="director-generation-meta"><span><Sparkles />{operationLabel(operations, generation.recipe.operation)}</span><span><Clock3 />{generation.created_at ? new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(generation.created_at)) : "Now"}</span></div>
       <footer>
         {running ? canCancel ? <Button variant="outline" size="sm" onClick={onCancel}><X />Cancel</Button> : null : <>
-          <OperatorTooltip label="Preview" detail="A real provider output is required in the next integration checkpoint." disabledTrigger><Button variant="outline" size="sm" disabled><Eye />Preview</Button></OperatorTooltip>
+          <OperatorTooltip label="Preview" detail={outputReady ? "Open the generated Asset and its technical details." : "The generated Asset is still being saved."} disabledTrigger={!outputReady}><Button variant="outline" size="sm" disabled={!outputReady} onClick={onPreview}><Eye />Preview</Button></OperatorTooltip>
           <Button variant="outline" size="sm" onClick={onRegenerate}><RotateCcw />Regenerate</Button>
           <Button variant="outline" size="sm" onClick={onUseSettings}><WandSparkles />Remix</Button>
-          <OperatorTooltip label="Add to Timeline" detail="A real provider output Asset is required in the next integration checkpoint." disabledTrigger><Button size="sm" disabled>Add to Timeline</Button></OperatorTooltip>
+          <OperatorTooltip label="Add to Timeline" detail={outputReady ? "Place the generated Asset at the current playhead." : "The generated Asset is still being saved."} disabledTrigger={!outputReady}><Button size="sm" disabled={!outputReady} onClick={onAddToTimeline}>Add to Timeline</Button></OperatorTooltip>
         </>}
       </footer>
     </div>

@@ -278,6 +278,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/director/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Director Models
+         * @description Canonical model catalogue consumed by Director and external clients.
+         */
+        get: operations["getDirectorModels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exports/{export_id}/download": {
         parameters: {
             query?: never;
@@ -1355,6 +1375,40 @@ export interface paths {
         head?: never;
         /** Update Freesound */
         patch: operations["updateFreesoundSettings"];
+        trace?: never;
+    };
+    "/api/v1/settings/providers/kie": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Kie */
+        patch: operations["updateKieSettings"];
+        trace?: never;
+    };
+    "/api/v1/settings/providers/kie/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test Kie Connection */
+        post: operations["testKieConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/settings/storage": {
@@ -2688,10 +2742,25 @@ export interface components {
             models: components["schemas"]["DirectorModelCapability"][];
             /** Operations */
             operations: components["schemas"]["DirectorOperationInfo"][];
+            /** Providers */
+            providers: {
+                [key: string]: string;
+            }[];
         };
         /** DirectorCapabilitiesEnvelope */
         DirectorCapabilitiesEnvelope: {
             data: components["schemas"]["DirectorCapabilities"];
+        };
+        /** DirectorDurationRange */
+        DirectorDurationRange: {
+            /** Default */
+            default: number;
+            /** Max */
+            max: number;
+            /** Min */
+            min: number;
+            /** Step */
+            step: number;
         };
         /** DirectorGenerationControls */
         DirectorGenerationControls: {
@@ -2703,9 +2772,15 @@ export interface components {
             provider_parameters?: {
                 [key: string]: unknown;
             };
-            /** Ratio */
+            /**
+             * Ratio
+             * @default
+             */
             ratio: string;
-            /** Resolution */
+            /**
+             * Resolution
+             * @default
+             */
             resolution: string;
             /** Seed */
             seed?: number | null;
@@ -2759,6 +2834,14 @@ export interface components {
         };
         /** DirectorGenerationResponse */
         DirectorGenerationResponse: {
+            /** Adapter Version */
+            adapter_version?: string | null;
+            /** Capability Manifest Version */
+            capability_manifest_version?: string | null;
+            /** Capability Snapshot */
+            capability_snapshot?: {
+                [key: string]: unknown;
+            } | null;
             /** Created At */
             created_at: string | null;
             /** Detail */
@@ -2786,8 +2869,12 @@ export interface components {
             progress: number;
             /** Provider */
             provider: string;
+            /** Provider Id */
+            provider_id?: string | null;
             /** Provider Job Id */
             provider_job_id: string | null;
+            /** Provider Model Id */
+            provider_model_id?: string | null;
             recipe: components["schemas"]["DirectorGenerationRecipe"];
             /**
              * Status
@@ -2812,6 +2899,12 @@ export interface components {
         };
         /** DirectorModelCapability */
         DirectorModelCapability: {
+            /** Adapter Key */
+            adapter_key: string;
+            /** Adapter Version */
+            adapter_version: string;
+            /** Capability Manifest Version */
+            capability_manifest_version: string;
             /** Description */
             description: string;
             /** Id */
@@ -2822,11 +2915,19 @@ export interface components {
             operations: components["schemas"]["DirectorOperationCapability"][];
             /** Provider */
             provider: string;
-            /** Version */
-            version: string;
+            /** Provider Id */
+            provider_id: string;
+            /** Provider Model Id */
+            provider_model_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "verified" | "enabled";
         };
         /** DirectorOperationCapability */
         DirectorOperationCapability: {
+            duration_range?: components["schemas"]["DirectorDurationRange"] | null;
             /** Durations */
             durations: number[];
             /** Fps */
@@ -2835,14 +2936,19 @@ export interface components {
             inputs: components["schemas"]["DirectorInputSlot"][];
             /** Operation */
             operation: string;
+            output: components["schemas"]["DirectorOutputCapability"];
             /**
              * Output Media Type
              * @enum {string}
              */
             output_media_type: "image" | "video";
+            /** Parameters */
+            parameters?: components["schemas"]["DirectorParameterCapability"][];
             prompt: components["schemas"]["DirectorPromptCapability"];
             /** Ratios */
             ratios: string[];
+            /** Required Any Of */
+            required_any_of?: string[][];
             /** Resolutions */
             resolutions: string[];
             /** Supports Cancel */
@@ -2859,14 +2965,92 @@ export interface components {
             /** Label */
             label: string;
         };
+        /** DirectorOutputCapability */
+        DirectorOutputCapability: {
+            /** Extension */
+            extension: string;
+            /** Mime Type */
+            mime_type: string;
+        };
+        /** DirectorParameterCapability */
+        DirectorParameterCapability: {
+            /** Conflicts With */
+            conflicts_with?: string[];
+            /** Default */
+            default?: unknown;
+            /** Item */
+            item?: {
+                [key: string]: unknown;
+            };
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Max */
+            max?: number | null;
+            /** Max Length */
+            max_length?: number | null;
+            /** Min */
+            min?: number | null;
+            /** Options */
+            options?: unknown[];
+            /**
+             * Required
+             * @default false
+             */
+            required: boolean;
+            /** Step */
+            step?: number | null;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "boolean" | "integer" | "number" | "select" | "text" | "textarea" | "asset_slot" | "asset_list" | "structured_shots";
+            /** Visible When */
+            visible_when?: {
+                [key: string]: unknown;
+            };
+        };
         /** DirectorPromptCapability */
         DirectorPromptCapability: {
+            /**
+             * Max Length
+             * @default 20000
+             */
+            max_length: number;
             /** Negative Prompt */
             negative_prompt: boolean;
             /** Required */
             required: boolean;
             /** Supported */
             supported: boolean;
+        };
+        /** DirectorProviderSettingsResponse */
+        DirectorProviderSettingsResponse: {
+            /** Base Url */
+            base_url: string;
+            /** Configured */
+            configured: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+        };
+        /** DirectorProviderUpdate */
+        DirectorProviderUpdate: {
+            /**
+             * Api Key
+             * @default
+             */
+            api_key: string;
+            /**
+             * Base Url
+             * @default
+             */
+            base_url: string;
         };
         /** DiskLocationResponse */
         DiskLocationResponse: {
@@ -4464,18 +4648,24 @@ export interface components {
         };
         /** ProviderConnectionTestResponse */
         ProviderConnectionTestResponse: {
+            /** Configured */
+            configured?: boolean | null;
             /** Connected */
             connected: boolean;
+            /** Credits */
+            credits?: number | string | null;
             /** Provider */
-            provider: string;
+            provider?: string | null;
             /** Reason */
             reason?: string | null;
             /** Region */
-            region: string;
+            region?: string | null;
             /** Region Label */
-            region_label: string;
+            region_label?: string | null;
             /** Workspace Configured */
-            workspace_configured: boolean;
+            workspace_configured?: boolean | null;
+        } & {
+            [key: string]: unknown;
         };
         /** ProviderSettingsResponse */
         ProviderSettingsResponse: {
@@ -4895,6 +5085,7 @@ export interface components {
             audio_catalog: components["schemas"]["AudioCatalogSettingsResponse"];
             audio_generation: components["schemas"]["AudioGenerationSettingsResponse"];
             database: components["schemas"]["audio_studio__http__settings_contracts__DatabaseStatusResponse"];
+            director_provider: components["schemas"]["DirectorProviderSettingsResponse"];
             /** Naming */
             naming: {
                 [key: string]: string | number | boolean;
@@ -7775,6 +7966,26 @@ export interface operations {
             };
         };
     };
+    getDirectorModels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectorCapabilitiesEnvelope"];
+                };
+            };
+        };
+    };
     downloadExport: {
         parameters: {
             query?: never;
@@ -10067,6 +10278,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateKieSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DirectorProviderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsSnapshotEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    testKieConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderConnectionTestEnvelope"];
                 };
             };
         };

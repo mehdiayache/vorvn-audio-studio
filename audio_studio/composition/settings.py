@@ -9,6 +9,7 @@ from audio_studio.infrastructure.settings_administration import (
     FilesystemMaintenance,
 )
 from audio_studio.providers.alibaba.connection import test_saved_connection
+from audio_studio.providers.kie.provider import KieDirectorProvider
 
 
 settings_service = SettingsService(
@@ -17,6 +18,7 @@ settings_service = SettingsService(
     maintenance=FilesystemMaintenance(),
     pronunciations=PronunciationRepository(),
     provider_connection_test=test_saved_connection,
+    director_provider_connection_test=KieDirectorProvider().status,
     load_preferences=load_preferences,
     save_preferences=save_preferences,
 )

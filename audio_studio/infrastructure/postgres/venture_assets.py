@@ -52,6 +52,31 @@ class VentureAssetRepository:
             )
             return cursor.fetchone() is not None
 
+    def output_collection_for_production(self, production_id: int) -> int | None:
+        """Return one legacy container for generated visual Asset storage.
+
+        Collection remains storage organization only; the generated Asset's
+        canonical media type/category carries its product meaning.
+        """
+        with read_only() as cursor:
+            cursor.execute("""
+                SELECT project.venture_id
+                  FROM productions production
+                  JOIN work_projects project
+                    ON project.id = production.project_id
+                 WHERE production.id = %s
+                   AND production.archived_at IS NULL
+            """, (production_id,))
+            row = cursor.fetchone()
+        if not row:
+            return None
+        collections = self.ensure_collections(int(row[0]))
+        preferred = next(
+            (item for item in collections if item["kind"] == "stingers"),
+            None,
+        )
+        return int(preferred["id"]) if preferred else None
+
     def ensure_collections(self, venture_id: int) -> list[dict]:
         """Create the four fixed collections while IDs still bridge legacy rows."""
         with transaction() as cursor:

@@ -15,6 +15,13 @@ class ProviderSettingsResponse(BaseModel):
     http_base: str
 
 
+class DirectorProviderSettingsResponse(BaseModel):
+    name: str
+    configured: bool
+    base_url: str
+    reason: str = ""
+
+
 class AudioCatalogSettingsResponse(BaseModel):
     provider: str
     search_configured: bool
@@ -76,6 +83,7 @@ class StorageSettingsResponse(BaseModel):
 
 class SettingsSnapshotResponse(BaseModel):
     provider: ProviderSettingsResponse
+    director_provider: DirectorProviderSettingsResponse
     audio_catalog: AudioCatalogSettingsResponse
     audio_generation: AudioGenerationSettingsResponse
     output_directory: str
@@ -105,11 +113,15 @@ class StorageTestEnvelope(BaseModel):
 
 
 class ProviderConnectionTestResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     connected: bool
-    provider: str
-    region: str
-    region_label: str
-    workspace_configured: bool
+    provider: str | None = None
+    region: str | None = None
+    region_label: str | None = None
+    workspace_configured: bool | None = None
+    configured: bool | None = None
+    credits: float | int | str | None = None
     reason: str | None = None
 
 

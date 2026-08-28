@@ -19,6 +19,7 @@ import { SpendingSettingsCard } from "./spending-settings-card"
 import { SpeechSettingsCard } from "./speech-settings-card"
 import { FreesoundSettingsCard } from "./freesound-settings-card"
 import { AudioGenerationSettingsCard } from "./audio-generation-settings-card"
+import { DirectorProviderSettingsCard } from "./director-provider-settings-card"
 
 function statusText(value: Record<string, unknown>) {
   if (typeof value.status === "string") return value.status
@@ -52,12 +53,14 @@ export function SettingsPage() {
     <section className="settings-readiness" aria-labelledby="product-readiness-title"><header><h2 id="product-readiness-title">Product readiness</h2><p>Live application, provider and durable storage status.</p></header><div className="settings-status-grid">
       <article><Server /><div><b>{productIdentity.name}</b><span>{data.database.connected ? data.provider.configured ? "Ready" : "Setup required" : `${productIdentity.name} unavailable`}</span></div><i className={data.database.connected && data.provider.configured ? "healthy" : "warning"} /></article>
       <article><Server /><div><b>Alibaba</b><span>{data.provider.configured ? `Connected · ${data.provider.region_label}` : "API key needed"}</span></div><i className={data.provider.configured ? "healthy" : "warning"} /></article>
+      <article><Server /><div><b>KIE</b><span>{data.director_provider.configured ? "Connected for Director" : "API key needed"}</span></div><i className={data.director_provider.configured ? "healthy" : "warning"} /></article>
       <article><Database /><div><b>Database</b><span>{statusText(data.database)}</span></div><i className={data.database.connected ? "healthy" : "warning"} /></article>
       <article><FolderOpen /><div><b>Reference storage</b><span>{statusText(data.storage)}</span></div><i className={data.storage.configured ? "healthy" : "warning"} /></article>
     </div></section>
 
     <div className="settings-grid">
       <ProviderSettingsCard settings={data} onUpdated={setData} />
+      <DirectorProviderSettingsCard settings={data} onUpdated={setData} />
       <FreesoundSettingsCard settings={data} onUpdated={setData} />
       <AudioGenerationSettingsCard settings={data} onUpdated={setData} />
       <StorageSettingsCard settings={data} onUpdated={setData} />

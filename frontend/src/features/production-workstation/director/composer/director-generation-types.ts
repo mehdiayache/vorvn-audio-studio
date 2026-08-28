@@ -26,8 +26,13 @@ export type DirectorGeneration = {
   error: string | null
   recipe: DirectorGenerationRecipe
   provider: string
+  provider_id?: string | null
+  provider_model_id?: string | null
   model_label: string
   model_version: string
+  adapter_version?: string | null
+  capability_manifest_version?: string | null
+  capability_snapshot?: Record<string, unknown> | null
   output_media_type: "image" | "video"
   output_asset_ids: number[]
   provider_job_id: string | null
