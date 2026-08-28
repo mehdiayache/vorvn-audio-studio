@@ -14,7 +14,20 @@ import {
   type DirectorCapabilityCatalog, type DirectorModelCapability,
   type DirectorOperation,
 } from "./director-composer-config"
-import { activeProviderParameters, addNestedReference, assetKind, assetPreview, assignInputs, capabilityDefaults, fileKind, generationAttachments, identifier, parameterIssue } from "./director-composer-state"
+import {
+  activeProviderParameters,
+  addNestedReference,
+  assetKind,
+  assetPreview,
+  assignInputs,
+  capabilityDefaults,
+  fileKind,
+  generationAttachments,
+  identifier,
+  nestedReferenceAttachments,
+  parameterIssue,
+  removeNestedReference,
+} from "./director-composer-state"
 import { DirectorGenerationCard } from "./director-generation-card"
 import type { DirectorGeneration, DirectorGenerationRecipe } from "./director-generation-types"
 import { DirectorReferenceLibraryDialog } from "./director-reference-library-dialog"
@@ -91,6 +104,9 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
   const models = useMemo(() => catalog ? compatibleModels(catalog.models, operation) : [], [catalog, operation])
   const model = models.find(({ id }) => id === modelId) || models[0]
   const capability = model ? operationCapability(model, operation) : undefined
+  const visibleAttachments = capability
+    ? [...attachments, ...nestedReferenceAttachments(capability, advanced.parameters, libraryAssets)]
+    : attachments
   const missing = capability?.inputs.filter((slot) => slot.required && !attachments.some((attachment) => attachment.role === slot.role && attachment.assetId)).map(({ role }) => role) || []
   const missingChoice = capability?.required_any_of.find((roles) => !roles.some((role) => attachments.some((attachment) => attachment.role === role && attachment.assetId)))
   const pendingAttachment = attachments.some(({ status }) => status === "uploading")
@@ -197,6 +213,18 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
     setLibraryOpen(false)
   }
 
+  function removeReference(attachment: DirectorComposerAttachment) {
+    if (attachment.nested) {
+      setAdvanced((current) => ({
+        ...current,
+        parameters: removeNestedReference(current.parameters, attachment),
+      }))
+    } else {
+      setAttachments((current) => current.filter(({ id }) => id !== attachment.id))
+    }
+    setComposerError("")
+  }
+
   async function pasteFromClipboard() {
     try {
       const clipboard = await navigator.clipboard.read()
@@ -265,7 +293,7 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
   return <section className="director-composer-shell" aria-label="Create visual material">
     <DirectorComposerInput
       prompt={prompt} operations={catalog.operations} operation={operation} capability={capability}
-      model={model} models={models} attachments={attachments} missingRoles={missing}
+      model={model} models={models} attachments={visibleAttachments} missingRoles={missing}
       ratio={ratio} resolution={resolution} duration={duration} advanced={advanced}
       assets={libraryAssets}
       busy={submitting} disabledReason={disabledReason}
@@ -274,7 +302,7 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
       onModelChange={(nextId) => { const next = models.find(({ id }) => id === nextId); if (next) applyModel(next) }}
       onRatioChange={setRatio} onResolutionChange={setResolution} onDurationChange={setDuration}
       onAdvancedChange={setAdvanced} onFiles={receiveFiles}
-      onRemoveAttachment={(id) => { setAttachments((current) => current.filter((attachment) => attachment.id !== id)); setComposerError("") }}
+      onRemoveAttachment={removeReference}
       onOpenLibrary={() => setLibraryOpen(true)} onPaste={() => void pasteFromClipboard()}
       onSubmit={() => void createGeneration()}
     />

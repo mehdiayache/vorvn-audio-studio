@@ -33,7 +33,7 @@ export function DirectorComposerInput({ prompt, operations, operation, capabilit
   onDurationChange: (value: number) => void
   onAdvancedChange: (value: DirectorAdvancedValues) => void
   onFiles: (files: File[]) => void
-  onRemoveAttachment: (id: string) => void
+  onRemoveAttachment: (attachment: DirectorComposerAttachment) => void
   onOpenLibrary: () => void
   onPaste: () => void
   onSubmit: () => void

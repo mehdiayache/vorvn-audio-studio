@@ -67,6 +67,14 @@ type AssetListGroup = {
   end_time_ms?: number
 }
 
+type AssetListVariant = {
+  id: string
+  label?: string
+  media_types?: DirectorAttachmentKind[]
+  max_assets?: number
+  trim?: { start_default?: number; end_default?: number }
+}
+
 function subjectName(groups: AssetListGroup[]) {
   const names = new Set(groups.map(({ name }) => name.toLowerCase()))
   let index = groups.length + 1
@@ -84,9 +92,7 @@ export function addNestedReference(capability: DirectorOperationCapability, valu
   for (const field of capability.parameters) {
     if (field.type !== "asset_list") continue
     const groups = structuredClone(Array.isArray(values[field.key]) ? values[field.key] : []) as AssetListGroup[]
-    const variants = Array.isArray(field.item.variants)
-      ? field.item.variants as { id: string; media_types?: DirectorAttachmentKind[]; max_assets?: number; trim?: { start_default?: number; end_default?: number } }[]
-      : []
+    const variants = Array.isArray(field.item.variants) ? field.item.variants as AssetListVariant[] : []
     const variant = variants.find(({ media_types }) => media_types?.includes(kind))
     if (variant) {
       const maximum = Number(variant.max_assets || 1)
@@ -113,6 +119,51 @@ export function addNestedReference(capability: DirectorOperationCapability, valu
     }
   }
   return null
+}
+
+export function nestedReferenceAttachments(capability: DirectorOperationCapability, values: DirectorParameterValues, assets: VentureAsset[]) {
+  const byId = new Map(assets.map((asset) => [asset.id, asset]))
+  return capability.parameters.flatMap((field): DirectorComposerAttachment[] => {
+    if (field.type !== "asset_list") return []
+    const groups = Array.isArray(values[field.key]) ? values[field.key] as AssetListGroup[] : []
+    const variants = Array.isArray(field.item.variants) ? field.item.variants as AssetListVariant[] : []
+    return groups.flatMap((group, groupIndex) => {
+      const variant = variants.find(({ id }) => id === group.variant)
+      const subject = group.name ? `@${group.name}` : `Subject ${groupIndex + 1}`
+      const toAttachment = (assetId: number, listKey: "asset_ids" | "audio_asset_ids", position: number): DirectorComposerAttachment | null => {
+        const asset = byId.get(assetId)
+        const kind = asset && assetKind(asset)
+        if (!asset || !kind) return null
+        return {
+          id: `nested-${field.key}-${groupIndex}-${listKey}-${assetId}-${position}`,
+          assetId,
+          name: visualAssetName(asset),
+          kind,
+          role: "",
+          roleLabel: listKey === "audio_asset_ids" ? `${subject} · Reference audio` : `${subject} · ${variant?.label || "Reference"}`,
+          previewUrl: assetPreview(asset),
+          posterUrl: asset.media_type !== "audio" ? visualAssetPosterUrl(asset) : null,
+          status: "ready",
+          nested: { fieldKey: field.key, groupIndex, listKey, assetId },
+        }
+      }
+      return [
+        ...(group.asset_ids || []).map((assetId, position) => toAttachment(assetId, "asset_ids", position)),
+        ...(group.audio_asset_ids || []).map((assetId, position) => toAttachment(assetId, "audio_asset_ids", position)),
+      ].filter((item): item is DirectorComposerAttachment => Boolean(item))
+    })
+  })
+}
+
+export function removeNestedReference(values: DirectorParameterValues, attachment: DirectorComposerAttachment) {
+  const nested = attachment.nested
+  if (!nested) return values
+  const groups = structuredClone(Array.isArray(values[nested.fieldKey]) ? values[nested.fieldKey] : []) as AssetListGroup[]
+  const group = groups[nested.groupIndex]
+  if (!group) return values
+  group[nested.listKey] = group[nested.listKey].filter((assetId) => assetId !== nested.assetId)
+  if (!group.asset_ids.length && !group.audio_asset_ids.length) groups.splice(nested.groupIndex, 1)
+  return { ...values, [nested.fieldKey]: groups }
 }
 
 export function parameterIssue(capability: DirectorOperationCapability, values: DirectorParameterValues, duration: number, assets: VentureAsset[] = []) {

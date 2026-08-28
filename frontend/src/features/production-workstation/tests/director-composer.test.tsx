@@ -178,9 +178,20 @@ describe("Director composer", () => {
     fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
     fireEvent.click((await screen.findByText("Hero front", { selector: ".director-reference-item strong" })).closest("button")!)
 
+    expect(await screen.findByLabelText("Generation references")).toBeTruthy()
+    expect(screen.getByText("Hero front", { selector: ".attachment-chip-copy strong" })).toBeTruthy()
+    expect(screen.getByText("@subject1 · Image subject")).toBeTruthy()
+
     fireEvent.click(screen.getByRole("button", { name: "Model settings" }))
     expect(await screen.findByText("Subject 1")).toBeTruthy()
     expect(screen.getByText("Hero front", { selector: ".director-subject-asset" })).toBeTruthy()
     expect((screen.getByLabelText("Description (optional)") as HTMLInputElement).value).toBe("Hero front")
+
+    fireEvent.keyDown(document, { key: "Escape" })
+    await waitFor(() => expect(screen.queryByText("Subject 1")).toBeNull())
+    fireEvent.click(screen.getByRole("button", { name: "Remove Hero front" }))
+    expect(screen.queryByText("Hero front", { selector: ".attachment-chip-copy strong" })).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "Model settings" }))
+    expect(await screen.findByText(/Optional\. Add a named subject/)).toBeTruthy()
   })
 })
