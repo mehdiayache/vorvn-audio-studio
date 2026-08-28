@@ -6,6 +6,7 @@ import type { DirectorAdvancedValues } from "./director-advanced-settings"
 import { DirectorComposerAttachments, type DirectorComposerAttachment } from "./director-composer-attachments"
 import { DirectorComposerToolbar } from "./director-composer-toolbar"
 import type { DirectorAttachmentRole, DirectorModelCapability, DirectorOperation, DirectorOperationCapability, DirectorOperationInfo } from "./director-composer-config"
+import { DirectorPrimaryControls } from "./director-primary-controls"
 
 export function DirectorComposerInput({ prompt, operations, operation, capability, model, models, attachments, missingRoles, ratio, resolution, duration, advanced, assets, busy, disabledReason, uploadStatus, fileAccept, onPromptChange, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onFiles, onRemoveAttachment, onOpenLibrary, onPaste, onSubmit }: {
   prompt: string
@@ -72,6 +73,8 @@ export function DirectorComposerInput({ prompt, operations, operation, capabilit
           }
         }}
       />
+      <DirectorPrimaryControls capability={capability} values={advanced} assets={assets} onChange={onAdvancedChange} />
+      {disabledReason && !busy && <div className="director-composer-readiness" role="status">{disabledReason}</div>}
       <DirectorComposerToolbar
         operations={operations}
         operation={operation}
@@ -82,7 +85,6 @@ export function DirectorComposerInput({ prompt, operations, operation, capabilit
         resolution={resolution}
         duration={duration}
         advanced={advanced}
-        assets={assets}
         disabledReason={disabledReason}
         busy={busy}
         uploadStatus={uploadStatus}

@@ -10,7 +10,7 @@ import type { DirectorAdvancedValues } from "./director-advanced-settings"
 import type { DirectorComposerAttachment } from "./director-composer-attachments"
 import { DirectorComposerInput } from "./director-composer-input"
 import {
-  acceptedMediaTypes, compatibleModels, normalizeCapabilityCatalog, operationCapability,
+  availableReferenceMediaTypes, compatibleModels, normalizeCapabilityCatalog, operationCapability,
   type DirectorCapabilityCatalog, type DirectorModelCapability,
   type DirectorOperation,
 } from "./director-composer-config"
@@ -113,7 +113,8 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
   const failedAttachment = attachments.some(({ status }) => status === "failed")
   const controlsIssue = capability ? parameterIssue(capability, advanced.parameters, duration, libraryAssets) : undefined
   const disabledReason = !capability ? "Director capabilities are loading." : capability.prompt.required && !prompt.trim() ? "Write what you want to create." : prompt.length > capability.prompt.max_length ? `Keep the direction under ${capability.prompt.max_length.toLocaleString()} characters.` : referenceUploads || pendingAttachment ? "Wait for references to finish uploading." : failedAttachment ? "Remove the reference that failed to upload." : missing.length ? `Add ${missing.map((role) => capability.inputs.find((slot) => slot.role === role)?.label || role).join(" and ")}.` : missingChoice ? `Add ${missingChoice.map((role) => capability.inputs.find((slot) => slot.role === role)?.label || role).join(" or ")}.` : controlsIssue
-  const fileAccept = capability ? acceptedMediaTypes(capability).map((kind) => `${kind}/*`).join(",") : ""
+  const referenceMediaTypes = capability ? availableReferenceMediaTypes(capability, advanced.parameters) : []
+  const fileAccept = referenceMediaTypes.map((kind) => `${kind}/*`).join(",")
 
   function applyModel(next: DirectorModelCapability, nextOperation = operation) {
     const nextCapability = operationCapability(next, nextOperation)
@@ -148,7 +149,7 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
 
   function receiveFiles(files: File[]) {
     if (!capability) return
-    const kinds = acceptedMediaTypes(capability)
+    const kinds = availableReferenceMediaTypes(capability, advanced.parameters)
     let staged = [...attachments]
     for (const file of files) {
       const kind = fileKind(file)
@@ -194,7 +195,7 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
 
   function receiveAsset(asset: VentureAsset) {
     const kind = assetKind(asset)
-    if (!kind || !capability || !acceptedMediaTypes(capability).includes(kind)) {
+    if (!kind || !capability || !availableReferenceMediaTypes(capability, advanced.parameters).includes(kind)) {
       setComposerError(`${visualAssetName(asset)} is not compatible with this model operation.`)
       return
     }
@@ -335,6 +336,6 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
         })}</div>
       </DialogContent>
     </Dialog></div>}
-    <DirectorReferenceLibraryDialog open={libraryOpen} assets={libraryAssets} acceptedMediaTypes={acceptedMediaTypes(capability)} onOpenChange={setLibraryOpen} onAdd={receiveAsset} />
+    <DirectorReferenceLibraryDialog open={libraryOpen} assets={libraryAssets} acceptedMediaTypes={referenceMediaTypes} onOpenChange={setLibraryOpen} onAdd={receiveAsset} />
   </section>
 }

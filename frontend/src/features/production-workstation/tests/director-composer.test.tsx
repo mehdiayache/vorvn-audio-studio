@@ -43,11 +43,11 @@ const kieCatalog = {
       duration_range: { min: 3, max: 15, step: 1, default: 5 }, fps: [], supports_seed: false, supports_cancel: false,
       output: { mime_type: "video/mp4", extension: "mp4" },
       parameters: [
-        { key: "audio", type: "boolean", label: "Generate audio", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: [], item: {} },
-        { key: "customize_multi_shots", type: "boolean", label: "Direct multiple shots", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: ["prefer_multi_shots"], item: {} },
-        { key: "prefer_multi_shots", type: "boolean", label: "Plan shots automatically", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: ["customize_multi_shots"], item: {} },
-        { key: "multi_prompt", type: "structured_shots", label: "Shots", required: false, default: [], options: [], min: null, max: null, step: null, max_length: null, visible_when: { customize_multi_shots: true }, conflicts_with: [], item: { prompt_max_length: 512, duration_min: 1, duration_max: 15, max_items: 6 } },
-        { key: "elements", type: "asset_list", label: "Subject references", required: false, default: [], options: [], min: null, max: 7, step: null, max_length: null, visible_when: {}, conflicts_with: [], item: { name_max_length: 64, description_max_length: 300, variants: [{ id: "images", label: "Image subject", media_types: ["image"], min_assets: 2, max_assets: 4 }], audio: { media_types: ["audio"], max_assets: 1 } } },
+        { key: "audio", type: "boolean", label: "Generate audio", exposure: "primary", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: [], item: {} },
+        { key: "customize_multi_shots", type: "boolean", label: "Direct multiple shots", exposure: "primary", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: ["prefer_multi_shots"], item: {} },
+        { key: "prefer_multi_shots", type: "boolean", label: "Plan shots automatically", exposure: "primary", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: ["customize_multi_shots"], item: {} },
+        { key: "multi_prompt", type: "structured_shots", label: "Shots", exposure: "primary", required: true, default: [], options: [], min: null, max: null, step: null, max_length: null, visible_when: { customize_multi_shots: true }, conflicts_with: [], item: { prompt_max_length: 512, duration_min: 1, duration_max: 15, max_items: 6 } },
+        { key: "elements", type: "asset_list", label: "Characters & subjects", exposure: "primary", required: false, default: [], options: [], min: null, max: 7, step: null, max_length: null, visible_when: {}, conflicts_with: [], item: { name_max_length: 64, description_max_length: 300, variants: [{ id: "images", label: "Image subject", media_types: ["image"], min_assets: 2, max_assets: 4 }], audio: { media_types: ["audio"], max_assets: 1 } } },
       ],
     }],
   }],
@@ -152,16 +152,16 @@ describe("Director composer", () => {
     await waitFor(() => expect(onAddGeneratedToTimeline).toHaveBeenCalledWith(asset))
   })
 
-  it("renders model-declared Kling settings without model-specific composer code", async () => {
+  it("renders model-declared creative controls in the Composer instead of hiding them in settings", async () => {
     vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
     renderComposer({ libraryAssets: [
       { id: 41, media_type: "image", name: "Hero front" },
       { id: 42, media_type: "image", name: "Hero side" },
     ] })
-    fireEvent.click(await screen.findByRole("button", { name: "Model settings" }))
     expect(await screen.findByText("Generate audio")).toBeTruthy()
     expect(screen.getByText("Plan shots automatically")).toBeTruthy()
-    expect(screen.getByText("Subject references")).toBeTruthy()
+    expect(screen.getByText("Characters & subjects")).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Model settings" })).toBeNull()
     fireEvent.click(screen.getByRole("button", { name: "Add subject" }))
     expect(screen.getByText("Subject 1")).toBeTruthy()
     expect((screen.getByRole("textbox", { name: "Prompt name" }) as HTMLInputElement).value).toBe("subject_1")
@@ -173,8 +173,9 @@ describe("Director composer", () => {
       { id: 41, media_type: "image", name: "Hero front" },
       { id: 42, media_type: "image", name: "Hero side" },
     ] })
+    fireEvent.change(await screen.findByRole("textbox", { name: "Director prompt" }), { target: { value: "@subject1 crosses the room" } })
 
-    fireEvent.pointerDown(await screen.findByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
     fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
     fireEvent.click((await screen.findByText("Hero front", { selector: ".director-reference-item strong" })).closest("button")!)
 
@@ -182,16 +183,53 @@ describe("Director composer", () => {
     expect(screen.getByText("Hero front", { selector: ".attachment-chip-copy strong" })).toBeTruthy()
     expect(screen.getByText("@subject1 · Image subject")).toBeTruthy()
 
-    fireEvent.click(screen.getByRole("button", { name: "Model settings" }))
     expect(await screen.findByText("Subject 1")).toBeTruthy()
     expect(screen.getByText("Hero front", { selector: ".director-subject-asset" })).toBeTruthy()
     expect((screen.getByLabelText("Description (optional)") as HTMLInputElement).value).toBe("Hero front")
+    expect(screen.getByText(/Add 1 more reference/)).toBeTruthy()
+    expect(screen.getByText("Add 1 more image to @subject1.")).toBeTruthy()
 
-    fireEvent.keyDown(document, { key: "Escape" })
-    await waitFor(() => expect(screen.queryByText("Subject 1")).toBeNull())
     fireEvent.click(screen.getByRole("button", { name: "Remove Hero front" }))
     expect(screen.queryByText("Hero front", { selector: ".attachment-chip-copy strong" })).toBeNull()
-    fireEvent.click(screen.getByRole("button", { name: "Model settings" }))
-    expect(await screen.findByText(/Optional\. Add a named subject/)).toBeTruthy()
+    expect(await screen.findByText(/Optional\. Add a character/)).toBeTruthy()
+  })
+
+  it("shows shot planning at the work surface and explains why Create is unavailable", async () => {
+    vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
+    renderComposer()
+    fireEvent.change(await screen.findByRole("textbox", { name: "Director prompt" }), { target: { value: "A calm harbor at dawn" } })
+    fireEvent.click(screen.getByRole("switch", { name: "Direct multiple shots" }))
+    expect(await screen.findByRole("button", { name: "Add shot" })).toBeTruthy()
+    expect(screen.getByText("Add at least one directed shot.")).toBeTruthy()
+    expect((screen.getByRole("button", { name: "Create" }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it("keeps conflicting creative modes mutually exclusive", async () => {
+    vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
+    renderComposer()
+    const direct = await screen.findByRole("switch", { name: "Direct multiple shots" })
+    const automatic = screen.getByRole("switch", { name: "Plan shots automatically" })
+    fireEvent.click(direct)
+    expect(direct.getAttribute("data-state")).toBe("checked")
+    fireEvent.click(automatic)
+    expect(automatic.getAttribute("data-state")).toBe("checked")
+    expect(direct.getAttribute("data-state")).toBe("unchecked")
+  })
+
+  it("offers nested audio only after a subject can receive it", async () => {
+    vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
+    renderComposer({ libraryAssets: [
+      { id: 41, media_type: "image", name: "Hero front" },
+      { id: 42, media_type: "audio", name: "Hero voice", duration_ms: 8000 },
+    ] })
+    fireEvent.pointerDown(await screen.findByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
+    const hero = await screen.findByText("Hero front", { selector: ".director-reference-item strong" })
+    expect(screen.queryByText("Hero voice", { selector: ".director-reference-item strong" })).toBeNull()
+    fireEvent.click(hero.closest("button")!)
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
+    expect(await screen.findByText("Hero voice", { selector: ".director-reference-item strong" })).toBeTruthy()
   })
 })

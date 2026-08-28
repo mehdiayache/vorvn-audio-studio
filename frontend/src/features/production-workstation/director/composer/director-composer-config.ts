@@ -21,6 +21,7 @@ export type DirectorParameterCapability = {
   key: string
   type: "boolean" | "integer" | "number" | "select" | "text" | "textarea" | "asset_slot" | "asset_list" | "structured_shots"
   label: string
+  exposure: "primary" | "advanced"
   required: boolean
   default: unknown
   options: unknown[]
@@ -90,7 +91,11 @@ export function normalizeCapabilityCatalog(catalog: DirectorCapabilityCatalog) {
         prompt: { ...capability.prompt, max_length: capability.prompt.max_length || 20_000 },
         required_any_of: capability.required_any_of || [],
         duration_range: capability.duration_range || null,
-        parameters: (capability.parameters || []).map((field) => ({ ...field, conflicts_with: field.conflicts_with || [] })),
+        parameters: (capability.parameters || []).map((field) => ({
+          ...field,
+          exposure: field.exposure || (field.type === "asset_list" || field.type === "structured_shots" ? "primary" : "advanced"),
+          conflicts_with: field.conflicts_with || [],
+        })),
         output: capability.output || { mime_type: capability.output_media_type === "video" ? "video/mp4" : "image/png", extension: capability.output_media_type === "video" ? "mp4" : "png" },
       })),
     })),
@@ -109,24 +114,33 @@ export function operationCapability(model: DirectorModelCapability, operation: D
   return model.operations.find((capability) => capability.operation === operation)
 }
 
-export function acceptedMediaTypes(capability: DirectorOperationCapability) {
-  const parameterMedia = capability.parameters.flatMap((field) => {
+export function availableReferenceMediaTypes(capability: DirectorOperationCapability, values: DirectorParameterValues) {
+  const direct = capability.inputs.flatMap(({ media_types }) => media_types)
+  const nested = capability.parameters.flatMap((field) => {
     if (field.type !== "asset_list") return []
+    if (!Object.entries(field.visible_when).every(([key, expected]) => values[key] === expected)) return []
     const variants = Array.isArray(field.item.variants)
       ? field.item.variants as { media_types?: DirectorAttachmentKind[] }[]
       : []
-    const audio = field.item.audio as { media_types?: DirectorAttachmentKind[] } | undefined
+    const items = Array.isArray(values[field.key])
+      ? values[field.key] as { audio_asset_ids?: number[] }[]
+      : []
+    const audio = field.item.audio as { media_types?: DirectorAttachmentKind[]; max_assets?: number } | undefined
+    const acceptsAudio = audio && items.some(({ audio_asset_ids }) => (audio_asset_ids?.length || 0) < Number(audio.max_assets || 1))
     return [
       ...variants.flatMap(({ media_types }) => media_types || []),
-      ...(audio?.media_types || []),
+      ...(acceptsAudio ? audio.media_types || [] : []),
     ]
   })
-  return [...new Set([
-    ...capability.inputs.flatMap(({ media_types }) => media_types),
-    ...parameterMedia,
-  ])]
+  return [...new Set([...direct, ...nested])]
 }
 
 export function attachmentRoleLabel(capability: DirectorOperationCapability, role: DirectorAttachmentRole) {
   return capability.inputs.find((slot) => slot.role === role)?.label || role.replaceAll("-", " ")
+}
+
+export function withParameterValue(field: DirectorParameterCapability, values: DirectorParameterValues, value: unknown) {
+  const next = { ...values, [field.key]: value }
+  if (field.type === "boolean" && value) field.conflicts_with.forEach((key) => { next[key] = false })
+  return next
 }

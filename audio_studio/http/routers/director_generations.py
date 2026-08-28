@@ -39,6 +39,7 @@ class DirectorParameterCapability(BaseModel):
         "asset_slot", "asset_list", "structured_shots",
     ]
     label: str
+    exposure: Literal["primary", "advanced"] = "advanced"
     required: bool = False
     default: Any = None
     options: list[Any] = Field(default_factory=list)

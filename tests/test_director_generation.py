@@ -94,7 +94,9 @@ class DirectorGenerationTest(unittest.TestCase):
             "negative_prompt": False, "max_length": 3072})
         fields = {field["key"]: field for field in text_video["parameters"]}
         self.assertEqual(fields["multi_prompt"]["item"]["max_items"], 6)
+        self.assertEqual(fields["multi_prompt"]["exposure"], "primary")
         self.assertEqual(fields["elements"]["type"], "asset_list")
+        self.assertEqual(fields["elements"]["exposure"], "primary")
         self.assertTrue(fields["elements"]["item"]["description_required"])
         self.assertEqual(
             fields["customize_multi_shots"]["conflicts_with"],

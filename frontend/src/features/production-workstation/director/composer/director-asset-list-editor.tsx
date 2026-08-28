@@ -37,25 +37,28 @@ function assetLabel(asset: VentureAsset) {
   return `${visualAssetName(asset)}${seconds}`
 }
 
-function AssetPicker({ label, assets, selected, maximum, onChange }: {
+function AssetPicker({ label, assets, selected, minimum, maximum, onChange }: {
   label: string
   assets: VentureAsset[]
   selected: number[]
+  minimum: number
   maximum: number
   onChange: (value: number[]) => void
 }) {
   const available = assets.filter((asset) => !selected.includes(asset.id))
+  const missing = Math.max(0, minimum - selected.length)
   return <div className="director-subject-assets">
-    <span>{label}</span>
+    <div className="director-subject-assets-heading"><span>{label}</span><span>{selected.length}/{maximum}</span></div>
     {selected.length > 0 && <div className="director-subject-asset-list">{selected.map((assetId) => {
       const asset = assets.find(({ id }) => id === assetId)
-      return <span className="director-subject-asset" key={assetId}>{asset ? assetLabel(asset) : `Asset ${assetId}`}<OperatorIconButton type="button" label={`Remove ${asset ? visualAssetName(asset) : "Asset"}`} size="icon-xs" onClick={() => onChange(selected.filter((id) => id !== assetId))}><X /></OperatorIconButton></span>
+      return <span className="director-subject-asset" key={assetId}>{asset ? assetLabel(asset) : `Asset ${assetId}`}<OperatorIconButton type="button" label={`Remove ${asset ? visualAssetName(asset) : "Asset"} from subject`} size="icon-xs" onClick={() => onChange(selected.filter((id) => id !== assetId))}><X /></OperatorIconButton></span>
     })}</div>}
     {selected.length < maximum && available.length > 0 && <Select value="" onValueChange={(value) => onChange([...selected, Number(value)])}>
       <SelectTrigger className="w-full"><SelectValue placeholder={`Choose ${label.toLowerCase()}`} /></SelectTrigger>
       <SelectContent><SelectGroup>{available.map((asset) => <SelectItem key={asset.id} value={String(asset.id)}>{assetLabel(asset)}</SelectItem>)}</SelectGroup></SelectContent>
     </Select>}
     {selected.length < maximum && available.length === 0 && <span className="director-subject-unavailable">No compatible Asset is available in this Production.</span>}
+    {missing > 0 && <p className="director-subject-requirement" role="status">Add {missing} more {missing === 1 ? "reference" : "references"}. This subject requires {minimum === maximum ? minimum : `${minimum}–${maximum}`}.</p>}
   </div>
 }
 
@@ -83,7 +86,7 @@ export function DirectorAssetListEditor({ field, value, assets, onChange }: {
     }])
   }
   return <section className="director-subject-editor">
-    <header><span>{field.label}</span><Button type="button" variant="outline" size="sm" disabled={Boolean(maximum && items.length >= maximum)} onClick={add}><Plus /> Add subject</Button></header>
+    <header><div><span>{field.label}</span><small>Name a subject once, then direct it with <code>@name</code>.</small></div><Button type="button" variant="outline" size="sm" disabled={Boolean(maximum && items.length >= maximum)} onClick={add}><Plus /> Add subject</Button></header>
     {items.map((item, index) => {
       const variant = variants.find(({ id }) => id === item.variant) || variants[0]
       if (!variant) return null
@@ -102,14 +105,14 @@ export function DirectorAssetListEditor({ field, value, assets, onChange }: {
           <label><span>Prompt name</span><Input maxLength={Number(field.item.name_max_length || 64)} value={item.name} onChange={(event) => update(index, { name: event.target.value.replace(/^@/, "") })} /></label>
         </div>
         <label><span>Description{field.item.description_required ? "" : " (optional)"}</span><Input required={Boolean(field.item.description_required)} maxLength={Number(field.item.description_max_length || 300)} value={item.description} onChange={(event) => update(index, { description: event.target.value })} /></label>
-        <AssetPicker label={variant.label} assets={compatible} selected={item.asset_ids || []} maximum={variant.max_assets} onChange={(asset_ids) => update(index, { asset_ids })} />
+        <AssetPicker label={variant.label} assets={compatible} selected={item.asset_ids || []} minimum={variant.min_assets} maximum={variant.max_assets} onChange={(asset_ids) => update(index, { asset_ids })} />
         {variant.trim && <div className="director-subject-grid">
           <label><span>Starts at (ms)</span><Input type="number" min={0} step={100} value={item.start_time_ms ?? variant.trim.start_default} onChange={(event) => update(index, { start_time_ms: Number(event.target.value) })} /></label>
           <label><span>Ends at (ms)</span><Input type="number" min={variant.trim.duration_min} step={100} value={item.end_time_ms ?? variant.trim.end_default} onChange={(event) => update(index, { end_time_ms: Number(event.target.value) })} /></label>
         </div>}
-        {Number(audio.max_assets || 0) > 0 && <AssetPicker label="Reference audio" assets={audioAssets} selected={item.audio_asset_ids || []} maximum={Number(audio.max_assets)} onChange={(audio_asset_ids) => update(index, { audio_asset_ids })} />}
+        {Number(audio.max_assets || 0) > 0 && <AssetPicker label="Reference audio" assets={audioAssets} selected={item.audio_asset_ids || []} minimum={0} maximum={Number(audio.max_assets)} onChange={(audio_asset_ids) => update(index, { audio_asset_ids })} />}
       </div>
     })}
-    {items.length === 0 && <p className="director-subject-empty">Optional. Add a named subject, then reference it in the direction with <code>@subject_name</code>.</p>}
+    {items.length === 0 && <p className="director-subject-empty">Optional. Add a character, object or place only when the direction needs visual consistency.</p>}
   </section>
 }

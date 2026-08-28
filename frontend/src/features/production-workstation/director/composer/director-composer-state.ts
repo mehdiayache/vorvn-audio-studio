@@ -171,22 +171,23 @@ export function parameterIssue(capability: DirectorOperationCapability, values: 
   for (const field of capability.parameters) {
     if (!(field.key in active)) continue
     const value = active[field.key]
-    if (field.required && (value === null || value === undefined || value === "" || (Array.isArray(value) && !value.length))) return `Choose ${field.label.toLowerCase()}.`
+    if (field.required && (value === null || value === undefined || value === "" || (Array.isArray(value) && !value.length))) {
+      return field.type === "structured_shots" ? "Add at least one directed shot." : `Choose ${field.label.toLowerCase()}.`
+    }
     const conflict = field.conflicts_with.find((key) => Boolean(value) && Boolean(active[key]))
     if (conflict) return `${field.label} cannot be used with ${capability.parameters.find(({ key }) => key === conflict)?.label || conflict}.`
     if (field.type === "structured_shots" && Array.isArray(value)) {
-      if (values.customize_multi_shots && !value.length) return "Add at least one directed shot."
       const maximum = Number(field.item.max_items || 0)
       if (maximum && value.length > maximum) return `${field.label} accepts at most ${maximum} shots.`
       if (value.some((shot) => typeof shot !== "object" || shot === null || !("prompt" in shot) || !String(shot.prompt).trim())) return "Write a direction for every shot."
       const total = value.reduce((sum, shot) => sum + Number(typeof shot === "object" && shot !== null && "duration" in shot ? shot.duration : 0), 0)
-      if (values.customize_multi_shots && total !== duration) return `Shot durations must add up to ${duration} seconds.`
+      if (total !== duration) return `Shot durations must add up to ${duration} seconds.`
     }
     if (field.type === "asset_list" && Array.isArray(value)) {
       const maximum = Number(field.max || 0)
       if (maximum && value.length > maximum) return `${field.label} accepts at most ${maximum} items.`
       const names = new Set<string>()
-      const variants = Array.isArray(field.item.variants) ? field.item.variants as { id: string; label: string; min_assets: number; max_assets: number; trim?: { duration_min: number; duration_max: number } }[] : []
+      const variants = Array.isArray(field.item.variants) ? field.item.variants as { id: string; label: string; media_types?: string[]; min_assets: number; max_assets: number; trim?: { duration_min: number; duration_max: number } }[] : []
       const variantCounts = Object.fromEntries(variants.map(({ id }) => [id, 0])) as Record<string, number>
       const usedAssets = new Set<number>()
       for (const raw of value) {
@@ -201,7 +202,12 @@ export function parameterIssue(capability: DirectorOperationCapability, values: 
         if (!variant) return "Choose a subject reference type."
         variantCounts[variant.id] = (variantCounts[variant.id] || 0) + 1
         const count = item.asset_ids?.length || 0
-        if (count < variant.min_assets || count > variant.max_assets) return `${variant.label} needs between ${variant.min_assets} and ${variant.max_assets} Assets.`
+        const referenceKind = variant.media_types?.[0] || "reference"
+        if (count < variant.min_assets) {
+          const missing = variant.min_assets - count
+          return `Add ${missing} more ${referenceKind}${missing === 1 ? "" : "s"} to @${name}.`
+        }
+        if (count > variant.max_assets) return `@${name} accepts at most ${variant.max_assets} ${referenceKind}${variant.max_assets === 1 ? "" : "s"}.`
         for (const assetId of [...(item.asset_ids || []), ...(item.audio_asset_ids || [])]) {
           if (usedAssets.has(assetId)) return "Use each subject Asset only once."
           usedAssets.add(assetId)

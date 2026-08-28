@@ -2978,6 +2978,12 @@ export interface components {
             conflicts_with?: string[];
             /** Default */
             default?: unknown;
+            /**
+             * Exposure
+             * @default advanced
+             * @enum {string}
+             */
+            exposure: "primary" | "advanced";
             /** Item */
             item?: {
                 [key: string]: unknown;

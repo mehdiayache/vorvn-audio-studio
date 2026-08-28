@@ -2907,6 +2907,15 @@
           "default": {
             "title": "Default"
           },
+          "exposure": {
+            "default": "advanced",
+            "enum": [
+              "primary",
+              "advanced"
+            ],
+            "title": "Exposure",
+            "type": "string"
+          },
           "item": {
             "additionalProperties": true,
             "title": "Item",

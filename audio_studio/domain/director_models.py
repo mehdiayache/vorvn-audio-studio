@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 
 ModelStatus = Literal["draft", "verified", "enabled"]
-MANIFEST_VERSION = "2026-08-28.3"
+MANIFEST_VERSION = "2026-08-28.4"
 
 
 AVAILABLE_MODEL_STATUSES = {"verified", "enabled"}
@@ -89,25 +89,30 @@ def _field(key: str, field_type: str, label: str, **values: Any) -> dict[str, An
 
 def _kling_video_fields() -> list[dict[str, Any]]:
     return [
-        _field("audio", "boolean", "Generate audio", default=False),
+        _field(
+            "audio", "boolean", "Generate audio",
+            default=False, exposure="primary",
+        ),
         _field(
             "customize_multi_shots", "boolean", "Direct multiple shots",
-            default=False,
+            default=False, exposure="primary",
             conflicts_with=["prefer_multi_shots"],
         ),
         _field(
             "prefer_multi_shots", "boolean", "Plan shots automatically",
-            default=False, conflicts_with=["customize_multi_shots"],
+            default=False, exposure="primary",
+            conflicts_with=["customize_multi_shots"],
         ),
         _field(
             "multi_prompt", "structured_shots", "Shots", default=[],
+            required=True, exposure="primary",
             visible_when={"customize_multi_shots": True},
             item={"prompt_max_length": 512, "duration_min": 1,
                   "duration_max": 15, "max_items": 6},
         ),
         _field(
-            "elements", "asset_list", "Subject references", default=[],
-            max=7,
+            "elements", "asset_list", "Characters & subjects", default=[],
+            max=7, exposure="primary",
             item={
                 "name_max_length": 64,
                 "description_max_length": 300,
