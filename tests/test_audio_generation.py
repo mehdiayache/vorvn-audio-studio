@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -11,6 +12,9 @@ from uuid import uuid4
 
 from audio_studio.application.audio_generation import AudioGenerationService
 from audio_studio.domain.jobs import Job, JobFailed, JobStatus
+from audio_studio.http.audio_generation_contracts import (
+    AudioGenerationHistoryEnvelope,
+)
 from audio_studio.providers.vorvn_audio import OurStableAudioGenerator
 
 
@@ -327,6 +331,39 @@ class AudioGenerationApplicationTests(unittest.TestCase):
             self.assertEqual(recent[0]["request"]["generation_brief"], {
                 "purpose": "quiet underscore"})
             self.assertFalse(recent[0]["candidate_available"])
+
+    def test_kept_history_serializes_canonical_asset_datetimes(self):
+        with TemporaryDirectory() as directory:
+            service, jobs, uploads = self.service(Path(directory))
+            now = datetime(2026, 8, 28, 4, 30, tzinfo=timezone.utc)
+            uploads.existing = {
+                "id": 91, "version_id": 92, "name": "Kept sound",
+                "filename": "kept.wav", "media_type": "audio",
+                "duration_ms": 3000, "url": "/audio/kept.wav",
+                "category": "sfx", "scope": "studio", "tags": [],
+                "metadata": {}, "media_format": "wav",
+                "audio_format": "wav", "sample_rate": 44100,
+                "channels": 2, "width": None, "height": None,
+                "video_codec": None, "frame_rate": None,
+                "size_bytes": 400, "mime_type": "audio/wav",
+                "version_metadata": {}, "created_at": now,
+                "updated_at": now,
+            }
+            job = Job(
+                1, uuid4(), "audio_generate", JobStatus.SUCCEEDED,
+                payload={"capability": "sfx", "prompt": "Soft bell",
+                         "prompt_mode": "expert", "seconds": 3,
+                         "seed": 7})
+            jobs.jobs[job.public_id] = job
+
+            envelope = AudioGenerationHistoryEnvelope.model_validate({
+                "data": service.recent(81),
+            })
+            serialized = json.loads(envelope.model_dump_json())
+
+            self.assertEqual(
+                serialized["data"][0]["kept_asset"]["created_at"],
+                "2026-08-28T04:30:00Z")
 
     def test_sound_recipe_is_compiled_server_side_and_stored_as_snapshot(self):
         with TemporaryDirectory() as directory:

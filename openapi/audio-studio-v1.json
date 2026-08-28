@@ -724,8 +724,20 @@
       },
       "AudioCatalogSettingsResponse": {
         "properties": {
+          "authorization_url": {
+            "title": "Authorization Url",
+            "type": "string"
+          },
           "keep_configured": {
             "title": "Keep Configured",
+            "type": "boolean"
+          },
+          "keep_reason": {
+            "title": "Keep Reason",
+            "type": "string"
+          },
+          "oauth_client_configured": {
+            "title": "Oauth Client Configured",
             "type": "boolean"
           },
           "provider": {
@@ -740,7 +752,10 @@
         "required": [
           "provider",
           "search_configured",
-          "keep_configured"
+          "oauth_client_configured",
+          "keep_configured",
+          "keep_reason",
+          "authorization_url"
         ],
         "title": "AudioCatalogSettingsResponse",
         "type": "object"
@@ -1794,8 +1809,20 @@
       },
       "CatalogStatusResponse": {
         "properties": {
+          "authorization_url": {
+            "title": "Authorization Url",
+            "type": "string"
+          },
           "keep_configured": {
             "title": "Keep Configured",
+            "type": "boolean"
+          },
+          "keep_reason": {
+            "title": "Keep Reason",
+            "type": "string"
+          },
+          "oauth_client_configured": {
+            "title": "Oauth Client Configured",
             "type": "boolean"
           },
           "search_configured": {
@@ -1805,7 +1832,10 @@
         },
         "required": [
           "search_configured",
-          "keep_configured"
+          "oauth_client_configured",
+          "keep_configured",
+          "keep_reason",
+          "authorization_url"
         ],
         "title": "CatalogStatusResponse",
         "type": "object"
@@ -2805,9 +2835,14 @@
             "title": "Api Token",
             "type": "string"
           },
-          "oauth_access_token": {
+          "authorization_code": {
             "default": "",
-            "title": "Oauth Access Token",
+            "title": "Authorization Code",
+            "type": "string"
+          },
+          "client_id": {
+            "default": "",
+            "title": "Client Id",
             "type": "string"
           }
         },
@@ -10554,6 +10589,7 @@
             "title": "Channels"
           },
           "created_at": {
+            "format": "date-time",
             "title": "Created At",
             "type": "string"
           },
@@ -10655,6 +10691,7 @@
             "type": "array"
           },
           "updated_at": {
+            "format": "date-time",
             "title": "Updated At",
             "type": "string"
           },

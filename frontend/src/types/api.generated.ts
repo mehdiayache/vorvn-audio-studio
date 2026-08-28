@@ -2101,8 +2101,14 @@ export interface components {
         };
         /** AudioCatalogSettingsResponse */
         AudioCatalogSettingsResponse: {
+            /** Authorization Url */
+            authorization_url: string;
             /** Keep Configured */
             keep_configured: boolean;
+            /** Keep Reason */
+            keep_reason: string;
+            /** Oauth Client Configured */
+            oauth_client_configured: boolean;
             /** Provider */
             provider: string;
             /** Search Configured */
@@ -2464,8 +2470,14 @@ export interface components {
         };
         /** CatalogStatusResponse */
         CatalogStatusResponse: {
+            /** Authorization Url */
+            authorization_url: string;
             /** Keep Configured */
             keep_configured: boolean;
+            /** Keep Reason */
+            keep_reason: string;
+            /** Oauth Client Configured */
+            oauth_client_configured: boolean;
             /** Search Configured */
             search_configured: boolean;
         };
@@ -2901,10 +2913,15 @@ export interface components {
              */
             api_token: string;
             /**
-             * Oauth Access Token
+             * Authorization Code
              * @default
              */
-            oauth_access_token: string;
+            authorization_code: string;
+            /**
+             * Client Id
+             * @default
+             */
+            client_id: string;
         };
         /** GeneratedDiscardEnvelope */
         GeneratedDiscardEnvelope: {
@@ -5661,7 +5678,10 @@ export interface components {
             category: "music" | "ambience" | "sfx" | "intro" | "outro" | "other";
             /** Channels */
             channels?: number | null;
-            /** Created At */
+            /**
+             * Created At
+             * Format: date-time
+             */
             created_at: string;
             /** Duration Ms */
             duration_ms?: number | null;
@@ -5699,7 +5719,10 @@ export interface components {
             size_bytes: number;
             /** Tags */
             tags: string[];
-            /** Updated At */
+            /**
+             * Updated At
+             * Format: date-time
+             */
             updated_at: string;
             /** Url */
             url: string;

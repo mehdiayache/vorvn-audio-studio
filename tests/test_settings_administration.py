@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import time
 import unittest
 from unittest.mock import patch
 
@@ -12,6 +13,7 @@ from audio_studio.infrastructure.settings_administration import (
     EnvironmentSettings,
     FilesystemMaintenance,
 )
+from audio_studio.providers.freesound import FreesoundOAuthTokens
 
 
 class SettingsAdministrationTests(unittest.TestCase):
@@ -44,23 +46,29 @@ class SettingsAdministrationTests(unittest.TestCase):
             administration = EnvironmentSettings(
                 env_file=env_file, revision_file=revision_file,
                 reload_environment=lambda: None,
+                freesound_exchange=lambda **_: FreesoundOAuthTokens(
+                    "access-secret", "refresh-secret",
+                    int(time.time()) + 3600),
             )
             with patch.dict(os.environ, {}, clear=True):
                 administration.save_audio_catalog({
                     "api_token": "search-secret",
-                    "oauth_access_token": "download-secret",
+                    "client_id": "public-client",
+                    "authorization_code": "one-time-code",
                 })
                 status = administration.audio_catalog()
             saved = env_file.read_text()
             self.assertIn("FREESOUND_API_TOKEN=search-secret", saved)
+            self.assertIn("FREESOUND_CLIENT_ID=public-client", saved)
             self.assertIn(
-                "FREESOUND_OAUTH_ACCESS_TOKEN=download-secret", saved)
-            self.assertEqual(status, {
-                "provider": "Freesound", "search_configured": True,
-                "keep_configured": True,
-            })
+                "FREESOUND_OAUTH_ACCESS_TOKEN=access-secret", saved)
+            self.assertIn(
+                "FREESOUND_OAUTH_REFRESH_TOKEN=refresh-secret", saved)
+            self.assertTrue(status["search_configured"])
+            self.assertTrue(status["keep_configured"])
             self.assertNotIn("search-secret", repr(status))
-            self.assertNotIn("download-secret", repr(status))
+            self.assertNotIn("access-secret", repr(status))
+            self.assertNotIn("refresh-secret", repr(status))
 
     def test_blank_secret_fields_preserve_existing_storage_credentials(self):
         with TemporaryDirectory() as directory:
@@ -97,6 +105,38 @@ class SettingsAdministrationTests(unittest.TestCase):
             self.assertIn("RUSTFS_ENDPOINT=https://new.test", saved)
             self.assertEqual(reloads, [True])
             self.assertTrue(revision_file.exists())
+
+    def test_changing_freesound_credentials_requires_fresh_authorization(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            env_file = root / ".env"
+            env_file.write_text(
+                "FREESOUND_API_TOKEN=old\nFREESOUND_CLIENT_ID=old-client\n"
+                "FREESOUND_OAUTH_ACCESS_TOKEN=old-access\n"
+                "FREESOUND_OAUTH_REFRESH_TOKEN=old-refresh\n"
+                "FREESOUND_OAUTH_EXPIRES_AT=9999999999\n"
+            )
+            administration = EnvironmentSettings(
+                env_file=env_file, revision_file=root / ".revision",
+                reload_environment=lambda: None,
+            )
+            with patch.dict(os.environ, {
+                    "FREESOUND_API_TOKEN": "old",
+                    "FREESOUND_CLIENT_ID": "old-client",
+                    "FREESOUND_OAUTH_ACCESS_TOKEN": "old-access",
+                    "FREESOUND_OAUTH_REFRESH_TOKEN": "old-refresh",
+                    "FREESOUND_OAUTH_EXPIRES_AT": "9999999999",
+                    }, clear=True):
+                administration.save_audio_catalog({
+                    "client_id": "new-client", "api_token": "",
+                    "authorization_code": "",
+                })
+                self.assertNotIn("FREESOUND_OAUTH_ACCESS_TOKEN", os.environ)
+                self.assertNotIn("FREESOUND_OAUTH_REFRESH_TOKEN", os.environ)
+            saved = env_file.read_text()
+            self.assertIn("FREESOUND_CLIENT_ID=new-client", saved)
+            self.assertNotIn("FREESOUND_OAUTH_ACCESS_TOKEN", saved)
+            self.assertNotIn("FREESOUND_OAUTH_REFRESH_TOKEN", saved)
 
     def test_tidy_removes_only_scratch_and_never_voice_masters(self):
         with TemporaryDirectory() as directory:

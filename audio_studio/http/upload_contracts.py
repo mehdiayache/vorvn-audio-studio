@@ -1,5 +1,7 @@
 """Public response contracts for bounded uploads."""
 
+from datetime import datetime
+
 from pydantic import BaseModel
 
 from audio_studio.domain.media import AssetMediaType
@@ -49,8 +51,8 @@ class UploadedAssetResponse(BaseModel):
     size_bytes: int
     mime_type: str
     version_metadata: dict
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
 
 
 class UploadedAssetEnvelope(BaseModel):

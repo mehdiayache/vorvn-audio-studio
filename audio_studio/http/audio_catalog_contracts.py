@@ -27,7 +27,10 @@ class CatalogSearchEnvelope(BaseModel):
 
 class CatalogStatusResponse(BaseModel):
     search_configured: bool
+    oauth_client_configured: bool
     keep_configured: bool
+    keep_reason: str
+    authorization_url: str
 
 
 class CatalogStatusEnvelope(BaseModel):

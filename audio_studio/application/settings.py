@@ -160,8 +160,9 @@ class SettingsService:
     def update_audio_catalog(self, values: dict[str, Any]) -> dict[str, Any]:
         self.configuration.save_audio_catalog({
             "api_token": str(values.get("api_token") or "").strip(),
-            "oauth_access_token": str(
-                values.get("oauth_access_token") or "").strip(),
+            "client_id": str(values.get("client_id") or "").strip(),
+            "authorization_code": str(
+                values.get("authorization_code") or "").strip(),
         })
         return self.snapshot()
 

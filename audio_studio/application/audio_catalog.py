@@ -13,7 +13,7 @@ from audio_studio.domain.uploads import AssetCategory, AssetScope
 
 
 class AudioCatalog(Protocol):
-    def status(self) -> dict[str, bool]: ...
+    def status(self) -> dict[str, object]: ...
     def search(self, query: str, *, license_filter: str = "all",
                duration_min: float | None = None,
                duration_max: float | None = None) -> list[CatalogSound]: ...
@@ -36,7 +36,7 @@ class AudioCatalogService:
             "attribution_text": sound.attribution_text,
         }
 
-    def status(self) -> dict[str, bool]:
+    def status(self) -> dict[str, object]:
         return self.catalog.status()
 
     def search(self, query: str, *, license_filter: str = "all",

@@ -18,7 +18,10 @@ class ProviderSettingsResponse(BaseModel):
 class AudioCatalogSettingsResponse(BaseModel):
     provider: str
     search_configured: bool
+    oauth_client_configured: bool
     keep_configured: bool
+    keep_reason: str
+    authorization_url: str
 
 
 class AudioGenerationSettingsResponse(BaseModel):

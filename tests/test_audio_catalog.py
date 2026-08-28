@@ -17,7 +17,11 @@ from audio_studio.domain.audio_catalog import (
     CatalogSound,
 )
 from audio_studio.domain.uploads import StoredAsset
-from audio_studio.providers.freesound import FreesoundCatalog
+from audio_studio.providers.freesound import (
+    FreesoundCatalog,
+    FreesoundOAuthTokens,
+    freesound_status,
+)
 
 
 class Response:
@@ -57,17 +61,52 @@ class FreesoundProviderTests(unittest.TestCase):
         states = (
             ({}, False, False),
             ({"FREESOUND_API_TOKEN": "search"}, True, False),
-            ({"FREESOUND_OAUTH_ACCESS_TOKEN": "download"}, False, False),
             ({"FREESOUND_API_TOKEN": "search",
-              "FREESOUND_OAUTH_ACCESS_TOKEN": "download"}, True, True),
+              "FREESOUND_CLIENT_ID": "client"}, True, False),
+            ({"FREESOUND_API_TOKEN": "search",
+              "FREESOUND_CLIENT_ID": "client",
+              "FREESOUND_OAUTH_ACCESS_TOKEN": "download",
+              "FREESOUND_OAUTH_EXPIRES_AT": "2000"}, True, True),
+            ({"FREESOUND_API_TOKEN": "search",
+              "FREESOUND_CLIENT_ID": "client",
+              "FREESOUND_OAUTH_REFRESH_TOKEN": "refresh"}, True, True),
         )
         for environment, search_ready, keep_ready in states:
             with self.subTest(environment=environment), patch.dict(
                     "os.environ", environment, clear=True):
-                self.assertEqual(FreesoundCatalog.status(), {
-                    "search_configured": search_ready,
-                    "keep_configured": keep_ready,
-                })
+                status = freesound_status(now=1000)
+                self.assertEqual(status["search_configured"], search_ready)
+                self.assertEqual(status["keep_configured"], keep_ready)
+
+    def test_expired_access_without_refresh_is_not_reported_ready(self):
+        with patch.dict("os.environ", {
+                "FREESOUND_API_TOKEN": "search",
+                "FREESOUND_CLIENT_ID": "client",
+                "FREESOUND_OAUTH_ACCESS_TOKEN": "expired",
+                "FREESOUND_OAUTH_EXPIRES_AT": "900",
+                }, clear=True):
+            status = freesound_status(now=1000)
+        self.assertFalse(status["keep_configured"])
+        self.assertIn("Reconnect", status["keep_reason"])
+
+    def test_authorization_code_exchange_returns_renewable_tokens(self):
+        opener = Mock(return_value=Response({
+            "access_token": "access", "refresh_token": "refresh",
+            "expires_in": 86400,
+        }))
+        tokens = FreesoundCatalog(
+            opener=opener, clock=lambda: 1000).exchange_authorization_code(
+                client_id="client", client_secret="secret",
+                authorization_code="one-time-code")
+        request = opener.call_args.args[0]
+        self.assertEqual(request.method, "POST")
+        self.assertEqual(urllib.parse.parse_qs(request.data.decode()), {
+            "client_id": ["client"], "client_secret": ["secret"],
+            "grant_type": ["authorization_code"],
+            "code": ["one-time-code"],
+        })
+        self.assertEqual(tokens, FreesoundOAuthTokens(
+            "access", "refresh", 87400))
 
     def test_search_maps_query_filters_and_all_supported_licenses(self):
         opener = Mock(return_value=Response({"results": [
@@ -114,6 +153,39 @@ class FreesoundProviderTests(unittest.TestCase):
         self.assertEqual(request.headers["Authorization"], "Bearer oauth")
         self.assertIn("/sounds/931/download/", request.full_url)
         self.assertEqual(downloaded.original_name, sound.name)
+
+    def test_expired_download_access_refreshes_once_and_persists_tokens(self):
+        saved = []
+        opener = Mock(side_effect=[
+            Response({"access_token": "fresh-access",
+                      "refresh_token": "fresh-refresh",
+                      "expires_in": 86400}),
+            Response(b"RIFF-original", {"Content-Length": "13"}),
+        ])
+        environment = {
+            "FREESOUND_API_TOKEN": "secret",
+            "FREESOUND_CLIENT_ID": "client",
+            "FREESOUND_OAUTH_ACCESS_TOKEN": "expired-access",
+            "FREESOUND_OAUTH_REFRESH_TOKEN": "old-refresh",
+            "FREESOUND_OAUTH_EXPIRES_AT": "900",
+        }
+        with TemporaryDirectory() as directory, patch.dict(
+                "os.environ", environment, clear=True):
+            target = Path(directory) / "source.download"
+            downloaded = FreesoundCatalog(
+                opener=opener, clock=lambda: 1000,
+                save_oauth_tokens=saved.append).download(
+                    FakeCatalog.sound_record, target)
+        refresh_request = opener.call_args_list[0].args[0]
+        download_request = opener.call_args_list[1].args[0]
+        self.assertEqual(
+            urllib.parse.parse_qs(refresh_request.data.decode())["grant_type"],
+            ["refresh_token"])
+        self.assertEqual(download_request.headers["Authorization"],
+                         "Bearer fresh-access")
+        self.assertEqual(saved, [FreesoundOAuthTokens(
+            "fresh-access", "fresh-refresh", 87400)])
+        self.assertEqual(downloaded.size_bytes, 13)
 
 
 class FakeWorkspace:

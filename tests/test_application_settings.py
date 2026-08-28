@@ -55,7 +55,9 @@ class ConfigurationFake:
     def audio_catalog(self):
         return {
             "provider": "Freesound", "search_configured": True,
-            "keep_configured": False,
+            "oauth_client_configured": True, "keep_configured": False,
+            "keep_reason": "Reconnect Freesound.",
+            "authorization_url": "https://freesound.test/authorize",
         }
 
     def audio_generation(self):
@@ -172,14 +174,16 @@ class SettingsServiceTests(unittest.TestCase):
     def test_freesound_secret_updates_use_the_configuration_port(self):
         result = self.service.update_audio_catalog({
             "api_token": "  search-secret  ",
-            "oauth_access_token": "  download-secret  ",
+            "client_id": "  public-client  ",
+            "authorization_code": "  one-time-code  ",
         })
         self.assertEqual(self.configuration.saved_audio_catalog, {
             "api_token": "search-secret",
-            "oauth_access_token": "download-secret",
+            "client_id": "public-client",
+            "authorization_code": "one-time-code",
         })
         self.assertNotIn("api_token", result["audio_catalog"])
-        self.assertNotIn("oauth_access_token", result["audio_catalog"])
+        self.assertNotIn("authorization_code", result["audio_catalog"])
 
     def test_audio_generation_secret_uses_the_configuration_port(self):
         result = self.service.update_audio_generation({

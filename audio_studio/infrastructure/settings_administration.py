@@ -11,7 +11,11 @@ from typing import Any, Callable
 from audio_studio.config import alibaba_environment, settings
 from audio_studio.infrastructure import object_storage, runtime_environment
 from audio_studio.infrastructure.media_paths import media_root, voice_reference_root
-from audio_studio.providers.freesound import freesound_status
+from audio_studio.providers.freesound import (
+    FreesoundCatalog,
+    FreesoundOAuthTokens,
+    freesound_status,
+)
 
 
 _STORAGE_ENV = {
@@ -19,21 +23,26 @@ _STORAGE_ENV = {
     "secret_key": "RUSTFS_SECRET_KEY", "bucket": "RUSTFS_BUCKET",
     "prefix": "RUSTFS_PREFIX", "region": "RUSTFS_REGION",
 }
+_ENVIRONMENT_WRITE_LOCK = RLock()
 
 
 class EnvironmentSettings:
     def __init__(self, env_file: Path | None = None,
                  revision_file: Path | None = None,
                  reload_environment: Callable[[], None] =
-                 runtime_environment.reload_owned_environment):
+                 runtime_environment.reload_owned_environment,
+                 freesound_exchange: Callable[..., FreesoundOAuthTokens]
+                 | None = None):
         self.env_file = env_file or settings.root / ".env"
         self.revision_file = revision_file or runtime_environment.REVISION_FILE
         self.reload_environment = reload_environment
-        self._lock = RLock()
+        self.freesound_exchange = (
+            freesound_exchange
+            or FreesoundCatalog().exchange_authorization_code)
 
     def _write_environment(self, changes: dict[str, str | None]) -> None:
         """Atomically update owned keys while preserving unrelated settings."""
-        with self._lock:
+        with _ENVIRONMENT_WRITE_LOCK:
             for key, value in changes.items():
                 if "\n" in key or "\r" in key or (value is not None and (
                         "\n" in value or "\r" in value)):
@@ -49,6 +58,8 @@ class EnvironmentSettings:
                 if value is not None:
                     kept.append(f"{key}={value}")
                     os.environ[key] = value
+                else:
+                    os.environ.pop(key, None)
             temporary = self.env_file.with_suffix(".env.tmp")
             temporary.write_text("\n".join(kept).rstrip() + "\n")
             temporary.chmod(0o600)
@@ -109,14 +120,50 @@ class EnvironmentSettings:
     def save_audio_catalog(self, values: dict[str, Any]) -> None:
         changes: dict[str, str | None] = {}
         api_token = str(values.get("api_token") or "").strip()
-        oauth_access_token = str(
-            values.get("oauth_access_token") or "").strip()
+        client_id = str(values.get("client_id") or "").strip()
+        authorization_code = str(
+            values.get("authorization_code") or "").strip()
         if api_token:
             changes["FREESOUND_API_TOKEN"] = api_token
-        if oauth_access_token:
-            changes["FREESOUND_OAUTH_ACCESS_TOKEN"] = oauth_access_token
+        if client_id:
+            changes["FREESOUND_CLIENT_ID"] = client_id
+        if (api_token or client_id) and not authorization_code:
+            # OAuth tokens belong to one exact application/user pair. A new
+            # credential must be authorized instead of inheriting an old pair.
+            changes.update({
+                "FREESOUND_OAUTH_ACCESS_TOKEN": None,
+                "FREESOUND_OAUTH_REFRESH_TOKEN": None,
+                "FREESOUND_OAUTH_EXPIRES_AT": None,
+            })
+        if authorization_code:
+            resolved_client_id = client_id or (
+                os.getenv("FREESOUND_CLIENT_ID") or "").strip()
+            resolved_secret = api_token or (
+                os.getenv("FREESOUND_API_TOKEN") or "").strip()
+            if not resolved_client_id or not resolved_secret:
+                raise ValueError(
+                    "Save the Freesound Client ID and API token before "
+                    "finishing authorization.")
+            tokens = self.freesound_exchange(
+                client_id=resolved_client_id,
+                client_secret=resolved_secret,
+                authorization_code=authorization_code,
+            )
+            changes.update({
+                "FREESOUND_OAUTH_ACCESS_TOKEN": tokens.access_token,
+                "FREESOUND_OAUTH_REFRESH_TOKEN": tokens.refresh_token,
+                "FREESOUND_OAUTH_EXPIRES_AT": str(tokens.expires_at),
+            })
         if changes:
             self._write_environment(changes)
+
+    def save_freesound_tokens(self, tokens: FreesoundOAuthTokens) -> None:
+        """Persist a refreshed token pair so Keep survives process restarts."""
+        self._write_environment({
+            "FREESOUND_OAUTH_ACCESS_TOKEN": tokens.access_token,
+            "FREESOUND_OAUTH_REFRESH_TOKEN": tokens.refresh_token,
+            "FREESOUND_OAUTH_EXPIRES_AT": str(tokens.expires_at),
+        })
 
     def save_audio_generation(self, values: dict[str, Any]) -> None:
         changes: dict[str, str | None] = {}

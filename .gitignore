@@ -16,6 +16,7 @@ out/
 .batches/
 .backups/
 .prefs.json
+.runtime-config-revision
 __pycache__/
 *.py[cod]
 .pytest_cache/

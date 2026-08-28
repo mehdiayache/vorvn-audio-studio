@@ -57,7 +57,8 @@ class StorageUpdate(BaseModel):
 class FreesoundSettingsUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     api_token: str = ""
-    oauth_access_token: str = ""
+    client_id: str = ""
+    authorization_code: str = ""
 
 
 class AudioGenerationSettingsUpdate(BaseModel):
