@@ -511,6 +511,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
           onLocatePart={(id) => { setStage("sequence"); setSelectedId(id) }}
           onOpenHealth={() => setReleaseInspectorOpen(true)}
           exporting={actions.exporting}
+          exportingFormat={actions.exportingFormat}
         />}
         {inspectorOpen && <aside className="ws-right-pane" aria-label="Contextual inspector">
           <header><h2>{inspectorTitle}</h2><OperatorIconButton label="Close inspector" detail="Keeps the current Production changes." onClick={closeInspector}><X /></OperatorIconButton></header>

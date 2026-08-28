@@ -3,11 +3,16 @@ import { AudioWaveform, ChevronLeft, ChevronRight, Image as ImageIcon, LocateFix
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import type { TimelineHistoryDomain } from "./use-timeline-history"
 
-export function TimelineToolbar({ summary, canUndo, canRedo, saving, snapping, followPlayhead, hasVisualScene, onUndo, onRedo, onMoveView, onSnappingChange, onFollowPlayheadChange, onAddVisual, onAddAudio }: {
+const domainLabel = (domain: TimelineHistoryDomain) => domain === "visual" ? "visual" : "audio"
+
+export function TimelineToolbar({ summary, canUndo, canRedo, undoDomain, redoDomain, saving, snapping, followPlayhead, hasVisualScene, onUndo, onRedo, onMoveView, onSnappingChange, onFollowPlayheadChange, onAddVisual, onAddAudio }: {
   summary: string
   canUndo: boolean
   canRedo: boolean
+  undoDomain: TimelineHistoryDomain
+  redoDomain: TimelineHistoryDomain
   saving: boolean
   snapping: boolean
   followPlayhead: boolean
@@ -23,8 +28,8 @@ export function TimelineToolbar({ summary, canUndo, canRedo, saving, snapping, f
   return <div className="sound-scene-toolbar">
     <span className="sound-scene-toolbar-title"><b>Timeline</b><small>{summary}</small></span>
     <div className="sound-scene-history">
-      <OperatorTooltip label="Undo the last Timeline edit" disabledTrigger={!canUndo || saving}><Button variant="ghost" size="sm" disabled={!canUndo || saving} onClick={onUndo} aria-label="Undo Timeline edit"><Undo2 /><span>Undo</span></Button></OperatorTooltip>
-      <OperatorTooltip label="Redo the last undone Timeline edit" disabledTrigger={!canRedo || saving}><Button variant="ghost" size="sm" disabled={!canRedo || saving} onClick={onRedo} aria-label="Redo Timeline edit"><Redo2 /><span>Redo</span></Button></OperatorTooltip>
+      <OperatorTooltip label={`Undo the latest ${domainLabel(undoDomain)} edit`} detail="Timeline remembers whether the latest saved edit changed audio or visuals." disabledTrigger={!canUndo || saving}><Button variant="ghost" size="sm" disabled={!canUndo || saving} onClick={onUndo} aria-label={`Undo ${domainLabel(undoDomain)} edit`}><Undo2 /><span>Undo</span></Button></OperatorTooltip>
+      <OperatorTooltip label={`Redo the latest undone ${domainLabel(redoDomain)} edit`} disabledTrigger={!canRedo || saving}><Button variant="ghost" size="sm" disabled={!canRedo || saving} onClick={onRedo} aria-label={`Redo ${domainLabel(redoDomain)} edit`}><Redo2 /><span>Redo</span></Button></OperatorTooltip>
     </div>
     <div className="sound-scene-viewport-tools">
       <OperatorTooltip label="Move one view earlier"><Button variant="ghost" size="icon-sm" aria-label="Previous view" onClick={() => onMoveView(-1)}><ChevronLeft /></Button></OperatorTooltip>

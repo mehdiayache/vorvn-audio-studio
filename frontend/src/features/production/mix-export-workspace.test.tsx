@@ -28,10 +28,11 @@ describe("MixExportWorkspace", () => {
   })
 
   it("shows the current mix, recorded Parts and canonical Export history", () => {
-    render(<MixExportWorkspace production={production} soundScene={soundScene} visualScene={visualScene} exportJob={null} onExport={vi.fn()} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting={false} />)
+    render(<MixExportWorkspace production={production} soundScene={soundScene} visualScene={visualScene} exportJob={null} onExport={vi.fn()} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting={false} exportingFormat={null} />)
     expect(screen.getByText("1 of 1 recorded")).toBeTruthy()
     expect(screen.getByText("evening-reset.mp3")).toBeTruthy()
     expect(screen.getByRole("link", { name: /Download/ }).getAttribute("href")).toBe("/api/v1/exports/91/download")
+    expect(screen.getByRole("link", { name: "Download MP3" }).getAttribute("download")).toBe("evening-reset.mp3")
     expect(screen.getByText("No provider call or generation spend.")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Export MP3" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Export MP4" })).toBeTruthy()
@@ -40,23 +41,26 @@ describe("MixExportWorkspace", () => {
   })
 
   it("keeps durable Export progress visible", () => {
-    render(<MixExportWorkspace production={production} soundScene={soundScene} visualScene={visualScene} exportJob={{ id: "job-1", type: "render", status: "running", progress: 0.4, detail: "Mixing audio", error: null, retries: 0, result: {} }} onExport={vi.fn()} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting />)
+    render(<MixExportWorkspace production={production} soundScene={soundScene} visualScene={visualScene} exportJob={{ id: "job-1", type: "render", status: "running", progress: 0.4, detail: "Mixing audio", error: null, retries: 0, result: {} }} onExport={vi.fn()} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting exportingFormat="mp3" />)
     expect(screen.getByText("Export in progress")).toBeTruthy()
     expect(screen.getByText("Mixing audio")).toBeTruthy()
     expect(screen.getByRole("progressbar", { name: "Export 40% complete" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Exporting MP3…" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Export MP4" })).toBeTruthy()
   })
 
   it("does not describe a completed Export as zero-percent complete", () => {
-    render(<MixExportWorkspace production={production} soundScene={soundScene} visualScene={visualScene} exportJob={{ id: "job-2", type: "render", status: "ok", progress: 0, detail: "", error: null, retries: 0, result: { url: "/audio/final.mp4", name: "final.mp4" } }} onExport={vi.fn()} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting={false} />)
+    render(<MixExportWorkspace production={production} soundScene={soundScene} visualScene={visualScene} exportJob={{ id: "job-2", type: "render", status: "ok", progress: 0, detail: "", error: null, retries: 0, result: { url: "/audio/final.mp4", name: "final.mp4" } }} onExport={vi.fn()} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting={false} exportingFormat={null} />)
     expect(screen.getByText("Your file is ready to download.")).toBeTruthy()
     expect(screen.getByText("MP4 ready")).toBeTruthy()
+    expect(screen.getByRole("link", { name: "Download MP4" }).getAttribute("download")).toBe("final.mp4")
     expect(screen.queryByText("0% complete")).toBeNull()
   })
 
   it("keeps planned Drafts nonblocking and makes incomplete export explicit", () => {
     const onExport = vi.fn()
     const planned = { ...production, parts: [production.parts[0]!, { ...production.parts[0], id: 13, position: 1, kind: "draft", clip_id: null, filename: undefined }] } as Production
-    render(<MixExportWorkspace production={planned} soundScene={soundScene} visualScene={visualScene} exportJob={null} onExport={onExport} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting={false} />)
+    render(<MixExportWorkspace production={planned} soundScene={soundScene} visualScene={visualScene} exportJob={null} onExport={onExport} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting={false} exportingFormat={null} />)
     expect(screen.queryByText(/blocking issue/)).toBeNull()
     fireEvent.click(screen.getByRole("button", { name: "Export MP4" }))
     expect(onExport).toHaveBeenCalledWith("mp4")
@@ -64,7 +68,7 @@ describe("MixExportWorkspace", () => {
 
   it("keeps MP4 unavailable until a visual is placed", () => {
     const emptyVisual = { ...visualScene, document: { ...visualScene.document, tracks: [] } }
-    render(<MixExportWorkspace production={production} soundScene={soundScene} visualScene={emptyVisual} exportJob={null} onExport={vi.fn()} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting={false} />)
+    render(<MixExportWorkspace production={production} soundScene={soundScene} visualScene={emptyVisual} exportJob={null} onExport={vi.fn()} onLocatePart={vi.fn()} onOpenHealth={vi.fn()} exporting={false} exportingFormat={null} />)
     expect(screen.getByRole("button", { name: "Export MP4" }).hasAttribute("disabled")).toBe(true)
     expect(screen.getByText("Add an image or video to Timeline first")).toBeTruthy()
   })

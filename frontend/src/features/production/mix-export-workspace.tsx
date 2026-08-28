@@ -36,7 +36,7 @@ function exportFormat(filename: string) {
   return filename.toLowerCase().endsWith(".mp4") ? "MP4" : "MP3"
 }
 
-export function MixExportWorkspace({ production, soundScene, visualScene, exportJob, onExport, onLocatePart, onOpenHealth, exporting }: {
+export function MixExportWorkspace({ production, soundScene, visualScene, exportJob, onExport, onLocatePart, onOpenHealth, exporting, exportingFormat }: {
   production: Production
   soundScene: SoundScene
   visualScene: VisualScene
@@ -45,6 +45,7 @@ export function MixExportWorkspace({ production, soundScene, visualScene, export
   onLocatePart: (id: number) => void
   onOpenHealth: () => void
   exporting: boolean
+  exportingFormat: ExportFormat | null
 }) {
   const readiness = productionMixReadiness(production)
   const { sequence, blocking, review, ready } = readiness
@@ -97,11 +98,11 @@ export function MixExportWorkspace({ production, soundScene, visualScene, export
 
     <section className="mix-export-panel" aria-label="Export formats">
       <header><div><span className="eyebrow">Export</span><h3>Choose a file</h3></div><p>No provider call or generation spend.</p></header>
-      <div className="mix-export-choice"><FileAudio /><div><b>Audio</b><span>Full Timeline mix · MP3</span></div><Button disabled={!ready || exporting} onClick={() => onExport("mp3")}><Download /> {exporting ? "Exporting…" : "Export MP3"}</Button></div>
-      <div className="mix-export-choice"><FileVideo2 /><div><b>Video</b><span>{visualClips.length ? `Timeline visuals + full audio mix · ${visualScene.document.canvas.width} × ${visualScene.document.canvas.height}` : "Add an image or video to Timeline first"}</span></div><Button disabled={!canExportVideo || exporting} onClick={() => onExport("mp4")}><Download /> {exporting ? "Exporting…" : "Export MP4"}</Button></div>
+      <div className="mix-export-choice"><FileAudio /><div><b>Audio</b><span>Full Timeline mix · MP3</span></div><Button disabled={!ready || exporting} onClick={() => onExport("mp3")}><Download /> {exportingFormat === "mp3" ? "Exporting MP3…" : "Export MP3"}</Button></div>
+      <div className="mix-export-choice"><FileVideo2 /><div><b>Video</b><span>{visualClips.length ? `Timeline visuals + full audio mix · ${visualScene.document.canvas.width} × ${visualScene.document.canvas.height}` : "Add an image or video to Timeline first"}</span></div><Button disabled={!canExportVideo || exporting} onClick={() => onExport("mp4")}><Download /> {exportingFormat === "mp4" ? "Exporting MP4…" : "Export MP4"}</Button></div>
     </section>
 
-    {exportJob && <section className={`mix-export-job is-${exportJob.status}`} aria-live="polite"><div><b>{exportComplete ? `${resultFormat} ready` : ["failed", "lost", "cancelled"].includes(exportJob.status) ? "Export failed" : "Export in progress"}</b><span>{exportDetail}</span></div>{exporting && <Progress value={progress} aria-label={`Export ${progress}% complete`} />}{exportJob.result.url && <Button variant="outline" asChild><a href={exportJob.result.url}><Download /> Download</a></Button>}</section>}
-    <section className="mix-export-history"><header><div><span className="eyebrow">Saved files</span><h3>Previous exports</h3></div><Badge variant="outline">{production.exports.length}</Badge></header>{production.exports.length ? <div>{production.exports.map((item) => { const format = exportFormat(item.filename); const Icon = format === "MP4" ? FileVideo2 : FileAudio; return <article key={item.id}><Icon /><div><b>{item.filename}</b><span>{item.duration_ms ? formatDuration(item.duration_ms / 1000) : "Duration unavailable"} · {fileSize(item.size_bytes)} · {format}</span><small>{item.created_at.slice(0, 16).replace("T", " ")}</small></div><Badge variant="outline">{format}</Badge><Button variant="ghost" size="sm" asChild><a href={`/api/v1/exports/${item.id}/download`}><Download /> Download</a></Button></article> })}</div> : <p>No exported files yet.</p>}</section>
+    {exportJob && <section className={`mix-export-job is-${exportJob.status}`} aria-live="polite"><div><b>{exportComplete ? `${resultFormat} ready` : ["failed", "lost", "cancelled"].includes(exportJob.status) ? "Export failed" : "Export in progress"}</b><span>{exportDetail}</span></div>{exporting && <Progress value={progress} aria-label={`Export ${progress}% complete`} />}{exportJob.result.url && <Button variant="outline" asChild><a href={exportJob.result.url} download={exportJob.result.name || undefined}><Download /> Download {resultFormat}</a></Button>}</section>}
+    <section className="mix-export-history"><header><div><span className="eyebrow">Saved files</span><h3>Previous exports</h3></div><Badge variant="outline">{production.exports.length}</Badge></header>{production.exports.length ? <div>{production.exports.map((item) => { const format = exportFormat(item.filename); const Icon = format === "MP4" ? FileVideo2 : FileAudio; return <article key={item.id}><Icon /><div><b>{item.filename}</b><span>{item.duration_ms ? formatDuration(item.duration_ms / 1000) : "Duration unavailable"} · {fileSize(item.size_bytes)} · {format}</span><small>{item.created_at.slice(0, 16).replace("T", " ")}</small></div><Badge variant="outline">{format}</Badge><Button variant="ghost" size="sm" asChild><a href={`/api/v1/exports/${item.id}/download`} download={item.filename}><Download /> Download {format}</a></Button></article> })}</div> : <p>No exported files yet.</p>}</section>
   </section>
 }
