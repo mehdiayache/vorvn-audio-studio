@@ -96,6 +96,10 @@ type VentureAssetsEnvelope = paths["/api/v1/ventures/{resource_id}/assets"]["get
 type DirectorAssetBody = paths["/api/v1/productions/{production_id}/director-assets"]["post"]["requestBody"]["content"]["application/json"]
 type DirectorAssetEnvelope = paths["/api/v1/productions/{production_id}/director-assets"]["post"]["responses"][200]["content"]["application/json"]
 type DirectorAssetDeleteEnvelope = paths["/api/v1/productions/{production_id}/director-assets/{asset_id}"]["delete"]["responses"][200]["content"]["application/json"]
+type DirectorGenerationCapabilitiesEnvelope = paths["/api/v1/director-generation-capabilities"]["get"]["responses"][200]["content"]["application/json"]
+type DirectorGenerationListEnvelope = paths["/api/v1/productions/{production_id}/director-generations"]["get"]["responses"][200]["content"]["application/json"]
+type DirectorGenerationEnvelope = paths["/api/v1/productions/{production_id}/director-generations"]["post"]["responses"][202]["content"]["application/json"]
+type DirectorGenerationBody = paths["/api/v1/productions/{production_id}/director-generations"]["post"]["requestBody"]["content"]["application/json"]
 type ProjectOverviewEnvelope = paths["/api/v1/projects/{resource_id}/overview"]["get"]["responses"][200]["content"]["application/json"]
 type SeriesOverviewEnvelope = paths["/api/v1/series/{resource_id}/overview"]["get"]["responses"][200]["content"]["application/json"]
 type TimelineReorderEnvelope = paths["/api/v1/productions/{production_id}/parts/reorder"]["post"]["responses"][200]["content"]["application/json"]
@@ -436,6 +440,16 @@ export const studioApi = {
     )
     return response.data
   },
+  directorGenerationCapabilities: () => request<DirectorGenerationCapabilitiesEnvelope>("/api/v1/director-generation-capabilities").then((response) => response.data),
+  directorGenerations: (productionId: number) => request<DirectorGenerationListEnvelope>(`/api/v1/productions/${productionId}/director-generations`).then((response) => response.data),
+  createDirectorGeneration: (productionId: number, payload: DirectorGenerationBody) => request<DirectorGenerationEnvelope>(`/api/v1/productions/${productionId}/director-generations`, {
+    method: "POST",
+    headers: { "Idempotency-Key": `director-generation-${crypto.randomUUID()}` },
+    body: JSON.stringify(payload),
+  }).then((response) => response.data),
+  cancelDirectorGeneration: (productionId: number, jobId: string) => request<DirectorGenerationEnvelope>(`/api/v1/productions/${productionId}/director-generations/${jobId}/cancel`, {
+    method: "POST",
+  }).then((response) => response.data),
   searchFreesound: (filters: {
     query: string
     license?: "all" | "cc0" | "cc-by" | "cc-by-nc"

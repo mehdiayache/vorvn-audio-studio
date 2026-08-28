@@ -1,113 +1,105 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import { studioApi } from "@/lib/api"
 import { DirectorComposer } from "../director/composer/director-composer"
+import type { DirectorGeneration } from "../director/composer/director-generation-types"
+
+vi.mock("@/lib/api", () => ({ studioApi: {
+  directorGenerationCapabilities: vi.fn(), directorGenerations: vi.fn(),
+  createDirectorGeneration: vi.fn(), cancelDirectorGeneration: vi.fn(),
+} }))
+
+const catalog = {
+  operations: [
+    { id: "image", label: "Image", detail: "Create a still visual" },
+    { id: "frames-to-video", label: "Frames to video", detail: "Move between frames" },
+    { id: "talking-video", label: "Talking video", detail: "Animate a character" },
+  ],
+  models: [
+    { id: "model-a", label: "Model A", provider: "Prototype Lab", version: "a-1", description: "Still images", operations: [{ operation: "image", output_media_type: "image", prompt: { supported: true, required: true, negative_prompt: true }, inputs: [{ role: "reference", label: "Reference", required: false, media_types: ["image"], max: 1 }], ratios: ["1:1", "16:9"], resolutions: ["1K", "2K"], durations: [], fps: [], supports_seed: true, supports_cancel: true }] },
+    { id: "model-b", label: "Model B", provider: "Prototype Lab", version: "b-1", description: "Frames", operations: [{ operation: "frames-to-video", output_media_type: "video", prompt: { supported: true, required: false, negative_prompt: true }, inputs: [{ role: "start-frame", label: "Start frame", required: true, media_types: ["image"], max: 1 }, { role: "end-frame", label: "End frame", required: false, media_types: ["image"], max: 1 }], ratios: ["16:9"], resolutions: ["1080p"], durations: [5, 8], fps: [24, 30], supports_seed: true, supports_cancel: true }] },
+    { id: "model-c", label: "Model C", provider: "Prototype Lab", version: "c-1", description: "Character and voice", operations: [{ operation: "talking-video", output_media_type: "video", prompt: { supported: true, required: false, negative_prompt: true }, inputs: [{ role: "character", label: "Character", required: true, media_types: ["image"], max: 1 }, { role: "voice", label: "Voice audio", required: true, media_types: ["audio"], max: 1 }, { role: "reference", label: "Reference image", required: false, media_types: ["image"], max: 2 }], ratios: ["16:9"], resolutions: ["1080p"], durations: [5], fps: [24], supports_seed: true, supports_cancel: true }] },
+  ],
+}
+
+function generation(prompt = "A quiet violet horizon"): DirectorGeneration {
+  return {
+    id: "job-1", job_id: "job-1", status: "ready", progress: 100, detail: "Prototype ready", error: null,
+    recipe: { prompt, negative_prompt: "text", operation: "image", model_id: "model-a", inputs: [], controls: { ratio: "16:9", resolution: "2K", duration: null, fps: null, seed: 42, provider_parameters: {} } },
+    provider: "Prototype Lab", model_label: "Model A", model_version: "a-1", output_media_type: "image", output_asset_ids: [], provider_job_id: null, estimated_cost: null,
+    created_at: "2026-08-28T00:00:00Z", updated_at: "2026-08-28T00:00:01Z",
+  }
+}
+
+function setup() {
+  vi.mocked(studioApi.directorGenerationCapabilities).mockResolvedValue(catalog as never)
+  vi.mocked(studioApi.directorGenerations).mockResolvedValue([] as never)
+  vi.mocked(studioApi.createDirectorGeneration).mockResolvedValue({} as never)
+  vi.mocked(studioApi.cancelDirectorGeneration).mockResolvedValue({} as never)
+}
+
+function renderComposer(overrides: Partial<React.ComponentProps<typeof DirectorComposer>> = {}) {
+  return render(<DirectorComposer productionId={7} uploading={false} uploadLabel="" libraryAssets={[]} onUploadReference={vi.fn()} {...overrides} />)
+}
+
+async function openOperationPicker() {
+  fireEvent.pointerDown(await screen.findByRole("button", { name: /Creation type:/ }), { button: 0, ctrlKey: false })
+}
 
 beforeEach(() => {
+  setup()
   Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn((file: File) => `blob:${file.name}`) })
   Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() })
 })
-
-afterEach(() => {
-  cleanup()
-  vi.useRealTimers()
-})
-
-function openOperationPicker() {
-  fireEvent.pointerDown(screen.getByRole("button", { name: /Creation type:/ }), { button: 0, ctrlKey: false })
-}
+afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 describe("Director composer", () => {
-  it("shows only capabilities supported by the current operation and model", async () => {
-    render(<DirectorComposer uploading={false} uploadLabel="" libraryAssets={[]} />)
-
-    expect(screen.getByRole("combobox", { name: "Aspect ratio" })).toBeTruthy()
-    expect(screen.getByRole("combobox", { name: "Image size" })).toBeTruthy()
+  it("renders controls from the selected model-operation capability", async () => {
+    renderComposer()
+    expect(await screen.findByRole("combobox", { name: "Aspect ratio" })).toBeTruthy()
     expect(screen.queryByRole("combobox", { name: "Duration" })).toBeNull()
-
-    openOperationPicker()
+    await openOperationPicker()
     fireEvent.click(await screen.findByRole("menuitem", { name: /Frames to video/ }))
-
     expect(screen.getByRole("combobox", { name: "Choose generation model" }).textContent).toContain("Model B")
-    expect(screen.getByRole("combobox", { name: "Video resolution" })).toBeTruthy()
-    expect(screen.getByRole("combobox", { name: "Duration" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Start frame" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "End frame" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "End frame" })).toBeNull()
+    expect(screen.getByRole("combobox", { name: "Duration" })).toBeTruthy()
   })
 
-  it("switches to the three-image plus audio capability without leaking frame controls", async () => {
-    render(<DirectorComposer uploading={false} uploadLabel="" libraryAssets={[]} />)
+  it("uploads a file through the canonical Asset pipeline before using it", async () => {
+    const onUploadReference = vi.fn().mockResolvedValue({ id: 41, media_type: "image", name: "Canonical image", filename: "canonical.webp" })
+    renderComposer({ onUploadReference })
+    await screen.findByRole("textbox", { name: "Director prompt" })
+    const file = new File(["image"], "reference.png", { type: "image/png" })
+    fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, { target: { files: [file] } })
+    expect(onUploadReference).toHaveBeenCalledWith(file)
+    expect(await screen.findByText("Canonical image")).toBeTruthy()
+  })
 
-    openOperationPicker()
+  it("uses canonical audio and image Assets in role-aware slots", async () => {
+    renderComposer({ libraryAssets: [
+      { id: 41, media_type: "image", name: "Character", filename: "character.webp" },
+      { id: 42, media_type: "audio", name: "Voice", filename: "voice.wav" },
+    ] })
+    await openOperationPicker()
     fireEvent.click(await screen.findByRole("menuitem", { name: /Talking video/ }))
-
-    expect(screen.getByRole("combobox", { name: "Choose generation model" }).textContent).toContain("Model C")
-    expect(screen.getByRole("button", { name: "Character" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Voice audio" })).toBeTruthy()
-    expect(screen.queryByRole("button", { name: "Start frame" })).toBeNull()
-  })
-
-  it("enforces Model C reference limits while retaining its character, reference and voice roles", async () => {
-    render(<DirectorComposer uploading={false} uploadLabel="" libraryAssets={[]} />)
-    openOperationPicker()
-    fireEvent.click(await screen.findByRole("menuitem", { name: /Talking video/ }))
-
-    const files = [
-      new File(["one"], "character.png", { type: "image/png" }),
-      new File(["two"], "reference-a.png", { type: "image/png" }),
-      new File(["three"], "reference-b.png", { type: "image/png" }),
-      new File(["four"], "reference-c.png", { type: "image/png" }),
-      new File(["voice"], "voice.wav", { type: "audio/wav" }),
-    ]
-    fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, { target: { files } })
-
-    expect(screen.getByText("Character")).toBeTruthy()
-    expect(screen.getAllByText("Reference")).toHaveLength(2)
-    expect(screen.getByText("Voice audio")).toBeTruthy()
-    expect(screen.getByRole("alert").textContent).toContain("accepts 3 images and 1 audio file")
-  })
-
-  it("uses canonical Library assets as role-aware references without uploading them again", async () => {
-    render(<DirectorComposer uploading={false} uploadLabel="" libraryAssets={[{
-      id: 41,
-      media_type: "image",
-      name: "Violet horizon",
-      filename: "violet.webp",
-      width: 1280,
-      height: 720,
-    }]} />)
-
-    openOperationPicker()
-    fireEvent.click(await screen.findByRole("menuitem", { name: /Image to video/ }))
     fireEvent.pointerDown(screen.getByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
     fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
-    fireEvent.click(screen.getByRole("button", { name: "Use reference" }))
-
-    expect(screen.getByText("Source image")).toBeTruthy()
-    expect(screen.getByText("Violet horizon")).toBeTruthy()
-    expect(screen.queryByRole("button", { name: "Source image" })).toBeNull()
+    const character = await screen.findByText("Character", { selector: ".director-reference-item strong" })
+    fireEvent.click(character.closest("button")!)
+    expect(await screen.findByText("Character", { selector: ".attachment-chip-copy strong" })).toBeTruthy()
   })
 
-  it("acknowledges submission in place and keeps every setting available for remix", async () => {
-    vi.useFakeTimers()
-    render(<DirectorComposer uploading={false} uploadLabel="" libraryAssets={[]} />)
-    fireEvent.change(screen.getByRole("textbox", { name: "Director prompt" }), { target: { value: "A quiet violet horizon at dawn" } })
-
-    fireEvent.click(screen.getByRole("button", { name: /^Create$/ }))
-    expect(screen.getByText("Generating")).toBeTruthy()
-    expect(screen.getByText("12%")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy()
-
-    act(() => vi.advanceTimersByTime(1_300))
-    expect(screen.getByText("Prototype ready")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Preview" }).hasAttribute("disabled")).toBe(true)
-    expect(screen.getByRole("button", { name: "Regenerate" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Remix" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Add to Timeline" }).hasAttribute("disabled")).toBe(true)
-
-    fireEvent.change(screen.getByRole("textbox", { name: "Director prompt" }), { target: { value: "Different prompt" } })
+  it("restores durable history and reuses its exact saved recipe", async () => {
+    const saved = generation()
+    vi.mocked(studioApi.directorGenerations).mockResolvedValue([saved] as never)
+    renderComposer()
+    expect(await screen.findByText("Prototype ready")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Remix" }))
-    expect((screen.getByRole("textbox", { name: "Director prompt" }) as HTMLTextAreaElement).value).toBe("A quiet violet horizon at dawn")
+    expect((screen.getByRole("textbox", { name: "Director prompt" }) as HTMLTextAreaElement).value).toBe(saved.recipe.prompt)
+    fireEvent.click(screen.getByRole("button", { name: "Regenerate" }))
+    await waitFor(() => expect(studioApi.createDirectorGeneration).toHaveBeenCalledWith(7, saved.recipe))
   })
 })

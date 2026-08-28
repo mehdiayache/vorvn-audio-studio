@@ -44,6 +44,14 @@ def _asset_url(asset: dict) -> str:
 class VentureAssetRepository:
     """Own Asset collections, immutable versions and ownership checks."""
 
+    def production_exists(self, production_id: int) -> bool:
+        with read_only() as cursor:
+            cursor.execute(
+                "SELECT 1 FROM productions WHERE id = %s AND archived_at IS NULL",
+                (production_id,),
+            )
+            return cursor.fetchone() is not None
+
     def ensure_collections(self, venture_id: int) -> list[dict]:
         """Create the four fixed collections while IDs still bridge legacy rows."""
         with transaction() as cursor:

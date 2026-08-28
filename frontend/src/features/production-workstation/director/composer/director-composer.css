@@ -71,6 +71,18 @@
 .director-generation-meta span { display: inline-flex; align-items: center; gap: .25rem; }
 .director-generation-meta svg { width: .8rem; }
 .director-generation-copy footer { justify-content: flex-end; flex-wrap: wrap; }
+.director-composer-loading { min-height: 7rem; display: grid; place-items: center; color: var(--muted-foreground); }
+.director-reference-dialog { max-width: 42rem; }
+.director-reference-list { display: grid; gap: .35rem; max-height: min(28rem, 60vh); overflow: auto; }
+.director-reference-item { justify-content: flex-start; height: auto; padding: .5rem; text-align: left; }
+.director-reference-thumb { width: 3rem; aspect-ratio: 1; display: grid; place-items: center; flex: 0 0 auto; overflow: hidden; border-radius: .5rem; color: var(--primary); background: var(--surface-subtle); }
+.director-reference-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.director-reference-item > span:last-child { display: grid; min-width: 0; }
+.director-reference-item strong,
+.director-reference-item small { overflow: hidden; text-overflow: ellipsis; }
+.director-reference-item small { color: var(--muted-foreground); text-transform: capitalize; }
+.director-reference-empty { padding: 2rem; text-align: center; color: var(--muted-foreground); }
+.director-generation-error { margin: 0; color: var(--destructive); font-size: var(--type-caption); }
 
 @media (max-width: 760px) {
   .director-composer-toolbar { flex-wrap: wrap; }

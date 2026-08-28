@@ -32,6 +32,7 @@ from audio_studio.application.transcription import (
 )
 from audio_studio.application.voice_cloning import VoiceCloningService
 from audio_studio.application.production_import import ProductionImportJobHandler
+from audio_studio.application.director_generation import MockDirectorGenerationHandler
 
 from audio_studio.composition.jobs import job_service
 from audio_studio.composition.renders import render_service
@@ -116,6 +117,7 @@ def main() -> int:
     )
     service.register("render", render_service.handle_job)
     service.register("audio_generate", audio_generation_service.handle_job)
+    service.register("director_generate", MockDirectorGenerationHandler())
     alibaba_enrollment = AlibabaVoiceCloningProvider()
     enrollment_provider = ExactEnrollmentProviderRegistry({
         ("alibaba", adapter_key): alibaba_enrollment

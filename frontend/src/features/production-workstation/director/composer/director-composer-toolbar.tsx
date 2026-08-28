@@ -6,13 +6,15 @@ import { InputGroupAddon, InputGroupButton, InputGroupText } from "@/components/
 import type { DirectorAdvancedValues } from "./director-advanced-settings"
 import { DirectorAdvancedSettings } from "./director-advanced-settings"
 import { DirectorCapabilityControls } from "./director-capability-controls"
-import type { DirectorModelCapability, DirectorOperation } from "./director-composer-config"
+import type { DirectorModelCapability, DirectorOperation, DirectorOperationCapability, DirectorOperationInfo } from "./director-composer-config"
 import { DirectorModelSelector } from "./director-model-selector"
 import { DirectorOperationPicker } from "./director-operation-picker"
 import { DirectorSubmit } from "./director-submit"
 
-export function DirectorComposerToolbar({ operation, model, models, ratio, resolution, duration, advanced, disabledReason, busy, uploadStatus, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onUpload, onOpenLibrary, onPaste, onSubmit }: {
+export function DirectorComposerToolbar({ operations, operation, capability, model, models, ratio, resolution, duration, advanced, disabledReason, busy, uploadStatus, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onUpload, onOpenLibrary, onPaste, onSubmit }: {
+  operations: DirectorOperationInfo[]
   operation: DirectorOperation
+  capability: DirectorOperationCapability
   model: DirectorModelCapability
   models: DirectorModelCapability[]
   ratio: string
@@ -48,13 +50,13 @@ export function DirectorComposerToolbar({ operation, model, models, ratio, resol
       </DropdownMenuContent>
     </DropdownMenu>
     <div className="director-composer-toolbar-main">
-      <DirectorOperationPicker value={operation} onValueChange={onOperationChange} />
+      <DirectorOperationPicker operations={operations} value={operation} onValueChange={onOperationChange} />
       <DirectorModelSelector models={models} value={model.id} onValueChange={onModelChange} />
-      <DirectorCapabilityControls operation={operation} model={model} ratio={ratio} resolution={resolution} duration={duration} onRatioChange={onRatioChange} onResolutionChange={onResolutionChange} onDurationChange={onDurationChange} />
+      <DirectorCapabilityControls capability={capability} ratio={ratio} resolution={resolution} duration={duration} onRatioChange={onRatioChange} onResolutionChange={onResolutionChange} onDurationChange={onDurationChange} />
     </div>
     <div className="director-composer-toolbar-end">
       {uploadStatus && <InputGroupText className="director-upload-status">{uploadStatus}</InputGroupText>}
-      <DirectorAdvancedSettings model={model} values={advanced} onChange={onAdvancedChange} />
+      <DirectorAdvancedSettings model={model} capability={capability} values={advanced} onChange={onAdvancedChange} />
       <DirectorSubmit disabled={Boolean(disabledReason)} busy={busy} reason={disabledReason} onClick={onSubmit} />
     </div>
   </InputGroupAddon>

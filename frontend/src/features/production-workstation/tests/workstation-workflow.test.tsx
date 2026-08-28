@@ -2,7 +2,15 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-const api = vi.hoisted(() => ({ attachDirectorAsset: vi.fn(), detachDirectorAsset: vi.fn() }))
+const api = vi.hoisted(() => ({
+  attachDirectorAsset: vi.fn(), detachDirectorAsset: vi.fn(),
+  directorGenerationCapabilities: vi.fn().mockResolvedValue({
+    operations: [{ id: "image", label: "Image", detail: "Create a still visual" }],
+    models: [{ id: "model-a", label: "Model A", provider: "Prototype Lab", version: "a-1", description: "Still images", operations: [{ operation: "image", output_media_type: "image", prompt: { supported: true, required: true, negative_prompt: true }, inputs: [{ role: "reference", label: "Reference", required: false, media_types: ["image"], max: 1 }], ratios: ["1:1", "16:9"], resolutions: ["1K", "2K"], durations: [], fps: [], supports_seed: true, supports_cancel: true }] }],
+  }),
+  directorGenerations: vi.fn().mockResolvedValue([]),
+  createDirectorGeneration: vi.fn(), cancelDirectorGeneration: vi.fn(),
+}))
 vi.mock("@/lib/api", () => ({ studioApi: api }))
 
 afterEach(() => {
@@ -27,10 +35,10 @@ describe("Production workflow", () => {
     ])
   })
 
-  it("starts Director with one compact capability-driven composer", () => {
+  it("starts Director with one compact capability-driven composer", async () => {
     render(<DirectorStage productionId={7} assets={[]} directorAssetIds={[]} onUpload={vi.fn()} onRefresh={vi.fn()} />)
 
-    expect(screen.getByRole("textbox", { name: "Director prompt" })).toBeTruthy()
+    expect(await screen.findByRole("textbox", { name: "Director prompt" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Creation type: Image" })).toBeTruthy()
     expect(screen.getByRole("combobox", { name: "Choose generation model" }).textContent).toContain("Model A")
     expect(screen.getByRole("heading", { name: "No visuals collected yet" })).toBeTruthy()

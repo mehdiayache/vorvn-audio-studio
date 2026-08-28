@@ -2180,6 +2180,571 @@
         "title": "DirectorAssetMutationResponse",
         "type": "object"
       },
+      "DirectorCapabilities": {
+        "properties": {
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/DirectorModelCapability"
+            },
+            "title": "Models",
+            "type": "array"
+          },
+          "operations": {
+            "items": {
+              "$ref": "#/components/schemas/DirectorOperationInfo"
+            },
+            "title": "Operations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "operations",
+          "models"
+        ],
+        "title": "DirectorCapabilities",
+        "type": "object"
+      },
+      "DirectorCapabilitiesEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DirectorCapabilities"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "DirectorCapabilitiesEnvelope",
+        "type": "object"
+      },
+      "DirectorGenerationControls": {
+        "additionalProperties": false,
+        "properties": {
+          "duration": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration"
+          },
+          "fps": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fps"
+          },
+          "provider_parameters": {
+            "additionalProperties": true,
+            "title": "Provider Parameters",
+            "type": "object"
+          },
+          "ratio": {
+            "title": "Ratio",
+            "type": "string"
+          },
+          "resolution": {
+            "title": "Resolution",
+            "type": "string"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          }
+        },
+        "required": [
+          "ratio",
+          "resolution"
+        ],
+        "title": "DirectorGenerationControls",
+        "type": "object"
+      },
+      "DirectorGenerationEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DirectorGenerationResponse"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "boolean"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "DirectorGenerationEnvelope",
+        "type": "object"
+      },
+      "DirectorGenerationInput": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Asset Id",
+            "type": "integer"
+          },
+          "media_type": {
+            "enum": [
+              "image",
+              "video",
+              "audio"
+            ],
+            "title": "Media Type",
+            "type": "string"
+          },
+          "position": {
+            "minimum": 0.0,
+            "title": "Position",
+            "type": "integer"
+          },
+          "role": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_id",
+          "role",
+          "media_type",
+          "position"
+        ],
+        "title": "DirectorGenerationInput",
+        "type": "object"
+      },
+      "DirectorGenerationListEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/DirectorGenerationResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "DirectorGenerationListEnvelope",
+        "type": "object"
+      },
+      "DirectorGenerationRecipe": {
+        "additionalProperties": false,
+        "properties": {
+          "controls": {
+            "$ref": "#/components/schemas/DirectorGenerationControls"
+          },
+          "inputs": {
+            "items": {
+              "$ref": "#/components/schemas/DirectorGenerationInput"
+            },
+            "maxItems": 12,
+            "title": "Inputs",
+            "type": "array"
+          },
+          "model_id": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Model Id",
+            "type": "string"
+          },
+          "negative_prompt": {
+            "default": "",
+            "maxLength": 20000,
+            "title": "Negative Prompt",
+            "type": "string"
+          },
+          "operation": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Operation",
+            "type": "string"
+          },
+          "prompt": {
+            "default": "",
+            "maxLength": 20000,
+            "title": "Prompt",
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation",
+          "model_id",
+          "controls"
+        ],
+        "title": "DirectorGenerationRecipe",
+        "type": "object"
+      },
+      "DirectorGenerationResponse": {
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "estimated_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Cost"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "model_label": {
+            "title": "Model Label",
+            "type": "string"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          },
+          "output_asset_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Output Asset Ids",
+            "type": "array"
+          },
+          "output_media_type": {
+            "enum": [
+              "image",
+              "video"
+            ],
+            "title": "Output Media Type",
+            "type": "string"
+          },
+          "progress": {
+            "title": "Progress",
+            "type": "integer"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "provider_job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Job Id"
+          },
+          "recipe": {
+            "$ref": "#/components/schemas/DirectorGenerationRecipe"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "generating",
+              "ready",
+              "canceled",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "job_id",
+          "status",
+          "progress",
+          "detail",
+          "error",
+          "recipe",
+          "provider",
+          "model_label",
+          "model_version",
+          "output_media_type",
+          "output_asset_ids",
+          "provider_job_id",
+          "estimated_cost",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "DirectorGenerationResponse",
+        "type": "object"
+      },
+      "DirectorInputSlot": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "max": {
+            "title": "Max",
+            "type": "integer"
+          },
+          "media_types": {
+            "items": {
+              "enum": [
+                "image",
+                "video",
+                "audio"
+              ],
+              "type": "string"
+            },
+            "title": "Media Types",
+            "type": "array"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "label",
+          "required",
+          "media_types",
+          "max"
+        ],
+        "title": "DirectorInputSlot",
+        "type": "object"
+      },
+      "DirectorModelCapability": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "operations": {
+            "items": {
+              "$ref": "#/components/schemas/DirectorOperationCapability"
+            },
+            "title": "Operations",
+            "type": "array"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "provider",
+          "version",
+          "description",
+          "operations"
+        ],
+        "title": "DirectorModelCapability",
+        "type": "object"
+      },
+      "DirectorOperationCapability": {
+        "properties": {
+          "durations": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Durations",
+            "type": "array"
+          },
+          "fps": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Fps",
+            "type": "array"
+          },
+          "inputs": {
+            "items": {
+              "$ref": "#/components/schemas/DirectorInputSlot"
+            },
+            "title": "Inputs",
+            "type": "array"
+          },
+          "operation": {
+            "title": "Operation",
+            "type": "string"
+          },
+          "output_media_type": {
+            "enum": [
+              "image",
+              "video"
+            ],
+            "title": "Output Media Type",
+            "type": "string"
+          },
+          "prompt": {
+            "$ref": "#/components/schemas/DirectorPromptCapability"
+          },
+          "ratios": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ratios",
+            "type": "array"
+          },
+          "resolutions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Resolutions",
+            "type": "array"
+          },
+          "supports_cancel": {
+            "title": "Supports Cancel",
+            "type": "boolean"
+          },
+          "supports_seed": {
+            "title": "Supports Seed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "operation",
+          "output_media_type",
+          "prompt",
+          "inputs",
+          "ratios",
+          "resolutions",
+          "durations",
+          "fps",
+          "supports_seed",
+          "supports_cancel"
+        ],
+        "title": "DirectorOperationCapability",
+        "type": "object"
+      },
+      "DirectorOperationInfo": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "detail"
+        ],
+        "title": "DirectorOperationInfo",
+        "type": "object"
+      },
+      "DirectorPromptCapability": {
+        "properties": {
+          "negative_prompt": {
+            "title": "Negative Prompt",
+            "type": "boolean"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          },
+          "supported": {
+            "title": "Supported",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "supported",
+          "required",
+          "negative_prompt"
+        ],
+        "title": "DirectorPromptCapability",
+        "type": "object"
+      },
       "DiskLocationResponse": {
         "properties": {
           "bytes": {
@@ -15364,6 +15929,27 @@
         ]
       }
     },
+    "/api/v1/director-generation-capabilities": {
+      "get": {
+        "operationId": "getDirectorGenerationCapabilities",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectorCapabilitiesEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Director Capabilities",
+        "tags": [
+          "director-generations"
+        ]
+      }
+    },
     "/api/v1/exports/{export_id}/download": {
       "get": {
         "operationId": "downloadExport",
@@ -16357,6 +16943,169 @@
         "summary": "Detach Production Director Asset",
         "tags": [
           "work"
+        ]
+      }
+    },
+    "/api/v1/productions/{production_id}/director-generations": {
+      "get": {
+        "operationId": "listDirectorGenerations",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectorGenerationListEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Generations",
+        "tags": [
+          "director-generations"
+        ]
+      },
+      "post": {
+        "operationId": "createDirectorGeneration",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectorGenerationRecipe"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectorGenerationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Generation",
+        "tags": [
+          "director-generations"
+        ]
+      }
+    },
+    "/api/v1/productions/{production_id}/director-generations/{job_id}/cancel": {
+      "post": {
+        "operationId": "cancelDirectorGeneration",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectorGenerationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Generation",
+        "tags": [
+          "director-generations"
         ]
       }
     },

@@ -2,7 +2,7 @@ import { Plus } from "lucide-react"
 
 import { AttachmentChip, type AttachmentChipStatus } from "@/components/ai/attachment-chip"
 import { Button } from "@/components/ui/button"
-import { attachmentRoleLabel, type DirectorAttachmentKind, type DirectorAttachmentRole } from "./director-composer-config"
+import { attachmentRoleLabel, type DirectorAttachmentKind, type DirectorAttachmentRole, type DirectorOperationCapability } from "./director-composer-config"
 
 export type DirectorComposerAttachment = {
   id: string
@@ -19,13 +19,13 @@ export type DirectorComposerAttachment = {
   error?: string
 }
 
-export function DirectorComposerAttachments({ attachments, missingRoles = [], onAdd, onRemove }: { attachments: DirectorComposerAttachment[]; missingRoles?: DirectorAttachmentRole[]; onAdd?: () => void; onRemove: (id: string) => void }) {
+export function DirectorComposerAttachments({ capability, attachments, missingRoles = [], onAdd, onRemove }: { capability: DirectorOperationCapability; attachments: DirectorComposerAttachment[]; missingRoles?: DirectorAttachmentRole[]; onAdd?: () => void; onRemove: (id: string) => void }) {
   if (!attachments.length && !missingRoles.length) return null
   return <div className="director-composer-attachments" aria-label="Generation references">
     {attachments.map((attachment) => <AttachmentChip
       key={attachment.id}
       name={attachment.name}
-      role={attachmentRoleLabel(attachment.role)}
+      role={attachmentRoleLabel(capability, attachment.role)}
       kind={attachment.kind}
       previewUrl={attachment.previewUrl}
       posterUrl={attachment.posterUrl}
@@ -35,6 +35,6 @@ export function DirectorComposerAttachments({ attachments, missingRoles = [], on
       error={attachment.error}
       onRemove={() => onRemove(attachment.id)}
     />)}
-    {missingRoles.map((role) => <Button key={role} type="button" variant="outline" size="sm" className="director-attachment-slot" onClick={onAdd}><Plus />{attachmentRoleLabel(role)}</Button>)}
+    {missingRoles.map((role) => <Button key={role} type="button" variant="outline" size="sm" className="director-attachment-slot" onClick={onAdd}><Plus />{attachmentRoleLabel(capability, role)}</Button>)}
   </div>
 }

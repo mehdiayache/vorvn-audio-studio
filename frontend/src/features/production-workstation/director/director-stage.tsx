@@ -100,6 +100,13 @@ export function DirectorStage({ centerPaneRef, productionId, assets, directorAss
     }
   }
 
+  async function uploadReference(file: File) {
+    const asset = await onUpload(file)
+    if (isVisualAsset(asset)) await studioApi.attachDirectorAsset(productionId, asset.id)
+    await onRefresh()
+    return asset
+  }
+
   function queueUpload(item: DirectorUploadItem) {
     uploadChain.current = uploadChain.current.then(() => processUpload(item))
   }
@@ -174,7 +181,7 @@ export function DirectorStage({ centerPaneRef, productionId, assets, directorAss
       if (event.target.files) void upload(Array.from(event.target.files))
       event.target.value = ""
     }} />
-    <DirectorComposer uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel} libraryAssets={visualAssets} />
+    <DirectorComposer productionId={productionId} uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel} libraryAssets={assets} onUploadReference={uploadReference} />
     {error && <div className="director-error" role="alert"><b>Director could not finish that action.</b><span>{error}</span></div>}
     <DirectorGallery assets={collected} uploads={uploads} pendingId={pendingId} onPreview={setPreviewAsset} onAddToTimeline={onAddToTimeline ? (asset) => {
       setPendingId(asset.id)

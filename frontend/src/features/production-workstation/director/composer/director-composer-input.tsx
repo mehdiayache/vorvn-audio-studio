@@ -4,11 +4,13 @@ import { InputGroup, InputGroupTextarea } from "@/components/ui/input-group"
 import type { DirectorAdvancedValues } from "./director-advanced-settings"
 import { DirectorComposerAttachments, type DirectorComposerAttachment } from "./director-composer-attachments"
 import { DirectorComposerToolbar } from "./director-composer-toolbar"
-import type { DirectorAttachmentRole, DirectorModelCapability, DirectorOperation } from "./director-composer-config"
+import type { DirectorAttachmentRole, DirectorModelCapability, DirectorOperation, DirectorOperationCapability, DirectorOperationInfo } from "./director-composer-config"
 
-export function DirectorComposerInput({ prompt, operation, model, models, attachments, missingRoles, ratio, resolution, duration, advanced, busy, disabledReason, uploadStatus, fileAccept, onPromptChange, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onFiles, onRemoveAttachment, onOpenLibrary, onPaste, onSubmit }: {
+export function DirectorComposerInput({ prompt, operations, operation, capability, model, models, attachments, missingRoles, ratio, resolution, duration, advanced, busy, disabledReason, uploadStatus, fileAccept, onPromptChange, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onFiles, onRemoveAttachment, onOpenLibrary, onPaste, onSubmit }: {
   prompt: string
+  operations: DirectorOperationInfo[]
   operation: DirectorOperation
+  capability: DirectorOperationCapability
   model: DirectorModelCapability
   models: DirectorModelCapability[]
   attachments: DirectorComposerAttachment[]
@@ -47,11 +49,12 @@ export function DirectorComposerInput({ prompt, operation, model, models, attach
       onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = "copy" } }}
       onDrop={(event) => { if (!event.dataTransfer.files.length) return; event.preventDefault(); event.stopPropagation(); receive(event.dataTransfer.files) }}
     >
-      <DirectorComposerAttachments attachments={attachments} missingRoles={missingRoles} onAdd={() => inputRef.current?.click()} onRemove={onRemoveAttachment} />
+      <DirectorComposerAttachments capability={capability} attachments={attachments} missingRoles={missingRoles} onAdd={() => inputRef.current?.click()} onRemove={onRemoveAttachment} />
       <InputGroupTextarea
         aria-label="Director prompt"
-        placeholder="Describe the shot, scene, image or motion you want…"
+        placeholder={capability.prompt.supported ? "Describe the shot, scene, image or motion you want…" : "This model operation uses references without a prompt."}
         value={prompt}
+        disabled={!capability.prompt.supported}
         rows={3}
         onChange={(event) => onPromptChange(event.target.value)}
         onPaste={(event) => {
@@ -68,7 +71,9 @@ export function DirectorComposerInput({ prompt, operation, model, models, attach
         }}
       />
       <DirectorComposerToolbar
+        operations={operations}
         operation={operation}
+        capability={capability}
         model={model}
         models={models}
         ratio={ratio}

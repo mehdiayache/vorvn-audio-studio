@@ -261,6 +261,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/director-generation-capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Director Capabilities */
+        get: operations["getDirectorGenerationCapabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exports/{export_id}/download": {
         parameters: {
             query?: never;
@@ -579,6 +596,41 @@ export interface paths {
         post?: never;
         /** Detach Production Director Asset */
         delete: operations["detachProductionDirectorAsset"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/productions/{production_id}/director-generations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Generations */
+        get: operations["listDirectorGenerations"];
+        put?: never;
+        /** Create Generation */
+        post: operations["createDirectorGeneration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/productions/{production_id}/director-generations/{job_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Generation */
+        post: operations["cancelDirectorGeneration"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2629,6 +2681,192 @@ export interface components {
             asset_id: number;
             /** Attached */
             attached: boolean;
+        };
+        /** DirectorCapabilities */
+        DirectorCapabilities: {
+            /** Models */
+            models: components["schemas"]["DirectorModelCapability"][];
+            /** Operations */
+            operations: components["schemas"]["DirectorOperationInfo"][];
+        };
+        /** DirectorCapabilitiesEnvelope */
+        DirectorCapabilitiesEnvelope: {
+            data: components["schemas"]["DirectorCapabilities"];
+        };
+        /** DirectorGenerationControls */
+        DirectorGenerationControls: {
+            /** Duration */
+            duration?: number | null;
+            /** Fps */
+            fps?: number | null;
+            /** Provider Parameters */
+            provider_parameters?: {
+                [key: string]: unknown;
+            };
+            /** Ratio */
+            ratio: string;
+            /** Resolution */
+            resolution: string;
+            /** Seed */
+            seed?: number | null;
+        };
+        /** DirectorGenerationEnvelope */
+        DirectorGenerationEnvelope: {
+            data: components["schemas"]["DirectorGenerationResponse"];
+            /** Meta */
+            meta?: {
+                [key: string]: boolean;
+            } | null;
+        };
+        /** DirectorGenerationInput */
+        DirectorGenerationInput: {
+            /** Asset Id */
+            asset_id: number;
+            /**
+             * Media Type
+             * @enum {string}
+             */
+            media_type: "image" | "video" | "audio";
+            /** Position */
+            position: number;
+            /** Role */
+            role: string;
+        };
+        /** DirectorGenerationListEnvelope */
+        DirectorGenerationListEnvelope: {
+            /** Data */
+            data: components["schemas"]["DirectorGenerationResponse"][];
+        };
+        /** DirectorGenerationRecipe */
+        DirectorGenerationRecipe: {
+            controls: components["schemas"]["DirectorGenerationControls"];
+            /** Inputs */
+            inputs?: components["schemas"]["DirectorGenerationInput"][];
+            /** Model Id */
+            model_id: string;
+            /**
+             * Negative Prompt
+             * @default
+             */
+            negative_prompt: string;
+            /** Operation */
+            operation: string;
+            /**
+             * Prompt
+             * @default
+             */
+            prompt: string;
+        };
+        /** DirectorGenerationResponse */
+        DirectorGenerationResponse: {
+            /** Created At */
+            created_at: string | null;
+            /** Detail */
+            detail: string;
+            /** Error */
+            error: string | null;
+            /** Estimated Cost */
+            estimated_cost: number | null;
+            /** Id */
+            id: string;
+            /** Job Id */
+            job_id: string;
+            /** Model Label */
+            model_label: string;
+            /** Model Version */
+            model_version: string;
+            /** Output Asset Ids */
+            output_asset_ids: number[];
+            /**
+             * Output Media Type
+             * @enum {string}
+             */
+            output_media_type: "image" | "video";
+            /** Progress */
+            progress: number;
+            /** Provider */
+            provider: string;
+            /** Provider Job Id */
+            provider_job_id: string | null;
+            recipe: components["schemas"]["DirectorGenerationRecipe"];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "generating" | "ready" | "canceled" | "failed";
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /** DirectorInputSlot */
+        DirectorInputSlot: {
+            /** Label */
+            label: string;
+            /** Max */
+            max: number;
+            /** Media Types */
+            media_types: ("image" | "video" | "audio")[];
+            /** Required */
+            required: boolean;
+            /** Role */
+            role: string;
+        };
+        /** DirectorModelCapability */
+        DirectorModelCapability: {
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Operations */
+            operations: components["schemas"]["DirectorOperationCapability"][];
+            /** Provider */
+            provider: string;
+            /** Version */
+            version: string;
+        };
+        /** DirectorOperationCapability */
+        DirectorOperationCapability: {
+            /** Durations */
+            durations: number[];
+            /** Fps */
+            fps: number[];
+            /** Inputs */
+            inputs: components["schemas"]["DirectorInputSlot"][];
+            /** Operation */
+            operation: string;
+            /**
+             * Output Media Type
+             * @enum {string}
+             */
+            output_media_type: "image" | "video";
+            prompt: components["schemas"]["DirectorPromptCapability"];
+            /** Ratios */
+            ratios: string[];
+            /** Resolutions */
+            resolutions: string[];
+            /** Supports Cancel */
+            supports_cancel: boolean;
+            /** Supports Seed */
+            supports_seed: boolean;
+        };
+        /** DirectorOperationInfo */
+        DirectorOperationInfo: {
+            /** Detail */
+            detail: string;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+        };
+        /** DirectorPromptCapability */
+        DirectorPromptCapability: {
+            /** Negative Prompt */
+            negative_prompt: boolean;
+            /** Required */
+            required: boolean;
+            /** Supported */
+            supported: boolean;
         };
         /** DiskLocationResponse */
         DiskLocationResponse: {
@@ -7517,6 +7755,26 @@ export interface operations {
             };
         };
     };
+    getDirectorGenerationCapabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectorCapabilitiesEnvelope"];
+                };
+            };
+        };
+    };
     downloadExport: {
         parameters: {
             query?: never;
@@ -8135,6 +8393,108 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DirectorAssetMutationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listDirectorGenerations: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                production_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectorGenerationListEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createDirectorGeneration: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                production_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DirectorGenerationRecipe"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectorGenerationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancelDirectorGeneration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: number;
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectorGenerationEnvelope"];
                 };
             };
             /** @description Validation Error */
