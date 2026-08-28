@@ -1,11 +1,11 @@
 import { useMemo, useState, type ComponentProps, type RefObject } from "react"
 
-import { SoundSceneWorkspace } from "@/features/sound-scene/timeline/sound-scene-workspace"
+import { TimelineWorkspace } from "./timeline-workspace"
 import { DirectorLibraryDialog } from "../director/director-library-dialog"
 import { DirectorPreviewDialog } from "../director/director-preview-dialog"
 import type { VentureAsset } from "@/types/domain"
 
-type TimelineStageProps = ComponentProps<typeof SoundSceneWorkspace> & {
+type TimelineStageProps = ComponentProps<typeof TimelineWorkspace> & {
   centerPaneRef: RefObject<HTMLElement | null>
   directorAssetIds: number[]
 }
@@ -26,7 +26,7 @@ export function TimelineStage({ centerPaneRef, directorAssetIds, ...workspacePro
   }, [directorAssetIds, targetMediaType, visual?.assets])
   const workspaceVisual = visual ? { ...visual, onAddVisual: (trackId?: string) => setTargetTrackId(trackId || null) } : undefined
   return <main className="ws-center-pane" ref={centerPaneRef}>
-    <SoundSceneWorkspace {...workspaceProps} visual={workspaceVisual} />
+    <TimelineWorkspace {...workspaceProps} visual={workspaceVisual} />
     {visual && <DirectorLibraryDialog open={targetTrackId !== undefined} assets={directorVisuals} pendingId={pendingId} title={targetMediaType ? `Add ${targetMediaType} to Timeline` : "Add media to Timeline"} description={targetMediaType ? `Choose a ${targetMediaType} collected in Director. It will be placed on this ${targetMediaType === "video" ? "Video" : "Image"} track at the playhead.` : "Choose an image or video collected in Director. The matching track will be used or created at the playhead."} emptyDescription={`Collect or upload ${targetMediaType ? `a ${targetMediaType}` : "an image or video"} in Director first.`} addLabel={targetTrackId ? "Add to track" : "Add at playhead"} onOpenChange={(open) => { if (!open) setTargetTrackId(undefined) }} onPreview={setPreviewAsset} onAdd={(asset) => {
       setPendingId(asset.id)
       void visual.session.addVisual(asset, workspaceProps.session.snapshot().playhead * 1000, targetTrackId || undefined).then(() => setTargetTrackId(undefined)).finally(() => setPendingId(null))
