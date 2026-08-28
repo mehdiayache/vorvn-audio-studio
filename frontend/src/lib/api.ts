@@ -318,8 +318,8 @@ export const studioApi = {
     request<TimelineDeleteEnvelope>(`/api/v1/productions/${productionId}/parts`, { method: "DELETE", body: JSON.stringify({ ids: [id] }) }).then((response) => response.data),
   deleteParts: (productionId: number, ids: number[]) => request<TimelineDeleteEnvelope>(`/api/v1/productions/${productionId}/parts`, { method: "DELETE", body: JSON.stringify({ ids }) }).then((response) => response.data),
   moveParts: (sourceProductionId: number, ids: number[], destinationProductionId: number) => request<TimelineMoveEnvelope>(`/api/v1/productions/${sourceProductionId}/parts/move`, { method: "POST", body: JSON.stringify({ ids, destination_production_id: destinationProductionId }) }).then((response) => response.data),
-  updateSoundScene: (id: number, expectedRevision: number, document: SoundSceneDocument) =>
-    request<{ data: SoundScene }>(`/api/v1/productions/${id}/sound-scene`, { method: "PATCH", body: JSON.stringify({ expected_revision: expectedRevision, document }) }).then((response) => response.data),
+  updateSoundScene: (id: number, expectedRevision: number, document: SoundSceneDocument, mutationKind: "operator" | "derived_visual_audio" = "operator") =>
+    request<{ data: SoundScene }>(`/api/v1/productions/${id}/sound-scene`, { method: "PATCH", body: JSON.stringify({ expected_revision: expectedRevision, document, mutation_kind: mutationKind }) }).then((response) => response.data),
   updateVisualScene: (id: number, expectedRevision: number, document: VisualSceneDocument) =>
     request<{ data: VisualScene }>(`/api/v1/productions/${id}/visual-scene`, { method: "PATCH", body: JSON.stringify({ expected_revision: expectedRevision, document }) }).then((response) => response.data),
   undoSoundScene: (id: number) =>

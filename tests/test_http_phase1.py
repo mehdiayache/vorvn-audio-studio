@@ -330,7 +330,7 @@ class NativeHttpTests(unittest.TestCase):
                 json={"expected_revision": 1, "document": document})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["data"]["revision"], 2)
-        update.assert_called_once_with(6, 1, document)
+        update.assert_called_once_with(6, 1, document, "operator")
         self.assertEqual(
             self.client.patch("/api/v1/productions/6/music", json={}).status_code,
             404,

@@ -153,7 +153,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     redo: actions.redoSoundScene,
   }
   const soundSession = useMemo(() => new SoundSceneSession(soundScene, {
-    update: (document, expectedRevision) => soundPersistence.current.update(document, expectedRevision),
+    update: (document, expectedRevision, mutationKind) => soundPersistence.current.update(document, expectedRevision, mutationKind),
     undo: () => soundPersistence.current.undo(),
     redo: () => soundPersistence.current.redo(),
   }, undefined, () => player.pause()), [production.id])

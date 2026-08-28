@@ -15,7 +15,7 @@ class SoundSceneRecords(Protocol):
     def get(self, production_id: int) -> dict[str, Any] | None: ...
     def commit(
         self, production_id: int, expected_revision: int,
-        document: dict[str, Any],
+        document: dict[str, Any], mutation_kind: str = "operator",
     ) -> dict[str, Any] | None: ...
     def step(
         self, production_id: int, direction: int,
@@ -78,11 +78,11 @@ class SoundSceneService:
 
     def update(
         self, production_id: int, expected_revision: int,
-        document: dict[str, Any],
+        document: dict[str, Any], mutation_kind: str = "operator",
     ) -> dict[str, Any]:
         try:
             saved = self.records.commit(
-                production_id, expected_revision, document)
+                production_id, expected_revision, document, mutation_kind)
         except (ValueError, SoundSceneRevisionConflict):
             raise
         if not saved:

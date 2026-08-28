@@ -7,6 +7,7 @@ from audio_studio.domain.sound_scene import (
     SoundSceneError,
     effect_tail_ms,
     empty_scene,
+    merge_linked_visual_audio,
     normalize_scene,
     resolve_scene,
     sequence_projection,
@@ -44,6 +45,38 @@ def anchored_scene(part_public_id: str) -> dict:
 
 
 class SoundSceneDomainTests(unittest.TestCase):
+    def test_visual_audio_projection_updates_timing_without_rewriting_mix(self):
+        linked_id = "10000000-0000-4000-8000-000000000001"
+        clip_id = "20000000-0000-4000-8000-000000000001"
+        history = empty_scene()
+        history["tracks"] = [{
+            "id": "embedded-video-audio", "kind": "audio",
+            "name": "Video audio", "volume": .7, "muted": False,
+            "clips": [{
+                "id": clip_id, "linked_visual_clip_id": linked_id,
+                "asset_id": 8, "duration_ms": 2_000,
+                "source_offset_ms": 100, "gain": .35,
+                "muted": True, "effects": [],
+                "anchor": {"kind": "absolute", "position_ms": 500},
+            }],
+        }]
+        projection = deepcopy(history)
+        projected = projection["tracks"][0]["clips"][0]
+        projected.update({
+            "duration_ms": 4_000, "source_offset_ms": 900,
+            "gain": 1, "muted": False,
+            "anchor": {"kind": "absolute", "position_ms": 7_000},
+        })
+
+        merged = merge_linked_visual_audio(history, projection)
+        clip = merged["tracks"][0]["clips"][0]
+        self.assertEqual(
+            (clip["duration_ms"], clip["source_offset_ms"],
+             clip["anchor"]["position_ms"]),
+            (4_000, 900, 7_000),
+        )
+        self.assertEqual((clip["gain"], clip["muted"]), (.35, True))
+
     def test_effect_primitives_normalize_to_one_bounded_canonical_chain(self):
         effect_id = lambda suffix: f"00000000-0000-0000-0000-{suffix:012d}"
         scene = empty_scene()

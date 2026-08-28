@@ -4851,6 +4851,12 @@ export interface components {
             document: components["schemas"]["SoundSceneDocument"];
             /** Expected Revision */
             expected_revision: number;
+            /**
+             * Mutation Kind
+             * @default operator
+             * @enum {string}
+             */
+            mutation_kind: "operator" | "derived_visual_audio";
         };
         /**
          * SpeechGenerateResultResponse

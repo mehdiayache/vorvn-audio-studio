@@ -8462,6 +8462,15 @@
             "exclusiveMinimum": 0.0,
             "title": "Expected Revision",
             "type": "integer"
+          },
+          "mutation_kind": {
+            "default": "operator",
+            "enum": [
+              "operator",
+              "derived_visual_audio"
+            ],
+            "title": "Mutation Kind",
+            "type": "string"
           }
         },
         "required": [

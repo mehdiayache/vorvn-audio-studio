@@ -392,6 +392,89 @@ class ProductionDocumentTests(unittest.TestCase):
         self.assertEqual(current, history)
         self.assertEqual(current.get("tracks"), [])
 
+    def test_derived_video_audio_never_becomes_an_audio_undo_step(self):
+        production_id = int(self.first["id"])
+        collection = next(
+            item for item in self.asset_repository.collections_for_venture(
+                int(self.venture["id"])) if item["kind"] == "music")
+        asset = self.asset_repository.create_uploaded_asset(
+            collection["id"], name=f"History {self.marker}",
+            filename=f"history-{self.marker}.wav",
+            path=f"/tmp/history-{self.marker}.wav", size_bytes=44,
+            duration_ms=30_000, audio_format="wav",
+            mime_type="audio/wav")
+        records = SoundSceneRepository()
+        initial = records.get(production_id)
+        operator_clip_id = str(uuid4())
+        linked_clip_id = str(uuid4())
+        linked_visual_id = str(uuid4())
+
+        first_audio_edit = {
+            "version": 1, "sequence_overrides": {}, "tracks": [{
+                "id": "music", "kind": "audio", "name": "Music",
+                "volume": 1, "muted": False, "clips": [{
+                    "id": operator_clip_id, "asset_id": asset["id"],
+                    "duration_ms": 5_000, "source_offset_ms": 0,
+                    "gain": .2, "anchor": {
+                        "kind": "absolute", "position_ms": 0},
+                }],
+            }],
+        }
+        first = records.commit(
+            production_id, initial["revision"], first_audio_edit)
+        moved_video = json.loads(json.dumps(first["document"]))
+        moved_video["tracks"].insert(0, {
+            "id": "embedded-video-audio", "kind": "audio",
+            "name": "Video audio", "volume": 1, "muted": False,
+            "clips": [{
+                "id": linked_clip_id,
+                "linked_visual_clip_id": linked_visual_id,
+                "asset_id": asset["id"], "duration_ms": 3_000,
+                "source_offset_ms": 400, "gain": 1,
+                "anchor": {"kind": "absolute", "position_ms": 8_000},
+            }],
+        })
+        derived = records.commit(
+            production_id, first["revision"], moved_video,
+            "derived_visual_audio")
+        second_audio_edit = json.loads(json.dumps(derived["document"]))
+        second_audio_edit["tracks"][1]["clips"][0]["gain"] = .8
+        second = records.commit(
+            production_id, derived["revision"], second_audio_edit)
+
+        undone_second_audio = records.step(production_id, -1)
+        self.assertEqual(
+            undone_second_audio["document"]["tracks"][1]["clips"][0]["gain"],
+            .2,
+        )
+        linked = undone_second_audio["document"]["tracks"][0]["clips"][0]
+        self.assertEqual(linked["anchor"]["position_ms"], 8_000)
+
+        visual_undo_projection = json.loads(json.dumps(
+            undone_second_audio["document"]))
+        visual_undo_projection["tracks"][0]["clips"][0]["anchor"] = {
+            "kind": "absolute", "position_ms": 1_000}
+        synchronized = records.commit(
+            production_id, undone_second_audio["revision"],
+            visual_undo_projection, "derived_visual_audio")
+        self.assertTrue(synchronized["can_redo"])
+        redone_second_audio = records.step(production_id, 1)
+        redone_linked = redone_second_audio["document"]["tracks"][0]["clips"][0]
+        self.assertEqual(redone_linked["anchor"]["position_ms"], 1_000)
+        self.assertEqual(
+            redone_second_audio["document"]["tracks"][1]["clips"][0]["gain"],
+            .8,
+        )
+
+        with psycopg.connect(settings.database_url) as database:
+            with database.cursor() as cursor:
+                cursor.execute("""
+                    SELECT count(*) FROM sound_scene_history
+                     WHERE production_id=%s
+                """, (production_id,))
+                history_count = int(cursor.fetchone()[0])
+        self.assertEqual(history_count, 3)
+
     def test_sequence_accepts_any_accessible_audio_classification(self):
         production_id = int(self.first["id"])
         collections = self.asset_repository.collections_for_venture(

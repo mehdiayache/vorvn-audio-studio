@@ -48,7 +48,7 @@ export function TimelineWorkspace({ session, visual, onAddAudio, onRemoveClip, o
   onRemoveTrack: (track: SoundSceneTrack) => void
   onOpenSequence?: (partId: number) => void
 }) {
-  const { scene, engine, selection, playhead, playback, saving, error, soloTrackIds, playbackRange } = useSoundSceneSession(session)
+  const { scene, engine, selection, playhead, playback, saving, error, soloTrackIds, playbackRange, revisionKind } = useSoundSceneSession(session)
   const visualState = useVisualSceneSession(visual?.session)
   const [tracksCollapsed, setTracksCollapsed] = useState(false)
   const tracks = scene.resolved.tracks
@@ -59,6 +59,7 @@ export function TimelineWorkspace({ session, visual, onAddAudio, onRemoveClip, o
   const snapping = useTimelineSnapping({ pixelsPerSecond, playhead, sequence: scene.resolved.sequence_projection.spans, audioTracks: tracks, visualTracks })
   const history = useTimelineHistory({
     audioRevision: scene.revision,
+    audioRevisionKind: revisionKind,
     visualRevision: visualState.scene.revision,
     audioCanUndo: scene.can_undo,
     audioCanRedo: scene.can_redo,

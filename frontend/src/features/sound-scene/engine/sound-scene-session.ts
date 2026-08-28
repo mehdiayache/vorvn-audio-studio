@@ -23,10 +23,14 @@ export type SoundSceneSessionSnapshot = {
   error: string
   soloTrackIds: string[]
   playbackRange: { start: number; end: number; loop: boolean } | null
+  revisionKind: SoundSceneRevisionKind
 }
 
+export type SoundSceneMutationKind = "operator" | "derived_visual_audio"
+export type SoundSceneRevisionKind = SoundSceneMutationKind | "history" | "external"
+
 export type SoundScenePersistence = {
-  update: (document: SoundSceneDocument, expectedRevision: number) => Promise<SoundScene>
+  update: (document: SoundSceneDocument, expectedRevision: number, mutationKind?: SoundSceneMutationKind) => Promise<SoundScene>
   undo: () => Promise<SoundScene>
   redo: () => Promise<SoundScene>
 }
@@ -73,6 +77,7 @@ type CommitWaiter = {
 
 type PendingCommit = {
   document: SoundSceneDocument
+  mutationKind: SoundSceneMutationKind
   waiters: CommitWaiter[]
 }
 
@@ -130,6 +135,7 @@ export class SoundSceneSession {
       error: "",
       soloTrackIds: [],
       playbackRange: null,
+      revisionKind: "external",
     }
     this.editor.onChange((engine) => this.set({ engine }))
   }
@@ -205,16 +211,23 @@ export class SoundSceneSession {
     }
   }
 
-  reconcile(scene: SoundScene, force = false) {
+  reconcile(scene: SoundScene, force = false, revisionKind: SoundSceneRevisionKind = "external") {
     const current = this.snapshotValue.scene
     // A parent refresh can finish after a newer local commit. Never let that
     // older response move the canonical Sound Scene revision backwards.
     if (!force && scene.revision < current.revision) return
     if (this.snapshotValue.saving && !force) {
-      if (scene.revision > current.revision) this.set({ scene })
+      // The in-flight persistence response is the only response that may
+      // reconcile this commit. Adopting an eager parent refresh here would
+      // advance `scene` without advancing the editor document, leaving the
+      // session split between two revisions. Video-audio synchronization would
+      // then keep rediscovering and resaving the same derived change.
       return
     }
-    if (scene.revision === current.revision && scene.resolved.signature === current.resolved.signature) return
+    if (scene.revision === current.revision && scene.resolved.signature === current.resolved.signature) {
+      if (revisionKind !== this.snapshotValue.revisionKind) this.set({ revisionKind })
+      return
+    }
     const wasPlaying = this.snapshotValue.playback === "playing"
     const canAdoptLiveMix = force && Boolean(this.playout.adopt)
       && isLiveMixOnlyChange(current.document, scene.document)
@@ -224,7 +237,7 @@ export class SoundSceneSession {
     const trackIds = new Set(scene.document.tracks.map((track) => track.id))
     const soloTrackIds = this.snapshotValue.soloTrackIds.filter((id) => trackIds.has(id))
     this.playout.setSoloTracks?.(soloTrackIds)
-    this.set({ scene, engine: this.editor.state(), soloTrackIds })
+    this.set({ scene, engine: this.editor.state(), soloTrackIds, revisionKind })
     if (canAdoptLiveMix) {
       this.playout.adopt?.(scene)
       return
@@ -281,7 +294,7 @@ export class SoundSceneSession {
       this.editor.document(), visual, assets,
     )
     if (!synchronized.changed) return false
-    await this.persist(synchronized.document)
+    await this.persist(synchronized.document, "derived_visual_audio")
     return true
   }
 
@@ -680,14 +693,15 @@ export class SoundSceneSession {
     this.frame = requestAnimationFrame(update)
   }
 
-  private persist(document: SoundSceneDocument) {
+  private persist(document: SoundSceneDocument, mutationKind: SoundSceneMutationKind = "operator") {
     return new Promise<void>((resolve, reject) => {
       const waiter = { resolve, reject }
       if (this.pendingCommit) {
         this.pendingCommit.document = structuredClone(document)
+        if (mutationKind === "operator") this.pendingCommit.mutationKind = "operator"
         this.pendingCommit.waiters.push(waiter)
       } else {
-        this.pendingCommit = { document: structuredClone(document), waiters: [waiter] }
+        this.pendingCommit = { document: structuredClone(document), mutationKind, waiters: [waiter] }
       }
       this.startCommitLoop()
     })
@@ -711,11 +725,16 @@ export class SoundSceneSession {
         const commit = this.pendingCommit
         this.pendingCommit = null
         try {
+          // The action wrapper refreshes parent data before it resolves. Mark
+          // provenance first so that an early parent reconciliation cannot
+          // misclassify derived video audio as an operator audio edit.
+          this.set({ revisionKind: commit.mutationKind })
           const scene = await this.persistence.update(
             commit.document, this.snapshotValue.scene.revision,
+            commit.mutationKind,
           )
-          if (this.pendingCommit) this.set({ scene })
-          else this.reconcile(scene, true)
+          if (this.pendingCommit) this.set({ scene, revisionKind: commit.mutationKind })
+          else this.reconcile(scene, true, commit.mutationKind)
           commit.waiters.forEach(({ resolve }) => resolve())
         } catch (reason) {
           commit.waiters.forEach(({ reject }) => reject(reason))
@@ -741,8 +760,8 @@ export class SoundSceneSession {
 
   async undo() {
     if (this.snapshotValue.saving) return
-    this.set({ saving: true, error: "" })
-    try { this.reconcile(await this.persistence.undo()) }
+    this.set({ saving: true, error: "", revisionKind: "history" })
+    try { this.reconcile(await this.persistence.undo(), false, "history") }
     catch (reason) {
       this.set({ error: reason instanceof Error ? reason.message : "The last Timeline edit could not be undone." })
     }
@@ -750,8 +769,8 @@ export class SoundSceneSession {
   }
   async redo() {
     if (this.snapshotValue.saving) return
-    this.set({ saving: true, error: "" })
-    try { this.reconcile(await this.persistence.redo()) }
+    this.set({ saving: true, error: "", revisionKind: "history" })
+    try { this.reconcile(await this.persistence.redo(), false, "history") }
     catch (reason) {
       this.set({ error: reason instanceof Error ? reason.message : "The Timeline edit could not be restored." })
     }

@@ -162,6 +162,7 @@ class SoundSceneUpdateBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     expected_revision: int = Field(gt=0)
     document: SoundSceneDocument
+    mutation_kind: Literal["operator", "derived_visual_audio"] = "operator"
 
 
 class SequenceProjectionSpan(BaseModel):
@@ -271,7 +272,7 @@ def update_sound_scene(
 ) -> dict:
     return _run(lambda: sound_scene_service.update(
         production_id, payload.expected_revision,
-        payload.document.model_dump(),
+        payload.document.model_dump(), payload.mutation_kind,
     ))
 
 

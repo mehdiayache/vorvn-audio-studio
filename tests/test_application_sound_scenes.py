@@ -17,7 +17,8 @@ class Records:
     def get(self, production_id):
         return self.scene if production_id == 6 else None
 
-    def commit(self, production_id, expected_revision, document):
+    def commit(self, production_id, expected_revision, document,
+               mutation_kind="operator"):
         if production_id != 6 or expected_revision != self.scene["revision"]:
             return None
         self.scene = {**self.scene, "revision": expected_revision + 1,

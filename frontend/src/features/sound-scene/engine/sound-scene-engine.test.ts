@@ -732,4 +732,67 @@ describe("SoundSceneSession", () => {
     expect(update.mock.calls[0]![0].sequence_overrides).toEqual({})
     session.dispose()
   })
+
+  it("persists embedded video-audio synchronization as derived state", async () => {
+    const source = scene()
+    let releaseUpdate!: (value: typeof source) => void
+    const updateResult = new Promise<typeof source>((resolve) => { releaseUpdate = resolve })
+    const update = vi.fn().mockReturnValue(updateResult)
+    const session = new SoundSceneSession(source, {
+      update, undo: vi.fn(), redo: vi.fn(),
+    }, {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(false),
+      muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    })
+    const visualClipId = "30000000-0000-4000-8000-000000000001"
+
+    const synchronization = session.syncVisualAudio({
+      version: 1, canvas: { width: 1920, height: 1080 }, tracks: [{
+        id: "video", name: "Video", media_type: "video",
+        visible: true, locked: false, clips: [{
+          id: visualClipId, asset_id: 77, start_ms: 2_000,
+          duration_ms: 4_000, source_offset_ms: 500, fit: "cover",
+          position_x: 0, position_y: 0, scale: 1, opacity: 1,
+          locked: false,
+        }],
+      }],
+    }, [{
+      id: 77, title: "Interview", media_type: "video",
+      duration_ms: 10_000, sample_rate: 48_000, channels: 2,
+    }])
+
+    await Promise.resolve()
+    expect(update).toHaveBeenCalledOnce()
+    expect(update.mock.calls[0]![2]).toBe("derived_visual_audio")
+    expect(session.snapshot().revisionKind).toBe("derived_visual_audio")
+    const parentRefresh = {
+      ...source, revision: 2, document: update.mock.calls[0]![0],
+    }
+    session.reconcile(parentRefresh)
+    expect(session.snapshot().revisionKind).toBe("derived_visual_audio")
+    expect(session.snapshot().scene.revision).toBe(source.revision)
+    releaseUpdate(parentRefresh)
+    await synchronization
+
+    expect(session.snapshot().scene.revision).toBe(2)
+    expect(session.editor.document()).toEqual(parentRefresh.document)
+    const repeat = await session.syncVisualAudio({
+      version: 1, canvas: { width: 1920, height: 1080 }, tracks: [{
+        id: "video", name: "Video", media_type: "video",
+        visible: true, locked: false, clips: [{
+          id: visualClipId, asset_id: 77, start_ms: 2_000,
+          duration_ms: 4_000, source_offset_ms: 500, fit: "cover",
+          position_x: 0, position_y: 0, scale: 1, opacity: 1,
+          locked: false,
+        }],
+      }],
+    }, [{
+      id: 77, title: "Interview", media_type: "video",
+      duration_ms: 10_000, sample_rate: 48_000, channels: 2,
+    }])
+    expect(repeat).toBe(false)
+    expect(update).toHaveBeenCalledOnce()
+    session.dispose()
+  })
 })

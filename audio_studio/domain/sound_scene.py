@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 import hashlib
 import json
 import math
@@ -303,6 +304,70 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
         "sequence_overrides": sequence_overrides,
         "tracks": tracks,
     }
+
+
+_LINKED_VISUAL_FIELDS = {
+    "asset_id", "asset_version_id", "duration_ms", "source_offset_ms",
+    "loop", "anchor",
+}
+
+
+def merge_linked_visual_audio(
+    document: dict[str, Any], projection: dict[str, Any],
+) -> dict[str, Any]:
+    """Refresh video-owned timing without changing authored audio history.
+
+    Embedded video audio has two owners: Visual Scene owns its placement and
+    source window, while Sound Scene owns gain, mute, fades and effects.  A
+    visual edit must therefore update the derived fields in every audio
+    history snapshot without becoming an audio edit itself.
+    """
+    target = normalize_scene(projection)
+    result = normalize_scene(document)
+    desired: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
+    for track in target["tracks"]:
+        for clip in track["clips"]:
+            linked_id = clip.get("linked_visual_clip_id")
+            if linked_id:
+                desired[linked_id] = (track, clip)
+
+    present: set[str] = set()
+    for track in result["tracks"]:
+        clips = []
+        for clip in track["clips"]:
+            linked_id = clip.get("linked_visual_clip_id")
+            if not linked_id:
+                clips.append(clip)
+                continue
+            incoming = desired.get(linked_id)
+            if not incoming:
+                continue
+            present.add(linked_id)
+            source = incoming[1]
+            clips.append({
+                **clip,
+                **{field: deepcopy(source[field]) for field in _LINKED_VISUAL_FIELDS},
+            })
+        track["clips"] = clips
+
+    for linked_id, (source_track, source_clip) in desired.items():
+        if linked_id in present:
+            continue
+        track = next((item for item in result["tracks"]
+                      if item["id"] == source_track["id"]), None)
+        if track is None:
+            track = {
+                key: deepcopy(source_track[key])
+                for key in ("id", "kind", "name", "volume", "muted")
+            } | {"clips": []}
+            result["tracks"].insert(0, track)
+        track["clips"].append(deepcopy(source_clip))
+
+    result["tracks"] = [
+        track for track in result["tracks"]
+        if track["clips"] or track["id"] != "embedded-video-audio"
+    ]
+    return normalize_scene(result)
 
 
 def _part_duration_ms(part: dict[str, Any]) -> int:

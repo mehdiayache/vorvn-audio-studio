@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
 export type TimelineHistoryDomain = "audio" | "visual"
+export type TimelineAudioRevisionKind = "operator" | "derived_visual_audio" | "history" | "external"
 
 type DomainState = Record<TimelineHistoryDomain, boolean>
 type Revisions = Record<TimelineHistoryDomain, number>
@@ -14,8 +15,9 @@ function availableDomain(stack: TimelineHistoryDomain[], available: DomainState,
   return fallback === "audio" && available.visual ? "visual" : "audio"
 }
 
-export function useTimelineHistory({ audioRevision, visualRevision, audioCanUndo, audioCanRedo, visualCanUndo, visualCanRedo, undoAudio, redoAudio, undoVisual, redoVisual }: {
+export function useTimelineHistory({ audioRevision, audioRevisionKind, visualRevision, audioCanUndo, audioCanRedo, visualCanUndo, visualCanRedo, undoAudio, redoAudio, undoVisual, redoVisual }: {
   audioRevision: number
+  audioRevisionKind: TimelineAudioRevisionKind
   visualRevision: number
   audioCanUndo: boolean
   audioCanRedo: boolean
@@ -38,6 +40,7 @@ export function useTimelineHistory({ audioRevision, visualRevision, audioCanUndo
     )
     previous.current = revisions
     const committed = changed.filter((domain) => {
+      if (domain === "audio" && audioRevisionKind === "derived_visual_audio") return false
       if (!ignored.current[domain]) return true
       ignored.current[domain] = false
       return false
@@ -45,7 +48,7 @@ export function useTimelineHistory({ audioRevision, visualRevision, audioCanUndo
     if (!committed.length) return
     setUndoDomains((current) => [...current, ...committed])
     setRedoDomains([])
-  }, [audioRevision, visualRevision])
+  }, [audioRevision, audioRevisionKind, visualRevision])
 
   const undoAvailable = { audio: audioCanUndo, visual: visualCanUndo }
   const redoAvailable = { audio: audioCanRedo, visual: visualCanRedo }
