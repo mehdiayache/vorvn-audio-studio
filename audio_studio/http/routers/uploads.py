@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from audio_studio.config import settings
 
-from audio_studio.application.uploads import UploadError
+from audio_studio.application.uploads import MAX_ASSET_UPLOAD_BYTES, UploadError
 from audio_studio.composition.uploads import upload_service
 from audio_studio.http.errors import ApiProblem
 from audio_studio.http.upload_contracts import (
@@ -130,7 +130,7 @@ async def upload_venture_asset(collection_id: int, request: Request,
             scope=x_asset_scope, encoded_tags=x_asset_tags)
     except UploadError as exc:
         raise ApiProblem(400, "invalid_asset", str(exc)) from exc
-    incoming, size = await _stream_to_file(request, 250_000_000)
+    incoming, size = await _stream_to_file(request, MAX_ASSET_UPLOAD_BYTES)
     try:
         result = upload_service.save_asset_file(
             collection_id, incoming, size, x_filename, details=details)

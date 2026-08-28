@@ -33,6 +33,7 @@ ASSET_SCOPES = frozenset({"venture", "studio"})
 MAX_ASSET_NAME_LENGTH = 120
 MAX_ASSET_TAGS = 12
 MAX_ASSET_TAG_LENGTH = 32
+MAX_ASSET_UPLOAD_BYTES = 1_000_000_000
 MIN_VOICE_REFERENCE_DURATION_MS = 5_000
 MAX_VOICE_REFERENCE_DURATION_MS = 600_000
 MAX_VOICE_REFERENCE_SIZE_BYTES = 100_000_000
@@ -286,8 +287,8 @@ class UploadService:
                 "Choose an Intros, Outros, Music or Stingers library first.")
         if size_bytes <= 0 or not source.is_file():
             raise UploadError("That media file is empty.")
-        if size_bytes > 250_000_000:
-            raise UploadError("That file is over 250 MB.")
+        if size_bytes > MAX_ASSET_UPLOAD_BYTES:
+            raise UploadError("That file is over the 1 GB media limit.")
         if Path(details.original_name).suffix.lower() not in ASSET_EXTENSIONS:
             raise UploadError(
                 "Use supported audio, JPG, PNG, WebP, MP4, MOV or WebM media.")

@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import type { ConfirmAction } from "@/features/production/production-overlays"
 import { studioApi } from "@/lib/api"
 import type { VentureAsset } from "@/types/domain"
-import { acceptedVisualFiles, isVisualAsset, visualFileAccept } from "./director-assets"
+import { isVisualAsset, visualFileAccept, visualFileIssue } from "./director-assets"
 import { DirectorComposer } from "./director-composer"
 import { DirectorGallery } from "./director-gallery"
 import { DirectorLibraryDialog } from "./director-library-dialog"
@@ -106,7 +106,12 @@ export function DirectorStage({ centerPaneRef, productionId, assets, directorAss
 
   function upload(files: File[]) {
     if (!files.length) return
-    const items = files.map((file, index): DirectorUploadItem => ({
+    const evaluated = files.map((file) => ({ file, issue: visualFileIssue(file) }))
+    const issues = evaluated.flatMap(({ issue }) => issue ? [issue] : [])
+    const accepted = evaluated.filter(({ issue }) => !issue).map(({ file }) => file)
+    setError(issues.join(" "))
+    if (!accepted.length) return
+    const items = accepted.map((file, index): DirectorUploadItem => ({
       id: typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `director-upload-${Date.now()}-${index}`,
       file,
       previewUrl: (file.type.startsWith("image/") || file.type.startsWith("video/")) && typeof URL.createObjectURL === "function" ? URL.createObjectURL(file) : null,
@@ -124,7 +129,7 @@ export function DirectorStage({ centerPaneRef, productionId, assets, directorAss
   useEffect(() => {
     function paste(event: ClipboardEvent) {
       if (!event.clipboardData?.files.length) return
-      const files = acceptedVisualFiles(event.clipboardData.files)
+      const files = Array.from(event.clipboardData.files)
       if (!files.length) return
       event.preventDefault()
       void upload(files)
@@ -161,14 +166,12 @@ export function DirectorStage({ centerPaneRef, productionId, assets, directorAss
       event.preventDefault()
       dragDepth.current = 0
       setDragging(false)
-      const accepted = acceptedVisualFiles(event.dataTransfer.files)
-      if (accepted.length) upload(accepted)
-      else setError("Drop a JPG, PNG, WebP, MP4, MOV or WebM file into Director.")
+      upload(Array.from(event.dataTransfer.files))
     }}
   >
     {dragging && <div className="director-drop-overlay" aria-hidden="true"><ImagePlus /><strong>Drop visuals into Director</strong><span>They will upload here and remain available in Visual Library.</span></div>}
     <input ref={inputRef} hidden multiple type="file" accept={visualFileAccept} onChange={(event) => {
-      if (event.target.files) void upload(acceptedVisualFiles(event.target.files))
+      if (event.target.files) void upload(Array.from(event.target.files))
       event.target.value = ""
     }} />
     <DirectorComposer uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel} onFiles={upload} onOpenLibrary={() => setLibraryOpen(true)} />
@@ -188,6 +191,9 @@ export function DirectorStage({ centerPaneRef, productionId, assets, directorAss
       })
     }} onRetryUpload={retryUpload} onDismissUpload={releaseUpload} onUpload={() => inputRef.current?.click()} onOpenLibrary={() => setLibraryOpen(true)} />
     <DirectorLibraryDialog open={libraryOpen} assets={available} pendingId={pendingId} onOpenChange={setLibraryOpen} onPreview={setPreviewAsset} onAdd={(asset) => void attach(asset)} />
-    <DirectorPreviewDialog asset={previewAsset} onOpenChange={(open) => { if (!open) setPreviewAsset(null) }} />
+    <DirectorPreviewDialog asset={previewAsset} pending={Boolean(previewAsset && pendingId === previewAsset.id)} onAddToTimeline={onAddToTimeline ? (asset) => {
+      setPendingId(asset.id)
+      void onAddToTimeline(asset).then(() => setPreviewAsset(null)).catch((reason) => setError(reason instanceof Error ? reason.message : "The visual could not be added to Timeline.")).finally(() => setPendingId(null))
+    } : undefined} onOpenChange={(open) => { if (!open) setPreviewAsset(null) }} />
   </main>
 }

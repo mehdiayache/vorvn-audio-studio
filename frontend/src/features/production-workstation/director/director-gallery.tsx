@@ -92,9 +92,9 @@ export function DirectorGallery({ assets, uploads, pendingId, onPreview, onAddTo
 
   if (!items.length) return <section className="director-empty" aria-label="Director is empty">
     <span><Images aria-hidden="true" /></span>
-    <h2>Create the visual world for this Production</h2>
-    <p>Upload images or video, or choose existing visuals from your Library. Nothing is placed on the Timeline until you choose to place it there.</p>
-    <div><Button onClick={onUpload}>Upload visuals</Button><Button variant="outline" onClick={onOpenLibrary}>Open Visual Library</Button></div>
+    <h2>No visuals collected yet</h2>
+    <p>Upload files above or choose from Library. Director keeps the material here; you decide what enters Timeline.</p>
+    <div><Button onClick={onUpload}>Upload visuals</Button><Button variant="outline" onClick={onOpenLibrary}>Open Library</Button></div>
   </section>
 
   return <section className="director-gallery" aria-labelledby="director-gallery-title">

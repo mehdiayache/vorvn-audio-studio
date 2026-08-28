@@ -7,7 +7,11 @@ import unittest
 from unittest.mock import AsyncMock, Mock, patch
 from urllib.parse import quote
 
-from audio_studio.application.uploads import UploadError, UploadService
+from audio_studio.application.uploads import (
+    MAX_ASSET_UPLOAD_BYTES,
+    UploadError,
+    UploadService,
+)
 from audio_studio.domain.uploads import StoredAsset, StoredVoiceReference
 from audio_studio.http.errors import ApiProblem
 from audio_studio.http.routers import uploads as upload_router
@@ -232,6 +236,27 @@ class UploadServiceTests(unittest.TestCase):
 
         self.assertFalse(records.created_assets)
         self.assertEqual(workspace.discarded_media, ["visual_fixture.mp4"])
+
+    def test_asset_upload_limit_is_realistic_for_video_and_still_bounded(self):
+        service, workspace, records = self.service()
+        workspace.stored_asset = StoredAsset(
+            filename="feature.mp4", path="/media/feature.mp4",
+            duration_ms=120_000, audio_format=None, mime_type="video/mp4",
+            media_type="video", media_format="mp4", width=1920,
+            height=1080, video_codec="h264", frame_rate=24,
+        )
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / "incoming"
+            source.write_bytes(b"video")
+            result = service.save_asset_file(
+                41, source, 500_000_000, "feature.mp4")
+            with self.assertRaisesRegex(UploadError, "1 GB"):
+                service.save_asset_file(
+                    41, source, MAX_ASSET_UPLOAD_BYTES + 1,
+                    "too-large.mp4")
+
+        self.assertEqual(result["media_type"], "video")
+        self.assertEqual(len(records.created_assets), 1)
 
     def test_generated_duplicate_removes_only_the_losing_media_object(self):
         service, workspace, records = self.service()

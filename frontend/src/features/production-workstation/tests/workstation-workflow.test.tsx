@@ -13,7 +13,7 @@ afterEach(() => {
 
 import { DirectorStage } from "../director/director-stage"
 import { DirectorPreviewDialog } from "../director/director-preview-dialog"
-import { visualAssetDetails, visualAssetPlaybackUrl, visualAssetPosterUrl } from "../director/director-assets"
+import { visualAssetDetails, visualAssetPlaybackUrl, visualAssetPosterUrl, visualFileIssue } from "../director/director-assets"
 import { VisualAssetCard } from "../director/visual-asset-card"
 import { WORKSTATION_STAGES } from "../workstation-workflow"
 
@@ -30,9 +30,10 @@ describe("Production workflow", () => {
   it("starts Director as an intentional visual workspace instead of a fake tool", () => {
     render(<DirectorStage productionId={7} assets={[]} directorAssetIds={[]} onUpload={vi.fn()} onRefresh={vi.fn()} />)
 
-    expect(screen.getByRole("heading", { name: "Create the visual world" })).toBeTruthy()
-    expect(screen.getByRole("heading", { name: "Create the visual world for this Production" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Upload visuals" })).toBeTruthy()
+    expect(screen.getByRole("textbox", { name: "Visual direction" })).toBeTruthy()
+    expect(screen.getByText("Creation providers will connect here later. Upload and Library work now.")).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "No visuals collected yet" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Upload" })).toBeTruthy()
     expect(screen.queryByText(/AI|Generate/)).toBeNull()
   })
 
@@ -47,7 +48,7 @@ describe("Production workflow", () => {
       onRefresh={refresh}
     />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Visual Library" }))
+    fireEvent.click(screen.getByRole("button", { name: "Library" }))
     fireEvent.click(screen.getByRole("button", { name: "Add" }))
 
     await waitFor(() => expect(api.attachDirectorAsset).toHaveBeenCalledWith(7, 88))
@@ -83,6 +84,13 @@ describe("Production workflow", () => {
     expect(await screen.findByText("Upload needs attention")).toBeTruthy()
     expect(screen.getByText("The video container is not supported.")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Retry scene.mov" })).toBeTruthy()
+  })
+
+  it("rejects unsupported and oversized visuals before upload", () => {
+    expect(visualFileIssue(new File(["text"], "notes.txt", { type: "text/plain" }))).toContain("not a supported image or video")
+    const large = new File(["video"], "feature.mp4", { type: "video/mp4" })
+    Object.defineProperty(large, "size", { value: 1_000_000_001 })
+    expect(visualFileIssue(large)).toContain("over the 1 GB media limit")
   })
 
   it("projects canonical visual metadata into editing facts without inventing missing values", () => {
@@ -142,6 +150,19 @@ describe("Production workflow", () => {
     fireEvent.pointerDown(screen.getByRole("button", { name: "Actions for Harbour move" }), { button: 0, ctrlKey: false })
     fireEvent.click(await screen.findByText("Add to Timeline"))
     expect(add).toHaveBeenCalledWith(video)
+  })
+
+  it("exposes direct preview and Timeline actions without opening the overflow menu", () => {
+    const asset = { id: 88, media_type: "image" as const, name: "Harbour dusk", filename: "harbour.webp", width: 1200, height: 800 }
+    const preview = vi.fn()
+    const add = vi.fn()
+    render(<VisualAssetCard asset={asset} onPreview={preview} onAddToTimeline={add} />)
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Preview Harbour dusk" })[1]!)
+    fireEvent.click(screen.getByRole("button", { name: "Add Harbour dusk to Timeline" }))
+
+    expect(preview).toHaveBeenCalledWith(asset)
+    expect(add).toHaveBeenCalledWith(asset)
   })
 
   it("requires confirmation before detaching a visual from Director", async () => {

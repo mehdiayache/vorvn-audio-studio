@@ -86,6 +86,8 @@ export function visualAssetDetails(asset: VentureAsset) {
 }
 
 export const visualFileAccept = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm,.jpg,.jpeg,.png,.webp,.mp4,.mov,.webm"
+export const visualUploadLimitBytes = 1_000_000_000
+export const visualUploadHint = "JPG, PNG, WebP, MP4, MOV or WebM · up to 1 GB each"
 
 const visualMimeTypes = new Set([
   "image/jpeg", "image/png", "image/webp",
@@ -94,5 +96,15 @@ const visualMimeTypes = new Set([
 const visualExtensions = /\.(?:jpe?g|png|webp|mp4|mov|webm)$/i
 
 export function acceptedVisualFiles(files: FileList | File[]) {
-  return Array.from(files).filter((file) => visualMimeTypes.has(file.type) || visualExtensions.test(file.name))
+  return Array.from(files).filter((file) => !visualFileIssue(file))
+}
+
+export function visualFileIssue(file: File) {
+  if (!(visualMimeTypes.has(file.type) || visualExtensions.test(file.name))) {
+    return `${file.name} is not a supported image or video.`
+  }
+  if (file.size > visualUploadLimitBytes) {
+    return `${file.name} is over the 1 GB media limit.`
+  }
+  return null
 }
