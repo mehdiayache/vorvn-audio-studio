@@ -46,4 +46,25 @@ describe("VisualClipInspector", () => {
     expect(screen.getByRole("slider", { name: "Video audio level" })).toBeTruthy()
     expect(screen.getByText("0.0 dB")).toBeTruthy()
   })
+
+  it("starts a transform gesture before a keyboard Scale preview", () => {
+    const clip: VisualSceneClip = { id: "clip", asset_id: 5, start_ms: 0, duration_ms: 8_500, source_offset_ms: 0, fit: "contain", position_x: 0, position_y: 0, scale: 1, opacity: 1, locked: false }
+    const track: VisualSceneTrack = { id: "track", name: "Video", media_type: "video", visible: true, locked: false, clips: [clip] }
+    const asset = { id: 5, media_type: "video", name: "Evening shore", filename: "shore.mp4", duration_ms: 12_000 } as VentureAsset
+    const beginGesture = vi.fn()
+    const previewClipTransform = vi.fn()
+    const commitGesture = vi.fn()
+    const session = { beginGesture, previewClipTransform, commitGesture, setClipLocked: vi.fn() } as unknown as VisualSceneSession
+
+    render(<VisualClipInspector clipRef={{ trackId: "track", clipId: "clip" }} track={track} clip={clip} asset={asset} session={session} saving={false} />)
+    const scale = screen.getByRole("slider", { name: "Scale" })
+    fireEvent.keyDown(scale, { key: "ArrowRight" })
+    fireEvent.keyUp(scale, { key: "ArrowRight" })
+
+    expect(beginGesture).toHaveBeenCalledTimes(2)
+    expect(previewClipTransform).toHaveBeenCalledWith({ trackId: "track", clipId: "clip" }, { scale: 1.01 })
+    expect(beginGesture.mock.invocationCallOrder[0]).toBeLessThan(previewClipTransform.mock.invocationCallOrder[0]!)
+    expect(commitGesture).toHaveBeenCalledOnce()
+    expect(previewClipTransform.mock.calls.at(-1)).toEqual([{ trackId: "track", clipId: "clip" }, { scale: 1.01 }])
+  })
 })

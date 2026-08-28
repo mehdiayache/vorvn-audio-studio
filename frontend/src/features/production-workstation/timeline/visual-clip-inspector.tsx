@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Clock3, Film, Image as ImageIcon, Lock, LockOpen, RotateCcw, Volume2, VolumeX } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -60,8 +60,8 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
         <label><span>X</span><Input key={`x-${Math.round(clip.position_x)}`} type="number" defaultValue={Math.round(clip.position_x)} disabled={saving || clip.locked || track.locked} onBlur={(event) => void session.setClipTransform(clipRef, { position_x: Number(event.target.value) || 0 })} /></label>
         <label><span>Y</span><Input key={`y-${Math.round(clip.position_y)}`} type="number" defaultValue={Math.round(clip.position_y)} disabled={saving || clip.locked || track.locked} onBlur={(event) => void session.setClipTransform(clipRef, { position_y: Number(event.target.value) || 0 })} /></label>
       </div>
-      <TransformSlider label="Scale" value={clip.scale * 100} display={`${Math.round(clip.scale * 100)}%`} minimum={5} maximum={300} disabled={saving || clip.locked || track.locked} onPreview={(value) => session.previewClipTransform(clipRef, { scale: value / 100 })} onBegin={() => session.beginGesture()} onCommit={() => void session.commitGesture()} />
-      <TransformSlider label="Opacity" value={clip.opacity * 100} display={`${Math.round(clip.opacity * 100)}%`} minimum={0} maximum={100} disabled={saving || clip.locked || track.locked} onPreview={(value) => session.previewClipTransform(clipRef, { opacity: value / 100 })} onBegin={() => session.beginGesture()} onCommit={() => void session.commitGesture()} />
+      <TransformSlider label="Scale" value={clip.scale * 100} display={`${Math.round(clip.scale * 100)}%`} minimum={5} maximum={300} disabled={saving || clip.locked || track.locked} onPreview={(value) => session.previewClipTransform(clipRef, { scale: value / 100 })} onBegin={() => session.beginGesture()} onCommit={(value) => { session.beginGesture(); session.previewClipTransform(clipRef, { scale: value / 100 }); void session.commitGesture() }} />
+      <TransformSlider label="Opacity" value={clip.opacity * 100} display={`${Math.round(clip.opacity * 100)}%`} minimum={0} maximum={100} disabled={saving || clip.locked || track.locked} onPreview={(value) => session.previewClipTransform(clipRef, { opacity: value / 100 })} onBegin={() => session.beginGesture()} onCommit={(value) => { session.beginGesture(); session.previewClipTransform(clipRef, { opacity: value / 100 }); void session.commitGesture() }} />
       <div className="visual-transform-fit" role="group" aria-label="Media fit"><span>Fit</span><div><Button variant={clip.fit === "cover" ? "secondary" : "ghost"} size="sm" disabled={saving || clip.locked || track.locked} onClick={() => void session.setClipFit(clipRef, "cover")}>Fill</Button><Button variant={clip.fit === "contain" ? "secondary" : "ghost"} size="sm" disabled={saving || clip.locked || track.locked} onClick={() => void session.setClipFit(clipRef, "contain")}>Fit</Button></div></div>
       <p>Drag the selected media directly in Viewer to position it.</p>
     </section>
@@ -84,8 +84,19 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
   </div>
 }
 
-function TransformSlider({ label, value, display, minimum, maximum, disabled, onPreview, onBegin, onCommit }: { label: string; value: number; display: string; minimum: number; maximum: number; disabled: boolean; onPreview: (value: number) => void; onBegin: () => void; onCommit: () => void }) {
-  return <label className="visual-transform-slider"><span><b>{label}</b><strong>{display}</strong></span><Slider value={[value]} min={minimum} max={maximum} step={1} disabled={disabled} onPointerDown={onBegin} onKeyDown={onBegin} onValueChange={([next = value]) => onPreview(next)} onValueCommit={onCommit} /></label>
+function TransformSlider({ label, value, display, minimum, maximum, disabled, onPreview, onBegin, onCommit }: { label: string; value: number; display: string; minimum: number; maximum: number; disabled: boolean; onPreview: (value: number) => void; onBegin: () => void; onCommit: (value: number) => void }) {
+  const pending = useRef(value)
+  const committed = useRef(false)
+  useEffect(() => { pending.current = value }, [value])
+  const preview = (next: number) => { pending.current = next; onPreview(next) }
+  const commit = (next: number) => { pending.current = next; committed.current = true; onCommit(next) }
+  return <label className="visual-transform-slider"><span><b>{label}</b><strong>{display}</strong></span><Slider aria-label={label} value={[value]} min={minimum} max={maximum} step={1} disabled={disabled}
+    onPointerDown={() => { committed.current = false; onBegin() }}
+    onKeyDownCapture={() => { committed.current = false; onBegin() }}
+    onKeyUp={() => { if (!committed.current) commit(pending.current) }}
+    onValueChange={([next = value]) => preview(next)}
+    onValueCommit={([next = value]) => commit(next)}
+  /></label>
 }
 
 function DetailSection({ title, items }: { title: string; items: { label: string; value: string }[] }) {

@@ -91,7 +91,8 @@ class RenderWorkspaceTests(unittest.TestCase):
                 ], check=True, capture_output=True).stdout
                 return tuple(sampled[:3])
             background = sample_pixel(20, 20)
-            transformed = sample_pixel(150, 100)
+            old_top_left_origin = sample_pixel(150, 100)
+            transformed = sample_pixel(320, 180)
 
         streams = {stream["codec_type"]: stream for stream in report["streams"]}
         self.assertEqual(streams["video"]["codec_name"], "h264")
@@ -102,6 +103,7 @@ class RenderWorkspaceTests(unittest.TestCase):
         self.assertEqual(streams["audio"]["codec_name"], "aac")
         self.assertAlmostEqual(float(report["format"]["duration"]), 2, places=2)
         self.assertLess(max(background), 30)
+        self.assertLess(max(old_top_left_origin), 30)
         self.assertGreater(transformed[0], 80)
         self.assertLess(transformed[0], 180)
         self.assertLess(max(transformed[1:]), 35)

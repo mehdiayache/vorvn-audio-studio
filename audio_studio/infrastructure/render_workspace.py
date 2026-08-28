@@ -617,7 +617,9 @@ def _render_visual_scene(
             f"format=rgba,colorchannelmixer=aa={opacity:.6f}[{clip_label}]"
         )
         filters.append(
-            f"{previous}[{clip_label}]overlay={position_x:.3f}:{position_y:.3f}:"
+            f"{previous}[{clip_label}]overlay="
+            f"(main_w-overlay_w)/2+({position_x:.3f}):"
+            f"(main_h-overlay_h)/2+({position_y:.3f}):"
             "eof_action=pass:shortest=0:"
             f"format=auto:enable='between(t,{start:.3f},"
             f"{start + clip_duration:.3f})'[{output_label}]"

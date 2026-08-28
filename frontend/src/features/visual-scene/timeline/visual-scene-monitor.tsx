@@ -12,7 +12,7 @@ export function visualLayerStyle(clip: VisualSceneClip, document: VisualSceneDoc
     objectFit: clip.fit,
     opacity: clip.opacity,
     transform: `translate(${clip.position_x / document.canvas.width * 100}%, ${clip.position_y / document.canvas.height * 100}%) scale(${clip.scale})`,
-    transformOrigin: "top left",
+    transformOrigin: "center center",
   }
 }
 

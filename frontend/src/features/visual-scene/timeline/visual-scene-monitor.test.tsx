@@ -43,6 +43,7 @@ describe("VisualSceneMonitor", () => {
     expect(video.getAttribute("src")).toBe("/api/v1/media/video-proxy/harbour-original.mov")
     expect(video.getAttribute("poster")).toBe("/api/v1/media/video-poster/harbour-original.mov")
     expect(video.style.transform).toBe("translate(6.25%, 3.7037037037037033%) scale(0.75)")
+    expect(video.style.transformOrigin).toBe("center center")
     expect(video.style.opacity).toBe("0.8")
 
     fireEvent.loadedMetadata(video)
