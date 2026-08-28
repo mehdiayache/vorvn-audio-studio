@@ -137,6 +137,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         self.assertEqual(asset["version_metadata"]["codec"], "pcm_s16le")
         listed = self.repository.list_for_venture(self.venture_id)
         self.assertEqual([item["id"] for item in listed], [created["id"]])
+        self.assertEqual(listed[0]["path"], asset["path"])
         context = self.repository.library_context(created["id"])
         self.assertEqual(
             (context["venture_id"], context["collection"]),

@@ -1,6 +1,9 @@
+import { History } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { studioApi } from "@/lib/api"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import type { VentureAsset } from "@/types/domain"
 import { visualAssetName, visualAssetPosterUrl } from "../director-assets"
 import type { DirectorAdvancedValues } from "./director-advanced-settings"
@@ -11,7 +14,7 @@ import {
   type DirectorCapabilityCatalog, type DirectorModelCapability,
   type DirectorOperation,
 } from "./director-composer-config"
-import { activeProviderParameters, assetKind, assetPreview, assignInputs, capabilityDefaults, fileKind, generationAttachments, identifier, parameterIssue } from "./director-composer-state"
+import { activeProviderParameters, addNestedReference, assetKind, assetPreview, assignInputs, capabilityDefaults, fileKind, generationAttachments, identifier, parameterIssue } from "./director-composer-state"
 import { DirectorGenerationCard } from "./director-generation-card"
 import type { DirectorGeneration, DirectorGenerationRecipe } from "./director-generation-types"
 import { DirectorReferenceLibraryDialog } from "./director-reference-library-dialog"
@@ -38,10 +41,13 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
   const [duration, setDuration] = useState(0)
   const [advanced, setAdvanced] = useState<DirectorAdvancedValues>({ seed: "", fps: 0, negativePrompt: "", parameters: {} })
   const [libraryOpen, setLibraryOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [referenceUploads, setReferenceUploads] = useState(0)
   const [composerError, setComposerError] = useState("")
   const objectUrls = useRef(new Set<string>())
   const refreshedOutputIds = useRef(new Set<number>())
   const { generations, submitting, create, cancel } = useDirectorGenerations(productionId, setComposerError)
+  const activeGenerations = generations.filter(({ status }) => status === "queued" || status === "generating")
 
   useEffect(() => {
     let active = true
@@ -90,7 +96,7 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
   const pendingAttachment = attachments.some(({ status }) => status === "uploading")
   const failedAttachment = attachments.some(({ status }) => status === "failed")
   const controlsIssue = capability ? parameterIssue(capability, advanced.parameters, duration, libraryAssets) : undefined
-  const disabledReason = !capability ? "Director capabilities are loading." : capability.prompt.required && !prompt.trim() ? "Write what you want to create." : prompt.length > capability.prompt.max_length ? `Keep the direction under ${capability.prompt.max_length.toLocaleString()} characters.` : pendingAttachment ? "Wait for references to finish uploading." : failedAttachment ? "Remove the reference that failed to upload." : missing.length ? `Add ${missing.map((role) => capability.inputs.find((slot) => slot.role === role)?.label || role).join(" and ")}.` : missingChoice ? `Add ${missingChoice.map((role) => capability.inputs.find((slot) => slot.role === role)?.label || role).join(" or ")}.` : controlsIssue
+  const disabledReason = !capability ? "Director capabilities are loading." : capability.prompt.required && !prompt.trim() ? "Write what you want to create." : prompt.length > capability.prompt.max_length ? `Keep the direction under ${capability.prompt.max_length.toLocaleString()} characters.` : referenceUploads || pendingAttachment ? "Wait for references to finish uploading." : failedAttachment ? "Remove the reference that failed to upload." : missing.length ? `Add ${missing.map((role) => capability.inputs.find((slot) => slot.role === role)?.label || role).join(" and ")}.` : missingChoice ? `Add ${missingChoice.map((role) => capability.inputs.find((slot) => slot.role === role)?.label || role).join(" or ")}.` : controlsIssue
   const fileAccept = capability ? acceptedMediaTypes(capability).map((kind) => `${kind}/*`).join(",") : ""
 
   function applyModel(next: DirectorModelCapability, nextOperation = operation) {
@@ -134,6 +140,14 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
         setComposerError(`${file.name} is not a compatible reference for this model operation.`)
         continue
       }
+      const usesNestedReference = !capability.inputs.some(({ media_types }) => media_types.includes(kind))
+      if (usesNestedReference) {
+        setReferenceUploads((count) => count + 1)
+        void onUploadReference(file).then(receiveAsset).catch((reason) => {
+          setComposerError(reason instanceof Error ? reason.message : `${file.name} could not be uploaded.`)
+        }).finally(() => setReferenceUploads((count) => Math.max(0, count - 1)))
+        continue
+      }
       const previewUrl = URL.createObjectURL(file)
       objectUrls.current.add(previewUrl)
       const id = identifier("attachment")
@@ -166,6 +180,17 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
     const kind = assetKind(asset)
     if (!kind || !capability || !acceptedMediaTypes(capability).includes(kind)) {
       setComposerError(`${visualAssetName(asset)} is not compatible with this model operation.`)
+      return
+    }
+    if (!capability.inputs.some(({ media_types }) => media_types.includes(kind))) {
+      const next = addNestedReference(capability, advanced.parameters, asset)
+      if (!next) {
+        setComposerError(`${visualAssetName(asset)} has no available compatible reference position.`)
+        return
+      }
+      setAdvanced((current) => ({ ...current, parameters: addNestedReference(capability, current.parameters, asset) || current.parameters }))
+      setComposerError("")
+      setLibraryOpen(false)
       return
     }
     addAttachments([{ id: identifier(`asset-${asset.id}`), assetId: asset.id, name: visualAssetName(asset), kind, role: "", previewUrl: assetPreview(asset), posterUrl: visualAssetPosterUrl(asset), status: "ready" }])
@@ -244,7 +269,7 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
       ratio={ratio} resolution={resolution} duration={duration} advanced={advanced}
       assets={libraryAssets}
       busy={submitting} disabledReason={disabledReason}
-      uploadStatus={uploading ? uploadLabel : undefined} fileAccept={fileAccept}
+      uploadStatus={referenceUploads ? `Uploading ${referenceUploads === 1 ? "reference" : `${referenceUploads} references`}…` : uploading ? uploadLabel : undefined} fileAccept={fileAccept}
       onPromptChange={setPrompt} onOperationChange={changeOperation}
       onModelChange={(nextId) => { const next = models.find(({ id }) => id === nextId); if (next) applyModel(next) }}
       onRatioChange={setRatio} onResolutionChange={setResolution} onDurationChange={setDuration}
@@ -254,7 +279,7 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
       onSubmit={() => void createGeneration()}
     />
     {composerError && <p className="director-composer-error" role="alert">{composerError}</p>}
-    {generations.length > 0 && <div className="director-generation-list" aria-label="Recent Director generations">{generations.map((generation) => {
+    {activeGenerations.length > 0 && <div className="director-generation-list is-active" aria-label="Active Director generations">{activeGenerations.map((generation) => {
       const generationModel = catalog.models.find(({ id }) => id === generation.recipe.model_id)
       const generationCapability = generationModel && operationCapability(generationModel, generation.recipe.operation)
       const outputAsset = libraryAssets.find(({ id }) => id === generation.output_asset_ids[0])
@@ -270,6 +295,18 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
         } : undefined}
       />
     })}</div>}
+    {generations.length > 0 && <div className="director-history-entry"><Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+      <DialogTrigger asChild><Button variant="ghost" size="sm"><History />Generation history <span>{generations.length}</span></Button></DialogTrigger>
+      <DialogContent className="director-history-dialog">
+        <DialogHeader><DialogTitle>Generation history</DialogTitle><DialogDescription>Previous Director requests for this Production. Ready outputs remain in Production visuals.</DialogDescription></DialogHeader>
+        <div className="director-generation-list" aria-label="Director generation history">{generations.map((generation) => {
+          const generationModel = catalog.models.find(({ id }) => id === generation.recipe.model_id)
+          const generationCapability = generationModel && operationCapability(generationModel, generation.recipe.operation)
+          const outputAsset = libraryAssets.find(({ id }) => id === generation.output_asset_ids[0])
+          return <DirectorGenerationCard key={generation.id} operations={catalog.operations} generation={generation} canCancel={Boolean(generationCapability?.supports_cancel)} outputReady={Boolean(outputAsset)} onCancel={() => void cancel(generation)} onRegenerate={() => createGeneration(generation)} onUseSettings={() => { useSettings(generation); setHistoryOpen(false) }} onPreview={outputAsset && onPreviewGenerated ? () => onPreviewGenerated(outputAsset) : undefined} onAddToTimeline={outputAsset && onAddGeneratedToTimeline ? () => void onAddGeneratedToTimeline(outputAsset) : undefined} />
+        })}</div>
+      </DialogContent>
+    </Dialog></div>}
     <DirectorReferenceLibraryDialog open={libraryOpen} assets={libraryAssets} acceptedMediaTypes={acceptedMediaTypes(capability)} onOpenChange={setLibraryOpen} onAdd={receiveAsset} />
   </section>
 }

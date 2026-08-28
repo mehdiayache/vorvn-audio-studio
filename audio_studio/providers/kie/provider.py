@@ -156,8 +156,14 @@ class KieDirectorProvider:
             normalized = "failed"
         else:
             raise DirectorProviderError("KIE returned an unknown task state.")
+        raw_progress = data.get("progress")
+        try:
+            task_progress = max(0, min(100, int(float(raw_progress))))
+        except (TypeError, ValueError):
+            task_progress = None
         return DirectorProviderState(
             normalized,
+            progress=task_progress,
             output_urls=self._result_urls(data.get("resultJson")),
             error=str(data.get("failMsg") or data.get("errorMessage") or ""),
             raw=data,

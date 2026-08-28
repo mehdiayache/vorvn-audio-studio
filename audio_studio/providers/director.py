@@ -26,6 +26,7 @@ class DirectorProviderState:
     output_urls: tuple[str, ...] = ()
     error: str = ""
     raw: dict[str, Any] | None = None
+    progress: int | None = None
 
 
 class DirectorProvider(Protocol):

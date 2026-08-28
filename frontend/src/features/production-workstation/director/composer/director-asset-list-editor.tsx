@@ -101,7 +101,7 @@ export function DirectorAssetListEditor({ field, value, assets, onChange }: {
           }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{variants.map((option) => <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>)}</SelectGroup></SelectContent></Select></label>
           <label><span>Prompt name</span><Input maxLength={Number(field.item.name_max_length || 64)} value={item.name} onChange={(event) => update(index, { name: event.target.value.replace(/^@/, "") })} /></label>
         </div>
-        <label><span>Description</span><Input maxLength={Number(field.item.description_max_length || 300)} value={item.description} onChange={(event) => update(index, { description: event.target.value })} /></label>
+        <label><span>Description{field.item.description_required ? "" : " (optional)"}</span><Input required={Boolean(field.item.description_required)} maxLength={Number(field.item.description_max_length || 300)} value={item.description} onChange={(event) => update(index, { description: event.target.value })} /></label>
         <AssetPicker label={variant.label} assets={compatible} selected={item.asset_ids || []} maximum={variant.max_assets} onChange={(asset_ids) => update(index, { asset_ids })} />
         {variant.trim && <div className="director-subject-grid">
           <label><span>Starts at (ms)</span><Input type="number" min={0} step={100} value={item.start_time_ms ?? variant.trim.start_default} onChange={(event) => update(index, { start_time_ms: Number(event.target.value) })} /></label>

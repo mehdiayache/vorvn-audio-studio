@@ -57,6 +57,64 @@ export function activeProviderParameters(capability: DirectorOperationCapability
   }))
 }
 
+type AssetListGroup = {
+  name: string
+  description?: string
+  variant: string
+  asset_ids: number[]
+  audio_asset_ids: number[]
+  start_time_ms?: number
+  end_time_ms?: number
+}
+
+function subjectName(groups: AssetListGroup[]) {
+  const names = new Set(groups.map(({ name }) => name.toLowerCase()))
+  let index = groups.length + 1
+  while (names.has(`subject${index}`)) index += 1
+  return `subject${index}`
+}
+
+/** Add a canonical Asset to the first compatible provider-owned asset list.
+ * Top-level input slots remain separate; this handles models such as Kling
+ * Omni whose subject references live inside `elements`.
+ */
+export function addNestedReference(capability: DirectorOperationCapability, values: DirectorParameterValues, asset: VentureAsset) {
+  const kind = assetKind(asset)
+  if (!kind) return null
+  for (const field of capability.parameters) {
+    if (field.type !== "asset_list") continue
+    const groups = structuredClone(Array.isArray(values[field.key]) ? values[field.key] : []) as AssetListGroup[]
+    const variants = Array.isArray(field.item.variants)
+      ? field.item.variants as { id: string; media_types?: DirectorAttachmentKind[]; max_assets?: number; trim?: { start_default?: number; end_default?: number } }[]
+      : []
+    const variant = variants.find(({ media_types }) => media_types?.includes(kind))
+    if (variant) {
+      const maximum = Number(variant.max_assets || 1)
+      const existing = kind === "image"
+        ? groups.find((group) => group.variant === variant.id && group.asset_ids.length < maximum)
+        : undefined
+      if (existing) existing.asset_ids.push(asset.id)
+      else groups.push({
+        name: subjectName(groups), description: visualAssetName(asset), variant: variant.id,
+        asset_ids: [asset.id], audio_asset_ids: [],
+        ...(variant.trim ? {
+          start_time_ms: Number(variant.trim.start_default || 0),
+          end_time_ms: Math.min(Number(asset.duration_ms || Number.POSITIVE_INFINITY), Number(variant.trim.end_default || 8000)),
+        } : {}),
+      })
+      return { ...values, [field.key]: groups }
+    }
+    const audio = field.item.audio as { media_types?: DirectorAttachmentKind[]; max_assets?: number } | undefined
+    if (audio?.media_types?.includes(kind)) {
+      const group = groups.find(({ audio_asset_ids }) => audio_asset_ids.length < Number(audio.max_assets || 1))
+      if (!group) return null
+      group.audio_asset_ids.push(asset.id)
+      return { ...values, [field.key]: groups }
+    }
+  }
+  return null
+}
+
 export function parameterIssue(capability: DirectorOperationCapability, values: DirectorParameterValues, duration: number, assets: VentureAsset[] = []) {
   const active = activeProviderParameters(capability, values)
   for (const field of capability.parameters) {
@@ -82,9 +140,10 @@ export function parameterIssue(capability: DirectorOperationCapability, values: 
       const usedAssets = new Set<number>()
       for (const raw of value) {
         if (typeof raw !== "object" || raw === null) return `Check ${field.label.toLowerCase()}.`
-        const item = raw as { name?: string; variant?: string; asset_ids?: number[]; audio_asset_ids?: number[]; start_time_ms?: number; end_time_ms?: number }
+        const item = raw as { name?: string; description?: string; variant?: string; asset_ids?: number[]; audio_asset_ids?: number[]; start_time_ms?: number; end_time_ms?: number }
         const name = String(item.name || "").trim()
         if (!/^[A-Za-z][A-Za-z0-9_-]*$/.test(name)) return "Give every subject a prompt name using letters, numbers, _ or -."
+        if (field.item.description_required && !String(item.description || "").trim()) return "Describe every subject reference."
         if (names.has(name.toLowerCase())) return "Subject prompt names must be unique."
         names.add(name.toLowerCase())
         const variant = variants.find(({ id }) => id === item.variant)

@@ -110,7 +110,21 @@ export function operationCapability(model: DirectorModelCapability, operation: D
 }
 
 export function acceptedMediaTypes(capability: DirectorOperationCapability) {
-  return [...new Set(capability.inputs.flatMap(({ media_types }) => media_types))]
+  const parameterMedia = capability.parameters.flatMap((field) => {
+    if (field.type !== "asset_list") return []
+    const variants = Array.isArray(field.item.variants)
+      ? field.item.variants as { media_types?: DirectorAttachmentKind[] }[]
+      : []
+    const audio = field.item.audio as { media_types?: DirectorAttachmentKind[] } | undefined
+    return [
+      ...variants.flatMap(({ media_types }) => media_types || []),
+      ...(audio?.media_types || []),
+    ]
+  })
+  return [...new Set([
+    ...capability.inputs.flatMap(({ media_types }) => media_types),
+    ...parameterMedia,
+  ])]
 }
 
 export function attachmentRoleLabel(capability: DirectorOperationCapability, role: DirectorAttachmentRole) {

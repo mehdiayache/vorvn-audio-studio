@@ -6,6 +6,12 @@ import { studioApi } from "@/lib/api"
 import { DirectorComposer } from "../director/composer/director-composer"
 import type { DirectorGeneration } from "../director/composer/director-generation-types"
 
+globalThis.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as typeof ResizeObserver
+
 vi.mock("@/lib/api", () => ({ studioApi: {
   directorModels: vi.fn(), directorGenerations: vi.fn(),
   createDirectorGeneration: vi.fn(), cancelDirectorGeneration: vi.fn(),
@@ -119,11 +125,12 @@ describe("Director composer", () => {
     const saved = generation()
     vi.mocked(studioApi.directorGenerations).mockResolvedValue([saved] as never)
     renderComposer()
+    fireEvent.click(await screen.findByRole("button", { name: /Generation history/ }))
     expect(await screen.findByText("Ready")).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Remix" }))
-    expect((screen.getByRole("textbox", { name: "Director prompt" }) as HTMLTextAreaElement).value).toBe(saved.recipe.prompt)
     fireEvent.click(screen.getByRole("button", { name: "Regenerate" }))
     await waitFor(() => expect(studioApi.createDirectorGeneration).toHaveBeenCalledWith(7, saved.recipe))
+    fireEvent.click(screen.getByRole("button", { name: "Remix" }))
+    expect((screen.getByRole("textbox", { name: "Director prompt" }) as HTMLTextAreaElement).value).toBe(saved.recipe.prompt)
   })
 
   it("refreshes canonical outputs and exposes preview and Timeline actions", async () => {
@@ -138,6 +145,7 @@ describe("Director composer", () => {
       onPreviewGenerated, onAddGeneratedToTimeline,
     })
     await waitFor(() => expect(onGenerationOutputReady).toHaveBeenCalledTimes(1))
+    fireEvent.click(await screen.findByRole("button", { name: /Generation history/ }))
     fireEvent.click(screen.getByRole("button", { name: "Preview" }))
     expect(onPreviewGenerated).toHaveBeenCalledWith(asset)
     fireEvent.click(screen.getByRole("button", { name: "Add to Timeline" }))
@@ -157,5 +165,22 @@ describe("Director composer", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add subject" }))
     expect(screen.getByText("Subject 1")).toBeTruthy()
     expect((screen.getByRole("textbox", { name: "Prompt name" }) as HTMLInputElement).value).toBe("subject_1")
+  })
+
+  it("routes a canonical image into the nested provider reference contract", async () => {
+    vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
+    renderComposer({ libraryAssets: [
+      { id: 41, media_type: "image", name: "Hero front" },
+      { id: 42, media_type: "image", name: "Hero side" },
+    ] })
+
+    fireEvent.pointerDown(await screen.findByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
+    fireEvent.click((await screen.findByText("Hero front", { selector: ".director-reference-item strong" })).closest("button")!)
+
+    fireEvent.click(screen.getByRole("button", { name: "Model settings" }))
+    expect(await screen.findByText("Subject 1")).toBeTruthy()
+    expect(screen.getByText("Hero front", { selector: ".director-subject-asset" })).toBeTruthy()
+    expect((screen.getByLabelText("Description (optional)") as HTMLInputElement).value).toBe("Hero front")
   })
 })

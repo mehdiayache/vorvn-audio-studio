@@ -207,10 +207,19 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     await mutate("parts:move", () => studioApi.reorder(production.id, next), `${selectedCount} Part${selectedCount === 1 ? "" : "s"} moved to position ${position}`)
   }, [mutate, production.id, production.parts])
 
-  const updateSoundScene = useCallback((document: SoundSceneDocument, expectedRevision: number, mutationKind: "operator" | "derived_visual_audio" = "operator") => mutate(
-    `sound-scene:save:${expectedRevision}`, () => studioApi.updateSoundScene(production.id, expectedRevision, document, mutationKind),
-    "Timeline saved",
-  ), [mutate, production.id])
+  const updateSoundScene = useCallback((document: SoundSceneDocument, expectedRevision: number, mutationKind: "operator" | "derived_visual_audio" = "operator") => {
+    if (mutationKind === "derived_visual_audio") {
+      return studioApi.updateSoundScene(production.id, expectedRevision, document, mutationKind).then(async (scene) => {
+        invalidatePreview()
+        await refresh()
+        return scene
+      })
+    }
+    return mutate(
+      `sound-scene:save:${expectedRevision}`, () => studioApi.updateSoundScene(production.id, expectedRevision, document, mutationKind),
+      "Timeline saved",
+    )
+  }, [invalidatePreview, mutate, production.id, refresh])
   const undoSoundScene = useCallback(() => mutate(
     "sound-scene:undo", () => studioApi.undoSoundScene(production.id), "Timeline undone",
   ), [mutate, production.id])

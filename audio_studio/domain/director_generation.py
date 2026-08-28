@@ -41,7 +41,9 @@ def _validate_asset_list(
         if name.casefold() in names:
             raise ValueError("Subject reference names must be unique.")
         names.add(name.casefold())
-        description = str(item.get("description") or "")
+        description = str(item.get("description") or "").strip()
+        if contract.get("description_required") and not description:
+            raise ValueError("Every subject needs a description.")
         if len(description) > int(
                 contract.get("description_max_length") or 2000):
             raise ValueError("A subject description is too long for this model.")

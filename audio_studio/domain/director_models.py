@@ -11,7 +11,10 @@ from typing import Any, Literal
 
 
 ModelStatus = Literal["draft", "verified", "enabled"]
-MANIFEST_VERSION = "2026-08-28.2"
+MANIFEST_VERSION = "2026-08-28.3"
+
+
+AVAILABLE_MODEL_STATUSES = {"verified", "enabled"}
 
 
 OPERATION_TAXONOMY: tuple[dict[str, str], ...] = (
@@ -108,6 +111,7 @@ def _kling_video_fields() -> list[dict[str, Any]]:
             item={
                 "name_max_length": 64,
                 "description_max_length": 300,
+                "description_required": True,
                 "variants": [
                     {
                         "id": "images", "label": "Image subject",
@@ -176,8 +180,8 @@ MODELS: tuple[dict[str, Any], ...] = (
         "adapter_key": "kie-kling-omni",
         "adapter_version": "kie-kling-omni-1",
         "capability_manifest_version": MANIFEST_VERSION,
-        "status": "enabled",
-        "description": "Text-directed video with optional audio and shot planning",
+        "status": "verified",
+        "description": "Prompt generation is verified; optional references, audio and shot controls remain visible for deliberate validation",
         "operations": [_kling_operation("text_to_video")],
     },
     {
@@ -247,7 +251,8 @@ MODELS: tuple[dict[str, Any], ...] = (
 
 def models(*, include_unavailable: bool = False) -> list[dict[str, Any]]:
     selected = MODELS if include_unavailable else tuple(
-        model for model in MODELS if model["status"] == "enabled")
+        model for model in MODELS
+        if model["status"] in AVAILABLE_MODEL_STATUSES)
     return deepcopy(list(selected))
 
 
@@ -257,7 +262,7 @@ def model_capability(
     for model in MODELS:
         if model["id"] != model_id:
             continue
-        if require_enabled and model["status"] != "enabled":
+        if require_enabled and model["status"] not in AVAILABLE_MODEL_STATUSES:
             break
         for item in model["operations"]:
             if item["operation"] == operation:

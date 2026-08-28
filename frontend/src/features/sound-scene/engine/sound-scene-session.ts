@@ -116,6 +116,7 @@ export class SoundSceneSession {
   private disposed = false
   private pendingCommit: PendingCommit | null = null
   private commitLoop: Promise<void> | null = null
+  private visualAudioSignature = ""
 
   constructor(
     scene: SoundScene,
@@ -290,12 +291,31 @@ export class SoundSceneSession {
   async commitClip() { await this.persist(this.editor.document()) }
 
   async syncVisualAudio(visual: VisualSceneDocument, assets: VentureAsset[]) {
+    const videoAssetIds = new Set(visual.tracks.flatMap((track) =>
+      track.media_type === "video" ? track.clips.map((clip) => clip.asset_id) : []))
+    const signature = JSON.stringify({
+      clips: visual.tracks.flatMap((track) => track.media_type === "video"
+        ? track.clips.map(({ id, asset_id, start_ms, duration_ms, source_offset_ms }) =>
+          [id, asset_id, start_ms, duration_ms, source_offset_ms])
+        : []),
+      assets: assets.filter(({ id }) => videoAssetIds.has(id)).map((asset) => [
+        asset.id, asset.version_id, asset.sample_rate, asset.channels,
+        asset.metadata?.audio_codec, asset.version_metadata?.audio_codec,
+      ]),
+    })
+    if (signature === this.visualAudioSignature) return false
+    this.visualAudioSignature = signature
     const synchronized = synchronizeVideoAudio(
       this.editor.document(), visual, assets,
     )
     if (!synchronized.changed) return false
-    await this.persist(synchronized.document, "derived_visual_audio")
-    return true
+    try {
+      await this.persist(synchronized.document, "derived_visual_audio")
+      return true
+    } catch (reason) {
+      if (this.visualAudioSignature === signature) this.visualAudioSignature = ""
+      throw reason
+    }
   }
 
   private nextDocument(transform: (document: SoundSceneDocument) => void) {

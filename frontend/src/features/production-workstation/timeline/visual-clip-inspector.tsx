@@ -19,13 +19,14 @@ function milliseconds(value: number) {
   return minutes ? `${minutes}:${remainder.toFixed(1).padStart(4, "0")}` : `${remainder.toFixed(1)}s`
 }
 
-export function VisualClipInspector({ clipRef, track, clip, asset, session, saving, hasEmbeddedAudio = false, audioMuted = false, audioGain = 1, onAudioMutedChange, onAudioGainChange, onAudioGainCommit }: {
+export function VisualClipInspector({ clipRef, track, clip, asset, session, saving, audioSaving = saving, hasEmbeddedAudio = false, audioMuted = false, audioGain = 1, onAudioMutedChange, onAudioGainChange, onAudioGainCommit }: {
   clipRef: VisualClipRef
   track: VisualSceneTrack
   clip: VisualSceneClip
   asset?: VentureAsset
   session: VisualSceneSession
   saving: boolean
+  audioSaving?: boolean
   hasEmbeddedAudio?: boolean
   audioMuted?: boolean
   audioGain?: number
@@ -69,8 +70,8 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
     {track.media_type === "video" && <section className="visual-inspector-audio">
       <header><span><b>Audio</b><small>{hasEmbeddedAudio ? "This video's sound follows the visual clip in Timeline and Export." : "This source has no audio."}</small></span>{hasEmbeddedAudio ? audioMuted ? <VolumeX /> : <Volume2 /> : null}</header>
       {hasEmbeddedAudio && <div className="visual-inspector-audio-controls">
-        <label className="visual-inspector-audio-toggle"><span><b>Mute audio</b><small>Keeps the picture and timing unchanged.</small></span><Switch checked={audioMuted} disabled={saving || !onAudioMutedChange} onCheckedChange={(checked) => void onAudioMutedChange?.(checked)} aria-label="Mute video audio" /></label>
-        <label className="visual-inspector-audio-level"><span><b>Audio level</b><small>Adjust only this video's sound.</small></span><strong>{formatDb(audioGainDb)}</strong><Slider aria-label="Video audio level" disabled={saving || !onAudioGainChange || !onAudioGainCommit} value={[audioGainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setAudioGainDb(value); onAudioGainChange?.(dbToGain(value)) }} onValueCommit={([value = audioGainDb]) => { setAudioGainDb(value); onAudioGainChange?.(dbToGain(value)); void onAudioGainCommit?.() }} /></label>
+        <label className="visual-inspector-audio-toggle"><span><b>Mute audio</b><small>Keeps the picture and timing unchanged.</small></span><Switch checked={audioMuted} disabled={audioSaving || !onAudioMutedChange} onCheckedChange={(checked) => void onAudioMutedChange?.(checked)} aria-label="Mute video audio" /></label>
+        <label className="visual-inspector-audio-level"><span><b>Audio level</b><small>Adjust only this video's sound.</small></span><strong>{formatDb(audioGainDb)}</strong><Slider aria-label="Video audio level" disabled={audioSaving || !onAudioGainChange || !onAudioGainCommit} value={[audioGainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setAudioGainDb(value); onAudioGainChange?.(dbToGain(value)) }} onValueCommit={([value = audioGainDb]) => { setAudioGainDb(value); onAudioGainChange?.(dbToGain(value)); void onAudioGainCommit?.() }} /></label>
       </div>}
     </section>}
 

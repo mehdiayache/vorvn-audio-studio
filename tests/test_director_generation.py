@@ -95,11 +95,12 @@ class DirectorGenerationTest(unittest.TestCase):
         fields = {field["key"]: field for field in text_video["parameters"]}
         self.assertEqual(fields["multi_prompt"]["item"]["max_items"], 6)
         self.assertEqual(fields["elements"]["type"], "asset_list")
+        self.assertTrue(fields["elements"]["item"]["description_required"])
         self.assertEqual(
             fields["customize_multi_shots"]["conflicts_with"],
             ["prefer_multi_shots"])
         self.assertEqual(model_c["provider_id"], "kie")
-        self.assertEqual(model_c["status"], "enabled")
+        self.assertEqual(model_c["status"], "verified")
         self.assertEqual(len(catalog["models"]), 1)
 
     def test_enqueue_keeps_one_ordered_canonical_input_contract(self):
@@ -135,6 +136,15 @@ class DirectorGenerationTest(unittest.TestCase):
                 }]
                 with self.assertRaisesRegex(ValueError, message):
                     service.enqueue(7, invalid, idempotency_key="invalid")
+
+        missing_description = recipe()
+        missing_description["controls"]["provider_parameters"]["elements"] = [{
+            "name": "hero", "description": "", "variant": "images",
+            "asset_ids": [11, 14], "audio_asset_ids": [],
+        }]
+        with self.assertRaisesRegex(ValueError, "description"):
+            service.enqueue(7, missing_description,
+                            idempotency_key="missing-description")
 
     def test_missing_production_never_creates_prompt_only_job(self):
         assets = FakeAssets()

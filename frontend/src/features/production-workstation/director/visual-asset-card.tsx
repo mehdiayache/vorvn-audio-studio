@@ -1,4 +1,4 @@
-import { Clock3, Expand, Image as ImageIcon, LoaderCircle, MoreHorizontal, Plus, X, Video } from "lucide-react"
+import { Clock3, Expand, Image as ImageIcon, LoaderCircle, MoreHorizontal, Plus, Sparkles, X, Video } from "lucide-react"
 
 import { ActionButton, OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
@@ -23,7 +23,10 @@ export function VisualAssetCard({ asset, mode = "director", view = "gallery", pe
   const url = visualAssetUrl(asset)
   const facts = visualAssetFacts(asset)
   const ratio = view === "list" ? "16 / 9" : asset.width && asset.height ? `${asset.width} / ${asset.height}` : "4 / 3"
-  const actions = mode === "director" ? <div className="visual-asset-hover-actions">
+  const generated = asset.metadata?.origin === "director-generation"
+  const provider = String(asset.metadata?.provider_id || "AI")
+  const model = String(asset.metadata?.provider_model_id || "generated visual")
+  const actionButtons = mode === "director" ? <>
     <OperatorIconButton label={`Preview ${name}`} detail="Open the full media preview and technical details." side="bottom" variant="secondary" onClick={() => onPreview(asset)}><Expand /></OperatorIconButton>
     {onAddToTimeline && <OperatorIconButton label={`Add ${name} to Timeline`} detail="Places this visual at the current playhead." side="bottom" variant="secondary" busy={pending} busyLabel={`Adding ${name}…`} onClick={() => onAddToTimeline(asset)}><Plus /></OperatorIconButton>}
     <DropdownMenu>
@@ -38,7 +41,7 @@ export function VisualAssetCard({ asset, mode = "director", view = "gallery", pe
         {onRemove && <><DropdownMenuSeparator /><DropdownMenuGroup><DropdownMenuItem onSelect={() => onRemove(asset)}><X /> Remove from Director…</DropdownMenuItem></DropdownMenuGroup></>}
       </DropdownMenuContent>
     </DropdownMenu>
-  </div> : null
+  </> : null
   return <article className="visual-asset-card" data-media-type={asset.media_type} data-view={view}>
     <div className="visual-asset-preview" style={{ aspectRatio: ratio }}>
       <button className="visual-asset-preview-target" onClick={() => onPreview(asset)} aria-label={`Preview ${name}`}>
@@ -46,7 +49,8 @@ export function VisualAssetCard({ asset, mode = "director", view = "gallery", pe
       </button>
       <span className="visual-asset-kind">{asset.media_type === "video" ? <Video /> : <ImageIcon />}{asset.media_type === "video" ? "Video" : "Image"}</span>
       {facts.duration && <span className="visual-asset-duration"><Clock3 />{facts.duration}</span>}
-      {actions}
+      {generated && <OperatorTooltip label="Generated with AI" detail={`${provider} · ${model}`} side="bottom"><span className="visual-asset-ai" tabIndex={0}><Sparkles /></span></OperatorTooltip>}
+      {view === "gallery" && actionButtons && <div className="visual-asset-hover-actions">{actionButtons}</div>}
     </div>
     <footer>
       <div><h3 title={name}>{name}</h3><p>{facts.dimensions} · {facts.format}</p></div>
@@ -54,5 +58,6 @@ export function VisualAssetCard({ asset, mode = "director", view = "gallery", pe
         ? <ActionButton size="sm" busy={pending} busyLabel="Adding…" onClick={() => onAdd(asset)}><Plus /> {addLabel}</ActionButton>
         : null}
     </footer>
+    {view === "list" && actionButtons && <div className="visual-asset-list-actions">{actionButtons}</div>}
   </article>
 }

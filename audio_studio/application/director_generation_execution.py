@@ -121,7 +121,6 @@ class DirectorGenerationHandler:
             started = time.monotonic()
             state = None
             while True:
-                progress.progress(job.id, 2, 4, "Creating visual")
                 state = provider.task(provider_job_id)
                 if state.state == "succeeded":
                     break
@@ -133,6 +132,13 @@ class DirectorGenerationHandler:
                 if state.state not in {"queued", "running"}:
                     raise DirectorProviderError(
                         "The provider returned an unknown generation state.")
+                if state.progress is None:
+                    # Unknown provider progress is deliberately indeterminate.
+                    # A fake percentage is worse than an honest running state.
+                    progress.progress(job.id, 0, 1, "Creating visual")
+                else:
+                    progress.progress(
+                        job.id, state.progress, 100, "Creating visual")
                 if time.monotonic() - started >= self.timeout_seconds:
                     provider.cancel(provider_job_id)
                     raise DirectorProviderError(

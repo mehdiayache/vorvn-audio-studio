@@ -67,6 +67,8 @@
 .visual-asset-duration { position: absolute; top: .55rem; display: inline-flex; align-items: center; gap: .3rem; padding: .28rem .45rem; border-radius: .4rem; color: white; background: rgb(20 17 15 / 78%); font-size: .68rem; line-height: 1; backdrop-filter: blur(5px); }
 .visual-asset-kind { left: .55rem; }
 .visual-asset-duration { right: .55rem; }
+.visual-asset-ai { position: absolute; left: .55rem; bottom: .55rem; width: 1.7rem; height: 1.7rem; display: grid; place-items: center; border-radius: .45rem; color: white; background: color-mix(in srgb, var(--primary) 86%, black); }
+.visual-asset-ai svg { width: .85rem; }
 .visual-asset-kind svg,
 .visual-asset-duration svg { width: .75rem; }
 .visual-asset-hover-actions { position: absolute; right: .5rem; bottom: .5rem; display: flex; align-items: center; gap: .3rem; opacity: 0; transform: translateY(.2rem); transition: opacity 140ms ease, transform 140ms ease; }
@@ -76,10 +78,10 @@
 .visual-asset-card footer > div { min-width: 0; }
 .visual-asset-card h3 { overflow: hidden; margin: 0; font-size: var(--type-small); font-weight: var(--weight-emphasis); text-overflow: ellipsis; white-space: nowrap; }
 .visual-asset-card footer p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.visual-asset-card[data-view="list"] { display: grid; grid-template-columns: 9rem minmax(0, 1fr); align-items: stretch; min-height: 5.5rem; }
+.visual-asset-card[data-view="list"] { display: grid; grid-template-columns: 9rem minmax(0, 1fr) auto; align-items: stretch; min-height: 5.5rem; }
 .visual-asset-card[data-view="list"] .visual-asset-preview { min-height: 5.5rem; border-right: 1px solid var(--border); border-bottom: 0; }
-.visual-asset-card[data-view="list"] .visual-asset-hover-actions { opacity: 1; transform: none; }
 .visual-asset-card[data-view="list"] footer { min-width: 0; padding: .65rem .75rem; }
+.visual-asset-list-actions { display: flex; align-items: center; gap: .35rem; padding: .6rem .7rem; border-left: 1px solid var(--border); }
 
 .director-upload-card { border-style: dashed; }
 .director-upload-card[data-status="failed"] { border-color: var(--danger-border); }
@@ -128,7 +130,7 @@
 }
 
 @media (max-width: 480px) {
-  .visual-asset-card[data-view="list"] { grid-template-columns: 7rem minmax(0, 1fr); }
+  .visual-asset-card[data-view="list"] { grid-template-columns: 7rem minmax(0, 1fr) auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

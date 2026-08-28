@@ -98,6 +98,7 @@ class DirectorProviderTests(unittest.TestCase):
             Response({"code": 200, "data": {"taskId": "task-1"}}),
             Response({"code": 200, "data": {
                 "state": "success",
+                "progress": 100,
                 "resultJson": json.dumps({
                     "resultUrls": ["https://files.test/result.mp4"]}),
             }}),
@@ -116,6 +117,7 @@ class DirectorProviderTests(unittest.TestCase):
             state = provider.task(submission.provider_job_id)
         self.assertEqual(submission.provider_job_id, "task-1")
         self.assertEqual(state.state, "succeeded")
+        self.assertEqual(state.progress, 100)
         self.assertEqual(
             state.output_urls, ("https://files.test/result.mp4",))
         self.assertEqual(
