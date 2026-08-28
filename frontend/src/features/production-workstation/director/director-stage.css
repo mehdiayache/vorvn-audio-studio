@@ -30,35 +30,6 @@
 .director-drop-overlay strong { font-size: var(--type-heading-lg); font-weight: var(--weight-title); }
 .director-drop-overlay span { color: var(--foreground); font-size: var(--type-small); }
 
-.director-composer {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: .8rem;
-  background: var(--surface-raised);
-  box-shadow: var(--shadow-xs);
-  transition: border-color 140ms ease, background 140ms ease;
-}
-.director-composer:focus-within { border-color: color-mix(in srgb, var(--primary) 52%, var(--border)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 10%, transparent); }
-.director-composer-prompt { padding: 1.15rem 1.25rem .85rem; }
-.director-composer-prompt [data-slot="textarea"] {
-  min-height: 5.5rem;
-  resize: none;
-  border: 0;
-  padding: .15rem 0;
-  background: transparent;
-  box-shadow: none;
-  color: var(--foreground);
-  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
-  line-height: 1.45;
-}
-.director-composer-prompt [data-slot="textarea"]::placeholder { color: color-mix(in srgb, var(--foreground) 68%, transparent); opacity: 1; }
-.director-composer-prompt [data-slot="textarea"]:focus-visible { border: 0; box-shadow: none; }
-.director-composer > footer { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .85rem 1rem; padding: .7rem .8rem; border-top: 1px solid var(--border); background: var(--surface-subtle); }
-.director-composer > footer p { min-width: 0; display: flex; align-items: center; gap: .4rem; margin: 0; color: var(--foreground); font-size: var(--type-small); }
-.director-composer > footer p svg { width: .9rem; color: var(--primary); }
-.director-composer > footer small { color: var(--muted-foreground); font-size: var(--type-caption); text-align: right; }
-.director-composer-actions { display: flex; align-items: center; gap: .5rem; }
 .director-gallery h2,
 .director-empty h2,
 .director-library-empty h3 { margin: 0; font-size: var(--type-heading-lg); font-weight: var(--weight-title); letter-spacing: -.02em; }
@@ -149,8 +120,6 @@
 
 @media (max-width: 760px) {
   .director-stage { padding: .75rem; }
-  .director-composer > footer { grid-template-columns: 1fr; }
-  .director-composer > footer small { text-align: left; }
   .director-library-dialog,
   .director-preview-dialog { width: calc(100vw - 1rem); }
   .director-preview-layout { grid-template-columns: 1fr; overflow: auto; }

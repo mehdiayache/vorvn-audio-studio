@@ -27,14 +27,15 @@ describe("Production workflow", () => {
     ])
   })
 
-  it("starts Director as an intentional visual workspace instead of a fake tool", () => {
+  it("starts Director with one compact capability-driven composer", () => {
     render(<DirectorStage productionId={7} assets={[]} directorAssetIds={[]} onUpload={vi.fn()} onRefresh={vi.fn()} />)
 
-    expect(screen.getByRole("textbox", { name: "Visual direction" })).toBeTruthy()
-    expect(screen.getByText("Creation providers will connect here later. Upload and Library work now.")).toBeTruthy()
+    expect(screen.getByRole("textbox", { name: "Director prompt" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Creation type: Image" })).toBeTruthy()
+    expect(screen.getByRole("combobox", { name: "Choose generation model" }).textContent).toContain("Model A")
     expect(screen.getByRole("heading", { name: "No visuals collected yet" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Upload" })).toBeTruthy()
-    expect(screen.queryByText(/AI|Generate/)).toBeNull()
+    expect(screen.getByRole("button", { name: "Add a reference" })).toBeTruthy()
+    expect(screen.queryByText("Creation providers will connect here later. Upload and Library work now.")).toBeNull()
   })
 
   it("adds a reusable visual to the Production without placing it on the Timeline", async () => {
@@ -48,7 +49,7 @@ describe("Production workflow", () => {
       onRefresh={refresh}
     />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Library" }))
+    fireEvent.click(screen.getByRole("button", { name: "Open Library" }))
     fireEvent.click(screen.getByRole("button", { name: "Add" }))
 
     await waitFor(() => expect(api.attachDirectorAsset).toHaveBeenCalledWith(7, 88))

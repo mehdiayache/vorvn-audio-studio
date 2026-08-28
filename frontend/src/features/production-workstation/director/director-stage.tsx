@@ -7,7 +7,7 @@ import type { ConfirmAction } from "@/features/production/production-overlays"
 import { studioApi } from "@/lib/api"
 import type { VentureAsset } from "@/types/domain"
 import { isVisualAsset, visualFileAccept, visualFileIssue } from "./director-assets"
-import { DirectorComposer } from "./director-composer"
+import { DirectorComposer } from "./composer/director-composer"
 import { DirectorGallery } from "./director-gallery"
 import { DirectorLibraryDialog } from "./director-library-dialog"
 import { DirectorPreviewDialog } from "./director-preview-dialog"
@@ -174,7 +174,7 @@ export function DirectorStage({ centerPaneRef, productionId, assets, directorAss
       if (event.target.files) void upload(Array.from(event.target.files))
       event.target.value = ""
     }} />
-    <DirectorComposer uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel} onFiles={upload} onOpenLibrary={() => setLibraryOpen(true)} />
+    <DirectorComposer uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel} libraryAssets={visualAssets} />
     {error && <div className="director-error" role="alert"><b>Director could not finish that action.</b><span>{error}</span></div>}
     <DirectorGallery assets={collected} uploads={uploads} pendingId={pendingId} onPreview={setPreviewAsset} onAddToTimeline={onAddToTimeline ? (asset) => {
       setPendingId(asset.id)
