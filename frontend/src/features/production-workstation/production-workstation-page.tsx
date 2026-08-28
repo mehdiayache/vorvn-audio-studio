@@ -10,7 +10,7 @@ import { ProductionComposerStage } from "@/features/composer/production-composer
 import { AudioClipInspector } from "@/features/sound-scene/inspector/music-inspector"
 import { SequenceMixInspector } from "@/features/sound-scene/inspector/sequence-mix-inspector"
 import { SoundSceneSession, soundTrackDisplayName, useSoundSceneSession, type SoundScenePersistence } from "@/features/sound-scene/engine/sound-scene-session"
-import { VisualSceneSession, useVisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
+import { VisualSceneSession, useVisualSceneSession, visualSelectionRefs } from "@/features/visual-scene/engine/visual-scene-session"
 import { videoHasEmbeddedAudio } from "@/features/sound-scene/engine/video-audio-sync"
 import { visualTrackDisplayName } from "@/features/visual-scene/timeline/visual-timeline-parts"
 import { ProductionFloatingTransport } from "@/features/production/production-floating-transport"
@@ -35,6 +35,7 @@ import { DirectorStage } from "./director/director-stage"
 import { ExportStage, ReleaseInspector } from "./export/export-stage"
 import { ScriptStage } from "./script/script-stage"
 import { TimelineStage } from "./timeline/timeline-stage"
+import { productionTimelineDurationMs } from "./timeline/timeline-duration"
 import { VisualClipInspector } from "./timeline/visual-clip-inspector"
 import { WorkstationHeader } from "./workstation-header"
 import { AudioGroupInspector, EmptyInspector } from "./workstation-stage-support"
@@ -164,7 +165,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     if (stage === "sound") void soundSession.activatePlayout()
     else soundSession.deactivatePlayout()
   }, [soundSession, stage])
-  const duration = Number(soundScene.resolved.duration_ms ?? soundScene.resolved.sequence_projection.duration_ms) / 1000
+  const initialDurationMs = productionTimelineDurationMs(soundScene, visualScene.document)
   visualPersistence.current = async (document, expectedRevision) => {
     const saved = await studioApi.updateVisualScene(production.id, expectedRevision, document)
     try {
@@ -176,8 +177,9 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     }
     return saved
   }
-  const visualSession = useMemo(() => new VisualSceneSession(visualScene, { update: (document, expectedRevision) => visualPersistence.current(document, expectedRevision) }, duration * 1000), [production.id])
+  const visualSession = useMemo(() => new VisualSceneSession(visualScene, { update: (document, expectedRevision) => visualPersistence.current(document, expectedRevision) }, initialDurationMs), [production.id])
   const visualState = useVisualSceneSession(visualSession)
+  const duration = productionTimelineDurationMs(soundState.scene, visualState.document) / 1000
   useEffect(() => { visualSession.setTimelineDuration(duration * 1000); visualSession.reconcile(visualScene) }, [duration, visualScene, visualSession])
   useEffect(() => {
     void soundSession.syncVisualAudio(visualScene.document, assets).catch((reason) =>
@@ -339,8 +341,10 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
   const audioAsset = audioClip ? assets.find((asset) => asset.id === audioClip.asset_id) : undefined
   const audioClipName = audioClip?.asset_name || "Audio clip"
   const visualSelection = visualState.selection
-  const visualTrack = visualSelection ? visualState.document.tracks.find((track) => track.id === visualSelection.trackId) || null : null
-  const visualClip = visualSelection ? visualTrack?.clips.find((clip) => clip.id === visualSelection.clipId) || null : null
+  const visualRefs = visualSelectionRefs(visualSelection)
+  const visualRef = visualRefs[0] || null
+  const visualTrack = visualRef ? visualState.document.tracks.find((track) => track.id === visualRef.trackId) || null : null
+  const visualClip = visualRef ? visualTrack?.clips.find((clip) => clip.id === visualRef.clipId) || null : null
   const visualAsset = visualClip ? assets.find((asset) => asset.id === visualClip.asset_id) : undefined
   const linkedVideoAudio = visualClip ? soundState.scene.resolved.tracks.flatMap((track) =>
     track.clips.flatMap((clip) => clip.linked_visual_clip_id === visualClip.id
@@ -368,8 +372,8 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     productionId={production.id} part={selectedPart} directory={directory} playingKey={player.source?.key} playerPlaying={actions.playerPlaying}
     onPlay={(source) => void playSource(source)} onChanged={async () => { actions.invalidatePreview(); await refresh() }}
     onDuplicate={(part) => void actions.duplicatePart(part)} onDelete={requestPartDeletion} onEdit={editPart} onOpenCaptions={(part) => setCaptionPartId(part.id)} onReplaceAsset={openAssetReplacement}
-  /> : stage === "sound" && visualSelection && visualTrack && visualClip ? <VisualClipInspector
-    clipRef={visualSelection} track={visualTrack} clip={visualClip} asset={visualAsset} session={visualSession} saving={visualState.saving || soundState.saving}
+  /> : stage === "sound" && visualRef && visualTrack && visualClip ? <VisualClipInspector
+    clipRef={visualRef} track={visualTrack} clip={visualClip} asset={visualAsset} session={visualSession} saving={visualState.saving || soundState.saving}
     hasEmbeddedAudio={videoHasEmbeddedAudio(visualAsset)} audioMuted={linkedVideoAudio?.clip.muted} audioGain={linkedVideoAudio?.clip.gain}
     onAudioMutedChange={linkedVideoAudio ? (muted) => soundSession.commitClipChanges(linkedVideoAudio.trackId, linkedVideoAudio.clip.id, { muted }) : undefined}
     onAudioGainChange={linkedVideoAudio ? (gain) => soundSession.updateClip(linkedVideoAudio.trackId, linkedVideoAudio.clip.id, { gain }) : undefined}
@@ -462,10 +466,10 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
             session: visualSession,
             assets,
             onAddVisual: () => undefined,
-            onRemoveClip: (ref, name) => setConfirmAction({
+            onRemoveClip: (refs, name) => setConfirmAction({
               title: `Remove this media placement: “${name}”?`,
-              description: "This removes only the Timeline placement. The source remains available in Director and Visual Library.",
-              action: () => visualSession.removeClip(ref),
+              description: refs.length === 1 ? "This removes only the Timeline placement. The source remains available in Director and Visual Library." : `This removes ${refs.length} Timeline placements. Their sources remain available in Director and Visual Library.`,
+              action: () => visualSession.removeClips(refs),
             }),
             onRemoveTrack: (track) => setConfirmAction({
               title: `Remove this ${visualTrackDisplayName(track, assets)} track?`,

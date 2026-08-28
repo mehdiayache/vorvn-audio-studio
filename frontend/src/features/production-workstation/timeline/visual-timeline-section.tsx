@@ -1,12 +1,12 @@
 import { Plus } from "lucide-react"
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react"
+import type { CSSProperties, PointerEvent as ReactPointerEvent, SyntheticEvent } from "react"
 
 import { VisualTimelineClip, VisualTrackControl } from "@/features/visual-scene/timeline/visual-timeline-parts"
 import { cn } from "@/lib/utils"
 import type { VentureAsset, VisualSceneTrack } from "@/types/domain"
 import type { VisualClipRef } from "@/features/visual-scene/engine/visual-scene-session"
 
-export function VisualTrackHeaders({ tracks, assets, collapsed, onVisible, onLocked, onAdd, onMove, onRemove }: {
+export function VisualTrackHeaders({ tracks, assets, collapsed, onVisible, onLocked, onAdd, onMove, onRename, onRemove }: {
   tracks: VisualSceneTrack[]
   assets: VentureAsset[]
   collapsed: boolean
@@ -14,6 +14,7 @@ export function VisualTrackHeaders({ tracks, assets, collapsed, onVisible, onLoc
   onLocked: (track: VisualSceneTrack) => void
   onAdd: (trackId: string) => void
   onMove: (trackId: string, direction: -1 | 1) => void
+  onRename: (trackId: string, name: string) => void
   onRemove: (track: VisualSceneTrack) => void
 }) {
   return <>{tracks.map((track, index) => <VisualTrackControl
@@ -27,6 +28,7 @@ export function VisualTrackHeaders({ tracks, assets, collapsed, onVisible, onLoc
     onLocked={() => onLocked(track)}
     onAdd={() => onAdd(track.id)}
     onMove={(direction) => onMove(track.id, direction)}
+    onRename={(name) => onRename(track.id, name)}
     onRemove={() => onRemove(track)}
   />)}</>
 }
@@ -34,9 +36,9 @@ export function VisualTrackHeaders({ tracks, assets, collapsed, onVisible, onLoc
 export function VisualTimelineSection({ tracks, assets, selection, styleFor, onSelect, onGesture, onAdd, onPan }: {
   tracks: VisualSceneTrack[]
   assets: VentureAsset[]
-  selection: VisualClipRef | null
+  selection: VisualClipRef[]
   styleFor: (start: number, duration: number, minimum?: number) => CSSProperties
-  onSelect: (ref: VisualClipRef) => void
+  onSelect: (event: SyntheticEvent, ref: VisualClipRef) => void
   onGesture: (event: ReactPointerEvent, ref: VisualClipRef, mode: "move" | "start" | "end") => void
   onAdd: (trackId: string) => void
   onPan: (event: ReactPointerEvent) => void
@@ -50,9 +52,9 @@ export function VisualTimelineSection({ tracks, assets, selection, styleFor, onS
         clip={clip}
         trackLocked={track.locked}
         asset={byId.get(clip.asset_id)}
-        selected={selection?.trackId === track.id && selection.clipId === clip.id}
+        selected={selection.some((item) => item.trackId === track.id && item.clipId === clip.id)}
         style={styleFor(clip.start_ms / 1_000, clip.duration_ms / 1_000, 24)}
-        onSelect={() => onSelect(ref)}
+        onSelect={(event) => onSelect(event, ref)}
         onGesture={(event, mode) => onGesture(event, ref, mode)}
       />
     })}

@@ -23,7 +23,9 @@ def scene_with_clip(*, asset_id: int = 9) -> dict:
             "clips": [{
                 "id": str(uuid4()), "asset_id": asset_id,
                 "start_ms": 1_500, "duration_ms": 5_000,
-                "source_offset_ms": 0, "fit": "cover", "locked": False,
+                "source_offset_ms": 0, "fit": "cover",
+                "position_x": 0, "position_y": 0,
+                "scale": 1, "opacity": 1, "locked": False,
             }],
         }],
     }
@@ -64,13 +66,21 @@ class VisualSceneTests(unittest.TestCase):
         incoming["ui_selection"] = "not canonical"
         incoming["tracks"][0]["expanded"] = True
         incoming["tracks"][0]["clips"][0]["opacity"] = .5
+        incoming["tracks"][0]["clips"][0]["position_x"] = 42
+        incoming["tracks"][0]["clips"][0]["scale"] = 1.25
+        expected["tracks"][0]["clips"][0].update({
+            "opacity": .5, "position_x": 42.0, "scale": 1.25,
+        })
 
         canonical = normalize_scene(incoming)
 
         self.assertEqual(canonical, expected)
         self.assertNotIn("ui_selection", canonical)
         self.assertNotIn("expanded", canonical["tracks"][0])
-        self.assertNotIn("opacity", canonical["tracks"][0]["clips"][0])
+        self.assertEqual(canonical["tracks"][0]["clips"][0]["opacity"], .5)
+        self.assertEqual(canonical["tracks"][0]["clips"][0]["position_x"], 42)
+        self.assertEqual(canonical["tracks"][0]["clips"][0]["position_y"], 0)
+        self.assertEqual(canonical["tracks"][0]["clips"][0]["scale"], 1.25)
         self.assertEqual(normalize_scene(canonical), canonical)
 
     def test_old_documents_receive_explicit_canvas_track_and_fit_truth(self):

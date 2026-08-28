@@ -34,6 +34,16 @@ def _integer(value: Any, default: int = 0) -> int:
     return round(result)
 
 
+def _number(value: Any, default: float = 0.0) -> float:
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return default
+    if result != result or abs(result) == float("inf"):
+        return default
+    return result
+
+
 def _identifier(value: Any, *, label: str) -> str:
     result = str(value or "").strip()
     if not result or len(result) > 120:
@@ -119,6 +129,12 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
                 "fit": _choice(
                     raw_clip.get("fit", "cover"), {"cover", "contain"},
                     label="Clip fit"),
+                "position_x": _number(raw_clip.get("position_x"), 0),
+                "position_y": _number(raw_clip.get("position_y"), 0),
+                "scale": min(10, max(.05, _number(
+                    raw_clip.get("scale"), 1))),
+                "opacity": min(1, max(0, _number(
+                    raw_clip.get("opacity"), 1))),
                 "locked": bool(raw_clip.get("locked", False)),
             })
         tracks.append({

@@ -13,8 +13,8 @@ describe("VisualSceneSession", () => {
     const session = new VisualSceneSession(scene(), { update }, 60_000)
     await session.addImage(image, 2_000)
     const track = session.snapshot().document.tracks[0]!
-    expect(track.name).toBe("Image")
-    expect(track.clips[0]).toMatchObject({ asset_id: 44, start_ms: 2_000, duration_ms: 5_000, source_offset_ms: 0 })
+    expect(track.name).toBe("Image 1")
+    expect(track.clips[0]).toMatchObject({ asset_id: 44, start_ms: 2_000, duration_ms: 5_000, source_offset_ms: 0, position_x: 0, position_y: 0, scale: 1, opacity: 1 })
     await session.duplicate({ trackId: track.id, clipId: track.clips[0]!.id })
     expect(session.snapshot().document.tracks[0]!.clips.map((clip) => clip.asset_id)).toEqual([44, 44])
   })
@@ -94,5 +94,54 @@ describe("VisualSceneSession", () => {
     expect(clips.map((clip) => clip.asset_id)).toEqual([45, 45])
     expect(clips[0]).toMatchObject({ start_ms: 1_000, duration_ms: 4_000, source_offset_ms: 0 })
     expect(clips[1]).toMatchObject({ start_ms: 5_000, duration_ms: 8_000, source_offset_ms: 4_000 })
+  })
+
+  it("keeps visual timing beyond the current audio duration", async () => {
+    const update = vi.fn(async (document, expectedRevision) => ({ ...scene(expectedRevision + 1), document }))
+    const session = new VisualSceneSession(scene(), { update }, 5_000)
+    await session.addImage(image, 8_000)
+    expect(session.snapshot().document.tracks[0]!.clips[0]).toMatchObject({ start_ms: 8_000, duration_ms: 5_000 })
+  })
+
+  it("persists frame transforms and restores them through undo and redo", async () => {
+    const update = vi.fn(async (document, expectedRevision) => ({ ...scene(expectedRevision + 1), document }))
+    const session = new VisualSceneSession(scene(), { update }, 30_000)
+    await session.addImage(image, 0)
+    const track = session.snapshot().document.tracks[0]!
+    const ref = { trackId: track.id, clipId: track.clips[0]!.id }
+
+    await session.setClipTransform(ref, { position_x: 240, position_y: -40, scale: 1.5, opacity: .6 })
+    expect(session.currentClip(ref)).toMatchObject({ position_x: 240, position_y: -40, scale: 1.5, opacity: .6 })
+    expect(session.snapshot().canUndo).toBe(true)
+
+    await session.undo()
+    expect(session.currentClip(ref)).toMatchObject({ position_x: 0, position_y: 0, scale: 1, opacity: 1 })
+    await session.redo()
+    expect(session.currentClip(ref)).toMatchObject({ position_x: 240, position_y: -40, scale: 1.5, opacity: .6 })
+  })
+
+  it("moves, nudges and duplicates a visual multi-selection as one edit", async () => {
+    const update = vi.fn(async (document, expectedRevision) => ({ ...scene(expectedRevision + 1), document }))
+    const session = new VisualSceneSession(scene(), { update }, 30_000)
+    await session.addImage(image, 1_000)
+    const firstTrack = session.snapshot().document.tracks[0]!
+    const first = { trackId: firstTrack.id, clipId: firstTrack.clips[0]!.id }
+    await session.addImage(image, 3_000, firstTrack.id)
+    const second = { trackId: firstTrack.id, clipId: session.snapshot().document.tracks[0]!.clips[1]!.id }
+    session.selectClip(first)
+    session.selectClip(second, true)
+
+    session.beginGesture()
+    session.moveClip(second, 5_000)
+    await session.commitGesture()
+    expect(session.currentClip(first)?.start_ms).toBe(3_000)
+    expect(session.currentClip(second)?.start_ms).toBe(5_000)
+
+    await session.nudgeClips(session.selectedRefs(), 100)
+    expect(session.currentClip(first)?.start_ms).toBe(3_100)
+    expect(session.currentClip(second)?.start_ms).toBe(5_100)
+    await session.duplicateClips(session.selectedRefs())
+    expect(session.snapshot().document.tracks[0]!.clips).toHaveLength(4)
+    expect(session.selectedRefs()).toHaveLength(2)
   })
 })

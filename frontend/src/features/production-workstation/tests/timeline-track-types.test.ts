@@ -17,6 +17,10 @@ const visualTrack = (name: string, assetIds: number[], mediaType: "image" | "vid
     duration_ms: 1_000,
     source_offset_ms: 0,
     fit: "cover",
+    position_x: 0,
+    position_y: 0,
+    scale: 1,
+    opacity: 1,
     locked: false,
   })),
 })
@@ -52,15 +56,14 @@ const audioTrack = (kinds: string[], name = "Operator custom name"): SoundSceneT
 })
 
 describe("Timeline track type labels", () => {
-  it("labels visual tracks by their canonical type, including repeated types", () => {
-    expect(visualTrackDisplayName(visualTrack("Visual 1", [1]), assets)).toBe("Image")
-    expect(visualTrackDisplayName(visualTrack("Visual 2", [1]), assets)).toBe("Image")
-    expect(visualTrackDisplayName(visualTrack("Visual 3", [2], "video"), assets)).toBe("Video")
+  it("preserves real visual track names so repeated tracks remain distinguishable", () => {
+    expect(visualTrackDisplayName(visualTrack("Story cover", [1]), assets)).toBe("Story cover")
+    expect(visualTrackDisplayName(visualTrack("B-roll", [2], "video"), assets)).toBe("B-roll")
   })
 
   it("preserves the chosen type for an empty visual track", () => {
-    expect(visualTrackDisplayName(visualTrack("Image", []), assets)).toBe("Image")
-    expect(visualTrackDisplayName(visualTrack("Video", [], "video"), assets)).toBe("Video")
+    expect(visualTrackDisplayName(visualTrack("Image 1", []), assets)).toBe("Image 1")
+    expect(visualTrackDisplayName(visualTrack("Video 1", [], "video"), assets)).toBe("Video 1")
   })
 
   it("labels audio tracks from canonical clip categories instead of filenames", () => {

@@ -30,6 +30,10 @@ class VisualSceneClipDocument(BaseModel):
     duration_ms: int = Field(ge=100)
     source_offset_ms: int = Field(default=0, ge=0)
     fit: Literal["cover", "contain"] = "cover"
+    position_x: float = 0
+    position_y: float = 0
+    scale: float = Field(default=1, ge=.05, le=10)
+    opacity: float = Field(default=1, ge=0, le=1)
     locked: bool = False
 
 

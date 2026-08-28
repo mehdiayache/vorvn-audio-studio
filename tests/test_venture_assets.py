@@ -251,7 +251,9 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                 "visible": True, "locked": False, "clips": [{
                     "id": str(uuid4()), "asset_id": created["id"],
                     "start_ms": 2_000, "duration_ms": 5_000,
-                    "source_offset_ms": 0, "fit": "cover", "locked": False,
+                    "source_offset_ms": 0, "fit": "cover",
+                    "position_x": 0.0, "position_y": 0.0,
+                    "scale": 1.0, "opacity": 1.0, "locked": False,
                 }],
             }],
         }

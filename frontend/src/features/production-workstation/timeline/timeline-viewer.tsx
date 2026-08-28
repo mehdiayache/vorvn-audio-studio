@@ -47,7 +47,7 @@ export function TimelineViewer({ document, assets, playheadMs, playback, selecti
   const selectedAsset = selectedClip ? assets.find((asset) => asset.id === selectedClip.asset_id) : null
   const activePlacement = document.tracks.flatMap((track) => track.visible
     ? track.clips.filter((clip) => playheadMs >= clip.start_ms && playheadMs < clip.start_ms + clip.duration_ms)
-    : []).at(-1)
+    : []).at(0)
   const activeAsset = activePlacement ? assets.find((asset) => asset.id === activePlacement.asset_id) : null
   const SelectedMediaIcon = selectedAsset?.media_type === "video" ? Film : ImageIcon
   const preset = canvasPreset(document)
@@ -77,7 +77,7 @@ export function TimelineViewer({ document, assets, playheadMs, playback, selecti
       </div>
     </header>
     {!collapsed && <div className="timeline-viewer-stage">
-      <VisualSceneMonitor document={document} assets={assets} playheadMs={playheadMs} playback={playback} />
+      <VisualSceneMonitor document={document} assets={assets} playheadMs={playheadMs} playback={playback} selection={selection} session={session} />
     </div>}
     {!collapsed && <footer className="timeline-viewer-footer">
       <span><b>{formatDuration(playheadMs / 1_000)}</b><small>{playback === "preparing" ? "Preparing preview…" : activeAsset ? visualAssetName(activeAsset) : "No visual at playhead"}</small></span>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
-import { Clock3, Film, Image as ImageIcon, Lock, LockOpen, Volume2, VolumeX } from "lucide-react"
+import { Clock3, Film, Image as ImageIcon, Lock, LockOpen, RotateCcw, Volume2, VolumeX } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { visualAssetDetails, visualAssetFacts, visualAssetName, visualAssetPosterUrl, visualAssetUrl } from "@/features/production-workstation/director/director-assets"
@@ -53,6 +54,18 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
       <p><Clock3 /> Drag the clip or its edges in Timeline. Hold Alt to bypass snapping.</p>
     </section>
 
+    <section className="visual-inspector-transform">
+      <header><span><b>Frame</b><small>Position and size inside the Production format.</small></span><Button variant="ghost" size="sm" disabled={saving || clip.locked || track.locked} onClick={() => void session.resetClipTransform(clipRef)}><RotateCcw /> Reset</Button></header>
+      <div className="visual-transform-position">
+        <label><span>X</span><Input key={`x-${Math.round(clip.position_x)}`} type="number" defaultValue={Math.round(clip.position_x)} disabled={saving || clip.locked || track.locked} onBlur={(event) => void session.setClipTransform(clipRef, { position_x: Number(event.target.value) || 0 })} /></label>
+        <label><span>Y</span><Input key={`y-${Math.round(clip.position_y)}`} type="number" defaultValue={Math.round(clip.position_y)} disabled={saving || clip.locked || track.locked} onBlur={(event) => void session.setClipTransform(clipRef, { position_y: Number(event.target.value) || 0 })} /></label>
+      </div>
+      <TransformSlider label="Scale" value={clip.scale * 100} display={`${Math.round(clip.scale * 100)}%`} minimum={5} maximum={300} disabled={saving || clip.locked || track.locked} onPreview={(value) => session.previewClipTransform(clipRef, { scale: value / 100 })} onBegin={() => session.beginGesture()} onCommit={() => void session.commitGesture()} />
+      <TransformSlider label="Opacity" value={clip.opacity * 100} display={`${Math.round(clip.opacity * 100)}%`} minimum={0} maximum={100} disabled={saving || clip.locked || track.locked} onPreview={(value) => session.previewClipTransform(clipRef, { opacity: value / 100 })} onBegin={() => session.beginGesture()} onCommit={() => void session.commitGesture()} />
+      <div className="visual-transform-fit" role="group" aria-label="Media fit"><span>Fit</span><div><Button variant={clip.fit === "cover" ? "secondary" : "ghost"} size="sm" disabled={saving || clip.locked || track.locked} onClick={() => void session.setClipFit(clipRef, "cover")}>Fill</Button><Button variant={clip.fit === "contain" ? "secondary" : "ghost"} size="sm" disabled={saving || clip.locked || track.locked} onClick={() => void session.setClipFit(clipRef, "contain")}>Fit</Button></div></div>
+      <p>Drag the selected media directly in Viewer to position it.</p>
+    </section>
+
     {track.media_type === "video" && <section className="visual-inspector-audio">
       <header><span><b>Audio</b><small>{hasEmbeddedAudio ? "This video's sound follows the visual clip in Timeline and Export." : "This source has no audio."}</small></span>{hasEmbeddedAudio ? audioMuted ? <VolumeX /> : <Volume2 /> : null}</header>
       {hasEmbeddedAudio && <div className="visual-inspector-audio-controls">
@@ -69,6 +82,10 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
       <small>{clip.locked ? "Timing and trims are protected." : "Prevent accidental timing and trim changes."}</small>
     </div>
   </div>
+}
+
+function TransformSlider({ label, value, display, minimum, maximum, disabled, onPreview, onBegin, onCommit }: { label: string; value: number; display: string; minimum: number; maximum: number; disabled: boolean; onPreview: (value: number) => void; onBegin: () => void; onCommit: () => void }) {
+  return <label className="visual-transform-slider"><span><b>{label}</b><strong>{display}</strong></span><Slider value={[value]} min={minimum} max={maximum} step={1} disabled={disabled} onPointerDown={onBegin} onKeyDown={onBegin} onValueChange={([next = value]) => onPreview(next)} onValueCommit={onCommit} /></label>
 }
 
 function DetailSection({ title, items }: { title: string; items: { label: string; value: string }[] }) {

@@ -314,6 +314,10 @@ export type VisualSceneClip = {
   duration_ms: number
   source_offset_ms: number
   fit: "cover" | "contain"
+  position_x: number
+  position_y: number
+  scale: number
+  opacity: number
   locked: boolean
 }
 

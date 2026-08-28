@@ -11327,6 +11327,30 @@
             "title": "Locked",
             "type": "boolean"
           },
+          "opacity": {
+            "default": 1,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Opacity",
+            "type": "number"
+          },
+          "position_x": {
+            "default": 0,
+            "title": "Position X",
+            "type": "number"
+          },
+          "position_y": {
+            "default": 0,
+            "title": "Position Y",
+            "type": "number"
+          },
+          "scale": {
+            "default": 1,
+            "maximum": 10.0,
+            "minimum": 0.05,
+            "title": "Scale",
+            "type": "number"
+          },
           "source_offset_ms": {
             "default": 0,
             "minimum": 0.0,

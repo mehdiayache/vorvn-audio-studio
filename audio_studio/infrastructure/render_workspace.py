@@ -605,14 +605,20 @@ def _render_visual_scene(
                 f"scale={width}:{height}:force_original_aspect_ratio=increase,"
                 f"crop={width}:{height}"
             )
+        scale = min(10.0, max(0.05, float(clip.get("scale") or 1)))
+        opacity = min(1.0, max(0.0, float(clip.get("opacity", 1))))
+        position_x = float(clip.get("position_x") or 0)
+        position_y = float(clip.get("position_y") or 0)
         clip_label = f"visualclip{index}"
         output_label = f"visual{index}"
         filters.append(
             f"[{index}:v]{trim},setpts=PTS-STARTPTS+{start:.3f}/TB,"
-            f"{geometry},setsar=1,format=rgba[{clip_label}]"
+            f"{geometry},scale=iw*{scale:.6f}:ih*{scale:.6f},setsar=1,"
+            f"format=rgba,colorchannelmixer=aa={opacity:.6f}[{clip_label}]"
         )
         filters.append(
-            f"{previous}[{clip_label}]overlay=0:0:eof_action=pass:shortest=0:"
+            f"{previous}[{clip_label}]overlay={position_x:.3f}:{position_y:.3f}:"
+            "eof_action=pass:shortest=0:"
             f"format=auto:enable='between(t,{start:.3f},"
             f"{start + clip_duration:.3f})'[{output_label}]"
         )
@@ -642,6 +648,20 @@ def _render_visual_scene(
         raise RenderError(
             f"Video export failed: {(detail[-1] if detail else 'no video')[:300]}")
     os.replace(temporary, target)
+
+
+def _production_timeline_duration_ms(scene: dict, visual_scene: dict) -> int:
+    sound_duration = int(
+        scene.get("duration_ms")
+        or scene.get("sequence_projection", {}).get("duration_ms")
+        or 0
+    )
+    visual_duration = max((
+        int(clip.get("start_ms") or 0) + int(clip.get("duration_ms") or 0)
+        for track in visual_scene.get("document", {}).get("tracks", [])
+        for clip in track.get("clips", [])
+    ), default=0)
+    return max(sound_duration, visual_duration)
 
 
 class FFmpegRenderWorkspace:
@@ -902,11 +922,9 @@ class FFmpegRenderWorkspace:
             )
             sequence = _output() / Path(sequence_data["filename"]).name
             mixed = _mix_scene(sequence, scene, audio)
-            duration = int(
-                scene.get("duration_ms")
-                or scene.get("sequence_projection", {}).get("duration_ms")
-                or _measure(audio)
-                or 0
+            duration = max(
+                _production_timeline_duration_ms(scene, visual_scene),
+                int(_measure(audio) or 0),
             )
             if duration <= 0:
                 raise RenderError("The Timeline has no exportable duration.")

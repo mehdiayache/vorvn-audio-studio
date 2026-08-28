@@ -33,7 +33,7 @@ describe("VisualSceneMonitor", () => {
         media_type: "video",
         visible: true,
         locked: false,
-        clips: [{ id: "clip-1", asset_id: 45, start_ms: 1_000, duration_ms: 8_000, source_offset_ms: 2_000, fit: "contain", locked: false }],
+        clips: [{ id: "clip-1", asset_id: 45, start_ms: 1_000, duration_ms: 8_000, source_offset_ms: 2_000, fit: "contain", position_x: 120, position_y: 40, scale: .75, opacity: .8, locked: false }],
       }],
     }
 
@@ -42,6 +42,8 @@ describe("VisualSceneMonitor", () => {
     expect(video.muted).toBe(true)
     expect(video.getAttribute("src")).toBe("/api/v1/media/video-proxy/harbour-original.mov")
     expect(video.getAttribute("poster")).toBe("/api/v1/media/video-poster/harbour-original.mov")
+    expect(video.style.transform).toBe("translate(6.25%, 3.7037037037037033%) scale(0.75)")
+    expect(video.style.opacity).toBe("0.8")
 
     fireEvent.loadedMetadata(video)
     expect(video.currentTime).toBe(5)

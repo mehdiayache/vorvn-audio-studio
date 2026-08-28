@@ -1,10 +1,11 @@
-import { ChevronDown, ChevronUp, Copy, Eye, EyeOff, Film, Image as ImageIcon, Lock, MoreHorizontal, Plus, Scissors, Trash2, Unlock, Volume2, VolumeX } from "lucide-react"
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react"
+import { ChevronDown, ChevronUp, Copy, Eye, EyeOff, Film, Image as ImageIcon, Lock, MoreHorizontal, Pencil, Plus, Scissors, Trash2, Unlock, Volume2, VolumeX } from "lucide-react"
+import { useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type SyntheticEvent } from "react"
 
 import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import { visualAssetName, visualAssetPosterUrl, visualAssetUrl } from "@/features/production-workstation/director/director-assets"
 import { cn } from "@/lib/utils"
 import type { VentureAsset, VisualSceneClip, VisualSceneTrack } from "@/types/domain"
@@ -35,10 +36,10 @@ function trackMediaSummary(track: VisualSceneTrack, assets: VentureAsset[]) {
 
 export function visualTrackDisplayName(track: VisualSceneTrack, assets: VentureAsset[]) {
   void assets
-  return track.media_type === "video" ? "Video" : "Image"
+  return track.name.trim() || (track.media_type === "video" ? "Video" : "Image")
 }
 
-export function VisualTrackControl({ track, assets, collapsed, first, last, onVisible, onLocked, onAdd, onMove, onRemove }: {
+export function VisualTrackControl({ track, assets, collapsed, first, last, onVisible, onLocked, onAdd, onMove, onRename, onRemove }: {
   track: VisualSceneTrack
   assets: VentureAsset[]
   collapsed: boolean
@@ -48,14 +49,16 @@ export function VisualTrackControl({ track, assets, collapsed, first, last, onVi
   onLocked: () => void
   onAdd: () => void
   onMove: (direction: -1 | 1) => void
+  onRename: (name: string) => void
   onRemove: () => void
 }) {
+  const [renaming, setRenaming] = useState(false)
   const media = trackMediaSummary(track, assets)
   const displayName = visualTrackDisplayName(track, assets)
   const TrackIcon = track.media_type === "video" ? Film : ImageIcon
   return <div className={cn("visual-track-control", collapsed && "is-compact", !track.visible && "is-hidden", track.locked && "is-locked")} title={collapsed ? `${displayName} · ${track.visible ? media.label : `Hidden · ${media.label}`}` : undefined}>
     <span className="sound-track-icon is-visual"><TrackIcon /></span>
-    {!collapsed && <span className="sound-track-copy"><b>{displayName}</b><small>{track.visible ? media.label : `Hidden · ${media.label}`}</small></span>}
+    {!collapsed && (renaming ? <Input className="visual-track-name-input" defaultValue={displayName} autoFocus aria-label="Track name" onBlur={(event) => { onRename(event.target.value); setRenaming(false) }} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") setRenaming(false) }} /> : <span className="sound-track-copy" onDoubleClick={() => setRenaming(true)}><b>{displayName}</b><small>{track.visible ? media.label : `Hidden · ${media.label}`}</small></span>)}
     <div className="visual-track-actions">
       {collapsed
         ? <OperatorIconButton label={`Add ${displayName.toLowerCase()} to ${displayName} track`} detail="Choose a compatible Director Asset and place it at the playhead." onClick={onAdd}><Plus /></OperatorIconButton>
@@ -67,6 +70,7 @@ export function VisualTrackControl({ track, assets, collapsed, first, last, onVi
         <DropdownMenuContent side="right" align="center">
           <DropdownMenuItem disabled={first} onSelect={() => onMove(-1)}><ChevronUp /> Move track up</DropdownMenuItem>
           <DropdownMenuItem disabled={last} onSelect={() => onMove(1)}><ChevronDown /> Move track down</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setRenaming(true)}><Pencil /> Rename track</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={onRemove}><Trash2 /> Remove “{displayName}”</DropdownMenuItem>
         </DropdownMenuContent>
@@ -81,13 +85,13 @@ export function VisualTimelineClip({ clip, asset, selected, trackLocked, style, 
   selected: boolean
   trackLocked: boolean
   style: CSSProperties
-  onSelect: () => void
+  onSelect: (event: SyntheticEvent) => void
   onGesture: (event: ReactPointerEvent, edge: "move" | "start" | "end") => void
 }) {
   const locked = clip.locked || trackLocked
   const name = asset ? visualAssetName(asset) : "Missing media"
   const isVideo = asset?.media_type === "video"
-  return <div className={cn("visual-timeline-clip", isVideo ? "is-video" : "is-image", selected && "is-selected", locked && "is-locked", !asset && "is-missing")} style={style} role="button" tabIndex={0} aria-label={`${name} media clip`} onPointerDown={(event) => onGesture(event, "move")} onClick={onSelect} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect() } }}>
+  return <div className={cn("visual-timeline-clip", isVideo ? "is-video" : "is-image", selected && "is-selected", locked && "is-locked", !asset && "is-missing")} style={style} role="button" tabIndex={0} aria-label={`${name} media clip`} onPointerDown={(event) => onGesture(event, "move")} onClick={onSelect} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(event) } }}>
     {asset ? <figure className="visual-timeline-thumbnail"><img src={isVideo ? visualAssetPosterUrl(asset) : visualAssetUrl(asset)} alt="" draggable={false} /></figure> : <ImageIcon />}
     <span>{isVideo && <Film />}<b>{name}</b></span>
     {locked && <i><Lock /></i>}
@@ -95,7 +99,8 @@ export function VisualTimelineClip({ clip, asset, selected, trackLocked, style, 
   </div>
 }
 
-export function VisualContextToolbar({ track, clip, asset, saving, canSplit, hasAudio = false, audioMuted, onAudioMute, onSplit, onLock, onDuplicate, onDelete }: {
+export function VisualContextToolbar({ count = 1, track, clip, asset, saving, canSplit, hasAudio = false, audioMuted, onAudioMute, onSplit, onLock, onDuplicate, onDelete }: {
+  count?: number
   track: VisualSceneTrack
   clip: VisualSceneClip
   asset?: VentureAsset
@@ -110,9 +115,9 @@ export function VisualContextToolbar({ track, clip, asset, saving, canSplit, has
   onDelete: () => void
 }) {
   return <div className="visual-context-toolbar">
-    <span>{asset?.media_type === "video" ? <Film /> : <ImageIcon />}<b>{asset ? visualAssetName(asset) : "Missing media"}</b><small>{asset?.media_type === "video" ? `Source ${(clip.source_offset_ms / 1000).toFixed(1)}s · ` : ""}{(clip.start_ms / 1000).toFixed(1)}s · {(clip.duration_ms / 1000).toFixed(1)}s</small></span>
-    {asset?.media_type === "video" && <OperatorTooltip disabledTrigger={saving || !canSplit} label="Split video at playhead" detail={canSplit ? "Creates two non-destructive placements using the same source Asset." : "Place the playhead inside this video, at least 0.1 seconds from either edge."}><Button variant="ghost" size="sm" disabled={saving || !canSplit} onClick={onSplit}><Scissors /> Split</Button></OperatorTooltip>}
-    {asset?.media_type === "video" && (hasAudio && onAudioMute
+    <span>{asset?.media_type === "video" ? <Film /> : <ImageIcon />}<b>{count > 1 ? `${count} media clips` : asset ? visualAssetName(asset) : "Missing media"}</b>{count === 1 && <small>{asset?.media_type === "video" ? `Source ${(clip.source_offset_ms / 1000).toFixed(1)}s · ` : ""}{(clip.start_ms / 1000).toFixed(1)}s · {(clip.duration_ms / 1000).toFixed(1)}s</small>}</span>
+    {count === 1 && asset?.media_type === "video" && <OperatorTooltip disabledTrigger={saving || !canSplit} label="Split video at playhead" detail={canSplit ? "Creates two non-destructive placements using the same source Asset." : "Place the playhead inside this video, at least 0.1 seconds from either edge."}><Button variant="ghost" size="sm" disabled={saving || !canSplit} onClick={onSplit}><Scissors /> Split</Button></OperatorTooltip>}
+    {count === 1 && asset?.media_type === "video" && (hasAudio && onAudioMute
       ? <OperatorTooltip label={audioMuted ? "Unmute video audio" : "Mute video audio"} detail="Changes only this video's sound; picture timing stays unchanged."><Button variant="ghost" size="sm" disabled={saving} onClick={onAudioMute}>{audioMuted ? <VolumeX /> : <Volume2 />}{audioMuted ? "Unmute" : "Mute"}</Button></OperatorTooltip>
       : <OperatorTooltip disabledTrigger label="No audio" detail="This video source has no audio stream."><Button variant="ghost" size="sm" disabled><VolumeX /> No audio</Button></OperatorTooltip>)}
     <OperatorTooltip label={clip.locked ? "Unlock media clip" : "Lock media clip"}><Button variant="ghost" size="sm" disabled={saving || track.locked} onClick={onLock}>{clip.locked ? <Unlock /> : <Lock />}{clip.locked ? "Unlock" : "Lock"}</Button></OperatorTooltip>

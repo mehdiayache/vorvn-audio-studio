@@ -16,6 +16,16 @@ from audio_studio.infrastructure.render_workspace import FFmpegRenderWorkspace
 
 
 class RenderWorkspaceTests(unittest.TestCase):
+    def test_video_duration_uses_the_furthest_sound_or_visual_endpoint(self):
+        scene = {"duration_ms": 8_000, "sequence_projection": {"duration_ms": 6_000}}
+        visual = {"document": {"tracks": [{"clips": [
+            {"start_ms": 7_000, "duration_ms": 5_000},
+        ]}]}}
+        self.assertEqual(
+            render_workspace._production_timeline_duration_ms(scene, visual),
+            12_000,
+        )
+
     @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"),
                          "FFmpeg is required for MP4 acceptance.")
     def test_real_mp4_composes_visual_timing_and_finished_audio(self):
@@ -49,7 +59,9 @@ class RenderWorkspaceTests(unittest.TestCase):
                          "visible": True, "clips": [{
                              "asset_id": 1, "start_ms": 0,
                              "duration_ms": 1000, "source_offset_ms": 0,
-                             "fit": "contain"}]},
+                             "fit": "contain", "position_x": 100,
+                             "position_y": 50, "scale": .5,
+                             "opacity": .5}]},
                         {"id": "video", "media_type": "video",
                          "visible": True, "clips": [{
                              "asset_id": 2, "start_ms": 1000,
@@ -71,6 +83,15 @@ class RenderWorkspaceTests(unittest.TestCase):
                 "format=duration", "-of", "json", str(target),
             ], check=True, capture_output=True, text=True)
             report = json.loads(result.stdout)
+            def sample_pixel(x: int, y: int) -> tuple[int, int, int]:
+                sampled = subprocess.run([
+                    "ffmpeg", "-v", "error", "-ss", "0.5", "-i",
+                    str(target), "-vf", f"crop=2:2:{x}:{y}", "-frames:v", "1",
+                    "-f", "rawvideo", "-pix_fmt", "rgb24", "-",
+                ], check=True, capture_output=True).stdout
+                return tuple(sampled[:3])
+            background = sample_pixel(20, 20)
+            transformed = sample_pixel(150, 100)
 
         streams = {stream["codec_type"]: stream for stream in report["streams"]}
         self.assertEqual(streams["video"]["codec_name"], "h264")
@@ -80,6 +101,10 @@ class RenderWorkspaceTests(unittest.TestCase):
         )
         self.assertEqual(streams["audio"]["codec_name"], "aac")
         self.assertAlmostEqual(float(report["format"]["duration"]), 2, places=2)
+        self.assertLess(max(background), 30)
+        self.assertGreater(transformed[0], 80)
+        self.assertLess(transformed[0], 180)
+        self.assertLess(max(transformed[1:]), 35)
 
     def test_mix_builds_every_supported_primitive_and_master_safety(self):
         commands: list[list[str]] = []

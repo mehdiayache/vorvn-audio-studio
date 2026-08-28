@@ -30,6 +30,7 @@ describe("video audio synchronization", () => {
       duration_ms: 6_000,
       source_offset_ms: 1_200,
       fit: "cover",
+      position_x: 0, position_y: 0, scale: 1, opacity: 1,
       locked: false,
     }]), [asset()])
 
@@ -56,6 +57,7 @@ describe("video audio synchronization", () => {
       duration_ms: 6_000,
       source_offset_ms: 0,
       fit: "cover" as const,
+      position_x: 0, position_y: 0, scale: 1, opacity: 1,
       locked: false,
     }
     const first = synchronizeVideoAudio(emptySound(), visuals([visualClip]), [asset()]).document
@@ -88,6 +90,7 @@ describe("video audio synchronization", () => {
       duration_ms: 6_000,
       source_offset_ms: 0,
       fit: "cover",
+      position_x: 0, position_y: 0, scale: 1, opacity: 1,
       locked: false,
     }]), [asset()]).document
     const second = synchronizeVideoAudio(first, visuals([]), [asset()])
@@ -105,6 +108,7 @@ describe("video audio synchronization", () => {
       duration_ms: 6_000,
       source_offset_ms: 0,
       fit: "cover",
+      position_x: 0, position_y: 0, scale: 1, opacity: 1,
       locked: false,
     }]), [asset(false)]).document.tracks).toEqual([])
   })

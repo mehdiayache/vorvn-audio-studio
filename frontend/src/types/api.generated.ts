@@ -5906,6 +5906,26 @@ export interface components {
              */
             locked: boolean;
             /**
+             * Opacity
+             * @default 1
+             */
+            opacity: number;
+            /**
+             * Position X
+             * @default 0
+             */
+            position_x: number;
+            /**
+             * Position Y
+             * @default 0
+             */
+            position_y: number;
+            /**
+             * Scale
+             * @default 1
+             */
+            scale: number;
+            /**
              * Source Offset Ms
              * @default 0
              */
