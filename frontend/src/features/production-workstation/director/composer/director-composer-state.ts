@@ -2,7 +2,7 @@ import type { VentureAsset } from "@/types/domain"
 import { visualAssetName, visualAssetPosterUrl, visualAssetUrl } from "../director-assets"
 import type { DirectorAdvancedValues } from "./director-advanced-settings"
 import type { DirectorComposerAttachment } from "./director-composer-attachments"
-import type { DirectorAttachmentKind, DirectorOperationCapability, DirectorParameterValues } from "./director-composer-config"
+import { ratioChoices, type DirectorAttachmentKind, type DirectorOperationCapability, type DirectorParameterValues } from "./director-composer-config"
 import type { DirectorGeneration } from "./director-generation-types"
 
 export function identifier(prefix: string) {
@@ -42,8 +42,9 @@ export function assignInputs(attachments: DirectorComposerAttachment[], capabili
 
 export function capabilityDefaults(capability: DirectorOperationCapability) {
   const parameters = Object.fromEntries(capability.parameters.map((field) => [field.key, field.default]))
+  const ratios = ratioChoices(capability, parameters)
   return {
-    ratio: capability.ratios[0] || "1:1",
+    ratio: ratios.default || "1:1",
     resolution: capability.resolutions[0] || "",
     duration: capability.durations[0] || capability.duration_range?.default || 0,
     advanced: { seed: "", fps: capability.fps[0] || 0, negativePrompt: "", parameters } satisfies DirectorAdvancedValues,

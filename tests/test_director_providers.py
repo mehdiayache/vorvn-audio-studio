@@ -34,7 +34,7 @@ class DirectorProviderTests(unittest.TestCase):
             recipe={
                 "prompt": "A slow camera move",
                 "controls": {
-                    "ratio": "16:9", "resolution": "1080p",
+                    "ratio": "auto", "resolution": "1080p",
                     "duration": 7,
                     "provider_parameters": {
                         "audio": False,
@@ -50,11 +50,35 @@ class DirectorProviderTests(unittest.TestCase):
             "model": "kling-3.0-omni/image-to-video",
             "input": {
                 "prompt": "A slow camera move", "resolution": "1080p",
-                "aspect_ratio": "16:9", "duration": 7,
+                "aspect_ratio": "auto", "duration": 7,
                 "audio": False, "customize_multi_shots": False,
                 "image_urls": ["https://assets.test/a.png"],
             },
         })
+
+    def test_kie_model_adapter_rejects_fixed_image_ratio_without_shots(self):
+        with self.assertRaisesRegex(ValueError, "source image ratio"):
+            KieModelAdapter().request(
+                model={
+                    "provider_model_id":
+                        "kling-3.0-omni/image-to-video"},
+                operation={"operation": "image_to_video"},
+                recipe={
+                    "prompt": "A slow camera move",
+                    "controls": {
+                        "ratio": "16:9", "resolution": "720p",
+                        "duration": 5,
+                        "provider_parameters": {
+                            "customize_multi_shots": False,
+                        },
+                    },
+                },
+                materialized_inputs=[{
+                    "role": "source-image",
+                    "url": "https://assets.test/a.png",
+                }],
+                materialized_parameters={},
+            )
 
     def test_kie_model_adapter_materializes_subject_assets_only_at_boundary(self):
         request = KieModelAdapter().request(

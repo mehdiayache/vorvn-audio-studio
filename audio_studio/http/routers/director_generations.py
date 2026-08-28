@@ -64,6 +64,12 @@ class DirectorOutputCapability(BaseModel):
     extension: str
 
 
+class DirectorControlRule(BaseModel):
+    when: dict[str, Any] = Field(default_factory=dict)
+    values: list[str]
+    default: str
+
+
 class DirectorOperationCapability(BaseModel):
     operation: str
     output_media_type: Literal["image", "video"]
@@ -71,6 +77,7 @@ class DirectorOperationCapability(BaseModel):
     inputs: list[DirectorInputSlot]
     required_any_of: list[list[str]] = Field(default_factory=list)
     ratios: list[str]
+    ratio_rules: list[DirectorControlRule] = Field(default_factory=list)
     resolutions: list[str]
     durations: list[int]
     duration_range: DirectorDurationRange | None = None

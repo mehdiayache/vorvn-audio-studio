@@ -12,7 +12,7 @@ import { DirectorComposerInput } from "./director-composer-input"
 import {
   availableReferenceMediaTypes, catalogReferenceMediaTypes, compatibleDirectInputTarget, compatibleModels, directReferenceMediaTypes, normalizeCapabilityCatalog, operationCapability,
   type DirectorCapabilityCatalog, type DirectorModelCapability,
-  type DirectorOperation,
+  ratioChoices, type DirectorOperation,
 } from "./director-composer-config"
 import {
   activeProviderParameters,
@@ -245,6 +245,14 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
     }
   }
 
+  function changeAdvanced(next: DirectorAdvancedValues) {
+    setAdvanced(next)
+    if (!capability) return
+    const choices = ratioChoices(capability, next.parameters)
+    setRatio((current) => choices.values.includes(current)
+      ? current : choices.default)
+  }
+
   function createGeneration(source?: DirectorGeneration) {
     if (!source && disabledReason) return
     setComposerError("")
@@ -262,14 +270,20 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
     setPrompt(generation.recipe.prompt)
     setOperation(generation.recipe.operation)
     setModelId(nextModel.id)
-    setRatio(generation.recipe.controls.ratio)
+    const parameters = {
+      ...capabilityDefaults(nextCapability).advanced.parameters,
+      ...generation.recipe.controls.provider_parameters,
+    }
+    const ratios = ratioChoices(nextCapability, parameters)
+    setRatio(ratios.values.includes(generation.recipe.controls.ratio)
+      ? generation.recipe.controls.ratio : ratios.default)
     setResolution(generation.recipe.controls.resolution)
     setDuration(generation.recipe.controls.duration || nextCapability.durations[0] || nextCapability.duration_range?.default || 0)
     setAdvanced({
       seed: generation.recipe.controls.seed === null ? "" : String(generation.recipe.controls.seed),
       fps: generation.recipe.controls.fps || nextCapability.fps[0] || 0,
       negativePrompt: generation.recipe.negative_prompt,
-      parameters: { ...capabilityDefaults(nextCapability).advanced.parameters, ...generation.recipe.controls.provider_parameters },
+      parameters,
     })
     setAttachments(assignInputs(generationAttachments(generation, libraryAssets), nextCapability))
     setComposerError("")
@@ -288,7 +302,7 @@ export function DirectorComposer({ productionId, uploading, uploadLabel, library
       onPromptChange={setPrompt} onOperationChange={changeOperation}
       onModelChange={(nextId) => { const next = models.find(({ id }) => id === nextId); if (next) applyModel(next) }}
       onRatioChange={setRatio} onResolutionChange={setResolution} onDurationChange={setDuration}
-      onAdvancedChange={setAdvanced} onFiles={receiveFiles}
+      onAdvancedChange={changeAdvanced} onFiles={receiveFiles}
       onRemoveAttachment={removeReference}
       onOpenLibrary={() => setLibraryOpen(true)} onPaste={() => void pasteFromClipboard()}
       onSubmit={() => void createGeneration()}

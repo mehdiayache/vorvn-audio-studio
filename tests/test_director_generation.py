@@ -105,6 +105,17 @@ class DirectorGenerationTest(unittest.TestCase):
         self.assertEqual(model_c["status"], "enabled")
         self.assertEqual(len(catalog["models"]), 3)
 
+        image_model = next(
+            model for model in catalog["models"]
+            if model["id"] == "kling-3.0-omni/image-to-video")
+        image_video = image_model["operations"][0]
+        self.assertEqual(image_video["ratio_rules"], [
+            {"when": {"customize_multi_shots": False},
+             "values": ["auto"], "default": "auto"},
+            {"when": {"customize_multi_shots": True},
+             "values": ["16:9", "9:16", "1:1"], "default": "16:9"},
+        ])
+
     def test_one_image_is_a_direct_image_to_video_input_not_an_element(self):
         jobs = FakeJobs()
         service = DirectorGenerationService(jobs, FakeAssets())
@@ -116,12 +127,37 @@ class DirectorGenerationTest(unittest.TestCase):
                 "media_type": "image", "position": 0,
             }],
         )
+        value["controls"]["ratio"] = "auto"
         projected, _ = service.enqueue(7, value, idempotency_key="one-image")
         self.assertEqual(projected["recipe"]["inputs"], value["inputs"])
         self.assertEqual(
             projected["recipe"]["controls"]["provider_parameters"]["elements"],
             [],
         )
+
+    def test_image_to_video_ratio_follows_custom_shot_mode(self):
+        service = DirectorGenerationService(FakeJobs(), FakeAssets())
+        value = recipe(
+            operation="image_to_video",
+            model_id="kling-3.0-omni/image-to-video",
+            inputs=[{
+                "asset_id": 11, "role": "source-image",
+                "media_type": "image", "position": 0,
+            }],
+        )
+        with self.assertRaisesRegex(ValueError, "Unsupported ratio"):
+            service.enqueue(7, value, idempotency_key="invalid-fixed-ratio")
+
+        value["controls"]["ratio"] = "auto"
+        service.enqueue(7, value, idempotency_key="automatic-source-ratio")
+
+        value["controls"]["provider_parameters"][
+            "customize_multi_shots"] = True
+        value["controls"]["provider_parameters"]["multi_prompt"] = [{
+            "prompt": "A slow camera move", "duration": 5,
+        }]
+        value["controls"]["ratio"] = "16:9"
+        service.enqueue(7, value, idempotency_key="directed-fixed-ratio")
 
     def test_multiple_ordinary_images_use_reference_input_slots(self):
         jobs = FakeJobs()

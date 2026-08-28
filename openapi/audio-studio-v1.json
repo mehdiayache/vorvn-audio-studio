@@ -2227,6 +2227,32 @@
         "title": "DirectorCapabilitiesEnvelope",
         "type": "object"
       },
+      "DirectorControlRule": {
+        "properties": {
+          "default": {
+            "title": "Default",
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Values",
+            "type": "array"
+          },
+          "when": {
+            "additionalProperties": true,
+            "title": "When",
+            "type": "object"
+          }
+        },
+        "required": [
+          "values",
+          "default"
+        ],
+        "title": "DirectorControlRule",
+        "type": "object"
+      },
       "DirectorDurationRange": {
         "properties": {
           "default": {
@@ -2803,6 +2829,13 @@
           },
           "prompt": {
             "$ref": "#/components/schemas/DirectorPromptCapability"
+          },
+          "ratio_rules": {
+            "items": {
+              "$ref": "#/components/schemas/DirectorControlRule"
+            },
+            "title": "Ratio Rules",
+            "type": "array"
           },
           "ratios": {
             "items": {

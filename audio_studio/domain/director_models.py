@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 
 ModelStatus = Literal["draft", "verified", "enabled"]
-MANIFEST_VERSION = "2026-08-28.5"
+MANIFEST_VERSION = "2026-08-28.6"
 
 
 AVAILABLE_MODEL_STATUSES = {"enabled"}
@@ -155,6 +155,7 @@ def _kling_operation(
     operation: str, *, inputs: tuple[dict[str, Any], ...] = (),
     required_any_of: tuple[tuple[str, ...], ...] = (),
     ratios: tuple[str, ...] = ("16:9", "9:16", "1:1"),
+    ratio_rules: tuple[dict[str, Any], ...] = (),
 ) -> dict[str, Any]:
     return {
         "operation": operation,
@@ -163,6 +164,7 @@ def _kling_operation(
         "inputs": list(inputs),
         "required_any_of": [list(group) for group in required_any_of],
         "ratios": list(ratios),
+        "ratio_rules": [deepcopy(rule) for rule in ratio_rules],
         "resolutions": ["720p", "1080p", "4k"],
         "durations": [],
         "duration_range": {"min": 3, "max": 15, "step": 1,
@@ -204,6 +206,18 @@ MODELS: tuple[dict[str, Any], ...] = (
             "image_to_video",
             inputs=(_slot("source-image", "Source image", "image",
                           required=True),),
+            ratios=("auto", "16:9", "9:16", "1:1"),
+            ratio_rules=(
+                {
+                    "when": {"customize_multi_shots": False},
+                    "values": ["auto"], "default": "auto",
+                },
+                {
+                    "when": {"customize_multi_shots": True},
+                    "values": ["16:9", "9:16", "1:1"],
+                    "default": "16:9",
+                },
+            ),
         )],
     },
     {

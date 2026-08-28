@@ -38,10 +38,10 @@ const kieParameters = [
   { key: "elements", type: "asset_list", label: "Characters & subjects", exposure: "advanced", required: false, default: [], options: [], min: null, max: 7, step: null, max_length: null, visible_when: {}, conflicts_with: [], item: { name_max_length: 64, description_max_length: 300, description_required: true, variants: [{ id: "images", label: "Image subject", media_types: ["image"], min_assets: 2, max_assets: 4 }], audio: { media_types: ["audio"], max_assets: 1 } } },
 ]
 
-function kieCapability(operation: string, inputs: unknown[], requiredAnyOf: string[][] = []) {
+function kieCapability(operation: string, inputs: unknown[], requiredAnyOf: string[][] = [], ratioRules: unknown[] = []) {
   return {
     operation, output_media_type: "video", prompt: { supported: true, required: true, negative_prompt: false, max_length: 3072 },
-    inputs, required_any_of: requiredAnyOf, ratios: ["16:9", "9:16"], resolutions: ["720p", "1080p", "4k"], durations: [],
+    inputs, required_any_of: requiredAnyOf, ratios: ratioRules.length ? ["auto", "16:9", "9:16", "1:1"] : ["16:9", "9:16"], ratio_rules: ratioRules, resolutions: ["720p", "1080p", "4k"], durations: [],
     duration_range: { min: 3, max: 15, step: 1, default: 5 }, fps: [], supports_seed: false, supports_cancel: false,
     output: { mime_type: "video/mp4", extension: "mp4" }, parameters: kieParameters,
   }
@@ -56,7 +56,7 @@ const kieCatalog = {
   ],
   models: [
     { id: "kling-3.0-omni/text-to-video", label: "Kling 3.0 Omni", provider: "KIE", provider_id: "kie", provider_model_id: "kling-3.0-omni/text-to-video", adapter_key: "kie-kling-omni", adapter_version: "adapter-1", capability_manifest_version: "manifest-1", status: "enabled", description: "Video", operations: [kieCapability("text_to_video", [])] },
-    { id: "kling-3.0-omni/image-to-video", label: "Kling 3.0 Omni", provider: "KIE", provider_id: "kie", provider_model_id: "kling-3.0-omni/image-to-video", adapter_key: "kie-kling-omni", adapter_version: "adapter-1", capability_manifest_version: "manifest-1", status: "enabled", description: "Animate image", operations: [kieCapability("image_to_video", [{ role: "source-image", label: "Source image", required: true, media_types: ["image"], max: 1 }])] },
+    { id: "kling-3.0-omni/image-to-video", label: "Kling 3.0 Omni", provider: "KIE", provider_id: "kie", provider_model_id: "kling-3.0-omni/image-to-video", adapter_key: "kie-kling-omni", adapter_version: "adapter-1", capability_manifest_version: "manifest-1", status: "enabled", description: "Animate image", operations: [kieCapability("image_to_video", [{ role: "source-image", label: "Source image", required: true, media_types: ["image"], max: 1 }], [], [{ when: { customize_multi_shots: false }, values: ["auto"], default: "auto" }, { when: { customize_multi_shots: true }, values: ["16:9", "9:16", "1:1"], default: "16:9" }])] },
     { id: "kling-3.0-omni/reference-to-video", label: "Kling 3.0 Omni", provider: "KIE", provider_id: "kie", provider_model_id: "kling-3.0-omni/reference-to-video", adapter_key: "kie-kling-omni", adapter_version: "adapter-1", capability_manifest_version: "manifest-1", status: "enabled", description: "References", operations: [kieCapability("reference_to_video", [{ role: "reference-image", label: "Reference images", required: false, media_types: ["image"], max: 7 }], [["reference-image"]])] },
   ],
 }
@@ -201,6 +201,24 @@ describe("Director composer", () => {
     expect(await screen.findByRole("button", { name: /Creation type: Direct with references/ })).toBeTruthy()
     expect(screen.getAllByText("Reference images").length).toBeGreaterThan(0)
     expect((screen.getByRole("textbox", { name: "Director prompt" }) as HTMLTextAreaElement).value).toBe("The product turns slowly")
+  })
+
+  it("uses the source image ratio until custom shot direction is enabled", async () => {
+    vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
+    renderComposer({ libraryAssets: [
+      { id: 41, media_type: "image", name: "Portrait source" },
+    ] })
+    fireEvent.pointerDown(await screen.findByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
+    fireEvent.click((await screen.findByText("Portrait source", { selector: ".director-reference-item strong" })).closest("button")!)
+
+    expect(await screen.findByText("auto", { selector: ".director-capability-static" })).toBeTruthy()
+    expect(screen.queryByRole("combobox", { name: "Aspect ratio" })).toBeNull()
+
+    fireEvent.click(screen.getByRole("button", { name: "Model settings" }))
+    fireEvent.click(screen.getByRole("switch", { name: "Direct multiple shots" }))
+    expect(await screen.findByRole("combobox", { name: "Aspect ratio" })).toBeTruthy()
+    expect(screen.queryByText("auto", { selector: ".director-capability-static" })).toBeNull()
   })
 
   it("shows shot planning in settings and explains why Create is unavailable", async () => {

@@ -2751,6 +2751,17 @@ export interface components {
         DirectorCapabilitiesEnvelope: {
             data: components["schemas"]["DirectorCapabilities"];
         };
+        /** DirectorControlRule */
+        DirectorControlRule: {
+            /** Default */
+            default: string;
+            /** Values */
+            values: string[];
+            /** When */
+            when?: {
+                [key: string]: unknown;
+            };
+        };
         /** DirectorDurationRange */
         DirectorDurationRange: {
             /** Default */
@@ -2945,6 +2956,8 @@ export interface components {
             /** Parameters */
             parameters?: components["schemas"]["DirectorParameterCapability"][];
             prompt: components["schemas"]["DirectorPromptCapability"];
+            /** Ratio Rules */
+            ratio_rules?: components["schemas"]["DirectorControlRule"][];
             /** Ratios */
             ratios: string[];
             /** Required Any Of */

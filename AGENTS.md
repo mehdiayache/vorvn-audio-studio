@@ -31,6 +31,10 @@ Follow these strict rules on every file, function, and architecture you generate
 - SFX providers use the repository's actual
   `BaseSFXProvider.generate_sfx(prompt, duration) -> AudioResult` contract.
 - Never tightly couple core business logic to vendor-specific SDKs (e.g., Alibaba DashScope, ElevenLabs). All vendor logic belongs exclusively in its respective adapter file inside `/providers`.
+- For every KIE integration or diagnosis, start from
+  `https://docs.kie.ai/llms.txt`, then follow the exact model page linked from
+  that index. Do not infer one KIE model's inputs from another model or from
+  memory.
 - Standardize Audio Output: Normalize all audio to consistent 44.1kHz or 48kHz stereo PCM via FFmpeg before serving to the frontend or timeline.
 
 ---

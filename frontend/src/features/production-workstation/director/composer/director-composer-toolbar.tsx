@@ -54,7 +54,7 @@ export function DirectorComposerToolbar({ operations, operation, capability, mod
     <div className="director-composer-toolbar-main">
       <DirectorOperationPicker operations={operations} value={operation} onValueChange={onOperationChange} />
       <DirectorModelSelector models={models} value={model.id} onValueChange={onModelChange} />
-      <DirectorCapabilityControls capability={capability} ratio={ratio} resolution={resolution} duration={duration} onRatioChange={onRatioChange} onResolutionChange={onResolutionChange} onDurationChange={onDurationChange} />
+      <DirectorCapabilityControls capability={capability} parameters={advanced.parameters} ratio={ratio} resolution={resolution} duration={duration} onRatioChange={onRatioChange} onResolutionChange={onResolutionChange} onDurationChange={onDurationChange} />
     </div>
     <div className="director-composer-toolbar-end">
       {uploadStatus && <InputGroupText className="director-upload-status">{uploadStatus}</InputGroupText>}

@@ -15,6 +15,25 @@ def capability(model_id: str, operation: str) -> tuple[dict[str, Any], dict[str,
     return model_capability(model_id, operation)
 
 
+def _parameter_values(
+    selected: dict[str, Any], supplied: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        field["key"]: supplied.get(field["key"], field.get("default"))
+        for field in selected.get("parameters", [])
+    }
+
+
+def _allowed_ratios(
+    selected: dict[str, Any], parameters: dict[str, Any],
+) -> list[str]:
+    for rule in selected.get("ratio_rules", []):
+        if all(parameters.get(key) == expected
+               for key, expected in rule.get("when", {}).items()):
+            return list(rule["values"])
+    return list(selected["ratios"])
+
+
 def _validate_asset_list(
     field: dict[str, Any], value: Any, assets: dict[int, dict[str, Any]],
 ) -> None:
@@ -237,7 +256,10 @@ def validate_recipe(recipe: dict[str, Any], assets: dict[int, dict[str, Any]]) -
             raise ValueError(f"Add {' or '.join(labels)}.")
 
     controls = recipe.get("controls") or {}
-    for key, values in (("ratio", selected["ratios"]),
+    parameters = controls.get("provider_parameters") or {}
+    effective_parameters = _parameter_values(selected, parameters)
+    for key, values in (("ratio", _allowed_ratios(
+                            selected, effective_parameters)),
                         ("resolution", selected["resolutions"]),
                         ("fps", selected["fps"])):
         value = controls.get(key)
@@ -258,7 +280,6 @@ def validate_recipe(recipe: dict[str, Any], assets: dict[int, dict[str, Any]]) -
     if controls.get("seed") is not None and not selected["supports_seed"]:
         raise ValueError("This model operation does not support a seed.")
 
-    parameters = controls.get("provider_parameters") or {}
     fields = {field["key"]: field for field in selected.get("parameters", [])}
     unknown = set(parameters) - set(fields)
     if unknown:

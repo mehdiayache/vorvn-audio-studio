@@ -21,13 +21,21 @@ class KieModelAdapter:
         materialized_parameters: dict[str, Any],
     ) -> dict[str, Any]:
         controls = recipe.get("controls") or {}
+        parameters = controls.get("provider_parameters") or {}
+        model_id = str(model.get("provider_model_id") or "")
+        if (model_id == "kling-3.0-omni/image-to-video"
+                and not parameters.get("customize_multi_shots")
+                and controls.get("ratio") != "auto"):
+            raise ValueError(
+                "Kling Image-to-Video uses the source image ratio unless "
+                "custom shot direction is enabled.")
         input_payload: dict[str, Any] = {
             "prompt": str(recipe.get("prompt") or "").strip(),
             "resolution": controls.get("resolution"),
             "aspect_ratio": controls.get("ratio"),
             "duration": controls.get("duration"),
         }
-        for key, value in (controls.get("provider_parameters") or {}).items():
+        for key, value in parameters.items():
             if key in materialized_parameters:
                 continue
             input_payload[key] = value

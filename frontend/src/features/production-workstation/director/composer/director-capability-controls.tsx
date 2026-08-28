@@ -3,7 +3,7 @@ import { Clock3, Frame, MonitorUp } from "lucide-react"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Input } from "@/components/ui/input"
-import type { DirectorOperationCapability } from "./director-composer-config"
+import { ratioChoices, type DirectorOperationCapability, type DirectorParameterValues } from "./director-composer-config"
 
 function InlineSelect({ label, value, values, onValueChange, icon: Icon }: { label: string; value: string; values: string[]; onValueChange: (value: string) => void; icon: typeof Frame }) {
   if (values.length < 2) return values[0] ? <span className="director-capability-static"><Icon />{values[0]}</span> : null
@@ -13,8 +13,9 @@ function InlineSelect({ label, value, values, onValueChange, icon: Icon }: { lab
   </Select>
 }
 
-export function DirectorCapabilityControls({ capability, ratio, resolution, duration, onRatioChange, onResolutionChange, onDurationChange }: {
+export function DirectorCapabilityControls({ capability, parameters, ratio, resolution, duration, onRatioChange, onResolutionChange, onDurationChange }: {
   capability: DirectorOperationCapability
+  parameters: DirectorParameterValues
   ratio: string
   resolution: string
   duration: number
@@ -23,8 +24,9 @@ export function DirectorCapabilityControls({ capability, ratio, resolution, dura
   onDurationChange: (value: number) => void
 }) {
   const video = capability.output_media_type === "video"
+  const ratios = ratioChoices(capability, parameters).values
   return <div className="director-capability-controls">
-    <InlineSelect label="Aspect ratio" value={ratio} values={capability.ratios} onValueChange={onRatioChange} icon={Frame} />
+    <InlineSelect label="Aspect ratio" value={ratio} values={ratios} onValueChange={onRatioChange} icon={Frame} />
     <InlineSelect label={video ? "Video resolution" : "Image size"} value={resolution} values={capability.resolutions} onValueChange={onResolutionChange} icon={MonitorUp} />
     {capability.durations.length > 0 && <InlineSelect label="Duration" value={String(duration)} values={capability.durations.map(String)} onValueChange={(value) => onDurationChange(Number(value))} icon={Clock3} />}
     {capability.duration_range && <OperatorTooltip label="Duration" detail={`${capability.duration_range.min}–${capability.duration_range.max} seconds for this model.`}>

@@ -43,6 +43,7 @@ export type DirectorOperationCapability = {
   inputs: DirectorInputSlot[]
   required_any_of: string[][]
   ratios: string[]
+  ratio_rules: { when: Record<string, unknown>; values: string[]; default: string }[]
   resolutions: string[]
   durations: number[]
   duration_range: DirectorDurationRange | null
@@ -90,6 +91,7 @@ export function normalizeCapabilityCatalog(catalog: DirectorCapabilityCatalog) {
         ...capability,
         prompt: { ...capability.prompt, max_length: capability.prompt.max_length || 20_000 },
         required_any_of: capability.required_any_of || [],
+        ratio_rules: capability.ratio_rules || [],
         duration_range: capability.duration_range || null,
         parameters: (capability.parameters || []).map((field) => ({
           ...field,
@@ -141,6 +143,17 @@ export function compatibleDirectInputTarget(
 
 export function operationCapability(model: DirectorModelCapability, operation: DirectorOperation) {
   return model.operations.find((capability) => capability.operation === operation)
+}
+
+export function ratioChoices(
+  capability: DirectorOperationCapability,
+  parameters: DirectorParameterValues,
+) {
+  const rule = capability.ratio_rules.find(({ when }) => (
+    Object.entries(when).every(([key, expected]) => parameters[key] === expected)
+  ))
+  const values = rule?.values || capability.ratios
+  return { values, default: rule?.default || values[0] || "" }
 }
 
 export function availableReferenceMediaTypes(capability: DirectorOperationCapability, values: DirectorParameterValues) {
