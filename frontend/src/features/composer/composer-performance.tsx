@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
+import { DEFAULT_RECORDING_VOLUME } from "@/lib/composer-contract"
 import { useComposer } from "./composer-controller"
 
 function modeLabel(mode: string) {
@@ -29,7 +30,7 @@ export function ComposerPerformance() {
     {(controls.rate || controls.pitch || controls.volume || controls.seed) && <div className="composer-fine-grid composer-performance-controls">
       {controls.rate && <label><span>Speed <b>{composer.rate.toFixed(2)}×</b></span><Slider aria-label="Recording speed" value={[composer.rate]} min={0.5} max={2} step={0.05} onValueChange={([value = 1]) => composer.setRate(value)} /></label>}
       {controls.pitch && <label><span>Pitch <b>{composer.pitch.toFixed(2)}×</b></span><Slider aria-label="Recording pitch" value={[composer.pitch]} min={0.5} max={2} step={0.05} onValueChange={([value = 1]) => composer.setPitch(value)} /></label>}
-      {controls.volume && <label><span>Volume <b>{composer.volume}</b></span><Slider aria-label="Recording volume" value={[composer.volume]} min={0} max={100} step={1} onValueChange={([value = 50]) => composer.setVolume(value)} /></label>}
+      {controls.volume && <label><span>Volume <b>{composer.volume === DEFAULT_RECORDING_VOLUME ? "Default" : composer.volume}</b></span><Slider aria-label="Recording volume" value={[composer.volume]} min={0} max={100} step={1} onValueChange={([value = DEFAULT_RECORDING_VOLUME]) => composer.setVolume(value)} /></label>}
       {controls.seed && <label><span>Seed <b>repeatable</b></span><Input aria-label="Generation seed" type="number" min={0} max={65535} step={1} value={composer.seed} onChange={(event) => composer.setSeed(Math.max(0, Math.min(65535, Number(event.target.value) || 0)))} /></label>}
     </div>}
   </section>

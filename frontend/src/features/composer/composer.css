@@ -437,8 +437,7 @@
   box-shadow: 0 10px 30px rgb(var(--shadow-color) / 4%);
 }
 
-.script-section textarea,
-.tagged-script-editor pre {
+.script-section textarea {
   width: 100%;
   height: 100%;
   min-height: 260px;
@@ -474,46 +473,6 @@
 .script-section textarea:dir(rtl) {
   text-align: right;
   line-height: 1.9;
-}
-
-.tagged-script-editor {
-  position: relative;
-  isolation: isolate;
-  min-width: 0;
-  min-height: 260px;
-  height: 100%;
-  background: var(--surface-raised);
-}
-
-.tagged-script-editor pre {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  margin: 0;
-  overflow: auto;
-  pointer-events: none;
-  color: var(--foreground);
-}
-
-.tagged-script-editor textarea {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  min-height: 100%;
-  overflow: auto;
-  color: transparent;
-  background: transparent;
-  caret-color: var(--foreground);
-  -webkit-text-fill-color: transparent;
-}
-
-.tagged-script-editor textarea:focus-visible {
-  background: transparent;
-  box-shadow: none;
-}
-
-.tagged-script-editor:focus-within {
-  box-shadow: inset 0 0 0 2px color-mix(in oklch, var(--primary) 52%, transparent);
 }
 
 .script-editor-shell.is-reviewing {
@@ -803,8 +762,7 @@
 
 .composer-surface.is-stage .script-editor-shell,
 .composer-surface.is-stage .tagged-script-editor,
-.composer-surface.is-stage .script-section textarea,
-.composer-surface.is-stage .tagged-script-editor pre {
+.composer-surface.is-stage .script-section textarea {
   height: clamp(176px, 28dvh, 288px);
   min-height: 176px;
 }
@@ -814,8 +772,7 @@
   box-shadow: none;
 }
 
-.composer-surface.is-stage .script-section textarea,
-.composer-surface.is-stage .tagged-script-editor pre {
+.composer-surface.is-stage .script-section textarea {
   padding: 18px 20px;
   font-size: 16px;
   line-height: 1.65;
@@ -1042,8 +999,7 @@
 }
 
 .composer-surface.is-inline .script-section textarea,
-.composer-surface.is-inline .tagged-script-editor,
-.composer-surface.is-inline .tagged-script-editor pre {
+.composer-surface.is-inline .tagged-script-editor {
   height: 220px;
   min-height: 220px;
 }

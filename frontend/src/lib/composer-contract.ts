@@ -4,6 +4,9 @@ import type { VoiceChoice } from "@/lib/voice-options"
 export type TextState = "raw" | "shaped" | "tagged"
 export type SpokenProfile = "spoken_1" | "spoken_2"
 
+/** Alibaba's neutral provider level. Keep this named instead of scattering a magic 50. */
+export const DEFAULT_RECORDING_VOLUME = 50
+
 export type CompositionContext =
   | { kind: "standalone" }
   | {
@@ -187,6 +190,26 @@ export function resolveSelectedRoute(selection: RouteSelection | null, routes: V
   if (capabilities.length > 1 && !selection.capabilityId) return null
   if (selection.capabilityId && !capabilities.some((item) => item.id === selection.capabilityId)) return null
   return route
+}
+
+/**
+ * A voice re-enrollment replaces its binding ID while preserving the actual
+ * recording route. Reconnect an old Part only when every provider-facing route
+ * fact still matches; never silently move an operator to another model.
+ */
+export function replacementRouteSelectionFromPart(
+  part: ProductionPart | null | undefined,
+  routes: VoiceChoice[],
+): RouteSelection | null {
+  if (!part?.voice_identity_id) return null
+  const replacement = routes.find((candidate) => (
+    candidate.identityId === part.voice_identity_id
+    && candidate.provider === part.provider
+    && candidate.engine === part.engine
+    && candidate.modelId === part.model
+    && (!part.capability_id || candidate.capabilities.some((capability) => capability.id === part.capability_id))
+  ))
+  return replacement ? routeSelection(replacement, part.capability_id || null) : null
 }
 
 export function buildSpeechCommand(input: {

@@ -31,7 +31,7 @@ const config = {
   capabilities: {
     audio: { estimate_rates_per_million_chars: { flash: 1 }, inline_tags: true, purpose: "Speech", models: { flash: "qwen-audio-flash" } },
   },
-  tags: {}, retired_tags: {}, prefs: {}, text_preparation: {},
+  tags: { delivery: ["calm", "whispers"] }, retired_tags: {}, prefs: {}, text_preparation: {},
 } as unknown as StudioConfig
 
 const common = {
@@ -89,6 +89,26 @@ describe("shared Composer contract", () => {
     expect(screen.getByRole("button", { name: "Choose tag density" })).toBeTruthy()
   })
 
+  it("restores the current equivalent binding after the same voice is re-enrolled", async () => {
+    const part = {
+      id: 8,
+      kind: "speech",
+      text: "Hello",
+      cost: 0,
+      created_at: "",
+      position: 0,
+      voice_identity_id: "identity-sarah",
+      binding_id: "retired-binding-sarah",
+      provider: "alibaba",
+      engine: "audio",
+      model: "qwen-audio-flash",
+      capability_id: "expressive_tags",
+    } as ProductionPart
+    render(<ComposerSurface {...common} productionId={3} part={part} />)
+    await waitFor(() => expect(screen.getAllByText("Expressive + tags").length).toBeGreaterThan(0))
+    expect(screen.getByRole("button", { name: /Generate Part/ }).hasAttribute("disabled")).toBe(false)
+  })
+
   it("labels an existing recording as one safe replacement action", async () => {
     const part = { id: 7, kind: "speech", text: "Hello", text_raw: "Hello", clip_id: 44, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProductionPart
     render(<ComposerSurface {...common} productionId={3} part={part} />)
@@ -122,9 +142,11 @@ describe("shared Composer contract", () => {
     expect(await screen.findByText("This recording method cannot record the current Tagged version.")).toBeTruthy()
     expect(screen.getByText("Original and Spoken remain available. Nothing will be deleted.")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Generate again" }).hasAttribute("disabled")).toBe(true)
-    fireEvent.click(screen.getByRole("button", { name: "Use Spoken" }))
+    fireEvent.change(screen.getByRole("textbox", { name: "Tagged script" }), { target: { value: "The room becomes still." } })
     await waitFor(() => expect(screen.getByRole("button", { name: "Generate again" }).hasAttribute("disabled")).toBe(false))
+    expect(screen.queryByText("This recording method cannot record the current Tagged version.")).toBeNull()
     expect(screen.getByRole("tab", { name: /Original/ })).toBeTruthy()
+    expect(screen.getByRole("tab", { name: /Tagged/ })).toBeTruthy()
   })
 
   it("converts plain recording input into a valid SSML document before generation", async () => {
@@ -273,7 +295,7 @@ describe("shared Composer contract", () => {
     expect(screen.getAllByText("The signal is live…").length).toBeGreaterThan(1)
   })
 
-  it("keeps the tagged script presentation visible while its editor has focus", async () => {
+  it("uses one visible editing surface so tagged text and the native caret share exact geometry", async () => {
     const taggedText = "[whispers] The signal is live."
     const part = {
       id: 72,
@@ -292,12 +314,13 @@ describe("shared Composer contract", () => {
     render(<ComposerSurface {...common} productionId={3} part={part} />)
 
     const editor = await screen.findByRole("textbox", { name: "Tagged script" }) as HTMLTextAreaElement
-    const presentation = editor.closest(".tagged-script-editor")?.querySelector("pre")
-    expect(presentation?.textContent).toBe(taggedText)
-
     editor.focus()
+    editor.setSelectionRange(11, 14)
     expect(document.activeElement).toBe(editor)
-    expect(presentation?.textContent).toBe(taggedText)
+    expect(editor.value).toBe(taggedText)
+    expect(editor.selectionStart).toBe(11)
+    expect(editor.selectionEnd).toBe(14)
+    expect(editor.parentElement?.querySelector("pre")).toBeNull()
   })
 
   it("reopens the attached recording input and sends it unchanged to Generate again", async () => {

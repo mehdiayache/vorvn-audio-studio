@@ -5,8 +5,10 @@ import { useComposerText } from "@/hooks/use-composer-text"
 import {
   buildSpeechCommand,
   compositionContext,
+  DEFAULT_RECORDING_VOLUME,
   editorialBaseline,
   recoverableDraft,
+  replacementRouteSelectionFromPart,
   resolveSelectedRoute,
   routeSelection,
   routeSelectionFromPart,
@@ -58,7 +60,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   const [instruction, setInstruction] = useState(part?.instruction || "")
   const [rate, setRate] = useState(part?.rate ?? 1)
   const [pitch, setPitch] = useState(part?.pitch ?? 1)
-  const [volume, setVolume] = useState(part?.volume ?? 50)
+  const [volume, setVolume] = useState(part?.volume ?? DEFAULT_RECORDING_VOLUME)
   const [seed, setSeed] = useState(part?.seed ?? 0)
   const [enableSsml, setEnableSsml] = useState(Boolean(part?.enable_ssml))
   const [authoredRole, setAuthoredRole] = useState(String(part?.authored_role || "").trim())
@@ -84,7 +86,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
     setInstruction(part?.instruction || "")
     setRate(part?.rate ?? 1)
     setPitch(part?.pitch ?? 1)
-    setVolume(part?.volume ?? 50)
+    setVolume(part?.volume ?? DEFAULT_RECORDING_VOLUME)
     setSeed(part?.seed ?? 0)
     setEnableSsml(Boolean(part?.enable_ssml))
   }, [part?.id])
@@ -140,8 +142,12 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
       if (explicit) setIdentityId(explicit.identityId)
       return
     }
-    if (!selectedRoute) setRoute(null)
-  }, [directory.registry?.bindings, identities, identityId, part?.binding_id, part?.catalogue_voice_id, part?.voice_identity_id, selectedIdentity, selectedRoute])
+    if (!selectedRoute) {
+      const replacement = replacementRouteSelectionFromPart(part, selectedIdentity.routes)
+      if (replacement) setRoute(replacement)
+      else if (route) setRoute(null)
+    }
+  }, [directory.registry?.bindings, identities, identityId, part?.binding_id, part?.capability_id, part?.catalogue_voice_id, part?.engine, part?.model, part?.provider, part?.voice_identity_id, selectedIdentity, selectedRoute, route])
 
   const documentedTags = useMemo(() => new Set([
     ...Object.values(config?.tags || {}).flatMap((group) => Array.isArray(group) ? group : Object.keys(group)),
@@ -149,7 +155,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   ].map((tag) => tag.toLocaleLowerCase())), [config?.retired_tags, config?.tags])
   const hasInlineDeliveryTag = Array.from(textSession.text.matchAll(/\[([^\[\]]{1,40})\]/g))
     .some((match) => documentedTags.has((match[1] || "").toLocaleLowerCase()))
-  const taggedIncompatible = Boolean(currentRoute) && !capabilityControls.deliveryTags && (textSession.view === "tagged" || hasInlineDeliveryTag)
+  const taggedIncompatible = Boolean(currentRoute) && !capabilityControls.deliveryTags && hasInlineDeliveryTag
   const ssmlValidation = enableSsml
     ? validateSsmlDocument(textSession.text)
     : { valid: true, message: "Plain text" }

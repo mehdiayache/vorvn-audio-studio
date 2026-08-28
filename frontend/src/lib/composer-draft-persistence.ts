@@ -1,4 +1,4 @@
-import type { CompositionContext, RecoverableCompositionDraft, RouteSelection } from "@/lib/composer-contract"
+import { DEFAULT_RECORDING_VOLUME, type CompositionContext, type RecoverableCompositionDraft, type RouteSelection } from "@/lib/composer-contract"
 
 export type ComposerDraftRecord = {
   id: string
@@ -116,7 +116,7 @@ export function meaningfulDraft(draft: RecoverableCompositionDraft) {
     || draft.textPreparation.spokenProfile !== "spoken_1"
     || draft.delivery.instruction || draft.delivery.modeId
     || draft.delivery.rate !== 1 || draft.delivery.pitch !== 1
-    || draft.delivery.volume !== 50 || draft.delivery.seed || draft.delivery.enableSsml
+    || draft.delivery.volume !== DEFAULT_RECORDING_VOLUME || draft.delivery.seed || draft.delivery.enableSsml
     || draft.output.language !== "Auto" || draft.output.format !== "mp3"
   )
 }

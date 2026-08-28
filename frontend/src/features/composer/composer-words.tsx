@@ -1,12 +1,11 @@
 import { AudioLines, Check, ChevronDown, CircleAlert, Code2, Columns2, Copy, FileText, Maximize2, Minimize2, WandSparkles } from "lucide-react"
-import { useRef, useState } from "react"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { InlineDeliveryTags } from "@/components/inline-delivery-tags"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import type { TextView } from "@/hooks/use-composer-text"
@@ -19,11 +18,10 @@ function textLabel(view: TextView) {
 }
 
 function TaggedScriptEditor({ value, onChange, autoFocus }: { value: string; onChange: (value: string) => void; autoFocus: boolean }) {
-  const highlight = useRef<HTMLPreElement | null>(null)
-  return <div className="tagged-script-editor">
-    <pre ref={highlight} aria-hidden="true"><InlineDeliveryTags text={value} /></pre>
-    <Textarea dir="auto" aria-label="Tagged script" value={value} onChange={(event) => onChange(event.target.value)} onScroll={(event) => { if (highlight.current) { highlight.current.scrollTop = event.currentTarget.scrollTop; highlight.current.scrollLeft = event.currentTarget.scrollLeft } }} placeholder="Type or paste what should be said…" autoFocus={autoFocus} />
-  </div>
+  // A syntax-highlight overlay cannot share exact glyph geometry with a native
+  // textarea once tags have padding. Use one truthful editing surface so the
+  // caret, selection and deletion always target the characters operators see.
+  return <Textarea className="tagged-script-editor" dir="auto" aria-label="Tagged script" value={value} onChange={(event) => onChange(event.target.value)} placeholder="Type or paste what should be said…" autoFocus={autoFocus} />
 }
 
 export function ComposerWords() {
@@ -33,7 +31,7 @@ export function ComposerWords() {
   const [copied, setCopied] = useState(false)
   const [focusMode, setFocusMode] = useState(false)
   const [plainTextConfirmOpen, setPlainTextConfirmOpen] = useState(false)
-  const states = ["raw", "shaped", ...(composer.capabilityControls.deliveryTags ? ["tagged" as const] : [])] as TextView[]
+  const states = ["raw", "shaped", ...(composer.capabilityControls.deliveryTags || text.states.tagged ? ["tagged" as const] : [])] as TextView[]
   const savedCompareView = text.view === "raw" ? (text.states.tagged ? "tagged" : text.states.shaped ? "shaped" : null) : text.view
   const candidateView: TextView | null = text.review?.kind === "shape" ? "shaped" : text.review?.kind === "tag" ? "tagged" : null
   const compareView = candidateView || savedCompareView

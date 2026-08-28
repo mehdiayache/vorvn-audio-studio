@@ -8,6 +8,7 @@ import {
   compositionContext,
   editorialBaseline,
   resolveSelectedRoute,
+  replacementRouteSelectionFromPart,
   routeSelection,
   routeSelectionFromPart,
   toGeneratePayload,
@@ -118,6 +119,24 @@ describe("provider-neutral Composer contract", () => {
       .toEqual({ kind: "owned", bindingId: "binding-1", capabilityId: "expressive_tags" })
     expect(routeSelectionFromPart({ kind: "draft", ...routeFields } as ProductionPart))
       .toEqual({ kind: "owned", bindingId: "binding-1", capabilityId: "expressive_tags" })
+  })
+
+  it("reconnects a stale enrollment binding only to the same current provider route", () => {
+    const part = {
+      kind: "speech",
+      voice_identity_id: "identity-1",
+      binding_id: "retired-binding",
+      provider: "alibaba",
+      engine: "audio",
+      model: "qwen-audio-3.0-tts-flash",
+      capability_id: "expressive_tags",
+    } as ProductionPart
+    expect(replacementRouteSelectionFromPart(part, [ownedRoute])).toEqual({
+      kind: "owned",
+      bindingId: "binding-1",
+      capabilityId: "expressive_tags",
+    })
+    expect(replacementRouteSelectionFromPart({ ...part, model: "another-model" } as ProductionPart, [ownedRoute])).toBeNull()
   })
 
   it("rehydrates Generate Again from the exact attached recording request", () => {
