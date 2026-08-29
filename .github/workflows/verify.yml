@@ -43,6 +43,19 @@ jobs:
         run: python -m venv .venv && .venv/bin/pip install -r requirements.txt
       - name: Run database migrations
         run: .venv/bin/python -m audio_studio.migrations
+      - name: Create disposable database fixture
+        run: |
+          .venv/bin/python - <<'PY'
+          from audio_studio.infrastructure.postgres import work
+          from audio_studio.infrastructure.postgres.production_document import ProductionDocumentRepository
+
+          venture = work.create_venture("CI Venture")
+          project = work.create_project(venture["id"], "CI Project")
+          production = work.create_production(project["id"], "CI Production")
+          ProductionDocumentRepository().create_part(
+              production["id"], {"kind": "speech", "text": "CI fixture"}
+          )
+          PY
       - name: Run full backend test suite
         run: .venv/bin/python -m unittest discover -s tests
       - name: Check domain boundaries
