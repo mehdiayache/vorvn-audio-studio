@@ -85,6 +85,24 @@
         "title": "ActivityKindResponse",
         "type": "object"
       },
+      "ActivityMediaSpendResponse": {
+        "properties": {
+          "audio": {
+            "title": "Audio",
+            "type": "number"
+          },
+          "video": {
+            "title": "Video",
+            "type": "number"
+          }
+        },
+        "required": [
+          "audio",
+          "video"
+        ],
+        "title": "ActivityMediaSpendResponse",
+        "type": "object"
+      },
       "ActivityRunResponse": {
         "properties": {
           "actor_id": {
@@ -485,6 +503,9 @@
             "title": "Month",
             "type": "number"
           },
+          "month_media": {
+            "$ref": "#/components/schemas/ActivityMediaSpendResponse"
+          },
           "problems": {
             "title": "Problems",
             "type": "integer"
@@ -511,15 +532,24 @@
             "title": "Today",
             "type": "number"
           },
+          "today_media": {
+            "$ref": "#/components/schemas/ActivityMediaSpendResponse"
+          },
           "total": {
             "title": "Total",
             "type": "number"
+          },
+          "total_media": {
+            "$ref": "#/components/schemas/ActivityMediaSpendResponse"
           }
         },
         "required": [
           "today",
           "month",
           "total",
+          "today_media",
+          "month_media",
+          "total_media",
           "runs",
           "problems",
           "running",
@@ -5558,6 +5588,11 @@
       },
       "ProductionAccountingResponse": {
         "properties": {
+          "audio_spend": {
+            "default": 0.0,
+            "title": "Audio Spend",
+            "type": "number"
+          },
           "current_sequence_cost": {
             "title": "Current Sequence Cost",
             "type": "number"
@@ -5576,6 +5611,11 @@
           },
           "untracked_legacy_spend": {
             "title": "Untracked Legacy Spend",
+            "type": "number"
+          },
+          "video_spend": {
+            "default": 0.0,
+            "title": "Video Spend",
             "type": "number"
           }
         },

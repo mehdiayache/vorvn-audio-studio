@@ -81,10 +81,18 @@ class CostBasisResponse(BaseModel):
     cost: float
 
 
+class ActivityMediaSpendResponse(BaseModel):
+    audio: float
+    video: float
+
+
 class ActivitySnapshotResponse(BaseModel):
     today: float
     month: float
     total: float
+    today_media: ActivityMediaSpendResponse
+    month_media: ActivityMediaSpendResponse
+    total_media: ActivityMediaSpendResponse
     runs: int
     problems: int
     running: list[ActivityRunResponse]

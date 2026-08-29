@@ -1,9 +1,8 @@
-import { Settings2 } from "lucide-react"
+import { ChevronDown, Settings2 } from "lucide-react"
 
-import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import type { VentureAsset } from "@/types/domain"
@@ -30,12 +29,13 @@ export function DirectorAdvancedSettings({ model, capability, values, assets, on
     const field = capability.parameters.find((candidate) => candidate.key === key)
     if (field) onChange({ ...values, parameters: withParameterValue(field, values.parameters, value) })
   }
-  return <Popover>
-    <OperatorTooltip label="Model settings" detail="Only controls declared by the selected model are shown.">
-      <PopoverTrigger asChild><Button variant="ghost" size="icon-xs" aria-label="Model settings"><Settings2 /></Button></PopoverTrigger>
-    </OperatorTooltip>
-    <PopoverContent side="top" align="end" className="director-advanced-popover">
-      <header><strong>Model settings</strong><span>{model.label}</span></header>
+  return <Collapsible className="director-advanced-settings">
+    <CollapsibleTrigger asChild>
+      <Button type="button" variant="ghost" className="director-advanced-trigger" aria-label="Advanced settings">
+        <Settings2 /><span>Advanced settings</span><small>{model.label}</small><ChevronDown />
+      </Button>
+    </CollapsibleTrigger>
+    <CollapsibleContent className="director-advanced-content">
       {capability.supports_seed && <label><span>Seed</span><Input inputMode="numeric" value={values.seed} placeholder="Random" onChange={(event) => onChange({ ...values, seed: event.target.value })} /></label>}
       {capability.fps.length > 1 && <label><span>Frame rate</span><Select value={String(values.fps)} onValueChange={(value) => onChange({ ...values, fps: Number(value) })}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{capability.fps.map((fps) => <SelectItem key={fps} value={String(fps)}>{fps} fps</SelectItem>)}</SelectGroup></SelectContent></Select></label>}
       {capability.prompt.negative_prompt && <label><span>Exclude</span><Textarea rows={3} value={values.negativePrompt} placeholder="Anything that should not appear" onChange={(event) => onChange({ ...values, negativePrompt: event.target.value })} /></label>}
@@ -44,6 +44,6 @@ export function DirectorAdvancedSettings({ model, capability, values, assets, on
         : field.type === "asset_list"
           ? <DirectorAssetListEditor key={field.key} field={field} value={values.parameters[field.key]} assets={assets} onChange={(value) => setParameter(field.key, value)} />
           : <DirectorScalarParameter key={field.key} field={field} value={values.parameters[field.key]} onChange={(value) => setParameter(field.key, value)} />)}
-    </PopoverContent>
-  </Popover>
+    </CollapsibleContent>
+  </Collapsible>
 }

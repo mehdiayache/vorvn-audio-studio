@@ -26,12 +26,11 @@ import { VisualAssetCard } from "../director/visual-asset-card"
 import { WORKSTATION_STAGES } from "../workstation-workflow"
 
 describe("Production workflow", () => {
-  it("presents the four accepted operator stages in order", () => {
+  it("keeps the three daily workspaces in the accepted order", () => {
     expect(WORKSTATION_STAGES.map(({ id, label, description }) => ({ id, label, description }))).toEqual([
-      { id: "sequence", label: "Script", description: "Voice and story" },
+      { id: "sequence", label: "Script", description: "Write and record the story" },
+      { id: "sound", label: "Timeline", description: "Assemble audio and visuals" },
       { id: "director", label: "Director", description: "Create and collect visuals" },
-      { id: "sound", label: "Timeline", description: "Assemble the production" },
-      { id: "mix", label: "Export", description: "Finish and deliver" },
     ])
   })
 
@@ -39,10 +38,11 @@ describe("Production workflow", () => {
     render(<DirectorStage productionId={7} assets={[]} directorAssetIds={[]} onUpload={vi.fn()} onRefresh={vi.fn()} />)
 
     expect(await screen.findByRole("textbox", { name: "Director prompt" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Creation type: Image" })).toBeTruthy()
+    expect(screen.getByRole("radio", { name: "Image: Create a still visual" })).toBeTruthy()
     expect(screen.getByRole("combobox", { name: "Choose generation model" }).textContent).toContain("Model A")
     expect(screen.getByRole("heading", { name: "No visuals collected yet" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Add a reference" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Choose image for Reference" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Add a reference" })).toBeNull()
     expect(screen.queryByText("Creation providers will connect here later. Upload and Library work now.")).toBeNull()
   })
 
@@ -199,7 +199,7 @@ describe("Production workflow", () => {
     expect(refresh).toHaveBeenCalledOnce()
   })
 
-  it("preserves a five-lane masonry Gallery and remembers the List choice", () => {
+  it("keeps Creations as a newest-first five-lane masonry without a parallel List mode", () => {
     const assets = Array.from({ length: 6 }, (_, index) => ({
       id: index + 1,
       media_type: "image" as const,
@@ -210,20 +210,13 @@ describe("Production workflow", () => {
     }))
     render(<DirectorStage productionId={7} assets={assets} directorAssetIds={assets.map(({ id }) => id)} onUpload={vi.fn()} onRefresh={vi.fn()} />)
 
-    const gallery = screen.getByRole("radio", { name: "Gallery view" })
-    const list = screen.getByRole("radio", { name: "List view" })
-    expect(gallery.getAttribute("data-state")).toBe("on")
-    expect(document.querySelector('[data-view="gallery"]')).toBeTruthy()
-    expect(document.querySelectorAll(".director-gallery-column")).toHaveLength(5)
-    expect(screen.getAllByRole("heading", { level: 3 })[0]?.textContent).toBe("Visual 6")
-
-    fireEvent.click(list)
-    expect(list.getAttribute("data-state")).toBe("on")
-    expect(document.querySelector('.director-gallery-items[data-view="list"]')).toBeTruthy()
-    expect(screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual([
-      "Visual 6", "Visual 5", "Visual 4", "Visual 3", "Visual 2", "Visual 1",
+    const gallery = document.querySelector<HTMLElement>(".director-gallery-items")
+    expect(gallery).toBeTruthy()
+    expect(gallery?.style.getPropertyValue("--director-gallery-columns")).toBe("5")
+    expect(screen.queryByRole("radio", { name: "List view" })).toBeNull()
+    expect(Array.from(document.querySelectorAll<HTMLButtonElement>(".visual-asset-preview-target")).map((button) => button.getAttribute("aria-label"))).toEqual([
+      "Preview Visual 6", "Preview Visual 5", "Preview Visual 4", "Preview Visual 3", "Preview Visual 2", "Preview Visual 1",
     ])
-    expect(window.localStorage.getItem("auvi-director-gallery-view")).toBe("list")
   })
 
   it("shows canonical technical and library facts beside the full media preview", () => {

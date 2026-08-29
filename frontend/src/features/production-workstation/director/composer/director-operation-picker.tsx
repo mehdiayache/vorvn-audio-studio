@@ -1,22 +1,41 @@
-import { Check, ChevronDown, WandSparkles } from "lucide-react"
+import { Images, PanelsTopLeft, Type, Wallpaper } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { OperatorTooltip } from "@/components/operator-tooltip"
-import { operationLabel, type DirectorOperation, type DirectorOperationInfo } from "./director-composer-config"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import type { DirectorOperation, DirectorOperationInfo } from "./director-composer-config"
+
+function modeLabel(operation: DirectorOperationInfo) {
+  const id = operation.id.replaceAll("-", "_").toLowerCase()
+  if (id.includes("reference")) return "References"
+  if (id.includes("frame")) return "Frames"
+  if (id.includes("image")) return "Image"
+  if (id.includes("text") || id.includes("video")) return "Text"
+  return operation.label
+}
+
+function modeIcon(operation: DirectorOperationInfo) {
+  const label = modeLabel(operation)
+  if (label === "References") return Images
+  if (label === "Frames") return PanelsTopLeft
+  if (label === "Image") return Wallpaper
+  return Type
+}
 
 export function DirectorOperationPicker({ operations, value, onValueChange }: { operations: DirectorOperationInfo[]; value: DirectorOperation; onValueChange: (value: DirectorOperation) => void }) {
-  return <DropdownMenu>
-    <OperatorTooltip label="Creation type" detail="Choose what Director should make from this prompt.">
-      <DropdownMenuTrigger asChild><Button variant="ghost" size="xs" aria-label={`Creation type: ${operationLabel(operations, value)}`}><WandSparkles data-icon="inline-start" />{operationLabel(operations, value)}<ChevronDown data-icon="inline-end" /></Button></DropdownMenuTrigger>
-    </OperatorTooltip>
-    <DropdownMenuContent side="top" align="start" className="w-64">
-      <DropdownMenuLabel>Create</DropdownMenuLabel>
-      <DropdownMenuGroup>{operations.map((operation) => {
-        return <DropdownMenuItem key={operation.id} onSelect={() => onValueChange(operation.id)}>
-          <WandSparkles /><span className="grid min-w-0 gap-0.5"><span>{operation.label}</span><span className="text-xs text-muted-foreground">{operation.detail}</span></span>{operation.id === value && <Check className="ml-auto" />}
-        </DropdownMenuItem>
-      })}</DropdownMenuGroup>
-    </DropdownMenuContent>
-  </DropdownMenu>
+  return <ToggleGroup
+    type="single"
+    variant="outline"
+    value={value}
+    onValueChange={(next) => { if (next) onValueChange(next as DirectorOperation) }}
+    className="director-mode-options"
+    aria-label="Creation mode"
+  >
+    {operations.map((operation) => {
+      const Icon = modeIcon(operation)
+      return <ToggleGroupItem
+        key={operation.id}
+        value={operation.id}
+        aria-label={`${modeLabel(operation)}: ${operation.detail}`}
+      ><Icon />{modeLabel(operation)}</ToggleGroupItem>
+    })}
+  </ToggleGroup>
 }

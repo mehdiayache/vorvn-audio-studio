@@ -1,4 +1,5 @@
-.speak-page { width: min(1640px, calc(100% - 32px)); height: calc(100dvh - 32px); min-height: 680px; margin: 0 auto; padding: 16px 0; }
+.speak-page { width: min(1640px, calc(100% - 32px)); height: calc(100dvh - 32px); min-height: 680px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; margin: 0 auto; padding: 10px 0 16px; }
+.speak-page-location { display: grid; gap: 8px; }
 .speak-workbench { height: 100%; min-height: 0; display: grid; grid-template-columns: minmax(760px, 1fr) minmax(340px, 380px); gap: 14px; }
 .speak-workspace,
 .speak-session { min-width: 0; min-height: 0; overflow: hidden; border: 1px solid var(--border); border-radius: calc(var(--radius) * 1.4); background: var(--surface-raised); box-shadow: var(--shadow-sm); }

@@ -4,9 +4,12 @@
   align-items: center;
   gap: 6px;
   overflow: hidden;
-  color: var(--muted-foreground);
+  color: color-mix(in oklab, var(--foreground) 76%, transparent);
   font-size: var(--type-small);
 }
+
+.shell-breadcrumb-toggle { flex: none; margin-right: 2px; color: var(--foreground); }
+.shell-breadcrumb-toggle + .shell-breadcrumb-root { padding-left: 8px; border-left: 1px solid var(--border); }
 
 .shell-breadcrumb-root,
 .shell-breadcrumb-item,
@@ -23,6 +26,15 @@
   color: inherit;
   text-decoration: none;
 }
+.shell-breadcrumb-root > svg { width: 14px; height: 14px; color: var(--primary); }
+.shell-breadcrumb-switcher { max-width: 15rem; height: 1.75rem; padding-inline: .3rem; color: inherit; font-size: inherit; font-weight: var(--weight-label); }
+.shell-breadcrumb-switcher > span { min-width: 0; }
+.shell-breadcrumb-switcher > svg:last-child { width: .68rem; flex: none; opacity: .6; }
+.shell-breadcrumb-menu { min-width: 15rem; }
+.shell-breadcrumb-menu [role="menuitem"] { justify-content: flex-start; }
+.shell-breadcrumb-menu [role="menuitem"] > span { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shell-breadcrumb-menu [role="menuitem"] > svg:last-child { margin-left: auto; color: var(--primary); }
+.shell-breadcrumb-image { width: 18px; height: 18px; flex: none; border-radius: .3rem; object-fit: cover; }
 
 .shell-breadcrumb-root:hover,
 .shell-breadcrumb-item > a:hover { color: var(--foreground); }

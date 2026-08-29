@@ -169,7 +169,7 @@ describe("Production Workstation", () => {
     render(<TimelineWorkspace session={sessionFor(scene([part({ duration_ms: 30_000 })]))} onAddAudio={onAddAudio} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
     fireEvent.pointerDown(screen.getByRole("button", { name: "Add to Timeline" }), { button: 0, ctrlKey: false, pointerType: "mouse" })
-    fireEvent.click(screen.getByRole("menuitem", { name: "Audio from Library" }))
+    fireEvent.click(screen.getByRole("menuitem", { name: "Audio" }))
 
     expect(onAddAudio).toHaveBeenCalledOnce()
     expect(onAddAudio).toHaveBeenCalledWith({ mode: "new-track" })

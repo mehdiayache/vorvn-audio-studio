@@ -1,19 +1,18 @@
-import { Clock3, Expand, Image as ImageIcon, LoaderCircle, MoreHorizontal, Plus, Sparkles, X, Video } from "lucide-react"
+import { CircleCheck, Clock3, Expand, Image as ImageIcon, LoaderCircle, MoreHorizontal, Plus, Sparkles, Upload, X, Video } from "lucide-react"
 
 import { ActionButton, OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { VentureAsset } from "@/types/domain"
-import { visualAssetFacts, visualAssetName, visualAssetPosterUrl, visualAssetUrl } from "./director-assets"
-import type { DirectorGalleryView } from "./director-gallery"
+import { visualAssetFacts, visualAssetName, visualAssetPlaybackUrl, visualAssetPosterUrl, visualAssetUrl } from "./director-assets"
 
-export function VisualAssetCard({ asset, mode = "director", view = "gallery", pending = false, addLabel = "Add", onPreview, onAdd, onAddToTimeline, onRemove }: {
+export function VisualAssetCard({ asset, mode = "director", pending = false, addLabel = "Add", usedCount = 0, onPreview, onAdd, onAddToTimeline, onRemove }: {
   asset: VentureAsset
   mode?: "director" | "library"
-  view?: DirectorGalleryView
   pending?: boolean
   addLabel?: string
+  usedCount?: number
   onPreview: (asset: VentureAsset) => void
   onAdd?: (asset: VentureAsset) => void
   onAddToTimeline?: (asset: VentureAsset) => void
@@ -22,7 +21,7 @@ export function VisualAssetCard({ asset, mode = "director", view = "gallery", pe
   const name = visualAssetName(asset)
   const url = visualAssetUrl(asset)
   const facts = visualAssetFacts(asset)
-  const ratio = view === "list" ? "16 / 9" : asset.width && asset.height ? `${asset.width} / ${asset.height}` : "4 / 3"
+  const ratio = asset.width && asset.height ? `${asset.width} / ${asset.height}` : "4 / 3"
   const generated = asset.metadata?.origin === "director-generation"
   const provider = String(asset.metadata?.provider_id || "AI")
   const model = String(asset.metadata?.provider_model_id || "generated visual")
@@ -42,22 +41,24 @@ export function VisualAssetCard({ asset, mode = "director", view = "gallery", pe
       </DropdownMenuContent>
     </DropdownMenu>
   </> : null
-  return <article className="visual-asset-card" data-media-type={asset.media_type} data-view={view}>
+  return <article className="visual-asset-card" data-media-type={asset.media_type}>
     <div className="visual-asset-preview" style={{ aspectRatio: ratio }}>
       <button className="visual-asset-preview-target" onClick={() => onPreview(asset)} aria-label={`Preview ${name}`}>
-        <img src={asset.media_type === "video" ? visualAssetPosterUrl(asset) : url} alt="" loading="lazy" decoding="async" />
+        {asset.media_type === "video"
+          ? <video src={visualAssetPlaybackUrl(asset)} poster={visualAssetPosterUrl(asset)} muted playsInline loop preload="metadata" onMouseEnter={(event) => void event.currentTarget.play().catch(() => undefined)} onMouseLeave={(event) => { event.currentTarget.pause(); event.currentTarget.currentTime = 0 }} />
+          : <img src={url} alt="" loading="lazy" decoding="async" />}
       </button>
       <span className="visual-asset-kind">{asset.media_type === "video" ? <Video /> : <ImageIcon />}{asset.media_type === "video" ? "Video" : "Image"}</span>
       {facts.duration && <span className="visual-asset-duration"><Clock3 />{facts.duration}</span>}
-      {generated && <OperatorTooltip label="Generated with AI" detail={`${provider} · ${model}`} side="bottom"><span className="visual-asset-ai" tabIndex={0}><Sparkles /></span></OperatorTooltip>}
-      {view === "gallery" && actionButtons && <div className="visual-asset-hover-actions">{actionButtons}</div>}
+      <OperatorTooltip label={generated ? "Generated with AI" : "Uploaded media"} detail={generated ? `${provider} · ${model}` : "Added from this Venture or Studio library."} side="bottom"><span className={`visual-asset-origin${generated ? " is-ai" : ""}`} tabIndex={0}>{generated ? <Sparkles /> : <Upload />}{generated ? "AI" : "Upload"}</span></OperatorTooltip>
+      {usedCount > 0 && <OperatorTooltip label="Used in Timeline" detail={usedCount === 1 ? "This media has one Timeline placement." : `This media has ${usedCount} Timeline placements.`} side="bottom"><span className="visual-asset-used" tabIndex={0}><CircleCheck /></span></OperatorTooltip>}
+      {actionButtons && <div className="visual-asset-hover-actions">{actionButtons}</div>}
     </div>
-    <footer>
+    {mode === "library" && <footer>
       <div><h3 title={name}>{name}</h3><p>{facts.dimensions} · {facts.format}</p></div>
-      {mode === "library" && onAdd
+      {onAdd
         ? <ActionButton size="sm" busy={pending} busyLabel="Adding…" onClick={() => onAdd(asset)}><Plus /> {addLabel}</ActionButton>
         : null}
-    </footer>
-    {view === "list" && actionButtons && <div className="visual-asset-list-actions">{actionButtons}</div>}
+    </footer>}
   </article>
 }

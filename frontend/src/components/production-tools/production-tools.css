@@ -25,7 +25,7 @@
 .asset-toolbar-context { min-width: 0; flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
 .asset-toolbar-context > [data-slot="select-trigger"] { width: 128px; flex: none; background: var(--surface-raised); }
 .asset-toolbar-context > [data-slot="select-trigger"][aria-label="Asset category"] { width: 142px; }
-.asset-toolbar-context > [data-slot="select-trigger"][aria-label="Asset library"] { width: 137px; }
+.asset-toolbar-context > [data-slot="select-trigger"][aria-label="Asset availability"] { width: 145px; }
 .asset-toolbar-context > [data-slot="select-trigger"][aria-label="License"] { width: 165px; }
 .asset-search { position: relative; display: block; margin: 0; }
 .asset-search > svg { position: absolute; z-index: 1; top: 50%; left: 11px; width: 15px; height: 15px; transform: translateY(-50%); color: var(--foreground); opacity: .62; }

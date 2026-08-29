@@ -2052,6 +2052,13 @@ export interface components {
             /** Runs */
             runs: number;
         };
+        /** ActivityMediaSpendResponse */
+        ActivityMediaSpendResponse: {
+            /** Audio */
+            audio: number;
+            /** Video */
+            video: number;
+        };
         /** ActivityRunResponse */
         ActivityRunResponse: {
             /** Actor Id */
@@ -2175,6 +2182,7 @@ export interface components {
             };
             /** Month */
             month: number;
+            month_media: components["schemas"]["ActivityMediaSpendResponse"];
             /** Problems */
             problems: number;
             /** Running */
@@ -2185,8 +2193,10 @@ export interface components {
             runs_list: components["schemas"]["ActivityRunResponse"][];
             /** Today */
             today: number;
+            today_media: components["schemas"]["ActivityMediaSpendResponse"];
             /** Total */
             total: number;
+            total_media: components["schemas"]["ActivityMediaSpendResponse"];
         };
         /** AppliedPronunciationResponse */
         AppliedPronunciationResponse: {
@@ -4063,6 +4073,11 @@ export interface components {
         };
         /** ProductionAccountingResponse */
         ProductionAccountingResponse: {
+            /**
+             * Audio Spend
+             * @default 0
+             */
+            audio_spend: number;
             /** Current Sequence Cost */
             current_sequence_cost: number;
             /** Historical Spend */
@@ -4073,6 +4088,11 @@ export interface components {
             tracked_spend: number;
             /** Untracked Legacy Spend */
             untracked_legacy_spend: number;
+            /**
+             * Video Spend
+             * @default 0
+             */
+            video_spend: number;
         };
         /** ProductionContext */
         ProductionContext: {

@@ -1,10 +1,11 @@
-import { ArrowRight, Building2, FileAudio2, Plus, Sparkles } from "lucide-react"
+import { ArrowRight, Building2, Clock3, FileAudio2, Plus, Sparkles } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
+import { ShellBreadcrumbs } from "@/components/shell-breadcrumbs"
 import { VentureMark } from "@/components/venture-mark"
-import { formatUpdated } from "@/lib/format"
+import { formatMoney, formatUpdated } from "@/lib/format"
 import { resourceHref } from "@/lib/links"
 import type { HierarchyNode } from "@/types/domain"
 import { CreateVentureDialog } from "./create-venture-dialog"
@@ -47,10 +48,11 @@ export function VentureDirectoryPage({ items }: { items: HierarchyNode[] }) {
 
   return <main className="work-page work-home-page">
     <div className="work-home-inner">
+      <ShellBreadcrumbs className="work-home-breadcrumbs" />
       <header className="work-welcome"><div><span><Sparkles /> Auvi Studio</span><h1>Welcome back</h1><p>Choose a Venture, or continue the Production you were shaping.</p></div><Button onClick={() => setCreating(true)}><Plus /> New Venture</Button></header>
 
       {recent.length > 0 && <WorkSection title="Continue where you left off" description="Your most recently updated Productions." count={recent.length}>
-        <div className="continue-strip">{recent.map((production) => <Link to={resourceHref("production", production.public_id)} className="continue-production" key={production.key}><span className="continue-production-icon"><FileAudio2 /></span><span><b>{production.name}</b><small>{productionContext(production, items)}{formatUpdated(production.updated_at) ? ` · ${formatUpdated(production.updated_at)}` : ""}</small></span><ArrowRight /></Link>)}</div>
+        <div className="production-summary-list continue-production-table">{recent.map((production) => <article className="production-summary-row" key={production.key}><Link to={resourceHref("production", production.public_id)} className="production-summary-main"><span className="production-summary-icon"><FileAudio2 /></span><span className="production-summary-copy"><b>{production.name}</b><span className="production-summary-meta"><small className="production-context">{productionContext(production, items) || "Standalone Production"}</small><small>{production.metrics.parts} Part{production.metrics.parts === 1 ? "" : "s"}</small></span></span><span className="production-summary-stats"><b><Clock3 /> {formatUpdated(production.updated_at) || "Recently updated"}</b><small>{production.metrics.cost ? formatMoney(production.metrics.cost) : "No recorded spend"}</small></span><ArrowRight className="production-summary-open" /></Link></article>)}</div>
       </WorkSection>}
 
       <WorkSection title="Ventures" description="Each Venture keeps its Projects, shared media and Productions together." count={entries.length}>

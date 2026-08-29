@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { RecordingClipCard, type RecordingClipView } from "@/components/recording-clip-card"
+import { ShellBreadcrumbs } from "@/components/shell-breadcrumbs"
 import { StandaloneComposerHost } from "@/features/composer/standalone-composer-host"
 import { ErrorState, InlineResourceError, PageLoading } from "@/components/state-panel"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -172,7 +173,7 @@ export function SpeakPage() {
 
   return <main className="speak-page">
     <h1 className="sr-only">Speak</h1>
-    {voices.error && voices.config && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void voices.refresh()} />}
+    <div className="speak-page-location"><ShellBreadcrumbs leaf="Speak" />{voices.error && voices.config && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void voices.refresh()} />}</div>
     <div className="speak-workbench">
       <section className="speak-workspace"><StandaloneComposerHost config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} generationState={generationState} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} /></section>
       <aside className="speak-session" aria-live="polite">

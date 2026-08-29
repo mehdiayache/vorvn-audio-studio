@@ -13,12 +13,14 @@
 .work-home-inner,
 .work-content { padding-block: 34px 96px; }
 
+.work-home-breadcrumbs { min-height: 2rem; }
+
 .work-welcome {
   display: flex;
   align-items: end;
   justify-content: space-between;
   gap: 2rem;
-  padding: 18px 0 36px;
+  padding: 12px 0 36px;
 }
 .work-welcome > div > span { display: inline-flex; align-items: center; gap: 7px; color: var(--primary); font-size: var(--type-small); font-weight: var(--weight-emphasis); }
 .work-welcome > div > span svg { width: 1rem; }
@@ -139,6 +141,7 @@
 .production-summary-stats small { color: color-mix(in oklch, var(--foreground) 62%, transparent); font-size: var(--type-caption); }
 .production-summary-open { width: 14px; color: color-mix(in oklch, var(--foreground) 48%, transparent); }
 .production-summary-row > button { align-self: center; margin-right: 7px; }
+.continue-production-table .production-summary-main { grid-template-columns: 2.35rem minmax(0, 1fr) minmax(10rem, auto) 1rem; }
 .work-production-status { display: inline-flex; align-items: center; gap: 5px; font-size: var(--type-caption); font-weight: var(--weight-emphasis); text-transform: capitalize; }
 .work-production-status i { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--border-strong); }
 .work-production-status.is-draft i { background: var(--draft); }

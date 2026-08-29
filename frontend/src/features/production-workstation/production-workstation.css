@@ -5,28 +5,22 @@
   height: calc(100dvh - var(--studio-standalone-header-height) - var(--studio-local-chrome-height));
   min-height: 42rem;
   display: grid;
-  grid-template-rows: 3.75rem minmax(0, 1fr);
+  grid-template-rows: 7.35rem minmax(0, 1fr);
   overflow: hidden;
-  background: oklch(0.972 0.005 72);
+  background: var(--workspace-background);
 }
 .production-workstation[data-outline-open="false"] { --ws-left-current: 2.85rem; }
 .production-workstation[data-inspector-expanded="true"] { --ws-right: clamp(34rem, 43vw, 46rem); }
 .production-workstation[data-stage="sound"] { --ws-left: clamp(9.5rem, 10vw, 11rem); --ws-right: clamp(20rem, 23vw, 25rem); }
+.production-workstation[data-stage="director"] { --ws-left: clamp(20rem, 25vw, 25rem); }
 .ws-kicker { color: var(--muted-foreground); font-size: .675rem; font-weight: var(--weight-emphasis); letter-spacing: .105em; text-transform: uppercase; }
 
-.ws-header { z-index: 4; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .8rem; padding: .35rem .85rem .2rem; border: 0; background: transparent; }
+.ws-header { z-index: 4; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 1.8rem 2.45rem 2.7rem; align-items: center; column-gap: .8rem; padding: .1rem .85rem .3rem; border: 0; background: transparent; }
+.ws-context-rail { min-width: 0; grid-column: 1 / -1; display: flex; align-items: center; gap: .45rem; border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent); }
+.ws-context-rail .shell-breadcrumbs { flex: 1; }
 .ws-header-context, .ws-action-buttons, .ws-header dl, .ws-header dl > div { display: flex; align-items: center; }
-.ws-header-context { min-width: 0; gap: .55rem; }
+.ws-header-context { min-width: 0; grid-column: 1; grid-row: 2; gap: .55rem; }
 .ws-shell-toggle { flex: none; color: var(--muted-foreground); }
-.ws-parent-link { max-width: 11rem; overflow: hidden; color: var(--foreground); font-size: .82rem; font-weight: var(--weight-emphasis); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
-.ws-parent-link:hover { color: var(--foreground); }
-.ws-parent-switcher { min-width: 0; max-width: 11rem; height: 2rem; gap: .3rem; padding-inline: .35rem; color: var(--foreground); font-size: .82rem; font-weight: var(--weight-emphasis); }
-.ws-parent-switcher > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ws-parent-switcher > svg { width: .7rem; flex: none; color: var(--muted-foreground); }
-.ws-parent-menu { min-width: 14rem; }
-.ws-parent-menu [role="menuitem"] { justify-content: space-between; }
-.ws-parent-menu [role="menuitem"] > svg { width: .78rem; color: var(--primary); }
-.ws-breadcrumb-separator { width: .72rem; flex: none; color: var(--border-strong); }
 .ws-inline-name { position: relative; min-width: 5rem; max-width: 17rem; }
 .ws-inline-name h1 { margin: 0; overflow: hidden; font-size: .9rem; letter-spacing: -.02em; text-overflow: ellipsis; white-space: nowrap; }
 .ws-inline-name h1 > button { max-width: 100%; display: flex; align-items: center; gap: .35rem; overflow: hidden; padding: .25rem .3rem; border: 0; border-radius: .4rem; color: var(--foreground); background: transparent; font: inherit; text-overflow: ellipsis; white-space: nowrap; }
@@ -41,23 +35,29 @@
 .ws-save-state.is-saved { color: var(--success); }
 .ws-header dl { flex: none; gap: .65rem; margin: 0 0 0 .15rem; padding-left: .7rem; border-left: 1px solid var(--border); }
 .ws-header dl > div { gap: .3rem; }
-.ws-header dt { color: var(--muted-foreground); font-size: .62rem; }
+.ws-header dl svg { width: .78rem; color: var(--muted-foreground); }
+.ws-header dt { color: color-mix(in oklab, var(--foreground) 68%, transparent); font-size: .62rem; }
 .ws-header dd { margin: 0; font-size: .7rem; font-weight: var(--weight-emphasis); font-variant-numeric: tabular-nums; }
-.ws-header-actions { min-width: 0; display: flex; justify-content: flex-end; align-items: center; }
+.ws-production-facts > div { cursor: default; }
+.ws-spending { gap: .5rem !important; }
+.ws-spending > dt { font-weight: var(--weight-label); }
+.ws-spending > div { gap: .24rem !important; cursor: default; }
+.ws-spending > div:first-of-type svg { color: var(--success); }
+.ws-spending > div:last-of-type svg { color: var(--primary); }
+.ws-header-actions { min-width: 0; grid-column: 2; grid-row: 2; display: flex; justify-content: flex-end; align-items: center; }
 .ws-action-buttons { flex: none; gap: .4rem; }
 .ws-action-buttons [data-slot="button"] svg { width: .9rem; }
 .ws-action-buttons [data-slot="button"] > svg:last-child { width: .7rem; opacity: .65; }
 .ws-warning-icon { color: var(--warning); }
 
-.ws-workflow { justify-self: center; display: flex; align-items: center; gap: .15rem; padding: .2rem; border: 1px solid var(--border); border-radius: .72rem; background: var(--muted); }
-.ws-workflow button { min-width: 0; display: flex; align-items: center; gap: .35rem; padding: .38rem .55rem; border: 0; border-radius: .52rem; color: var(--muted-foreground); background: transparent; white-space: nowrap; }
-.ws-workflow button > span { width: 1.2rem; height: 1.2rem; display: grid; place-items: center; border: 1px solid var(--border-strong); border-radius: 999px; font-size: .59rem; font-weight: var(--weight-emphasis); }
-.ws-workflow button > svg { width: .82rem; }
-.ws-workflow button b { color: inherit; font-size: .68rem; }
+.ws-workflow { grid-column: 1 / -1; grid-row: 3; align-self: center; justify-self: center; width: min(30rem, 100%); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .2rem; padding: .2rem; border: 1px solid var(--border); border-radius: .72rem; background: var(--surface-raised); box-shadow: var(--shadow-xs); }
+.ws-workflow button { position: relative; min-width: 0; min-height: 2.15rem; display: flex; align-items: center; justify-content: center; gap: .42rem; padding: .4rem .7rem; border: 0; border-radius: .52rem; color: color-mix(in oklab, var(--foreground) 86%, transparent); background: transparent; white-space: nowrap; }
+.ws-workflow button::after { display: none; }
+.ws-workflow button > svg { width: .92rem; flex: none; }
+.ws-workflow button b { color: inherit; font-size: .74rem; font-weight: var(--weight-label); }
 .ws-workflow button small { display: none; }
-.ws-workflow button:hover { background: var(--surface-subtle); }
-.ws-workflow button.is-active { color: var(--primary); background: var(--surface-raised); box-shadow: var(--shadow-xs); }
-.ws-workflow button.is-active > span { color: var(--primary-foreground); border-color: var(--primary); background: var(--primary); }
+.ws-workflow button:hover { color: var(--foreground); background: var(--surface-subtle); }
+.ws-workflow button.is-active { color: var(--primary); background: var(--primary-soft); }
 .ws-body { position: relative; min-width: 0; min-height: 0; display: grid; grid-template-columns: var(--ws-left-current) minmax(28rem, 1fr); gap: .65rem; padding: .35rem .75rem .75rem; transition: grid-template-columns 200ms ease; }
 .production-workstation[data-inspector-open="true"] .ws-body { grid-template-columns: var(--ws-left-current) minmax(28rem, 1fr) var(--ws-right); }
 .production-workstation[data-stage="sound"] .ws-body { grid-template-columns: minmax(38rem, 1fr); }
@@ -254,6 +254,17 @@
 .ws-mix-canvas { width: min(70rem, 100%); margin: 0 auto; padding: 1.25rem 1.5rem 8rem; }
 .ws-mix-canvas .mix-export-workspace { max-width: none; }
 
+.ws-export-dialog { width: min(92rem, calc(100vw - 2rem)); max-width: none !important; height: min(88dvh, 58rem); grid-template-rows: auto minmax(0, 1fr); gap: 0; overflow: hidden; padding: 0; }
+.ws-export-dialog-header { padding: 1rem 3.5rem 1rem 1.25rem; border-bottom: 1px solid var(--border); background: var(--surface-raised); }
+.ws-export-dialog-header [data-slot="dialog-title"] { font-size: var(--type-heading-lg); }
+.ws-export-dialog-header [data-slot="dialog-description"] { color: color-mix(in oklab, var(--foreground) 72%, transparent); }
+.ws-export-dialog-body { min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(34rem, 1fr) minmax(19rem, 23rem); background: var(--workspace-background); }
+.ws-export-dialog-main { min-width: 0; min-height: 0; overflow: auto; padding: 1.25rem; }
+.ws-export-dialog-main .mix-export-workspace { max-width: 68rem; margin: 0 auto; }
+.ws-export-dialog-review { min-width: 0; min-height: 0; overflow: auto; border-left: 1px solid var(--border); background: var(--surface-raised); }
+.ws-export-dialog-review > header { padding: 1rem 1rem .15rem; }
+.ws-export-dialog-review > header h2 { margin-top: .18rem; font-size: var(--type-heading-sm); }
+
 .ws-part-inspector { position: relative; min-height: 100%; height: 100%; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; background: var(--surface-raised); }
 .ws-inspector-identity { min-width: 0; display: grid; grid-template-columns: 3rem minmax(0, 1fr) auto; align-items: center; gap: .8rem; padding: 1rem; }
 .ws-inspector-media-actions { display: flex; align-items: center; gap: .2rem; }
@@ -348,13 +359,17 @@
   .production-workstation { --ws-left: 12.5rem; --ws-right: 22rem; }
   .production-workstation[data-inspector-expanded="true"] { --ws-right: 37rem; }
   .ws-workflow button { padding-inline: .42rem; }
-  .ws-workflow button > svg { display: none; }
   .ws-header dl { gap: .48rem; padding-left: .5rem; }
   .ws-header dt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 }
+@media (max-width: 60rem) {
+  .ws-export-dialog-body { grid-template-columns: minmax(0, 1fr); }
+  .ws-export-dialog-review { display: none; }
+}
 @media (max-width: 64rem) {
   .production-workstation { height: auto; min-height: calc(100dvh - var(--studio-standalone-header-height) - var(--studio-local-chrome-height)); grid-template-rows: auto minmax(0, 1fr); overflow: visible; }
-  .ws-header { min-height: 4rem; grid-template-columns: minmax(0, 1fr) auto; }
+  .ws-header { min-height: 5.5rem; grid-template-columns: minmax(0, 1fr) auto; }
+  .ws-context-rail { grid-column: 1 / -1; }
   .ws-workflow { grid-column: 1 / -1; justify-self: start; }
   .ws-header dl, .ws-action-buttons > [data-slot="button"]:nth-of-type(2) { display: none; }
   .ws-body, .production-workstation[data-inspector-open="true"] .ws-body, .production-workstation[data-inspector-expanded="true"] .ws-body { grid-template-columns: var(--ws-left-current) minmax(28rem, 1fr); }

@@ -11,6 +11,8 @@ ZERO_ACCOUNTING = {
     "retained_generation_cost": 0.0,
     "tracked_spend": 0.0,
     "untracked_legacy_spend": 0.0,
+    "audio_spend": 0.0,
+    "video_spend": 0.0,
 }
 
 
@@ -42,7 +44,9 @@ class ProductionAccountingRepository:
                   SELECT production_id,
                          coalesce(sum(effective_cost), 0) AS all_spend,
                          coalesce(sum(effective_cost)
-                             FILTER (WHERE kind = 'speech'), 0) AS speech_spend
+                             FILTER (WHERE kind = 'speech'), 0) AS speech_spend,
+                         coalesce(sum(effective_cost)
+                             FILTER (WHERE kind = 'director_generate'), 0) AS director_spend
                     FROM effective_jobs WHERE production_id = ANY(%s)
                    GROUP BY production_id
                 ), retained AS (
@@ -61,6 +65,7 @@ class ProductionAccountingRepository:
                 )
                 SELECT requested.production_id, coalesce(tracked.all_spend, 0),
                        coalesce(tracked.speech_spend, 0),
+                       coalesce(tracked.director_spend, 0),
                        coalesce(retained.retained_cost, 0),
                        coalesce(current_sequence.current_cost, 0)
                   FROM requested
@@ -69,8 +74,9 @@ class ProductionAccountingRepository:
                   LEFT JOIN current_sequence USING (production_id)
             """, (production_ids, production_ids, production_ids, production_ids))
             result = {}
-            for production_id, tracked, tracked_speech, retained, current in cur.fetchall():
+            for production_id, tracked, tracked_speech, director_spend, retained, current in cur.fetchall():
                 tracked, tracked_speech = float(tracked), float(tracked_speech)
+                director_spend = float(director_spend)
                 retained, current = float(retained), float(current)
                 legacy_gap = max(0.0, retained - tracked_speech)
                 result[production_id] = {
@@ -79,6 +85,8 @@ class ProductionAccountingRepository:
                     "retained_generation_cost": round(retained, 6),
                     "tracked_spend": round(tracked, 6),
                     "untracked_legacy_spend": round(legacy_gap, 6),
+                    "audio_spend": round(max(0.0, tracked + legacy_gap - director_spend), 6),
+                    "video_spend": round(director_spend, 6),
                 }
             return result
 

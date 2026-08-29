@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 
 ModelStatus = Literal["draft", "verified", "enabled"]
-MANIFEST_VERSION = "2026-08-29.2"
+MANIFEST_VERSION = "2026-08-29.3"
 
 # Exact enabled KIE contracts used to build the manifests below. Begin at
 # KIE's model index, then use the page whose request example names the same
@@ -102,7 +102,7 @@ def _kling_video_fields() -> list[dict[str, Any]]:
     return [
         _field(
             "audio", "boolean", "Generate audio",
-            default=False, exposure="advanced",
+            default=False, exposure="primary",
         ),
         _field(
             "customize_multi_shots", "boolean", "Direct multiple shots",

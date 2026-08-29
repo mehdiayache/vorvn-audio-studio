@@ -13,7 +13,7 @@
   display: grid;
   grid-template-columns: var(--studio-rail-current) minmax(0, 1fr);
   overflow: hidden;
-  background: oklch(0.972 0.005 72);
+  background: var(--workspace-background);
   transition: grid-template-columns 180ms ease;
 }
 

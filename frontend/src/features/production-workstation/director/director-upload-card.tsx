@@ -1,8 +1,7 @@
-import { AlertCircle, LoaderCircle, RotateCcw, X } from "lucide-react"
+import { AlertCircle, Image, LoaderCircle, RotateCcw, Upload, Video, X } from "lucide-react"
 
 import { OperatorIconButton } from "@/components/operator-action"
 import { Skeleton } from "@/components/ui/skeleton"
-import type { DirectorGalleryView } from "./director-gallery"
 
 export type DirectorUploadItem = {
   id: string
@@ -13,13 +12,13 @@ export type DirectorUploadItem = {
   assetId?: number
 }
 
-export function DirectorUploadCard({ item, view = "gallery", onRetry, onDismiss }: {
+export function DirectorUploadCard({ item, onRetry, onDismiss }: {
   item: DirectorUploadItem
-  view?: DirectorGalleryView
   onRetry: (item: DirectorUploadItem) => void
   onDismiss: (item: DirectorUploadItem) => void
 }) {
   const failed = item.status === "failed"
+  const video = item.file.type.startsWith("video/")
   const label = item.status === "queued"
     ? "Waiting to upload"
     : item.status === "attaching"
@@ -27,13 +26,15 @@ export function DirectorUploadCard({ item, view = "gallery", onRetry, onDismiss 
       : failed
         ? "Upload needs attention"
         : "Uploading…"
-  return <article className="visual-asset-card director-upload-card" data-status={item.status} data-view={view}>
+  return <article className="visual-asset-card director-upload-card" data-status={item.status}>
     <div className="visual-asset-preview director-upload-preview">
       {item.previewUrl
-        ? item.file.type.startsWith("video/")
+        ? video
           ? <video src={item.previewUrl} muted preload="metadata" playsInline />
           : <img src={item.previewUrl} alt="" />
         : <Skeleton className="director-upload-skeleton" />}
+      <span className="visual-asset-kind">{video ? <Video /> : <Image />}{video ? "Video" : "Image"}</span>
+      <span className="visual-asset-origin"><Upload />Upload</span>
       <span className="director-upload-state">{failed ? <AlertCircle /> : <LoaderCircle className="spin" />}{label}</span>
     </div>
     <footer>

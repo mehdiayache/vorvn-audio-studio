@@ -14,6 +14,7 @@ KIND_LABELS = {
     "render": "Production render", "clone": "Voice cloning",
     "audio_generate": "Audio generation",
     "sound_recipe_normalize": "Sound Recipe",
+    "director_generate": "Director generation",
     "production_deleted": "Production deleted",
 }
 
@@ -216,7 +217,25 @@ class ActivityRepository:
                        coalesce(sum(spend), 0), count(*),
                        count(*) FILTER
                            (WHERE status IN
-                              ('failed','warning','blocked','lost'))
+                              ('failed','warning','blocked','lost')),
+                       coalesce(sum(spend) FILTER
+                           (WHERE created_at::date = current_date
+                              AND kind IS DISTINCT FROM 'director_generate'), 0),
+                       coalesce(sum(spend) FILTER
+                           (WHERE created_at::date = current_date
+                              AND kind = 'director_generate'), 0),
+                       coalesce(sum(spend) FILTER
+                           (WHERE date_trunc('month', created_at) =
+                                  date_trunc('month', now())
+                              AND kind IS DISTINCT FROM 'director_generate'), 0),
+                       coalesce(sum(spend) FILTER
+                           (WHERE date_trunc('month', created_at) =
+                                  date_trunc('month', now())
+                              AND kind = 'director_generate'), 0),
+                       coalesce(sum(spend) FILTER
+                           (WHERE kind IS DISTINCT FROM 'director_generate'), 0),
+                       coalesce(sum(spend) FILTER
+                           (WHERE kind = 'director_generate'), 0)
                   FROM effective
             """)
             totals = cursor.fetchone()
@@ -276,6 +295,12 @@ class ActivityRepository:
             "today": float(totals[0]), "month": float(totals[1]),
             "total": float(totals[2]), "runs": totals[3] + deletion_count,
             "problems": totals[4],
+            "today_media": {
+                "audio": float(totals[5]), "video": float(totals[6])},
+            "month_media": {
+                "audio": float(totals[7]), "video": float(totals[8])},
+            "total_media": {
+                "audio": float(totals[9]), "video": float(totals[10])},
             "running": [item for item in runs if item["status"] in {
                 "queued", "running", "retrying"}],
             "runs_list": runs, "kinds": KIND_LABELS,

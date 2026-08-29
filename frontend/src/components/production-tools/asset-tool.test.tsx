@@ -28,7 +28,7 @@ describe("AssetTool", () => {
     expect(view.getByRole("tab", { name: "Library" }).getAttribute("aria-selected")).toBe("true")
     fireEvent.click(view.getByRole("button", { name: "Filters" }))
     expect(screen.getByRole("combobox", { name: "Asset category" }).textContent).toContain("All categories")
-    expect(screen.getByRole("combobox", { name: "Asset library" }).textContent).toContain("All libraries")
+    expect(screen.getByRole("combobox", { name: "Asset availability" }).textContent).toContain("All available")
     expect(screen.getByRole("combobox", { name: "Asset source" }).textContent).toContain("All sources")
     expect(container.querySelector(".asset-source-rail")).toBeNull()
   })
@@ -312,8 +312,23 @@ describe("AssetTool", () => {
     expect(view.queryByRole("button", { name: "Select Night room" })).toBeNull()
     fireEvent.change(view.getByPlaceholderText("Search your audio"), { target: { value: "" } })
     fireEvent.click(view.getByRole("button", { name: "Filters" }))
-    fireEvent.click(screen.getByRole("combobox", { name: "Asset library" }))
+    fireEvent.click(screen.getByRole("combobox", { name: "Asset availability" }))
     fireEvent.click(screen.getByRole("option", { name: "Studio Library" }))
+    expect(view.getByRole("button", { name: "Select Wooden knock" })).toBeTruthy()
+    expect(view.queryByRole("button", { name: "Select Night room" })).toBeNull()
+  })
+
+  it("can focus the audio Library on Assets already used in this Production", () => {
+    const library = [
+      { id: 21, name: "Night room", scope: "venture" as const },
+      { id: 22, name: "Wooden knock", scope: "studio" as const },
+    ]
+    const { container } = render(<AssetTool assets={library} usedAssetIds={[22]} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
+    const view = within(container)
+    fireEvent.click(view.getByRole("button", { name: "Filters" }))
+    fireEvent.click(screen.getByRole("combobox", { name: "Asset availability" }))
+    fireEvent.click(screen.getByRole("option", { name: "This Production" }))
+
     expect(view.getByRole("button", { name: "Select Wooden knock" })).toBeTruthy()
     expect(view.queryByRole("button", { name: "Select Night room" })).toBeNull()
   })

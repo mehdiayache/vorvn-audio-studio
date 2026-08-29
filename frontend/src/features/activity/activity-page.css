@@ -5,6 +5,10 @@
 .activity-totals article { padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-raised); }
 .activity-totals small { display: block; color: var(--muted-foreground); }
 .activity-totals b { display: block; margin-top: 7px; font-size: 1.55rem; }
+.activity-media-spend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 13px; padding-top: 10px; border-top: 1px solid var(--border); }
+.activity-media-spend span { display: inline-flex; align-items: center; gap: 5px; color: color-mix(in oklab, var(--foreground) 72%, transparent); font-size: var(--type-caption); font-variant-numeric: tabular-nums; }
+.activity-media-spend svg { width: 13px; color: var(--primary); }
+.activity-media-spend span:first-child svg { color: var(--success); }
 .activity-section { margin-top: 36px; }
 .activity-section > header { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 12px; }
 .activity-section h2 { margin: 3px 0 0; font-size: 1.3rem; }

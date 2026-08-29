@@ -127,6 +127,9 @@ class ControlPlaneRepositoryTests(unittest.TestCase):
             self.assertGreaterEqual(JobRepository().abandon_stale(3600), 1)
             snapshot = repository.snapshot(
                 limit=200, kind="fixture_control", failed_only=True)
+            self.assertEqual(set(snapshot["today_media"]), {"audio", "video"})
+            self.assertEqual(set(snapshot["month_media"]), {"audio", "video"})
+            self.assertEqual(set(snapshot["total_media"]), {"audio", "video"})
             run = next(item for item in snapshot["runs_list"]
                        if item["internal_id"] == job_id)
             self.assertEqual((run["status"], run["actor_label"],

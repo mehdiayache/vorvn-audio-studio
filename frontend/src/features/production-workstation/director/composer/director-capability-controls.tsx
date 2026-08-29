@@ -1,16 +1,18 @@
-import { Clock3, Frame, MonitorUp } from "lucide-react"
-
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { OperatorTooltip } from "@/components/operator-tooltip"
-import { Input } from "@/components/ui/input"
+import { Slider } from "@/components/ui/slider"
 import { ratioChoices, type DirectorOperationCapability, type DirectorParameterValues } from "./director-composer-config"
 
-function InlineSelect({ label, value, values, onValueChange, icon: Icon }: { label: string; value: string; values: string[]; onValueChange: (value: string) => void; icon: typeof Frame }) {
-  if (values.length < 2) return values[0] ? <span className="director-capability-static"><Icon />{values[0]}</span> : null
-  return <Select value={value} onValueChange={onValueChange}>
-    <OperatorTooltip label={label}><SelectTrigger size="sm" aria-label={label} className="director-capability-select"><Icon /><SelectValue /></SelectTrigger></OperatorTooltip>
-    <SelectContent side="top" align="start"><SelectGroup>{values.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectGroup></SelectContent>
-  </Select>
+function ControlSelect({ label, value, values, onValueChange }: { label: string; value: string; values: string[]; onValueChange: (value: string) => void }) {
+  if (!values.length) return null
+  return <label className="director-control-field">
+    <span>{label}</span>
+    {values.length < 2
+      ? <output className="director-capability-static" aria-label={label}>{values[0]}</output>
+      : <Select value={value} onValueChange={onValueChange}>
+        <SelectTrigger aria-label={label} className="director-capability-select"><SelectValue /></SelectTrigger>
+        <SelectContent align="start"><SelectGroup>{values.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectGroup></SelectContent>
+      </Select>}
+  </label>
 }
 
 export function DirectorCapabilityControls({ capability, parameters, ratio, resolution, duration, onRatioChange, onResolutionChange, onDurationChange }: {
@@ -26,16 +28,20 @@ export function DirectorCapabilityControls({ capability, parameters, ratio, reso
   const video = capability.output_media_type === "video"
   const ratios = ratioChoices(capability, parameters).values
   return <div className="director-capability-controls">
-    <InlineSelect label="Aspect ratio" value={ratio} values={ratios} onValueChange={onRatioChange} icon={Frame} />
-    <InlineSelect label={video ? "Video resolution" : "Image size"} value={resolution} values={capability.resolutions} onValueChange={onResolutionChange} icon={MonitorUp} />
-    {capability.durations.length > 0 && <InlineSelect label="Duration" value={String(duration)} values={capability.durations.map(String)} onValueChange={(value) => onDurationChange(Number(value))} icon={Clock3} />}
-    {capability.duration_range && <OperatorTooltip label="Duration" detail={`${capability.duration_range.min}–${capability.duration_range.max} seconds for this model.`}>
-      <label className="director-duration-control"><Clock3 /><Input
-        aria-label="Duration in seconds" type="number"
-        min={capability.duration_range.min} max={capability.duration_range.max} step={capability.duration_range.step}
-        value={duration}
-        onChange={(event) => onDurationChange(Number(event.target.value))}
-      /><span>s</span></label>
-    </OperatorTooltip>}
+    <ControlSelect label="Ratio" value={ratio} values={ratios} onValueChange={onRatioChange} />
+    <ControlSelect label={video ? "Resolution" : "Image size"} value={resolution} values={capability.resolutions} onValueChange={onResolutionChange} />
+    {capability.durations.length > 0 && <ControlSelect label="Duration" value={String(duration)} values={capability.durations.map(String)} onValueChange={(value) => onDurationChange(Number(value))} />}
+    {capability.duration_range && <label className="director-control-field director-duration-field">
+      <span>Duration <output>{duration}s</output></span>
+      <Slider
+        aria-label="Duration in seconds"
+        min={capability.duration_range.min}
+        max={capability.duration_range.max}
+        step={capability.duration_range.step}
+        value={[duration]}
+        onValueChange={(value) => onDurationChange(value[0] ?? capability.duration_range!.default)}
+      />
+      <small>{capability.duration_range.min}s <span>1-second steps</span> {capability.duration_range.max}s</small>
+    </label>}
   </div>
 }

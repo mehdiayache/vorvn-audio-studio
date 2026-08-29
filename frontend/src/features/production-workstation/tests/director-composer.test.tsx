@@ -7,6 +7,7 @@ import { DirectorComposer } from "../director/composer/director-composer"
 import type { DirectorGeneration } from "../director/composer/director-generation-types"
 import { inputMode, ratioChoices, type DirectorOperationCapability } from "../director/composer/director-composer-config"
 import { assignInputs, inputModeIssue } from "../director/composer/director-composer-state"
+import { DirectorGallery } from "../director/director-gallery"
 
 globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
@@ -35,7 +36,7 @@ const catalog = {
 }
 
 const kieParameters = [
-  { key: "audio", type: "boolean", label: "Generate audio", exposure: "advanced", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: [], item: {} },
+  { key: "audio", type: "boolean", label: "Generate audio", exposure: "primary", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: [], item: {} },
   { key: "customize_multi_shots", type: "boolean", label: "Direct multiple shots", exposure: "advanced", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: ["prefer_multi_shots"], item: {} },
   { key: "prefer_multi_shots", type: "boolean", label: "Plan shots automatically", exposure: "advanced", required: false, default: false, options: [], min: null, max: null, step: null, max_length: null, visible_when: {}, conflicts_with: ["customize_multi_shots"], item: {} },
   { key: "multi_prompt", type: "structured_shots", label: "Shots", exposure: "advanced", required: true, default: [], options: [], min: null, max: null, step: null, max_length: null, visible_when: { customize_multi_shots: true }, conflicts_with: [], item: { prompt_max_length: 512, duration_min: 1, duration_max: 15, max_items: 6 } },
@@ -89,8 +90,8 @@ function renderComposer(overrides: Partial<React.ComponentProps<typeof DirectorC
   return render(<DirectorComposer productionId={7} uploading={false} uploadLabel="" libraryAssets={[]} onUploadReference={vi.fn()} {...overrides} />)
 }
 
-async function openOperationPicker() {
-  fireEvent.pointerDown(await screen.findByRole("button", { name: /Creation type:/ }), { button: 0, ctrlKey: false })
+async function chooseMode(name: string) {
+  fireEvent.click(await screen.findByRole("radio", { name: new RegExp(`^${name}:`, "i") }))
 }
 
 async function chooseModel(name: string) {
@@ -100,6 +101,7 @@ async function chooseModel(name: string) {
 
 beforeEach(() => {
   setup()
+  window.localStorage.clear()
   Element.prototype.scrollIntoView = vi.fn()
   Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn((file: File) => `blob:${file.name}`) })
   Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() })
@@ -107,6 +109,55 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 describe("Director composer", () => {
+  it("keeps the model-first creation form in semantic top-to-bottom order", async () => {
+    renderComposer()
+    await chooseModel("Model B")
+    const form = document.querySelector(".director-composer-form")!
+    const ordered = [
+      screen.getByRole("combobox", { name: "Choose generation model" }),
+      screen.getByRole("radiogroup", { name: "Creation mode" }),
+      screen.getByRole("button", { name: "Choose image for Start frame" }),
+      screen.getByRole("button", { name: "Choose image for End frame" }),
+      screen.getByRole("textbox", { name: "Director prompt" }),
+      screen.getByRole("heading", { name: "Primary controls" }),
+      screen.getByRole("button", { name: "Advanced settings" }),
+      screen.getByRole("button", { name: "Generate" }),
+    ]
+    expect(ordered.every((element) => form.contains(element))).toBe(true)
+    ordered.slice(1).forEach((element, index) => {
+      expect(ordered[index]!.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+    expect(screen.queryByRole("button", { name: "Add a reference" })).toBeNull()
+    expect(screen.getByRole("button", { name: "Generate" }).closest(".director-composer-actions")).toBeTruthy()
+    expect(document.querySelector(".director-composer-scroll")?.contains(screen.getByRole("button", { name: "Generate" }))).toBe(false)
+  })
+
+  it("collapses creation into a narrow rail without hiding Creations", async () => {
+    renderComposer({ renderCreations: () => <div>Creation wall</div> })
+    fireEvent.click(await screen.findByRole("button", { name: "Hide Create panel" }))
+
+    expect(screen.getByRole("button", { name: "Show Create panel" })).toBeTruthy()
+    expect(screen.getByText("Creation wall")).toBeTruthy()
+    expect(document.querySelector(".director-composer-shell")?.classList.contains("is-create-collapsed")).toBe(true)
+  })
+
+  it("keeps failed requests out of the normal media wall until failed items are revealed", () => {
+    render(<DirectorGallery
+      assets={[]} uploads={[]}
+      creationItems={[
+        { id: "ready", status: "ready", mediaType: "image", node: <div>Ready creation</div> },
+        { id: "failed", status: "failed", mediaType: "video", node: <div>Failed creation</div> },
+      ]}
+      pendingId={null}
+      onPreview={vi.fn()} onRemove={vi.fn()} onRetryUpload={vi.fn()} onDismissUpload={vi.fn()} onUpload={vi.fn()} onOpenLibrary={vi.fn()}
+    />)
+    expect(screen.getByText("Ready creation")).toBeTruthy()
+    expect(screen.queryByText("Failed creation")).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "Show failed 1" }))
+    expect(screen.getByText("Failed creation")).toBeTruthy()
+    expect(document.querySelector(".director-gallery-items")?.classList.contains("is-single-row")).toBe(true)
+  })
+
   it("keeps Start and End references in semantic order", () => {
     const capability = {
       inputs: [
@@ -236,17 +287,17 @@ describe("Director composer", () => {
     vi.mocked(studioApi.directorModels).mockResolvedValue(primaryCatalog as never)
     renderComposer()
     expect(await screen.findByText("Style", { selector: ".director-primary-parameters span" })).toBeTruthy()
-    expect(screen.queryByRole("button", { name: "Model settings" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Advanced settings" })).toBeTruthy()
   })
 
   it("renders controls from the selected model-operation capability", async () => {
     renderComposer()
-    expect(await screen.findByRole("combobox", { name: "Aspect ratio" })).toBeTruthy()
+    expect(await screen.findByRole("combobox", { name: "Ratio" })).toBeTruthy()
     expect(screen.queryByRole("combobox", { name: "Duration" })).toBeNull()
     await chooseModel("Model B")
     expect(screen.getByRole("combobox", { name: "Choose generation model" }).textContent).toContain("Model B")
-    expect(screen.getByRole("button", { name: "Start frame" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "End frame" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Choose image for Start frame" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Choose image for End frame" })).toBeTruthy()
     expect(screen.getByRole("combobox", { name: "Duration" })).toBeTruthy()
   })
 
@@ -254,10 +305,12 @@ describe("Director composer", () => {
     const onUploadReference = vi.fn().mockResolvedValue({ id: 41, media_type: "image", name: "Canonical image", filename: "canonical.webp" })
     renderComposer({ onUploadReference })
     await screen.findByRole("textbox", { name: "Director prompt" })
+    fireEvent.click(screen.getByRole("button", { name: "Choose image for Reference" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Upload" }))
     const file = new File(["image"], "reference.png", { type: "image/png" })
-    fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, { target: { files: [file] } })
+    fireEvent.change(document.querySelector('input[accept="image/*"]') as HTMLInputElement, { target: { files: [file] } })
     expect(onUploadReference).toHaveBeenCalledWith(file)
-    expect(await screen.findByText("Canonical image")).toBeTruthy()
+    expect(await screen.findByRole("button", { name: "Open reference: Canonical image" })).toBeTruthy()
   })
 
   it("shows only compatible media in an exact semantic slot", async () => {
@@ -266,13 +319,13 @@ describe("Director composer", () => {
       { id: 42, media_type: "audio", name: "Voice", filename: "voice.wav" },
     ] })
     await chooseModel("Model C")
-    fireEvent.click(await screen.findByRole("button", { name: "Voice audio" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Choose audio for Voice audio" }))
     expect(await screen.findByRole("heading", { name: "Choose voice audio" })).toBeTruthy()
-    expect(screen.getByText("Voice", { selector: ".director-reference-item strong" })).toBeTruthy()
-    expect(screen.queryByText("Character", { selector: ".director-reference-item strong" })).toBeNull()
-    fireEvent.click(screen.getByText("Voice", { selector: ".director-reference-item strong" }).closest("button")!)
-    expect(await screen.findByText("Voice", { selector: ".attachment-chip-copy strong" })).toBeTruthy()
-    expect(screen.getByText("Voice audio", { selector: ".attachment-chip-role" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Use Voice" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Use Character" })).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "Use Voice" }))
+    expect(await screen.findByRole("button", { name: "Remove voice audio" })).toBeTruthy()
+    expect(screen.getByText("Voice audio", { selector: ".director-visual-slot > header span" })).toBeTruthy()
   })
 
   it("places a durable-looking queued card immediately while creation starts", async () => {
@@ -280,7 +333,7 @@ describe("Director composer", () => {
     vi.mocked(studioApi.createDirectorGeneration).mockImplementation(() => new Promise((resolve) => { resolveCreate = resolve as (value: DirectorGeneration) => void }) as never)
     renderComposer()
     fireEvent.change(await screen.findByRole("textbox", { name: "Director prompt" }), { target: { value: "A calm harbor at dawn" } })
-    fireEvent.click(screen.getByRole("button", { name: "Create" }))
+    fireEvent.click(screen.getByRole("button", { name: "Generate" }))
     expect(await screen.findByText("Queued")).toBeTruthy()
     expect(screen.getByText("A calm harbor at dawn", { selector: ".director-generation-copy strong" })).toBeTruthy()
     resolveCreate(generation("A calm harbor at dawn"))
@@ -297,7 +350,7 @@ describe("Director composer", () => {
       { id: 42, media_type: "image", name: "Hero side" },
     ] })
     await chooseModel("Model B")
-    fireEvent.click(await screen.findByRole("button", { name: "Start frame" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Choose image for Start frame" }))
     expect(await screen.findByRole("button", { name: /One look/ })).toBeTruthy()
     expect(screen.queryByRole("button", { name: /Two looks/ })).toBeNull()
   })
@@ -322,18 +375,15 @@ describe("Director composer", () => {
     }))
     vi.mocked(studioApi.directorGenerations).mockResolvedValue(saved as never)
     let hiddenOutputIds = new Set<number>()
-    let primaryCount = 0
-    let hasHistory = false
-    renderComposer({ renderCreations: (outputIds, items, history) => {
+    let creationCount = 0
+    renderComposer({ renderCreations: (outputIds, items) => {
       hiddenOutputIds = outputIds
-      primaryCount = items.length
-      hasHistory = Boolean(history)
+      creationCount = items.length
       return <div>Unified creations</div>
     } })
     expect(await screen.findByText("Unified creations")).toBeTruthy()
     await waitFor(() => expect(hiddenOutputIds.size).toBe(8))
-    expect(primaryCount).toBe(6)
-    expect(hasHistory).toBe(true)
+    expect(creationCount).toBe(8)
   })
 
   it("refreshes canonical outputs and exposes preview and Timeline actions", async () => {
@@ -384,10 +434,9 @@ describe("Director composer", () => {
       { id: 41, media_type: "image", name: "Hero front" },
       { id: 42, media_type: "image", name: "Hero side" },
     ] })
-    const settings = await screen.findByRole("button", { name: "Model settings" })
-    expect(screen.queryByText("Generate audio")).toBeNull()
+    const settings = await screen.findByRole("button", { name: "Advanced settings" })
+    expect(screen.getByText("Generate audio", { selector: ".director-parameter-toggle.is-audio span span" })).toBeTruthy()
     fireEvent.click(settings)
-    expect(await screen.findByText("Generate audio")).toBeTruthy()
     expect(screen.getByText("Plan shots automatically")).toBeTruthy()
     expect(screen.getByText("Characters & subjects")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Add subject" }))
@@ -403,22 +452,20 @@ describe("Director composer", () => {
     ] })
     fireEvent.change(await screen.findByRole("textbox", { name: "Director prompt" }), { target: { value: "The product turns slowly" } })
 
-    await openOperationPicker()
-    fireEvent.click(await screen.findByRole("menuitem", { name: /Animate image/ }))
+    await chooseMode("Image")
 
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
-    fireEvent.click((await screen.findByText("Hero front", { selector: ".director-reference-item strong" })).closest("button")!)
+    fireEvent.click(screen.getByRole("button", { name: "Choose image for Source image" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Use Hero front" }))
 
     expect(await screen.findByLabelText("Generation inputs")).toBeTruthy()
-    expect(screen.getByText("Hero front", { selector: ".attachment-chip-copy strong" })).toBeTruthy()
-    expect(screen.getByText("Source image", { selector: ".attachment-chip-role" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: /Creation type: Animate image/ })).toBeTruthy()
-    expect(screen.queryByText(/subject/i, { selector: ".attachment-chip-role" })).toBeNull()
+    expect(screen.getByRole("img", { name: "Source image: Hero front" })).toBeTruthy()
+    expect(screen.getByText("Source image", { selector: ".director-visual-slot > header span" })).toBeTruthy()
+    expect(screen.getByRole("radio", { name: /^Image:/ }).getAttribute("aria-checked")).toBe("true")
+    expect(screen.queryByText(/subject/i, { selector: ".director-visual-slot > header span" })).toBeNull()
 
-    expect((screen.getByRole("button", { name: "Add a reference" }) as HTMLButtonElement).disabled).toBe(true)
-    expect(screen.getByRole("button", { name: /Creation type: Animate image/ })).toBeTruthy()
-    expect(screen.queryByRole("button", { name: /Creation type: Direct with references/ })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Choose image for Source image" })).toBeNull()
+    expect(screen.getByRole("radio", { name: /^Image:/ }).getAttribute("aria-checked")).toBe("true")
+    expect(screen.getByRole("radio", { name: /^References:/ })).toBeTruthy()
     expect((screen.getByRole("textbox", { name: "Director prompt" }) as HTMLTextAreaElement).value).toBe("The product turns slowly")
   })
 
@@ -427,18 +474,16 @@ describe("Director composer", () => {
     renderComposer({ libraryAssets: [
       { id: 41, media_type: "image", name: "Portrait source" },
     ] })
-    await openOperationPicker()
-    fireEvent.click(await screen.findByRole("menuitem", { name: /Animate image/ }))
-    fireEvent.pointerDown(await screen.findByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
-    fireEvent.click((await screen.findByText("Portrait source", { selector: ".director-reference-item strong" })).closest("button")!)
+    await chooseMode("Image")
+    fireEvent.click(await screen.findByRole("button", { name: "Choose image for Source image" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Use Portrait source" }))
 
     expect(await screen.findByText("auto", { selector: ".director-capability-static" })).toBeTruthy()
-    expect(screen.queryByRole("combobox", { name: "Aspect ratio" })).toBeNull()
+    expect(screen.queryByRole("combobox", { name: "Ratio" })).toBeNull()
 
-    fireEvent.click(screen.getByRole("button", { name: "Model settings" }))
+    fireEvent.click(screen.getByRole("button", { name: "Advanced settings" }))
     fireEvent.click(screen.getByRole("switch", { name: "Direct multiple shots" }))
-    expect(await screen.findByRole("combobox", { name: "Aspect ratio" })).toBeTruthy()
+    expect(await screen.findByRole("combobox", { name: "Ratio" })).toBeTruthy()
     expect(screen.queryByText("auto", { selector: ".director-capability-static" })).toBeNull()
   })
 
@@ -446,17 +491,17 @@ describe("Director composer", () => {
     vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
     renderComposer()
     fireEvent.change(await screen.findByRole("textbox", { name: "Director prompt" }), { target: { value: "A calm harbor at dawn" } })
-    fireEvent.click(await screen.findByRole("button", { name: "Model settings" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Advanced settings" }))
     fireEvent.click(screen.getByRole("switch", { name: "Direct multiple shots" }))
     expect(await screen.findByRole("button", { name: "Add shot" })).toBeTruthy()
     expect(screen.getByText("Add at least one directed shot.")).toBeTruthy()
-    expect((screen.getByRole("button", { name: "Create" }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole("button", { name: "Generate" }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it("keeps conflicting creative modes mutually exclusive", async () => {
     vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
     renderComposer()
-    fireEvent.click(await screen.findByRole("button", { name: "Model settings" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Advanced settings" }))
     const direct = screen.getByRole("switch", { name: "Direct multiple shots" })
     const automatic = screen.getByRole("switch", { name: "Plan shots automatically" })
     fireEvent.click(direct)
@@ -472,13 +517,10 @@ describe("Director composer", () => {
       { id: 41, media_type: "image", name: "Hero front" },
       { id: 42, media_type: "image", name: "Hero side" },
     ] })
-    await openOperationPicker()
-    fireEvent.click(await screen.findByRole("menuitem", { name: /Direct with references/ }))
-    fireEvent.pointerDown(await screen.findByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
-    const hero = await screen.findByText("Hero front", { selector: ".director-reference-item strong" })
-    fireEvent.click(hero.closest("button")!)
-    fireEvent.click(screen.getByRole("button", { name: "Model settings" }))
+    await chooseMode("References")
+    fireEvent.click(await screen.findByRole("button", { name: "Choose images for Reference images" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Use Hero front" }))
+    fireEvent.click(screen.getByRole("button", { name: "Advanced settings" }))
     expect(await screen.findByText(/Optional\. Add a character/)).toBeTruthy()
     expect(screen.queryByText("Subject 1")).toBeNull()
   })

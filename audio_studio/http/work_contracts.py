@@ -417,6 +417,8 @@ class ProductionAccountingResponse(BaseModel):
     retained_generation_cost: float
     tracked_spend: float
     untracked_legacy_spend: float
+    audio_spend: float = 0.0
+    video_spend: float = 0.0
 
 
 class ProductionRenderJobResponse(BaseModel):

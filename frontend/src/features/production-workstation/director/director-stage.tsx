@@ -14,12 +14,15 @@ import { DirectorPreviewDialog } from "./director-preview-dialog"
 import type { DirectorUploadItem } from "./director-upload-card"
 import "./director-stage.css"
 
-export function DirectorStage({ centerPaneRef, productionId, ventureId, assets, directorAssetIds, onUpload, onRefresh, onAddToTimeline, onConfirmAction }: {
+export function DirectorStage({ centerPaneRef, productionId, ventureId, createOpen = true, onCreateOpenChange = () => undefined, assets, directorAssetIds, usageCounts, onUpload, onRefresh, onAddToTimeline, onConfirmAction }: {
   centerPaneRef?: RefObject<HTMLElement | null>
   productionId: number
   ventureId?: number
+  createOpen?: boolean
+  onCreateOpenChange?: (open: boolean) => void
   assets: VentureAsset[]
   directorAssetIds: number[]
+  usageCounts?: ReadonlyMap<number, number>
   onUpload: (file: File) => Promise<VentureAsset>
   onRefresh: () => Promise<void>
   onAddToTimeline?: (asset: VentureAsset) => Promise<void>
@@ -152,7 +155,7 @@ export function DirectorStage({ centerPaneRef, productionId, ventureId, assets, 
   const activeUploads = uploads.filter((item) => item.status !== "failed")
   const uploadLabel = activeUploads.length === 1 ? "Uploading visual…" : `Uploading ${activeUploads.length} visuals…`
   return <main
-    className="ws-center-pane director-stage"
+    className="director-stage"
     ref={centerPaneRef}
     onDragEnter={(event) => {
       if (!Array.from(event.dataTransfer.types).includes("Files")) return
@@ -183,13 +186,13 @@ export function DirectorStage({ centerPaneRef, productionId, ventureId, assets, 
       event.target.value = ""
     }} />
     <DirectorComposer
-      productionId={productionId} ventureId={ventureId} uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel}
-      libraryAssets={assets} onUploadReference={uploadReference}
+      productionId={productionId} ventureId={ventureId} createOpen={createOpen} onCreateOpenChange={onCreateOpenChange} uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel}
+      libraryAssets={assets} recentAssetIds={[...directorAssetIds].reverse()} usageCounts={usageCounts} onUploadReference={uploadReference}
       onGenerationOutputReady={onRefresh} onPreviewGenerated={setPreviewAsset}
       onAddGeneratedToTimeline={onAddToTimeline}
-      renderCreations={(generatedOutputIds, generationItems, generationHistory) => <>
+      renderCreations={(generatedOutputIds, generationItems) => <>
         {error && <div className="director-error" role="alert"><b>Director could not finish that action.</b><span>{error}</span></div>}
-        <DirectorGallery assets={collected.filter(({ id }) => !generatedOutputIds.has(id))} uploads={uploads} creationItems={generationItems} footer={generationHistory} pendingId={pendingId} onPreview={setPreviewAsset} onAddToTimeline={onAddToTimeline ? (asset) => {
+        <DirectorGallery assets={collected.filter(({ id }) => !generatedOutputIds.has(id))} uploads={uploads} creationItems={generationItems} usageCounts={usageCounts} pendingId={pendingId} onPreview={setPreviewAsset} onAddToTimeline={onAddToTimeline ? (asset) => {
           setPendingId(asset.id)
           void onAddToTimeline(asset).catch((reason) => setError(reason instanceof Error ? reason.message : "The media could not be added to Timeline.")).finally(() => setPendingId(null))
         } : undefined} onRemove={(asset) => {
@@ -203,7 +206,7 @@ export function DirectorStage({ centerPaneRef, productionId, ventureId, assets, 
         }} onRetryUpload={retryUpload} onDismissUpload={releaseUpload} onUpload={() => inputRef.current?.click()} onOpenLibrary={() => setLibraryOpen(true)} />
       </>}
     />
-    <DirectorLibraryDialog open={libraryOpen} assets={available} pendingId={pendingId} onOpenChange={setLibraryOpen} onPreview={setPreviewAsset} onAdd={(asset) => void attach(asset)} />
+    <DirectorLibraryDialog open={libraryOpen} assets={available} usedAssetIds={[...(usageCounts?.keys() || [])]} pendingId={pendingId} defaultSource="venture" showProductionSource={false} onOpenChange={setLibraryOpen} onPreview={setPreviewAsset} onAdd={(asset) => void attach(asset)} />
     <DirectorPreviewDialog asset={previewAsset} pending={Boolean(previewAsset && pendingId === previewAsset.id)} onAddToTimeline={onAddToTimeline ? (asset) => {
       setPendingId(asset.id)
       void onAddToTimeline(asset).then(() => setPreviewAsset(null)).catch((reason) => setError(reason instanceof Error ? reason.message : "The visual could not be added to Timeline.")).finally(() => setPendingId(null))

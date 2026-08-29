@@ -32,7 +32,7 @@ import type {
 import { workstationPartState, type SequenceInsertKind, type WorkstationPartActions } from "./workstation-sequence"
 import { WorkstationPartInspector } from "./workstation-part-inspector"
 import { DirectorStage } from "./director/director-stage"
-import { ExportStage, ReleaseInspector } from "./export/export-stage"
+import { ExportDialog } from "./export/export-stage"
 import { ScriptStage } from "./script/script-stage"
 import { TimelineStage } from "./timeline/timeline-stage"
 import { productionTimelineDurationMs } from "./timeline/timeline-duration"
@@ -99,10 +99,11 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
   const player = useGlobalPlayer()
   const [stage, setStage] = useState<WorkstationStage>("sequence")
   const [outlineOpen, setOutlineOpen] = useState(true)
+  const [directorCreateOpen, setDirectorCreateOpen] = useState(true)
   const [selectedId, setSelectedId] = useState<number | null>(() => initialSelection(production))
   const [composerOpen, setComposerOpen] = useState(false)
   const [composerPartId, setComposerPartId] = useState<number | null>(null)
-  const [releaseInspectorOpen, setReleaseInspectorOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
   const [tool, setTool] = useState<ToolKind>(null)
   const [audioTarget, setAudioTarget] = useState<AudioTarget | null>(null)
   const [insertBeforePartId, setInsertBeforePartId] = useState<string | null>(null)
@@ -196,6 +197,11 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     ...soundState.scene.document.tracks.flatMap((track) => track.clips.map((clip) => clip.asset_id)),
     ...visualState.document.tracks.flatMap((track) => track.clips.map((clip) => clip.asset_id)),
   ])], [soundState.scene.document.tracks, sourceParts, visualState.document.tracks])
+  const visualUsageCounts = useMemo(() => {
+    const counts = new Map<number, number>()
+    visualState.document.tracks.forEach((track) => track.clips.forEach((clip) => counts.set(clip.asset_id, (counts.get(clip.asset_id) || 0) + 1)))
+    return counts
+  }, [visualState.document.tracks])
   const renameProduction = useCallback(async (name: string) => {
     await studioApi.updateResource<Production>("productions", production.id, { name })
     await refresh()
@@ -253,7 +259,6 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     if (next !== "sound") soundSession.pause()
     setStage(next)
     closeComposer()
-    setReleaseInspectorOpen(next === "mix")
   }, [closeComposer, soundSession])
   const queueRender = useCallback((payload: GeneratePayload) => {
     const request = composerPart ? actions.recordPendingPart(composerPart, payload) : actions.generatePart(payload)
@@ -358,8 +363,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
       : stage === "sound" && visualClip ? `${visualTrack?.media_type === "video" ? "Video" : "Image"} clip`
         : stage === "sound" && soundSelection?.kind === "clip" ? "Audio clip"
         : stage === "sound" && soundSelection?.kind === "clips" ? `${soundSelection.clips.length} audio clips`
-          : stage === "sound" && soundSpan ? `${soundSpan.role || soundSpan.voice_name || "Script Part"} · Mix`
-          : stage === "mix" ? "Release checks" : "Inspector"
+          : stage === "sound" && soundSpan ? `${soundSpan.role || soundSpan.voice_name || "Script Part"} · Mix` : "Inspector"
   const composerInsertAt = insertBeforePartId ? Math.max(0, sourceParts.findIndex((part) => part.public_id === insertBeforePartId)) : null
 
   const inspector = composerOpen ? <ProductionComposerStage
@@ -389,13 +393,9 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     onCommit={(changes) => soundSession.updateSequenceOverride(soundSpan.part_public_id, changes)}
     onOpenSequence={() => { soundSession.select(null); setStage("sequence"); setSelectedId(soundSpan.part_id) }}
   /> : stage === "sound" && soundSelection?.kind === "clips" ? <AudioGroupInspector count={soundSelection.clips.length} />
-    : stage === "mix" && releaseInspectorOpen ? <ReleaseInspector
-      issues={issues} staleOverrides={staleOverrides}
-      onLocate={(id) => { setStage("sequence"); setSelectedId(id); setReleaseInspectorOpen(false); requestAnimationFrame(() => document.getElementById(`ws-part-${id}`)?.scrollIntoView({ block: "center" })) }}
-      onRemoveOverride={(partPublicId) => { void soundSession.removeSequenceOverride(partPublicId) }}
-    /> : <EmptyInspector stage={stage} />
+    : <EmptyInspector stage={stage} />
 
-  const inspectorOpen = composerOpen || stage === "sequence" && Boolean(selectedPart) || stage === "sound" && Boolean(soundSelection || visualSelection) || stage === "mix" && releaseInspectorOpen
+  const inspectorOpen = composerOpen || stage === "sequence" && Boolean(selectedPart) || stage === "sound" && Boolean(soundSelection || visualSelection)
   const collapsedPart = playingPart || (stage === "sequence" ? selectedPart : null)
   const collapsedState = collapsedPart ? workstationPartState(collapsedPart) : issues.length || staleOverrides.length ? "issue" : sourceParts.some((part) => workstationPartState(part) === "draft") ? "draft" : "ready"
   const collapsedNumber = collapsedPart
@@ -405,7 +405,6 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     if (composerOpen) { closeComposer(); return }
     if (stage === "sequence") setSelectedId(null)
     else if (stage === "sound") { soundSession.select(null); visualSession.select(null) }
-    else setReleaseInspectorOpen(false)
   }
 
   const overlaysOpen = Boolean(tool || confirmAction)
@@ -417,8 +416,8 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     }, undefined, stage !== "sound",
   )
   return <>
-    <section className="production-workstation" data-stage={stage} data-outline-open={outlineOpen ? "true" : "false"} data-inspector-open={inspectorOpen ? "true" : "false"} data-inspector-expanded={composerOpen ? "true" : "false"}>
-      <WorkstationHeader production={production} tree={tree} duration={duration} stage={stage} issueCount={issues.length + staleOverrides.length} previewing={stage === "sound" ? soundState.playback === "preparing" : actions.previewing} playing={stage === "sound" ? soundState.playback === "playing" : actions.productionPlaying} mutationStatus={actions.mutationStatus} onStage={changeStage} onPreview={() => { if (stage === "sound") void soundSession.togglePlayback(); else void actions.toggleProduction() }} onAdd={openTool} onDelete={() => setDeleteProductionOpen(true)} onRename={renameProduction} />
+    <section className="production-workstation" data-stage={stage} data-outline-open={(stage === "director" ? directorCreateOpen : outlineOpen) ? "true" : "false"} data-inspector-open={inspectorOpen ? "true" : "false"} data-inspector-expanded={composerOpen ? "true" : "false"}>
+      <WorkstationHeader production={production} tree={tree} duration={duration} stage={stage} issueCount={issues.length + staleOverrides.length} previewing={stage === "sound" ? soundState.playback === "preparing" : actions.previewing} playing={stage === "sound" ? soundState.playback === "playing" : actions.productionPlaying} mutationStatus={actions.mutationStatus} onStage={changeStage} onPreview={() => { if (stage === "sound") void soundSession.togglePlayback(); else void actions.toggleProduction() }} onExport={() => setExportOpen(true)} onAdd={openTool} onDelete={() => setDeleteProductionOpen(true)} onRename={renameProduction} />
       <div className="ws-body">
         {stage === "sequence" && <ScriptStage
           centerPaneRef={centerPaneRef}
@@ -440,8 +439,11 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
           centerPaneRef={centerPaneRef}
           productionId={production.id}
           ventureId={Number(production.trail[0]?.id)}
+          createOpen={directorCreateOpen}
+          onCreateOpenChange={setDirectorCreateOpen}
           assets={assets}
           directorAssetIds={directorAssetIds}
+          usageCounts={visualUsageCounts}
           onRefresh={refreshAssets}
           onConfirmAction={setConfirmAction}
           onAddToTimeline={async (asset) => {
@@ -497,23 +499,6 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
           })}
           onOpenSequence={(partId) => { setStage("sequence"); setSelectedId(partId) }}
         />}
-        {stage === "mix" && <ExportStage
-          centerPaneRef={centerPaneRef}
-          production={production}
-          soundScene={soundScene}
-          visualScene={visualScene}
-          outlineOpen={outlineOpen}
-          collapsedNumber={collapsedNumber}
-          collapsedState={collapsedState}
-          collapsedPlaying={Boolean(playingPart)}
-          onOutlineOpenChange={setOutlineOpen}
-          exportJob={actions.exportJob}
-          onExport={requestExport}
-          onLocatePart={(id) => { setStage("sequence"); setSelectedId(id) }}
-          onOpenHealth={() => setReleaseInspectorOpen(true)}
-          exporting={actions.exporting}
-          exportingFormat={actions.exportingFormat}
-        />}
         {inspectorOpen && <aside className="ws-right-pane" aria-label="Contextual inspector">
           <header><h2>{inspectorTitle}</h2><OperatorIconButton label="Close inspector" detail="Keeps the current Production changes." onClick={closeInspector}><X /></OperatorIconButton></header>
           <div className="ws-inspector-content">{inspector}</div>
@@ -531,6 +516,27 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
         }}
       />
     </section>
+    <ExportDialog
+      open={exportOpen}
+      onOpenChange={setExportOpen}
+      production={production}
+      soundScene={soundState.scene}
+      visualScene={{ ...visualScene, document: visualState.document }}
+      issues={issues}
+      staleOverrides={staleOverrides}
+      exportJob={actions.exportJob}
+      onExport={requestExport}
+      onLocatePart={(id) => {
+        setExportOpen(false)
+        setStage("sequence")
+        setSelectedId(id)
+        requestAnimationFrame(() => document.getElementById(`ws-part-${id}`)?.scrollIntoView({ block: "center" }))
+      }}
+      onOpenHealth={() => undefined}
+      onRemoveOverride={(partPublicId) => { void soundSession.removeSequenceOverride(partPublicId) }}
+      exporting={actions.exporting}
+      exportingFormat={actions.exportingFormat}
+    />
     <DeleteProductionDialog production={production} open={deleteProductionOpen} onOpenChange={setDeleteProductionOpen} onDeleted={() => { player.pause(); navigate(`${audioStudioBase}/projects/${production.project_id}`) }} />
     <PartCaptionsDialog productionId={production.id} part={captionPart} directory={directory} onOpenChange={(open) => { if (!open) setCaptionPartId(null) }} onChanged={async () => { actions.invalidatePreview(); await refresh() }} />
     <MovePartPositionDialog part={movePositionPart} count={sourceParts.length} onClose={() => setMovePositionPart(null)} onMove={actions.movePartToPosition} />

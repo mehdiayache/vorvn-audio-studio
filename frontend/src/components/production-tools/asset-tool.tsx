@@ -23,7 +23,7 @@ export type CatalogKeepInput = { result: CatalogSound; name: string; category: A
 export type GeneratedKeepInput = { candidateId: string; name: string; category: AudioAssetCategory; scope: AudioAssetScope; tags: string[] }
 
 type LibraryView = "library" | "upload" | "search" | "generate"
-type ScopeFilter = "all" | "venture" | "studio"
+type ScopeFilter = "all" | "production" | "venture" | "studio"
 type SourceFilter = "all" | AssetSource
 type DurationFilter = "all" | "under-3" | "3-10" | "10-30" | "30-120" | "over-120"
 type UsageFilter = "all" | "used" | "unused"
@@ -98,7 +98,10 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, produc
     .sort((left, right) => left.localeCompare(right)), [audioAssets])
   const eligible = useMemo(() => audioAssets.filter((asset) => {
     const matchesCategory = category === "all" || (asset.category || asset.kind || "other") === category
-    const matchesScope = scopeFilter === "all" || (asset.scope || "venture") === scopeFilter
+    const used = usedIds.has(asset.id)
+    const matchesScope = scopeFilter === "all"
+      || (scopeFilter === "production" && used)
+      || (scopeFilter !== "production" && (asset.scope || "venture") === scopeFilter)
     const seconds = Number(asset.duration_ms || 0) / 1000
     const matchesDuration = durationFilter === "all"
       || durationFilter === "under-3" && seconds < 3
@@ -107,7 +110,6 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, produc
       || durationFilter === "30-120" && seconds >= 30 && seconds < 120
       || durationFilter === "over-120" && seconds >= 120
     const matchesTags = tagFilters.every((tag) => (asset.tags || []).includes(tag))
-    const used = usedIds.has(asset.id)
     const matchesUsage = usageFilter === "all"
       || (usageFilter === "used" && used)
       || (usageFilter === "unused" && !used)
@@ -209,7 +211,7 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, produc
             <div className="asset-filter-grid">
               <label><span>Category</span><Select value={category} onValueChange={(value) => setCategory(value as "all" | AudioAssetCategory)}><SelectTrigger aria-label="Asset category"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All categories</SelectItem>{ASSET_CATEGORIES.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
               <label><span>Duration</span><Select value={durationFilter} onValueChange={(value) => setDurationFilter(value as DurationFilter)}><SelectTrigger aria-label="Asset duration"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Any duration</SelectItem><SelectItem value="under-3">Under 3 seconds</SelectItem><SelectItem value="3-10">3–10 seconds</SelectItem><SelectItem value="10-30">10–30 seconds</SelectItem><SelectItem value="30-120">30 seconds–2 min</SelectItem><SelectItem value="over-120">2 min or longer</SelectItem></SelectContent></Select></label>
-              <label><span>Library</span><Select value={scopeFilter} onValueChange={(value) => setScopeFilter(value as ScopeFilter)}><SelectTrigger aria-label="Asset library"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All libraries</SelectItem><SelectItem value="studio">Studio Library</SelectItem><SelectItem value="venture">This Venture</SelectItem></SelectContent></Select></label>
+              <label><span>Available from</span><Select value={scopeFilter} onValueChange={(value) => setScopeFilter(value as ScopeFilter)}><SelectTrigger aria-label="Asset availability"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All available</SelectItem><SelectItem value="production">This Production</SelectItem><SelectItem value="venture">This Venture</SelectItem><SelectItem value="studio">Studio Library</SelectItem></SelectContent></Select></label>
               <label><span>Source</span><Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as SourceFilter)}><SelectTrigger aria-label="Asset source"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All sources</SelectItem><SelectItem value="generated">Generated</SelectItem><SelectItem value="freesound">Freesound</SelectItem><SelectItem value="uploaded">Uploaded</SelectItem><SelectItem value="library">Existing Library</SelectItem></SelectContent></Select></label>
               <label><span>Usage</span><Select value={usageFilter} onValueChange={(value) => setUsageFilter(value as UsageFilter)}><SelectTrigger aria-label="Asset usage in this Production"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Any usage</SelectItem><SelectItem value="used">Used in this Production</SelectItem><SelectItem value="unused">Unused here</SelectItem></SelectContent></Select></label>
               <label><span>Sort</span><Select value={assetSort} onValueChange={(value) => setAssetSort(value as AssetSort)}><SelectTrigger aria-label="Sort assets"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="recent">Recently added</SelectItem><SelectItem value="name">Name</SelectItem><SelectItem value="duration">Duration</SelectItem></SelectContent></Select></label>

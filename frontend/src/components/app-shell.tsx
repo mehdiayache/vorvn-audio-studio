@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from "react"
 import {
-  Activity, AudioLines, Captions, ChevronDown, FolderKanban, Menu, Mic2,
+  Activity, Captions, ChevronDown, Clapperboard, FolderKanban, Menu, Mic2,
   PanelLeftClose, PanelLeftOpen, Settings2, UsersRound, Wrench,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
@@ -79,7 +79,7 @@ export function activeAudioStudioDestination(pathname: string) {
 function StudioBrand() {
   return (
     <NavLink className="studio-deck-brand" to="/audio-studio/" aria-label={`${productIdentity.name} Work`}>
-      <span className="studio-deck-mark"><AudioLines aria-hidden="true" /></span>
+      <span className="studio-deck-mark"><Clapperboard aria-hidden="true" /></span>
       <span>{productIdentity.name}</span>
     </NavLink>
   )
@@ -203,7 +203,7 @@ function StudioRailLink({ item, pathname }: { item: StudioNavigationItem; pathna
   </Tooltip>
 }
 
-function StudioRail({ showToggle }: { showToggle: boolean }) {
+function StudioRail() {
   const location = useLocation()
   const primary = audioStudioNavigation.filter((item) => item.group === "primary")
   const tools = audioStudioNavigation.filter((item) => item.group === "tools")
@@ -211,7 +211,6 @@ function StudioRail({ showToggle }: { showToggle: boolean }) {
   return <aside className="studio-rail" aria-label={`${productIdentity.name} navigation`}>
     <div className="studio-rail-head">
       <StudioBrand />
-      {showToggle && <AudioStudioRailToggle className="studio-rail-toggle" />}
     </div>
     <nav className="studio-rail-navigation" aria-label={`${productIdentity.name} tools`}>
       <div className="studio-rail-group">
@@ -286,12 +285,11 @@ export function AppShell({ mode = "standalone" }: { mode?: AudioStudioMountMode 
   const desktop = useMediaQuery("(min-width: 48.01rem)")
   const [railExpanded, setRailExpanded] = useState(false)
   const railNavigation = mode === "standalone" && desktop
-  const productionWorkspace = /^\/audio-studio\/productions\/[^/]+\/?$/.test(location.pathname)
   return (
     <AudioStudioShellContext.Provider value={{ railNavigation, railExpanded, toggleRail: () => setRailExpanded((expanded) => !expanded) }}>
       <div className="studio-app-shell" data-mount-mode={mode} data-presentation="standard" data-navigation={railNavigation ? "rail" : "top"} data-rail-expanded={railExpanded ? "true" : "false"}>
         <a className="studio-skip-link" href="#audio-studio-content">Skip to {productIdentity.name} content</a>
-        {railNavigation ? <StudioRail showToggle={!productionWorkspace} /> : <StudioDeckChrome mode={mode} destination={activeDestination} />}
+        {railNavigation ? <StudioRail /> : <StudioDeckChrome mode={mode} destination={activeDestination} />}
         <main id="audio-studio-content" className="audio-studio-viewport" tabIndex={-1}>
           <AppErrorBoundary key={location.pathname}>
             <Outlet />

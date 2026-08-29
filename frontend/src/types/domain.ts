@@ -185,6 +185,8 @@ export type Production = {
     retained_generation_cost: number
     tracked_spend: number
     untracked_legacy_spend: number
+    audio_spend?: number
+    video_spend?: number
   }
   total_bytes: number
 }

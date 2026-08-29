@@ -43,8 +43,8 @@ export function TimelineToolbar({ summary, canUndo, canRedo, undoDomain, redoDom
       <DropdownMenuContent align="end" className="sound-scene-add-menu">
         <DropdownMenuLabel>Place media at playhead</DropdownMenuLabel>
         <DropdownMenuGroup>
-          {hasVisualScene && <DropdownMenuItem onSelect={onAddVisual}><ImageIcon /> Image or video from Director</DropdownMenuItem>}
-          <DropdownMenuItem onSelect={onAddAudio}><AudioWaveform /> Audio from Library</DropdownMenuItem>
+          {hasVisualScene && <DropdownMenuItem onSelect={onAddVisual}><ImageIcon /> Image or video</DropdownMenuItem>}
+          <DropdownMenuItem onSelect={onAddAudio}><AudioWaveform /> Audio</DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

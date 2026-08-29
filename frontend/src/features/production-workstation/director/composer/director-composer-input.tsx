@@ -1,14 +1,17 @@
-import { useRef } from "react"
-
-import { InputGroup, InputGroupTextarea } from "@/components/ui/input-group"
+import { Separator } from "@/components/ui/separator"
+import { Textarea } from "@/components/ui/textarea"
 import type { VentureAsset } from "@/types/domain"
 import type { DirectorAdvancedValues } from "./director-advanced-settings"
+import { DirectorAdvancedSettings } from "./director-advanced-settings"
+import { DirectorCapabilityControls } from "./director-capability-controls"
 import { DirectorComposerAttachments, type DirectorComposerAttachment } from "./director-composer-attachments"
-import { DirectorComposerToolbar } from "./director-composer-toolbar"
 import { withParameterValue, type DirectorAttachmentRole, type DirectorModelCapability, type DirectorModelFamily, type DirectorOperation, type DirectorOperationCapability, type DirectorOperationInfo } from "./director-composer-config"
+import { DirectorModelSelector } from "./director-model-selector"
+import { DirectorOperationPicker } from "./director-operation-picker"
 import { DirectorPrimaryParameters } from "./director-primary-parameters"
+import { DirectorSubmit } from "./director-submit"
 
-export function DirectorComposerInput({ prompt, operations, operation, capability, model, models, modelFamilyId, attachments, missingRoles, ratio, resolution, duration, advanced, assets, busy, disabledReason, canAddReference, uploadStatus, fileAccept, onPromptChange, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onFiles, onRemoveAttachment, onOpenLibrary, onPaste, onSubmit }: {
+export function DirectorComposerInput({ prompt, operations, operation, capability, model, models, modelFamilyId, attachments, missingRoles, ratio, resolution, duration, advanced, assets, busy, disabledReason, uploadStatus, canSaveReference, onPromptChange, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onRemoveAttachment, onOpenLibrary, onSwapFrames, onSaveReference, onSubmit }: {
   prompt: string
   operations: DirectorOperationInfo[]
   operation: DirectorOperation
@@ -25,9 +28,8 @@ export function DirectorComposerInput({ prompt, operations, operation, capabilit
   assets: VentureAsset[]
   busy: boolean
   disabledReason?: string
-  canAddReference: boolean
   uploadStatus?: string
-  fileAccept: string
+  canSaveReference?: boolean
   onPromptChange: (value: string) => void
   onOperationChange: (value: DirectorOperation) => void
   onModelChange: (value: string) => void
@@ -35,39 +37,39 @@ export function DirectorComposerInput({ prompt, operations, operation, capabilit
   onResolutionChange: (value: string) => void
   onDurationChange: (value: number) => void
   onAdvancedChange: (value: DirectorAdvancedValues) => void
-  onFiles: (files: File[], role?: DirectorAttachmentRole) => void
   onRemoveAttachment: (attachment: DirectorComposerAttachment) => void
   onOpenLibrary: (role?: DirectorAttachmentRole) => void
-  onPaste: () => void
+  onSwapFrames?: () => void
+  onSaveReference?: () => void
   onSubmit: () => void
 }) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  function receive(files: FileList | File[]) {
-    const selected = Array.from(files)
-    if (selected.length) onFiles(selected)
-  }
-  return <>
-    <input ref={inputRef} hidden multiple type="file" accept={fileAccept} onChange={(event) => { if (event.target.files) receive(event.target.files); event.target.value = "" }} />
-    <InputGroup
-      className="director-composer-input"
-      data-operation={operation}
-      onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = "copy" } }}
-      onDrop={(event) => { if (!event.dataTransfer.files.length) return; event.preventDefault(); event.stopPropagation(); receive(event.dataTransfer.files) }}
-    >
-      <DirectorComposerAttachments capability={capability} attachments={attachments} missingRoles={missingRoles} onAdd={onOpenLibrary} onRemove={onRemoveAttachment} />
-      <InputGroupTextarea
+  return <div className="director-composer-form" data-operation={operation}>
+    <div className="director-composer-scroll">
+      <section className="director-form-section director-route-section" aria-label="Creation route">
+      <label className="director-form-field">
+        <span>Model</span>
+        <DirectorModelSelector models={models} value={modelFamilyId} onValueChange={onModelChange} />
+      </label>
+      <div className="director-form-field">
+        <span>Mode</span>
+        <DirectorOperationPicker operations={operations} value={operation} onValueChange={onOperationChange} />
+      </div>
+      </section>
+
+      <Separator />
+
+      <DirectorComposerAttachments capability={capability} attachments={attachments} missingRoles={missingRoles} onAdd={onOpenLibrary} onRemove={onRemoveAttachment} onSwapFrames={onSwapFrames} />
+      {canSaveReference && <button type="button" className="director-save-reference" onClick={onSaveReference}>Save these inputs as a reusable reference</button>}
+
+      <label className="director-form-field director-prompt-field">
+      <span>Prompt</span>
+      <Textarea
         aria-label="Director prompt"
-        placeholder={capability.prompt.supported ? "Describe the shot, scene, image or motion you want…" : "This model operation uses references without a prompt."}
+        placeholder={capability.prompt.supported ? "Describe the shot, scene, image or motion you want…" : "This mode is directed by its media inputs."}
         value={prompt}
         disabled={!capability.prompt.supported}
-        rows={3}
+        rows={4}
         onChange={(event) => onPromptChange(event.target.value)}
-        onPaste={(event) => {
-          if (!event.clipboardData.files.length) return
-          event.preventDefault()
-          event.stopPropagation()
-          receive(event.clipboardData.files)
-        }}
         onKeyDown={(event) => {
           if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && !disabledReason && !busy) {
             event.preventDefault()
@@ -75,6 +77,13 @@ export function DirectorComposerInput({ prompt, operations, operation, capabilit
           }
         }}
       />
+      </label>
+
+      <Separator />
+
+      <section className="director-form-section director-primary-controls" aria-labelledby="director-primary-controls-title">
+      <h3 id="director-primary-controls-title">Primary controls</h3>
+      <DirectorCapabilityControls capability={capability} parameters={advanced.parameters} ratio={ratio} resolution={resolution} duration={duration} onRatioChange={onRatioChange} onResolutionChange={onResolutionChange} onDurationChange={onDurationChange} />
       <DirectorPrimaryParameters
         capability={capability}
         values={advanced.parameters}
@@ -87,34 +96,16 @@ export function DirectorComposerInput({ prompt, operations, operation, capabilit
           })
         }}
       />
-      {disabledReason && !busy && <div className="director-composer-readiness" role="status">{disabledReason}</div>}
-      <DirectorComposerToolbar
-        operations={operations}
-        operation={operation}
-        capability={capability}
-        model={model}
-        models={models}
-        modelFamilyId={modelFamilyId}
-        ratio={ratio}
-        resolution={resolution}
-        duration={duration}
-        advanced={advanced}
-        assets={assets}
-        disabledReason={disabledReason}
-        canAddReference={canAddReference}
-        busy={busy}
-        uploadStatus={uploadStatus}
-        onOperationChange={onOperationChange}
-        onModelChange={onModelChange}
-        onRatioChange={onRatioChange}
-        onResolutionChange={onResolutionChange}
-        onDurationChange={onDurationChange}
-        onAdvancedChange={onAdvancedChange}
-        onUpload={() => inputRef.current?.click()}
-        onOpenLibrary={onOpenLibrary}
-        onPaste={onPaste}
-        onSubmit={onSubmit}
-      />
-    </InputGroup>
-  </>
+      </section>
+
+      <Separator />
+
+      <DirectorAdvancedSettings model={model} capability={capability} values={advanced} assets={assets} onChange={onAdvancedChange} />
+    </div>
+    <footer className="director-composer-actions">
+      {uploadStatus && <div className="director-upload-status" role="status">{uploadStatus}</div>}
+      {disabledReason && !busy && <div id="director-composer-readiness" className="director-composer-readiness" role="status">{disabledReason}</div>}
+      <DirectorSubmit disabled={Boolean(disabledReason)} busy={busy} reason={disabledReason} onClick={onSubmit} />
+    </footer>
+  </div>
 }

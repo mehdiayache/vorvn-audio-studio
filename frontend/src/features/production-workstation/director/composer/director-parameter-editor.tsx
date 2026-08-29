@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react"
+import { AudioLines, Plus, Trash2 } from "lucide-react"
 
 import { OperatorIconButton } from "@/components/operator-action"
 import { Button } from "@/components/ui/button"
@@ -29,8 +29,8 @@ export function DirectorScalarParameter({ field, value, onChange }: {
   value: unknown
   onChange: (value: unknown) => void
 }) {
-  if (field.type === "boolean") return <label className="director-parameter-toggle">
-    <span>{field.label}</span>
+  if (field.type === "boolean") return <label className={`director-parameter-toggle${field.key === "audio" ? " is-audio" : ""}`}>
+    <span>{field.key === "audio" && <AudioLines aria-hidden="true" />}<span>{field.label}<small>{Boolean(value) ? "On" : "Off"}</small></span></span>
     <Switch checked={Boolean(value)} onCheckedChange={onChange} aria-label={field.label} />
   </label>
   if (field.type === "select") return <label><span>{field.label}</span><Select value={String(value ?? "")} onValueChange={onChange}>
