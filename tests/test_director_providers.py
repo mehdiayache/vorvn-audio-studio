@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+import urllib.parse
 from unittest.mock import patch
 
 from audio_studio.providers.kie.models import KieModelAdapter
@@ -84,7 +85,8 @@ class DirectorProviderTests(unittest.TestCase):
         request = KieModelAdapter().request(
             model={
                 "provider_model_id": "kling-3.0-omni/image-to-video"},
-            operation={"operation": "frames_to_video"},
+            operation={"operation": "frames_to_video",
+                       "input_order": ["start-frame", "end-frame"]},
             recipe={
                 "prompt": "Move from dawn to dusk",
                 "controls": {
@@ -93,8 +95,8 @@ class DirectorProviderTests(unittest.TestCase):
                 },
             },
             materialized_inputs=[
-                {"role": "start-frame", "url": "https://assets.test/start.png"},
                 {"role": "end-frame", "url": "https://assets.test/end.png"},
+                {"role": "start-frame", "url": "https://assets.test/start.png"},
             ],
             materialized_parameters={},
         )
@@ -214,15 +216,34 @@ class DirectorProviderTests(unittest.TestCase):
         with patch.dict(os.environ, {
             "KIE_API_KEY": "secret",
             "KIE_CALLBACK_URL": "https://studio.test/api/v1/providers/kie/callback",
+            "KIE_WEBHOOK_HMAC_KEY": "webhook-key",
         }, clear=True):
             KieDirectorProvider(opener=opener).submit({
                 "model": "kling-3.0-omni/text-to-video",
                 "input": {"prompt": "Quiet sea"},
-            })
+            }, callback_reference="51")
         payload = json.loads(requests[0].data)
+        callback = urllib.parse.urlparse(payload["callBackUrl"])
+        query = urllib.parse.parse_qs(callback.query)
         self.assertEqual(
-            payload["callBackUrl"],
+            f"{callback.scheme}://{callback.netloc}{callback.path}",
             "https://studio.test/api/v1/providers/kie/callback")
+        self.assertEqual(query["attempt_id"], ["51"])
+        self.assertTrue(query["token"][0])
+
+    def test_kie_cost_estimate_and_reported_credit_accounting(self):
+        provider = KieDirectorProvider()
+        estimate = provider.estimate_cost({"input": {
+            "resolution": "1080p", "duration": 8, "audio": True,
+        }})
+        state = provider._state({
+            "state": "success", "creditsConsumed": 216,
+            "resultJson": {"resultUrls": ["https://files.test/result.mp4"]},
+        })
+        cost, usage = provider.accounting(state)
+        self.assertAlmostEqual(estimate, 1.08)
+        self.assertAlmostEqual(cost, 1.08)
+        self.assertEqual(usage["credits_consumed"], 216)
 
     def test_kie_download_is_streamed_to_the_requested_file(self):
         requests = []

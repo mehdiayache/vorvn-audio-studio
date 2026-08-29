@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 
 ModelStatus = Literal["draft", "verified", "enabled"]
-MANIFEST_VERSION = "2026-08-29.1"
+MANIFEST_VERSION = "2026-08-29.2"
 
 
 AVAILABLE_MODEL_STATUSES = {"enabled"}
@@ -108,11 +108,28 @@ def _kling_video_fields() -> list[dict[str, Any]]:
                         "id": "images", "label": "Image subject",
                         "media_types": ["image"],
                         "min_assets": 2, "max_assets": 4,
+                        "constraints": {
+                            "mime_types": ["image/jpeg", "image/png"],
+                            "max_bytes": 50_000_000,
+                            "min_width": 300, "min_height": 300,
+                            "aspect_ratio_min": 0.4,
+                            "aspect_ratio_max": 2.5,
+                        },
                     },
                     {
                         "id": "video", "label": "Video character",
                         "media_types": ["video"],
                         "min_assets": 1, "max_assets": 1,
+                        "constraints": {
+                            "mime_types": ["video/mp4", "video/quicktime"],
+                            "max_bytes": 200_000_000,
+                            "min_width": 700, "min_height": 700,
+                            "max_width": 4553, "max_height": 4553,
+                            "max_pixels": 8_294_400,
+                            "aspect_ratio_min": 0.4,
+                            "aspect_ratio_max": 2.0,
+                            "fps_min": 24, "fps_max": 60,
+                        },
                         "trim": {
                             "start_default": 0, "end_default": 8000,
                             "duration_min": 3000, "duration_max": 8000,
@@ -140,6 +157,8 @@ def _kling_operation(
         "output_media_type": "video",
         "prompt": _prompt(),
         "inputs": list(inputs),
+        "input_order": [],
+        "input_modes": [],
         "required_any_of": [list(group) for group in required_any_of],
         "ratios": list(ratios),
         "ratio_rules": [deepcopy(rule) for rule in ratio_rules],
@@ -233,6 +252,7 @@ MODELS: tuple[dict[str, Any], ...] = (
                         "multi_prompt",
                     }
                 ],
+                "input_order": ["start-frame", "end-frame"],
             },
         ],
     },
@@ -247,17 +267,88 @@ MODELS: tuple[dict[str, Any], ...] = (
         "capability_manifest_version": MANIFEST_VERSION,
         "status": "enabled",
         "description": "Create video from image and video references",
-        "operations": [_kling_operation(
-            "reference_to_video",
-            inputs=(
-                _slot("reference-image", "Reference images", "image",
-                      required=False, maximum=7),
-                _slot("reference-video", "Reference video", "video",
-                      required=False),
+        "operations": [{
+            **_kling_operation(
+                "reference_to_video",
+                inputs=(
+                    _slot(
+                        "reference-image", "Reference images", "image",
+                        required=False, maximum=7,
+                        mime_types=["image/jpeg", "image/png"],
+                        max_bytes=50_000_000,
+                        min_width=300, min_height=300,
+                        aspect_ratio_min=0.4, aspect_ratio_max=2.5,
+                    ),
+                    _slot(
+                        "reference-video", "Reference video", "video",
+                        required=False,
+                        mime_types=["video/mp4", "video/quicktime"],
+                        max_bytes=200_000_000,
+                        duration_min_ms=3000, duration_max_ms=15_500,
+                        min_width=700, min_height=700,
+                        max_width=4553, max_height=4553,
+                        max_pixels=8_294_400,
+                        aspect_ratio_min=0.4, aspect_ratio_max=2.0,
+                        fps_min=24, fps_max=60,
+                    ),
+                ),
+                required_any_of=(("reference-image", "reference-video"),),
+                ratios=("auto", "16:9", "9:16", "1:1"),
             ),
-            required_any_of=(("reference-image", "reference-video"),),
-            ratios=("auto", "16:9", "9:16", "1:1"),
-        )],
+            # KIE exposes three distinct request contracts behind the same
+            # model route. The UI and validator consume this declaration;
+            # neither guesses from the provider name.
+            "input_modes": [
+                {
+                    "id": "images",
+                    "when_counts": {
+                        "reference-image": {"min": 1},
+                        "reference-video": {"max": 0},
+                    },
+                    "ratios": ["16:9", "9:16", "1:1"],
+                    "default_ratio": "16:9",
+                    "parameter_values": {"audio": [False, True]},
+                    "elements": {
+                        "available": True,
+                        "max_video_subjects": 3,
+                        "max_image_assets_total": 7,
+                        "max_image_assets_with_video_subjects": 4,
+                    },
+                },
+                {
+                    "id": "video",
+                    "when_counts": {
+                        "reference-image": {"max": 0},
+                        "reference-video": {"min": 1, "max": 1},
+                    },
+                    "ratios": ["auto"],
+                    "default_ratio": "auto",
+                    "parameter_values": {"audio": [False]},
+                    "elements": {
+                        "available_when": {"customize_multi_shots": True},
+                        "max_video_subjects": 1,
+                        "max_image_assets_total": 4,
+                        "allow_video_subject_with_images": False,
+                    },
+                },
+                {
+                    "id": "video-images",
+                    "when_counts": {
+                        "reference-image": {"min": 1, "max": 4},
+                        "reference-video": {"min": 1, "max": 1},
+                    },
+                    "ratios": ["16:9", "9:16", "1:1"],
+                    "default_ratio": "16:9",
+                    "parameter_values": {"audio": [False]},
+                    "elements": {
+                        "available_when": {"customize_multi_shots": True},
+                        "max_video_subjects": 1,
+                        "max_image_assets_total": 4,
+                        "allow_video_subject_with_images": False,
+                    },
+                },
+            ],
+        }],
     },
     {
         "id": "kling-3.0-omni/transformation",

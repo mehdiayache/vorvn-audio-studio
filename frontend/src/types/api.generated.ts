@@ -656,6 +656,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/productions/{production_id}/director-generations/{job_id}/retry-ingestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Generation Ingestion */
+        post: operations["retryDirectorGenerationIngestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/productions/{production_id}/editor": {
         parameters: {
             query?: never;
@@ -2847,12 +2864,24 @@ export interface components {
         DirectorGenerationResponse: {
             /** Adapter Version */
             adapter_version?: string | null;
+            /**
+             * Can Retry Ingestion
+             * @default false
+             */
+            can_retry_ingestion: boolean;
             /** Capability Manifest Version */
             capability_manifest_version?: string | null;
             /** Capability Snapshot */
             capability_snapshot?: {
                 [key: string]: unknown;
             } | null;
+            /** Confirmation Message */
+            confirmation_message?: string | null;
+            /**
+             * Cost
+             * @default 0
+             */
+            cost: number;
             /** Created At */
             created_at: string | null;
             /** Detail */
@@ -2865,10 +2894,20 @@ export interface components {
             id: string;
             /** Job Id */
             job_id: string;
+            /**
+             * Local Ingestion Pending
+             * @default false
+             */
+            local_ingestion_pending: boolean;
             /** Model Label */
             model_label: string;
             /** Model Version */
             model_version: string;
+            /**
+             * Needs Confirmation
+             * @default false
+             */
+            needs_confirmation: boolean;
             /** Output Asset Ids */
             output_asset_ids: number[];
             /**
@@ -2888,12 +2927,21 @@ export interface components {
             provider_model_id?: string | null;
             recipe: components["schemas"]["DirectorGenerationRecipe"];
             /**
+             * Requires Review
+             * @default false
+             */
+            requires_review: boolean;
+            /**
              * Status
              * @enum {string}
              */
             status: "queued" | "generating" | "ready" | "canceled" | "failed";
             /** Updated At */
             updated_at: string | null;
+            /** Usage */
+            usage?: {
+                [key: string]: unknown;
+            };
         };
         /** DirectorInputSlot */
         DirectorInputSlot: {
@@ -2905,12 +2953,22 @@ export interface components {
             duration_max_ms?: number | null;
             /** Duration Min Ms */
             duration_min_ms?: number | null;
+            /** Fps Max */
+            fps_max?: number | null;
+            /** Fps Min */
+            fps_min?: number | null;
             /** Label */
             label: string;
             /** Max */
             max: number;
             /** Max Bytes */
             max_bytes?: number | null;
+            /** Max Height */
+            max_height?: number | null;
+            /** Max Pixels */
+            max_pixels?: number | null;
+            /** Max Width */
+            max_width?: number | null;
             /** Media Types */
             media_types: ("image" | "video" | "audio")[];
             /** Mime Types */
@@ -2959,6 +3017,12 @@ export interface components {
             durations: number[];
             /** Fps */
             fps: number[];
+            /** Input Modes */
+            input_modes?: {
+                [key: string]: unknown;
+            }[];
+            /** Input Order */
+            input_order?: string[];
             /** Inputs */
             inputs: components["schemas"]["DirectorInputSlot"][];
             /** Operation */
@@ -8728,6 +8792,38 @@ export interface operations {
         };
     };
     cancelDirectorGeneration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: number;
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectorGenerationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retryDirectorGenerationIngestion: {
         parameters: {
             query?: never;
             header?: never;

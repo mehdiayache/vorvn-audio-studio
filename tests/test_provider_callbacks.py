@@ -16,8 +16,8 @@ class FakeOperations:
     def __init__(self):
         self.received = []
 
-    def record_callback(self, provider, provider_request_id, payload):
-        self.received.append((provider, provider_request_id, payload))
+    def record_callback(self, provider, provider_request_id, payload, *, attempt_id=None):
+        self.received.append((provider, provider_request_id, payload, attempt_id))
         return True
 
 
@@ -43,14 +43,14 @@ class ProviderCallbackTest(unittest.TestCase):
             operations,
         ):
             response = self.client.post(
-                "/api/v1/providers/kie/callback", json=payload,
+                "/api/v1/providers/kie/callback?attempt_id=51", json=payload,
                 headers={
                     "X-Webhook-Timestamp": timestamp,
                     "X-Webhook-Signature": signature,
                 },
             )
-        self.assertEqual(response.status_code, 202)
-        self.assertEqual(operations.received, [("kie", "task-19", payload)])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(operations.received, [("kie", "task-19", payload, "51")])
 
     def test_invalid_kie_signature_is_rejected(self):
         with patch.dict("os.environ", {
@@ -65,6 +65,26 @@ class ProviderCallbackTest(unittest.TestCase):
                 },
             )
         self.assertEqual(response.status_code, 401)
+
+    def test_attempt_scoped_callback_token_supports_direct_kie_delivery(self):
+        payload = {"data": {"taskId": "task-20", "state": "success"}}
+        token = hmac.new(
+            b"webhook-key", b"52", hashlib.sha256).hexdigest()
+        operations = FakeOperations()
+        with patch.dict("os.environ", {
+            "KIE_WEBHOOK_HMAC_KEY": "webhook-key",
+        }, clear=True), patch(
+            "audio_studio.http.routers.provider_callbacks.provider_callback_recorder",
+            operations,
+        ):
+            response = self.client.post(
+                f"/api/v1/providers/kie/callback?attempt_id=52&token={token}",
+                json=payload,
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(operations.received, [
+            ("kie", "task-20", payload, "52"),
+        ])
 
 
 if __name__ == "__main__":

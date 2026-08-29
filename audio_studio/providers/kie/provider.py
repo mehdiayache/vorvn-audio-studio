@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import hmac
 import os
 from pathlib import Path
 from typing import Any
@@ -19,6 +21,17 @@ from audio_studio.providers.director import (
 DEFAULT_BASE_URL = "https://api.kie.ai"
 MAX_OUTPUT_BYTES = 1_000_000_000
 DOWNLOAD_USER_AGENT = "Auvi-Studio/1.0"
+KIE_CREDIT_USD = 0.005
+# Versioned against KIE's public model pricing on 2026-08-29. Provider-owned
+# prices never leak into the Director domain or React capability contract.
+KLING_OMNI_USD_PER_SECOND = {
+    ("720p", False): 0.07,
+    ("720p", True): 0.10,
+    ("1080p", False): 0.09,
+    ("1080p", True): 0.135,
+    ("4k", False): 0.335,
+    ("4k", True): 0.335,
+}
 
 
 class KieDirectorProvider:
@@ -33,6 +46,24 @@ class KieDirectorProvider:
     @staticmethod
     def configured() -> bool:
         return bool((os.getenv("KIE_API_KEY") or "").strip())
+
+    @staticmethod
+    def callback_configured() -> bool:
+        return bool(
+            (os.getenv("KIE_CALLBACK_URL") or "").strip()
+            and (os.getenv("KIE_WEBHOOK_HMAC_KEY") or "").strip())
+
+    @staticmethod
+    def estimate_cost(request: dict[str, Any]) -> float:
+        values = request.get("input") or {}
+        rate = KLING_OMNI_USD_PER_SECOND.get((
+            str(values.get("resolution") or "720p"),
+            bool(values.get("audio")),
+        ))
+        if rate is None:
+            raise DirectorProviderError(
+                "KIE pricing is not configured for these model settings.")
+        return round(rate * int(values.get("duration") or 0), 6)
 
     @staticmethod
     def _key() -> str:
@@ -104,9 +135,22 @@ class KieDirectorProvider:
         return {"configured": True, "connected": True,
                 "reason": "", "credits": credits}
 
-    def submit(self, request: dict[str, Any]) -> DirectorSubmission:
-        callback_url = (os.getenv("KIE_CALLBACK_URL") or "").strip()
+    def submit(
+        self, request: dict[str, Any], *, callback_reference: str | None = None,
+    ) -> DirectorSubmission:
+        callback_url = ((os.getenv("KIE_CALLBACK_URL") or "").strip()
+                        if self.callback_configured() else "")
         if callback_url:
+            if callback_reference:
+                separator = "&" if "?" in callback_url else "?"
+                callback_token = hmac.new(
+                    (os.getenv("KIE_WEBHOOK_HMAC_KEY") or "").encode(),
+                    callback_reference.encode(), hashlib.sha256,
+                ).hexdigest()
+                callback_url = (
+                    f"{callback_url}{separator}attempt_id="
+                    f"{urllib.parse.quote(callback_reference)}"
+                    f"&token={callback_token}")
             request = {**request, "callBackUrl": callback_url}
         payload = self._json(
             "/api/v1/jobs/createTask", method="POST", body=request,
@@ -116,6 +160,22 @@ class KieDirectorProvider:
         if not task_id:
             raise DirectorProviderError("KIE did not return a valid task ID.")
         return DirectorSubmission(str(task_id))
+
+    @staticmethod
+    def accounting(
+        state: DirectorProviderState,
+    ) -> tuple[float, dict[str, Any]]:
+        raw = state.raw or {}
+        credits = raw.get("creditsConsumed")
+        try:
+            credits_value = max(0.0, float(credits))
+        except (TypeError, ValueError):
+            return 0.0, {}
+        return round(credits_value * KIE_CREDIT_USD, 6), {
+            "credits_consumed": credits_value,
+            "credit_usd": KIE_CREDIT_USD,
+            "basis": "provider_reported_credits",
+        }
 
     @staticmethod
     def _result_urls(result: Any) -> tuple[str, ...]:
@@ -217,7 +277,8 @@ class KieDirectorProvider:
             temporary.unlink(missing_ok=True)
             target.unlink(missing_ok=True)
             raise DirectorProviderError(
-                "The KIE result could not be downloaded. Retry the generation.") from exc
+                "The KIE result could not be saved. Retry saving it without "
+                "paying for another generation.") from exc
 
     def cancel(self, provider_job_id: str) -> None:
         # KIE's common Market task API does not expose a generic cancel route.

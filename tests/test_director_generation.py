@@ -12,7 +12,9 @@ class FakeAssets:
         self.assets = [
             {"id": 11, "media_type": "image", "mime_type": "image/png",
              "size_bytes": 12_000, "width": 1280, "height": 720},
-            {"id": 12, "media_type": "video", "duration_ms": 12_000},
+            {"id": 12, "media_type": "video", "mime_type": "video/mp4",
+             "size_bytes": 20_000_000, "duration_ms": 12_000,
+             "width": 1920, "height": 1080, "frame_rate": 30},
             {"id": 13, "media_type": "audio", "duration_ms": 8_000},
             {"id": 14, "media_type": "image", "mime_type": "image/jpeg",
              "size_bytes": 15_000, "width": 1280, "height": 720},
@@ -194,6 +196,14 @@ class DirectorGenerationTest(unittest.TestCase):
             [item["role"] for item in projected["recipe"]["inputs"]],
             ["start-frame", "end-frame"])
 
+        reversed_value = {**value, "inputs": [
+            {**value["inputs"][1], "position": 0},
+            {**value["inputs"][0], "position": 1},
+        ]}
+        with self.assertRaisesRegex(ValueError, "semantic order"):
+            service.enqueue(7, reversed_value,
+                            idempotency_key="end-before-start")
+
     def test_image_constraints_fail_before_a_provider_job_is_created(self):
         assets = FakeAssets()
         assets.assets[0]["width"] = 240
@@ -229,6 +239,48 @@ class DirectorGenerationTest(unittest.TestCase):
         projected, _ = service.enqueue(
             7, value, idempotency_key="ordinary-references")
         self.assertEqual(projected["recipe"]["inputs"], inputs)
+
+    def test_reference_to_video_conditional_contracts_are_explicit(self):
+        service = DirectorGenerationService(FakeJobs(), FakeAssets())
+        value = recipe(
+            operation="reference_to_video",
+            model_id="kling-3.0-omni/reference-to-video",
+            inputs=[{"asset_id": 12, "role": "reference-video",
+                     "media_type": "video", "position": 0}],
+        )
+        value["controls"]["ratio"] = "auto"
+        service.enqueue(7, value, idempotency_key="video-only")
+
+        value["controls"]["ratio"] = "16:9"
+        with self.assertRaisesRegex(ValueError, "Unsupported ratio"):
+            service.enqueue(7, value, idempotency_key="video-fixed-ratio")
+
+        value["controls"]["ratio"] = "auto"
+        value["controls"]["provider_parameters"]["audio"] = True
+        with self.assertRaisesRegex(ValueError, "Generate audio"):
+            service.enqueue(7, value, idempotency_key="video-audio")
+
+        value["controls"]["provider_parameters"]["audio"] = False
+        value["inputs"].append({
+            "asset_id": 11, "role": "reference-image",
+            "media_type": "image", "position": 1,
+        })
+        value["controls"]["ratio"] = "16:9"
+        service.enqueue(7, value, idempotency_key="video-and-image")
+
+    def test_reference_video_technical_limits_fail_before_paid_job(self):
+        assets = FakeAssets()
+        assets.assets[1]["frame_rate"] = 12
+        service = DirectorGenerationService(FakeJobs(), assets)
+        value = recipe(
+            operation="reference_to_video",
+            model_id="kling-3.0-omni/reference-to-video",
+            inputs=[{"asset_id": 12, "role": "reference-video",
+                     "media_type": "video", "position": 0}],
+        )
+        value["controls"]["ratio"] = "auto"
+        with self.assertRaisesRegex(ValueError, "frame rate"):
+            service.enqueue(7, value, idempotency_key="slow-video")
 
     def test_enqueue_keeps_one_ordered_canonical_input_contract(self):
         jobs = FakeJobs()

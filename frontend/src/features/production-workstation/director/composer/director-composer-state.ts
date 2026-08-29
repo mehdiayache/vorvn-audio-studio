@@ -2,7 +2,7 @@ import type { VentureAsset } from "@/types/domain"
 import { visualAssetName, visualAssetPosterUrl, visualAssetUrl } from "../director-assets"
 import type { DirectorAdvancedValues } from "./director-advanced-settings"
 import type { DirectorComposerAttachment } from "./director-composer-attachments"
-import { ratioChoices, type DirectorAttachmentKind, type DirectorOperationCapability, type DirectorParameterValues } from "./director-composer-config"
+import { inputMode, ratioChoices, type DirectorAttachmentKind, type DirectorOperationCapability, type DirectorParameterValues } from "./director-composer-config"
 import type { DirectorGeneration } from "./director-generation-types"
 
 export function identifier(prefix: string) {
@@ -37,7 +37,12 @@ export function assignInputs(attachments: DirectorComposerAttachment[], capabili
     counts.set(slot.role, (counts.get(slot.role) || 0) + 1)
     retained.push({ ...attachment, role: slot.role })
   }
-  return retained
+  if (!capability.input_order.length) return retained
+  const rank = new Map(capability.input_order.map((role, index) => [role, index]))
+  return retained.map((attachment, index) => ({ attachment, index })).sort(
+    (left, right) => (rank.get(left.attachment.role) ?? rank.size)
+      - (rank.get(right.attachment.role) ?? rank.size) || left.index - right.index,
+  ).map(({ attachment }) => attachment)
 }
 
 export function inputConstraintIssue(
@@ -57,6 +62,11 @@ export function inputConstraintIssue(
     if (slot.duration_max_ms !== null && slot.duration_max_ms !== undefined && Number(asset.duration_ms || 0) > slot.duration_max_ms) return `${slot.label} is longer than this model accepts.`
     if (slot.min_width !== null && slot.min_width !== undefined && Number(asset.width || 0) < slot.min_width) return `${slot.label} is too narrow for this model.`
     if (slot.min_height !== null && slot.min_height !== undefined && Number(asset.height || 0) < slot.min_height) return `${slot.label} is too short for this model.`
+    if (slot.max_width !== null && slot.max_width !== undefined && Number(asset.width || 0) > slot.max_width) return `${slot.label} is too wide for this model.`
+    if (slot.max_height !== null && slot.max_height !== undefined && Number(asset.height || 0) > slot.max_height) return `${slot.label} is too tall for this model.`
+    if (slot.max_pixels !== null && slot.max_pixels !== undefined && Number(asset.width || 0) * Number(asset.height || 0) > slot.max_pixels) return `${slot.label} resolution is too large for this model.`
+    if (slot.fps_min !== null && slot.fps_min !== undefined && Number(asset.frame_rate || 0) < slot.fps_min) return `${slot.label} frame rate is too low for this model.`
+    if (slot.fps_max !== null && slot.fps_max !== undefined && Number(asset.frame_rate || 0) > slot.fps_max) return `${slot.label} frame rate is too high for this model.`
     if (asset.width && asset.height) {
       const ratio = asset.width / asset.height
       if (slot.aspect_ratio_min !== null && slot.aspect_ratio_min !== undefined && ratio < slot.aspect_ratio_min) return `${slot.label} aspect ratio is too narrow.`
@@ -256,6 +266,38 @@ export function parameterIssue(capability: DirectorOperationCapability, values: 
       }
     }
   }
+  return undefined
+}
+
+export function inputModeIssue(
+  capability: DirectorOperationCapability,
+  attachments: DirectorComposerAttachment[],
+  values: DirectorParameterValues,
+) {
+  if (!capability.input_modes.length) return undefined
+  const counts = Object.fromEntries(capability.inputs.map(({ role }) => [
+    role, attachments.filter((attachment) => attachment.assetId && attachment.role === role).length,
+  ]))
+  const mode = inputMode(capability, counts)
+  if (!mode) return "This combination of references is not supported by this model."
+  for (const [key, allowed] of Object.entries(mode.parameter_values || {})) {
+    if (!allowed.includes(values[key])) {
+      const label = capability.parameters.find((field) => field.key === key)?.label || key
+      return `${label} is not available with these references.`
+    }
+  }
+  const elements = Array.isArray(values.elements) ? values.elements as { variant?: string; asset_ids?: number[] }[] : []
+  const policy = mode.elements || {}
+  let available = policy.available ?? true
+  if (policy.available_when && !Object.entries(policy.available_when).every(([key, expected]) => values[key] === expected)) available = false
+  if (elements.length && !available) return "Character references require directed multi-shot mode with this video input."
+  const directImages = counts["reference-image"] || 0
+  const nestedImages = elements.filter(({ variant }) => variant === "images").reduce((sum, item) => sum + (item.asset_ids?.length || 0), 0)
+  const videoSubjects = elements.filter(({ variant }) => variant === "video").length
+  if (policy.max_video_subjects && videoSubjects > policy.max_video_subjects) return "This reference mode has too many video subjects."
+  if (policy.max_image_assets_total && directImages + nestedImages > policy.max_image_assets_total) return "This reference mode has too many image references."
+  if (videoSubjects && policy.max_image_assets_with_video_subjects !== undefined && directImages + nestedImages > policy.max_image_assets_with_video_subjects) return "This mix of image and video subjects has too many images."
+  if (videoSubjects && policy.allow_video_subject_with_images === false && directImages + nestedImages) return "Video subjects cannot be mixed with image references in this mode."
   return undefined
 }
 

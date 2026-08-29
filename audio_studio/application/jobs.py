@@ -29,6 +29,7 @@ class JobStore(JobProgress, Protocol):
     def cancel(self, public_id: UUID) -> Job | None: ...
     def confirm(self, public_id: UUID, *, idempotency_key: str) \
             -> tuple[Job, bool]: ...
+    def retry_local_ingestion(self, public_id: UUID) -> Job: ...
     def abandon_stale(self, older_than_seconds: int = 120) -> int: ...
 
 
@@ -62,6 +63,9 @@ class JobService:
             -> tuple[Job, bool]:
         return self.repository.confirm(
             public_id, idempotency_key=idempotency_key)
+
+    def retry_local_ingestion(self, public_id: UUID) -> Job:
+        return self.repository.retry_local_ingestion(public_id)
 
     def abandon_stale(self, older_than_seconds: int = 120) -> int:
         return self.repository.abandon_stale(older_than_seconds)

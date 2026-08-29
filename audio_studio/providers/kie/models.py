@@ -55,7 +55,14 @@ class KieModelAdapter:
             input_payload[key] = value
         for key, groups in materialized_parameters.items():
             input_payload[key] = [self._element(group) for group in groups]
-        for item in materialized_inputs:
+        ordered_roles = list(operation.get("input_order") or [])
+        role_rank = {role: index for index, role in enumerate(ordered_roles)}
+        ordered_inputs = sorted(
+            materialized_inputs,
+            key=lambda item: role_rank.get(
+                str(item.get("role") or ""), len(role_rank)),
+        ) if ordered_roles else materialized_inputs
+        for item in ordered_inputs:
             field = self._URL_FIELD_BY_ROLE.get(str(item.get("role") or ""))
             if not field:
                 raise ValueError(

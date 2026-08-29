@@ -11,12 +11,15 @@ import { Skeleton } from "@/components/ui/skeleton"
 import type { DirectorGeneration } from "./director-generation-types"
 import { operationLabel, type DirectorOperationInfo } from "./director-composer-config"
 
-export function DirectorGenerationCard({ operations, generation, canCancel, outputReady, onCancel, onRegenerate, onUseSettings, onPreview, onAddToTimeline }: {
+export function DirectorGenerationCard({ operations, generation, canCancel, outputReady, working, onCancel, onConfirm, onRetrySaving, onRegenerate, onUseSettings, onPreview, onAddToTimeline }: {
   operations: DirectorOperationInfo[]
   generation: DirectorGeneration
   canCancel: boolean
   outputReady: boolean
+  working?: boolean
   onCancel: () => void
+  onConfirm: () => void
+  onRetrySaving: () => void
   onRegenerate: () => void
   onUseSettings: () => void
   onPreview?: () => void
@@ -39,17 +42,23 @@ export function DirectorGenerationCard({ operations, generation, canCancel, outp
   return <article className="director-generation-card" data-status={generation.status}>
     <div className="director-generation-preview" style={{ "--director-generation-ratio": ratio } as CSSProperties}>
       {running ? <Skeleton className="director-generation-skeleton" /> : <div className="director-generation-result"><OperationIcon /><span>{operationLabel(operations, generation.recipe.operation)}</span></div>}
-      <Badge variant="secondary" className="director-generation-status">{generation.status === "queued" ? "Queued" : running ? "Generating" : ready ? "Ready" : generation.status === "failed" ? "Failed" : "Canceled"}</Badge>
+      <Badge variant="secondary" className="director-generation-status">{generation.needs_confirmation ? "Approval needed" : generation.requires_review ? "Review needed" : generation.local_ingestion_pending ? "Saving failed" : generation.status === "queued" ? "Queued" : running ? "Generating" : ready ? "Ready" : generation.status === "failed" ? "Failed" : "Canceled"}</Badge>
     </div>
     <div className="director-generation-copy">
       <header><div><strong>{generation.recipe.prompt || operationLabel(operations, generation.recipe.operation)}</strong><span>{generation.model_label} · {generation.recipe.controls.ratio} · {generation.output_media_type === "image" ? generation.recipe.controls.resolution : `${generation.recipe.controls.duration}s · ${generation.recipe.controls.resolution}`}</span></div>
         <DropdownMenu><DropdownMenuTrigger asChild><OperatorIconButton label="More generation actions" size="icon-xs"><MoreHorizontal /></OperatorIconButton></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuGroup><DropdownMenuItem onSelect={onUseSettings}><SlidersHorizontal />Use settings</DropdownMenuItem><DropdownMenuItem onSelect={() => void navigator.clipboard?.writeText(generation.recipe.prompt)}><Copy />Copy prompt</DropdownMenuItem></DropdownMenuGroup></DropdownMenuContent></DropdownMenu>
       </header>
       {running && <div className="director-generation-progress"><Progress value={hasMeasuredProgress ? generation.progress : undefined} /><span>{hasMeasuredProgress ? `${generation.progress}% · ` : ""}{elapsedLabel}</span></div>}
-      {generation.error && <p className="director-generation-error" role="alert">{generation.error}</p>}
+      {(generation.confirmation_message || generation.error) && <p className={generation.error ? "director-generation-error" : "director-generation-note"} role={generation.error ? "alert" : "status"}>{generation.confirmation_message || generation.error}</p>}
       <div className="director-generation-meta"><span><Sparkles />{operationLabel(operations, generation.recipe.operation)}</span><span><Clock3 />{generation.created_at ? new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(generation.created_at)) : "Now"}</span></div>
       <footer>
-        {running ? canCancel ? <Button variant="outline" size="sm" onClick={onCancel}><X />Cancel</Button> : null : <>
+        {running ? canCancel ? <Button variant="outline" size="sm" onClick={onCancel}><X />Cancel</Button> : null : generation.needs_confirmation ? <>
+          <Button size="sm" disabled={working} onClick={onConfirm}>{working ? "Confirming…" : "Confirm and generate"}</Button>
+          <Button variant="outline" size="sm" disabled={working} onClick={onUseSettings}><SlidersHorizontal />Review settings</Button>
+        </> : generation.requires_review ? <Button variant="outline" size="sm" onClick={onUseSettings}><SlidersHorizontal />Review settings</Button> : generation.can_retry_ingestion ? <>
+          <Button size="sm" disabled={working} onClick={onRetrySaving}>{working ? "Saving…" : "Retry saving"}</Button>
+          <Button variant="outline" size="sm" disabled={working} onClick={onUseSettings}><SlidersHorizontal />Use settings</Button>
+        </> : <>
           <OperatorTooltip label="Preview" detail={outputReady ? "Open the generated Asset and its technical details." : "The generated Asset is still being saved."} disabledTrigger={!outputReady}><Button variant="outline" size="sm" disabled={!outputReady} onClick={onPreview}><Eye />Preview</Button></OperatorTooltip>
           <Button variant="outline" size="sm" onClick={onRegenerate}><RotateCcw />Regenerate</Button>
           <Button variant="outline" size="sm" onClick={onUseSettings}><WandSparkles />Remix</Button>

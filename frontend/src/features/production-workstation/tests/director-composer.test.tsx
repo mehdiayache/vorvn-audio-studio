@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { studioApi } from "@/lib/api"
 import { DirectorComposer } from "../director/composer/director-composer"
 import type { DirectorGeneration } from "../director/composer/director-generation-types"
+import { inputMode, ratioChoices, type DirectorOperationCapability } from "../director/composer/director-composer-config"
+import { assignInputs, inputModeIssue } from "../director/composer/director-composer-state"
 
 globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
@@ -15,6 +17,7 @@ globalThis.ResizeObserver = class ResizeObserver {
 vi.mock("@/lib/api", () => ({ studioApi: {
   directorModels: vi.fn(), directorGenerations: vi.fn(),
   createDirectorGeneration: vi.fn(), cancelDirectorGeneration: vi.fn(),
+  confirmJob: vi.fn(), retryDirectorGenerationIngestion: vi.fn(),
 } }))
 
 const catalog = {
@@ -75,6 +78,8 @@ function setup() {
   vi.mocked(studioApi.directorGenerations).mockResolvedValue([] as never)
   vi.mocked(studioApi.createDirectorGeneration).mockResolvedValue({} as never)
   vi.mocked(studioApi.cancelDirectorGeneration).mockResolvedValue({} as never)
+  vi.mocked(studioApi.confirmJob).mockResolvedValue({} as never)
+  vi.mocked(studioApi.retryDirectorGenerationIngestion).mockResolvedValue({} as never)
 }
 
 function renderComposer(overrides: Partial<React.ComponentProps<typeof DirectorComposer>> = {}) {
@@ -93,6 +98,40 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 describe("Director composer", () => {
+  it("keeps Start and End references in semantic order", () => {
+    const capability = {
+      inputs: [
+        { role: "start-frame", media_types: ["image"], max: 1, required: true },
+        { role: "end-frame", media_types: ["image"], max: 1, required: true },
+      ], input_order: ["start-frame", "end-frame"], input_modes: [],
+    } as unknown as DirectorOperationCapability
+    const ordered = assignInputs([
+      { id: "end", assetId: 2, name: "End", kind: "image", role: "end-frame", previewUrl: null, posterUrl: null, status: "ready" },
+      { id: "start", assetId: 1, name: "Start", kind: "image", role: "start-frame", previewUrl: null, posterUrl: null, status: "ready" },
+    ], capability)
+    expect(ordered.map(({ role }) => role)).toEqual(["start-frame", "end-frame"])
+  })
+
+  it("derives reference-video controls from the active input contract", () => {
+    const capability = {
+      inputs: [
+        { role: "reference-image", media_types: ["image"], max: 7 },
+        { role: "reference-video", media_types: ["video"], max: 1 },
+      ],
+      input_modes: [{
+        id: "video", when_counts: { "reference-image": { max: 0 }, "reference-video": { min: 1, max: 1 } },
+        ratios: ["auto"], default_ratio: "auto", parameter_values: { audio: [false] },
+      }],
+      ratios: ["auto", "16:9"], ratio_rules: [], parameters: [{ key: "audio", label: "Generate audio" }],
+    } as unknown as DirectorOperationCapability
+    const counts = { "reference-image": 0, "reference-video": 1 }
+    expect(inputMode(capability, counts)?.id).toBe("video")
+    expect(ratioChoices(capability, { audio: false }, counts)).toEqual({ values: ["auto"], default: "auto" })
+    expect(inputModeIssue(capability, [
+      { id: "video", assetId: 2, name: "Video", kind: "video", role: "reference-video", previewUrl: null, posterUrl: null, status: "ready" },
+    ], { audio: true })).toContain("Generate audio")
+  })
+
   it("renders manifest-declared primary controls beside the prompt", async () => {
     const primaryCatalog = structuredClone(catalog) as any
     primaryCatalog.models[0].operations[0].parameters = [{
@@ -172,6 +211,30 @@ describe("Director composer", () => {
     expect(onPreviewGenerated).toHaveBeenCalledWith(asset)
     fireEvent.click(screen.getByRole("button", { name: "Add to Timeline" }))
     await waitFor(() => expect(onAddGeneratedToTimeline).toHaveBeenCalledWith(asset))
+  })
+
+  it("keeps cost approval and ingestion recovery at the generation that needs action", async () => {
+    const approval = {
+      ...generation(), status: "failed", needs_confirmation: true,
+      confirmation_message: "This generation is estimated at $1.20. Confirm to continue.",
+    } as DirectorGeneration
+    vi.mocked(studioApi.directorGenerations).mockResolvedValue([approval] as never)
+    renderComposer()
+    expect(await screen.findByText("Approval needed")).toBeTruthy()
+    expect(screen.getByText(approval.confirmation_message!).className).toContain("director-generation-note")
+    fireEvent.click(screen.getByRole("button", { name: "Confirm and generate" }))
+    await waitFor(() => expect(studioApi.confirmJob).toHaveBeenCalledWith(approval.job_id))
+
+    const recovery = {
+      ...generation(), status: "failed", can_retry_ingestion: true,
+      local_ingestion_pending: true, error: "The provider finished, but the result could not be saved.",
+    } as DirectorGeneration
+    vi.mocked(studioApi.directorGenerations).mockResolvedValue([recovery] as never)
+    cleanup()
+    renderComposer()
+    expect(await screen.findByText("Saving failed")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Retry saving" }))
+    await waitFor(() => expect(studioApi.retryDirectorGenerationIngestion).toHaveBeenCalledWith(7, recovery.job_id))
   })
 
   it("keeps optional provider controls in one explicit settings surface", async () => {

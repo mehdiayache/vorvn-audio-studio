@@ -14,6 +14,11 @@ export type DirectorInputSlot = {
   duration_max_ms: number | null
   min_width: number | null
   min_height: number | null
+  max_width: number | null
+  max_height: number | null
+  max_pixels: number | null
+  fps_min: number | null
+  fps_max: number | null
   aspect_ratio_min: number | null
   aspect_ratio_max: number | null
 }
@@ -49,6 +54,8 @@ export type DirectorOperationCapability = {
   output_media_type: "image" | "video"
   prompt: { supported: boolean; required: boolean; negative_prompt: boolean; max_length: number }
   inputs: DirectorInputSlot[]
+  input_order: string[]
+  input_modes: DirectorInputMode[]
   required_any_of: string[][]
   ratios: string[]
   ratio_rules: { when: Record<string, unknown>; values: string[]; default: string }[]
@@ -60,6 +67,22 @@ export type DirectorOperationCapability = {
   supports_cancel: boolean
   parameters: DirectorParameterCapability[]
   output: { mime_type: string; extension: string }
+}
+
+export type DirectorInputMode = {
+  id: string
+  when_counts: Record<string, { min?: number; max?: number }>
+  ratios: string[]
+  default_ratio: string
+  parameter_values: Record<string, unknown[]>
+  elements?: {
+    available?: boolean
+    available_when?: Record<string, unknown>
+    max_video_subjects?: number
+    max_image_assets_total?: number
+    max_image_assets_with_video_subjects?: number
+    allow_video_subject_with_images?: boolean
+  }
 }
 
 export type DirectorModelCapability = {
@@ -99,6 +122,8 @@ export function normalizeCapabilityCatalog(catalog: DirectorCapabilityCatalog) {
         ...capability,
         prompt: { ...capability.prompt, max_length: capability.prompt.max_length || 20_000 },
         required_any_of: capability.required_any_of || [],
+        input_order: capability.input_order || capability.inputs.map(({ role }) => role),
+        input_modes: capability.input_modes || [],
         ratio_rules: capability.ratio_rules || [],
         duration_range: capability.duration_range || null,
         parameters: (capability.parameters || []).map((field) => ({
@@ -156,12 +181,25 @@ export function operationCapability(model: DirectorModelCapability, operation: D
 export function ratioChoices(
   capability: DirectorOperationCapability,
   parameters: DirectorParameterValues,
+  counts: Record<string, number> = {},
 ) {
+  const mode = inputMode(capability, counts)
+  if (mode) return { values: mode.ratios, default: mode.default_ratio }
   const rule = capability.ratio_rules.find(({ when }) => (
     Object.entries(when).every(([key, expected]) => parameters[key] === expected)
   ))
   const values = rule?.values || capability.ratios
   return { values, default: rule?.default || values[0] || "" }
+}
+
+export function inputMode(
+  capability: DirectorOperationCapability,
+  counts: Record<string, number>,
+) {
+  return capability.input_modes.find(({ when_counts: conditions }) => Object.entries(conditions).every(([role, limit]) => {
+    const count = counts[role] || 0
+    return count >= (limit.min || 0) && (limit.max === undefined || count <= limit.max)
+  }))
 }
 
 export function availableReferenceMediaTypes(capability: DirectorOperationCapability, values: DirectorParameterValues) {

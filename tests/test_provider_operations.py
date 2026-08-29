@@ -173,6 +173,74 @@ class ProviderOperationTests(unittest.TestCase):
             recovered["diagnostics"]["provider_callback"]["data"]["state"],
             "success")
 
+    def test_callback_closes_task_id_crash_window_and_requeues_job(self):
+        job, _ = self.jobs.enqueue(
+            "director_generate", {"recipe": {"prompt": "harbor"}},
+            idempotency_key=f"director-callback-{uuid4()}",
+            source_tool="director", operation_label="Create visual")
+        self.job_ids.append(job.id)
+        attempt = self.records.begin_attempt(
+            job.id, "director_generate",
+            {"provider": "kie", "model": "kling"},
+            {"recipe": {"prompt": "harbor"}}, None, estimated_cost=.35)
+        with psycopg.connect(settings.database_url) as database:
+            database.execute("""
+                UPDATE jobs SET status='blocked',
+                       result='{"requires_review":true}'::jsonb
+                 WHERE id=%s
+            """, (job.id,))
+            database.commit()
+
+        self.assertTrue(self.records.record_callback(
+            "kie", "kie-task-after-crash",
+            {"data": {"taskId": "kie-task-after-crash", "state": "success"}},
+            attempt_id=attempt))
+        with psycopg.connect(settings.database_url) as database:
+            attempt_row = database.execute("""
+                SELECT status,provider_request_id FROM provider_attempts
+                 WHERE id=%s
+            """, (int(attempt),)).fetchone()
+            job_status = database.execute(
+                "SELECT status FROM jobs WHERE id=%s", (job.id,)).fetchone()[0]
+        self.assertEqual(attempt_row, ("sent", "kie-task-after-crash"))
+        self.assertEqual(job_status, "retrying")
+
+    def test_provider_success_remains_pending_until_local_artifact_exists(self):
+        job, _ = self.jobs.enqueue(
+            "director_generate", {"recipe": {"prompt": "harbor"}},
+            idempotency_key=f"director-ingest-{uuid4()}",
+            source_tool="director", operation_label="Create visual")
+        self.job_ids.append(job.id)
+        attempt = self.records.begin_attempt(
+            job.id, "director_generate", {"provider": "kie"},
+            {"recipe": {"prompt": "harbor"}}, None, estimated_cost=.35)
+        self.records.mark_sent(attempt, "kie-task-ingest")
+        self.records.record_provider_result(
+            attempt, cost=.34, usage={"credits_consumed": 68},
+            receipt={"state": "success", "resultJson": {"resultUrls": ["https://example.test/result.mp4"]}})
+        pending = self.records.attempt_for_job(job.id, "director_generate")
+        self.assertEqual(pending["status"], "sent")
+        self.assertTrue(pending["diagnostics"]["provider_succeeded"])
+
+        with psycopg.connect(settings.database_url) as database:
+            database.execute("""
+                UPDATE jobs SET status='blocked', result=%s::jsonb WHERE id=%s
+            """, ('{"provider_succeeded":true,"can_retry_ingestion":true}', job.id))
+            database.commit()
+        retried = self.jobs.retry_local_ingestion(job.public_id)
+        self.assertEqual(retried.status.value, "retrying")
+
+        self.records.record_artifact(attempt, {"output_asset_ids": [91]})
+        self.records.finish_attempt(
+            attempt, "succeeded", cost=.34,
+            usage={"credits_consumed": 68},
+            request_ids=["kie-task-ingest"], error={})
+        finished = self.records.attempt_for_job(job.id, "director_generate")
+        self.assertEqual(finished["status"], "succeeded")
+        self.assertEqual(
+            finished["diagnostics"]["local_artifact"]["output_asset_ids"],
+            [91])
+
     def test_failure_classification_is_conservative_after_send(self):
         self.assertEqual(self.service.failure_status(
             ValueError("invalid request")), "definitive_failed")

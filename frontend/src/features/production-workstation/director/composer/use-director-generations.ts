@@ -6,6 +6,7 @@ import type { DirectorGeneration, DirectorGenerationRecipe } from "./director-ge
 export function useDirectorGenerations(productionId: number, onError: (message: string) => void) {
   const [generations, setGenerations] = useState<DirectorGeneration[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const [workingId, setWorkingId] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -45,5 +46,29 @@ export function useDirectorGenerations(productionId: number, onError: (message: 
     }
   }
 
-  return { generations, submitting, create, cancel }
+  async function confirm(generation: DirectorGeneration) {
+    setWorkingId(generation.id)
+    try {
+      await studioApi.confirmJob(generation.job_id)
+      await refresh()
+    } catch (reason) {
+      onError(reason instanceof Error ? reason.message : "The generation could not be confirmed.")
+    } finally {
+      setWorkingId(null)
+    }
+  }
+
+  async function retryIngestion(generation: DirectorGeneration) {
+    setWorkingId(generation.id)
+    try {
+      await studioApi.retryDirectorGenerationIngestion(productionId, generation.job_id)
+      await refresh()
+    } catch (reason) {
+      onError(reason instanceof Error ? reason.message : "The generated result could not be saved.")
+    } finally {
+      setWorkingId(null)
+    }
+  }
+
+  return { generations, submitting, workingId, create, cancel, confirm, retryIngestion }
 }

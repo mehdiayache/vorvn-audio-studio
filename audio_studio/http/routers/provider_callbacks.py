@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/v1/providers", tags=["provider-callbacks"])
 _MAX_CLOCK_SKEW_SECONDS = 300
 
 
-@router.post("/kie/callback", status_code=202, include_in_schema=False)
+@router.post("/kie/callback", status_code=200, include_in_schema=False)
 async def kie_callback(request: Request) -> Response:
     key = (os.getenv("KIE_WEBHOOK_HMAC_KEY") or "").strip()
     if not key:
@@ -39,21 +39,29 @@ async def kie_callback(request: Request) -> Response:
     ).strip() if isinstance(source, dict) else ""
     timestamp = request.headers.get("X-Webhook-Timestamp", "").strip()
     signature = request.headers.get("X-Webhook-Signature", "").strip()
+    attempt_id = request.query_params.get("attempt_id", "").strip()
+    callback_token = request.query_params.get("token", "").strip()
+    query_signature_valid = bool(
+        attempt_id.isdigit() and callback_token and hmac.compare_digest(
+            callback_token,
+            hmac.new(key.encode(), attempt_id.encode(), hashlib.sha256).hexdigest(),
+        ))
     try:
         timestamp_value = int(timestamp)
-    except ValueError as exc:
-        raise ApiProblem(
-            401, "invalid_kie_signature", "KIE callback signature is invalid.") from exc
-    if (not task_id or not signature
-            or abs(int(time.time()) - timestamp_value) > _MAX_CLOCK_SKEW_SECONDS):
+    except ValueError:
+        timestamp_value = 0
+    header_signature_valid = bool(
+        timestamp_value
+        and signature
+        and abs(int(time.time()) - timestamp_value) <= _MAX_CLOCK_SKEW_SECONDS
+        and hmac.compare_digest(signature, base64.b64encode(hmac.new(
+            key.encode("utf-8"), f"{task_id}.{timestamp}".encode("utf-8"),
+            hashlib.sha256,
+        ).digest()).decode("ascii"))
+    )
+    if not task_id or not (query_signature_valid or header_signature_valid):
         raise ApiProblem(
             401, "invalid_kie_signature", "KIE callback signature is invalid.")
-    expected = base64.b64encode(hmac.new(
-        key.encode("utf-8"), f"{task_id}.{timestamp}".encode("utf-8"),
-        hashlib.sha256,
-    ).digest()).decode("ascii")
-    if not hmac.compare_digest(signature, expected):
-        raise ApiProblem(
-            401, "invalid_kie_signature", "KIE callback signature is invalid.")
-    provider_callback_recorder.record_callback("kie", task_id, payload)
-    return Response(status_code=202)
+    provider_callback_recorder.record_callback(
+        "kie", task_id, payload, attempt_id=attempt_id or None)
+    return Response(status_code=200)

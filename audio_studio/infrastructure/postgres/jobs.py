@@ -220,6 +220,46 @@ class JobRepository:
             row = cursor.fetchone()
             return _job(row) if row else None
 
+    def retry_local_ingestion(self, public_id: UUID) -> Job:
+        """Resume only local saving for a provider result already paid for."""
+        with transaction() as cursor:
+            cursor.execute("""
+                SELECT job.id, job.status, job.result
+                  FROM jobs job
+                 WHERE job.public_id=%s FOR UPDATE
+            """, (public_id,))
+            row = cursor.fetchone()
+            if not row:
+                raise LookupError("That Director generation no longer exists.")
+            result = row[2] or {}
+            if (row[1] not in {"failed", "blocked"}
+                    or not result.get("can_retry_ingestion")):
+                raise ValueError(
+                    "Only a generated result that failed while saving can be retried.")
+            cursor.execute("""
+                SELECT id FROM provider_attempts
+                 WHERE job_id=%s AND status='sent'
+                   AND diagnostics->>'provider_succeeded'='true'
+                   AND diagnostics ? 'provider_result'
+                 ORDER BY created_at DESC, id DESC LIMIT 1
+            """, (row[0],))
+            if not cursor.fetchone():
+                raise ValueError(
+                    "This result has no completed provider output to save.")
+            cursor.execute("""
+                UPDATE jobs
+                   SET status='retrying', available_at=now(), error=NULL,
+                       started_at=NULL, finished_at=NULL,
+                       last_heartbeat_at=NULL, cancel_requested=false
+                 WHERE id=%s
+            """, (row[0],))
+            cursor.execute("""
+                INSERT INTO job_events (job_id, kind, detail)
+                VALUES (%s, 'retrying', '{"phase":"local_ingestion"}'::jsonb)
+            """, (row[0],))
+            cursor.execute(_SELECT + " WHERE id=%s", (row[0],))
+            return _job(cursor.fetchone())
+
     def latest_for_production(
         self, production_id: int, *, kind: str, operation: str,
     ) -> Job | None:

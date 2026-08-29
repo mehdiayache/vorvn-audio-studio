@@ -26,12 +26,32 @@ def _parameter_values(
 
 def _allowed_ratios(
     selected: dict[str, Any], parameters: dict[str, Any],
+    counts: dict[str, int] | None = None,
 ) -> list[str]:
+    mode = _input_mode(selected, counts or {})
+    if mode:
+        return list(mode["ratios"])
     for rule in selected.get("ratio_rules", []):
         if all(parameters.get(key) == expected
                for key, expected in rule.get("when", {}).items()):
             return list(rule["values"])
     return list(selected["ratios"])
+
+
+def _input_mode(
+    selected: dict[str, Any], counts: dict[str, int],
+) -> dict[str, Any] | None:
+    for mode in selected.get("input_modes", []):
+        matches = True
+        for role, limit in (mode.get("when_counts") or {}).items():
+            count = counts.get(role, 0)
+            if count < int(limit.get("min") or 0):
+                matches = False
+            if limit.get("max") is not None and count > int(limit["max"]):
+                matches = False
+        if matches:
+            return mode
+    return None
 
 
 def _validate_asset_list(
@@ -88,6 +108,10 @@ def _validate_asset_list(
             if str(asset.get("media_type") or "") not in variant["media_types"]:
                 raise ValueError(
                     f"{variant['label']} received an incompatible Asset.")
+            _validate_input_asset({
+                "label": variant["label"],
+                **(variant.get("constraints") or {}),
+            }, asset)
             used_assets.add(asset_id)
         trim = variant.get("trim") or {}
         if trim:
@@ -220,6 +244,18 @@ def _validate_input_asset(slot: dict[str, Any], asset: dict[str, Any]) -> None:
         raise ValueError(f"{label} is too narrow for this model.")
     if slot.get("min_height") is not None and height < int(slot["min_height"]):
         raise ValueError(f"{label} is too short for this model.")
+    if slot.get("max_width") is not None and width > int(slot["max_width"]):
+        raise ValueError(f"{label} is too wide for this model.")
+    if slot.get("max_height") is not None and height > int(slot["max_height"]):
+        raise ValueError(f"{label} is too tall for this model.")
+    if slot.get("max_pixels") is not None and width * height > int(
+            slot["max_pixels"]):
+        raise ValueError(f"{label} resolution is too large for this model.")
+    fps = float(asset.get("frame_rate") or 0)
+    if slot.get("fps_min") is not None and fps < float(slot["fps_min"]):
+        raise ValueError(f"{label} frame rate is too low for this model.")
+    if slot.get("fps_max") is not None and fps > float(slot["fps_max"]):
+        raise ValueError(f"{label} frame rate is too high for this model.")
     if width > 0 and height > 0:
         ratio = width / height
         if (slot.get("aspect_ratio_min") is not None
@@ -287,12 +323,24 @@ def validate_recipe(recipe: dict[str, Any], assets: dict[int, dict[str, Any]]) -
         if not any(counts.get(role, 0) for role in group):
             labels = [slots[role]["label"] for role in group]
             raise ValueError(f"Add {' or '.join(labels)}.")
+    ordered_roles = list(selected.get("input_order") or [])
+    if ordered_roles:
+        role_rank = {role: index for index, role in enumerate(ordered_roles)}
+        actual = [role_rank.get(str(item.get("role") or ""), len(role_rank))
+                  for item in inputs]
+        if actual != sorted(actual):
+            raise ValueError(
+                "Director references are not in their semantic order. "
+                "Place the Start frame before the End frame.")
 
     controls = recipe.get("controls") or {}
     parameters = controls.get("provider_parameters") or {}
     effective_parameters = _parameter_values(selected, parameters)
+    input_mode = _input_mode(selected, counts)
+    if selected.get("input_modes") and input_mode is None:
+        raise ValueError("This combination of references is not supported.")
     for key, values in (("ratio", _allowed_ratios(
-                            selected, effective_parameters)),
+                            selected, effective_parameters, counts)),
                         ("resolution", selected["resolutions"]),
                         ("fps", selected["fps"])):
         value = controls.get(key)
@@ -342,6 +390,51 @@ def validate_recipe(recipe: dict[str, Any], assets: dict[int, dict[str, Any]]) -
                     f"{field['label']} cannot be used with "
                     f"{fields.get(conflict, {}).get('label', conflict)}.")
         _validate_parameter(field, value, assets)
+
+    if input_mode:
+        for key, allowed in (input_mode.get("parameter_values") or {}).items():
+            value = effective_parameters.get(key)
+            if value not in allowed:
+                label = fields.get(key, {}).get("label", key)
+                raise ValueError(
+                    f"{label} is not available with these references.")
+        element_policy = input_mode.get("elements") or {}
+        elements = effective_parameters.get("elements") or []
+        available = element_policy.get("available", True)
+        when = element_policy.get("available_when") or {}
+        if when and not all(effective_parameters.get(key) == expected
+                            for key, expected in when.items()):
+            available = False
+        if elements and not available:
+            raise ValueError(
+                "Character references require directed multi-shot mode with "
+                "this video input.")
+        video_subjects = sum(
+            1 for item in elements if item.get("variant") == "video")
+        nested_images = sum(
+            len(item.get("asset_ids") or []) for item in elements
+            if item.get("variant") == "images")
+        direct_images = counts.get("reference-image", 0)
+        maximum_videos = int(element_policy.get("max_video_subjects") or 0)
+        if maximum_videos and video_subjects > maximum_videos:
+            raise ValueError("This reference mode has too many video subjects.")
+        maximum_images = int(
+            element_policy.get("max_image_assets_total") or 0)
+        if maximum_images and direct_images + nested_images > maximum_images:
+            raise ValueError("This reference mode has too many image references.")
+        if video_subjects:
+            mixed_maximum = element_policy.get(
+                "max_image_assets_with_video_subjects")
+            if mixed_maximum is not None and direct_images + nested_images > int(
+                    mixed_maximum):
+                raise ValueError(
+                    "This mix of image and video subjects has too many images.")
+            if (not element_policy.get(
+                    "allow_video_subject_with_images", True)
+                    and direct_images + nested_images):
+                raise ValueError(
+                    "Video subjects cannot be mixed with image references in "
+                    "this reference mode.")
 
     if parameters.get("customize_multi_shots"):
         shots = parameters.get("multi_prompt") or []

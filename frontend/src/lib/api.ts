@@ -456,6 +456,9 @@ export const studioApi = {
   cancelDirectorGeneration: (productionId: number, jobId: string) => request<DirectorGenerationEnvelope>(`/api/v1/productions/${productionId}/director-generations/${jobId}/cancel`, {
     method: "POST",
   }).then((response) => response.data),
+  retryDirectorGenerationIngestion: (productionId: number, jobId: string) => request<DirectorGenerationEnvelope>(`/api/v1/productions/${productionId}/director-generations/${jobId}/retry-ingestion`, {
+    method: "POST",
+  }).then((response) => response.data),
   searchFreesound: (filters: {
     query: string
     license?: "all" | "cc0" | "cc-by" | "cc-by-nc"

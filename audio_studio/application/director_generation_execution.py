@@ -9,6 +9,7 @@ from typing import Any, Protocol
 from urllib.parse import urlparse
 
 from audio_studio.application.jobs import JobProgress
+from audio_studio.application.preferences import load_preferences
 from audio_studio.application.provider_operations import ProviderOperationService
 from audio_studio.application.uploads import UploadService
 from audio_studio.domain.jobs import Job, JobCancelled, JobFailed
@@ -42,6 +43,7 @@ class DirectorGenerationHandler:
         operations: ProviderOperationService,
         scratch_root: Path, poll_interval: float = 2,
         timeout_seconds: float = 3600, sleeper=time.sleep,
+        clock=time.monotonic, preferences=load_preferences,
     ):
         self.providers = providers
         self.model_adapters = model_adapters
@@ -53,6 +55,8 @@ class DirectorGenerationHandler:
         self.poll_interval = poll_interval
         self.timeout_seconds = timeout_seconds
         self.sleeper = sleeper
+        self.clock = clock
+        self.preferences = preferences
 
     def __call__(self, job: Job, progress: JobProgress) -> dict[str, Any]:
         payload = job.payload
@@ -75,6 +79,9 @@ class DirectorGenerationHandler:
         provider_job_id = ""
         attempt_id = ""
         attempt_finished = False
+        provider_succeeded = False
+        actual_cost = 0.0
+        usage: dict[str, Any] = {}
         try:
             progress.progress(job.id, 0, 4, "Preparing Director references")
             materialized = []
@@ -125,6 +132,8 @@ class DirectorGenerationHandler:
                 job.id, attempt_operation)
             if attempt:
                 attempt_id = str(attempt["id"])
+                actual_cost = float(attempt.get("cost") or 0)
+                usage = attempt.get("usage") or {}
                 provider_job_id = str(
                     attempt.get("provider_request_id") or "")
                 artifact = (attempt.get("diagnostics") or {}).get(
@@ -137,17 +146,37 @@ class DirectorGenerationHandler:
                         "provider_job_id": provider_job_id,
                         "provider_state": "succeeded",
                         "provider_attempt_id": attempt_id,
-                        "estimated_cost": None,
+                        "estimated_cost": attempt.get("estimated_cost"),
+                        "cost": attempt.get("cost") or 0,
                         "usage": attempt.get("usage") or {},
                     }
                 if attempt.get("status") in {
                     "ambiguous", "definitive_failed",
-                } or not provider_job_id:
+                }:
                     raise JobFailed(
                         "This provider attempt cannot be resumed safely.",
                         result={"provider_attempt_id": attempt_id,
                                 "requires_review": True})
             else:
+                estimate = provider.estimate_cost(request)
+                preferences = self.preferences()
+                warning = float(preferences.get("warn_above") or 0)
+                if (warning > 0 and estimate > warning
+                        and not bool(payload.get("confirmed"))):
+                    return {
+                        "needs_confirmation": True,
+                        "estimated_cost": estimate,
+                        "cost": 0,
+                        "usage": {},
+                        "confirmation_message": (
+                            f"Generate this result for about ${estimate:.4f}?"),
+                    }
+                try:
+                    reservation_id = self.operations.authorize(
+                        job.id, attempt_operation, estimate, preferences,
+                        bool(payload.get("confirmed")))
+                except PermissionError as exc:
+                    raise JobFailed(str(exc)) from exc
                 attempt_id = self.operations.repository.begin_attempt(
                     job.id, attempt_operation,
                     {
@@ -160,29 +189,62 @@ class DirectorGenerationHandler:
                         "capability_manifest_version": payload.get(
                             "capability_manifest_version"),
                     },
-                    None,
-                    estimated_cost=0,
+                    reservation_id,
+                    estimated_cost=estimate,
                 )
                 progress.progress(job.id, 1, 4, "Sending generation request")
-                submission = provider.submit(request)
+                submission = provider.submit(
+                    request, callback_reference=attempt_id)
                 provider_job_id = submission.provider_job_id
                 self.operations.repository.mark_sent(
                     attempt_id, provider_job_id)
-            started = time.monotonic()
+                attempt = self.operations.repository.attempt_for_job(
+                    job.id, attempt_operation)
+            started = self.clock()
+            next_reconcile_at = (
+                started + 20 if provider.callback_configured() else started)
+            reconcile_delay = self.poll_interval
             state = None
             while True:
                 attempt = self.operations.repository.attempt_for_job(
                     job.id, attempt_operation)
-                callback_payload = ((attempt or {}).get("diagnostics") or {}).get(
-                    "provider_callback")
-                state = (provider.state_from_callback(callback_payload)
-                         if callback_payload else provider.task(provider_job_id))
-                if state.state == "succeeded":
+                diagnostics = (attempt or {}).get("diagnostics") or {}
+                callback_payload = diagnostics.get("provider_callback")
+                stored_result = diagnostics.get("provider_result")
+                provider_job_id = str(
+                    (attempt or {}).get("provider_request_id")
+                    or provider_job_id or "")
+                if stored_result:
+                    state = provider.state_from_callback(stored_result)
+                    provider_succeeded = True
+                elif callback_payload:
+                    state = provider.state_from_callback(callback_payload)
+                elif not provider_job_id:
+                    if not provider.callback_configured():
+                        raise JobFailed(
+                            "KIE may have accepted this request, but no task ID "
+                            "was persisted. Review it before generating again.",
+                            result={"provider_attempt_id": attempt_id,
+                                    "requires_review": True})
+                    state = None
+                elif self.clock() >= next_reconcile_at:
+                    state = provider.task(provider_job_id)
+                    if provider.callback_configured():
+                        reconcile_delay = 30
+                    else:
+                        reconcile_delay = min(max(reconcile_delay * 2, 2), 30)
+                    next_reconcile_at = self.clock() + reconcile_delay
+                if state is not None and state.state == "succeeded":
                     break
-                if state.state == "failed":
+                if state is not None and state.state == "failed":
+                    actual_cost, usage = provider.accounting(state)
+                    if not usage:
+                        actual_cost = float((attempt or {}).get(
+                            "estimated_cost") or 0)
+                        usage = {"basis": "reserved_estimate"}
                     self.operations.repository.finish_attempt(
-                        attempt_id, "definitive_failed", cost=0,
-                        usage=(state.raw or {}).get("usage") or {},
+                        attempt_id, "definitive_failed", cost=actual_cost,
+                        usage=usage,
                         request_ids=[provider_job_id],
                         error={"message": state.error}, receipt=state.raw)
                     attempt_finished = True
@@ -190,29 +252,37 @@ class DirectorGenerationHandler:
                         state.error or "The provider could not create this visual.",
                         result={"provider_job_id": provider_job_id,
                                 "provider_state": state.state})
-                if state.state not in {"queued", "running"}:
+                if state is not None and state.state not in {"queued", "running"}:
                     raise DirectorProviderError(
                         "The provider returned an unknown generation state.")
-                if state.progress is None:
+                if state is None or state.progress is None:
                     # Unknown provider progress is deliberately indeterminate.
                     # A fake percentage is worse than an honest running state.
                     progress.progress(job.id, 0, 1, "Creating visual")
                 else:
                     progress.progress(
                         job.id, state.progress, 100, "Creating visual")
-                if time.monotonic() - started >= self.timeout_seconds:
-                    provider.cancel(provider_job_id)
+                if self.clock() - started >= self.timeout_seconds:
+                    if provider_job_id:
+                        provider.cancel(provider_job_id)
                     raise DirectorProviderError(
                         "Director generation timed out. Try again.")
-                self.sleeper(self.poll_interval)
+                self.sleeper(min(self.poll_interval, 1)
+                             if provider.callback_configured()
+                             else min(reconcile_delay, 30))
             if not state.output_urls:
                 raise DirectorProviderError(
                     "The provider finished without a downloadable result.")
-            self.operations.repository.finish_attempt(
-                attempt_id, "succeeded", cost=0,
-                usage=(state.raw or {}).get("usage") or {},
-                request_ids=[provider_job_id], error={}, receipt=state.raw)
-            attempt_finished = True
+            if not provider_succeeded:
+                actual_cost, usage = provider.accounting(state)
+                if not usage:
+                    actual_cost = float((attempt or {}).get(
+                        "estimated_cost") or 0)
+                    usage = {"basis": "reserved_estimate"}
+                self.operations.repository.record_provider_result(
+                    attempt_id, cost=actual_cost, usage=usage,
+                    receipt=state.raw or {})
+                provider_succeeded = True
 
             collection_id = self.assets.output_collection_for_production(
                 production_id)
@@ -221,13 +291,18 @@ class DirectorGenerationHandler:
                     "The Production has no Asset library for generated media.")
             output = operation.get("output") or {}
             extension = str(output.get("extension") or "mp4").lstrip(".")
-            output_ids: list[int] = []
+            artifact = ((attempt or {}).get("diagnostics") or {}).get(
+                "local_artifact") or {}
+            output_ids: list[int] = [
+                int(value) for value in artifact.get("output_asset_ids") or []]
             self.scratch_root.mkdir(parents=True, exist_ok=True)
             progress.progress(job.id, 3, 4, "Saving generated visual")
             with TemporaryDirectory(
                 prefix="director-generation-", dir=self.scratch_root,
             ) as directory:
                 for index, url in enumerate(state.output_urls):
+                    if index < len(output_ids):
+                        continue
                     url_suffix = Path(urlparse(url).path).suffix.casefold()
                     suffix = (url_suffix if url_suffix in {
                         ".mp4", ".mov", ".webm", ".png", ".jpg",
@@ -261,24 +336,64 @@ class DirectorGenerationHandler:
                     asset_id = int(kept["asset"]["id"])
                     self.assets.attach_to_director(production_id, asset_id)
                     output_ids.append(asset_id)
-            self.operations.repository.record_artifact(
-                attempt_id, {"output_asset_ids": output_ids})
+                    self.operations.repository.record_artifact(
+                        attempt_id, {"output_asset_ids": output_ids})
+            self.operations.repository.finish_attempt(
+                attempt_id, "succeeded", cost=actual_cost,
+                usage=usage, request_ids=[provider_job_id], error={},
+                receipt=state.raw)
+            attempt_finished = True
             progress.progress(job.id, 4, 4, "Generated visual is ready")
             return {
                 "output_asset_ids": output_ids,
                 "provider_job_id": provider_job_id,
                 "provider_state": state.state,
                 "provider_attempt_id": attempt_id,
-                "estimated_cost": None,
-                "usage": (state.raw or {}).get("usage"),
+                "estimated_cost": (attempt or {}).get("estimated_cost"),
+                "cost": actual_cost,
+                "cost_basis": usage.get("basis") or "provider_reported",
+                "usage": usage,
             }
         except JobCancelled:
             if provider_job_id:
                 provider.cancel(provider_job_id)
             raise
-        except JobFailed:
+        except JobFailed as exc:
+            if provider_succeeded and attempt_id and not exc.result.get(
+                    "can_retry_ingestion"):
+                self.operations.repository.record_artifact(attempt_id, {
+                    "output_asset_ids": output_ids if 'output_ids' in locals() else [],
+                    "ingestion_error": str(exc),
+                })
+                raise JobFailed(str(exc), result={
+                    "provider_job_id": provider_job_id or None,
+                    "provider_id": provider_id,
+                    "provider_attempt_id": attempt_id,
+                    "provider_succeeded": True,
+                    "local_ingestion_pending": True,
+                    "can_retry_ingestion": True,
+                    "estimated_cost": (attempt or {}).get("estimated_cost"),
+                    "cost": actual_cost,
+                    "usage": usage,
+                }) from exc
             raise
         except (DirectorProviderError, RuntimeError, ValueError) as exc:
+            if provider_succeeded and attempt_id:
+                self.operations.repository.record_artifact(attempt_id, {
+                    "output_asset_ids": output_ids if 'output_ids' in locals() else [],
+                    "ingestion_error": str(exc),
+                })
+                raise JobFailed(str(exc), result={
+                    "provider_job_id": provider_job_id or None,
+                    "provider_id": provider_id,
+                    "provider_attempt_id": attempt_id,
+                    "provider_succeeded": True,
+                    "local_ingestion_pending": True,
+                    "can_retry_ingestion": True,
+                    "estimated_cost": (attempt or {}).get("estimated_cost"),
+                    "cost": actual_cost,
+                    "usage": usage,
+                }) from exc
             if attempt_id and provider_job_id and not attempt_finished:
                 self.operations.repository.finish_attempt(
                     attempt_id,
@@ -289,4 +404,5 @@ class DirectorGenerationHandler:
                 "provider_job_id": provider_job_id or None,
                 "provider_id": provider_id,
                 "provider_attempt_id": attempt_id or None,
+                "requires_review": bool(attempt_id and not provider_job_id),
             }) from exc

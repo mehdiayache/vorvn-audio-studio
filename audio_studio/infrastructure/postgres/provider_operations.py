@@ -116,7 +116,7 @@ class ProviderOperationRepository:
         with transaction() as cursor:
             cursor.execute("""
                 SELECT id, status, provider, provider_request_id, route,
-                       diagnostics, usage, cost, error
+                       diagnostics, usage, cost, error, estimated_cost
                   FROM provider_attempts
                  WHERE job_id=%s AND operation=%s
                  ORDER BY created_at DESC, id DESC LIMIT 1
@@ -129,11 +129,40 @@ class ProviderOperationRepository:
             "provider_request_id": row[3], "route": row[4] or {},
             "diagnostics": row[5] or {}, "usage": row[6] or {},
             "cost": float(row[7] or 0), "error": row[8] or {},
+            "estimated_cost": float(row[9] or 0),
         }
 
     def record_callback(self, provider: str, provider_request_id: str,
-                        payload: dict) -> bool:
+                        payload: dict, *, attempt_id: str | None = None) -> bool:
         with transaction() as cursor:
+            if attempt_id:
+                cursor.execute("""
+                    UPDATE provider_attempts
+                       SET status=CASE WHEN status='not_sent' THEN 'sent'
+                                       ELSE status END,
+                           sent_at=coalesce(sent_at, now()),
+                           provider_request_id=coalesce(
+                               provider_request_id, %s),
+                           diagnostics=diagnostics || %s::jsonb
+                     WHERE id=%s AND provider=%s
+                       AND status IN ('not_sent','sent','succeeded')
+                       AND (provider_request_id IS NULL
+                            OR provider_request_id=%s)
+                 RETURNING job_id
+                """, (provider_request_id,
+                      json.dumps({"provider_callback": payload}),
+                      int(attempt_id), provider, provider_request_id))
+                attached = cursor.fetchone()
+                if not attached:
+                    return False
+                cursor.execute("""
+                    UPDATE jobs
+                       SET status='retrying', available_at=now(), error=NULL,
+                           started_at=NULL, finished_at=NULL,
+                           last_heartbeat_at=NULL
+                     WHERE id=%s AND status IN ('failed','blocked','lost')
+                """, (attached[0],))
+                return True
             cursor.execute("""
                 UPDATE provider_attempts
                    SET diagnostics=diagnostics || %s::jsonb
@@ -145,6 +174,23 @@ class ProviderOperationRepository:
             """, (json.dumps({"provider_callback": payload}),
                   provider, provider_request_id))
             return cursor.rowcount == 1
+
+    def record_provider_result(self, attempt_id: str, *, cost: float,
+                               usage: dict, receipt: dict) -> None:
+        """Persist paid provider truth while local ingestion is still pending."""
+        with transaction() as cursor:
+            cursor.execute("""
+                UPDATE provider_attempts
+                   SET cost=%s, usage=%s::jsonb,
+                       diagnostics=diagnostics || %s::jsonb
+                 WHERE id=%s AND status='sent'
+            """, (cost, json.dumps(usage or {}), json.dumps({
+                "provider_result": receipt,
+                "provider_succeeded": True,
+            }), int(attempt_id)))
+            if cursor.rowcount != 1:
+                raise RuntimeError(
+                    "The provider result could not be attached to its attempt.")
 
     def finish_attempt(self, attempt_id: str, status: str, *, cost: float,
                        usage: dict, request_ids: list[str], error: dict,
@@ -178,7 +224,7 @@ class ProviderOperationRepository:
             cursor.execute("""
                 UPDATE provider_attempts
                    SET diagnostics=diagnostics || %s::jsonb
-                 WHERE id=%s AND status='succeeded'
+                 WHERE id=%s AND status IN ('sent','succeeded')
             """, (json.dumps({"local_artifact": artifact}), int(attempt_id)))
 
     def reconcile_budget(self, job_id: int, actual_cost: float,

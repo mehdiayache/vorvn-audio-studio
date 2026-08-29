@@ -37,6 +37,13 @@ export type DirectorGeneration = {
   output_asset_ids: number[]
   provider_job_id: string | null
   estimated_cost: number | null
+  cost?: number
+  usage?: Record<string, unknown>
+  needs_confirmation?: boolean
+  confirmation_message?: string | null
+  can_retry_ingestion?: boolean
+  local_ingestion_pending?: boolean
+  requires_review?: boolean
   created_at: string | null
   updated_at: string | null
 }

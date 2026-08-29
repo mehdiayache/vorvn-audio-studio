@@ -85,6 +85,15 @@ class DirectorGenerationService:
             raise LookupError("That Director generation no longer exists.")
         return self.project(canceled)
 
+    def retry_ingestion(
+        self, production_id: int, job_id: UUID,
+    ) -> dict[str, Any]:
+        job = self.jobs.get(job_id)
+        if (not job or job.kind != DIRECTOR_GENERATION_KIND
+                or int(job.payload.get("production_id") or 0) != production_id):
+            raise LookupError("That Director generation no longer exists.")
+        return self.project(self.jobs.retry_local_ingestion(job_id))
+
     @staticmethod
     def project(job: Job) -> dict[str, Any]:
         status = {
@@ -111,6 +120,15 @@ class DirectorGenerationService:
             "output_asset_ids": job.result.get("output_asset_ids") or [],
             "provider_job_id": job.result.get("provider_job_id"),
             "estimated_cost": job.result.get("estimated_cost"),
+            "cost": float(job.result.get("cost") or 0),
+            "usage": job.result.get("usage") or {},
+            "needs_confirmation": bool(job.result.get("needs_confirmation")),
+            "confirmation_message": job.result.get("confirmation_message"),
+            "can_retry_ingestion": bool(
+                job.result.get("can_retry_ingestion")),
+            "local_ingestion_pending": bool(
+                job.result.get("local_ingestion_pending")),
+            "requires_review": bool(job.result.get("requires_review")),
             "created_at": job.created_at, "updated_at": (
                 job.finished_at or job.started_at or job.created_at),
         }
