@@ -6527,6 +6527,16 @@ export interface components {
              */
             fit: "cover" | "contain";
             /**
+             * Flip Horizontal
+             * @default false
+             */
+            flip_horizontal: boolean;
+            /**
+             * Flip Vertical
+             * @default false
+             */
+            flip_vertical: boolean;
+            /**
              * Id
              * Format: uuid
              */
@@ -6551,6 +6561,11 @@ export interface components {
              * @default 0
              */
             position_y: number;
+            /**
+             * Rotation Degrees
+             * @default 0
+             */
+            rotation_degrees: number;
             /**
              * Scale
              * @default 1

@@ -169,6 +169,77 @@ class RenderWorkspaceTests(unittest.TestCase):
         self.assertGreater(covered_edge[0], 180)
         self.assertLess(max(covered_edge[1:]), 40)
 
+    @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"),
+                         "FFmpeg is required for MP4 acceptance.")
+    def test_real_mp4_applies_flip_and_rotation_to_the_same_source_geometry(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            source = root / "corner.png"
+            audio = root / "master.wav"
+            subprocess.run([
+                "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                "-f", "lavfi", "-i",
+                "color=c=black:s=320x320:d=1,"
+                "drawbox=x=0:y=0:w=80:h=80:color=red:t=fill",
+                "-frames:v", "1", str(source),
+            ], check=True)
+            subprocess.run([
+                "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo",
+                "-t", "1", str(audio),
+            ], check=True)
+
+            def render(name: str, **transform) -> Path:
+                target = root / f"{name}.mp4"
+                clip = {
+                    "asset_id": 1, "start_ms": 0, "duration_ms": 1000,
+                    "source_offset_ms": 0, "fit": "cover",
+                    "position_x": 0, "position_y": 0, "scale": 1,
+                    "rotation_degrees": 0, "flip_horizontal": False,
+                    "flip_vertical": False, "opacity": 1,
+                    **transform,
+                }
+                scene = {
+                    "document": {
+                        "canvas": {"width": 320, "height": 320},
+                        "tracks": [{
+                            "id": "image", "media_type": "image",
+                            "visible": True, "clips": [clip],
+                        }],
+                    },
+                    "sources": {
+                        "1": {"media_type": "image",
+                              "filename": source.name},
+                    },
+                }
+                with patch.object(render_workspace, "_output", return_value=root):
+                    render_workspace._render_visual_scene(
+                        scene, audio, target, duration_ms=1000)
+                return target
+
+            def pixel(path: Path, x: int, y: int) -> tuple[int, int, int]:
+                sampled = subprocess.run([
+                    "ffmpeg", "-v", "error", "-ss", "0.1", "-i",
+                    str(path), "-vf", f"crop=2:2:{x}:{y}",
+                    "-frames:v", "1", "-f", "rawvideo", "-pix_fmt",
+                    "rgb24", "-",
+                ], check=True, capture_output=True).stdout
+                return tuple(sampled[:3])
+
+            flipped = render("flipped", flip_horizontal=True)
+            rotated = render("rotated", rotation_degrees=180)
+            flipped_left = pixel(flipped, 20, 20)
+            flipped_right = pixel(flipped, 300, 20)
+            rotated_top_left = pixel(rotated, 20, 20)
+            rotated_bottom_right = pixel(rotated, 300, 300)
+
+        self.assertLess(max(flipped_left), 30)
+        self.assertGreater(flipped_right[0], 180)
+        self.assertLess(max(flipped_right[1:]), 40)
+        self.assertLess(max(rotated_top_left), 30)
+        self.assertGreater(rotated_bottom_right[0], 180)
+        self.assertLess(max(rotated_bottom_right[1:]), 40)
+
     def test_mix_builds_every_supported_primitive_and_master_safety(self):
         commands: list[list[str]] = []
 

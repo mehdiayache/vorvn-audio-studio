@@ -331,6 +331,9 @@ export type VisualSceneClip = {
   position_x: number
   position_y: number
   scale: number
+  rotation_degrees: number
+  flip_horizontal: boolean
+  flip_vertical: boolean
   opacity: number
   locked: boolean
 }

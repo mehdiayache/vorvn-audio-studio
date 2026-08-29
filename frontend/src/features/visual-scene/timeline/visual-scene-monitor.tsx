@@ -7,11 +7,13 @@ import type { VisualSceneClip } from "@/types/domain"
 import type { VisualClipRef, VisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
 
 export function visualLayerStyle(clip: VisualSceneClip, document: VisualSceneDocument, zIndex: number): CSSProperties {
+  const horizontal = clip.flip_horizontal ? -clip.scale : clip.scale
+  const vertical = clip.flip_vertical ? -clip.scale : clip.scale
   return {
     zIndex,
     objectFit: clip.fit,
     opacity: clip.opacity,
-    transform: `translate(${clip.position_x / document.canvas.width * 100}%, ${clip.position_y / document.canvas.height * 100}%) scale(${clip.scale})`,
+    transform: `translate(${clip.position_x / document.canvas.width * 100}%, ${clip.position_y / document.canvas.height * 100}%) rotate(${clip.rotation_degrees || 0}deg) scale(${horizontal}, ${vertical})`,
     transformOrigin: "center center",
   }
 }

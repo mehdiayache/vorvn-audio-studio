@@ -30,7 +30,7 @@ describe("video audio synchronization", () => {
       duration_ms: 6_000,
       source_offset_ms: 1_200,
       fit: "cover",
-      position_x: 0, position_y: 0, scale: 1, opacity: 1,
+      position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1,
       locked: false,
     }]), [asset()])
 
@@ -57,7 +57,7 @@ describe("video audio synchronization", () => {
       duration_ms: 6_000,
       source_offset_ms: 0,
       fit: "cover" as const,
-      position_x: 0, position_y: 0, scale: 1, opacity: 1,
+      position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1,
       locked: false,
     }
     const first = synchronizeVideoAudio(emptySound(), visuals([visualClip]), [asset()]).document
@@ -90,7 +90,7 @@ describe("video audio synchronization", () => {
       duration_ms: 6_000,
       source_offset_ms: 0,
       fit: "cover",
-      position_x: 0, position_y: 0, scale: 1, opacity: 1,
+      position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1,
       locked: false,
     }]), [asset()]).document
     first.tracks[0]!.name = "Camera sound"
@@ -121,7 +121,7 @@ describe("video audio synchronization", () => {
       duration_ms: 3_000,
       source_offset_ms: 2_000,
       fit: "cover",
-      position_x: 0, position_y: 0, scale: 1, opacity: 1,
+      position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1,
       locked: false,
     }]), [asset()]).document
 
@@ -151,7 +151,7 @@ describe("video audio synchronization", () => {
       duration_ms: 6_000,
       source_offset_ms: 0,
       fit: "cover",
-      position_x: 0, position_y: 0, scale: 1, opacity: 1,
+      position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1,
       locked: false,
     }]), [asset(false)]).document.tracks).toEqual([])
   })

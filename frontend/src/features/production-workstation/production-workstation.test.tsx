@@ -189,7 +189,7 @@ describe("Production Workstation", () => {
     expect(screen.getByRole("button", { name: "Add image to Image track" })).toBeTruthy()
     unmount()
 
-    const placedVisual: VisualScene = { ...emptyVisual, document: { ...emptyVisual.document, tracks: [{ ...emptyVisual.document.tracks[0]!, clips: [{ id: "placement", asset_id: 91, start_ms: 0, duration_ms: 5_000, source_offset_ms: 0, fit: "cover", position_x: 0, position_y: 0, scale: 1, opacity: 1, locked: false }] }] } }
+    const placedVisual: VisualScene = { ...emptyVisual, document: { ...emptyVisual.document, tracks: [{ ...emptyVisual.document.tracks[0]!, clips: [{ id: "placement", asset_id: 91, start_ms: 0, duration_ms: 5_000, source_offset_ms: 0, fit: "cover", position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1, locked: false }] }] } }
     render(<TimelineWorkspace session={sessionFor(scene([part({ duration_ms: 30_000 })]))} visual={{ ...props, session: visualSessionFor(placedVisual) }} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
     expect(screen.getByLabelText("Production viewer")).toBeTruthy()

@@ -120,6 +120,9 @@ export class VisualSceneSession {
     clip.position_x = Number.isFinite(clip.position_x) ? clip.position_x : 0
     clip.position_y = Number.isFinite(clip.position_y) ? clip.position_y : 0
     clip.scale = Math.min(10, Math.max(.05, Number.isFinite(clip.scale) ? clip.scale : 1))
+    clip.rotation_degrees = Math.min(180, Math.max(-180, Number.isFinite(clip.rotation_degrees) ? clip.rotation_degrees : 0))
+    clip.flip_horizontal = Boolean(clip.flip_horizontal)
+    clip.flip_vertical = Boolean(clip.flip_vertical)
     clip.opacity = Math.min(1, Math.max(0, Number.isFinite(clip.opacity) ? clip.opacity : 1))
   }
 
@@ -190,7 +193,7 @@ export class VisualSceneSession {
       document.tracks.push(track)
     }
     const durationMs = asset.media_type === "video" ? sourceDurationMs : DEFAULT_IMAGE_MS
-    const clip: VisualSceneClip = { id: uuid(), asset_id: asset.id, start_ms: Math.max(0, Math.round(startMs)), duration_ms: durationMs, source_offset_ms: 0, fit: "cover", position_x: 0, position_y: 0, scale: 1, opacity: 1, locked: false }
+    const clip: VisualSceneClip = { id: uuid(), asset_id: asset.id, start_ms: Math.max(0, Math.round(startMs)), duration_ms: durationMs, source_offset_ms: 0, fit: "cover", position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1, locked: false }
     this.normalizeClip(clip, sourceDurationMs)
     track.clips.push(clip)
     this.set({ selection: { trackId: track.id, clipId: clip.id } })
@@ -305,8 +308,15 @@ export class VisualSceneSession {
     }
     await this.commit(document)
   }
-  async setClipFit(ref: VisualClipRef, fit: "cover" | "contain") { await this.changeClip(ref, { fit }) }
-  async setClipTransform(ref: VisualClipRef, changes: Pick<Partial<VisualSceneClip>, "position_x" | "position_y" | "scale" | "opacity">) {
+  async frameClip(ref: VisualClipRef, fit: "cover" | "contain") {
+    const document = cloneDocument(this.state.document)
+    const track = document.tracks.find((candidate) => candidate.id === ref.trackId)
+    const clip = track?.clips.find((item) => item.id === ref.clipId)
+    if (!clip || clip.locked || track?.locked) return
+    Object.assign(clip, { fit, position_x: 0, position_y: 0, scale: 1 })
+    await this.commit(document)
+  }
+  async setClipTransform(ref: VisualClipRef, changes: Pick<Partial<VisualSceneClip>, "position_x" | "position_y" | "scale" | "rotation_degrees" | "flip_horizontal" | "flip_vertical" | "opacity">) {
     const document = cloneDocument(this.state.document)
     const clip = document.tracks.find((track) => track.id === ref.trackId)?.clips.find((item) => item.id === ref.clipId)
     if (!clip || clip.locked || document.tracks.find((track) => track.id === ref.trackId)?.locked) return
@@ -314,7 +324,7 @@ export class VisualSceneSession {
     this.normalizeClip(clip)
     await this.commit(document)
   }
-  previewClipTransform(ref: VisualClipRef, changes: Pick<Partial<VisualSceneClip>, "position_x" | "position_y" | "scale" | "opacity">) {
+  previewClipTransform(ref: VisualClipRef, changes: Pick<Partial<VisualSceneClip>, "position_x" | "position_y" | "scale" | "rotation_degrees" | "flip_horizontal" | "flip_vertical" | "opacity">) {
     const document = cloneDocument(this.state.document)
     const track = document.tracks.find((candidate) => candidate.id === ref.trackId)
     const clip = track?.clips.find((item) => item.id === ref.clipId)
@@ -324,7 +334,20 @@ export class VisualSceneSession {
     this.set({ document })
   }
   async resetClipTransform(ref: VisualClipRef) {
-    await this.setClipTransform(ref, { position_x: 0, position_y: 0, scale: 1, opacity: 1 })
+    const document = cloneDocument(this.state.document)
+    const track = document.tracks.find((candidate) => candidate.id === ref.trackId)
+    const clip = track?.clips.find((item) => item.id === ref.clipId)
+    if (!clip || clip.locked || track?.locked) return
+    Object.assign(clip, {
+      fit: "cover" as const,
+      position_x: 0,
+      position_y: 0,
+      scale: 1,
+      rotation_degrees: 0,
+      flip_horizontal: false,
+      flip_vertical: false,
+    })
+    await this.commit(document)
   }
   async setCanvas(width: number, height: number) {
     const document = cloneDocument(this.state.document)

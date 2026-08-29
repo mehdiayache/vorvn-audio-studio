@@ -753,7 +753,7 @@ describe("SoundSceneSession", () => {
         visible: true, locked: false, clips: [{
           id: visualClipId, asset_id: 77, start_ms: 2_000,
           duration_ms: 4_000, source_offset_ms: 500, fit: "cover",
-          position_x: 0, position_y: 0, scale: 1, opacity: 1,
+          position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1,
           locked: false,
         }],
       }],
@@ -783,7 +783,7 @@ describe("SoundSceneSession", () => {
         visible: true, locked: false, clips: [{
           id: visualClipId, asset_id: 77, start_ms: 2_000,
           duration_ms: 4_000, source_offset_ms: 500, fit: "cover",
-          position_x: 0, position_y: 0, scale: 1, opacity: 1,
+          position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1,
           locked: false,
         }],
       }],

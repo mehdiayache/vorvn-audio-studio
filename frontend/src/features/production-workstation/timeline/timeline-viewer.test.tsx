@@ -15,7 +15,7 @@ describe("TimelineViewer", () => {
     const document: VisualSceneDocument = {
       version: 1,
       canvas: { width: 1920, height: 1080 },
-      tracks: [{ id: "image-track", name: "Image 1", media_type: "image", visible: true, locked: false, clips: [{ id: "image-clip", asset_id: 8, start_ms: 0, duration_ms: 5_000, source_offset_ms: 0, fit: "cover", position_x: 0, position_y: 0, scale: 1, opacity: 1, locked: false }] }],
+      tracks: [{ id: "image-track", name: "Image 1", media_type: "image", visible: true, locked: false, clips: [{ id: "image-clip", asset_id: 8, start_ms: 0, duration_ms: 5_000, source_offset_ms: 0, fit: "cover", position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1, locked: false }] }],
     }
     const asset = { id: 8, media_type: "image", name: "Harbour", filename: "harbour.jpg", width: 1920, height: 1080 } as VentureAsset
     const session = { setCanvas } as unknown as VisualSceneSession

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
-import { Clock3, Film, Image as ImageIcon, Lock, LockOpen, RotateCcw, Volume2, VolumeX } from "lucide-react"
+import { Clock3, Film, FlipHorizontal2, FlipVertical2, Image as ImageIcon, Lock, LockOpen, Maximize, Minimize2, RotateCcw, Volume2, VolumeX } from "lucide-react"
 
+import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
@@ -8,7 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { visualAssetDetails, visualAssetFacts, visualAssetName, visualAssetPosterUrl, visualAssetUrl } from "@/features/production-workstation/director/director-assets"
 import { dbToGain, formatDb, gainToDb, MAX_GAIN_DB, MIN_GAIN_DB } from "@/features/sound-scene/sound-scene-gain"
 import type { VisualClipRef, VisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
-import type { VentureAsset, VisualSceneClip, VisualSceneDocument, VisualSceneTrack } from "@/types/domain"
+import type { VentureAsset, VisualSceneClip, VisualSceneTrack } from "@/types/domain"
 
 import "./visual-clip-inspector.css"
 
@@ -19,12 +20,11 @@ function milliseconds(value: number) {
   return minutes ? `${minutes}:${remainder.toFixed(1).padStart(4, "0")}` : `${remainder.toFixed(1)}s`
 }
 
-export function VisualClipInspector({ clipRef, track, clip, asset, canvas, session, saving, audioSaving = saving, hasEmbeddedAudio = false, audioMuted = false, audioGain = 1, onAudioMutedChange, onAudioGainChange, onAudioGainCommit }: {
+export function VisualClipInspector({ clipRef, track, clip, asset, session, saving, audioSaving = saving, hasEmbeddedAudio = false, audioMuted = false, audioGain = 1, onAudioMutedChange, onAudioGainChange, onAudioGainCommit }: {
   clipRef: VisualClipRef
   track: VisualSceneTrack
   clip: VisualSceneClip
   asset?: VentureAsset
-  canvas?: VisualSceneDocument["canvas"]
   session: VisualSceneSession
   saving: boolean
   audioSaving?: boolean
@@ -40,10 +40,7 @@ export function VisualClipInspector({ clipRef, track, clip, asset, canvas, sessi
   const details = asset ? visualAssetDetails(asset) : { technical: [], library: [] }
   const facts = asset ? visualAssetFacts(asset) : null
   const name = asset ? visualAssetName(asset) : "Missing media"
-  const matchingAspectRatio = Boolean(
-    canvas && asset?.width && asset?.height
-    && Math.abs(asset.width / asset.height - canvas.width / canvas.height) < .001,
-  )
+  const transformDisabled = saving || clip.locked || track.locked
   return <div className="visual-clip-inspector">
     <div className="visual-inspector-identity">
       <span className="visual-inspector-thumb">{asset?.filename ? <img src={asset.media_type === "video" ? visualAssetPosterUrl(asset) : visualAssetUrl(asset)} alt="" /> : asset?.media_type === "video" ? <Film /> : <ImageIcon />}</span>
@@ -61,15 +58,23 @@ export function VisualClipInspector({ clipRef, track, clip, asset, canvas, sessi
     </section>
 
     <section className="visual-inspector-transform">
-      <header><span><b>Frame</b><small>Position and size inside the Production format.</small></span><Button variant="ghost" size="sm" disabled={saving || clip.locked || track.locked} onClick={() => void session.resetClipTransform(clipRef)}><RotateCcw /> Reset</Button></header>
-      <div className="visual-transform-position">
-        <label><span>X</span><Input key={`x-${Math.round(clip.position_x)}`} type="number" defaultValue={Math.round(clip.position_x)} disabled={saving || clip.locked || track.locked} onBlur={(event) => void session.setClipTransform(clipRef, { position_x: Number(event.target.value) || 0 })} /></label>
-        <label><span>Y</span><Input key={`y-${Math.round(clip.position_y)}`} type="number" defaultValue={Math.round(clip.position_y)} disabled={saving || clip.locked || track.locked} onBlur={(event) => void session.setClipTransform(clipRef, { position_y: Number(event.target.value) || 0 })} /></label>
+      <header><span><b>Frame</b><small>Place this source inside the Production format.</small></span><OperatorTooltip label="Reset frame" detail="Restores Fill, centered placement, 100% scale, no rotation and no flip. Opacity and audio stay unchanged."><Button variant="ghost" size="sm" disabled={transformDisabled} onClick={() => void session.resetClipTransform(clipRef)}><RotateCcw /> Reset frame</Button></OperatorTooltip></header>
+      <div className="visual-frame-actions" role="group" aria-label="Quick framing actions">
+        <OperatorTooltip label="Fit entire source" detail="Centers the complete image or video inside the frame. Empty space may remain."><Button variant="outline" size="sm" disabled={transformDisabled} onClick={() => void session.frameClip(clipRef, "contain")}><Minimize2 /> Fit</Button></OperatorTooltip>
+        <OperatorTooltip label="Fill Production frame" detail="Centers and enlarges the source until the frame is covered. Outer edges may be cropped."><Button variant="outline" size="sm" disabled={transformDisabled} onClick={() => void session.frameClip(clipRef, "cover")}><Maximize /> Fill</Button></OperatorTooltip>
       </div>
-      <TransformSlider label="Scale" value={clip.scale * 100} display={`${Math.round(clip.scale * 100)}%`} minimum={5} maximum={300} disabled={saving || clip.locked || track.locked} onPreview={(value) => session.previewClipTransform(clipRef, { scale: value / 100 })} onBegin={() => session.beginGesture()} onCommit={(value) => { session.beginGesture(); session.previewClipTransform(clipRef, { scale: value / 100 }); void session.commitGesture() }} />
-      <TransformSlider label="Opacity" value={clip.opacity * 100} display={`${Math.round(clip.opacity * 100)}%`} minimum={0} maximum={100} disabled={saving || clip.locked || track.locked} onPreview={(value) => session.previewClipTransform(clipRef, { opacity: value / 100 })} onBegin={() => session.beginGesture()} onCommit={(value) => { session.beginGesture(); session.previewClipTransform(clipRef, { opacity: value / 100 }); void session.commitGesture() }} />
-      <div className="visual-transform-fit" role="group" aria-label="Media framing"><span><b>Framing</b>{matchingAspectRatio && <small>Same result at this ratio</small>}</span><div><Button variant={clip.fit === "cover" ? "secondary" : "ghost"} size="sm" disabled={saving || clip.locked || track.locked} onClick={() => void session.setClipFit(clipRef, "cover")}>Fill frame</Button><Button variant={clip.fit === "contain" ? "secondary" : "ghost"} size="sm" disabled={saving || clip.locked || track.locked} onClick={() => void session.setClipFit(clipRef, "contain")}>Fit inside</Button></div></div>
-      <p>Drag the selected media directly in Viewer to position it.</p>
+      <div className="visual-transform-position">
+        <label><span>X</span><Input key={`x-${Math.round(clip.position_x)}`} type="number" defaultValue={Math.round(clip.position_x)} disabled={transformDisabled} onBlur={(event) => void session.setClipTransform(clipRef, { position_x: Number(event.target.value) || 0 })} /></label>
+        <label><span>Y</span><Input key={`y-${Math.round(clip.position_y)}`} type="number" defaultValue={Math.round(clip.position_y)} disabled={transformDisabled} onBlur={(event) => void session.setClipTransform(clipRef, { position_y: Number(event.target.value) || 0 })} /></label>
+      </div>
+      <TransformSlider label="Scale" value={clip.scale * 100} display={`${Math.round(clip.scale * 100)}%`} minimum={5} maximum={300} disabled={transformDisabled} onPreview={(value) => session.previewClipTransform(clipRef, { scale: value / 100 })} onBegin={() => session.beginGesture()} onCommit={(value) => { session.beginGesture(); session.previewClipTransform(clipRef, { scale: value / 100 }); void session.commitGesture() }} />
+      <TransformSlider label="Rotation" value={clip.rotation_degrees} display={`${Math.round(clip.rotation_degrees)}°`} minimum={-180} maximum={180} disabled={transformDisabled} onPreview={(value) => session.previewClipTransform(clipRef, { rotation_degrees: value })} onBegin={() => session.beginGesture()} onCommit={(value) => { session.beginGesture(); session.previewClipTransform(clipRef, { rotation_degrees: value }); void session.commitGesture() }} />
+      <div className="visual-transform-flip" role="group" aria-label="Flip media">
+        <Button variant={clip.flip_horizontal ? "secondary" : "outline"} size="sm" disabled={transformDisabled} aria-pressed={clip.flip_horizontal} onClick={() => void session.setClipTransform(clipRef, { flip_horizontal: !clip.flip_horizontal })}><FlipHorizontal2 /> Flip horizontal</Button>
+        <Button variant={clip.flip_vertical ? "secondary" : "outline"} size="sm" disabled={transformDisabled} aria-pressed={clip.flip_vertical} onClick={() => void session.setClipTransform(clipRef, { flip_vertical: !clip.flip_vertical })}><FlipVertical2 /> Flip vertical</Button>
+      </div>
+      <TransformSlider label="Opacity" value={clip.opacity * 100} display={`${Math.round(clip.opacity * 100)}%`} minimum={0} maximum={100} disabled={transformDisabled} onPreview={(value) => session.previewClipTransform(clipRef, { opacity: value / 100 })} onBegin={() => session.beginGesture()} onCommit={(value) => { session.beginGesture(); session.previewClipTransform(clipRef, { opacity: value / 100 }); void session.commitGesture() }} />
+      <p>Fit and Fill are starting actions. Moving, scaling or rotating afterward creates your custom framing.</p>
     </section>
 
     {track.media_type === "video" && <section className="visual-inspector-audio">

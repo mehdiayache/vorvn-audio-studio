@@ -133,6 +133,11 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
                 "position_y": _number(raw_clip.get("position_y"), 0),
                 "scale": min(10, max(.05, _number(
                     raw_clip.get("scale"), 1))),
+                "rotation_degrees": min(180, max(-180, _number(
+                    raw_clip.get("rotation_degrees"), 0))),
+                "flip_horizontal": bool(
+                    raw_clip.get("flip_horizontal", False)),
+                "flip_vertical": bool(raw_clip.get("flip_vertical", False)),
                 "opacity": min(1, max(0, _number(
                     raw_clip.get("opacity"), 1))),
                 "locked": bool(raw_clip.get("locked", False)),

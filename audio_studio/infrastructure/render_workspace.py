@@ -609,12 +609,27 @@ def _render_visual_scene(
         opacity = min(1.0, max(0.0, float(clip.get("opacity", 1))))
         position_x = float(clip.get("position_x") or 0)
         position_y = float(clip.get("position_y") or 0)
+        rotation = min(180.0, max(
+            -180.0, float(clip.get("rotation_degrees") or 0)))
+        transforms = []
+        if clip.get("flip_horizontal"):
+            transforms.append("hflip")
+        if clip.get("flip_vertical"):
+            transforms.append("vflip")
+        if abs(rotation) > .0001:
+            transforms.append(
+                f"rotate={rotation:.6f}*PI/180:"
+                "ow=rotw(iw):oh=roth(ih):c=black@0")
+        transform_chain = ",".join(transforms)
+        if transform_chain:
+            transform_chain += ","
         clip_label = f"visualclip{index}"
         output_label = f"visual{index}"
         filters.append(
             f"[{index}:v]{trim},setpts=PTS-STARTPTS+{start:.3f}/TB,"
             f"{geometry},scale=iw*{scale:.6f}:ih*{scale:.6f},setsar=1,"
-            f"format=rgba,colorchannelmixer=aa={opacity:.6f}[{clip_label}]"
+            f"{transform_chain}format=rgba,"
+            f"colorchannelmixer=aa={opacity:.6f}[{clip_label}]"
         )
         filters.append(
             f"{previous}[{clip_label}]overlay="

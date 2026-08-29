@@ -25,7 +25,9 @@ def scene_with_clip(*, asset_id: int = 9) -> dict:
                 "start_ms": 1_500, "duration_ms": 5_000,
                 "source_offset_ms": 0, "fit": "cover",
                 "position_x": 0, "position_y": 0,
-                "scale": 1, "opacity": 1, "locked": False,
+                "scale": 1, "rotation_degrees": 0,
+                "flip_horizontal": False, "flip_vertical": False,
+                "opacity": 1, "locked": False,
             }],
         }],
     }
@@ -68,8 +70,11 @@ class VisualSceneTests(unittest.TestCase):
         incoming["tracks"][0]["clips"][0]["opacity"] = .5
         incoming["tracks"][0]["clips"][0]["position_x"] = 42
         incoming["tracks"][0]["clips"][0]["scale"] = 1.25
+        incoming["tracks"][0]["clips"][0]["rotation_degrees"] = -32.5
+        incoming["tracks"][0]["clips"][0]["flip_horizontal"] = True
         expected["tracks"][0]["clips"][0].update({
             "opacity": .5, "position_x": 42.0, "scale": 1.25,
+            "rotation_degrees": -32.5, "flip_horizontal": True,
         })
 
         canonical = normalize_scene(incoming)
@@ -81,6 +86,10 @@ class VisualSceneTests(unittest.TestCase):
         self.assertEqual(canonical["tracks"][0]["clips"][0]["position_x"], 42)
         self.assertEqual(canonical["tracks"][0]["clips"][0]["position_y"], 0)
         self.assertEqual(canonical["tracks"][0]["clips"][0]["scale"], 1.25)
+        self.assertEqual(
+            canonical["tracks"][0]["clips"][0]["rotation_degrees"], -32.5)
+        self.assertTrue(
+            canonical["tracks"][0]["clips"][0]["flip_horizontal"])
         self.assertEqual(normalize_scene(canonical), canonical)
 
     def test_old_documents_receive_explicit_canvas_track_and_fit_truth(self):
@@ -88,6 +97,9 @@ class VisualSceneTests(unittest.TestCase):
         legacy.pop("canvas")
         legacy["tracks"][0].pop("media_type")
         legacy["tracks"][0]["clips"][0].pop("fit")
+        legacy["tracks"][0]["clips"][0].pop("rotation_degrees")
+        legacy["tracks"][0]["clips"][0].pop("flip_horizontal")
+        legacy["tracks"][0]["clips"][0].pop("flip_vertical")
         legacy["tracks"][0]["name"] = "Video"
 
         canonical = normalize_scene(legacy)
@@ -97,6 +109,12 @@ class VisualSceneTests(unittest.TestCase):
         })
         self.assertEqual(canonical["tracks"][0]["media_type"], "video")
         self.assertEqual(canonical["tracks"][0]["clips"][0]["fit"], "cover")
+        self.assertEqual(
+            canonical["tracks"][0]["clips"][0]["rotation_degrees"], 0)
+        self.assertFalse(
+            canonical["tracks"][0]["clips"][0]["flip_horizontal"])
+        self.assertFalse(
+            canonical["tracks"][0]["clips"][0]["flip_vertical"])
 
     def test_ids_are_unique_and_every_clip_has_real_time(self):
         invalid = scene_with_clip()

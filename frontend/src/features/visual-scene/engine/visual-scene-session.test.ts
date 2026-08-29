@@ -14,7 +14,7 @@ describe("VisualSceneSession", () => {
     await session.addImage(image, 2_000)
     const track = session.snapshot().document.tracks[0]!
     expect(track.name).toBe("Image 1")
-    expect(track.clips[0]).toMatchObject({ asset_id: 44, start_ms: 2_000, duration_ms: 5_000, source_offset_ms: 0, position_x: 0, position_y: 0, scale: 1, opacity: 1 })
+    expect(track.clips[0]).toMatchObject({ asset_id: 44, start_ms: 2_000, duration_ms: 5_000, source_offset_ms: 0, position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1 })
     await session.duplicate({ trackId: track.id, clipId: track.clips[0]!.id })
     expect(session.snapshot().document.tracks[0]!.clips.map((clip) => clip.asset_id)).toEqual([44, 44])
   })
@@ -110,14 +110,29 @@ describe("VisualSceneSession", () => {
     const track = session.snapshot().document.tracks[0]!
     const ref = { trackId: track.id, clipId: track.clips[0]!.id }
 
-    await session.setClipTransform(ref, { position_x: 240, position_y: -40, scale: 1.5, opacity: .6 })
-    expect(session.currentClip(ref)).toMatchObject({ position_x: 240, position_y: -40, scale: 1.5, opacity: .6 })
+    await session.setClipTransform(ref, { position_x: 240, position_y: -40, scale: 1.5, rotation_degrees: 15, flip_horizontal: true, opacity: .6 })
+    expect(session.currentClip(ref)).toMatchObject({ position_x: 240, position_y: -40, scale: 1.5, rotation_degrees: 15, flip_horizontal: true, opacity: .6 })
     expect(session.snapshot().canUndo).toBe(true)
 
     await session.undo()
-    expect(session.currentClip(ref)).toMatchObject({ position_x: 0, position_y: 0, scale: 1, opacity: 1 })
+    expect(session.currentClip(ref)).toMatchObject({ position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, opacity: 1 })
     await session.redo()
-    expect(session.currentClip(ref)).toMatchObject({ position_x: 240, position_y: -40, scale: 1.5, opacity: .6 })
+    expect(session.currentClip(ref)).toMatchObject({ position_x: 240, position_y: -40, scale: 1.5, rotation_degrees: 15, flip_horizontal: true, opacity: .6 })
+  })
+
+  it("uses Fit and Fill as framing actions and resets framing without changing opacity", async () => {
+    const update = vi.fn(async (document, expectedRevision) => ({ ...scene(expectedRevision + 1), document }))
+    const session = new VisualSceneSession(scene(), { update }, 30_000)
+    await session.addImage(image, 0)
+    const track = session.snapshot().document.tracks[0]!
+    const ref = { trackId: track.id, clipId: track.clips[0]!.id }
+
+    await session.setClipTransform(ref, { position_x: 120, position_y: -50, scale: 1.4, rotation_degrees: -20, flip_vertical: true, opacity: .55 })
+    await session.frameClip(ref, "contain")
+    expect(session.currentClip(ref)).toMatchObject({ fit: "contain", position_x: 0, position_y: 0, scale: 1, rotation_degrees: -20, flip_vertical: true, opacity: .55 })
+
+    await session.resetClipTransform(ref)
+    expect(session.currentClip(ref)).toMatchObject({ fit: "cover", position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: .55 })
   })
 
   it("moves, nudges and duplicates a visual multi-selection as one edit", async () => {

@@ -33,6 +33,9 @@ class VisualSceneClipDocument(BaseModel):
     position_x: float = 0
     position_y: float = 0
     scale: float = Field(default=1, ge=.05, le=10)
+    rotation_degrees: float = Field(default=0, ge=-180, le=180)
+    flip_horizontal: bool = False
+    flip_vertical: bool = False
     opacity: float = Field(default=1, ge=0, le=1)
     locked: bool = False
 
