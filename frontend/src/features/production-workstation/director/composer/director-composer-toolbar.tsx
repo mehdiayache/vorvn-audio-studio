@@ -12,7 +12,7 @@ import { DirectorModelSelector } from "./director-model-selector"
 import { DirectorOperationPicker } from "./director-operation-picker"
 import { DirectorSubmit } from "./director-submit"
 
-export function DirectorComposerToolbar({ operations, operation, capability, model, models, ratio, resolution, duration, advanced, assets, disabledReason, busy, uploadStatus, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onUpload, onOpenLibrary, onPaste, onSubmit }: {
+export function DirectorComposerToolbar({ operations, operation, capability, model, models, ratio, resolution, duration, advanced, assets, disabledReason, canAddReference, busy, uploadStatus, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onUpload, onOpenLibrary, onPaste, onSubmit }: {
   operations: DirectorOperationInfo[]
   operation: DirectorOperation
   capability: DirectorOperationCapability
@@ -24,6 +24,7 @@ export function DirectorComposerToolbar({ operations, operation, capability, mod
   advanced: DirectorAdvancedValues
   assets: VentureAsset[]
   disabledReason?: string
+  canAddReference: boolean
   busy: boolean
   uploadStatus?: string
   onOperationChange: (value: DirectorOperation) => void
@@ -39,8 +40,8 @@ export function DirectorComposerToolbar({ operations, operation, capability, mod
 }) {
   return <InputGroupAddon align="block-end" className="director-composer-toolbar">
     <DropdownMenu>
-      <OperatorTooltip label="Add a reference" detail="Upload, choose from Visual Library, or paste compatible media.">
-        <DropdownMenuTrigger asChild><InputGroupButton size="icon-sm" variant="outline" className="rounded-full" aria-label="Add a reference"><Plus /></InputGroupButton></DropdownMenuTrigger>
+      <OperatorTooltip label="Add a reference" detail={canAddReference ? "Upload, choose from Visual Library, or paste media accepted by this creation type." : "This creation type has no open reference position. Choose another type or add a subject in model settings."}>
+        <DropdownMenuTrigger asChild><InputGroupButton disabled={!canAddReference} size="icon-sm" variant="outline" className="rounded-full" aria-label="Add a reference"><Plus /></InputGroupButton></DropdownMenuTrigger>
       </OperatorTooltip>
       <DropdownMenuContent side="top" align="start" className="w-56">
         <DropdownMenuLabel>Add reference</DropdownMenuLabel>

@@ -36,6 +36,18 @@ class AlibabaSingaporeDirectorProvider:
                 and environment.api_key_configured)
 
     @staticmethod
+    def callback_configured() -> bool:
+        # No Director callback is registered until a concrete Wan adapter has
+        # an exact, documented callback contract for the Singapore endpoint.
+        return False
+
+    @staticmethod
+    def estimate_cost(request: dict[str, Any]) -> float:
+        del request
+        raise DirectorProviderError(
+            "Alibaba pricing is not configured for this Director model.")
+
+    @staticmethod
     def _key() -> str:
         environment = alibaba_environment()
         key = (os.getenv("DASHSCOPE_API_KEY") or "").strip()
@@ -97,7 +109,10 @@ class AlibabaSingaporeDirectorProvider:
                 "Save an Alibaba Singapore API key before generating."),
         }
 
-    def submit(self, request: dict[str, Any]) -> DirectorSubmission:
+    def submit(
+        self, request: dict[str, Any], *, callback_reference: str | None = None,
+    ) -> DirectorSubmission:
+        del callback_reference
         path = str(request.get("path") or "").strip()
         body = request.get("body")
         if not path.startswith("/") or not isinstance(body, dict):
@@ -112,9 +127,8 @@ class AlibabaSingaporeDirectorProvider:
                 "Alibaba did not return a valid task ID.")
         return DirectorSubmission(str(task_id))
 
-    def task(self, provider_job_id: str) -> DirectorProviderState:
-        base = alibaba_environment().native_http_base.rstrip("/")
-        payload = self._json(f"{base}/tasks/{provider_job_id}")
+    @staticmethod
+    def _state(payload: dict[str, Any]) -> DirectorProviderState:
         output = payload.get("output") or {}
         status = str(output.get("task_status") or "").upper()
         if status in {"PENDING", "UNKNOWN"}:
@@ -141,6 +155,25 @@ class AlibabaSingaporeDirectorProvider:
             error=str(output.get("message") or payload.get("message") or ""),
             raw=payload,
         )
+
+    def task(self, provider_job_id: str) -> DirectorProviderState:
+        base = alibaba_environment().native_http_base.rstrip("/")
+        payload = self._json(f"{base}/tasks/{provider_job_id}")
+        return self._state(payload)
+
+    def state_from_callback(
+        self, payload: dict[str, Any],
+    ) -> DirectorProviderState:
+        return self._state(payload)
+
+    @staticmethod
+    def accounting(
+        state: DirectorProviderState,
+    ) -> tuple[float, dict[str, Any]]:
+        del state
+        # Kept deliberately unknown until a concrete Wan model exposes an
+        # audited usage contract. estimate_cost() prevents paid wiring first.
+        return 0.0, {}
 
     def download(self, url: str, target: Path) -> int:
         request = urllib.request.Request(url, headers={"Accept": "*/*"})

@@ -132,6 +132,90 @@ describe("Director composer", () => {
     ], { audio: true })).toContain("Generate audio")
   })
 
+  it("counts direct and nested images in the same reference quota", () => {
+    const capability = {
+      inputs: [{ role: "reference-image", media_types: ["image"], max: 7 }],
+      input_modes: [{
+        id: "images", when_counts: { "reference-image": { min: 1 } },
+        ratios: ["16:9"], default_ratio: "16:9", parameter_values: {},
+        elements: { max_image_assets_total: 7 },
+      }],
+      parameters: [], ratios: ["16:9"], ratio_rules: [],
+    } as unknown as DirectorOperationCapability
+    const attachments = Array.from({ length: 7 }, (_, index) => ({
+      id: `direct-${index}`, assetId: index + 1, name: `Image ${index + 1}`,
+      kind: "image" as const, role: "reference-image", previewUrl: null,
+      posterUrl: null, status: "ready" as const,
+    }))
+    expect(inputModeIssue(capability, attachments, {
+      elements: [{ variant: "images", asset_ids: [99] }],
+    })).toBe("This reference mode has too many image references.")
+  })
+
+  it("accepts the four-image boundary with one video subject", () => {
+    const capability = {
+      inputs: [{ role: "reference-image", media_types: ["image"], max: 7 }],
+      input_modes: [{
+        id: "images", when_counts: { "reference-image": { min: 1 } },
+        ratios: ["16:9"], default_ratio: "16:9", parameter_values: {},
+        elements: {
+          max_video_subjects: 3, max_image_assets_total: 7,
+          max_image_assets_with_video_subjects: 4,
+        },
+      }],
+      parameters: [], ratios: ["16:9"], ratio_rules: [],
+    } as unknown as DirectorOperationCapability
+    const attachments = Array.from({ length: 2 }, (_, index) => ({
+      id: `direct-${index}`, assetId: index + 1, name: `Image ${index + 1}`,
+      kind: "image" as const, role: "reference-image", previewUrl: null,
+      posterUrl: null, status: "ready" as const,
+    }))
+    expect(inputModeIssue(capability, attachments, {
+      elements: [
+        { variant: "images", asset_ids: [3, 4] },
+        { variant: "video", asset_ids: [5] },
+      ],
+    })).toBeUndefined()
+  })
+
+  it("rejects subjects forbidden by the active video reference mode", () => {
+    const capability = {
+      inputs: [
+        { role: "reference-image", media_types: ["image"], max: 4 },
+        { role: "reference-video", media_types: ["video"], max: 1 },
+      ],
+      input_modes: [{
+        id: "video-images", when_counts: {
+          "reference-image": { min: 1, max: 4 },
+          "reference-video": { min: 1, max: 1 },
+        }, ratios: ["16:9"], default_ratio: "16:9", parameter_values: {},
+        elements: {
+          available_when: { customize_multi_shots: true },
+          max_video_subjects: 1, allow_video_subject_with_images: false,
+        },
+      }, {
+        id: "video", when_counts: {
+          "reference-image": { max: 0 },
+          "reference-video": { min: 1, max: 1 },
+        }, ratios: ["auto"], default_ratio: "auto", parameter_values: {},
+        elements: { available_when: { customize_multi_shots: true } },
+      }],
+      parameters: [], ratios: ["16:9"], ratio_rules: [],
+    } as unknown as DirectorOperationCapability
+    const attachments = [
+      { id: "video", assetId: 1, name: "Video", kind: "video" as const, role: "reference-video", previewUrl: null, posterUrl: null, status: "ready" as const },
+      { id: "image", assetId: 2, name: "Image", kind: "image" as const, role: "reference-image", previewUrl: null, posterUrl: null, status: "ready" as const },
+    ]
+    expect(inputModeIssue(capability, attachments, {
+      customize_multi_shots: true,
+      elements: [{ variant: "video", asset_ids: [3] }],
+    })).toBe("Video subjects cannot be mixed with image references in this mode.")
+    expect(inputModeIssue(capability, attachments.slice(0, 1), {
+      customize_multi_shots: false,
+      elements: [{ variant: "video", asset_ids: [3] }],
+    })).toBe("Character references require directed multi-shot mode with this video input.")
+  })
+
   it("renders manifest-declared primary controls beside the prompt", async () => {
     const primaryCatalog = structuredClone(catalog) as any
     primaryCatalog.models[0].operations[0].parameters = [{
@@ -254,13 +338,16 @@ describe("Director composer", () => {
     expect((screen.getByRole("textbox", { name: "Prompt name" }) as HTMLInputElement).value).toBe("subject_1")
   })
 
-  it("routes one ordinary image to image-to-video without inventing an Element", async () => {
+  it("keeps the operator's creation type explicit when reference capacity is full", async () => {
     vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
     renderComposer({ libraryAssets: [
       { id: 41, media_type: "image", name: "Hero front" },
       { id: 42, media_type: "image", name: "Hero side" },
     ] })
     fireEvent.change(await screen.findByRole("textbox", { name: "Director prompt" }), { target: { value: "The product turns slowly" } })
+
+    await openOperationPicker()
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Animate image/ }))
 
     fireEvent.pointerDown(screen.getByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
     fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
@@ -272,11 +359,9 @@ describe("Director composer", () => {
     expect(screen.getByRole("button", { name: /Creation type: Animate image/ })).toBeTruthy()
     expect(screen.queryByText(/subject/i, { selector: ".attachment-chip-role" })).toBeNull()
 
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
-    fireEvent.click((await screen.findByText("Hero side", { selector: ".director-reference-item strong" })).closest("button")!)
-    expect(await screen.findByRole("button", { name: /Creation type: Direct with references/ })).toBeTruthy()
-    expect(screen.getAllByText("Reference images").length).toBeGreaterThan(0)
+    expect((screen.getByRole("button", { name: "Add a reference" }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByRole("button", { name: /Creation type: Animate image/ })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: /Creation type: Direct with references/ })).toBeNull()
     expect((screen.getByRole("textbox", { name: "Director prompt" }) as HTMLTextAreaElement).value).toBe("The product turns slowly")
   })
 
@@ -285,6 +370,8 @@ describe("Director composer", () => {
     renderComposer({ libraryAssets: [
       { id: 41, media_type: "image", name: "Portrait source" },
     ] })
+    await openOperationPicker()
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Animate image/ }))
     fireEvent.pointerDown(await screen.findByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
     fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
     fireEvent.click((await screen.findByText("Portrait source", { selector: ".director-reference-item strong" })).closest("button")!)
@@ -328,6 +415,8 @@ describe("Director composer", () => {
       { id: 41, media_type: "image", name: "Hero front" },
       { id: 42, media_type: "image", name: "Hero side" },
     ] })
+    await openOperationPicker()
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Direct with references/ }))
     fireEvent.pointerDown(await screen.findByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
     fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
     const hero = await screen.findByText("Hero front", { selector: ".director-reference-item strong" })

@@ -149,31 +149,6 @@ export function directReferenceMediaTypes(capability: DirectorOperationCapabilit
   return [...new Set(capability.inputs.flatMap(({ media_types }) => media_types))]
 }
 
-export function compatibleDirectInputTarget(
-  models: DirectorModelCapability[],
-  currentModel: DirectorModelCapability,
-  currentCapability: DirectorOperationCapability,
-  kind: DirectorAttachmentKind,
-  existingKinds: DirectorAttachmentKind[] = [],
-) {
-  const used = existingKinds.filter((candidate) => candidate === kind).length
-  const currentCapacity = currentCapability.inputs
-    .filter(({ media_types }) => media_types.includes(kind))
-    .reduce((total, slot) => total + slot.max, 0)
-  const currentAccepts = currentCapacity > used
-  if (currentAccepts) return { model: currentModel, capability: currentCapability }
-  const candidates = models.flatMap((model) => model.operations.flatMap((capability) => {
-    const slots = capability.inputs.filter(({ media_types }) => media_types.includes(kind))
-    const capacity = slots.reduce((total, slot) => total + slot.max, 0)
-    if (capacity <= used) return []
-    const required = slots.some((slot) => slot.required || capability.required_any_of.some((group) => group.includes(slot.role)))
-    const affinity = Number(model.provider_id === currentModel.provider_id) + Number(model.label === currentModel.label)
-    return [{ model, capability, required, affinity }]
-  }))
-  candidates.sort((left, right) => Number(right.required) - Number(left.required) || right.affinity - left.affinity)
-  return candidates[0] ? { model: candidates[0].model, capability: candidates[0].capability } : undefined
-}
-
 export function operationCapability(model: DirectorModelCapability, operation: DirectorOperation) {
   return model.operations.find((capability) => capability.operation === operation)
 }
@@ -202,8 +177,14 @@ export function inputMode(
   }))
 }
 
-export function availableReferenceMediaTypes(capability: DirectorOperationCapability, values: DirectorParameterValues) {
-  const direct = directReferenceMediaTypes(capability)
+export function availableReferenceMediaTypes(
+  capability: DirectorOperationCapability,
+  values: DirectorParameterValues,
+  counts: Record<string, number> = {},
+) {
+  const direct = capability.inputs
+    .filter(({ role, max }) => (counts[role] || 0) < max)
+    .flatMap(({ media_types }) => media_types)
   const nested = capability.parameters.flatMap((field) => {
     if (field.type !== "asset_list") return []
     if (!Object.entries(field.visible_when).every(([key, expected]) => values[key] === expected)) return []
@@ -222,17 +203,6 @@ export function availableReferenceMediaTypes(capability: DirectorOperationCapabi
     ]
   })
   return [...new Set([...direct, ...nested])]
-}
-
-export function catalogReferenceMediaTypes(
-  models: DirectorModelCapability[],
-  capability: DirectorOperationCapability,
-  values: DirectorParameterValues,
-) {
-  return [...new Set([
-    ...models.flatMap((model) => model.operations.flatMap(directReferenceMediaTypes)),
-    ...availableReferenceMediaTypes(capability, values),
-  ])]
 }
 
 export function attachmentRoleLabel(capability: DirectorOperationCapability, role: DirectorAttachmentRole) {

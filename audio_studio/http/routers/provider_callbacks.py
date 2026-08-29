@@ -62,6 +62,10 @@ async def kie_callback(request: Request) -> Response:
     if not task_id or not (query_signature_valid or header_signature_valid):
         raise ApiProblem(
             401, "invalid_kie_signature", "KIE callback signature is invalid.")
+    # KIE's official signature proves only ``taskId.timestamp``. The internal
+    # attempt id is trustworthy only when AUVI's attempt-scoped token proves it.
+    # Otherwise resolve the attempt exclusively from the signed provider task.
+    trusted_attempt_id = attempt_id if query_signature_valid else None
     provider_callback_recorder.record_callback(
-        "kie", task_id, payload, attempt_id=attempt_id or None)
+        "kie", task_id, payload, attempt_id=trusted_attempt_id)
     return Response(status_code=200)

@@ -191,6 +191,15 @@ class ProviderOperationRepository:
             if cursor.rowcount != 1:
                 raise RuntimeError(
                     "The provider result could not be attached to its attempt.")
+            cursor.execute("""
+                UPDATE budget_reservations reservation
+                   SET actual_cost=%s, updated_at=now()
+                  FROM provider_attempts attempt
+                 WHERE attempt.id=%s
+                   AND reservation.id=nullif(
+                       attempt.diagnostics->>'budget_reservation_id','')::bigint
+                   AND reservation.status='reserved'
+            """, (cost, int(attempt_id)))
 
     def finish_attempt(self, attempt_id: str, status: str, *, cost: float,
                        usage: dict, request_ids: list[str], error: dict,

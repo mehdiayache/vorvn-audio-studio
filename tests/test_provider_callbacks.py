@@ -28,7 +28,7 @@ class ProviderCallbackTest(unittest.TestCase):
         app.include_router(router)
         self.client = TestClient(app)
 
-    def test_verified_kie_callback_is_attached_to_provider_attempt(self):
+    def test_official_kie_signature_ignores_untrusted_attempt_id(self):
         payload = {"data": {"taskId": "task-19", "state": "success"}}
         timestamp = str(int(time.time()))
         signature = base64.b64encode(hmac.new(
@@ -50,7 +50,9 @@ class ProviderCallbackTest(unittest.TestCase):
                 },
             )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(operations.received, [("kie", "task-19", payload, "51")])
+        self.assertEqual(operations.received, [
+            ("kie", "task-19", payload, None),
+        ])
 
     def test_invalid_kie_signature_is_rejected(self):
         with patch.dict("os.environ", {

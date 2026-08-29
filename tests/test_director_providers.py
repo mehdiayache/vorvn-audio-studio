@@ -11,6 +11,12 @@ from unittest.mock import patch
 
 from audio_studio.providers.kie.models import KieModelAdapter
 from audio_studio.providers.kie.provider import KieDirectorProvider
+from audio_studio.providers.director import (
+    DirectorProviderError, DirectorProviderState,
+)
+from audio_studio.providers.alibaba_singapore.provider import (
+    AlibabaSingaporeDirectorProvider,
+)
 
 
 class Response(io.BytesIO):
@@ -233,7 +239,8 @@ class DirectorProviderTests(unittest.TestCase):
 
     def test_kie_cost_estimate_and_reported_credit_accounting(self):
         provider = KieDirectorProvider()
-        estimate = provider.estimate_cost({"input": {
+        estimate = provider.estimate_cost({
+            "model": "kling-3.0-omni/text-to-video", "input": {
             "resolution": "1080p", "duration": 8, "audio": True,
         }})
         state = provider._state({
@@ -244,6 +251,67 @@ class DirectorProviderTests(unittest.TestCase):
         self.assertAlmostEqual(estimate, 1.08)
         self.assertAlmostEqual(cost, 1.08)
         self.assertEqual(usage["credits_consumed"], 216)
+
+    def test_kie_pricing_is_explicitly_scoped_to_each_model(self):
+        provider = KieDirectorProvider()
+        models = (
+            "kling-3.0-omni/text-to-video",
+            "kling-3.0-omni/image-to-video",
+            "kling-3.0-omni/reference-to-video",
+            "kling-3.0-omni/transformation",
+        )
+        rates = {
+            ("720p", False): .07,
+            ("720p", True): .10,
+            ("1080p", False): .09,
+            ("1080p", True): .135,
+            ("4k", False): .335,
+            ("4k", True): .335,
+        }
+        for model in models:
+            for (resolution, audio), rate in rates.items():
+                with self.subTest(
+                    model=model, resolution=resolution, audio=audio,
+                ):
+                    self.assertAlmostEqual(provider.estimate_cost({
+                        "model": model,
+                        "input": {"resolution": resolution, "duration": 5,
+                                  "audio": audio},
+                    }), round(rate * 5, 6))
+        with self.assertRaisesRegex(
+            DirectorProviderError, "pricing is not configured",
+        ):
+            provider.estimate_cost({
+                "model": "seedance-2.0/text-to-video",
+                "input": {"resolution": "720p", "duration": 5},
+            })
+
+    def test_failed_kie_task_without_credits_is_zero_cost(self):
+        state = KieDirectorProvider._state({
+            "state": "fail", "failMsg": "Provider rejected the request",
+        })
+        cost, usage = KieDirectorProvider.accounting(state)
+        self.assertEqual(cost, 0)
+        self.assertEqual(usage["basis"], "kie_failed_task_no_charge")
+
+    def test_alibaba_transport_cannot_be_paid_wired_without_pricing(self):
+        provider = AlibabaSingaporeDirectorProvider()
+        self.assertFalse(provider.callback_configured())
+        with self.assertRaisesRegex(
+            DirectorProviderError, "pricing is not configured",
+        ):
+            provider.estimate_cost({"model": "wan-not-yet-wired"})
+        state = provider.state_from_callback({
+            "output": {"task_status": "SUCCEEDED", "results": [
+                {"video_url": "https://files.test/wan.mp4"},
+            ]},
+        })
+        self.assertEqual(state.state, "succeeded")
+        self.assertEqual(state.output_urls, ("https://files.test/wan.mp4",))
+        self.assertEqual(
+            provider.accounting(DirectorProviderState("succeeded")),
+            (0.0, {}),
+        )
 
     def test_kie_download_is_streamed_to_the_requested_file(self):
         requests = []

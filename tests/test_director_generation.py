@@ -18,6 +18,15 @@ class FakeAssets:
             {"id": 13, "media_type": "audio", "duration_ms": 8_000},
             {"id": 14, "media_type": "image", "mime_type": "image/jpeg",
              "size_bytes": 15_000, "width": 1280, "height": 720},
+            *[
+                {"id": asset_id, "media_type": "image",
+                 "mime_type": "image/png", "size_bytes": 12_000,
+                 "width": 1280, "height": 720}
+                for asset_id in range(15, 23)
+            ],
+            {"id": 23, "media_type": "video", "mime_type": "video/mp4",
+             "size_bytes": 18_000_000, "duration_ms": 8_000,
+             "width": 1280, "height": 720, "frame_rate": 30},
         ]
 
     def production_exists(self, production_id):
@@ -281,6 +290,96 @@ class DirectorGenerationTest(unittest.TestCase):
         value["controls"]["ratio"] = "auto"
         with self.assertRaisesRegex(ValueError, "frame rate"):
             service.enqueue(7, value, idempotency_key="slow-video")
+
+    def test_reference_image_quota_counts_direct_and_subject_assets(self):
+        service = DirectorGenerationService(FakeJobs(), FakeAssets())
+        value = recipe(
+            operation="reference_to_video",
+            model_id="kling-3.0-omni/reference-to-video",
+            inputs=[{
+                "asset_id": asset_id, "role": "reference-image",
+                "media_type": "image", "position": position,
+            } for position, asset_id in enumerate((11, 14, 15, 16, 17, 18))],
+        )
+        value["controls"]["provider_parameters"]["elements"] = [{
+            "name": "hero", "description": "The main character",
+            "variant": "images", "asset_ids": [19, 20],
+            "audio_asset_ids": [],
+        }]
+        with self.assertRaisesRegex(ValueError, "too many image references"):
+            service.enqueue(7, value, idempotency_key="combined-image-quota")
+
+    def test_reference_video_subject_accepts_exact_four_image_boundary(self):
+        service = DirectorGenerationService(FakeJobs(), FakeAssets())
+        value = recipe(
+            operation="reference_to_video",
+            model_id="kling-3.0-omni/reference-to-video",
+            inputs=[{
+                "asset_id": asset_id, "role": "reference-image",
+                "media_type": "image", "position": position,
+            } for position, asset_id in enumerate((11, 14))],
+        )
+        value["controls"]["provider_parameters"]["elements"] = [
+            {
+                "name": "hero", "description": "The main character",
+                "variant": "images", "asset_ids": [15, 16],
+                "audio_asset_ids": [],
+            },
+            {
+                "name": "guide", "description": "The guide character",
+                "variant": "video", "asset_ids": [23],
+                "audio_asset_ids": [], "start_time_ms": 0,
+                "end_time_ms": 8000,
+            },
+        ]
+        projected, _ = service.enqueue(
+            7, value, idempotency_key="mixed-reference-boundary")
+        self.assertEqual(projected["recipe"], value)
+
+    def test_video_input_rejects_image_plus_video_subject(self):
+        service = DirectorGenerationService(FakeJobs(), FakeAssets())
+        value = recipe(
+            operation="reference_to_video",
+            model_id="kling-3.0-omni/reference-to-video",
+            inputs=[
+                {"asset_id": 12, "role": "reference-video",
+                 "media_type": "video", "position": 0},
+                {"asset_id": 11, "role": "reference-image",
+                 "media_type": "image", "position": 1},
+            ],
+        )
+        value["controls"]["provider_parameters"].update({
+            "customize_multi_shots": True,
+            "multi_prompt": [{"prompt": "Opening", "duration": 5}],
+            "elements": [{
+                "name": "hero", "description": "The main character",
+                "variant": "video", "asset_ids": [23],
+                "audio_asset_ids": [], "start_time_ms": 0,
+                "end_time_ms": 8000,
+            }],
+        })
+        with self.assertRaisesRegex(
+            ValueError, "Video subjects cannot be mixed",
+        ):
+            service.enqueue(7, value, idempotency_key="forbidden-mix")
+
+    def test_video_only_elements_require_directed_multi_shot_mode(self):
+        service = DirectorGenerationService(FakeJobs(), FakeAssets())
+        value = recipe(
+            operation="reference_to_video",
+            model_id="kling-3.0-omni/reference-to-video",
+            inputs=[{"asset_id": 12, "role": "reference-video",
+                     "media_type": "video", "position": 0}],
+        )
+        value["controls"]["ratio"] = "auto"
+        value["controls"]["provider_parameters"]["elements"] = [{
+            "name": "hero", "description": "The main character",
+            "variant": "video", "asset_ids": [23],
+            "audio_asset_ids": [], "start_time_ms": 0,
+            "end_time_ms": 8000,
+        }]
+        with self.assertRaisesRegex(ValueError, "directed multi-shot"):
+            service.enqueue(7, value, idempotency_key="video-elements-mode")
 
     def test_enqueue_keeps_one_ordered_canonical_input_contract(self):
         jobs = FakeJobs()

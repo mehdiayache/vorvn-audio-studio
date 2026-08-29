@@ -54,6 +54,17 @@ class FakeProvider:
         return None
 
 
+class FailedKieProvider(FakeProvider):
+    def task(self, provider_job_id):
+        return DirectorProviderState(
+            "failed", error="Provider rejected the request",
+            raw={"state": "fail", "failMsg": "Provider rejected the request"},
+        )
+
+    def accounting(self, state):
+        return 0.0, {"basis": "kie_failed_task_no_charge"}
+
+
 class FakeAdapter:
     def __init__(self):
         self.values = None
@@ -351,6 +362,28 @@ class DirectorGenerationExecutionTest(unittest.TestCase):
             result = handler(job, FakeProgress())
         self.assertEqual(result["output_asset_ids"], [88])
         self.assertEqual(operations.begin_count, 1)
+
+    def test_failed_kie_task_does_not_become_estimated_spend(self):
+        operations = FakeOperationRepository()
+        job = self._job()
+        with TemporaryDirectory() as directory:
+            handler = DirectorGenerationHandler(
+                providers={"kie": FailedKieProvider()},
+                model_adapters={job.payload["model"]: FakeAdapter()},
+                assets=FakeAssets(), uploads=FakeUploads(),
+                materializer=FakeMaterializer(),
+                operations=ProviderOperationService(operations),
+                scratch_root=Path(directory), poll_interval=0,
+                sleeper=lambda _: None,
+            )
+            with self.assertRaisesRegex(JobFailed, "Provider rejected"):
+                handler(job, FakeProgress())
+        self.assertEqual(operations.attempt["status"], "definitive_failed")
+        self.assertEqual(operations.attempt["cost"], 0)
+        self.assertEqual(
+            operations.attempt["usage"]["basis"],
+            "kie_failed_task_no_charge",
+        )
 
 
 if __name__ == "__main__":

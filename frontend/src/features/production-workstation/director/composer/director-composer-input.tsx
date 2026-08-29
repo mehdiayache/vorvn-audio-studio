@@ -8,7 +8,7 @@ import { DirectorComposerToolbar } from "./director-composer-toolbar"
 import { withParameterValue, type DirectorAttachmentRole, type DirectorModelCapability, type DirectorOperation, type DirectorOperationCapability, type DirectorOperationInfo } from "./director-composer-config"
 import { DirectorPrimaryParameters } from "./director-primary-parameters"
 
-export function DirectorComposerInput({ prompt, operations, operation, capability, model, models, attachments, missingRoles, ratio, resolution, duration, advanced, assets, busy, disabledReason, uploadStatus, fileAccept, onPromptChange, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onFiles, onRemoveAttachment, onOpenLibrary, onPaste, onSubmit }: {
+export function DirectorComposerInput({ prompt, operations, operation, capability, model, models, attachments, missingRoles, ratio, resolution, duration, advanced, assets, busy, disabledReason, canAddReference, uploadStatus, fileAccept, onPromptChange, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onFiles, onRemoveAttachment, onOpenLibrary, onPaste, onSubmit }: {
   prompt: string
   operations: DirectorOperationInfo[]
   operation: DirectorOperation
@@ -24,6 +24,7 @@ export function DirectorComposerInput({ prompt, operations, operation, capabilit
   assets: VentureAsset[]
   busy: boolean
   disabledReason?: string
+  canAddReference: boolean
   uploadStatus?: string
   fileAccept: string
   onPromptChange: (value: string) => void
@@ -98,6 +99,7 @@ export function DirectorComposerInput({ prompt, operations, operation, capabilit
         advanced={advanced}
         assets={assets}
         disabledReason={disabledReason}
+        canAddReference={canAddReference}
         busy={busy}
         uploadStatus={uploadStatus}
         onOperationChange={onOperationChange}

@@ -211,9 +211,13 @@ class ProviderOperationTests(unittest.TestCase):
             idempotency_key=f"director-ingest-{uuid4()}",
             source_tool="director", operation_label="Create visual")
         self.job_ids.append(job.id)
+        reservation = self.service.authorize(
+            job.id, "director_generate", .35,
+            {"daily_cap": 0, "warn_above": 0}, True)
         attempt = self.records.begin_attempt(
             job.id, "director_generate", {"provider": "kie"},
-            {"recipe": {"prompt": "harbor"}}, None, estimated_cost=.35)
+            {"recipe": {"prompt": "harbor"}}, reservation,
+            estimated_cost=.35)
         self.records.mark_sent(attempt, "kie-task-ingest")
         self.records.record_provider_result(
             attempt, cost=.34, usage={"credits_consumed": 68},
@@ -221,6 +225,12 @@ class ProviderOperationTests(unittest.TestCase):
         pending = self.records.attempt_for_job(job.id, "director_generate")
         self.assertEqual(pending["status"], "sent")
         self.assertTrue(pending["diagnostics"]["provider_succeeded"])
+        with psycopg.connect(settings.database_url) as database:
+            reservation_row = database.execute("""
+                SELECT status, actual_cost FROM budget_reservations WHERE id=%s
+            """, (int(reservation),)).fetchone()
+        self.assertEqual(reservation_row[0], "reserved")
+        self.assertAlmostEqual(float(reservation_row[1]), .34)
 
         with psycopg.connect(settings.database_url) as database:
             database.execute("""

@@ -22,8 +22,14 @@ DEFAULT_BASE_URL = "https://api.kie.ai"
 MAX_OUTPUT_BYTES = 1_000_000_000
 DOWNLOAD_USER_AGENT = "Auvi-Studio/1.0"
 KIE_CREDIT_USD = 0.005
-# Versioned against KIE's public model pricing on 2026-08-29. Provider-owned
-# prices never leak into the Director domain or React capability contract.
+# Pricing evidence for this enabled model family:
+# - source: https://kie.ai/kling-o3
+# - provider pricing overview: https://kie.ai/
+# - retrieved: 2026-08-29
+# - snapshot: AUVI operator-verified KIE Kling O3 rate matrix. The public page
+#   exposes the $0.07/s floor but not every matrix cell, so each value remains
+#   covered by tests and must be rechecked before changing or enabling a model.
+# Provider-owned prices never leak into the Director domain or React contract.
 KLING_OMNI_USD_PER_SECOND = {
     ("720p", False): 0.07,
     ("720p", True): 0.10,
@@ -31,6 +37,12 @@ KLING_OMNI_USD_PER_SECOND = {
     ("1080p", True): 0.135,
     ("4k", False): 0.335,
     ("4k", True): 0.335,
+}
+KIE_MODEL_PRICING_STRATEGIES = {
+    "kling-3.0-omni/text-to-video": "kling_omni_per_second",
+    "kling-3.0-omni/image-to-video": "kling_omni_per_second",
+    "kling-3.0-omni/reference-to-video": "kling_omni_per_second",
+    "kling-3.0-omni/transformation": "kling_omni_per_second",
 }
 
 
@@ -55,6 +67,11 @@ class KieDirectorProvider:
 
     @staticmethod
     def estimate_cost(request: dict[str, Any]) -> float:
+        model = str(request.get("model") or "").strip()
+        strategy = KIE_MODEL_PRICING_STRATEGIES.get(model)
+        if strategy != "kling_omni_per_second":
+            raise DirectorProviderError(
+                "KIE pricing is not configured for this model.")
         values = request.get("input") or {}
         rate = KLING_OMNI_USD_PER_SECOND.get((
             str(values.get("resolution") or "720p"),
@@ -170,6 +187,12 @@ class KieDirectorProvider:
         try:
             credits_value = max(0.0, float(credits))
         except (TypeError, ValueError):
+            if state.state == "failed":
+                return 0.0, {
+                    "credits_consumed": 0.0,
+                    "credit_usd": KIE_CREDIT_USD,
+                    "basis": "kie_failed_task_no_charge",
+                }
             return 0.0, {}
         return round(credits_value * KIE_CREDIT_USD, 6), {
             "credits_consumed": credits_value,
