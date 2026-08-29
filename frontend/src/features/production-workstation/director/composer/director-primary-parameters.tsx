@@ -3,7 +3,10 @@ import { DirectorAssetListEditor } from "./director-asset-list-editor"
 import type { DirectorOperationCapability, DirectorParameterValues } from "./director-composer-config"
 import { DirectorScalarParameter, DirectorShotEditor, directorParameterIsVisible } from "./director-parameter-editor"
 
-export function DirectorPrimaryParameters({ capability, values, assets, onChange }: {
+export function DirectorPrimaryParameters({ productionId, modelId, operation, capability, values, assets, onChange }: {
+  productionId: number
+  modelId: string
+  operation: string
   capability: DirectorOperationCapability
   values: DirectorParameterValues
   assets: VentureAsset[]
@@ -17,7 +20,7 @@ export function DirectorPrimaryParameters({ capability, values, assets, onChange
     {fields.map((field) => field.type === "structured_shots"
       ? <DirectorShotEditor key={field.key} field={field} value={values[field.key]} onChange={(value) => onChange(field.key, value)} />
       : field.type === "asset_list"
-        ? <DirectorAssetListEditor key={field.key} field={field} value={values[field.key]} assets={assets} onChange={(value) => onChange(field.key, value)} />
+        ? <DirectorAssetListEditor key={field.key} productionId={productionId} modelId={modelId} operation={operation} field={field} value={values[field.key]} assets={assets} onChange={(value) => onChange(field.key, value)} />
         : <DirectorScalarParameter key={field.key} field={field} value={values[field.key]} onChange={(value) => onChange(field.key, value)} />)}
   </div>
 }

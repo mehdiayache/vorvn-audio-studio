@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { studioApi } from "@/lib/api"
@@ -328,6 +328,72 @@ describe("Director composer", () => {
     fireEvent.click(screen.getByRole("button", { name: "Use Voice" }))
     expect(await screen.findByRole("button", { name: "Remove voice audio" })).toBeTruthy()
     expect(screen.getByText("Voice audio", { selector: ".director-visual-slot > header span" })).toBeTruthy()
+  })
+
+  it("does not let a late compatibility response overwrite a newer slot", async () => {
+    let resolveStart: (value: unknown[]) => void = () => undefined
+    let resolveEnd: (value: unknown[]) => void = () => undefined
+    vi.mocked(studioApi.directorInputCompatibility).mockImplementation(((_productionId: number, payload: { role?: string }) => new Promise((resolve) => {
+      if (payload.role === "start-frame") resolveStart = resolve
+      else resolveEnd = resolve
+    })) as never)
+    renderComposer({ libraryAssets: [
+      { id: 41, media_type: "image", name: "Start only", filename: "start.webp" },
+      { id: 42, media_type: "image", name: "End only", filename: "end.webp" },
+    ] })
+    await chooseModel("Model B")
+    fireEvent.click(await screen.findByRole("button", { name: "Choose image for Start frame" }))
+    expect(await screen.findByRole("heading", { name: "Choose start frame" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Close" }))
+    fireEvent.click(screen.getByRole("button", { name: "Choose image for End frame" }))
+    expect(await screen.findByRole("heading", { name: "Choose end frame" })).toBeTruthy()
+    await act(async () => resolveEnd([
+      { asset_id: 41, state: "incompatible", reasons: ["Wrong slot"] },
+      { asset_id: 42, state: "compatible", reasons: [] },
+    ]))
+    expect(await screen.findByRole("button", { name: "Use End only" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Use Start only" })).toBeNull()
+    await act(async () => resolveStart([
+      { asset_id: 41, state: "compatible", reasons: [] },
+      { asset_id: 42, state: "incompatible", reasons: ["Wrong slot"] },
+    ]))
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Use End only" })).toBeTruthy()
+      expect(screen.queryByRole("button", { name: "Use Start only" })).toBeNull()
+    })
+  })
+
+  it("uses canonical technical compatibility for nested Kling subjects", async () => {
+    vi.mocked(studioApi.directorModels).mockResolvedValue(kieCatalog as never)
+    vi.mocked(studioApi.directorInputCompatibility).mockImplementation(((_productionId: number, payload: { parameter_key?: string; variant_id?: string; audio?: boolean; asset_ids: number[] }) => Promise.resolve(payload.asset_ids.map((asset_id) => ({
+      asset_id,
+      state: payload.parameter_key === "elements" && (
+        (payload.variant_id === "images" && asset_id === 51)
+        || (payload.audio === true && asset_id === 53)
+      ) ? "compatible" : "incompatible",
+      reasons: [],
+    })))) as never)
+    renderComposer({ libraryAssets: [
+      { id: 51, media_type: "image", name: "Valid subject", filename: "valid.png" },
+      { id: 52, media_type: "image", name: "Too small subject", filename: "small.png" },
+      { id: 53, media_type: "audio", name: "Valid voice", filename: "voice.wav" },
+    ] })
+    fireEvent.click(await screen.findByRole("button", { name: "Advanced settings" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Add subject" }))
+    const subjectPicker = await screen.findByRole("combobox", { name: "Choose image subject" })
+    fireEvent.click(subjectPicker)
+    expect(await screen.findByRole("option", { name: /Valid subject/ })).toBeTruthy()
+    expect(screen.queryByRole("option", { name: /Too small subject/ })).toBeNull()
+    expect(studioApi.directorInputCompatibility).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({
+        model_id: "kling-3.0-omni/text-to-video",
+        operation: "text_to_video",
+        parameter_key: "elements",
+        variant_id: "images",
+      }),
+      expect.any(AbortSignal),
+    )
   })
 
   it("places a durable-looking queued card immediately while creation starts", async () => {

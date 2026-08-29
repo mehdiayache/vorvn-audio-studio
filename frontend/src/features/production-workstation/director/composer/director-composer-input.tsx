@@ -11,7 +11,8 @@ import { DirectorOperationPicker } from "./director-operation-picker"
 import { DirectorPrimaryParameters } from "./director-primary-parameters"
 import { DirectorSubmit } from "./director-submit"
 
-export function DirectorComposerInput({ prompt, operations, operation, capability, model, models, modelFamilyId, attachments, missingRoles, ratio, resolution, duration, advanced, assets, busy, disabledReason, uploadStatus, canSaveReference, onPromptChange, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onRemoveAttachment, onOpenLibrary, onSwapFrames, onSaveReference, onSubmit }: {
+export function DirectorComposerInput({ productionId, prompt, operations, operation, capability, model, models, modelFamilyId, attachments, missingRoles, ratio, resolution, duration, advanced, assets, busy, disabledReason, uploadStatus, canSaveReference, onPromptChange, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onRemoveAttachment, onOpenLibrary, onSwapFrames, onSaveReference, onSubmit }: {
+  productionId: number
   prompt: string
   operations: DirectorOperationInfo[]
   operation: DirectorOperation
@@ -85,6 +86,9 @@ export function DirectorComposerInput({ prompt, operations, operation, capabilit
       <h3 id="director-primary-controls-title">Primary controls</h3>
       <DirectorCapabilityControls capability={capability} parameters={advanced.parameters} ratio={ratio} resolution={resolution} duration={duration} onRatioChange={onRatioChange} onResolutionChange={onResolutionChange} onDurationChange={onDurationChange} />
       <DirectorPrimaryParameters
+        productionId={productionId}
+        modelId={model.id}
+        operation={capability.operation}
         capability={capability}
         values={advanced.parameters}
         assets={assets}
@@ -100,7 +104,7 @@ export function DirectorComposerInput({ prompt, operations, operation, capabilit
 
       <Separator />
 
-      <DirectorAdvancedSettings model={model} capability={capability} values={advanced} assets={assets} onChange={onAdvancedChange} />
+      <DirectorAdvancedSettings productionId={productionId} model={model} capability={capability} values={advanced} assets={assets} onChange={onAdvancedChange} />
     </div>
     <footer className="director-composer-actions">
       {uploadStatus && <div className="director-upload-status" role="status">{uploadStatus}</div>}

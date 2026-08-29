@@ -1,7 +1,11 @@
 import unittest
 from contextlib import contextmanager
 from unittest.mock import patch
+from uuid import uuid4
 
+import psycopg
+
+from audio_studio.config import settings
 from audio_studio.domain.spend_classification import spend_category
 from audio_studio.infrastructure.postgres.accounting import ProductionAccountingRepository
 from audio_studio.infrastructure.postgres.activity import ActivityRepository
@@ -71,6 +75,59 @@ class SpendClassificationTest(unittest.TestCase):
         self.assertEqual(result["month_media"], expected)
         self.assertEqual(result["total_media"], expected)
         self.assertEqual(result["total"], 6)
+
+    def test_real_postgres_aggregates_speech_director_and_translation_jobs(self):
+        try:
+            database = psycopg.connect(settings.database_url)
+        except psycopg.OperationalError as error:
+            self.skipTest(str(error))
+        marker = f"accounting-regression-{uuid4().hex}"
+        job_ids: list[int] = []
+        try:
+            with database.cursor() as cursor:
+                cursor.execute(
+                    "SELECT id FROM productions WHERE archived_at IS NULL "
+                    "ORDER BY id LIMIT 1")
+                row = cursor.fetchone()
+                if not row:
+                    self.skipTest(
+                        "A real Production is required for the SQL accounting "
+                        "regression.")
+                production_id = int(row[0])
+            before = ProductionAccountingRepository().one(production_id)
+            with database.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO jobs
+                        (kind, status, cost, production_id, detail)
+                    VALUES
+                        ('speech', 'ok', 1, %s, %s),
+                        ('director_generate', 'ok', 2, %s, %s),
+                        ('translate', 'ok', 3, %s, %s)
+                    RETURNING id
+                """, (
+                    production_id, marker,
+                    production_id, marker,
+                    production_id, marker,
+                ))
+                job_ids = [int(row[0]) for row in cursor.fetchall()]
+            database.commit()
+            after = ProductionAccountingRepository().one(production_id)
+            self.assertAlmostEqual(
+                after["audio_spend"] - before["audio_spend"], 1, places=6)
+            self.assertAlmostEqual(
+                after["video_spend"] - before["video_spend"], 2, places=6)
+            self.assertAlmostEqual(
+                after["other_spend"] - before["other_spend"], 3, places=6)
+            self.assertAlmostEqual(
+                after["historical_spend"] - before["historical_spend"],
+                6, places=6)
+        finally:
+            if job_ids:
+                with database.cursor() as cursor:
+                    cursor.execute(
+                        "DELETE FROM jobs WHERE id = ANY(%s)", (job_ids,))
+                database.commit()
+            database.close()
 
 
 if __name__ == "__main__":

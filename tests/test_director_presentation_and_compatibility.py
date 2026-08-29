@@ -2,7 +2,8 @@ import unittest
 
 from audio_studio.application.director_generation import DirectorGenerationService
 from audio_studio.domain.director_generation import (
-    _validate_input_asset, input_asset_compatibility,
+    _validate_input_asset, asset_list_compatibility_contract,
+    input_asset_compatibility,
 )
 from audio_studio.domain.director_models import OPERATION_TAXONOMY, model_capability
 
@@ -106,8 +107,48 @@ class DirectorCompatibilityTest(unittest.TestCase):
         service = DirectorGenerationService(object(), _Assets([asset]))
         result = service.input_compatibility(
             7, "kling-3.0-omni/image-to-video", "image_to_video",
-            "source-image", [11])
+            [11], role="source-image")
         self.assertEqual(result[0]["state"], "unknown")
+
+    def test_nested_subject_picker_uses_the_same_technical_contract(self):
+        model_id = "kling-3.0-omni/text-to-video"
+        operation = "text_to_video"
+        _, capability = model_capability(model_id, operation)
+        field = next(
+            item for item in capability["parameters"]
+            if item["key"] == "elements"
+        )
+        image_contract = asset_list_compatibility_contract(
+            field, variant_id="images")
+        audio_contract = asset_list_compatibility_contract(field, audio=True)
+        narrow_image = {
+            "id": 21, "media_type": "image", "mime_type": "image/png",
+            "size_bytes": 10_000, "width": 200, "height": 720,
+        }
+        short_audio = {
+            "id": 22, "media_type": "audio", "mime_type": "audio/wav",
+            "size_bytes": 10_000, "duration_ms": 4_999,
+        }
+        self.assertEqual(
+            input_asset_compatibility(image_contract, narrow_image)["state"],
+            "incompatible",
+        )
+        self.assertEqual(
+            input_asset_compatibility(audio_contract, short_audio)["state"],
+            "incompatible",
+        )
+        service = DirectorGenerationService(
+            object(), _Assets([narrow_image, short_audio]))
+        image_result = service.input_compatibility(
+            7, model_id, operation, [21],
+            parameter_key="elements", variant_id="images")
+        audio_result = service.input_compatibility(
+            7, model_id, operation, [22],
+            parameter_key="elements", audio=True)
+        self.assertEqual(image_result[0]["state"], "incompatible")
+        self.assertIn("too narrow", image_result[0]["reasons"][0])
+        self.assertEqual(audio_result[0]["state"], "incompatible")
+        self.assertIn("shorter", audio_result[0]["reasons"][0])
 
 
 class DirectorPresentationTest(unittest.TestCase):

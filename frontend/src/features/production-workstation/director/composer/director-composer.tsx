@@ -93,6 +93,8 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
   const [internalCreateOpen, setInternalCreateOpen] = useState(true)
   const [hiddenRequestIds, setHiddenRequestIds] = useState(() => initialHiddenRequests(productionId))
   const slotUploadRef = useRef<HTMLInputElement>(null)
+  const pickerRequestId = useRef(0)
+  const pickerAbort = useRef<AbortController | null>(null)
   const refreshedOutputIds = useRef(new Set<number>())
   const { generations, submitting, workingId, create, cancel, confirm, retryIngestion } = useDirectorGenerations(productionId, setComposerError)
   const panelOpen = createOpen ?? internalCreateOpen
@@ -130,6 +132,12 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
     if (!ventureId) return
     void studioApi.savedVisualReferences(ventureId).then(setSavedReferences).catch((reason) => setComposerError(reason instanceof Error ? reason.message : "Saved references could not be loaded."))
   }, [ventureId])
+
+  useEffect(() => () => {
+    pickerRequestId.current += 1
+    pickerAbort.current?.abort()
+    pickerAbort.current = null
+  }, [modelId, operation])
 
   useEffect(() => {
     const newOutputIds = generations
@@ -314,7 +322,7 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
       }
       setAdvanced((current) => ({ ...current, parameters: addNestedReference(capability, current.parameters, asset) || current.parameters }))
       setComposerError("")
-      setLibraryOpen(false)
+      closeLibrary()
       return
     }
     if (!directReferenceMediaTypes(capability).includes(kind)) {
@@ -323,7 +331,20 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
     }
     const incoming = { id: identifier(`asset-${asset.id}`), assetId: asset.id, name: visualAssetName(asset), kind, role: preferredRole || "", previewUrl: assetPreview(asset), posterUrl: visualAssetPosterUrl(asset), status: "ready" as const }
     addAttachments([incoming])
+    closeLibrary()
+  }
+
+  function closeLibrary() {
+    pickerRequestId.current += 1
+    pickerAbort.current?.abort()
+    pickerAbort.current = null
+    setPickerChecking(false)
     setLibraryOpen(false)
+  }
+
+  function changeLibraryOpen(open: boolean) {
+    if (!open) closeLibrary()
+    else setLibraryOpen(true)
   }
 
   function openLibrary(role?: string) {
@@ -335,15 +356,28 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
     setLibraryOpen(true)
     setPickerChecking(true)
     setPickerCompatibility(new Map())
-    if (!model) return
+    if (!model) {
+      setPickerChecking(false)
+      return
+    }
+    pickerAbort.current?.abort()
+    const controller = new AbortController()
+    const requestId = ++pickerRequestId.current
+    pickerAbort.current = controller
     void studioApi.directorInputCompatibility(productionId, {
       model_id: model.id, operation, role,
       asset_ids: libraryAssets.map(({ id }) => id),
-    }).then((results) => {
+    }, controller.signal).then((results) => {
+      if (controller.signal.aborted || requestId !== pickerRequestId.current) return
       setPickerCompatibility(new Map(results.map(({ asset_id, state, reasons }) => [asset_id, { state, reasons }])))
     }).catch((reason) => {
+      if (controller.signal.aborted || requestId !== pickerRequestId.current) return
       setComposerError(reason instanceof Error ? reason.message : "Compatible media could not be checked.")
-    }).finally(() => setPickerChecking(false))
+    }).finally(() => {
+      if (requestId !== pickerRequestId.current) return
+      pickerAbort.current = null
+      setPickerChecking(false)
+    })
   }
 
   function removeReference(attachment: DirectorComposerAttachment) {
@@ -384,7 +418,7 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
       return asset && kind && pickerMediaTypes.includes(kind) ? [asset] : []
     }).slice(0, availableInPickerSlot)
     candidates.forEach((asset) => void receiveAsset(asset, pickerRole))
-    setLibraryOpen(false)
+    closeLibrary()
   }
 
   async function saveCurrentReference(name: string, type: SavedVisualReference["type"]) {
@@ -499,6 +533,7 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
       model={model} models={families} modelFamilyId={family?.id || ""} attachments={visibleAttachments} missingRoles={missing}
       ratio={ratio} resolution={resolution} duration={duration} advanced={advanced}
       assets={libraryAssets}
+      productionId={productionId}
       busy={submitting} disabledReason={disabledReason}
       uploadStatus={referenceUploads ? `Uploading ${referenceUploads === 1 ? "reference" : `${referenceUploads} references`}…` : uploading ? uploadLabel : undefined}
       onPromptChange={setPrompt} onOperationChange={changeOperation}
@@ -529,7 +564,7 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
     ) : <div className="director-generation-list" aria-label="Director requests">{generations.map((generation) => generationCard(generation))}</div>}
     </section>
     <input ref={slotUploadRef} hidden multiple type="file" accept={pickerFileAccept} onChange={(event) => { if (event.target.files?.length) receiveFiles(Array.from(event.target.files), pickerRole); event.target.value = "" }} />
-    <DirectorReferenceLibraryDialog open={libraryOpen} title={pickerSlot?.label} assets={libraryAssets} recentAssetIds={recentAssetIds} savedReferences={compatibleSavedReferences} acceptedMediaTypes={pickerMediaTypes} compatibility={pickerCompatibility} checking={pickerChecking} onOpenChange={setLibraryOpen} onAdd={(asset) => void receiveAsset(asset, pickerRole)} onAddReference={applySavedReference} onUpload={() => slotUploadRef.current?.click()} />
+    <DirectorReferenceLibraryDialog open={libraryOpen} title={pickerSlot?.label} assets={libraryAssets} recentAssetIds={recentAssetIds} savedReferences={compatibleSavedReferences} acceptedMediaTypes={pickerMediaTypes} compatibility={pickerCompatibility} checking={pickerChecking} onOpenChange={changeLibraryOpen} onAdd={(asset) => void receiveAsset(asset, pickerRole)} onAddReference={applySavedReference} onUpload={() => slotUploadRef.current?.click()} />
     <SavedReferenceCreateDialog open={saveReferenceOpen} count={visibleAttachments.filter(({ assetId }) => assetId).length} onOpenChange={setSaveReferenceOpen} onCreate={saveCurrentReference} />
   </section>
 }

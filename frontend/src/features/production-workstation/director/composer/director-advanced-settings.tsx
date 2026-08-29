@@ -17,7 +17,8 @@ export type DirectorAdvancedValues = {
   parameters: DirectorParameterValues
 }
 
-export function DirectorAdvancedSettings({ model, capability, values, assets, onChange }: {
+export function DirectorAdvancedSettings({ productionId, model, capability, values, assets, onChange }: {
+  productionId: number
   model: DirectorModelCapability
   capability: DirectorOperationCapability
   values: DirectorAdvancedValues
@@ -42,7 +43,7 @@ export function DirectorAdvancedSettings({ model, capability, values, assets, on
       {parameters.map((field) => field.type === "structured_shots"
         ? <DirectorShotEditor key={field.key} field={field} value={values.parameters[field.key]} onChange={(value) => setParameter(field.key, value)} />
         : field.type === "asset_list"
-          ? <DirectorAssetListEditor key={field.key} field={field} value={values.parameters[field.key]} assets={assets} onChange={(value) => setParameter(field.key, value)} />
+          ? <DirectorAssetListEditor key={field.key} productionId={productionId} modelId={model.id} operation={capability.operation} field={field} value={values.parameters[field.key]} assets={assets} onChange={(value) => setParameter(field.key, value)} />
           : <DirectorScalarParameter key={field.key} field={field} value={values.parameters[field.key]} onChange={(value) => setParameter(field.key, value)} />)}
     </CollapsibleContent>
   </Collapsible>

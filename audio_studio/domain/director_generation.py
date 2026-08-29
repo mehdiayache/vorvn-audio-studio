@@ -54,6 +54,31 @@ def _input_mode(
     return None
 
 
+def asset_list_compatibility_contract(
+    field: dict[str, Any], *, variant_id: str | None = None,
+    audio: bool = False,
+) -> dict[str, Any]:
+    """Resolve one nested asset-list target to the canonical media contract."""
+    if field.get("type") != "asset_list":
+        raise ValueError("That Director parameter is not a media list.")
+    item = field.get("item") or {}
+    if audio:
+        contract = item.get("audio") or {}
+        if not contract.get("media_types") or not int(
+                contract.get("max_assets") or 0):
+            raise ValueError("That Director parameter has no audio input.")
+        return {"label": "Reference audio", **contract}
+    variant = next((candidate for candidate in item.get("variants", [])
+                    if candidate.get("id") == variant_id), None)
+    if not variant:
+        raise ValueError("Choose a supported subject reference type.")
+    return {
+        "label": variant["label"],
+        "media_types": list(variant.get("media_types") or []),
+        **(variant.get("constraints") or {}),
+    }
+
+
 def _validate_asset_list(
     field: dict[str, Any], value: Any, assets: dict[int, dict[str, Any]],
 ) -> None:
@@ -105,13 +130,9 @@ def _validate_asset_list(
             if not asset or asset_id in used_assets:
                 raise ValueError(
                     "Every subject reference must be a unique canonical Asset.")
-            if str(asset.get("media_type") or "") not in variant["media_types"]:
-                raise ValueError(
-                    f"{variant['label']} received an incompatible Asset.")
-            _validate_input_asset({
-                "label": variant["label"],
-                **(variant.get("constraints") or {}),
-            }, asset)
+            _validate_input_asset(asset_list_compatibility_contract(
+                field, variant_id=variant_id,
+            ), asset)
             used_assets.add(asset_id)
         trim = variant.get("trim") or {}
         if trim:
@@ -142,15 +163,9 @@ def _validate_asset_list(
             if not asset or asset_id in used_assets:
                 raise ValueError(
                     "Every subject reference must be a unique canonical Asset.")
-            if str(asset.get("media_type") or "") not in audio_contract.get(
-                    "media_types", []):
-                raise ValueError("Subject audio received an incompatible Asset.")
-            duration = int(asset.get("duration_ms") or 0)
-            if duration and not (
-                int(audio_contract.get("duration_min_ms") or 0) <= duration
-                <= int(audio_contract.get("duration_max_ms") or duration)
-            ):
-                raise ValueError("Subject audio must be between 5 and 30 seconds.")
+            _validate_input_asset(asset_list_compatibility_contract(
+                field, audio=True,
+            ), asset)
             used_assets.add(asset_id)
     for limit in contract.get("combination_limits", []):
         condition = limit.get("when") or {}

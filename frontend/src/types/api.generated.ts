@@ -3013,12 +3013,21 @@ export interface components {
         DirectorInputCompatibilityRequest: {
             /** Asset Ids */
             asset_ids: number[];
+            /**
+             * Audio
+             * @default false
+             */
+            audio: boolean;
             /** Model Id */
             model_id: string;
             /** Operation */
             operation: string;
+            /** Parameter Key */
+            parameter_key?: string | null;
             /** Role */
-            role: string;
+            role?: string | null;
+            /** Variant Id */
+            variant_id?: string | null;
         };
         /** DirectorInputCompatibilityResponse */
         DirectorInputCompatibilityResponse: {

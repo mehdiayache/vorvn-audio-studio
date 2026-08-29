@@ -418,7 +418,7 @@ class DirectorGenerationTest(unittest.TestCase):
         service = DirectorGenerationService(FakeJobs(), FakeAssets())
         for asset_ids, message in [
             ([11, 999], "canonical Asset"),
-            ([11, 13], "incompatible Asset"),
+            ([11, 13], "does not accept audio"),
             ([11, 11], "unique canonical Asset"),
         ]:
             with self.subTest(asset_ids=asset_ids):

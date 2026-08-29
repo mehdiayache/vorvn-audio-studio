@@ -117,6 +117,17 @@ type ProductionImportExecuteBody = paths["/api/v1/production-imports"]["post"]["
 
 export { ApiError } from "@/lib/api-error"
 
+export type DirectorCompatibilityTarget =
+  | { role: string }
+  | { parameter_key: string; variant_id: string; audio?: never }
+  | { parameter_key: string; audio: true; variant_id?: never }
+
+export type DirectorCompatibilityResult = {
+  asset_id: number
+  state: "compatible" | "incompatible" | "unknown"
+  reasons: string[]
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -450,13 +461,22 @@ export const studioApi = {
   },
   directorGenerationCapabilities: () => request<DirectorGenerationCapabilitiesEnvelope>("/api/v1/director-generation-capabilities").then((response) => response.data),
   directorModels: () => request<DirectorModelsEnvelope>("/api/v1/director/models").then((response) => response.data),
-  directorInputCompatibility: (
+  directorInputCompatibility: async (
     productionId: number,
-    payload: { model_id: string; operation: string; role: string; asset_ids: number[] },
-  ) => request<{ data: { asset_id: number; state: "compatible" | "incompatible" | "unknown"; reasons: string[] }[] }>(
-    `/api/v1/productions/${productionId}/director-input-compatibility`,
-    { method: "POST", body: JSON.stringify(payload) },
-  ).then((response) => response.data),
+    payload: { model_id: string; operation: string; asset_ids: number[] } & DirectorCompatibilityTarget,
+    signal?: AbortSignal,
+  ): Promise<DirectorCompatibilityResult[]> => {
+    if (!payload.asset_ids.length) return []
+    const batches = Array.from(
+      { length: Math.ceil(payload.asset_ids.length / 500) },
+      (_, index) => payload.asset_ids.slice(index * 500, (index + 1) * 500),
+    )
+    const results = await Promise.all(batches.map((asset_ids) => request<{ data: DirectorCompatibilityResult[] }>(
+      `/api/v1/productions/${productionId}/director-input-compatibility`,
+      { method: "POST", signal, body: JSON.stringify({ ...payload, asset_ids }) },
+    ).then((response) => response.data)))
+    return results.flat()
+  },
   directorGenerations: (productionId: number) => request<DirectorGenerationListEnvelope>(`/api/v1/productions/${productionId}/director-generations`).then((response) => response.data),
   createDirectorGeneration: (productionId: number, payload: DirectorGenerationBody) => request<DirectorGenerationEnvelope>(`/api/v1/productions/${productionId}/director-generations`, {
     method: "POST",

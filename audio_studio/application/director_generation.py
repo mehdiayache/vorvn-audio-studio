@@ -7,8 +7,8 @@ from uuid import UUID
 
 from audio_studio.application.jobs import JobService
 from audio_studio.domain.director_generation import (
-    DIRECTOR_GENERATION_KIND, capability, input_asset_compatibility,
-    validate_recipe,
+    DIRECTOR_GENERATION_KIND, asset_list_compatibility_contract, capability,
+    input_asset_compatibility, validate_recipe,
 )
 from audio_studio.domain.director_models import models, operations_for
 from audio_studio.domain.jobs import Job
@@ -71,15 +71,28 @@ class DirectorGenerationService:
 
     def input_compatibility(
         self, production_id: int, model_id: str, operation: str,
-        role: str, asset_ids: list[int],
+        asset_ids: list[int], *, role: str | None = None,
+        parameter_key: str | None = None, variant_id: str | None = None,
+        audio: bool = False,
     ) -> list[dict[str, Any]]:
         if not self.assets.production_exists(production_id):
             raise LookupError("That Production no longer exists.")
         _, selected = capability(model_id, operation)
-        slot = next((item for item in selected["inputs"]
-                     if item["role"] == role), None)
-        if not slot:
-            raise ValueError("That semantic input is not supported by this mode.")
+        if role:
+            slot = next((item for item in selected["inputs"]
+                         if item["role"] == role), None)
+            if not slot:
+                raise ValueError(
+                    "That semantic input is not supported by this mode.")
+        else:
+            field = next((item for item in selected["parameters"]
+                          if item["key"] == parameter_key), None)
+            if not field:
+                raise ValueError(
+                    "That media parameter is not supported by this mode.")
+            slot = asset_list_compatibility_contract(
+                field, variant_id=variant_id, audio=audio,
+            )
         assets = {int(asset["id"]): asset
                   for asset in self.assets.list_for_production(production_id)}
         results = []

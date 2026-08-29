@@ -2769,6 +2769,11 @@
             "title": "Asset Ids",
             "type": "array"
           },
+          "audio": {
+            "default": false,
+            "title": "Audio",
+            "type": "boolean"
+          },
           "model_id": {
             "maxLength": 120,
             "minLength": 1,
@@ -2781,17 +2786,49 @@
             "title": "Operation",
             "type": "string"
           },
+          "parameter_key": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Key"
+          },
           "role": {
-            "maxLength": 80,
-            "minLength": 1,
-            "title": "Role",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "variant_id": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variant Id"
           }
         },
         "required": [
           "model_id",
           "operation",
-          "role",
           "asset_ids"
         ],
         "title": "DirectorInputCompatibilityRequest",

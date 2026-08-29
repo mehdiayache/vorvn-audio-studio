@@ -7,7 +7,7 @@ from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Header
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from audio_studio.composition.director_generation import director_generation_service
 from audio_studio.http.errors import ApiProblem
@@ -167,8 +167,25 @@ class DirectorInputCompatibilityRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     model_id: str = Field(min_length=1, max_length=120)
     operation: str = Field(min_length=1, max_length=80)
-    role: str = Field(min_length=1, max_length=80)
+    role: str | None = Field(default=None, min_length=1, max_length=80)
+    parameter_key: str | None = Field(
+        default=None, min_length=1, max_length=80)
+    variant_id: str | None = Field(default=None, min_length=1, max_length=80)
+    audio: bool = False
     asset_ids: list[int] = Field(max_length=500)
+
+    @model_validator(mode="after")
+    def exact_target(self):
+        direct, nested = self.role is not None, self.parameter_key is not None
+        if direct == nested:
+            raise ValueError(
+                "Choose exactly one direct slot or nested media parameter.")
+        if direct and (self.variant_id is not None or self.audio):
+            raise ValueError("Direct slots do not accept nested media selectors.")
+        if nested and ((self.variant_id is None) == (not self.audio)):
+            raise ValueError(
+                "Choose exactly one nested subject variant or audio target.")
+        return self
 
 
 class DirectorInputCompatibilityResponse(BaseModel):
@@ -246,7 +263,9 @@ def check_director_input_compatibility(
     try:
         return {"data": director_generation_service.input_compatibility(
             production_id, payload.model_id, payload.operation,
-            payload.role, payload.asset_ids)}
+            payload.asset_ids, role=payload.role,
+            parameter_key=payload.parameter_key,
+            variant_id=payload.variant_id, audio=payload.audio)}
     except LookupError as exc:
         raise ApiProblem(404, "production_not_found", str(exc)) from exc
     except ValueError as exc:
