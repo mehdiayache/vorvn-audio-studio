@@ -30,7 +30,7 @@ export function OperationState<T>({ job, title, onConfirm, onRetry, onDismiss }:
       <code>{job.id}</code>
     </div>
     <div className="operation-state-actions">
-      {confirmation && onConfirm && <Button onClick={onConfirm}>Confirm ${Number((job.result as { estimate?: number; estimated_cost?: number })?.estimate || (job.result as { estimated_cost?: number })?.estimated_cost || 0).toFixed(4)} and continue</Button>}
+      {confirmation && onConfirm && <Button onClick={onConfirm}>Confirm ${Number((job.result as { estimate?: number; estimated_cost?: number })?.estimate ?? (job.result as { estimated_cost?: number })?.estimated_cost ?? 0).toFixed(4)} and continue</Button>}
       {failed && onRetry && <Button variant="outline" onClick={onRetry}><RotateCw /> Retry</Button>}
       {!active && onDismiss && <Button variant="ghost" onClick={onDismiss}>Dismiss</Button>}
     </div>

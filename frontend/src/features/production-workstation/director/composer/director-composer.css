@@ -213,6 +213,7 @@
 .director-reference-item:focus-visible { outline: 3px solid color-mix(in srgb, var(--ring) 35%, transparent); outline-offset: 3px; }
 .director-reference-empty { column-span: all; display: grid; justify-items: center; gap: .75rem; padding: 2rem; text-align: center; color: var(--foreground); }
 .director-reference-empty p { margin: 0; }
+.director-reference-metadata-note { margin: 0; padding: .55rem .7rem; border-radius: .5rem; background: var(--warning-soft); color: var(--foreground); font-size: var(--type-caption); }
 .director-generation-note { margin: 0; color: var(--foreground); font-size: var(--type-caption); }
 .director-generation-error { margin: 0; color: var(--destructive); font-size: var(--type-caption); }
 .director-generation-details { max-width: 42rem; }

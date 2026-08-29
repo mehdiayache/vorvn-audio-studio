@@ -673,6 +673,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/productions/{production_id}/director-input-compatibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check Director Input Compatibility */
+        post: operations["checkDirectorInputCompatibility"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/productions/{production_id}/editor": {
         parameters: {
             query?: never;
@@ -2056,6 +2073,8 @@ export interface components {
         ActivityMediaSpendResponse: {
             /** Audio */
             audio: number;
+            /** Other */
+            other: number;
             /** Video */
             video: number;
         };
@@ -2922,11 +2941,8 @@ export interface components {
             } | null;
             /** Confirmation Message */
             confirmation_message?: string | null;
-            /**
-             * Cost
-             * @default 0
-             */
-            cost: number;
+            /** Cost */
+            cost?: number | null;
             /** Created At */
             created_at: string | null;
             /** Detail */
@@ -2988,6 +3004,34 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** DirectorInputCompatibilityEnvelope */
+        DirectorInputCompatibilityEnvelope: {
+            /** Data */
+            data: components["schemas"]["DirectorInputCompatibilityResponse"][];
+        };
+        /** DirectorInputCompatibilityRequest */
+        DirectorInputCompatibilityRequest: {
+            /** Asset Ids */
+            asset_ids: number[];
+            /** Model Id */
+            model_id: string;
+            /** Operation */
+            operation: string;
+            /** Role */
+            role: string;
+        };
+        /** DirectorInputCompatibilityResponse */
+        DirectorInputCompatibilityResponse: {
+            /** Asset Id */
+            asset_id: number;
+            /** Reasons */
+            reasons: string[];
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "compatible" | "incompatible" | "unknown";
+        };
         /** DirectorInputSlot */
         DirectorInputSlot: {
             /** Aspect Ratio Max */
@@ -3043,6 +3087,10 @@ export interface components {
             label: string;
             /** Operations */
             operations: components["schemas"]["DirectorOperationCapability"][];
+            /** Presentation */
+            presentation?: {
+                [key: string]: string;
+            };
             /** Provider */
             provider: string;
             /** Provider Id */
@@ -3102,6 +3150,10 @@ export interface components {
             id: string;
             /** Label */
             label: string;
+            /** Presentation */
+            presentation: {
+                [key: string]: string;
+            };
         };
         /** DirectorOutputCapability */
         DirectorOutputCapability: {
@@ -4082,6 +4134,11 @@ export interface components {
             current_sequence_cost: number;
             /** Historical Spend */
             historical_spend: number;
+            /**
+             * Other Spend
+             * @default 0
+             */
+            other_spend: number;
             /** Retained Generation Cost */
             retained_generation_cost: number;
             /** Tracked Spend */
@@ -8951,6 +9008,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DirectorGenerationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    checkDirectorInputCompatibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                production_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DirectorInputCompatibilityRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectorInputCompatibilityEnvelope"];
                 };
             };
             /** @description Validation Error */

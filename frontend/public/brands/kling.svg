@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Kling">
+  <rect width="64" height="64" rx="16" fill="#111116"/>
+  <path d="M19 14v36h8V36l17 14h11L34 31l19-17H42L27 28V14z" fill="#fff"/>
+  <circle cx="50" cy="49" r="5" fill="#7c3aed"/>
+</svg>

@@ -43,7 +43,8 @@
 .ws-spending > dt { font-weight: var(--weight-label); }
 .ws-spending > div { gap: .24rem !important; cursor: default; }
 .ws-spending > div:first-of-type svg { color: var(--success); }
-.ws-spending > div:last-of-type svg { color: var(--primary); }
+.ws-spending > div:nth-of-type(2) svg { color: var(--primary); }
+.ws-spending > div:last-of-type svg { color: var(--foreground); }
 .ws-header-actions { min-width: 0; grid-column: 2; grid-row: 2; display: flex; justify-content: flex-end; align-items: center; }
 .ws-action-buttons { flex: none; gap: .4rem; }
 .ws-action-buttons [data-slot="button"] svg { width: .9rem; }

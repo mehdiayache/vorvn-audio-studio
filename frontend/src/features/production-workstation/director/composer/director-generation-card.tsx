@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatMoney } from "@/lib/format"
-import type { DirectorGeneration } from "./director-generation-types"
+import { displayedGenerationCost, type DirectorGeneration } from "./director-generation-types"
 import type { VentureAsset } from "@/types/domain"
 import { visualAssetPlaybackUrl, visualAssetPosterUrl, visualAssetUrl } from "../director-assets"
 import { operationLabel, type DirectorOperationInfo } from "./director-composer-config"
@@ -82,7 +82,7 @@ export function DirectorGenerationCard({ operations, generation, canCancel, outp
     return () => window.clearInterval(timer)
   }, [running])
   const mediaLabel = generation.output_media_type === "image" ? "Image" : "Video"
-  const reportedCost = Number(generation.cost || generation.estimated_cost || 0)
+  const reportedCost = displayedGenerationCost(generation)
   const detailsDialog = <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}><DialogContent className="director-generation-details"><DialogHeader><DialogTitle>Creation request</DialogTitle><DialogDescription>Durable request, model, inputs and output facts.</DialogDescription></DialogHeader><dl>
     <div><dt>Status</dt><dd>{generation.local_ingestion_pending ? "Saving failed" : generation.status}</dd></div>
     <div><dt>Prompt</dt><dd>{generation.recipe.prompt || "No prompt"}</dd></div>
@@ -111,7 +111,7 @@ export function DirectorGenerationCard({ operations, generation, canCancel, outp
         <Badge variant="secondary" className="director-generation-media-kind"><OperationIcon />{mediaLabel}</Badge>
         <Badge className="director-generation-origin"><Sparkles />AI</Badge>
         {usedCount > 0 && <OperatorTooltip label="Used in Timeline" detail={usedCount === 1 ? "This creation has one Timeline placement." : `This creation has ${usedCount} Timeline placements.`} side="bottom"><span className="director-generation-used" tabIndex={0}><CircleCheck /></span></OperatorTooltip>}
-        {reportedCost > 0 && <Badge variant="secondary" className="director-generation-cost">{formatMoney(reportedCost)}</Badge>}
+        {reportedCost && <Badge variant="secondary" className="director-generation-cost" title={`${reportedCost.basis === "actual" ? "Actual" : "Estimated"} cost`}>{reportedCost.basis === "estimated" ? "Est. " : ""}{formatMoney(reportedCost.value)}</Badge>}
         <div className="director-generation-menu"><DropdownMenu><DropdownMenuTrigger asChild><OperatorIconButton className="director-media-icon-action" label="More creation actions" size="icon-sm" variant="secondary"><MoreHorizontal /></OperatorIconButton></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuGroup><DropdownMenuItem onSelect={() => setDetailsOpen(true)}><Eye />View details</DropdownMenuItem><DropdownMenuItem onSelect={onUseSettings}><SlidersHorizontal />Use settings</DropdownMenuItem><DropdownMenuItem onSelect={() => void navigator.clipboard?.writeText(generation.recipe.prompt)}><Copy />Copy prompt</DropdownMenuItem></DropdownMenuGroup><DropdownMenuSeparator /><DropdownMenuGroup><DropdownMenuItem disabled={!outputReady} onSelect={onPreview}><Eye />Preview</DropdownMenuItem><DropdownMenuItem onSelect={onRegenerate}><RotateCcw />Regenerate</DropdownMenuItem><DropdownMenuItem onSelect={onUseSettings}><WandSparkles />Remix</DropdownMenuItem><DropdownMenuItem disabled={!outputReady} onSelect={onAddToTimeline}><Plus />Add to Timeline</DropdownMenuItem>{onDismiss && <DropdownMenuItem onSelect={onDismiss}><X />Remove from Creations</DropdownMenuItem>}</DropdownMenuGroup></DropdownMenuContent></DropdownMenu></div>
         {outputReady && <div className="director-generation-hover-actions">
           {onPreview && <OperatorIconButton className="director-media-icon-action" label="Preview creation" detail="Open the generated media and its technical details." variant="secondary" onClick={onPreview}><Eye /></OperatorIconButton>}

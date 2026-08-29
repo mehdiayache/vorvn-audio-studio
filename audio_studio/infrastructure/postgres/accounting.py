@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from audio_studio.domain.spend_classification import (
+    AUDIO_SPEND_KINDS, VIDEO_SPEND_KINDS,
+)
 from audio_studio.infrastructure.postgres.session import read_only
 
 
@@ -13,6 +16,7 @@ ZERO_ACCOUNTING = {
     "untracked_legacy_spend": 0.0,
     "audio_spend": 0.0,
     "video_spend": 0.0,
+    "other_spend": 0.0,
 }
 
 
@@ -46,7 +50,9 @@ class ProductionAccountingRepository:
                          coalesce(sum(effective_cost)
                              FILTER (WHERE kind = 'speech'), 0) AS speech_spend,
                          coalesce(sum(effective_cost)
-                             FILTER (WHERE kind = 'director_generate'), 0) AS director_spend
+                             FILTER (WHERE kind = ANY(%s::text[])), 0) AS audio_spend,
+                         coalesce(sum(effective_cost)
+                             FILTER (WHERE kind = ANY(%s::text[])), 0) AS video_spend
                     FROM effective_jobs WHERE production_id = ANY(%s)
                    GROUP BY production_id
                 ), retained AS (
@@ -65,28 +71,36 @@ class ProductionAccountingRepository:
                 )
                 SELECT requested.production_id, coalesce(tracked.all_spend, 0),
                        coalesce(tracked.speech_spend, 0),
-                       coalesce(tracked.director_spend, 0),
+                       coalesce(tracked.audio_spend, 0),
+                       coalesce(tracked.video_spend, 0),
                        coalesce(retained.retained_cost, 0),
                        coalesce(current_sequence.current_cost, 0)
                   FROM requested
                   LEFT JOIN tracked USING (production_id)
                   LEFT JOIN retained USING (production_id)
                   LEFT JOIN current_sequence USING (production_id)
-            """, (production_ids, production_ids, production_ids, production_ids))
+            """, (
+                production_ids, sorted(AUDIO_SPEND_KINDS),
+                sorted(VIDEO_SPEND_KINDS), production_ids,
+                production_ids, production_ids,
+            ))
             result = {}
-            for production_id, tracked, tracked_speech, director_spend, retained, current in cur.fetchall():
+            for (production_id, tracked, tracked_speech, audio_spend,
+                 video_spend, retained, current) in cur.fetchall():
                 tracked, tracked_speech = float(tracked), float(tracked_speech)
-                director_spend = float(director_spend)
+                audio_spend, video_spend = float(audio_spend), float(video_spend)
                 retained, current = float(retained), float(current)
                 legacy_gap = max(0.0, retained - tracked_speech)
+                other_spend = max(0.0, tracked - audio_spend - video_spend)
                 result[production_id] = {
                     "historical_spend": round(tracked + legacy_gap, 6),
                     "current_sequence_cost": round(current, 6),
                     "retained_generation_cost": round(retained, 6),
                     "tracked_spend": round(tracked, 6),
                     "untracked_legacy_spend": round(legacy_gap, 6),
-                    "audio_spend": round(max(0.0, tracked + legacy_gap - director_spend), 6),
-                    "video_spend": round(director_spend, 6),
+                    "audio_spend": round(audio_spend + legacy_gap, 6),
+                    "video_spend": round(video_spend, 6),
+                    "other_spend": round(other_spend, 6),
                 }
             return result
 

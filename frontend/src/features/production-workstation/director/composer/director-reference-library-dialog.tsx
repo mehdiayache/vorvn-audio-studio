@@ -16,13 +16,15 @@ function mediaIcon(kind?: string) {
   return kind === "audio" ? AudioLines : kind === "video" ? Film : Image
 }
 
-export function DirectorReferenceLibraryDialog({ open, title, assets, recentAssetIds = [], savedReferences = [], acceptedMediaTypes, onOpenChange, onAdd, onAddReference, onUpload }: {
+export function DirectorReferenceLibraryDialog({ open, title, assets, recentAssetIds = [], savedReferences = [], acceptedMediaTypes, compatibility, checking = false, onOpenChange, onAdd, onAddReference, onUpload }: {
   open: boolean
   title?: string
   assets: VentureAsset[]
   recentAssetIds?: number[]
   savedReferences?: SavedVisualReference[]
   acceptedMediaTypes: DirectorAttachmentKind[]
+  compatibility?: ReadonlyMap<number, { state: "compatible" | "incompatible" | "unknown"; reasons: string[] }>
+  checking?: boolean
   onOpenChange: (open: boolean) => void
   onAdd: (asset: VentureAsset) => void
   onAddReference?: (reference: SavedVisualReference) => void
@@ -32,7 +34,9 @@ export function DirectorReferenceLibraryDialog({ open, title, assets, recentAsse
   const [scope, setScope] = useState<"recent" | "all" | "venture" | "studio">("recent")
   const [sort, setSort] = useState<SortMode>("used")
   const recentOrder = useMemo(() => new Map(recentAssetIds.map((id, index) => [id, index])), [recentAssetIds])
-  const compatible = useMemo(() => assets.filter((asset) => acceptedMediaTypes.includes(asset.media_type as DirectorAttachmentKind)), [acceptedMediaTypes, assets])
+  const mediaTypeCandidates = useMemo(() => assets.filter((asset) => acceptedMediaTypes.includes(asset.media_type as DirectorAttachmentKind)), [acceptedMediaTypes, assets])
+  const compatible = useMemo(() => mediaTypeCandidates.filter((asset) => !compatibility || compatibility.get(asset.id)?.state === "compatible"), [compatibility, mediaTypeCandidates])
+  const unknownCount = useMemo(() => mediaTypeCandidates.filter((asset) => compatibility?.get(asset.id)?.state === "unknown").length, [compatibility, mediaTypeCandidates])
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase()
     const sorted = compatible
@@ -67,6 +71,7 @@ export function DirectorReferenceLibraryDialog({ open, title, assets, recentAsse
         <Select value={sort} onValueChange={(value) => setSort(value as SortMode)}><SelectTrigger aria-label="Sort media"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="used">Used here first</SelectItem><SelectItem value="added">Recently added</SelectItem><SelectItem value="name">Name</SelectItem></SelectContent></Select>
       </div>
       {savedReferences.length > 0 && <section className="director-saved-reference-list"><header>Saved reference sets</header><div>{savedReferences.map((reference) => <Button key={reference.id} type="button" variant="outline" size="sm" onClick={() => onAddReference?.(reference)}><Image />{reference.name}<small>{reference.asset_ids.length}</small></Button>)}</div></section>}
+      {unknownCount > 0 && !checking && <p className="director-reference-metadata-note">{unknownCount} {unknownCount === 1 ? "item needs" : "items need"} technical metadata before this model can use {unknownCount === 1 ? "it" : "them"}.</p>}
       <div className="director-reference-grid" aria-label="Compatible Venture media">
         {visible.map((asset) => {
           const Icon = mediaIcon(asset.media_type)
@@ -80,7 +85,7 @@ export function DirectorReferenceLibraryDialog({ open, title, assets, recentAsse
             </span>
           </button>
         })}
-        {!visible.length && <div className="director-reference-empty"><p>{query ? "No compatible media matches this search." : "No compatible media is available in this Venture yet."}</p>{onUpload && <Button type="button" onClick={onUpload}><Upload />Upload compatible media</Button>}</div>}
+        {!visible.length && <div className="director-reference-empty"><p>{checking ? "Checking technical compatibility…" : query ? "No compatible media matches this search." : "No compatible media is available for this exact input."}</p>{!checking && onUpload && <Button type="button" onClick={onUpload}><Upload />Upload compatible media</Button>}</div>}
       </div>
     </DialogContent>
   </Dialog>

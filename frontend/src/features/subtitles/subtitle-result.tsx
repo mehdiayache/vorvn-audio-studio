@@ -38,7 +38,7 @@ export function SubtitleResult({ transcript, display, layout, profile, layoutBus
     <details className="subtitle-details">
       <summary>Details · cost, model, region and Job</summary>
       <div className="subtitle-accounting">
-        <span><b>{formatMoney(transcript.cost || 0)}</b><small>{transcript.cost_basis === "actual_tokens" ? "Actual provider token usage" : transcript.cost_basis === "catalog_duration" ? "Catalogue cost from measured duration" : transcript.cost_basis || "Historical cost basis"}</small></span>
+        <span><b>{formatMoney(transcript.cost ?? 0)}</b><small>{transcript.cost_basis === "actual_tokens" ? "Actual provider token usage" : transcript.cost_basis === "catalog_duration" ? "Catalogue cost from measured duration" : transcript.cost_basis || "Historical cost basis"}</small></span>
         <span><b>{transcript.model || "Model not recorded"}</b><small>{transcript.provider_region || "Region not recorded"}</small></span>
         <span><b>{transcript.source_job_id ? transcript.source_job_id.slice(0, 8) : "Historical"}</b><small>Job ID</small></span>
       </div>

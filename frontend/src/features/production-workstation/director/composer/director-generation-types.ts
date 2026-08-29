@@ -37,7 +37,7 @@ export type DirectorGeneration = {
   output_asset_ids: number[]
   provider_job_id: string | null
   estimated_cost: number | null
-  cost?: number
+  cost?: number | null
   usage?: Record<string, unknown>
   needs_confirmation?: boolean
   confirmation_message?: string | null
@@ -46,4 +46,10 @@ export type DirectorGeneration = {
   requires_review?: boolean
   created_at: string | null
   updated_at: string | null
+}
+
+export function displayedGenerationCost(generation: Pick<DirectorGeneration, "cost" | "estimated_cost">) {
+  if (generation.cost != null) return { value: Number(generation.cost), basis: "actual" as const }
+  if (generation.estimated_cost != null) return { value: Number(generation.estimated_cost), basis: "estimated" as const }
+  return null
 }

@@ -96,10 +96,11 @@ export type DirectorModelCapability = {
   capability_manifest_version: string
   status: "draft" | "verified" | "enabled"
   description: string
+  presentation?: { brand_label?: string; icon_url?: string }
   operations: DirectorOperationCapability[]
 }
 
-export type DirectorOperationInfo = { id: DirectorOperation; label: string; detail: string }
+export type DirectorOperationInfo = { id: DirectorOperation; label: string; detail: string; presentation?: { mode_label: string; icon: string } }
 export type DirectorCapabilityCatalog = {
   providers: { id: string; label: string }[]
   operations: DirectorOperationInfo[]
@@ -111,6 +112,7 @@ export type DirectorModelFamily = {
   label: string
   provider: string
   description: string
+  presentation?: { brand_label?: string; icon_url?: string }
   routes: DirectorModelCapability[]
 }
 
@@ -118,6 +120,10 @@ export function normalizeCapabilityCatalog(catalog: DirectorCapabilityCatalog) {
   return {
     ...catalog,
     providers: catalog.providers || [],
+    operations: catalog.operations.map((operation) => ({
+      ...operation,
+      presentation: operation.presentation || { mode_label: operation.label, icon: "sparkles" },
+    })),
     models: catalog.models.map((model) => ({
       ...model,
       provider_id: model.provider_id || model.provider.toLowerCase().replaceAll(" ", "-"),
@@ -126,6 +132,7 @@ export function normalizeCapabilityCatalog(catalog: DirectorCapabilityCatalog) {
       adapter_version: model.adapter_version || "legacy",
       capability_manifest_version: model.capability_manifest_version || "legacy",
       status: model.status || "enabled",
+      presentation: model.presentation || {},
       operations: model.operations.map((capability) => ({
         ...capability,
         prompt: { ...capability.prompt, max_length: capability.prompt.max_length || 20_000 },
@@ -162,6 +169,7 @@ export function modelFamilies(models: DirectorModelCapability[]): DirectorModelF
   return [...grouped.entries()].map(([id, routes]) => ({
     id, label: routes[0]!.label, provider: routes[0]!.provider,
     description: routes.map(({ description }) => description).filter(Boolean).join(" · "),
+    presentation: routes[0]!.presentation || {},
     routes,
   }))
 }

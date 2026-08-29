@@ -5,6 +5,9 @@ from __future__ import annotations
 from typing import Any
 
 from audio_studio.config import PRODUCT_NAME
+from audio_studio.domain.spend_classification import (
+    AUDIO_SPEND_KINDS, VIDEO_SPEND_KINDS,
+)
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 
@@ -220,24 +223,43 @@ class ActivityRepository:
                               ('failed','warning','blocked','lost')),
                        coalesce(sum(spend) FILTER
                            (WHERE created_at::date = current_date
-                              AND kind IS DISTINCT FROM 'director_generate'), 0),
+                              AND kind = ANY(%s::text[])), 0),
                        coalesce(sum(spend) FILTER
                            (WHERE created_at::date = current_date
-                              AND kind = 'director_generate'), 0),
+                              AND kind = ANY(%s::text[])), 0),
+                       coalesce(sum(spend) FILTER
+                           (WHERE created_at::date = current_date
+                              AND NOT (kind = ANY(%s::text[])
+                                OR kind = ANY(%s::text[]))), 0),
                        coalesce(sum(spend) FILTER
                            (WHERE date_trunc('month', created_at) =
                                   date_trunc('month', now())
-                              AND kind IS DISTINCT FROM 'director_generate'), 0),
+                              AND kind = ANY(%s::text[])), 0),
                        coalesce(sum(spend) FILTER
                            (WHERE date_trunc('month', created_at) =
                                   date_trunc('month', now())
-                              AND kind = 'director_generate'), 0),
+                              AND kind = ANY(%s::text[])), 0),
                        coalesce(sum(spend) FILTER
-                           (WHERE kind IS DISTINCT FROM 'director_generate'), 0),
+                           (WHERE date_trunc('month', created_at) =
+                                  date_trunc('month', now())
+                              AND NOT (kind = ANY(%s::text[])
+                                OR kind = ANY(%s::text[]))), 0),
                        coalesce(sum(spend) FILTER
-                           (WHERE kind = 'director_generate'), 0)
+                           (WHERE kind = ANY(%s::text[])), 0),
+                       coalesce(sum(spend) FILTER
+                           (WHERE kind = ANY(%s::text[])), 0),
+                       coalesce(sum(spend) FILTER
+                           (WHERE NOT (kind = ANY(%s::text[])
+                                OR kind = ANY(%s::text[]))), 0)
                   FROM effective
-            """)
+            """, (
+                sorted(AUDIO_SPEND_KINDS), sorted(VIDEO_SPEND_KINDS),
+                sorted(AUDIO_SPEND_KINDS), sorted(VIDEO_SPEND_KINDS),
+                sorted(AUDIO_SPEND_KINDS), sorted(VIDEO_SPEND_KINDS),
+                sorted(AUDIO_SPEND_KINDS), sorted(VIDEO_SPEND_KINDS),
+                sorted(AUDIO_SPEND_KINDS), sorted(VIDEO_SPEND_KINDS),
+                sorted(AUDIO_SPEND_KINDS), sorted(VIDEO_SPEND_KINDS),
+            ))
             totals = cursor.fetchone()
             cursor.execute("""
                 SELECT count(*) FROM audit_records
@@ -296,11 +318,14 @@ class ActivityRepository:
             "total": float(totals[2]), "runs": totals[3] + deletion_count,
             "problems": totals[4],
             "today_media": {
-                "audio": float(totals[5]), "video": float(totals[6])},
+                "audio": float(totals[5]), "video": float(totals[6]),
+                "other": float(totals[7])},
             "month_media": {
-                "audio": float(totals[7]), "video": float(totals[8])},
+                "audio": float(totals[8]), "video": float(totals[9]),
+                "other": float(totals[10])},
             "total_media": {
-                "audio": float(totals[9]), "video": float(totals[10])},
+                "audio": float(totals[11]), "video": float(totals[12]),
+                "other": float(totals[13])},
             "running": [item for item in runs if item["status"] in {
                 "queued", "running", "retrying"}],
             "runs_list": runs, "kinds": KIND_LABELS,

@@ -84,6 +84,8 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
   const [advanced, setAdvanced] = useState<DirectorAdvancedValues>({ seed: "", fps: 0, negativePrompt: "", parameters: {} })
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [pickerRole, setPickerRole] = useState<string | undefined>()
+  const [pickerChecking, setPickerChecking] = useState(false)
+  const [pickerCompatibility, setPickerCompatibility] = useState(new Map<number, { state: "compatible" | "incompatible" | "unknown"; reasons: string[] }>())
   const [referenceUploads, setReferenceUploads] = useState(0)
   const [savedReferences, setSavedReferences] = useState<SavedVisualReference[]>([])
   const [saveReferenceOpen, setSaveReferenceOpen] = useState(false)
@@ -98,7 +100,7 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
   const generatedOutputIds = useMemo(() => new Set(generations.flatMap(({ output_asset_ids }) => output_asset_ids)), [generations])
   const activeEstimate = useMemo(() => generations
     .filter(({ status, needs_confirmation }) => needs_confirmation || status === "queued" || status === "generating")
-    .reduce((total, generation) => total + Number(generation.estimated_cost || 0), 0), [generations])
+    .reduce((total, generation) => total + Number(generation.estimated_cost ?? 0), 0), [generations])
 
   useEffect(() => {
     let active = true
@@ -172,7 +174,7 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
   const compatibleSavedReferences = savedReferences.filter((reference) => {
     const compatibleCount = reference.asset_ids.filter((id) => {
       const asset = libraryAssets.find((candidate) => candidate.id === id)
-      return Boolean(asset && pickerMediaTypes.includes(asset.media_type as typeof pickerMediaTypes[number]))
+      return Boolean(asset && pickerMediaTypes.includes(asset.media_type as typeof pickerMediaTypes[number]) && pickerCompatibility.get(id)?.state === "compatible")
     }).length
     return compatibleCount > 0 && compatibleCount <= availableInPickerSlot
   })
@@ -267,7 +269,16 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
     }
   }
 
-  function receiveAsset(asset: VentureAsset, preferredRole?: string) {
+  async function compatibleAsset(asset: VentureAsset, role: string) {
+    const cached = pickerCompatibility.get(asset.id)
+    if (cached) return cached
+    const [result] = await studioApi.directorInputCompatibility(productionId, {
+      model_id: model!.id, operation, role, asset_ids: [asset.id],
+    })
+    return result || { state: "incompatible" as const, reasons: ["This media could not be verified."] }
+  }
+
+  function receiveAsset(asset: VentureAsset, preferredRole?: string, verified?: { state: "compatible" | "incompatible" | "unknown"; reasons: string[] }) {
     const kind = assetKind(asset)
     if (!kind || !capability || !catalog || !model) {
       setComposerError(`${visualAssetName(asset)} is not supported by Director.`)
@@ -277,6 +288,21 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
     if (preferredSlot && !preferredSlot.media_types.includes(kind)) {
       setComposerError(`${visualAssetName(asset)} is not compatible with ${preferredSlot.label}.`)
       return
+    }
+    if (preferredSlot) {
+      const result = verified || pickerCompatibility.get(asset.id)
+      if (!result) {
+        void compatibleAsset(asset, preferredSlot.role).then((checked) => {
+          receiveAsset(asset, preferredRole, checked)
+        }).catch((reason) => setComposerError(
+          reason instanceof Error ? reason.message : "This media could not be verified.",
+        ))
+        return
+      }
+      if (result.state !== "compatible") {
+        setComposerError(result.reasons[0] || `${visualAssetName(asset)} is not compatible with ${preferredSlot.label}.`)
+        return
+      }
     }
     const nestedKinds = availableReferenceMediaTypes(capability, advanced.parameters)
       .filter((candidate) => !directReferenceMediaTypes(capability).includes(candidate))
@@ -298,6 +324,26 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
     const incoming = { id: identifier(`asset-${asset.id}`), assetId: asset.id, name: visualAssetName(asset), kind, role: preferredRole || "", previewUrl: assetPreview(asset), posterUrl: visualAssetPosterUrl(asset), status: "ready" as const }
     addAttachments([incoming])
     setLibraryOpen(false)
+  }
+
+  function openLibrary(role?: string) {
+    if (!role) {
+      setComposerError("Choose a specific input before adding media.")
+      return
+    }
+    setPickerRole(role)
+    setLibraryOpen(true)
+    setPickerChecking(true)
+    setPickerCompatibility(new Map())
+    if (!model) return
+    void studioApi.directorInputCompatibility(productionId, {
+      model_id: model.id, operation, role,
+      asset_ids: libraryAssets.map(({ id }) => id),
+    }).then((results) => {
+      setPickerCompatibility(new Map(results.map(({ asset_id, state, reasons }) => [asset_id, { state, reasons }])))
+    }).catch((reason) => {
+      setComposerError(reason instanceof Error ? reason.message : "Compatible media could not be checked.")
+    }).finally(() => setPickerChecking(false))
   }
 
   function removeReference(attachment: DirectorComposerAttachment) {
@@ -337,7 +383,7 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
       const kind = asset && assetKind(asset)
       return asset && kind && pickerMediaTypes.includes(kind) ? [asset] : []
     }).slice(0, availableInPickerSlot)
-    candidates.forEach((asset) => receiveAsset(asset, pickerRole))
+    candidates.forEach((asset) => void receiveAsset(asset, pickerRole))
     setLibraryOpen(false)
   }
 
@@ -460,7 +506,7 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
       onRatioChange={setRatio} onResolutionChange={setResolution} onDurationChange={setDuration}
       onAdvancedChange={changeAdvanced}
       onRemoveAttachment={removeReference}
-      onOpenLibrary={(role) => { setPickerRole(role); setLibraryOpen(true) }}
+      onOpenLibrary={openLibrary}
       onSwapFrames={swapFrames}
       canSaveReference={visibleAttachments.some(({ assetId }) => assetId) && Boolean(ventureId)}
       onSaveReference={() => setSaveReferenceOpen(true)}
@@ -483,7 +529,7 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
     ) : <div className="director-generation-list" aria-label="Director requests">{generations.map((generation) => generationCard(generation))}</div>}
     </section>
     <input ref={slotUploadRef} hidden multiple type="file" accept={pickerFileAccept} onChange={(event) => { if (event.target.files?.length) receiveFiles(Array.from(event.target.files), pickerRole); event.target.value = "" }} />
-    <DirectorReferenceLibraryDialog open={libraryOpen} title={pickerSlot?.label} assets={libraryAssets} recentAssetIds={recentAssetIds} savedReferences={compatibleSavedReferences} acceptedMediaTypes={pickerMediaTypes} onOpenChange={setLibraryOpen} onAdd={(asset) => receiveAsset(asset, pickerRole)} onAddReference={applySavedReference} onUpload={() => slotUploadRef.current?.click()} />
+    <DirectorReferenceLibraryDialog open={libraryOpen} title={pickerSlot?.label} assets={libraryAssets} recentAssetIds={recentAssetIds} savedReferences={compatibleSavedReferences} acceptedMediaTypes={pickerMediaTypes} compatibility={pickerCompatibility} checking={pickerChecking} onOpenChange={setLibraryOpen} onAdd={(asset) => void receiveAsset(asset, pickerRole)} onAddReference={applySavedReference} onUpload={() => slotUploadRef.current?.click()} />
     <SavedReferenceCreateDialog open={saveReferenceOpen} count={visibleAttachments.filter(({ assetId }) => assetId).length} onOpenChange={setSaveReferenceOpen} onCreate={saveCurrentReference} />
   </section>
 }

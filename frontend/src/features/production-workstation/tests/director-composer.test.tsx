@@ -17,6 +17,7 @@ globalThis.ResizeObserver = class ResizeObserver {
 
 vi.mock("@/lib/api", () => ({ studioApi: {
   directorModels: vi.fn(), directorGenerations: vi.fn(),
+  directorInputCompatibility: vi.fn(),
   createDirectorGeneration: vi.fn(), cancelDirectorGeneration: vi.fn(),
   confirmJob: vi.fn(), retryDirectorGenerationIngestion: vi.fn(),
   savedVisualReferences: vi.fn(), createSavedVisualReference: vi.fn(),
@@ -24,9 +25,9 @@ vi.mock("@/lib/api", () => ({ studioApi: {
 
 const catalog = {
   operations: [
-    { id: "image", label: "Image", detail: "Create a still visual" },
-    { id: "frames-to-video", label: "Frames to video", detail: "Move between frames" },
-    { id: "talking-video", label: "Talking video", detail: "Animate a character" },
+    { id: "image", label: "Image", detail: "Create a still visual", presentation: { mode_label: "Image", icon: "wallpaper" } },
+    { id: "frames-to-video", label: "Frames to video", detail: "Move between frames", presentation: { mode_label: "Frames", icon: "panels" } },
+    { id: "talking-video", label: "Talking video", detail: "Animate a character", presentation: { mode_label: "Talking", icon: "message-video" } },
   ],
   models: [
     { id: "model-a", label: "Model A", provider: "Prototype Lab", version: "a-1", description: "Still images", operations: [{ operation: "image", output_media_type: "image", prompt: { supported: true, required: true, negative_prompt: true }, inputs: [{ role: "reference", label: "Reference", required: false, media_types: ["image"], max: 1 }], ratios: ["1:1", "16:9"], resolutions: ["1K", "2K"], durations: [], fps: [], supports_seed: true, supports_cancel: true }] },
@@ -55,9 +56,9 @@ function kieCapability(operation: string, inputs: unknown[], requiredAnyOf: stri
 const kieCatalog = {
   providers: [{ id: "kie", label: "KIE" }],
   operations: [
-    { id: "text_to_video", label: "Create video", detail: "Create motion from a written direction" },
-    { id: "image_to_video", label: "Animate image", detail: "Create motion from a source image" },
-    { id: "reference_to_video", label: "Direct with references", detail: "Use visual references" },
+    { id: "text_to_video", label: "Create video", detail: "Create motion from a written direction", presentation: { mode_label: "Text", icon: "type" } },
+    { id: "image_to_video", label: "Animate image", detail: "Create motion from a source image", presentation: { mode_label: "Image", icon: "wallpaper" } },
+    { id: "reference_to_video", label: "Direct with references", detail: "Use visual references", presentation: { mode_label: "References", icon: "images" } },
   ],
   models: [
     { id: "kling-3.0-omni/text-to-video", label: "Kling 3.0 Omni", provider: "KIE", provider_id: "kie", provider_model_id: "kling-3.0-omni/text-to-video", adapter_key: "kie-kling-omni", adapter_version: "adapter-1", capability_manifest_version: "manifest-1", status: "enabled", description: "Video", operations: [kieCapability("text_to_video", [])] },
@@ -77,6 +78,7 @@ function generation(prompt = "A quiet violet horizon"): DirectorGeneration {
 
 function setup() {
   vi.mocked(studioApi.directorModels).mockResolvedValue(catalog as never)
+  vi.mocked(studioApi.directorInputCompatibility).mockImplementation(((_productionId: number, payload: { asset_ids: number[] }) => Promise.resolve(payload.asset_ids.map((asset_id) => ({ asset_id, state: "compatible", reasons: [] })))) as never)
   vi.mocked(studioApi.directorGenerations).mockResolvedValue([] as never)
   vi.mocked(studioApi.createDirectorGeneration).mockResolvedValue({} as never)
   vi.mocked(studioApi.cancelDirectorGeneration).mockResolvedValue({} as never)

@@ -450,6 +450,13 @@ export const studioApi = {
   },
   directorGenerationCapabilities: () => request<DirectorGenerationCapabilitiesEnvelope>("/api/v1/director-generation-capabilities").then((response) => response.data),
   directorModels: () => request<DirectorModelsEnvelope>("/api/v1/director/models").then((response) => response.data),
+  directorInputCompatibility: (
+    productionId: number,
+    payload: { model_id: string; operation: string; role: string; asset_ids: number[] },
+  ) => request<{ data: { asset_id: number; state: "compatible" | "incompatible" | "unknown"; reasons: string[] }[] }>(
+    `/api/v1/productions/${productionId}/director-input-compatibility`,
+    { method: "POST", body: JSON.stringify(payload) },
+  ).then((response) => response.data),
   directorGenerations: (productionId: number) => request<DirectorGenerationListEnvelope>(`/api/v1/productions/${productionId}/director-generations`).then((response) => response.data),
   createDirectorGeneration: (productionId: number, payload: DirectorGenerationBody) => request<DirectorGenerationEnvelope>(`/api/v1/productions/${productionId}/director-generations`, {
     method: "POST",

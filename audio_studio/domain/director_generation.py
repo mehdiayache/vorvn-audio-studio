@@ -222,48 +222,100 @@ def _validate_parameter(
     raise ValueError(f"Unsupported Director field type: {field_type}.")
 
 
-def _validate_input_asset(slot: dict[str, Any], asset: dict[str, Any]) -> None:
-    """Enforce provider media limits before a paid request can be sent."""
+def input_asset_compatibility(
+    slot: dict[str, Any], asset: dict[str, Any],
+) -> dict[str, Any]:
+    """Return the canonical compatibility state used by picker and submit.
+
+    Unknown technical metadata is deliberately not compatible: the operator
+    must re-import/analyse that media before it can reach a paid provider call.
+    """
     label = str(slot["label"])
+    violations: list[str] = []
+    unknown: list[str] = []
+    media_type = str(asset.get("media_type") or "")
+    allowed_media_types = slot.get("media_types") or []
+    if allowed_media_types and not media_type:
+        unknown.append(f"{label} media type is not known.")
+    elif allowed_media_types and media_type not in allowed_media_types:
+        violations.append(f"{label} does not accept {media_type}.")
     mime_types = slot.get("mime_types") or []
-    if mime_types and str(asset.get("mime_type") or "") not in mime_types:
-        raise ValueError(f"{label} must use a supported file format.")
-    size = int(asset.get("size_bytes") or 0)
-    if slot.get("max_bytes") and size > int(slot["max_bytes"]):
-        raise ValueError(f"{label} is larger than this model accepts.")
-    duration = int(asset.get("duration_ms") or 0)
-    if slot.get("duration_min_ms") is not None and duration < int(
-            slot["duration_min_ms"]):
-        raise ValueError(f"{label} is shorter than this model accepts.")
-    if slot.get("duration_max_ms") is not None and duration > int(
-            slot["duration_max_ms"]):
-        raise ValueError(f"{label} is longer than this model accepts.")
-    width = int(asset.get("width") or 0)
-    height = int(asset.get("height") or 0)
-    if slot.get("min_width") is not None and width < int(slot["min_width"]):
-        raise ValueError(f"{label} is too narrow for this model.")
-    if slot.get("min_height") is not None and height < int(slot["min_height"]):
-        raise ValueError(f"{label} is too short for this model.")
-    if slot.get("max_width") is not None and width > int(slot["max_width"]):
-        raise ValueError(f"{label} is too wide for this model.")
-    if slot.get("max_height") is not None and height > int(slot["max_height"]):
-        raise ValueError(f"{label} is too tall for this model.")
-    if slot.get("max_pixels") is not None and width * height > int(
-            slot["max_pixels"]):
-        raise ValueError(f"{label} resolution is too large for this model.")
-    fps = float(asset.get("frame_rate") or 0)
-    if slot.get("fps_min") is not None and fps < float(slot["fps_min"]):
-        raise ValueError(f"{label} frame rate is too low for this model.")
-    if slot.get("fps_max") is not None and fps > float(slot["fps_max"]):
-        raise ValueError(f"{label} frame rate is too high for this model.")
-    if width > 0 and height > 0:
+    mime_type = str(asset.get("mime_type") or "")
+    if mime_types and not mime_type:
+        unknown.append(f"{label} file format is not known.")
+    elif mime_types and mime_type not in mime_types:
+        violations.append(f"{label} must use a supported file format.")
+    size_value = asset.get("size_bytes")
+    if slot.get("max_bytes") is not None and size_value is None:
+        unknown.append(f"{label} file size is not known.")
+    elif slot.get("max_bytes") is not None and int(size_value) > int(slot["max_bytes"]):
+        violations.append(f"{label} is larger than this model accepts.")
+    duration_value = asset.get("duration_ms")
+    if (slot.get("duration_min_ms") is not None
+            or slot.get("duration_max_ms") is not None) and duration_value is None:
+        unknown.append(f"{label} duration is not known.")
+    elif duration_value is not None:
+        duration = int(duration_value)
+        if slot.get("duration_min_ms") is not None and duration < int(slot["duration_min_ms"]):
+            violations.append(f"{label} is shorter than this model accepts.")
+        if slot.get("duration_max_ms") is not None and duration > int(slot["duration_max_ms"]):
+            violations.append(f"{label} is longer than this model accepts.")
+    dimension_constraints = any(slot.get(key) is not None for key in (
+        "min_width", "min_height", "max_width", "max_height", "max_pixels",
+        "aspect_ratio_min", "aspect_ratio_max",
+    ))
+    width_value, height_value = asset.get("width"), asset.get("height")
+    if dimension_constraints and (
+        width_value is None or height_value is None
+        or int(width_value) <= 0 or int(height_value) <= 0
+    ):
+        unknown.append(f"{label} dimensions are not known.")
+    elif width_value is not None and height_value is not None:
+        width, height = int(width_value), int(height_value)
+        if slot.get("min_width") is not None and width < int(slot["min_width"]):
+            violations.append(f"{label} is too narrow for this model.")
+        if slot.get("min_height") is not None and height < int(slot["min_height"]):
+            violations.append(f"{label} is too short for this model.")
+        if slot.get("max_width") is not None and width > int(slot["max_width"]):
+            violations.append(f"{label} is too wide for this model.")
+        if slot.get("max_height") is not None and height > int(slot["max_height"]):
+            violations.append(f"{label} is too tall for this model.")
+        if slot.get("max_pixels") is not None and width * height > int(slot["max_pixels"]):
+            violations.append(f"{label} resolution is too large for this model.")
         ratio = width / height
         if (slot.get("aspect_ratio_min") is not None
                 and ratio < float(slot["aspect_ratio_min"])):
-            raise ValueError(f"{label} aspect ratio is too narrow.")
+            violations.append(f"{label} aspect ratio is too narrow.")
         if (slot.get("aspect_ratio_max") is not None
                 and ratio > float(slot["aspect_ratio_max"])):
-            raise ValueError(f"{label} aspect ratio is too wide.")
+            violations.append(f"{label} aspect ratio is too wide.")
+    fps_value = asset.get("frame_rate")
+    if (slot.get("fps_min") is not None
+            or slot.get("fps_max") is not None) and fps_value is None:
+        unknown.append(f"{label} frame rate is not known.")
+    elif fps_value is not None:
+        fps = float(fps_value)
+        if slot.get("fps_min") is not None and fps < float(slot["fps_min"]):
+            violations.append(f"{label} frame rate is too low for this model.")
+        if slot.get("fps_max") is not None and fps > float(slot["fps_max"]):
+            violations.append(f"{label} frame rate is too high for this model.")
+    if violations:
+        return {"state": "incompatible", "reasons": violations}
+    if unknown:
+        return {"state": "unknown", "reasons": unknown}
+    return {"state": "compatible", "reasons": []}
+
+
+def _validate_input_asset(slot: dict[str, Any], asset: dict[str, Any]) -> None:
+    """Enforce the same picker contract before a paid request is sent."""
+    result = input_asset_compatibility(slot, asset)
+    if result["state"] == "compatible":
+        return
+    reason = result["reasons"][0]
+    if result["state"] == "unknown":
+        raise ValueError(
+            f"{reason} Re-import this media so AUVI can inspect it before generation.")
+    raise ValueError(reason)
 
 
 def validate_recipe(recipe: dict[str, Any], assets: dict[int, dict[str, Any]]) -> None:

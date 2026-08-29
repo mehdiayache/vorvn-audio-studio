@@ -96,7 +96,7 @@ export function ComposerWords() {
       <div className={cn("script-editor-shell", text.review && "is-reviewing")}>
         {text.review ? <>
           <div className="candidate-toolbar">
-            <div><span className="eyebrow">{text.review.kind === "shape" ? `${text.review.result.spoken_profile === "spoken_2" ? "Spoken 2 · Speech editing" : "Spoken 1 · Natural phrasing"} candidate` : "Tagged candidate"}</span><b>Review the prepared words where you write</b><small>{formatMicroMoney(Number(text.review.result.cost || 0))} · {text.review.result.cost_basis === "actual_tokens" ? "actual provider tokens" : "estimated"}</small></div>
+            <div><span className="eyebrow">{text.review.kind === "shape" ? `${text.review.result.spoken_profile === "spoken_2" ? "Spoken 2 · Speech editing" : "Spoken 1 · Natural phrasing"} candidate` : "Tagged candidate"}</span><b>Review the prepared words where you write</b><small>{formatMicroMoney(Number(text.review.result.cost ?? 0))} · {text.review.result.cost_basis === "actual_tokens" ? "actual provider tokens" : "estimated"}</small></div>
             <Button variant="outline" size="sm" onClick={() => setCompareOpen(true)}><Columns2 /> Compare with Original</Button>
           </div>
           <Textarea className="candidate-editor" dir="auto" aria-label={`${text.review.kind === "shape" ? "Spoken" : "Tagged"} candidate`} value={text.review.result.after || ""} readOnly />

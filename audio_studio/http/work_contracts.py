@@ -419,6 +419,7 @@ class ProductionAccountingResponse(BaseModel):
     untracked_legacy_spend: float
     audio_spend: float = 0.0
     video_spend: float = 0.0
+    other_spend: float = 0.0
 
 
 class ProductionRenderJobResponse(BaseModel):

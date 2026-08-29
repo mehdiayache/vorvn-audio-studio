@@ -7,7 +7,8 @@ from uuid import UUID
 
 from audio_studio.application.jobs import JobService
 from audio_studio.domain.director_generation import (
-    DIRECTOR_GENERATION_KIND, capability, validate_recipe,
+    DIRECTOR_GENERATION_KIND, capability, input_asset_compatibility,
+    validate_recipe,
 )
 from audio_studio.domain.director_models import models, operations_for
 from audio_studio.domain.jobs import Job
@@ -68,6 +69,29 @@ class DirectorGenerationService:
         return [self.project(job) for job in self.jobs.recent_for_production(
             production_id, kind=DIRECTOR_GENERATION_KIND, limit=limit)]
 
+    def input_compatibility(
+        self, production_id: int, model_id: str, operation: str,
+        role: str, asset_ids: list[int],
+    ) -> list[dict[str, Any]]:
+        if not self.assets.production_exists(production_id):
+            raise LookupError("That Production no longer exists.")
+        _, selected = capability(model_id, operation)
+        slot = next((item for item in selected["inputs"]
+                     if item["role"] == role), None)
+        if not slot:
+            raise ValueError("That semantic input is not supported by this mode.")
+        assets = {int(asset["id"]): asset
+                  for asset in self.assets.list_for_production(production_id)}
+        results = []
+        for asset_id in asset_ids:
+            asset = assets.get(int(asset_id))
+            result = (input_asset_compatibility(slot, asset) if asset else {
+                "state": "incompatible",
+                "reasons": ["This media is not available to this Production."],
+            })
+            results.append({"asset_id": int(asset_id), **result})
+        return results
+
     def cancel(self, production_id: int, job_id: UUID) -> dict[str, Any]:
         job = self.jobs.get(job_id)
         if (not job or job.kind != DIRECTOR_GENERATION_KIND
@@ -102,6 +126,7 @@ class DirectorGenerationService:
             "cancelled": "canceled", "failed": "failed", "lost": "failed",
             "blocked": "failed",
         }[job.status.value]
+        actual_cost = job.result.get("cost")
         return {
             "id": str(job.public_id), "job_id": str(job.public_id),
             "status": status, "progress": round(job.progress * 100),
@@ -120,7 +145,7 @@ class DirectorGenerationService:
             "output_asset_ids": job.result.get("output_asset_ids") or [],
             "provider_job_id": job.result.get("provider_job_id"),
             "estimated_cost": job.result.get("estimated_cost"),
-            "cost": float(job.result.get("cost") or 0),
+            "cost": float(actual_cost) if actual_cost is not None else None,
             "usage": job.result.get("usage") or {},
             "needs_confirmation": bool(job.result.get("needs_confirmation")),
             "confirmation_message": job.result.get("confirmation_message"),

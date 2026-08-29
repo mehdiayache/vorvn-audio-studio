@@ -42,39 +42,39 @@ KIE_CONTRACT_EVIDENCE: dict[str, dict[str, str]] = {
 AVAILABLE_MODEL_STATUSES = {"enabled"}
 
 
-OPERATION_TAXONOMY: tuple[dict[str, str], ...] = (
+OPERATION_TAXONOMY: tuple[dict[str, Any], ...] = (
     {"id": "image_generate", "label": "Create image",
-     "detail": "Create a new still visual"},
+     "detail": "Create a new still visual", "presentation": {"mode_label": "Text", "icon": "type"}},
     {"id": "image_edit", "label": "Edit image",
-     "detail": "Change an existing image"},
+     "detail": "Change an existing image", "presentation": {"mode_label": "Edit", "icon": "image-edit"}},
     {"id": "image_set", "label": "Create image set",
-     "detail": "Create a related set of still visuals"},
+     "detail": "Create a related set of still visuals", "presentation": {"mode_label": "Image set", "icon": "images"}},
     {"id": "text_to_video", "label": "Create video",
-     "detail": "Create motion from a written direction"},
+     "detail": "Create motion from a written direction", "presentation": {"mode_label": "Text", "icon": "type"}},
     {"id": "image_to_video", "label": "Animate image",
-     "detail": "Create motion from a source image"},
+     "detail": "Create motion from a source image", "presentation": {"mode_label": "Image", "icon": "wallpaper"}},
     {"id": "frames_to_video", "label": "Animate between frames",
-     "detail": "Move from a first frame to a final frame"},
+     "detail": "Move from a first frame to a final frame", "presentation": {"mode_label": "Frames", "icon": "panels"}},
     {"id": "audio_driven_image_to_video", "label": "Animate from audio",
-     "detail": "Drive an image with an audio performance"},
+     "detail": "Drive an image with an audio performance", "presentation": {"mode_label": "Audio", "icon": "audio"}},
     {"id": "video_continue", "label": "Continue video",
-     "detail": "Extend an existing video"},
+     "detail": "Extend an existing video", "presentation": {"mode_label": "Continue", "icon": "video-forward"}},
     {"id": "video_continue_to_frame", "label": "Continue to frame",
-     "detail": "Extend a video toward a chosen final frame"},
+     "detail": "Extend a video toward a chosen final frame", "presentation": {"mode_label": "Continue", "icon": "video-forward"}},
     {"id": "reference_to_video", "label": "Direct with references",
-     "detail": "Use visual references to guide a new video"},
+     "detail": "Use visual references to guide a new video", "presentation": {"mode_label": "References", "icon": "images"}},
     {"id": "video_edit", "label": "Edit video",
-     "detail": "Change an existing video"},
+     "detail": "Change an existing video", "presentation": {"mode_label": "Edit", "icon": "video-edit"}},
     {"id": "video_transform", "label": "Transform video",
-     "detail": "Restyle a video while preserving its action"},
+     "detail": "Restyle a video while preserving its action", "presentation": {"mode_label": "Transform", "icon": "wand"}},
     {"id": "motion_transfer", "label": "Transfer motion",
-     "detail": "Apply motion from one source to another"},
+     "detail": "Apply motion from one source to another", "presentation": {"mode_label": "Motion", "icon": "motion"}},
     {"id": "character_swap", "label": "Replace character",
-     "detail": "Replace a character while preserving motion"},
+     "detail": "Replace a character while preserving motion", "presentation": {"mode_label": "Character", "icon": "user-round-cog"}},
     {"id": "talking_video", "label": "Create talking video",
-     "detail": "Animate a character from a voice performance"},
+     "detail": "Animate a character from a voice performance", "presentation": {"mode_label": "Talking", "icon": "message-video"}},
     {"id": "video_lip_sync", "label": "Lip-sync video",
-     "detail": "Synchronize an existing video to speech"},
+     "detail": "Synchronize an existing video to speech", "presentation": {"mode_label": "Lip sync", "icon": "audio-video"}},
 )
 
 
@@ -210,6 +210,7 @@ MODELS: tuple[dict[str, Any], ...] = (
         "adapter_version": "kie-kling-omni-1",
         "capability_manifest_version": MANIFEST_VERSION,
         "status": "enabled",
+        "presentation": {"brand_label": "Kling", "icon_url": "/audio-studio/brands/kling.svg"},
         "description": "Create video from a written direction; advanced audio, shot and persistent-subject controls remain available in model settings",
         "operations": [_kling_operation("text_to_video")],
     },
@@ -223,6 +224,7 @@ MODELS: tuple[dict[str, Any], ...] = (
         "adapter_version": "kie-kling-omni-1",
         "capability_manifest_version": MANIFEST_VERSION,
         "status": "enabled",
+        "presentation": {"brand_label": "Kling", "icon_url": "/audio-studio/brands/kling.svg"},
         "description": "Animate one source image or direct motion between a start and end frame",
         "operations": [
             _kling_operation(
@@ -291,6 +293,7 @@ MODELS: tuple[dict[str, Any], ...] = (
         "adapter_version": "kie-kling-omni-1",
         "capability_manifest_version": MANIFEST_VERSION,
         "status": "enabled",
+        "presentation": {"brand_label": "Kling", "icon_url": "/audio-studio/brands/kling.svg"},
         "description": "Create video from image and video references",
         "operations": [{
             **_kling_operation(
@@ -385,6 +388,7 @@ MODELS: tuple[dict[str, Any], ...] = (
         "adapter_version": "kie-kling-omni-1",
         "capability_manifest_version": MANIFEST_VERSION,
         "status": "draft",
+        "presentation": {"brand_label": "Kling", "icon_url": "/audio-studio/brands/kling.svg"},
         "description": "Transform an existing video with optional image references",
         "operations": [_kling_operation(
             "video_transform",
@@ -421,7 +425,7 @@ def model_capability(
     raise ValueError("That model does not support the selected Director operation.")
 
 
-def operations_for(models_value: list[dict[str, Any]]) -> list[dict[str, str]]:
+def operations_for(models_value: list[dict[str, Any]]) -> list[dict[str, Any]]:
     available = {
         operation["operation"]
         for model in models_value for operation in model["operations"]

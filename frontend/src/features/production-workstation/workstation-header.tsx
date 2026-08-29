@@ -77,8 +77,9 @@ export function WorkstationHeader({ production, tree, duration, stage, issueCoun
 }) {
   const partCount = production.parts.filter((part) => part.kind !== "stitch").length
   const formattedDuration = formatDuration(duration)
-  const videoSpend = Number(production.accounting.video_spend || 0)
-  const audioSpend = Number(production.accounting.audio_spend ?? Math.max(0, production.total_cost - videoSpend))
+  const videoSpend = Number(production.accounting.video_spend ?? 0)
+  const audioSpend = Number(production.accounting.audio_spend ?? 0)
+  const otherSpend = Number(production.accounting.other_spend ?? 0)
   const productionNode = tree?.find((item) => item.type === "production" && Number(item.id) === Number(production.id))
   return <header className="ws-header">
     <div className="ws-context-rail">
@@ -94,6 +95,7 @@ export function WorkstationHeader({ production, tree, duration, stage, issueCoun
         <dt>Spending</dt>
         <OperatorTooltip label={`Audio spend ${formatMoney(audioSpend)}`} detail="Provider spend for speech and audio work in this Production."><div><AudioLines aria-hidden="true" /><dd>{formatMoney(audioSpend)}</dd></div></OperatorTooltip>
         <OperatorTooltip label={`Video spend ${formatMoney(videoSpend)}`} detail="Provider spend for Director image and video generations."><div><Video aria-hidden="true" /><dd>{formatMoney(videoSpend)}</dd></div></OperatorTooltip>
+        <OperatorTooltip label={`Other spend ${formatMoney(otherSpend)}`} detail="Translation, transcription, text preparation, rendering and other paid operations."><div><MoreHorizontal aria-hidden="true" /><dd>{formatMoney(otherSpend)}</dd></div></OperatorTooltip>
       </dl>
       {production.status && production.status !== "draft" && <span className="ws-status">{production.status.replaceAll("_", " ")}</span>}
       {mutationStatus !== "idle" && <span className={`ws-save-state is-${mutationStatus}`} role="status" aria-live="polite">{mutationStatus === "saving" ? <LoaderCircle className="spin" /> : <Check />}{mutationStatus === "saving" ? "Saving…" : "Saved"}</span>}

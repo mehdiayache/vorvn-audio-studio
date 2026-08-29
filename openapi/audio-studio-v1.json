@@ -91,6 +91,10 @@
             "title": "Audio",
             "type": "number"
           },
+          "other": {
+            "title": "Other",
+            "type": "number"
+          },
           "video": {
             "title": "Video",
             "type": "number"
@@ -98,7 +102,8 @@
         },
         "required": [
           "audio",
-          "video"
+          "video",
+          "other"
         ],
         "title": "ActivityMediaSpendResponse",
         "type": "object"
@@ -2549,9 +2554,15 @@
             "title": "Confirmation Message"
           },
           "cost": {
-            "default": 0,
-            "title": "Cost",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost"
           },
           "created_at": {
             "anyOf": [
@@ -2729,6 +2740,92 @@
           "updated_at"
         ],
         "title": "DirectorGenerationResponse",
+        "type": "object"
+      },
+      "DirectorInputCompatibilityEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/DirectorInputCompatibilityResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "DirectorInputCompatibilityEnvelope",
+        "type": "object"
+      },
+      "DirectorInputCompatibilityRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 500,
+            "title": "Asset Ids",
+            "type": "array"
+          },
+          "model_id": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Model Id",
+            "type": "string"
+          },
+          "operation": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Operation",
+            "type": "string"
+          },
+          "role": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model_id",
+          "operation",
+          "role",
+          "asset_ids"
+        ],
+        "title": "DirectorInputCompatibilityRequest",
+        "type": "object"
+      },
+      "DirectorInputCompatibilityResponse": {
+        "properties": {
+          "asset_id": {
+            "title": "Asset Id",
+            "type": "integer"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "state": {
+            "enum": [
+              "compatible",
+              "incompatible",
+              "unknown"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_id",
+          "state",
+          "reasons"
+        ],
+        "title": "DirectorInputCompatibilityResponse",
         "type": "object"
       },
       "DirectorInputSlot": {
@@ -2944,6 +3041,13 @@
             "title": "Operations",
             "type": "array"
           },
+          "presentation": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Presentation",
+            "type": "object"
+          },
           "provider": {
             "title": "Provider",
             "type": "string"
@@ -3124,12 +3228,20 @@
           "label": {
             "title": "Label",
             "type": "string"
+          },
+          "presentation": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Presentation",
+            "type": "object"
           }
         },
         "required": [
           "id",
           "label",
-          "detail"
+          "detail",
+          "presentation"
         ],
         "title": "DirectorOperationInfo",
         "type": "object"
@@ -5599,6 +5711,11 @@
           },
           "historical_spend": {
             "title": "Historical Spend",
+            "type": "number"
+          },
+          "other_spend": {
+            "default": 0.0,
+            "title": "Other Spend",
             "type": "number"
           },
           "retained_generation_cost": {
@@ -17979,6 +18096,58 @@
           }
         },
         "summary": "Retry Generation Ingestion",
+        "tags": [
+          "director-generations"
+        ]
+      }
+    },
+    "/api/v1/productions/{production_id}/director-input-compatibility": {
+      "post": {
+        "operationId": "checkDirectorInputCompatibility",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "production_id",
+            "required": true,
+            "schema": {
+              "title": "Production Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectorInputCompatibilityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectorInputCompatibilityEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check Director Input Compatibility",
         "tags": [
           "director-generations"
         ]

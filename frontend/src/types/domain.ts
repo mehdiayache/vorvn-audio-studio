@@ -187,6 +187,7 @@ export type Production = {
     untracked_legacy_spend: number
     audio_spend?: number
     video_spend?: number
+    other_spend?: number
   }
   total_bytes: number
 }

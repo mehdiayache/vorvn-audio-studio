@@ -114,6 +114,7 @@ class DirectorModelCapability(BaseModel):
     capability_manifest_version: str
     status: Literal["draft", "verified", "enabled"]
     description: str
+    presentation: dict[str, str] = Field(default_factory=dict)
     operations: list[DirectorOperationCapability]
 
 
@@ -121,6 +122,7 @@ class DirectorOperationInfo(BaseModel):
     id: str
     label: str
     detail: str
+    presentation: dict[str, str]
 
 
 class DirectorCapabilities(BaseModel):
@@ -161,6 +163,24 @@ class DirectorGenerationRecipe(BaseModel):
     controls: DirectorGenerationControls
 
 
+class DirectorInputCompatibilityRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    model_id: str = Field(min_length=1, max_length=120)
+    operation: str = Field(min_length=1, max_length=80)
+    role: str = Field(min_length=1, max_length=80)
+    asset_ids: list[int] = Field(max_length=500)
+
+
+class DirectorInputCompatibilityResponse(BaseModel):
+    asset_id: int
+    state: Literal["compatible", "incompatible", "unknown"]
+    reasons: list[str]
+
+
+class DirectorInputCompatibilityEnvelope(BaseModel):
+    data: list[DirectorInputCompatibilityResponse]
+
+
 class DirectorGenerationResponse(BaseModel):
     id: str
     job_id: str
@@ -181,7 +201,7 @@ class DirectorGenerationResponse(BaseModel):
     output_asset_ids: list[int]
     provider_job_id: str | None
     estimated_cost: float | None
-    cost: float = 0
+    cost: float | None = None
     usage: dict[str, Any] = Field(default_factory=dict)
     needs_confirmation: bool = False
     confirmation_message: str | None = None
@@ -213,6 +233,24 @@ def director_capabilities() -> dict:
 def director_models() -> dict:
     """Canonical model catalogue consumed by Director and external clients."""
     return {"data": director_generation_service.capabilities()}
+
+
+@router.post(
+    "/productions/{production_id}/director-input-compatibility",
+    operation_id="checkDirectorInputCompatibility",
+    response_model=DirectorInputCompatibilityEnvelope,
+)
+def check_director_input_compatibility(
+    production_id: int, payload: DirectorInputCompatibilityRequest,
+) -> dict:
+    try:
+        return {"data": director_generation_service.input_compatibility(
+            production_id, payload.model_id, payload.operation,
+            payload.role, payload.asset_ids)}
+    except LookupError as exc:
+        raise ApiProblem(404, "production_not_found", str(exc)) from exc
+    except ValueError as exc:
+        raise ApiProblem(400, "invalid_director_input", str(exc)) from exc
 
 
 @router.get("/productions/{production_id}/director-generations",

@@ -84,6 +84,7 @@ class CostBasisResponse(BaseModel):
 class ActivityMediaSpendResponse(BaseModel):
     audio: float
     video: float
+    other: float
 
 
 class ActivitySnapshotResponse(BaseModel):

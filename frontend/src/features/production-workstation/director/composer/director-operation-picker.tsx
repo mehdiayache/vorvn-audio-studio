@@ -1,23 +1,21 @@
-import { Images, PanelsTopLeft, Type, Wallpaper } from "lucide-react"
+import { AudioLines, Clapperboard, Images, MessageSquareMore, PanelsTopLeft, ScanFace, Sparkles, Type, UserRoundCog, Video, VideoIcon, WandSparkles, Wallpaper, type LucideIcon } from "lucide-react"
 
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { DirectorOperation, DirectorOperationInfo } from "./director-composer-config"
 
-function modeLabel(operation: DirectorOperationInfo) {
-  const id = operation.id.replaceAll("-", "_").toLowerCase()
-  if (id.includes("reference")) return "References"
-  if (id.includes("frame")) return "Frames"
-  if (id.includes("image")) return "Image"
-  if (id.includes("text") || id.includes("video")) return "Text"
-  return operation.label
+const MODE_ICONS: Record<string, LucideIcon> = {
+  type: Type, wallpaper: Wallpaper, panels: PanelsTopLeft, images: Images,
+  audio: AudioLines, "video-forward": VideoIcon, "video-edit": Clapperboard,
+  "image-edit": WandSparkles, wand: Sparkles, motion: Video,
+  "user-round-cog": UserRoundCog, "message-video": MessageSquareMore,
+  "audio-video": ScanFace,
 }
 
-function modeIcon(operation: DirectorOperationInfo) {
-  const label = modeLabel(operation)
-  if (label === "References") return Images
-  if (label === "Frames") return PanelsTopLeft
-  if (label === "Image") return Wallpaper
-  return Type
+export function operationPresentation(operation: DirectorOperationInfo) {
+  return {
+    label: operation.presentation?.mode_label || operation.label,
+    Icon: MODE_ICONS[operation.presentation?.icon || ""] || Sparkles,
+  }
 }
 
 export function DirectorOperationPicker({ operations, value, onValueChange }: { operations: DirectorOperationInfo[]; value: DirectorOperation; onValueChange: (value: DirectorOperation) => void }) {
@@ -30,12 +28,12 @@ export function DirectorOperationPicker({ operations, value, onValueChange }: { 
     aria-label="Creation mode"
   >
     {operations.map((operation) => {
-      const Icon = modeIcon(operation)
+      const { Icon, label } = operationPresentation(operation)
       return <ToggleGroupItem
         key={operation.id}
         value={operation.id}
-        aria-label={`${modeLabel(operation)}: ${operation.detail}`}
-      ><Icon />{modeLabel(operation)}</ToggleGroupItem>
+        aria-label={`${label}: ${operation.detail}`}
+      ><Icon />{label}</ToggleGroupItem>
     })}
   </ToggleGroup>
 }
