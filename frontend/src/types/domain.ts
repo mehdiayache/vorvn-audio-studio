@@ -189,6 +189,15 @@ export type Production = {
   total_bytes: number
 }
 
+export type SavedVisualReference = {
+  id: string
+  name: string
+  type: "character" | "object" | "place" | "style" | "other"
+  asset_ids: number[]
+  created_at: string
+  updated_at: string
+}
+
 export type SoundSceneAnchor =
   | { kind: "absolute"; position_ms: number }
   | { kind: "part"; part_public_id: string; edge: "start" | "end"; offset_ms: number }

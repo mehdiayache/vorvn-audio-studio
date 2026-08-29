@@ -7,17 +7,18 @@ import type { DirectorAdvancedValues } from "./director-advanced-settings"
 import type { VentureAsset } from "@/types/domain"
 import { DirectorAdvancedSettings } from "./director-advanced-settings"
 import { DirectorCapabilityControls } from "./director-capability-controls"
-import type { DirectorModelCapability, DirectorOperation, DirectorOperationCapability, DirectorOperationInfo } from "./director-composer-config"
+import type { DirectorModelCapability, DirectorModelFamily, DirectorOperation, DirectorOperationCapability, DirectorOperationInfo } from "./director-composer-config"
 import { DirectorModelSelector } from "./director-model-selector"
 import { DirectorOperationPicker } from "./director-operation-picker"
 import { DirectorSubmit } from "./director-submit"
 
-export function DirectorComposerToolbar({ operations, operation, capability, model, models, ratio, resolution, duration, advanced, assets, disabledReason, canAddReference, busy, uploadStatus, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onUpload, onOpenLibrary, onPaste, onSubmit }: {
+export function DirectorComposerToolbar({ operations, operation, capability, model, models, modelFamilyId, ratio, resolution, duration, advanced, assets, disabledReason, canAddReference, busy, uploadStatus, onOperationChange, onModelChange, onRatioChange, onResolutionChange, onDurationChange, onAdvancedChange, onUpload, onOpenLibrary, onPaste, onSubmit }: {
   operations: DirectorOperationInfo[]
   operation: DirectorOperation
   capability: DirectorOperationCapability
   model: DirectorModelCapability
-  models: DirectorModelCapability[]
+  models: DirectorModelFamily[]
+  modelFamilyId: string
   ratio: string
   resolution: string
   duration: number
@@ -53,8 +54,8 @@ export function DirectorComposerToolbar({ operations, operation, capability, mod
       </DropdownMenuContent>
     </DropdownMenu>
     <div className="director-composer-toolbar-main">
+      <DirectorModelSelector models={models} value={modelFamilyId} onValueChange={onModelChange} />
       <DirectorOperationPicker operations={operations} value={operation} onValueChange={onOperationChange} />
-      <DirectorModelSelector models={models} value={model.id} onValueChange={onModelChange} />
       <DirectorCapabilityControls capability={capability} parameters={advanced.parameters} ratio={ratio} resolution={resolution} duration={duration} onRatioChange={onRatioChange} onResolutionChange={onResolutionChange} onDurationChange={onDurationChange} />
     </div>
     <div className="director-composer-toolbar-end">

@@ -51,13 +51,13 @@ function AssetPicker({ label, assets, selected, minimum, maximum, onChange }: {
     <div className="director-subject-assets-heading"><span>{label}</span><span>{selected.length}/{maximum}</span></div>
     {selected.length > 0 && <div className="director-subject-asset-list">{selected.map((assetId) => {
       const asset = assets.find(({ id }) => id === assetId)
-      return <span className="director-subject-asset" key={assetId}>{asset ? assetLabel(asset) : `Asset ${assetId}`}<OperatorIconButton type="button" label={`Remove ${asset ? visualAssetName(asset) : "Asset"} from subject`} size="icon-xs" onClick={() => onChange(selected.filter((id) => id !== assetId))}><X /></OperatorIconButton></span>
+      return <span className="director-subject-asset" key={assetId}>{asset ? assetLabel(asset) : `Media ${assetId}`}<OperatorIconButton type="button" label={`Remove ${asset ? visualAssetName(asset) : "media"} from subject`} size="icon-xs" onClick={() => onChange(selected.filter((id) => id !== assetId))}><X /></OperatorIconButton></span>
     })}</div>}
     {selected.length < maximum && available.length > 0 && <Select value="" onValueChange={(value) => onChange([...selected, Number(value)])}>
-      <SelectTrigger className="w-full"><SelectValue placeholder={`Choose ${label.toLowerCase()}`} /></SelectTrigger>
+      <SelectTrigger className="w-full" aria-label={`Choose ${label.toLowerCase()}`}><SelectValue placeholder={`Choose ${label.toLowerCase()}`} /></SelectTrigger>
       <SelectContent><SelectGroup>{available.map((asset) => <SelectItem key={asset.id} value={String(asset.id)}>{assetLabel(asset)}</SelectItem>)}</SelectGroup></SelectContent>
     </Select>}
-    {selected.length < maximum && available.length === 0 && <span className="director-subject-unavailable">No compatible Asset is available in this Production.</span>}
+    {selected.length < maximum && available.length === 0 && <span className="director-subject-unavailable">No compatible media is available in this Production.</span>}
     {missing > 0 && <p className="director-subject-requirement" role="status">Add {missing} more {missing === 1 ? "reference" : "references"}. This subject requires {minimum === maximum ? minimum : `${minimum}–${maximum}`}.</p>}
   </div>
 }

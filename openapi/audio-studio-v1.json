@@ -8720,6 +8720,119 @@
         "title": "SavedPronunciationResponse",
         "type": "object"
       },
+      "SavedReferenceCreate": {
+        "properties": {
+          "asset_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 12,
+            "minItems": 1,
+            "title": "Asset Ids",
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "character",
+              "object",
+              "place",
+              "style",
+              "other"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "asset_ids"
+        ],
+        "title": "SavedReferenceCreate",
+        "type": "object"
+      },
+      "SavedReferenceEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SavedReferenceResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SavedReferenceEnvelope",
+        "type": "object"
+      },
+      "SavedReferenceListEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SavedReferenceResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SavedReferenceListEnvelope",
+        "type": "object"
+      },
+      "SavedReferenceResponse": {
+        "properties": {
+          "asset_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Asset Ids",
+            "type": "array"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "character",
+              "object",
+              "place",
+              "style",
+              "other"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "asset_ids",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SavedReferenceResponse",
+        "type": "object"
+      },
       "SequenceMixOverride": {
         "additionalProperties": false,
         "properties": {
@@ -20736,6 +20849,142 @@
         "summary": "Create Project",
         "tags": [
           "work"
+        ]
+      }
+    },
+    "/api/v1/ventures/{venture_id}/saved-references": {
+      "get": {
+        "operationId": "listSavedReferences",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "venture_id",
+            "required": true,
+            "schema": {
+              "title": "Venture Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedReferenceListEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Saved References",
+        "tags": [
+          "saved-references"
+        ]
+      },
+      "post": {
+        "operationId": "createSavedReference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "venture_id",
+            "required": true,
+            "schema": {
+              "title": "Venture Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedReferenceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedReferenceEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Saved Reference",
+        "tags": [
+          "saved-references"
+        ]
+      }
+    },
+    "/api/v1/ventures/{venture_id}/saved-references/{reference_id}": {
+      "delete": {
+        "operationId": "deleteSavedReference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "venture_id",
+            "required": true,
+            "schema": {
+              "title": "Venture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "reference_id",
+            "required": true,
+            "schema": {
+              "title": "Reference Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Saved Reference",
+        "tags": [
+          "saved-references"
         ]
       }
     },

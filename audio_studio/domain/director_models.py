@@ -13,6 +13,31 @@ from typing import Any, Literal
 ModelStatus = Literal["draft", "verified", "enabled"]
 MANIFEST_VERSION = "2026-08-29.2"
 
+# Exact enabled KIE contracts used to build the manifests below. Begin at
+# KIE's model index, then use the page whose request example names the same
+# provider_model_id. Generic Kling 3.0 and neighbouring Kling routes are not
+# evidence for these Omni contracts.
+KIE_CONTRACT_EVIDENCE: dict[str, dict[str, str]] = {
+    "kling-3.0-omni/text-to-video": {
+        "index": "https://docs.kie.ai/llms.txt",
+        "schema": "https://docs.kie.ai/market/kling/v3-omni-text-to-video",
+        "endpoint": "/api/v1/jobs/createTask",
+        "retrieved": "2026-08-29",
+    },
+    "kling-3.0-omni/image-to-video": {
+        "index": "https://docs.kie.ai/llms.txt",
+        "schema": "https://docs.kie.ai/market/kling/v3-omni-image-to-video",
+        "endpoint": "/api/v1/jobs/createTask",
+        "retrieved": "2026-08-29",
+    },
+    "kling-3.0-omni/reference-to-video": {
+        "index": "https://docs.kie.ai/llms.txt",
+        "schema": "https://docs.kie.ai/market/kling/v3-omni-reference-to-video",
+        "endpoint": "/api/v1/jobs/createTask",
+        "retrieved": "2026-08-29",
+    },
+}
+
 
 AVAILABLE_MODEL_STATUSES = {"enabled"}
 

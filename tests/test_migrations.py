@@ -74,6 +74,7 @@ class MigrationTests(unittest.TestCase):
                     "047_visual_scenes.sql",
                     "048_sound_scene_derived_history.sql",
                 "049_default_speech_volume.sql",
+                "050_saved_visual_references.sql",
         ])
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:
@@ -91,6 +92,8 @@ class MigrationTests(unittest.TestCase):
                     "voice_reference_windows", "voice_previews",
                     "production_director_assets",
                     "visual_scenes",
+                    "saved_visual_references",
+                    "saved_visual_reference_assets",
                 }.issubset(tables))
                 self.assertNotIn("production_mixes", tables)
                 self.assertTrue({

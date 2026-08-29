@@ -18,6 +18,7 @@ vi.mock("@/lib/api", () => ({ studioApi: {
   directorModels: vi.fn(), directorGenerations: vi.fn(),
   createDirectorGeneration: vi.fn(), cancelDirectorGeneration: vi.fn(),
   confirmJob: vi.fn(), retryDirectorGenerationIngestion: vi.fn(),
+  savedVisualReferences: vi.fn(), createSavedVisualReference: vi.fn(),
 } }))
 
 const catalog = {
@@ -80,6 +81,8 @@ function setup() {
   vi.mocked(studioApi.cancelDirectorGeneration).mockResolvedValue({} as never)
   vi.mocked(studioApi.confirmJob).mockResolvedValue({} as never)
   vi.mocked(studioApi.retryDirectorGenerationIngestion).mockResolvedValue({} as never)
+  vi.mocked(studioApi.savedVisualReferences).mockResolvedValue([] as never)
+  vi.mocked(studioApi.createSavedVisualReference).mockResolvedValue({} as never)
 }
 
 function renderComposer(overrides: Partial<React.ComponentProps<typeof DirectorComposer>> = {}) {
@@ -90,8 +93,14 @@ async function openOperationPicker() {
   fireEvent.pointerDown(await screen.findByRole("button", { name: /Creation type:/ }), { button: 0, ctrlKey: false })
 }
 
+async function chooseModel(name: string) {
+  fireEvent.click(await screen.findByRole("combobox", { name: "Choose generation model" }))
+  fireEvent.click(await screen.findByRole("option", { name: new RegExp(name) }))
+}
+
 beforeEach(() => {
   setup()
+  Element.prototype.scrollIntoView = vi.fn()
   Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn((file: File) => `blob:${file.name}`) })
   Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() })
 })
@@ -234,11 +243,10 @@ describe("Director composer", () => {
     renderComposer()
     expect(await screen.findByRole("combobox", { name: "Aspect ratio" })).toBeTruthy()
     expect(screen.queryByRole("combobox", { name: "Duration" })).toBeNull()
-    await openOperationPicker()
-    fireEvent.click(await screen.findByRole("menuitem", { name: /Frames to video/ }))
+    await chooseModel("Model B")
     expect(screen.getByRole("combobox", { name: "Choose generation model" }).textContent).toContain("Model B")
     expect(screen.getByRole("button", { name: "Start frame" })).toBeTruthy()
-    expect(screen.queryByRole("button", { name: "End frame" })).toBeNull()
+    expect(screen.getByRole("button", { name: "End frame" })).toBeTruthy()
     expect(screen.getByRole("combobox", { name: "Duration" })).toBeTruthy()
   })
 
@@ -252,30 +260,80 @@ describe("Director composer", () => {
     expect(await screen.findByText("Canonical image")).toBeTruthy()
   })
 
-  it("uses canonical audio and image Assets in role-aware slots", async () => {
+  it("shows only compatible media in an exact semantic slot", async () => {
     renderComposer({ libraryAssets: [
       { id: 41, media_type: "image", name: "Character", filename: "character.webp" },
       { id: 42, media_type: "audio", name: "Voice", filename: "voice.wav" },
     ] })
-    await openOperationPicker()
-    fireEvent.click(await screen.findByRole("menuitem", { name: /Talking video/ }))
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Add a reference" }), { button: 0, ctrlKey: false })
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
-    const character = await screen.findByText("Character", { selector: ".director-reference-item strong" })
-    fireEvent.click(character.closest("button")!)
-    expect(await screen.findByText("Character", { selector: ".attachment-chip-copy strong" })).toBeTruthy()
+    await chooseModel("Model C")
+    fireEvent.click(await screen.findByRole("button", { name: "Voice audio" }))
+    expect(await screen.findByRole("heading", { name: "Choose voice audio" })).toBeTruthy()
+    expect(screen.getByText("Voice", { selector: ".director-reference-item strong" })).toBeTruthy()
+    expect(screen.queryByText("Character", { selector: ".director-reference-item strong" })).toBeNull()
+    fireEvent.click(screen.getByText("Voice", { selector: ".director-reference-item strong" }).closest("button")!)
+    expect(await screen.findByText("Voice", { selector: ".attachment-chip-copy strong" })).toBeTruthy()
+    expect(screen.getByText("Voice audio", { selector: ".attachment-chip-role" })).toBeTruthy()
+  })
+
+  it("places a durable-looking queued card immediately while creation starts", async () => {
+    let resolveCreate: (value: DirectorGeneration) => void = () => undefined
+    vi.mocked(studioApi.createDirectorGeneration).mockImplementation(() => new Promise((resolve) => { resolveCreate = resolve as (value: DirectorGeneration) => void }) as never)
+    renderComposer()
+    fireEvent.change(await screen.findByRole("textbox", { name: "Director prompt" }), { target: { value: "A calm harbor at dawn" } })
+    fireEvent.click(screen.getByRole("button", { name: "Create" }))
+    expect(await screen.findByText("Queued")).toBeTruthy()
+    expect(screen.getByText("A calm harbor at dawn", { selector: ".director-generation-copy strong" })).toBeTruthy()
+    resolveCreate(generation("A calm harbor at dawn"))
+    await waitFor(() => expect(studioApi.createDirectorGeneration).toHaveBeenCalledTimes(1))
+  })
+
+  it("does not silently squeeze a multi-media saved reference into one exact slot", async () => {
+    vi.mocked(studioApi.savedVisualReferences).mockResolvedValue([
+      { id: "single", name: "One look", type: "character", asset_ids: [41] },
+      { id: "bundle", name: "Two looks", type: "character", asset_ids: [41, 42] },
+    ] as never)
+    renderComposer({ ventureId: 8, libraryAssets: [
+      { id: 41, media_type: "image", name: "Hero front" },
+      { id: 42, media_type: "image", name: "Hero side" },
+    ] })
+    await chooseModel("Model B")
+    fireEvent.click(await screen.findByRole("button", { name: "Start frame" }))
+    expect(await screen.findByRole("button", { name: /One look/ })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: /Two looks/ })).toBeNull()
   })
 
   it("restores durable history and reuses its exact saved recipe", async () => {
     const saved = generation()
     vi.mocked(studioApi.directorGenerations).mockResolvedValue([saved] as never)
     renderComposer()
-    fireEvent.click(await screen.findByRole("button", { name: /Generation history/ }))
     expect(await screen.findByText("Ready")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Regenerate" }))
     await waitFor(() => expect(studioApi.createDirectorGeneration).toHaveBeenCalledWith(7, saved.recipe))
     fireEvent.click(screen.getByRole("button", { name: "Remix" }))
     expect((screen.getByRole("textbox", { name: "Director prompt" }) as HTMLTextAreaElement).value).toBe(saved.recipe.prompt)
+  })
+
+  it("keeps generated outputs represented by their creation instead of duplicate media cards", async () => {
+    const saved = Array.from({ length: 8 }, (_, index) => ({
+      ...generation(`Request ${index + 1}`),
+      id: `job-${index + 1}`,
+      job_id: `job-${index + 1}`,
+      output_asset_ids: [100 + index],
+    }))
+    vi.mocked(studioApi.directorGenerations).mockResolvedValue(saved as never)
+    let hiddenOutputIds = new Set<number>()
+    let primaryCount = 0
+    let hasHistory = false
+    renderComposer({ renderCreations: (outputIds, items, history) => {
+      hiddenOutputIds = outputIds
+      primaryCount = items.length
+      hasHistory = Boolean(history)
+      return <div>Unified creations</div>
+    } })
+    expect(await screen.findByText("Unified creations")).toBeTruthy()
+    await waitFor(() => expect(hiddenOutputIds.size).toBe(8))
+    expect(primaryCount).toBe(6)
+    expect(hasHistory).toBe(true)
   })
 
   it("refreshes canonical outputs and exposes preview and Timeline actions", async () => {
@@ -290,7 +348,6 @@ describe("Director composer", () => {
       onPreviewGenerated, onAddGeneratedToTimeline,
     })
     await waitFor(() => expect(onGenerationOutputReady).toHaveBeenCalledTimes(1))
-    fireEvent.click(await screen.findByRole("button", { name: /Generation history/ }))
     fireEvent.click(screen.getByRole("button", { name: "Preview" }))
     expect(onPreviewGenerated).toHaveBeenCalledWith(asset)
     fireEvent.click(screen.getByRole("button", { name: "Add to Timeline" }))
@@ -353,9 +410,9 @@ describe("Director composer", () => {
     fireEvent.click(await screen.findByRole("menuitem", { name: "Choose from Visual Library" }))
     fireEvent.click((await screen.findByText("Hero front", { selector: ".director-reference-item strong" })).closest("button")!)
 
-    expect(await screen.findByLabelText("Generation references")).toBeTruthy()
+    expect(await screen.findByLabelText("Generation inputs")).toBeTruthy()
     expect(screen.getByText("Hero front", { selector: ".attachment-chip-copy strong" })).toBeTruthy()
-    expect(screen.getByText("Source image")).toBeTruthy()
+    expect(screen.getByText("Source image", { selector: ".attachment-chip-role" })).toBeTruthy()
     expect(screen.getByRole("button", { name: /Creation type: Animate image/ })).toBeTruthy()
     expect(screen.queryByText(/subject/i, { selector: ".attachment-chip-role" })).toBeNull()
 

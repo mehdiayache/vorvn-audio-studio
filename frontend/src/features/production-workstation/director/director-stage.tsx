@@ -14,9 +14,10 @@ import { DirectorPreviewDialog } from "./director-preview-dialog"
 import type { DirectorUploadItem } from "./director-upload-card"
 import "./director-stage.css"
 
-export function DirectorStage({ centerPaneRef, productionId, assets, directorAssetIds, onUpload, onRefresh, onAddToTimeline, onConfirmAction }: {
+export function DirectorStage({ centerPaneRef, productionId, ventureId, assets, directorAssetIds, onUpload, onRefresh, onAddToTimeline, onConfirmAction }: {
   centerPaneRef?: RefObject<HTMLElement | null>
   productionId: number
+  ventureId?: number
   assets: VentureAsset[]
   directorAssetIds: number[]
   onUpload: (file: File) => Promise<VentureAsset>
@@ -90,7 +91,7 @@ export function DirectorStage({ centerPaneRef, productionId, assets, directorAss
       updateUpload(item.id, { status: item.assetId ? "attaching" : "uploading", error: undefined })
       const asset = item.assetId ? null : await onUpload(item.file)
       const assetId = item.assetId || asset?.id
-      if (!assetId) throw new Error("The uploaded visual did not return an Asset ID.")
+      if (!assetId) throw new Error("The uploaded visual did not return a usable media ID.")
       updateUpload(item.id, { status: "attaching", assetId })
       await studioApi.attachDirectorAsset(productionId, assetId)
       await onRefresh()
@@ -182,26 +183,26 @@ export function DirectorStage({ centerPaneRef, productionId, assets, directorAss
       event.target.value = ""
     }} />
     <DirectorComposer
-      productionId={productionId} uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel}
+      productionId={productionId} ventureId={ventureId} uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel}
       libraryAssets={assets} onUploadReference={uploadReference}
       onGenerationOutputReady={onRefresh} onPreviewGenerated={setPreviewAsset}
       onAddGeneratedToTimeline={onAddToTimeline}
+      renderCreations={(generatedOutputIds, generationItems, generationHistory) => <>
+        {error && <div className="director-error" role="alert"><b>Director could not finish that action.</b><span>{error}</span></div>}
+        <DirectorGallery assets={collected.filter(({ id }) => !generatedOutputIds.has(id))} uploads={uploads} creationItems={generationItems} footer={generationHistory} pendingId={pendingId} onPreview={setPreviewAsset} onAddToTimeline={onAddToTimeline ? (asset) => {
+          setPendingId(asset.id)
+          void onAddToTimeline(asset).catch((reason) => setError(reason instanceof Error ? reason.message : "The media could not be added to Timeline.")).finally(() => setPendingId(null))
+        } : undefined} onRemove={(asset) => {
+          const name = asset.name || asset.title || asset.filename || "this visual"
+          if (!onConfirmAction) return
+          onConfirmAction({
+            title: `Remove “${name}” from Director?`,
+            description: "This removes the visual from this Production’s Director workspace. The reusable media file remains available in Visual Library. Timeline placements are not changed.",
+            confirmLabel: "Remove from Director", variant: "default", action: () => remove(asset),
+          })
+        }} onRetryUpload={retryUpload} onDismissUpload={releaseUpload} onUpload={() => inputRef.current?.click()} onOpenLibrary={() => setLibraryOpen(true)} />
+      </>}
     />
-    {error && <div className="director-error" role="alert"><b>Director could not finish that action.</b><span>{error}</span></div>}
-    <DirectorGallery assets={collected} uploads={uploads} pendingId={pendingId} onPreview={setPreviewAsset} onAddToTimeline={onAddToTimeline ? (asset) => {
-      setPendingId(asset.id)
-      void onAddToTimeline(asset).catch((reason) => setError(reason instanceof Error ? reason.message : "The image could not be added to Timeline.")).finally(() => setPendingId(null))
-    } : undefined} onRemove={(asset) => {
-      const name = asset.name || asset.title || asset.filename || "this visual"
-      if (!onConfirmAction) return
-      onConfirmAction({
-        title: `Remove “${name}” from Director?`,
-        description: "This removes the visual from this Production’s Director workspace. The reusable Asset and its media file remain available in Visual Library. Timeline placements are not changed.",
-        confirmLabel: "Remove from Director",
-        variant: "default",
-        action: () => remove(asset),
-      })
-    }} onRetryUpload={retryUpload} onDismissUpload={releaseUpload} onUpload={() => inputRef.current?.click()} onOpenLibrary={() => setLibraryOpen(true)} />
     <DirectorLibraryDialog open={libraryOpen} assets={available} pendingId={pendingId} onOpenChange={setLibraryOpen} onPreview={setPreviewAsset} onAdd={(asset) => void attach(asset)} />
     <DirectorPreviewDialog asset={previewAsset} pending={Boolean(previewAsset && pendingId === previewAsset.id)} onAddToTimeline={onAddToTimeline ? (asset) => {
       setPendingId(asset.id)

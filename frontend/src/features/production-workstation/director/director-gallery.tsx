@@ -1,5 +1,5 @@
 import { Images, LayoutGrid, List } from "lucide-react"
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -8,6 +8,7 @@ import { DirectorUploadCard, type DirectorUploadItem } from "./director-upload-c
 import { VisualAssetCard } from "./visual-asset-card"
 
 export type DirectorGalleryView = "gallery" | "list"
+export type DirectorCreationItem = { id: string; node: ReactNode }
 
 const directorViewStorageKey = "auvi-director-gallery-view"
 
@@ -28,9 +29,11 @@ function galleryColumnCount(width: number) {
   return 5
 }
 
-export function DirectorGallery({ assets, uploads, pendingId, onPreview, onAddToTimeline, onRemove, onRetryUpload, onDismissUpload, onUpload, onOpenLibrary }: {
+export function DirectorGallery({ assets, uploads, creationItems = [], footer, pendingId, onPreview, onAddToTimeline, onRemove, onRetryUpload, onDismissUpload, onUpload, onOpenLibrary }: {
   assets: VentureAsset[]
   uploads: DirectorUploadItem[]
+  creationItems?: DirectorCreationItem[]
+  footer?: ReactNode
   pendingId: number | null
   onPreview: (asset: VentureAsset) => void
   onAddToTimeline?: (asset: VentureAsset) => void
@@ -44,9 +47,10 @@ export function DirectorGallery({ assets, uploads, pendingId, onPreview, onAddTo
   const [columnCount, setColumnCount] = useState(5)
   const galleryRef = useRef<HTMLDivElement>(null)
   const items = useMemo(() => [
+    ...creationItems.map(({ id, node }) => ({ kind: "generation" as const, id, node })),
     ...uploads.map((item) => ({ kind: "upload" as const, item })),
     ...assets.map((asset) => ({ kind: "asset" as const, asset })),
-  ], [assets, uploads])
+  ], [assets, creationItems, uploads])
   const columns = useMemo(() => {
     const next = Array.from({ length: columnCount }, () => [] as (typeof items)[number][])
     const heights = Array.from({ length: columnCount }, () => 0)
@@ -57,6 +61,8 @@ export function DirectorGallery({ assets, uploads, pendingId, onPreview, onAddTo
       column.push(entry)
       if (entry.kind === "upload") {
         heights[target] = (heights[target] ?? 0) + 0.95
+      } else if (entry.kind === "generation") {
+        heights[target] = (heights[target] ?? 0) + 1.35
       } else {
         const mediaRatio = entry.asset.width && entry.asset.height
           ? entry.asset.height / entry.asset.width
@@ -97,9 +103,15 @@ export function DirectorGallery({ assets, uploads, pendingId, onPreview, onAddTo
     <div><Button onClick={onUpload}>Upload visuals</Button><Button variant="outline" onClick={onOpenLibrary}>Open Library</Button></div>
   </section>
 
-  return <section className="director-gallery" aria-labelledby="director-gallery-title">
+  function renderEntry(entry: (typeof items)[number], view: DirectorGalleryView) {
+    if (entry.kind === "generation") return <div className="director-generation-gallery-entry" key={`generation-${entry.id}`}>{entry.node}</div>
+    if (entry.kind === "upload") return <DirectorUploadCard key={entry.item.id} item={entry.item} view={view} onRetry={onRetryUpload} onDismiss={onDismissUpload} />
+    return <VisualAssetCard key={entry.asset.id} asset={entry.asset} view={view} pending={pendingId === entry.asset.id} onPreview={onPreview} onAddToTimeline={onAddToTimeline} onRemove={onRemove} />
+  }
+
+  return <section className="director-gallery" aria-label="Creation gallery">
     <header>
-      <div><h2 id="director-gallery-title">Production visuals</h2><p>{assets.length} collected {assets.length === 1 ? "asset" : "assets"}{uploads.length ? ` · ${uploads.length} in progress` : ""}</p></div>
+      <p>{creationItems.length ? `${creationItems.length} recent ${creationItems.length === 1 ? "request" : "requests"} · ` : ""}{assets.length} ready media item{assets.length === 1 ? "" : "s"}{uploads.length ? ` · ${uploads.length} uploading` : ""}</p>
       <ToggleGroup type="single" variant="outline" size="sm" value={view} onValueChange={changeView} aria-label="Gallery view">
         <ToggleGroupItem value="gallery" aria-label="Gallery view"><LayoutGrid /> Gallery</ToggleGroupItem>
         <ToggleGroupItem value="list" aria-label="List view"><List /> List</ToggleGroupItem>
@@ -113,13 +125,10 @@ export function DirectorGallery({ assets, uploads, pendingId, onPreview, onAddTo
     >
       {view === "gallery"
         ? columns.map((column, index) => <div className="director-gallery-column" key={index}>
-          {column.map((entry) => entry.kind === "upload"
-            ? <DirectorUploadCard key={entry.item.id} item={entry.item} view={view} onRetry={onRetryUpload} onDismiss={onDismissUpload} />
-            : <VisualAssetCard key={entry.asset.id} asset={entry.asset} view={view} pending={pendingId === entry.asset.id} onPreview={onPreview} onAddToTimeline={onAddToTimeline} onRemove={onRemove} />)}
+          {column.map((entry) => renderEntry(entry, view))}
         </div>)
-        : items.map((entry) => entry.kind === "upload"
-          ? <DirectorUploadCard key={entry.item.id} item={entry.item} view={view} onRetry={onRetryUpload} onDismiss={onDismissUpload} />
-          : <VisualAssetCard key={entry.asset.id} asset={entry.asset} view={view} pending={pendingId === entry.asset.id} onPreview={onPreview} onAddToTimeline={onAddToTimeline} onRemove={onRemove} />)}
+        : items.map((entry) => renderEntry(entry, view))}
     </div>
+    {footer}
   </section>
 }

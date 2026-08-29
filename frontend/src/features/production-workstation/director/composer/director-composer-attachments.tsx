@@ -26,22 +26,26 @@ export type DirectorComposerAttachment = {
   }
 }
 
-export function DirectorComposerAttachments({ capability, attachments, missingRoles = [], onAdd, onRemove }: { capability: DirectorOperationCapability; attachments: DirectorComposerAttachment[]; missingRoles?: DirectorAttachmentRole[]; onAdd?: () => void; onRemove: (attachment: DirectorComposerAttachment) => void }) {
-  if (!attachments.length && !missingRoles.length) return null
-  return <div className="director-composer-attachments" aria-label="Generation references">
-    {attachments.map((attachment) => <AttachmentChip
-      key={attachment.id}
-      name={attachment.name}
-      role={attachment.roleLabel || attachmentRoleLabel(capability, attachment.role)}
-      kind={attachment.kind}
-      previewUrl={attachment.previewUrl}
-      posterUrl={attachment.posterUrl}
-      durationLabel={attachment.durationLabel}
-      status={attachment.status}
-      progress={attachment.progress}
-      error={attachment.error}
-      onRemove={() => onRemove(attachment)}
-    />)}
-    {missingRoles.map((role) => <Button key={role} type="button" variant="outline" size="sm" className="director-attachment-slot" onClick={onAdd}><Plus />{attachmentRoleLabel(capability, role)}</Button>)}
+export function DirectorComposerAttachments({ capability, attachments, onAdd, onRemove }: { capability: DirectorOperationCapability; attachments: DirectorComposerAttachment[]; missingRoles?: DirectorAttachmentRole[]; onAdd?: (role: DirectorAttachmentRole) => void; onRemove: (attachment: DirectorComposerAttachment) => void }) {
+  if (!capability.inputs.length && !attachments.length) return null
+  const direct = attachments.filter(({ nested }) => !nested)
+  const nested = attachments.filter(({ nested }) => nested)
+  return <div className="director-reference-slots" aria-label="Generation inputs">
+    {capability.inputs.map((slot) => {
+      const assigned = direct.filter(({ role }) => role === slot.role)
+      return <section className="director-reference-slot" key={slot.role} data-required={slot.required ? "true" : "false"}>
+        <header><span>{slot.label}</span><small>{slot.required ? "Required" : `Optional · up to ${slot.max}`}</small></header>
+        <div>
+          {assigned.map((attachment) => <AttachmentChip
+            key={attachment.id} name={attachment.name} role={attachment.roleLabel || attachmentRoleLabel(capability, attachment.role)}
+            kind={attachment.kind} previewUrl={attachment.previewUrl} posterUrl={attachment.posterUrl}
+            durationLabel={attachment.durationLabel} status={attachment.status} progress={attachment.progress}
+            error={attachment.error} onRemove={() => onRemove(attachment)}
+          />)}
+          {assigned.length < slot.max && <Button type="button" variant="outline" size="sm" className="director-attachment-slot" onClick={() => onAdd?.(slot.role)}><Plus />{assigned.length ? `Add ${slot.label.toLowerCase()}` : slot.label}</Button>}
+        </div>
+      </section>
+    })}
+    {nested.length > 0 && <section className="director-reference-slot"><header><span>Directed subjects</span><small>From model controls</small></header><div>{nested.map((attachment) => <AttachmentChip key={attachment.id} name={attachment.name} role={attachment.roleLabel || attachmentRoleLabel(capability, attachment.role)} kind={attachment.kind} previewUrl={attachment.previewUrl} posterUrl={attachment.posterUrl} onRemove={() => onRemove(attachment)} />)}</div></section>}
   </div>
 }

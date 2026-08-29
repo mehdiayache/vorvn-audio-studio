@@ -439,6 +439,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
         {stage === "director" && <DirectorStage
           centerPaneRef={centerPaneRef}
           productionId={production.id}
+          ventureId={Number(production.trail[0]?.id)}
           assets={assets}
           directorAssetIds={directorAssetIds}
           onRefresh={refreshAssets}

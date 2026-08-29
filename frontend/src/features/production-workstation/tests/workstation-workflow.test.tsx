@@ -181,11 +181,12 @@ describe("Production workflow", () => {
     api.detachDirectorAsset.mockResolvedValue({ asset_id: 88 })
     render(<DirectorStage productionId={7} assets={[asset]} directorAssetIds={[88]} onUpload={vi.fn()} onRefresh={refresh} onConfirmAction={confirm} />)
 
+    await screen.findByRole("textbox", { name: "Director prompt" })
     fireEvent.pointerDown(screen.getByRole("button", { name: "Actions for Harbour dusk" }), { button: 0, ctrlKey: false })
     fireEvent.click(await screen.findByText("Remove from Director…"))
 
     expect(api.detachDirectorAsset).not.toHaveBeenCalled()
-    expect(confirm).toHaveBeenCalledOnce()
+    await waitFor(() => expect(confirm).toHaveBeenCalledOnce())
     const request = confirm.mock.calls[0]?.[0]
     expect(request).toMatchObject({
       title: "Remove “Harbour dusk” from Director?",

@@ -1671,6 +1671,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ventures/{venture_id}/saved-references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Saved References */
+        get: operations["listSavedReferences"];
+        put?: never;
+        /** Create Saved Reference */
+        post: operations["createSavedReference"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ventures/{venture_id}/saved-references/{reference_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Saved Reference */
+        delete: operations["deleteSavedReference"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/voice-history/unlinked": {
         parameters: {
             query?: never;
@@ -5062,6 +5097,45 @@ export interface components {
             id: number;
             /** Rules */
             rules: components["schemas"]["PronunciationRuleResponse"][];
+        };
+        /** SavedReferenceCreate */
+        SavedReferenceCreate: {
+            /** Asset Ids */
+            asset_ids: number[];
+            /** Name */
+            name: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "character" | "object" | "place" | "style" | "other";
+        };
+        /** SavedReferenceEnvelope */
+        SavedReferenceEnvelope: {
+            data: components["schemas"]["SavedReferenceResponse"];
+        };
+        /** SavedReferenceListEnvelope */
+        SavedReferenceListEnvelope: {
+            /** Data */
+            data: components["schemas"]["SavedReferenceResponse"][];
+        };
+        /** SavedReferenceResponse */
+        SavedReferenceResponse: {
+            /** Asset Ids */
+            asset_ids: number[];
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "character" | "object" | "place" | "style" | "other";
+            /** Updated At */
+            updated_at: string;
         };
         /** SequenceMixOverride */
         SequenceMixOverride: {
@@ -10950,6 +11024,102 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ResourceMutationEnvelope"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listSavedReferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                venture_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedReferenceListEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createSavedReference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                venture_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedReferenceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedReferenceEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteSavedReference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                venture_id: number;
+                reference_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

@@ -119,7 +119,7 @@ function subjectName(groups: AssetListGroup[]) {
   return `subject${index}`
 }
 
-/** Add a canonical Asset to the first compatible provider-owned asset list.
+/** Add canonical media to the first compatible provider-owned input list.
  * Top-level input slots remain separate; this handles models such as Kling
  * Omni whose subject references live inside `elements`.
  */
@@ -246,7 +246,7 @@ export function parameterIssue(capability: DirectorOperationCapability, values: 
         }
         if (count > variant.max_assets) return `@${name} accepts at most ${variant.max_assets} ${referenceKind}${variant.max_assets === 1 ? "" : "s"}.`
         for (const assetId of [...(item.asset_ids || []), ...(item.audio_asset_ids || [])]) {
-          if (usedAssets.has(assetId)) return "Use each subject Asset only once."
+          if (usedAssets.has(assetId)) return "Use each subject media item only once."
           usedAssets.add(assetId)
         }
         if (variant.trim) {
@@ -307,7 +307,7 @@ export function generationAttachments(generation: DirectorGeneration, assets: Ve
     const asset = byId.get(input.asset_id)
     return {
       id: `asset-${input.asset_id}-${input.position}`, assetId: input.asset_id,
-      name: asset ? visualAssetName(asset) : `Asset ${input.asset_id}`,
+      name: asset ? visualAssetName(asset) : `Media ${input.asset_id}`,
       kind: input.media_type, role: input.role,
       previewUrl: asset ? assetPreview(asset) : null,
       posterUrl: asset && asset.media_type !== "audio" ? visualAssetPosterUrl(asset) : null,

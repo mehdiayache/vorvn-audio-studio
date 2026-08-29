@@ -129,7 +129,7 @@ describe("VisualSceneSession", () => {
 
     await session.setClipTransform(ref, { position_x: 120, position_y: -50, scale: 1.4, rotation_degrees: -20, flip_vertical: true, opacity: .55 })
     await session.frameClip(ref, "contain")
-    expect(session.currentClip(ref)).toMatchObject({ fit: "contain", position_x: 0, position_y: 0, scale: 1, rotation_degrees: -20, flip_vertical: true, opacity: .55 })
+    expect(session.currentClip(ref)).toMatchObject({ fit: "contain", position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_vertical: true, opacity: .55 })
 
     await session.resetClipTransform(ref)
     expect(session.currentClip(ref)).toMatchObject({ fit: "cover", position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: .55 })

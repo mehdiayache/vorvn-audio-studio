@@ -313,7 +313,7 @@ export class VisualSceneSession {
     const track = document.tracks.find((candidate) => candidate.id === ref.trackId)
     const clip = track?.clips.find((item) => item.id === ref.clipId)
     if (!clip || clip.locked || track?.locked) return
-    Object.assign(clip, { fit, position_x: 0, position_y: 0, scale: 1 })
+    Object.assign(clip, { fit, position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0 })
     await this.commit(document)
   }
   async setClipTransform(ref: VisualClipRef, changes: Pick<Partial<VisualSceneClip>, "position_x" | "position_y" | "scale" | "rotation_degrees" | "flip_horizontal" | "flip_vertical" | "opacity">) {

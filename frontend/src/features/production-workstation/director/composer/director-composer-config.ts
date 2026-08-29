@@ -106,6 +106,14 @@ export type DirectorCapabilityCatalog = {
   models: DirectorModelCapability[]
 }
 
+export type DirectorModelFamily = {
+  id: string
+  label: string
+  provider: string
+  description: string
+  routes: DirectorModelCapability[]
+}
+
 export function normalizeCapabilityCatalog(catalog: DirectorCapabilityCatalog) {
   return {
     ...catalog,
@@ -143,6 +151,25 @@ export function operationLabel(operations: DirectorOperationInfo[], operation: D
 
 export function compatibleModels(models: DirectorModelCapability[], operation: DirectorOperation) {
   return models.filter((model) => model.operations.some((capability) => capability.operation === operation))
+}
+
+export function modelFamilies(models: DirectorModelCapability[]): DirectorModelFamily[] {
+  const grouped = new Map<string, DirectorModelCapability[]>()
+  for (const model of models) {
+    const key = `${model.provider_id}:${model.label}`
+    grouped.set(key, [...(grouped.get(key) || []), model])
+  }
+  return [...grouped.entries()].map(([id, routes]) => ({
+    id, label: routes[0]!.label, provider: routes[0]!.provider,
+    description: routes.map(({ description }) => description).filter(Boolean).join(" · "),
+    routes,
+  }))
+}
+
+export function familyModes(family: DirectorModelFamily) {
+  return family.routes.flatMap((model) => model.operations.map((capability) => ({
+    operation: capability.operation, model, capability,
+  })))
 }
 
 export function directReferenceMediaTypes(capability: DirectorOperationCapability) {

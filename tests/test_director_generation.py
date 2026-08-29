@@ -3,6 +3,7 @@ import unittest
 from uuid import UUID, uuid4
 
 from audio_studio.application.director_generation import DirectorGenerationService
+from audio_studio.domain.director_models import KIE_CONTRACT_EVIDENCE
 from audio_studio.domain.jobs import Job, JobStatus
 
 
@@ -92,6 +93,21 @@ def recipe(
 
 
 class DirectorGenerationTest(unittest.TestCase):
+    def test_every_enabled_kie_manifest_has_exact_contract_evidence(self):
+        catalog = DirectorGenerationService(FakeJobs(), FakeAssets()).capabilities()
+        enabled_kie = {
+            model["provider_model_id"] for model in catalog["models"]
+            if model["provider_id"] == "kie"
+        }
+        self.assertEqual(enabled_kie, set(KIE_CONTRACT_EVIDENCE))
+        for model_id, evidence in KIE_CONTRACT_EVIDENCE.items():
+            self.assertTrue(evidence["schema"].startswith(
+                "https://docs.kie.ai/market/kling/v3-omni-"))
+            self.assertTrue(evidence["schema"].endswith(
+                model_id.rsplit("/", 1)[1]))
+            self.assertEqual(evidence["endpoint"],
+                             "/api/v1/jobs/createTask")
+
     def test_capabilities_are_scoped_to_model_and_operation(self):
         service = DirectorGenerationService(FakeJobs(), FakeAssets())
         catalog = service.capabilities()

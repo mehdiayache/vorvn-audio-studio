@@ -60,8 +60,8 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
     <section className="visual-inspector-transform">
       <header><span><b>Frame</b><small>Place this source inside the Production format.</small></span><OperatorTooltip label="Reset frame" detail="Restores Fill, centered placement, 100% scale, no rotation and no flip. Opacity and audio stay unchanged."><Button variant="ghost" size="sm" disabled={transformDisabled} onClick={() => void session.resetClipTransform(clipRef)}><RotateCcw /> Reset frame</Button></OperatorTooltip></header>
       <div className="visual-frame-actions" role="group" aria-label="Quick framing actions">
-        <OperatorTooltip label="Fit entire source" detail="Centers the complete image or video inside the frame. Empty space may remain."><Button variant="outline" size="sm" disabled={transformDisabled} onClick={() => void session.frameClip(clipRef, "contain")}><Minimize2 /> Fit</Button></OperatorTooltip>
-        <OperatorTooltip label="Fill Production frame" detail="Centers and enlarges the source until the frame is covered. Outer edges may be cropped."><Button variant="outline" size="sm" disabled={transformDisabled} onClick={() => void session.frameClip(clipRef, "cover")}><Maximize /> Fill</Button></OperatorTooltip>
+        <OperatorTooltip label="Fit entire source" detail="Recenters and removes rotation so the complete image or video is visible. Empty space may remain."><Button variant="outline" size="sm" disabled={transformDisabled} onClick={() => void session.frameClip(clipRef, "contain")}><Minimize2 /> Fit</Button></OperatorTooltip>
+        <OperatorTooltip label="Fill Production frame" detail="Recenters and removes rotation, then enlarges the source until the frame is covered. Outer edges may be cropped."><Button variant="outline" size="sm" disabled={transformDisabled} onClick={() => void session.frameClip(clipRef, "cover")}><Maximize /> Fill</Button></OperatorTooltip>
       </div>
       <div className="visual-transform-position">
         <label><span>X</span><Input key={`x-${Math.round(clip.position_x)}`} type="number" defaultValue={Math.round(clip.position_x)} disabled={transformDisabled} onBlur={(event) => void session.setClipTransform(clipRef, { position_x: Number(event.target.value) || 0 })} /></label>
@@ -90,7 +90,7 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
 
     <div className="visual-inspector-lock">
       <Button variant="outline" onClick={() => void session.setClipLocked(clipRef, !clip.locked)}>{clip.locked ? <LockOpen /> : <Lock />}{clip.locked ? "Unlock placement" : "Lock placement"}</Button>
-      <small>{clip.locked ? "Timing and trims are protected." : "Prevent accidental timing and trim changes."}</small>
+      <small>{clip.locked ? "Timing, trims and visual framing are protected." : "Protect timing, trims and visual framing from accidental changes."}</small>
     </div>
   </div>
 }
