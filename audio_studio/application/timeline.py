@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
+from audio_studio.domain.speech import DEFAULT_SPEECH_VOLUME
+
 
 class TimelineRecords(Protocol):
     def production(self, production_id: int) -> dict | None: ...
@@ -147,7 +149,8 @@ class TimelineService:
             "instruction": values.get("instruction") or "",
             "speech_mode": values.get("speech_mode") or "exact",
             "rate": values.get("rate", 1), "pitch": values.get("pitch", 1),
-            "volume": values.get("volume", 50), "seed": values.get("seed", 0),
+            "volume": values.get("volume", DEFAULT_SPEECH_VOLUME),
+            "seed": values.get("seed", 0),
             "enable_ssml": bool(values.get("enable_ssml", False)),
             "filename": "", "path": "", "size_bytes": 0, "duration_ms": 0,
             "chars": len(text), "requests": 0, "cost": 0, "kind": "draft",
@@ -252,7 +255,7 @@ class TimelineService:
                 "instruction": instruction,
                 "rate": 1.0,
                 "pitch": 1.0,
-                "volume": 50,
+                "volume": DEFAULT_SPEECH_VOLUME,
                 "seed": 0,
                 "format": output_format,
                 "duration_ms": 0,

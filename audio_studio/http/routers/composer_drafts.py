@@ -10,6 +10,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from audio_studio.application.composer_drafts import ComposerDraftConflict
+from audio_studio.domain.speech import DEFAULT_SPEECH_VOLUME
 from audio_studio.composition.composer_drafts import composer_draft_service
 from audio_studio.http.errors import ApiProblem
 
@@ -86,7 +87,7 @@ class DeliveryState(BaseModel):
     instruction: str = ""
     rate: float = Field(default=1, ge=.25, le=4)
     pitch: float = Field(default=1, ge=.25, le=4)
-    volume: int = Field(default=50, ge=0, le=100)
+    volume: int = Field(default=DEFAULT_SPEECH_VOLUME, ge=0, le=100)
     seed: int = 0
     enable_ssml: bool = False
 

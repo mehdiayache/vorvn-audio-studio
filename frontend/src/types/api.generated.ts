@@ -2733,7 +2733,7 @@ export interface components {
             seed: number;
             /**
              * Volume
-             * @default 50
+             * @default 100
              */
             volume: number;
         };
@@ -3297,7 +3297,7 @@ export interface components {
             voice_identity_id?: string | null;
             /**
              * Volume
-             * @default 50
+             * @default 100
              */
             volume: number;
         };
@@ -5577,7 +5577,7 @@ export interface components {
             voice_identity_id?: string | null;
             /**
              * Volume
-             * @default 50
+             * @default 100
              */
             volume: number;
         };

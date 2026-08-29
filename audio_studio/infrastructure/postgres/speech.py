@@ -6,6 +6,7 @@ import json
 import hashlib
 from typing import Any
 
+from audio_studio.domain.speech import DEFAULT_SPEECH_VOLUME
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 from audio_studio.infrastructure.postgres.provider_catalogue import (
     ProviderCatalogueRepository,
@@ -132,7 +133,8 @@ class SpeechRepository:
             "speech_mode": delivery.get("speech_mode", draft.get("speech_mode", "exact")),
             "rate": delivery.get("rate", draft.get("rate", 1)),
             "pitch": delivery.get("pitch", draft.get("pitch", 1)),
-            "volume": delivery.get("volume", draft.get("volume", 50)),
+            "volume": delivery.get(
+                "volume", draft.get("volume", DEFAULT_SPEECH_VOLUME)),
             "seed": delivery.get("seed", draft.get("seed", 0)),
             "enable_ssml": bool(delivery.get(
                 "enable_ssml", draft.get("enable_ssml", False))),

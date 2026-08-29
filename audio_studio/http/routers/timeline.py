@@ -8,6 +8,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field
 
 from audio_studio.application.timeline import TimelineConflict, TimelineError
+from audio_studio.domain.speech import DEFAULT_SPEECH_VOLUME
 from audio_studio.composition.timeline import timeline_service
 from audio_studio.http.errors import ApiProblem
 from audio_studio.http.production_import_contracts import ProductionImportBody
@@ -69,7 +70,7 @@ class DraftBody(BaseModel):
     speech_mode: str = "exact"
     rate: float = 1
     pitch: float = 1
-    volume: int = 50
+    volume: int = DEFAULT_SPEECH_VOLUME
     seed: int = 0
     enable_ssml: bool = False
     confirmed: bool = False

@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from uuid import uuid4
 
 from audio_studio.domain.jobs import Job
+from audio_studio.domain.speech import DEFAULT_SPEECH_VOLUME
 from audio_studio.application.text_preparation import MODEL as TEXT_PREPARATION_MODEL
 from audio_studio.application.translation import MODELS as TRANSLATION_MODELS
 from audio_studio.domain.transcription import FUN_MODEL, QWEN_MODEL
@@ -110,7 +111,7 @@ class SpeechJobCreate(BaseModel):
     speech_mode: str = Field(default="exact", min_length=1, max_length=120)
     rate: float = Field(default=1, ge=.5, le=2)
     pitch: float = Field(default=1, ge=.5, le=2)
-    volume: int = Field(default=50, ge=0, le=100)
+    volume: int = Field(default=DEFAULT_SPEECH_VOLUME, ge=0, le=100)
     seed: int = Field(default=0, ge=0, le=2_147_483_647)
     enable_ssml: bool = False
     confirmed: bool = False

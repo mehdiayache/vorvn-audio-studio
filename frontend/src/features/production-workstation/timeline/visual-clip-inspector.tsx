@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch"
 import { visualAssetDetails, visualAssetFacts, visualAssetName, visualAssetPosterUrl, visualAssetUrl } from "@/features/production-workstation/director/director-assets"
 import { dbToGain, formatDb, gainToDb, MAX_GAIN_DB, MIN_GAIN_DB } from "@/features/sound-scene/sound-scene-gain"
 import type { VisualClipRef, VisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
-import type { VentureAsset, VisualSceneClip, VisualSceneTrack } from "@/types/domain"
+import type { VentureAsset, VisualSceneClip, VisualSceneDocument, VisualSceneTrack } from "@/types/domain"
 
 import "./visual-clip-inspector.css"
 
@@ -19,11 +19,12 @@ function milliseconds(value: number) {
   return minutes ? `${minutes}:${remainder.toFixed(1).padStart(4, "0")}` : `${remainder.toFixed(1)}s`
 }
 
-export function VisualClipInspector({ clipRef, track, clip, asset, session, saving, audioSaving = saving, hasEmbeddedAudio = false, audioMuted = false, audioGain = 1, onAudioMutedChange, onAudioGainChange, onAudioGainCommit }: {
+export function VisualClipInspector({ clipRef, track, clip, asset, canvas, session, saving, audioSaving = saving, hasEmbeddedAudio = false, audioMuted = false, audioGain = 1, onAudioMutedChange, onAudioGainChange, onAudioGainCommit }: {
   clipRef: VisualClipRef
   track: VisualSceneTrack
   clip: VisualSceneClip
   asset?: VentureAsset
+  canvas?: VisualSceneDocument["canvas"]
   session: VisualSceneSession
   saving: boolean
   audioSaving?: boolean
@@ -39,6 +40,10 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
   const details = asset ? visualAssetDetails(asset) : { technical: [], library: [] }
   const facts = asset ? visualAssetFacts(asset) : null
   const name = asset ? visualAssetName(asset) : "Missing media"
+  const matchingAspectRatio = Boolean(
+    canvas && asset?.width && asset?.height
+    && Math.abs(asset.width / asset.height - canvas.width / canvas.height) < .001,
+  )
   return <div className="visual-clip-inspector">
     <div className="visual-inspector-identity">
       <span className="visual-inspector-thumb">{asset?.filename ? <img src={asset.media_type === "video" ? visualAssetPosterUrl(asset) : visualAssetUrl(asset)} alt="" /> : asset?.media_type === "video" ? <Film /> : <ImageIcon />}</span>
@@ -63,7 +68,7 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
       </div>
       <TransformSlider label="Scale" value={clip.scale * 100} display={`${Math.round(clip.scale * 100)}%`} minimum={5} maximum={300} disabled={saving || clip.locked || track.locked} onPreview={(value) => session.previewClipTransform(clipRef, { scale: value / 100 })} onBegin={() => session.beginGesture()} onCommit={(value) => { session.beginGesture(); session.previewClipTransform(clipRef, { scale: value / 100 }); void session.commitGesture() }} />
       <TransformSlider label="Opacity" value={clip.opacity * 100} display={`${Math.round(clip.opacity * 100)}%`} minimum={0} maximum={100} disabled={saving || clip.locked || track.locked} onPreview={(value) => session.previewClipTransform(clipRef, { opacity: value / 100 })} onBegin={() => session.beginGesture()} onCommit={(value) => { session.beginGesture(); session.previewClipTransform(clipRef, { opacity: value / 100 }); void session.commitGesture() }} />
-      <div className="visual-transform-fit" role="group" aria-label="Media fit"><span>Fit</span><div><Button variant={clip.fit === "cover" ? "secondary" : "ghost"} size="sm" disabled={saving || clip.locked || track.locked} onClick={() => void session.setClipFit(clipRef, "cover")}>Fill</Button><Button variant={clip.fit === "contain" ? "secondary" : "ghost"} size="sm" disabled={saving || clip.locked || track.locked} onClick={() => void session.setClipFit(clipRef, "contain")}>Fit</Button></div></div>
+      <div className="visual-transform-fit" role="group" aria-label="Media framing"><span><b>Framing</b>{matchingAspectRatio && <small>Same result at this ratio</small>}</span><div><Button variant={clip.fit === "cover" ? "secondary" : "ghost"} size="sm" disabled={saving || clip.locked || track.locked} onClick={() => void session.setClipFit(clipRef, "cover")}>Fill frame</Button><Button variant={clip.fit === "contain" ? "secondary" : "ghost"} size="sm" disabled={saving || clip.locked || track.locked} onClick={() => void session.setClipFit(clipRef, "contain")}>Fit inside</Button></div></div>
       <p>Drag the selected media directly in Viewer to position it.</p>
     </section>
 

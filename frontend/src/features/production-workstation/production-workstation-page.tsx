@@ -373,7 +373,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     onPlay={(source) => void playSource(source)} onChanged={async () => { actions.invalidatePreview(); await refresh() }}
     onDuplicate={(part) => void actions.duplicatePart(part)} onDelete={requestPartDeletion} onEdit={editPart} onOpenCaptions={(part) => setCaptionPartId(part.id)} onReplaceAsset={openAssetReplacement}
   /> : stage === "sound" && visualRef && visualTrack && visualClip ? <VisualClipInspector
-    clipRef={visualRef} track={visualTrack} clip={visualClip} asset={visualAsset} session={visualSession} saving={visualState.saving} audioSaving={soundState.saving}
+    clipRef={visualRef} track={visualTrack} clip={visualClip} asset={visualAsset} canvas={visualState.document.canvas} session={visualSession} saving={visualState.saving} audioSaving={soundState.saving}
     hasEmbeddedAudio={videoHasEmbeddedAudio(visualAsset)} audioMuted={linkedVideoAudio?.clip.muted} audioGain={linkedVideoAudio?.clip.gain}
     onAudioMutedChange={linkedVideoAudio ? (muted) => soundSession.commitClipChanges(linkedVideoAudio.trackId, linkedVideoAudio.clip.id, { muted }) : undefined}
     onAudioGainChange={linkedVideoAudio ? (gain) => soundSession.updateClip(linkedVideoAudio.trackId, linkedVideoAudio.clip.id, { gain }) : undefined}

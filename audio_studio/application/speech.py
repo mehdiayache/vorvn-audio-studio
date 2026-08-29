@@ -9,6 +9,7 @@ from urllib.parse import quote
 from audio_studio.domain import captions
 from audio_studio.domain.jobs import Job, JobFailed
 from audio_studio.domain.speech import (
+    DEFAULT_SPEECH_VOLUME,
     PreparedSpeech,
     SpeechSynthesisError,
     StoredAudio,
@@ -64,7 +65,8 @@ def _defaults(values: dict) -> dict:
         "catalogue_voice_id": None, "capability_id": None,
         "engine": "audio", "model": "plus",
         "format": "mp3", "language": "Auto", "instruction": "",
-        "speech_mode": "exact", "rate": 1, "pitch": 1, "volume": 50,
+        "speech_mode": "exact", "rate": 1, "pitch": 1,
+        "volume": DEFAULT_SPEECH_VOLUME,
         "seed": 0, "enable_ssml": False, **values,
     }
 

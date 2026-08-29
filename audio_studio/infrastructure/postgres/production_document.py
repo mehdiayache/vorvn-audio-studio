@@ -11,6 +11,7 @@ from hashlib import sha256
 import json
 from typing import Any
 
+from audio_studio.domain.speech import DEFAULT_SPEECH_VOLUME
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 from audio_studio.infrastructure.postgres.part_positions import (
     release_archived_positions,
@@ -120,7 +121,7 @@ class ProductionDocumentRepository:
             "speech_mode": snapshot.get("speech_mode") or "exact",
             "rate": _float(snapshot.get("rate"), 1),
             "pitch": _float(snapshot.get("pitch"), 1),
-            "volume": int(snapshot.get("volume") or 50),
+            "volume": _int(snapshot.get("volume"), DEFAULT_SPEECH_VOLUME),
             "seed": int(snapshot.get("seed") or 0),
             "production_id": row[22],
         }
@@ -358,7 +359,7 @@ class ProductionDocumentRepository:
                 "speech_mode": delivery.get("speech_mode", snapshot.get("speech_mode", draft.get("speech_mode", job_payload.get("speech_mode", "exact")))),
                 "rate": _float(delivery.get("rate", snapshot.get("rate", draft.get("rate", job_payload.get("rate")))), 1),
                 "pitch": _float(delivery.get("pitch", snapshot.get("pitch", draft.get("pitch", job_payload.get("pitch")))), 1),
-                "volume": _int(delivery.get("volume", snapshot.get("volume", draft.get("volume", job_payload.get("volume")))), 50),
+                "volume": _int(delivery.get("volume", snapshot.get("volume", draft.get("volume", job_payload.get("volume")))), DEFAULT_SPEECH_VOLUME),
                 "seed": _int(delivery.get("seed", snapshot.get("seed", draft.get("seed", job_payload.get("seed")))), 0),
                 "enable_ssml": bool(delivery.get("enable_ssml", snapshot.get(
                     "enable_ssml", draft.get("enable_ssml", job_payload.get(

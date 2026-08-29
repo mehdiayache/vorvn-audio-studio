@@ -4,8 +4,8 @@ import type { VoiceChoice } from "@/lib/voice-options"
 export type TextState = "raw" | "shaped" | "tagged"
 export type SpokenProfile = "spoken_1" | "spoken_2"
 
-/** Alibaba's neutral provider level. Keep this named instead of scattering a magic 50. */
-export const DEFAULT_RECORDING_VOLUME = 50
+/** New recordings start at full provider volume; saved recordings stay explicit. */
+export const DEFAULT_RECORDING_VOLUME = 100
 
 export type CompositionContext =
   | { kind: "standalone" }

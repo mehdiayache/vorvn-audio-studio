@@ -152,7 +152,7 @@ class ProductionImportTests(unittest.TestCase):
             self.assertEqual(draft["instruction"], source["instruction"])
             self.assertEqual(draft["rate"], 1)
             self.assertEqual(draft["pitch"], 1)
-            self.assertEqual(draft["volume"], 50)
+            self.assertEqual(draft["volume"], 100)
             self.assertEqual(draft["seed"], 0)
             self.assertEqual(draft["format"], "mp3")
             self.assertIsNone(draft["binding_id"])
@@ -210,7 +210,7 @@ class ProductionImportTests(unittest.TestCase):
             self.assertEqual(part["instruction"], "")
             self.assertEqual(part["rate"], 1)
             self.assertEqual(part["pitch"], 1)
-            self.assertEqual(part["volume"], 50)
+            self.assertEqual(part["volume"], 100)
             self.assertEqual(part["seed"], 0)
             self.assertEqual(part["format"], "mp3")
             self.assertEqual(part["voice_identity_id"],

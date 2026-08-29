@@ -58,8 +58,9 @@ describe("shared Composer contract", () => {
     render(<ComposerSurface {...common} presentation="inline" productionId={3} part={part} />)
     const editor = await screen.findByRole("textbox", { name: "Original script" }) as HTMLTextAreaElement
     expect(editor.value).toHaveLength(20_000)
-    expect(screen.getAllByText("Performance").length).toBeGreaterThan(0)
-    expect(screen.getAllByText("Output").length).toBeGreaterThan(0)
+    expect(screen.getByLabelText("Performance and output settings")).toBeTruthy()
+    expect(screen.getByText("Shape the delivery")).toBeTruthy()
+    expect(screen.getByText("File settings")).toBeTruthy()
     expect(screen.getByRole("button", { name: /Generate Part/ }).closest("footer")?.classList.contains("composer-footer")).toBe(true)
   })
 
@@ -87,6 +88,7 @@ describe("shared Composer contract", () => {
     expect(screen.getByRole("button", { name: "Add tags" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Choose Spoken preparation method" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Choose tag density" })).toBeTruthy()
+    expect(screen.getByRole("slider", { name: "Recording volume" }).getAttribute("aria-valuenow")).toBe("100")
   })
 
   it("restores the current equivalent binding after the same voice is re-enrolled", async () => {

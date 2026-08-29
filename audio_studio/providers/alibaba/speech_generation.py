@@ -14,6 +14,7 @@ from audio_studio.domain.provider_pricing import (
 )
 
 from audio_studio.domain.speech import (
+    DEFAULT_SPEECH_VOLUME,
     PreparedSpeech,
     SpeechSynthesisError,
     SynthesizedSpeech,
@@ -105,7 +106,7 @@ class _Options:
         self.speech_mode = str(values.get("speech_mode") or "exact")
         self.rate = float(values.get("rate", 1))
         self.pitch = float(values.get("pitch", 1))
-        self.volume = int(values.get("volume", 50))
+        self.volume = int(values.get("volume", DEFAULT_SPEECH_VOLUME))
         self.seed = int(values.get("seed") or 0)
         defaults = preferences.get("synth_flags") or {}
         for flag in speech_text.SYNTH_FLAGS:

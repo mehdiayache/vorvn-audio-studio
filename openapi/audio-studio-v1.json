@@ -2126,7 +2126,7 @@
             "type": "integer"
           },
           "volume": {
-            "default": 50,
+            "default": 100,
             "maximum": 100.0,
             "minimum": 0.0,
             "title": "Volume",
@@ -3622,7 +3622,7 @@
             "title": "Voice Identity Id"
           },
           "volume": {
-            "default": 50,
+            "default": 100,
             "title": "Volume",
             "type": "integer"
           }
@@ -10133,7 +10133,7 @@
             "title": "Voice Identity Id"
           },
           "volume": {
-            "default": 50,
+            "default": 100,
             "maximum": 100.0,
             "minimum": 0.0,
             "title": "Volume",

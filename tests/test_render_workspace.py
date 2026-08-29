@@ -108,6 +108,67 @@ class RenderWorkspaceTests(unittest.TestCase):
         self.assertLess(transformed[0], 180)
         self.assertLess(max(transformed[1:]), 35)
 
+    @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"),
+                         "FFmpeg is required for MP4 acceptance.")
+    def test_portrait_fit_and_fill_have_distinct_export_geometry(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            portrait = root / "portrait.png"
+            audio = root / "master.wav"
+            subprocess.run([
+                "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                "-f", "lavfi", "-i", "color=c=red:s=180x360:d=1",
+                "-frames:v", "1", str(portrait),
+            ], check=True)
+            subprocess.run([
+                "ffmpeg", "-y", "-nostdin", "-loglevel", "error",
+                "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo",
+                "-t", "1", str(audio),
+            ], check=True)
+
+            def render(fit: str) -> Path:
+                target = root / f"{fit}.mp4"
+                scene = {
+                    "document": {
+                        "canvas": {"width": 640, "height": 360},
+                        "tracks": [{
+                            "id": "portrait", "media_type": "image",
+                            "visible": True, "clips": [{
+                                "asset_id": 1, "start_ms": 0,
+                                "duration_ms": 1000, "source_offset_ms": 0,
+                                "fit": fit, "position_x": 0,
+                                "position_y": 0, "scale": 1,
+                                "opacity": 1,
+                            }],
+                        }],
+                    },
+                    "sources": {
+                        "1": {"media_type": "image",
+                              "filename": portrait.name},
+                    },
+                }
+                with patch.object(render_workspace, "_output", return_value=root):
+                    render_workspace._render_visual_scene(
+                        scene, audio, target, duration_ms=1000)
+                return target
+
+            def pixel(path: Path, x: int, y: int) -> tuple[int, int, int]:
+                result = subprocess.run([
+                    "ffmpeg", "-v", "error", "-ss", "0.1", "-i", str(path),
+                    "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "-",
+                ], capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stderr.decode())
+                sampled = result.stdout
+                offset = ((y * 640) + x) * 3
+                return tuple(sampled[offset:offset + 3])
+
+            contained_edge = pixel(render("contain"), 20, 178)
+            covered_edge = pixel(render("cover"), 20, 178)
+
+        self.assertLess(max(contained_edge), 30)
+        self.assertGreater(covered_edge[0], 180)
+        self.assertLess(max(covered_edge[1:]), 40)
+
     def test_mix_builds_every_supported_primitive_and_master_safety(self):
         commands: list[list[str]] = []
 

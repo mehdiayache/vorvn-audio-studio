@@ -5,6 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
+# New speech starts at the full provider level. Persisted recordings continue
+# to carry the explicit level they were made with.
+DEFAULT_SPEECH_VOLUME = 100
+
+
 @dataclass(frozen=True, slots=True)
 class PreparedSpeech:
     original_text: str

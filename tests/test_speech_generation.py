@@ -461,6 +461,7 @@ class SpeechGenerationTests(unittest.TestCase):
             text="Hello", voice_identity_id=None,
             catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry")
         self.assertIn("voice_identity_id", cleared.model_dump(exclude_unset=True))
+        self.assertEqual(cleared.volume, 100)
         SpeechJobCreate(
             text="Hello",
             catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",

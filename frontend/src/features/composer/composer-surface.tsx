@@ -1,7 +1,6 @@
 import { Expand, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { OperatorIconButton } from "@/components/operator-action"
 import { cn } from "@/lib/utils"
 import { ComposerActions } from "./composer-actions"
@@ -54,16 +53,13 @@ export function ControlledComposerSurface({ composer, presentation = "mega", onE
         </div>
       </div> : <div className="composer-stage">
         <ComposerRecordingContext presentation={presentation} />
-        <Tabs defaultValue="script" className="composer-stage-tabs">
-          <TabsList variant="line" aria-label="Part editor sections">
-            <TabsTrigger value="script">Script</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
-            <TabsTrigger value="output">Output</TabsTrigger>
-          </TabsList>
-          <TabsContent value="script" className="composer-stage-panel"><ComposerWords /></TabsContent>
-          <TabsContent value="performance" className="composer-stage-panel composer-stage-settings"><ComposerPerformance /></TabsContent>
-          <TabsContent value="output" className="composer-stage-panel composer-stage-settings"><ComposerOutput /></TabsContent>
-        </Tabs>
+        <div className="composer-stage-flow">
+          <div className="composer-stage-script"><ComposerWords /></div>
+          <div className="composer-stage-settings-grid" aria-label="Performance and output settings">
+            <ComposerPerformance />
+            <ComposerOutput />
+          </div>
+        </div>
       </div>}
       <ComposerActions />
       <ComposerDialogs />

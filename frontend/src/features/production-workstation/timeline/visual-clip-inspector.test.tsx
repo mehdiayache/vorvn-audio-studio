@@ -23,12 +23,15 @@ describe("VisualClipInspector", () => {
     const setClipLocked = vi.fn()
     const session = { setClipLocked } as unknown as VisualSceneSession
 
-    render(<VisualClipInspector clipRef={{ trackId: "track", clipId: "clip" }} track={track} clip={clip} asset={asset} session={session} saving={false} />)
+    render(<VisualClipInspector clipRef={{ trackId: "track", clipId: "clip" }} track={track} clip={clip} asset={asset} canvas={{ width: 1920, height: 1080 }} session={session} saving={false} />)
 
     expect(screen.getByText("Evening shore")).toBeTruthy()
     expect(screen.getByText("AAC · Stereo · 48 kHz")).toBeTruthy()
     expect(screen.getByText("8.5s")).toBeTruthy()
     expect(screen.queryByText("Fill and crop")).toBeNull()
+    expect(screen.getByText("Same result at this ratio")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Fill frame" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Fit inside" })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Lock placement" }))
     expect(setClipLocked).toHaveBeenCalledWith({ trackId: "track", clipId: "clip" }, true)
   })

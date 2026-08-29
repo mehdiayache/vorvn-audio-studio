@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from audio_studio.composition.voices import voice_service
 from audio_studio.composition.jobs import job_service
 from audio_studio.composition.catalog import catalog_service
+from audio_studio.domain.speech import DEFAULT_SPEECH_VOLUME
 from audio_studio.http.errors import ApiProblem
 from audio_studio.http.voice_contracts import (
     HistoricalVoiceCollectionEnvelope,
@@ -187,7 +188,7 @@ def create_voice_preview(identity_id: str, payload: VoicePreviewCreate) -> dict:
         "seed": payload.seed,
         "format": "mp3",
         "speech_mode": "performance" if payload.tag else "exact",
-        "rate": 1, "pitch": 1, "volume": 50,
+        "rate": 1, "pitch": 1, "volume": DEFAULT_SPEECH_VOLUME,
         "_voice_preview": True,
     }
     try:
