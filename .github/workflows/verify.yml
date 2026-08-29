@@ -1,4 +1,4 @@
-name: verify
+name: Verify
 
 on:
   push:
@@ -9,7 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  application:
+  backend-tests:
+    name: Backend Tests
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -18,27 +19,99 @@ jobs:
           POSTGRES_DB: voicestudio
           POSTGRES_USER: voicestudio
           POSTGRES_PASSWORD: voicestudio
-        ports: ["5432:5432"]
+        ports:
+          - 5432:5432
         options: >-
           --health-cmd "pg_isready -U voicestudio -d voicestudio"
-          --health-interval 5s --health-timeout 3s --health-retries 10
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     env:
       DATABASE_URL: postgresql://voicestudio:voicestudio@127.0.0.1:5432/voicestudio
+      PYTHONUNBUFFERED: "1"
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
           cache: pip
-      - uses: pnpm/action-setup@v4.4.0
-      - uses: actions/setup-node@v6
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install backend dependencies
+        run: python -m venv .venv && .venv/bin/pip install -r requirements.txt
+      - name: Run database migrations
+        run: .venv/bin/python -m audio_studio.migrations
+      - name: Run full backend test suite
+        run: .venv/bin/python -m unittest discover -s tests
+      - name: Check domain boundaries
+        run: .venv/bin/python -m scripts.check_domain
+
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4.4.0
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: pnpm
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
-      - run: python -m venv .venv && .venv/bin/pip install -r requirements.txt
-      - run: pnpm install --frozen-lockfile
-      - run: .venv/bin/python -m audio_studio.migrations
-      - run: pnpm check
-      - run: .venv/bin/python -m unittest discover -s tests
-      - run: .venv/bin/python -m scripts.check_domain
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run full frontend test suite
+        run: pnpm test:web
+
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4.4.0
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run TypeScript check and Vite production build
+        run: pnpm build:web
+
+  contract-checks:
+    name: Contract Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4.4.0
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+      - name: Install backend dependencies
+        run: python -m venv .venv && .venv/bin/pip install -r requirements.txt
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check typography contract
+        run: pnpm check:typography
+      - name: Regenerate OpenAPI and generated TypeScript
+        run: pnpm generate:api
+      - name: Fail when generated contracts are stale
+        run: >-
+          git diff --exit-code --
+          openapi/audio-studio-v1.json
+          frontend/src/types/api.generated.ts
