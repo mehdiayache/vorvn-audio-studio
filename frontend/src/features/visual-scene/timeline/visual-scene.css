@@ -8,7 +8,7 @@
 .visual-track-control.is-hidden { background: var(--surface-subtle); }.visual-track-control.is-hidden > :not(.visual-track-actions) { opacity: .48; }
 .visual-track-control .sound-track-icon.is-visual { color: var(--primary); background: var(--primary-soft); }
 .visual-track-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; align-items: center; gap: .03rem; }.visual-track-actions svg { width: .7rem; }
-.visual-track-add { height: 1.4rem; padding-inline: .3rem; font-size: .625rem; }
+.visual-track-add { width: 1.4rem; height: 1.4rem; padding: 0; }
 .visual-track-name-input { height: 1.4rem; padding-inline: .32rem; font-size: .625rem; }
 .visual-track-control.is-compact { grid-template-columns: 1fr; grid-template-rows: 1.2rem minmax(0, 1fr); justify-items: center; padding: .12rem .2rem; }.visual-track-control.is-compact .visual-track-actions { display: grid; grid-template-columns: repeat(2, 1.2rem); gap: .04rem; }.visual-track-control.is-compact .visual-track-actions > button { width: 1.2rem; height: 1.2rem; min-height: 0; padding: 0; }
 .visual-scene-lane.is-hidden::before { background: var(--surface-subtle); }.visual-scene-lane.is-hidden .visual-timeline-clip { filter: grayscale(.8); opacity: .35; }
@@ -30,5 +30,5 @@
 .visual-trim-handle.is-start { left: 0; }.visual-trim-handle.is-start::after { left: .16rem; }.visual-trim-handle.is-end { right: 0; }.visual-trim-handle.is-end::after { right: .16rem; }
 .visual-context-toolbar { min-width: 0; display: flex; flex: 1; align-items: center; gap: .2rem; padding: .3rem .5rem; }
 .visual-context-toolbar > span { min-width: 9rem; display: flex; align-items: center; gap: .35rem; margin-right: auto; }.visual-context-toolbar > span svg { width: .75rem; color: var(--primary); }.visual-context-toolbar > span b { max-width: 16rem; overflow: hidden; font-size: var(--type-workstation-secondary); text-overflow: ellipsis; white-space: nowrap; }.visual-context-toolbar > span small { color: var(--muted-foreground); font: var(--weight-regular) var(--type-workstation-data)/1 var(--font-mono); font-variant-numeric: tabular-nums; }
-.visual-context-toolbar [data-slot="button"] { font-size: .64rem; }.visual-context-toolbar [data-slot="button"] svg { width: .72rem; }.visual-context-toolbar [data-slot="button"].danger { color: var(--destructive); }
+.visual-context-toolbar [data-slot="button"] { width: 2rem; height: 2rem; padding: 0; }.visual-context-toolbar [data-slot="button"] svg { width: .78rem; }.visual-context-toolbar [data-slot="button"].danger { color: var(--destructive); }
 @media (max-height: 760px) { .visual-scene-monitor-frame { width: min(18rem, 34vw); } }

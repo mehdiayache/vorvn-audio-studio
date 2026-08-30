@@ -36,6 +36,8 @@ describe("SoundSceneContextToolbar", () => {
     />)
     expect(container.querySelector(".sound-scene-context")).toBeTruthy()
     expect(screen.getByText("Night bed")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Mute audio clip" }).textContent).toBe("")
+    expect(screen.getByRole("button", { name: "Duplicate selected clips" }).textContent).toBe("")
   })
 
   it("creates a bounded Telephone descriptor from the contextual Effects control", () => {

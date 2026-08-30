@@ -55,8 +55,10 @@ describe("visual Timeline controls", () => {
     const onAudioMute = vi.fn()
     render(<VisualContextToolbar track={track} clip={{ ...clip, asset_id: 92 }} asset={video} saving={false} canSplit={false} hasAudio audioMuted={false} onAudioMute={onAudioMute} onSplit={vi.fn()} onLock={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Mute" }))
+    fireEvent.click(screen.getByRole("button", { name: "Mute video audio" }))
     expect(onAudioMute).toHaveBeenCalledOnce()
+    expect(screen.getByRole("button", { name: "Mute video audio" }).textContent).toBe("")
+    expect(screen.getByRole("button", { name: "Duplicate media placement" }).textContent).toBe("")
   })
 
   it("keeps audio truth visible when a video has no audio stream", () => {

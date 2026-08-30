@@ -160,8 +160,9 @@ describe("Production Workstation", () => {
     expect(screen.getByText("Quiet room")).toBeTruthy()
     expect(screen.getByText("2 audio · 1 pause")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Pause Part 02 · 1.5 seconds" }).className).toContain("sound-sequence-silence")
-    expect(screen.getByRole("button", { name: "Undo audio edit" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Redo audio edit" })).toBeTruthy()
+    expect(screen.queryByText(/image tracks?.*video tracks?.*audio tracks?/)).toBeNull()
+    expect(screen.getByRole("button", { name: "Undo audio edit" }).textContent).toBe("")
+    expect(screen.getByRole("button", { name: "Redo audio edit" }).textContent).toBe("")
   })
 
   it("opens the new Audio Track flow without altering an existing track first", () => {
@@ -187,6 +188,7 @@ describe("Production Workstation", () => {
 
     expect(screen.queryByLabelText("Production viewer")).toBeNull()
     expect(screen.getByRole("button", { name: "Add image to Image track" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Add image to Image track" }).textContent).toBe("")
     unmount()
 
     const placedVisual: VisualScene = { ...emptyVisual, document: { ...emptyVisual.document, tracks: [{ ...emptyVisual.document.tracks[0]!, clips: [{ id: "placement", asset_id: 91, start_ms: 0, duration_ms: 5_000, source_offset_ms: 0, fit: "cover", position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1, locked: false }] }] } }

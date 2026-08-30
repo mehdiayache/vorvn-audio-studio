@@ -71,8 +71,6 @@ export function TimelineWorkspace({ session, visual, onAddAudio, onRemoveClip, o
     redoVisual: visual ? () => visual.session.redo() : undefined,
   })
   const hasVisualPlacements = visualTracks.some((track) => track.clips.length > 0)
-  const imageTrackCount = visualTracks.filter((track) => track.media_type === "image").length
-  const videoTrackCount = visualTracks.filter((track) => track.media_type === "video").length
   const pauseCount = scene.resolved.sequence_projection.spans.filter((span) => span.silence).length
   const audioCount = scene.resolved.sequence_projection.spans.length - pauseCount
   const sequenceSummary = `${audioCount} audio · ${pauseCount} pause${pauseCount === 1 ? "" : "s"}`
@@ -145,7 +143,6 @@ export function TimelineWorkspace({ session, visual, onAddAudio, onRemoveClip, o
 
   return <section className={cn("timeline-workspace", hasVisualPlacements && "has-visual-monitor", viewport.viewerCollapsed && "viewer-collapsed", tracksCollapsed && "tracks-collapsed", viewport.panning && "is-panning")}>
     <TimelineToolbar
-      summary={`${imageTrackCount} image track${imageTrackCount === 1 ? "" : "s"} · ${videoTrackCount} video track${videoTrackCount === 1 ? "" : "s"} · ${tracks.length} audio track${tracks.length === 1 ? "" : "s"} · ${formatDuration(total)}`}
       canUndo={history.canUndo}
       canRedo={history.canRedo}
       undoDomain={history.undoDomain}
