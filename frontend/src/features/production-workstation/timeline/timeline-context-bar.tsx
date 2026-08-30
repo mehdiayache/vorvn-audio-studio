@@ -47,12 +47,13 @@ export function TimelineContextBar({ audioSession, visualSession, selectedAudioR
       canSplit={selectedVisualRefs.length === 1 && canSplitVisual}
       hasAudio={selectedVisualRefs.length === 1 && videoHasEmbeddedAudio(selectedVisualAsset)}
       audioMuted={selectedVideoAudio ? selectedVideoAudio.clip.muted || selectedVideoAudio.clip.gain <= 0 : undefined}
+      selectionLocked={selectedVisualRefs.every((ref) => visualSession.currentClip(ref)?.locked)}
       onAudioMute={selectedVisualRefs.length === 1 && selectedVideoAudio ? () => {
         const muted = selectedVideoAudio.clip.muted || selectedVideoAudio.clip.gain <= 0
         void audioSession.commitClipChanges(selectedVideoAudio.trackId, selectedVideoAudio.clip.id, { muted: !muted, ...(!muted || selectedVideoAudio.clip.gain > 0 ? {} : { gain: 1 }) })
       } : undefined}
       onSplit={() => void visualSession.splitVideo(selectedVisualRef, playhead * 1000, selectedVisualAsset)}
-      onLock={() => void visualSession.setClipsLocked(selectedVisualRefs, !selectedVisualRefs.every((ref) => visualSession.currentClip(ref)?.locked))}
+      onLock={selectedVisualRefs.length > 1 ? () => void visualSession.setClipsLocked(selectedVisualRefs, !selectedVisualRefs.every((ref) => visualSession.currentClip(ref)?.locked)) : undefined}
       onDuplicate={() => void visualSession.duplicateClips(selectedVisualRefs)}
       onDelete={onRemoveVisual}
     /> : context ? <SoundSceneContextToolbar

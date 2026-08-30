@@ -62,7 +62,7 @@ export function VisualTrackControl({ track, assets, collapsed, first, last, onVi
     <div className="visual-track-actions">
       <OperatorIconButton label={`Add ${displayName.toLowerCase()} to ${displayName} track`} detail="Choose a compatible Director Asset and place it in this exact track at the playhead." className="visual-track-add" onClick={onAdd}><Plus /></OperatorIconButton>
       <OperatorIconButton label={track.visible ? `Hide ${displayName}` : `Show ${displayName}`} detail="Controls the monitor without deleting media placements." onClick={onVisible}>{track.visible ? <Eye /> : <EyeOff />}</OperatorIconButton>
-      {!collapsed && <OperatorIconButton label={track.locked ? `Unlock ${displayName}` : `Lock ${displayName}`} detail="Prevents accidental movement and trimming on this track." onClick={onLocked}>{track.locked ? <Lock /> : <Unlock />}</OperatorIconButton>}
+      {!collapsed && <OperatorIconButton label={track.locked ? `Unlock ${displayName}` : `Lock ${displayName}`} detail="Prevents accidental movement and trimming on this track." onClick={onLocked}>{track.locked ? <Unlock /> : <Lock />}</OperatorIconButton>}
       <DropdownMenu>
         <OperatorTooltip label={`More actions for ${displayName}`}><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Actions for ${displayName}`}><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip>
         <DropdownMenuContent side="right" align="center">
@@ -92,13 +92,12 @@ export function VisualTimelineClip({ clip, asset, selected, trackLocked, style, 
   const thumbnailUrl = asset ? (isVideo ? visualAssetPosterUrl(asset) : visualAssetUrl(asset)) : ""
   return <div className={cn("visual-timeline-clip", isVideo ? "is-video" : "is-image", selected && "is-selected", locked && "is-locked", !asset && "is-missing")} style={style} role="button" tabIndex={0} aria-label={`${name} media clip`} onPointerDown={(event) => onGesture(event, "move")} onClick={onSelect} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(event) } }}>
     {asset ? <figure className="visual-timeline-thumbnail" style={isVideo ? undefined : { backgroundImage: `url(${JSON.stringify(thumbnailUrl)})` }}><img src={thumbnailUrl} alt="" draggable={false} /></figure> : <ImageIcon />}
-    <span>{isVideo && <Film />}<b>{name}</b></span>
-    {locked && <i><Lock /></i>}
+    <span>{isVideo && <Film />}<b>{name}</b>{locked && <i className="visual-clip-lock-status" aria-label="Locked placement"><Lock aria-hidden="true" /></i>}</span>
     {selected && !locked && <><button className="visual-trim-handle is-start" aria-label="Resize media start" onPointerDown={(event) => onGesture(event, "start")} /><button className="visual-trim-handle is-end" aria-label="Resize media end" onPointerDown={(event) => onGesture(event, "end")} /></>}
   </div>
 }
 
-export function VisualContextToolbar({ count = 1, track, clip, asset, saving, canSplit, hasAudio = false, audioMuted, onAudioMute, onSplit, onLock, onDuplicate, onDelete }: {
+export function VisualContextToolbar({ count = 1, track, clip, asset, saving, canSplit, hasAudio = false, audioMuted, selectionLocked = clip.locked, onAudioMute, onSplit, onLock, onDuplicate, onDelete }: {
   count?: number
   track: VisualSceneTrack
   clip: VisualSceneClip
@@ -107,20 +106,21 @@ export function VisualContextToolbar({ count = 1, track, clip, asset, saving, ca
   canSplit: boolean
   hasAudio?: boolean
   audioMuted?: boolean
+  selectionLocked?: boolean
   onAudioMute?: () => void
   onSplit: () => void
-  onLock: () => void
+  onLock?: () => void
   onDuplicate: () => void
   onDelete: () => void
 }) {
   return <div className="visual-context-toolbar">
-    <span>{asset?.media_type === "video" ? <Film /> : <ImageIcon />}<b>{count > 1 ? `${count} media clips` : asset ? visualAssetName(asset) : "Missing media"}</b>{count === 1 && <small>{asset?.media_type === "video" ? `Source ${(clip.source_offset_ms / 1000).toFixed(1)}s · ` : ""}{(clip.start_ms / 1000).toFixed(1)}s · {(clip.duration_ms / 1000).toFixed(1)}s</small>}</span>
-    {count === 1 && asset?.media_type === "video" && <OperatorIconButton label="Split video at playhead" detail={canSplit ? "Creates two non-destructive placements using the same source Asset." : "Place the playhead inside this video, at least 0.1 seconds from either edge."} disabled={saving || !canSplit} onClick={onSplit}><Scissors /></OperatorIconButton>}
-    {count === 1 && asset?.media_type === "video" && (hasAudio && onAudioMute
-      ? <OperatorIconButton label={audioMuted ? "Unmute video audio" : "Mute video audio"} detail="Changes only this video's sound; picture timing stays unchanged." disabled={saving} onClick={onAudioMute}>{audioMuted ? <VolumeX /> : <Volume2 />}</OperatorIconButton>
-      : <OperatorIconButton label="No audio" detail="This video source has no audio stream." disabled><VolumeX /></OperatorIconButton>)}
-    <OperatorIconButton label={clip.locked ? "Unlock media clip" : "Lock media clip"} detail={track.locked ? "Unlock the track before changing this placement." : undefined} disabled={saving || track.locked} onClick={onLock}>{clip.locked ? <Unlock /> : <Lock />}</OperatorIconButton>
-    <OperatorIconButton label="Duplicate media placement" detail="Creates another Timeline placement using the same Director Asset." disabled={saving} onClick={onDuplicate}><Copy /></OperatorIconButton>
-    <OperatorIconButton label="Remove media placement" detail="The Director Asset remains available." className="danger" disabled={saving || clip.locked || track.locked} onClick={onDelete}><Trash2 /></OperatorIconButton>
+    <span className="visual-context-identity">{asset?.media_type === "video" ? <Film /> : <ImageIcon />}<b>{count > 1 ? `${count} media clips` : asset ? visualAssetName(asset) : "Missing media"}</b><small>{count > 1 ? "Media selection" : asset?.media_type === "video" ? "Video clip" : "Image clip"}</small></span>
+    <div className="visual-context-actions">
+      {count === 1 && asset?.media_type === "video" && <OperatorIconButton label="Split video at playhead" detail={canSplit ? "Creates two non-destructive placements using the same source Asset." : "Place the playhead inside this video, at least 0.1 seconds from either edge."} disabled={saving || !canSplit || selectionLocked || track.locked} onClick={onSplit}><Scissors /></OperatorIconButton>}
+      {count === 1 && asset?.media_type === "video" && hasAudio && onAudioMute && <OperatorIconButton label={audioMuted ? "Unmute video audio" : "Mute video audio"} detail="Changes only this video's sound; picture timing stays unchanged." className={cn(audioMuted && "is-active")} disabled={saving} onClick={onAudioMute}>{audioMuted ? <VolumeX /> : <Volume2 />}</OperatorIconButton>}
+      {count > 1 && onLock && <OperatorIconButton label={selectionLocked ? "Unlock selected media" : "Lock selected media"} detail={track.locked ? "Unlock the track before changing these placements." : "Protects every selected placement from accidental timing changes."} disabled={saving || track.locked} onClick={onLock}>{selectionLocked ? <Unlock /> : <Lock />}</OperatorIconButton>}
+      <OperatorIconButton label="Duplicate media placement" detail="Creates another Timeline placement using the same Director Asset." disabled={saving} onClick={onDuplicate}><Copy /></OperatorIconButton>
+      <OperatorIconButton label="Remove media placement" detail={selectionLocked || track.locked ? "Unlock the placement or track before removing it." : "The Director Asset remains available."} className="danger" disabled={saving || selectionLocked || track.locked} onClick={onDelete}><Trash2 /></OperatorIconButton>
+    </div>
   </div>
 }
