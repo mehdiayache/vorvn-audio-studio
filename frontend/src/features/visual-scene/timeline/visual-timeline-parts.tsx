@@ -58,7 +58,7 @@ export function VisualTrackControl({ track, assets, collapsed, first, last, onVi
   const TrackIcon = track.media_type === "video" ? Film : ImageIcon
   return <div className={cn("visual-track-control", collapsed && "is-compact", !track.visible && "is-hidden", track.locked && "is-locked")} title={collapsed ? `${displayName} · ${track.visible ? media.label : `Hidden · ${media.label}`}` : undefined}>
     <span className="sound-track-icon is-visual"><TrackIcon /></span>
-    {!collapsed && (renaming ? <Input className="visual-track-name-input" defaultValue={displayName} autoFocus aria-label="Track name" onBlur={(event) => { onRename(event.target.value); setRenaming(false) }} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") setRenaming(false) }} /> : <span className="sound-track-copy" onDoubleClick={() => setRenaming(true)}><b>{displayName}</b><small>{track.visible ? media.label : `Hidden · ${media.label}`}</small></span>)}
+    {!collapsed && (renaming ? <Input className="visual-track-name-input" defaultValue={displayName} autoFocus aria-label="Track name" onBlur={(event) => { onRename(event.target.value); setRenaming(false) }} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") setRenaming(false) }} /> : <span className="sound-track-copy" onDoubleClick={() => setRenaming(true)}><b>{displayName}</b><small className={cn((!track.visible || track.clips.length > 0) && "is-technical")}>{track.visible ? media.label : `Hidden · ${media.label}`}</small></span>)}
     <div className="visual-track-actions">
       {collapsed
         ? <OperatorIconButton label={`Add ${displayName.toLowerCase()} to ${displayName} track`} detail="Choose a compatible Director Asset and place it at the playhead." onClick={onAdd}><Plus /></OperatorIconButton>
@@ -91,8 +91,9 @@ export function VisualTimelineClip({ clip, asset, selected, trackLocked, style, 
   const locked = clip.locked || trackLocked
   const name = asset ? visualAssetName(asset) : "Missing media"
   const isVideo = asset?.media_type === "video"
+  const thumbnailUrl = asset ? (isVideo ? visualAssetPosterUrl(asset) : visualAssetUrl(asset)) : ""
   return <div className={cn("visual-timeline-clip", isVideo ? "is-video" : "is-image", selected && "is-selected", locked && "is-locked", !asset && "is-missing")} style={style} role="button" tabIndex={0} aria-label={`${name} media clip`} onPointerDown={(event) => onGesture(event, "move")} onClick={onSelect} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(event) } }}>
-    {asset ? <figure className="visual-timeline-thumbnail"><img src={isVideo ? visualAssetPosterUrl(asset) : visualAssetUrl(asset)} alt="" draggable={false} /></figure> : <ImageIcon />}
+    {asset ? <figure className="visual-timeline-thumbnail" style={isVideo ? undefined : { backgroundImage: `url(${JSON.stringify(thumbnailUrl)})` }}><img src={thumbnailUrl} alt="" draggable={false} /></figure> : <ImageIcon />}
     <span>{isVideo && <Film />}<b>{name}</b></span>
     {locked && <i><Lock /></i>}
     {selected && !locked && <><button className="visual-trim-handle is-start" aria-label="Resize media start" onPointerDown={(event) => onGesture(event, "start")} /><button className="visual-trim-handle is-end" aria-label="Resize media end" onPointerDown={(event) => onGesture(event, "end")} /></>}

@@ -115,7 +115,7 @@ function SoundTrackControl({ track, volume, collapsed, soloed, soloSuppressed, o
   return <div className={cn("sound-track-control", collapsed && "is-compact", track.muted && "is-muted", soloed && "is-solo", soloSuppressed && "is-solo-suppressed")}>
     <div className="sound-track-select" title={summary}>
       <span className={cn("sound-track-icon", `is-category-${category}`, track.muted && "is-muted")}><TrackIcon /></span>
-      {!collapsed && <span className="sound-track-copy"><b>{name}</b><small>{track.muted ? "MUTED" : soloed ? "SOLO" : soloSuppressed ? "Outside solo" : `${track.clips.length} clip${track.clips.length === 1 ? "" : "s"}`}</small></span>}
+      {!collapsed && <span className="sound-track-copy"><b>{name}</b><small className="is-technical">{track.muted ? "MUTED" : soloed ? "SOLO" : soloSuppressed ? "Outside solo" : `${track.clips.length} clip${track.clips.length === 1 ? "" : "s"}`}</small></span>}
     </div>
     {collapsed ? <div className="sound-track-compact-actions">
       <OperatorTooltip label={track.muted ? `Unmute ${name}` : `Mute ${name}`} detail="A persistent mix decision used by preview and export."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", track.muted && "is-active is-mute")} aria-label={track.muted ? `Unmute ${name}` : `Mute ${name}`} aria-pressed={track.muted} onClick={onMute}>M</Button></OperatorTooltip>
@@ -147,7 +147,7 @@ export function AudioTrackHeaders({ tracks, engineTracks, collapsed, soloTrackId
 }) {
   const byId = new Map(engineTracks.map((track) => [track.id, track]))
   return <>
-    <div className="sound-sequence-control" title={collapsed ? `Script · ${sequenceSummary}` : undefined}><span className="sound-track-icon is-sequence"><Volume2 /></span>{!collapsed && <span className="sound-track-copy"><b>Script</b><small>{sequenceSummary}</small></span>}</div>
+    <div className="sound-sequence-control" title={collapsed ? `Script · ${sequenceSummary}` : undefined}><span className="sound-track-icon is-sequence"><Volume2 /></span>{!collapsed && <span className="sound-track-copy"><b>Script</b><small className="is-technical">{sequenceSummary}</small></span>}</div>
     {tracks.map((track) => <SoundTrackControl key={track.id} track={track} collapsed={collapsed} soloed={soloTrackIds.includes(track.id)} soloSuppressed={soloTrackIds.length > 0 && !soloTrackIds.includes(track.id)} volume={byId.get(track.id)?.volume ?? track.volume} onMute={() => onMute(track)} onSolo={() => onSolo(track)} onVolumeChange={(volume) => onVolumeChange(track, volume)} onVolumeCommit={(volume) => onVolumeCommit(track, volume)} onAdd={() => onAdd(track)} onRemove={() => onRemove(track)} />)}
   </>
 }
@@ -190,7 +190,7 @@ export function AudioTimelineSection({ scene, tracks, engineTracks, selection, s
       const soloed = soloTrackIds.includes(track.id)
       const soloSuppressed = soloTrackIds.length > 0 && !soloed
       return <div className={cn("sound-scene-lane is-music", track.muted && "is-muted", soloed && "is-solo", soloSuppressed && "is-solo-suppressed")} key={track.id} onPointerDown={onPan}>
-        {(track.muted || soloed || soloSuppressed) && <span className="sound-lane-audibility">{track.muted ? "MUTED" : soloed ? "SOLO" : "NOT SOLOED"}</span>}
+        {(track.muted || soloed || soloSuppressed) && <span className="sound-lane-audibility is-technical">{track.muted ? "MUTED" : soloed ? "SOLO" : "NOT SOLOED"}</span>}
         {track.clips.map((clip) => {
           const current = engineTrack?.clips.find((item) => item.id === clip.id)
           if (!current || clip.orphan) return null

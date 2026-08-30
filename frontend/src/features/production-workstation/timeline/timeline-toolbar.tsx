@@ -1,5 +1,4 @@
 import { AudioWaveform, ChevronLeft, ChevronRight, Image as ImageIcon, LocateFixed, Magnet, Plus, Redo2, Undo2 } from "lucide-react"
-import type { ReactNode } from "react"
 
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
@@ -9,7 +8,7 @@ import type { TimelineHistoryDomain } from "./use-timeline-history"
 const domainLabel = (domain: TimelineHistoryDomain) => domain === "visual" ? "visual" : "audio"
 
 export function TimelineToolbar({ summary, canUndo, canRedo, undoDomain, redoDomain, saving, snapping, followPlayhead, hasVisualScene, onUndo, onRedo, onMoveView, onSnappingChange, onFollowPlayheadChange, onAddVisual, onAddAudio }: {
-  summary: ReactNode
+  summary: string
   canUndo: boolean
   canRedo: boolean
   undoDomain: TimelineHistoryDomain

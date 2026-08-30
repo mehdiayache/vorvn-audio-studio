@@ -54,7 +54,7 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
         <div><dt>Duration</dt><dd>{milliseconds(clip.duration_ms)}</dd></div>
         {track.media_type === "video" && <div><dt>Source starts</dt><dd>{milliseconds(clip.source_offset_ms)}</dd></div>}
       </dl>
-      <p><Clock3 /> Drag the clip or its edges in Timeline. Hold Alt to bypass snapping.</p>
+      <p><Clock3 /> Drag the clip or its edges in Timeline. Hold <kbd>Alt</kbd> to bypass snapping.</p>
     </section>
 
     <section className="visual-inspector-transform">

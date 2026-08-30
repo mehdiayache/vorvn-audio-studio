@@ -145,7 +145,7 @@ export function TimelineWorkspace({ session, visual, onAddAudio, onRemoveClip, o
 
   return <section className={cn("timeline-workspace", hasVisualPlacements && "has-visual-monitor", viewport.viewerCollapsed && "viewer-collapsed", tracksCollapsed && "tracks-collapsed", viewport.panning && "is-panning")}>
     <TimelineToolbar
-      summary={<><span>{imageTrackCount}</span> image track{imageTrackCount === 1 ? "" : "s"} · <span>{videoTrackCount}</span> video track{videoTrackCount === 1 ? "" : "s"} · <span>{tracks.length}</span> audio track{tracks.length === 1 ? "" : "s"} · <span>{formatDuration(total)}</span></>}
+      summary={`${imageTrackCount} image track${imageTrackCount === 1 ? "" : "s"} · ${videoTrackCount} video track${videoTrackCount === 1 ? "" : "s"} · ${tracks.length} audio track${tracks.length === 1 ? "" : "s"} · ${formatDuration(total)}`}
       canUndo={history.canUndo}
       canRedo={history.canRedo}
       undoDomain={history.undoDomain}

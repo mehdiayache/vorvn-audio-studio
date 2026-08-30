@@ -41,12 +41,14 @@ const track = {
 } as VisualSceneTrack
 
 describe("visual Timeline controls", () => {
-  it("keeps a source thumbnail separate from the temporal clip body", () => {
+  it("repeats an image thumbnail across a long temporal clip without stretching the source", () => {
     const { container } = render(<VisualTimelineClip clip={clip} asset={image} selected={false} trackLocked={false} style={{ width: 480 }} onSelect={vi.fn()} onGesture={vi.fn()} />)
 
     const placement = screen.getByRole("button", { name: "Story still media clip" })
     expect(placement.className).toContain("is-image")
-    expect(container.querySelector(".visual-timeline-thumbnail > img")).toBeTruthy()
+    const thumbnail = container.querySelector<HTMLElement>(".visual-timeline-thumbnail")
+    expect(thumbnail?.querySelector("img")).toBeTruthy()
+    expect(thumbnail?.style.backgroundImage).toContain("story-still.png")
   })
 
   it("exposes linked video audio in the same contextual toolbar", () => {

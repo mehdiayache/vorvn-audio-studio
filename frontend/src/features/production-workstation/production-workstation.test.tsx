@@ -208,6 +208,8 @@ describe("Production Workstation", () => {
 
     expect(screen.getByRole("slider", { name: "Music gain" }).getAttribute("aria-disabled")).not.toBe("true")
     expect(screen.getByRole("button", { name: "Unmute Music" })).toBeTruthy()
+    expect(screen.getAllByText("MUTED")).toHaveLength(2)
+    expect(screen.getAllByText("MUTED").every((element) => element.classList.contains("is-technical"))).toBe(true)
   })
 
   it("keeps essential track mixing available in the compact rail", () => {

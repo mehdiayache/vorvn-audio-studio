@@ -115,6 +115,10 @@
   --type-display-base: 1.75rem;
   --type-display-page: 1.75rem;
   --type-display-hero: 2.25rem;
+  /* Dense creative-workstation chrome: human labels stay sans; machine data uses mono. */
+  --type-workstation-label: 0.7rem;
+  --type-workstation-secondary: 0.625rem;
+  --type-workstation-data: 0.58rem;
   --font-mono: "SFMono-Regular", Consolas, ui-monospace, monospace;
   /* Calm editorial hierarchy: no interface text exceeds medium weight. */
   --weight-regular: 400;
