@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { VentureAsset, VisualSceneClip, VisualSceneTrack } from "@/types/domain"
 import { VisualContextToolbar, VisualTimelineClip, VisualTrackControl } from "../timeline/visual-timeline-parts"
@@ -40,6 +40,13 @@ const track = {
   clips: [],
 } as VisualSceneTrack
 
+beforeEach(() => vi.stubGlobal("ResizeObserver", class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}))
+afterEach(() => { cleanup(); vi.unstubAllGlobals() })
+
 describe("visual Timeline controls", () => {
   it("repeats an image thumbnail across a long temporal clip without stretching the source", () => {
     const { container } = render(<VisualTimelineClip clip={clip} asset={image} selected={false} trackLocked={false} style={{ width: 480 }} onSelect={vi.fn()} onGesture={vi.fn()} />)
@@ -52,12 +59,12 @@ describe("visual Timeline controls", () => {
   })
 
   it("exposes linked video audio in the same contextual toolbar", () => {
-    const onAudioMute = vi.fn()
-    render(<VisualContextToolbar track={track} clip={{ ...clip, asset_id: 92 }} asset={video} saving={false} canSplit={false} hasAudio audioMuted={false} onAudioMute={onAudioMute} onSplit={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
+    const onAudioVolume = vi.fn()
+    render(<VisualContextToolbar track={track} clip={{ ...clip, asset_id: 92 }} asset={video} saving={false} canSplit={false} hasAudio audioGain={1} audioMuted={false} onAudioVolume={onAudioVolume} onSplit={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Mute video audio" }))
-    expect(onAudioMute).toHaveBeenCalledOnce()
-    expect(screen.getByRole("button", { name: "Mute video audio" }).textContent).toBe("")
+    fireEvent.click(screen.getByRole("button", { name: "Video volume · 100%" }))
+    fireEvent.click(screen.getByRole("button", { name: "Mute Video volume" }))
+    expect(onAudioVolume).toHaveBeenCalledWith({ gain: 1, muted: true })
     expect(screen.getByRole("button", { name: "Duplicate media placement" }).textContent).toBe("")
   })
 
@@ -77,7 +84,7 @@ describe("visual Timeline controls", () => {
     const { container } = render(<VisualContextToolbar track={track} clip={{ ...clip, locked: true }} asset={image} saving={false} canSplit={false} selectionLocked onSplit={vi.fn()} onLock={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
 
     const unlock = screen.getByRole("button", { name: "Unlock media placement" })
-    expect(unlock.className).toContain("is-active")
+    expect(unlock.className).toContain("is-locked")
     expect(unlock.querySelector(".lucide-lock")).toBeTruthy()
     expect(container.querySelector<HTMLButtonElement>('button[aria-label="Remove media placement"]')?.disabled).toBe(true)
   })

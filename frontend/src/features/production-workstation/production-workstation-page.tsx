@@ -344,7 +344,6 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     ? soundSession.currentClip(soundSelection.trackId, soundSelection.clipId)
     : null
   const audioAsset = audioClip ? assets.find((asset) => asset.id === audioClip.asset_id) : undefined
-  const audioClipName = audioClip?.asset_name || "Audio clip"
   const visualSelection = visualState.selection
   const visualRefs = visualSelectionRefs(visualSelection)
   const visualRef = visualRefs[0] || null
@@ -385,12 +384,11 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     track={audioTrack} clip={audioClip} asset={audioAsset} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)}
     onClipChange={(changes) => { if (audioClip) soundSession.updateClip(audioTrack.id, audioClip.id, changes) }} onClipCommit={() => soundSession.commitClip()}
     onTrackMixChange={({ gain, muted }) => soundSession.setTrackMix(audioTrack.id, { volume: gain, muted })} onTrackMixCommit={({ gain, muted }) => soundSession.commitTrackMix(audioTrack.id, { volume: gain, muted })}
-    onChoose={() => { setAudioTarget({ mode: "replace", trackId: soundSelection.trackId, clipId: soundSelection.clipId }); setTool("audio") }} onRemove={() => setConfirmAction({ title: `Remove “${audioClipName}”?`, description: "The reusable Audio Library asset remains available. Only this Timeline placement is removed.", action: () => soundSession.removeClip(soundSelection.trackId, soundSelection.clipId) })}
+    onChoose={() => { setAudioTarget({ mode: "replace", trackId: soundSelection.trackId, clipId: soundSelection.clipId }); setTool("audio") }}
   /> : stage === "sound" && soundSpan ? <SequenceMixInspector
     span={soundSpan} saving={soundState.saving}
     onPreview={(changes) => soundSession.previewSequenceOverride(soundSpan.part_public_id, changes)}
     onCommit={(changes) => soundSession.updateSequenceOverride(soundSpan.part_public_id, changes)}
-    onOpenSequence={() => { soundSession.select(null); setStage("sequence"); setSelectedId(soundSpan.part_id) }}
   /> : stage === "sound" && soundSelection?.kind === "clips" ? <AudioGroupInspector count={soundSelection.clips.length} />
     : <EmptyInspector stage={stage} />
 

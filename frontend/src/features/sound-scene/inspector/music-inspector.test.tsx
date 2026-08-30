@@ -24,7 +24,7 @@ describe("AudioClipInspector", () => {
     const onClipChange = vi.fn()
     const onClipCommit = vi.fn().mockResolvedValue(undefined)
     const onPlay = vi.fn()
-    render(<AudioClipInspector track={track} clip={clip} playing={false} onPlay={onPlay} onClipChange={onClipChange} onClipCommit={onClipCommit} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} onRemove={vi.fn()} />)
+    render(<AudioClipInspector track={track} clip={clip} playing={false} onPlay={onPlay} onClipChange={onClipChange} onClipCommit={onClipCommit} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} />)
     expect(screen.getByRole("region", { name: "Audio source window" })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Play audio audition" }))
     expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ key: "asset-source:9", kind: "asset" }))
@@ -41,23 +41,23 @@ describe("AudioClipInspector", () => {
 
   it("keeps a failed save visible in the owning Workbench", async () => {
     const onClipCommit = vi.fn().mockRejectedValue(new Error("Music settings are unavailable."))
-    render(<AudioClipInspector track={track} clip={clip} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={onClipCommit} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} onRemove={vi.fn()} />)
+    render(<AudioClipInspector track={track} clip={clip} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={onClipCommit} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} />)
     fireEvent.click(screen.getByRole("button", { name: "Audio fade in" }))
     expect((await screen.findByRole("alert")).textContent).toContain("Music settings are unavailable.")
   })
 
   it("does not project sequential Part language onto an empty Audio Track", () => {
-    render(<AudioClipInspector track={{ ...track, clips: [] }} clip={null} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} onRemove={vi.fn()} />)
+    render(<AudioClipInspector track={{ ...track, clips: [] }} clip={null} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} />)
     expect(screen.getByText(/Add one reusable Audio Library clip/)).toBeTruthy()
     expect(screen.queryByText(/Clip|Voice/)).toBeNull()
   })
 
   it("locks editing geometry without locking mix controls", () => {
-    render(<AudioClipInspector track={track} clip={{ ...clip, locked: true }} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} onRemove={vi.fn()} />)
+    render(<AudioClipInspector track={track} clip={{ ...clip, locked: true }} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} />)
 
     expect(screen.getByRole("button", { name: "Move source window" }).hasAttribute("disabled")).toBe(true)
     expect(screen.getByRole("button", { name: /Replace source/ }).hasAttribute("disabled")).toBe(true)
-    expect(screen.getByRole("button", { name: /Remove clip/ }).hasAttribute("disabled")).toBe(true)
+    expect(screen.queryByRole("button", { name: /Remove clip/ })).toBeNull()
     expect(screen.getByRole("button", { name: "Audio fade in" }).hasAttribute("disabled")).toBe(true)
     expect(screen.getByRole("button", { name: "Clip volume" }).hasAttribute("disabled")).toBe(false)
     expect(screen.getByText(/Volume and effects remain available/)).toBeTruthy()
@@ -66,14 +66,14 @@ describe("AudioClipInspector", () => {
   it("shows the factual combined output without prescribing a reset", () => {
     const onTrackMixChange = vi.fn()
     const onTrackMixCommit = vi.fn().mockResolvedValue(undefined)
-    render(<AudioClipInspector track={{ ...track, volume: .06 }} clip={clip} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackMixChange={onTrackMixChange} onTrackMixCommit={onTrackMixCommit} onChoose={vi.fn()} onRemove={vi.fn()} />)
+    render(<AudioClipInspector track={{ ...track, volume: .06 }} clip={clip} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackMixChange={onTrackMixChange} onTrackMixCommit={onTrackMixCommit} onChoose={vi.fn()} />)
 
     expect(screen.getByText(/Output 1%/)).toBeTruthy()
     expect(screen.queryByText(/Very quiet|music bed|Reset track/)).toBeNull()
   })
 
   it("shows canonical SFX identity and rich technical metadata", () => {
-    render(<AudioClipInspector track={track} clip={{ ...clip, asset_kind: "sfx" }} asset={{ id: 9, title: "Door latch", category: "sfx", duration_ms: 60_000, audio_format: "wav", sample_rate: 48_000, channels: 2, metadata: { origin: "generated", model: "stable-audio-3-small-sfx" } }} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} onRemove={vi.fn()} />)
+    render(<AudioClipInspector track={track} clip={{ ...clip, asset_kind: "sfx" }} asset={{ id: 9, title: "Door latch", category: "sfx", duration_ms: 60_000, audio_format: "wav", sample_rate: 48_000, channels: 2, metadata: { origin: "generated", model: "stable-audio-3-small-sfx" } }} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} />)
 
     expect(screen.getByText("Door latch")).toBeTruthy()
     expect(screen.getByText(/SFX · Generated · Stable Audio · SFX/)).toBeTruthy()

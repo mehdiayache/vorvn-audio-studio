@@ -37,7 +37,6 @@ describe("SequenceMixInspector", () => {
         mix: { muted: false, gain: 1, fade_in_ms: 0, fade_out_ms: 0, effects: [] },
       }}
       saving={false} onPreview={onPreview} onCommit={onCommit}
-      onOpenSequence={vi.fn()}
     />)
 
     fireEvent.click(screen.getByRole("button", { name: "Part volume" }))
@@ -47,7 +46,7 @@ describe("SequenceMixInspector", () => {
     expect(onCommit).toHaveBeenCalledTimes(1)
     expect(onCommit).toHaveBeenCalledWith({ gain: .5, muted: false })
     expect(screen.getByRole("button", { name: "Mute Part volume" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: /Open in Script/ })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: /Open in Script/ })).toBeNull()
   })
 
   it("previews an Echo parameter locally and persists it once on release", () => {
@@ -65,7 +64,6 @@ describe("SequenceMixInspector", () => {
         }] },
       }}
       saving={false} onPreview={onPreview} onCommit={onCommit}
-      onOpenSequence={vi.fn()}
     />)
 
     fireEvent.click(screen.getByRole("button", { name: "Echo mix" }))

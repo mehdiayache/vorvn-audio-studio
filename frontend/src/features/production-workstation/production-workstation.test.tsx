@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
+import { toast } from "sonner"
 
 import type { DurableJob, GeneratePayload, GenerateResult, ProductionPart, SoundScene, VisualScene, VoiceDirectory } from "@/types/domain"
 import { audioUrl } from "@/lib/api"
@@ -316,9 +317,10 @@ describe("Production Workstation", () => {
     expect(screen.getByRole("button", { name: "Duplicate selected clips" })).toBeTruthy()
   })
 
-  it("prevents an invalid split without covering the Timeline controls", () => {
+  it("reports an invalid split without covering the Timeline controls", async () => {
     const soundScene = scene([part({ duration_ms: 120_000 })])
     const session = sessionFor(soundScene)
+    const toastError = vi.spyOn(toast, "error").mockImplementation(() => "timeline-selection-error")
     const { container } = render(<TimelineWorkspace session={session} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
     const clip = container.querySelector(".sound-music-clip") as HTMLElement
 
@@ -328,13 +330,15 @@ describe("Production Workstation", () => {
     expect(screen.getByRole("button", { name: "Split at playhead" }).hasAttribute("disabled")).toBe(true)
 
     fireEvent.keyDown(window, { key: "s" })
-    const feedback = screen.getByRole("alert")
-    expect(feedback.textContent).toContain("Place the playhead inside a selected clip")
-    expect(feedback.closest(".sound-scene-context-bar")).toBeTruthy()
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith(
+      expect.stringContaining("Place the playhead inside a selected clip"),
+      { id: "timeline-selection-error" },
+    ))
+    expect(screen.queryByRole("alert")).toBeNull()
 
     act(() => session.seek(1))
-    expect(screen.queryByRole("alert")).toBeNull()
     expect(screen.getByRole("button", { name: "Split at playhead" }).hasAttribute("disabled")).toBe(false)
+    toastError.mockRestore()
   })
 
   it("shows durable lock and effect states directly on a Music clip", () => {

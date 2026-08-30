@@ -1,7 +1,6 @@
-import { AudioLines, ExternalLink, SlidersHorizontal } from "lucide-react"
+import { AudioLines, SlidersHorizontal } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { Button } from "@/components/ui/button"
 import { OperatorInspectorSection } from "@/components/operator-inspector-section"
 import { Slider } from "@/components/ui/slider"
 import { formatDuration } from "@/lib/format"
@@ -11,12 +10,11 @@ import { SoundEffectsEditor } from "../timeline/sound-scene-context-toolbar"
 
 import "./sequence-mix-inspector.css"
 
-export function SequenceMixInspector({ span, saving, onPreview, onCommit, onOpenSequence }: {
+export function SequenceMixInspector({ span, saving, onPreview, onCommit }: {
   span: SequenceProjectionSpan
   saving: boolean
   onPreview: (changes: Partial<SequenceMixOverride>) => void
   onCommit: (changes: Partial<SequenceMixOverride>) => Promise<void>
-  onOpenSequence: () => void
 }) {
   const [fadeIn, setFadeIn] = useState(span.mix.fade_in_ms / 1_000)
   const [fadeOut, setFadeOut] = useState(span.mix.fade_out_ms / 1_000)
@@ -47,7 +45,5 @@ export function SequenceMixInspector({ span, saving, onPreview, onCommit, onOpen
         onCommit={(effects) => void onCommit({ effects })}
       />
     </div>
-
-    <div className="sequence-mix-footer"><Button variant="outline" onClick={onOpenSequence}><ExternalLink /> Open in Script</Button></div>
   </div>
 }

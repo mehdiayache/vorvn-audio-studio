@@ -104,7 +104,9 @@ export function TimelineWorkspace({ session, visual, onAddAudio, onRemoveClip, o
     muted: selectedClips.every(({ clip }) => clip.muted || clip.gain <= 0),
     lockState: lockedClipCount === 0 ? "unlocked" : lockedClipCount === selectedClips.length ? "locked" : "mixed",
     gain: selectedClips[0]!.clip.gain,
-    gainMixed: selectedClips.some(({ clip }) => Math.abs(gainToDb(clip.gain) - gainToDb(selectedClips[0]!.clip.gain)) > .05),
+    gainMixed: selectedClips.some(({ clip }) =>
+      (clip.muted || clip.gain <= 0) !== (selectedClips[0]!.clip.muted || selectedClips[0]!.clip.gain <= 0)
+      || Math.abs(gainToDb(clip.gain) - gainToDb(selectedClips[0]!.clip.gain)) > .05),
     effects: selectedClips[0]!.clip.effects,
   } : null
   const canCrossfade = Boolean(session.crossfadeOverlap(selectedRefs))

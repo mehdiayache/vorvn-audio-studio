@@ -1,4 +1,4 @@
-import { AudioWaveform, Blend, ChevronDown, CircleHelp, Clock3, Music2, Pause, Play, RefreshCcw, SlidersHorizontal, Trash2 } from "lucide-react"
+import { AudioWaveform, Blend, ChevronDown, CircleHelp, Clock3, Music2, Pause, Play, RefreshCcw, SlidersHorizontal } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { OperatorIconButton } from "@/components/operator-action"
@@ -32,7 +32,7 @@ function technicalSummary(asset: VentureAsset | undefined, sourceDuration: numbe
   return facts.join(" · ")
 }
 
-export function AudioClipInspector({ track, clip, asset, playingKey, playing, onPlay, onClipChange, onClipCommit, onTrackMixChange, onTrackMixCommit, onChoose, onRemove }: {
+export function AudioClipInspector({ track, clip, asset, playingKey, playing, onPlay, onClipChange, onClipCommit, onTrackMixChange, onTrackMixCommit, onChoose }: {
   track: SoundSceneTrack
   clip: SoundSceneClip | null
   asset?: VentureAsset
@@ -44,7 +44,6 @@ export function AudioClipInspector({ track, clip, asset, playingKey, playing, on
   onTrackMixChange: (mix: AudioVolumeMix) => void
   onTrackMixCommit: (mix: AudioVolumeMix) => Promise<void>
   onChoose: () => void
-  onRemove: () => void
 }) {
   const [start, setStart] = useState((clip?.source_offset_ms ?? 0) / 1000)
   const [windowDuration, setWindowDuration] = useState((clip?.duration_ms ?? clip?.resolved_duration_ms ?? 0) / 1000)
@@ -132,6 +131,6 @@ export function AudioClipInspector({ track, clip, asset, playingKey, playing, on
     </OperatorInspectorSection>
 
     {geometryLocked && <p className="music-lock-note">Timing is locked. Volume and effects remain available.</p>}
-    <section className="music-workbench-actions"><Button variant="outline" disabled={Boolean(saving) || geometryLocked} onClick={onChoose}><RefreshCcw /> Replace source</Button><Button variant="ghost" className="danger" disabled={Boolean(saving) || geometryLocked} onClick={onRemove}><Trash2 /> Remove clip</Button></section>
+    <section className="music-workbench-actions"><Button variant="outline" disabled={Boolean(saving) || geometryLocked} onClick={onChoose}><RefreshCcw /> Replace source</Button></section>
   </div>
 }

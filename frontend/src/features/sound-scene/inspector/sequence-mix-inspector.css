@@ -9,4 +9,3 @@
 .sequence-mix-controls label > span svg { width: .9rem; }.sequence-mix-controls label b { margin-left: auto; color: var(--foreground); font: var(--weight-emphasis) var(--type-workstation-data)/1 var(--font-mono); font-variant-numeric: tabular-nums; }
 .sequence-mix-fades { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
 .sequence-mix-effects { display: contents; }
-.sequence-mix-footer { padding: .7rem .8rem; }.sequence-mix-footer [data-slot="button"] { width: 100%; }

@@ -1,7 +1,6 @@
-import { CircleAlert, X } from "lucide-react"
+import { useEffect } from "react"
+import { toast } from "sonner"
 
-import { OperatorIconButton } from "@/components/operator-action"
-import { OperatorTooltip } from "@/components/operator-tooltip"
 import type { SoundSceneSession, SoundClipRef } from "@/features/sound-scene/engine/sound-scene-session"
 import { SoundSceneContextToolbar, type SoundContext } from "@/features/sound-scene/timeline/sound-scene-context-toolbar"
 import { videoHasEmbeddedAudio } from "@/features/sound-scene/engine/video-audio-sync"
@@ -37,6 +36,13 @@ export function TimelineContextBar({ audioSession, visualSession, selectedAudioR
   const selectedVisualClip = selectedVisualRef ? selectedVisualTrack?.clips.find((clip) => clip.id === selectedVisualRef.clipId) || null : null
   const feedback = error || visualError
 
+  useEffect(() => {
+    if (!feedback) return
+    toast.error(feedback, { id: "timeline-selection-error" })
+    audioSession.clearError()
+    visualSession?.clearError()
+  }, [audioSession, feedback, visualSession])
+
   return <footer className="sound-scene-context-bar" aria-label="Selection actions">
     {selectedVisualRef && selectedVisualTrack && selectedVisualClip && visualSession ? <VisualContextToolbar
       count={selectedVisualRefs.length}
@@ -46,12 +52,11 @@ export function TimelineContextBar({ audioSession, visualSession, selectedAudioR
       saving={visualSaving || saving}
       canSplit={selectedVisualRefs.length === 1 && canSplitVisual}
       hasAudio={selectedVisualRefs.length === 1 && videoHasEmbeddedAudio(selectedVisualAsset)}
+      audioGain={selectedVideoAudio?.clip.gain}
       audioMuted={selectedVideoAudio ? selectedVideoAudio.clip.muted || selectedVideoAudio.clip.gain <= 0 : undefined}
       selectionLocked={selectedVisualRefs.every((ref) => visualSession.currentClip(ref)?.locked)}
-      onAudioMute={selectedVisualRefs.length === 1 && selectedVideoAudio ? () => {
-        const muted = selectedVideoAudio.clip.muted || selectedVideoAudio.clip.gain <= 0
-        void audioSession.commitClipChanges(selectedVideoAudio.trackId, selectedVideoAudio.clip.id, { muted: !muted, ...(!muted || selectedVideoAudio.clip.gain > 0 ? {} : { gain: 1 }) })
-      } : undefined}
+      onAudioVolumePreview={selectedVisualRefs.length === 1 && selectedVideoAudio ? ({ gain, muted }) => audioSession.updateClip(selectedVideoAudio.trackId, selectedVideoAudio.clip.id, { gain, muted }) : undefined}
+      onAudioVolume={selectedVisualRefs.length === 1 && selectedVideoAudio ? ({ gain, muted }) => void audioSession.commitClipChanges(selectedVideoAudio.trackId, selectedVideoAudio.clip.id, { gain, muted }) : undefined}
       onSplit={() => void visualSession.splitVideo(selectedVisualRef, playhead * 1000, selectedVisualAsset)}
       onLock={() => void visualSession.setClipsLocked(selectedVisualRefs, !selectedVisualRefs.every((ref) => visualSession.currentClip(ref)?.locked))}
       onDuplicate={() => void visualSession.duplicateClips(selectedVisualRefs)}
@@ -59,7 +64,6 @@ export function TimelineContextBar({ audioSession, visualSession, selectedAudioR
     /> : context ? <SoundSceneContextToolbar
       context={context}
       saving={saving}
-      onMute={(muted) => { if (selectedPart) void audioSession.updateSequenceOverride(selectedPart.part_public_id, { muted, ...(!muted && selectedPart.mix.gain <= 0 ? { gain: 1 } : {}) }); else void audioSession.commitSelectedClipMute(muted, selectedAudioRefs) }}
       onVolumePreview={({ gain, muted }, relative) => { if (relative) return; if (selectedPart) audioSession.previewSequenceOverride(selectedPart.part_public_id, { gain, muted }); else if (selectedAudioRefs[0]) audioSession.updateClip(selectedAudioRefs[0].trackId, selectedAudioRefs[0].clipId, { gain, muted }) }}
       onVolume={({ gain, muted }, relative) => { if (relative) { if (muted) void audioSession.commitSelectedClipMute(true, selectedAudioRefs); else void audioSession.commitSelectedClipVolumeMultiplier(gain, selectedAudioRefs) } else if (selectedPart) void audioSession.updateSequenceOverride(selectedPart.part_public_id, { gain, muted }); else if (selectedAudioRefs[0]) void audioSession.commitClipChanges(selectedAudioRefs[0].trackId, selectedAudioRefs[0].clipId, { gain, muted }) }}
       onEffectsPreview={(effects) => { if (selectedPart) audioSession.previewSequenceOverride(selectedPart.part_public_id, { effects }); else if (selectedAudioRefs[0]) audioSession.updateClip(selectedAudioRefs[0].trackId, selectedAudioRefs[0].clipId, { effects }) }}
@@ -73,10 +77,5 @@ export function TimelineContextBar({ audioSession, visualSession, selectedAudioR
       onLoopSelection={() => { onFollowPlayhead(); void audioSession.playSelection(true, selectedAudioRefs) }}
       onDelete={onRemoveAudio}
     /> : <span className="sound-context-empty">Select a clip or Script Part to edit it</span>}
-    {feedback && <div className="sound-context-feedback" role="alert" aria-live="assertive">
-      <CircleAlert aria-hidden="true" />
-      <OperatorTooltip label={feedback} side="top"><span>{feedback}</span></OperatorTooltip>
-      <OperatorIconButton label="Dismiss Timeline message" onClick={() => { audioSession.clearError(); visualSession?.clearError() }}><X /></OperatorIconButton>
-    </div>}
   </footer>
 }
