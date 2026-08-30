@@ -7,6 +7,12 @@ export function formatDuration(seconds: number) {
   return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}` : `${minutes}:${String(remainder).padStart(2, "0")}`
 }
 
+export function formatBytes(value?: number | null) {
+  if (!value || !Number.isFinite(value)) return ""
+  if (value < 1_000_000) return `${Math.round(value / 1_000)} KB`
+  return `${(value / 1_000_000).toFixed(value < 10_000_000 ? 1 : 0)} MB`
+}
+
 export function formatExactDurationMs(milliseconds: number) {
   const seconds = Math.max(0, Number(milliseconds || 0) / 1000)
   return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 }).format(seconds)} ${seconds === 1 ? "second" : "seconds"}`

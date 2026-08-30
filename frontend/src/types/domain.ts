@@ -719,7 +719,9 @@ export type PlayerSource = {
   url: string
   title: string
   subtitle?: string
+  sourceLabel?: string
   artwork?: string
+  downloadable?: boolean
   kind: "clip" | "production" | "voice" | "asset" | "music" | "subtitle" | "standalone"
   captionTracks?: PlayerCaptionTrack[]
 }

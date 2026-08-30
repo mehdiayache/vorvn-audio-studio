@@ -6,7 +6,7 @@
   bottom: max(var(--space-4), var(--safe-bottom));
   left: max(var(--space-4), env(safe-area-inset-left));
   display: grid;
-  grid-template-columns: 3rem minmax(10rem, 1fr) 2.75rem auto minmax(8rem, 18rem) auto 1rem minmax(5rem, 8rem) auto 2.5rem 2.5rem;
+  grid-template-columns: 3rem minmax(10rem, 1fr) 2.75rem auto minmax(8rem, 18rem) auto 1rem minmax(5rem, 8rem) auto 2.5rem 2.5rem 2.5rem;
   align-items: center;
   gap: var(--space-3);
   width: min(64rem, calc(100vw - 2 * var(--space-4)));
@@ -34,6 +34,20 @@
 .studio-app-shell:has(.transport-strip) .audio-studio-viewport { padding-bottom: calc(var(--transport-height) + var(--safe-bottom) + var(--space-6)); }
 .studio-app-shell:has(.transport-strip.has-caption-dock) .audio-studio-viewport { padding-bottom: calc(var(--transport-height) + 3.5rem + var(--safe-bottom) + var(--space-6)); }
 .transport-strip.is-composer { position: static; width: 100%; border-right: 0; border-bottom: 0; border-left: 0; border-radius: 0; box-shadow: none; }
+.transport-strip.is-library {
+  position: static;
+  z-index: auto;
+  width: 100%;
+  min-height: 4rem;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--surface-raised);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.transport-strip.is-library .transport-strip-art { width: 2.5rem; height: 2.5rem; border-radius: var(--radius-sm); }
+.transport-strip.is-library .transport-strip-copy small { color: var(--primary); }
 .production-transport-host {
   position: fixed;
   z-index: var(--layer-dock);

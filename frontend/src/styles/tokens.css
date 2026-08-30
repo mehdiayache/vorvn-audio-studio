@@ -96,12 +96,12 @@
   --audio-music: oklch(0.56 0.16 255);
   --audio-music-soft: oklch(0.97 0.025 255);
   --audio-music-border: oklch(0.84 0.075 255);
-  --audio-sfx: oklch(0.56 0.145 154);
-  --audio-sfx-soft: oklch(0.97 0.025 154);
-  --audio-sfx-border: oklch(0.83 0.075 154);
-  --audio-ambience: oklch(0.56 0.12 205);
-  --audio-ambience-soft: oklch(0.97 0.022 205);
-  --audio-ambience-border: oklch(0.84 0.065 205);
+  --audio-sfx: oklch(0.58 0.15 58);
+  --audio-sfx-soft: oklch(0.97 0.03 58);
+  --audio-sfx-border: oklch(0.84 0.08 58);
+  --audio-ambience: oklch(0.54 0.11 190);
+  --audio-ambience-soft: oklch(0.97 0.025 190);
+  --audio-ambience-border: oklch(0.84 0.065 190);
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;

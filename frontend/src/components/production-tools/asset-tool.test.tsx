@@ -30,12 +30,20 @@ describe("AssetTool", () => {
     expect(screen.getByRole("combobox", { name: "Asset category" }).textContent).toContain("All categories")
     expect(screen.getByRole("combobox", { name: "Asset availability" }).textContent).toContain("All available")
     expect(screen.getByRole("combobox", { name: "Asset source" }).textContent).toContain("All sources")
+    fireEvent.click(screen.getByRole("combobox", { name: "Asset source" }))
+    expect(screen.getByRole("option", { name: "AI" })).toBeTruthy()
+    expect(screen.getByRole("option", { name: "Freesound" })).toBeTruthy()
+    expect(screen.getByRole("option", { name: "Upload" })).toBeTruthy()
+    expect(screen.queryByRole("option", { name: "Existing Library" })).toBeNull()
     expect(container.querySelector(".asset-source-rail")).toBeNull()
   })
 
   it("submits one explicit generated-audio Job without creating an Asset", async () => {
     const status = vi.spyOn(studioApi, "audioGenerationStatus").mockResolvedValue({
-      configured: true, sfx_ready: true, music_ready: true, reason: "", models: {},
+      configured: true, sfx_ready: true, music_ready: true, reason: "", models: {
+        sfx: { id: "stable-audio-3-small-sfx" },
+        music: { id: "stable-audio-3-small-music" },
+      },
     })
     const recent = vi.spyOn(studioApi, "recentAudioGenerations").mockResolvedValue([])
     const taxonomy = vi.spyOn(studioApi, "soundRecipeTaxonomy").mockResolvedValue({
@@ -69,6 +77,7 @@ describe("AssetTool", () => {
     const view = within(container)
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     await waitFor(() => expect(status).toHaveBeenCalled())
+    expect(view.getByText("Stable Audio 3 Small SFX")).toBeTruthy()
     expect(view.getByRole("heading", { name: "What do you want to create?" })).toBeTruthy()
     expect(view.getByRole("button", { name: "Sound Effect" }).getAttribute("aria-pressed")).toBe("true")
     expect(view.getByRole("button", { name: "Simple" }).getAttribute("aria-pressed")).toBe("true")
@@ -409,5 +418,32 @@ describe("AssetTool", () => {
     }))
     expect(view.getByRole("button", { name: "In Audio Library" })).toBeTruthy()
     search.mockRestore()
+  })
+
+  it("suggests and persists an ambience family for matching Freesound results", async () => {
+    const result = {
+      external_id: "ocean-1", name: "Calm ocean waves",
+      duration_ms: 12_000, creator: "coastrecorder",
+      license: "cc0" as const,
+      license_url: "https://creativecommons.org/publicdomain/zero/1.0/",
+      source_url: "https://freesound.org/s/ocean-1/",
+      preview_url: "https://cdn.freesound.org/ocean.mp3",
+      original_format: "wav", tags: ["ocean", "waves", "calm"],
+      attribution_required: false,
+      attribution_text: "",
+    }
+    vi.spyOn(studioApi, "searchFreesound").mockResolvedValue([result])
+    const onKeep = vi.fn().mockResolvedValue({ asset: { id: 88 }, duplicate: false })
+    const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={onKeep} />)
+    const view = within(container)
+    fireEvent.click(view.getByRole("tab", { name: "Freesound" }))
+    fireEvent.change(view.getByPlaceholderText("Describe the sound you need"), { target: { value: "calm ocean waves" } })
+    await waitFor(() => expect(view.getByRole("button", { name: "Select Calm ocean waves" })).toBeTruthy())
+    expect(view.getByLabelText("Suggested Ambience family")).toBeTruthy()
+    fireEvent.click(view.getByRole("button", { name: "Keep in Audio Library" }))
+    await waitFor(() => expect(onKeep).toHaveBeenCalledWith("Assets", {
+      result, name: result.name, category: "ambience", scope: "studio",
+      tags: ["ocean", "waves", "calm"],
+    }))
   })
 })

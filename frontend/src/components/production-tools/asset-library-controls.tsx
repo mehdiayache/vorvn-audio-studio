@@ -5,12 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { AudioAssetCategory, AudioAssetScope } from "@/types/domain"
 
 export const ASSET_CATEGORIES = [
-  ["audio", "Audio"], ["music", "Music"], ["sfx", "Sound effects"], ["ambience", "Ambience"],
+  ["audio", "Other audio"], ["music", "Music"], ["sfx", "SFX"], ["ambience", "Ambience"],
 ] as const satisfies readonly (readonly [AudioAssetCategory, string])[]
 
 export const CATEGORY_LABELS: Record<AudioAssetCategory, string> = {
-  audio: "Audio", music: "Music", sfx: "Sound effects", ambience: "Ambience",
-  intro: "Music", outro: "Music", other: "Audio",
+  audio: "Other audio", music: "Music", sfx: "SFX", ambience: "Ambience",
+  intro: "Music", outro: "Music", other: "Other audio",
 }
 
 export function AssetCategorySelect({ value, onChange }: {

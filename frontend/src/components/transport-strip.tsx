@@ -58,7 +58,7 @@ export function TransportStripView({ source, state, currentTime, duration, volum
     {captionDockVisible && captionTrack && <TransportCaptionPanel tracks={captionTracks} track={captionTrack} profile={captionProfile} currentCue={currentCaptionCue} onTrackChange={onCaptionTrack} onProfileChange={onCaptionProfile} onOpenCue={onOpenCaptionContext} />}
     {previewStale && <div className="transport-preview-stale" role="status"><span>Preview out of date</span><Button variant="ghost" size="sm" onClick={onRefreshPreview}><RefreshCw /> Refresh</Button></div>}
     <span className="transport-strip-art" aria-hidden="true">{source.artwork ? <img src={source.artwork} alt="" /> : <AudioLines />}</span>
-    <div className="transport-strip-copy"><small>{sourceLabels[source.kind]}</small><b title={source.title}>{source.title}</b>{source.subtitle && <span title={source.subtitle}>{source.subtitle}</span>}</div>
+    <div className="transport-strip-copy"><small>{source.sourceLabel || sourceLabels[source.kind]}</small><b title={source.title}>{source.title}</b>{source.subtitle && <span title={source.subtitle}>{source.subtitle}</span>}</div>
     <OperatorTooltip label={playLabel}><Button className="transport-strip-play" size="icon" onClick={onToggle} aria-label={playLabel}>{state === "loading" ? <LoaderCircle className="spin" /> : state === "playing" ? <Pause /> : <Play />}</Button></OperatorTooltip>
     <span className="transport-strip-time">{formatDuration(currentTime)}</span>
     <Slider className="transport-strip-seek" value={[currentTime]} max={Math.max(duration, 1)} step={0.1} onValueChange={([value = 0]) => onSeek(value)} aria-label="Playback position" />
@@ -75,7 +75,7 @@ export function TransportStripView({ source, state, currentTime, duration, volum
       disabled={!captionTracks.length}
       onClick={onToggleCaptions}
     ><Captions /></Button></OperatorTooltip>
-    {source.kind !== "production" && <AudioDownloadButton url={source.url} label={source.title} />}
+    {source.kind !== "production" && source.downloadable !== false && <AudioDownloadButton url={source.url} label={source.title} />}
     <OperatorTooltip label="Close audio player"><Button variant="ghost" size="icon" onClick={onClose} aria-label="Close audio player"><X /></Button></OperatorTooltip>
     {state === "error" && <p className="transport-strip-error" role="alert">This audio could not be played.</p>}
   </section>

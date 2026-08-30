@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { studioApi } from "@/lib/api"
+import { SoundMediaIcon } from "@/features/sound-scene/audio-presentation"
 import { formatDuration } from "@/lib/format"
 import type {
   AudioAssetCategory, AudioAssetScope, AudioGenerationHistoryItem,
@@ -46,6 +47,13 @@ function candidateName(item: AudioGenerationHistoryItem) {
   const audiblePrompt = prompt.replace(/^TrackType:[^.]+\.\s*/i, "")
   const concise = audiblePrompt.split(/[.!?]/)[0]?.trim().slice(0, 72)
   return concise || (item.request.capability === "music" ? "Generated music" : "Generated sound effect")
+}
+
+function modelLabel(models: Record<string, unknown>, capability: RecipeCapability) {
+  const model = models[capability]
+  const id = model && typeof model === "object" && "id" in model ? String((model as { id?: unknown }).id || "") : ""
+  if (!id) return "Audio generator"
+  return id.split("-").map((part) => part === "sfx" ? "SFX" : part === "audio" ? "Audio" : part.charAt(0).toLocaleUpperCase() + part.slice(1)).join(" ")
 }
 
 function isWorking(item: AudioGenerationHistoryItem) {
@@ -125,6 +133,7 @@ export function GenerationWorkspace({
   const [sessionJobIds, setSessionJobIds] = useState<string[]>([])
   const [historyOpen, setHistoryOpen] = useState(false)
   const [status, setStatus] = useState<"checking" | "ready" | "unavailable">("checking")
+  const [models, setModels] = useState<Record<string, unknown>>({})
   const [reason, setReason] = useState("")
   const [error, setError] = useState("")
   const [generationStage, setGenerationStage] = useState<"understanding" | "starting" | null>(null)
@@ -190,6 +199,7 @@ export function GenerationWorkspace({
     void studioApi.audioGenerationStatus().then((snapshot) => {
       if (!current) return
       const ready = capability === "sfx" ? snapshot.sfx_ready : snapshot.music_ready
+      setModels(snapshot.models)
       setStatus(ready ? "ready" : "unavailable")
       setReason(snapshot.reason || (ready ? "" : "That generator is unavailable."))
     }).catch((cause) => {
@@ -379,6 +389,7 @@ export function GenerationWorkspace({
       : hasCreativeDirection
         ? "Ready to create"
         : `Describe the ${capability === "music" ? "music" : "sound"} before generating`
+  const activeModelLabel = modelLabel(models, capability)
   const selectedIndex = selected ? sessionJobIds.indexOf(selected.job_id) : -1
   const selectedLabel = selectedIndex >= 0 ? String.fromCharCode(65 + selectedIndex) : ""
   const selectedActive = Boolean(candidate && playerPlaying && playingKey === `generated-candidate:${candidate.candidate_id}`)
@@ -406,7 +417,7 @@ export function GenerationWorkspace({
       {phase === "compose" && <div className="asset-generation-compose" data-screen={composeScreen}>
         {composeScreen === "setup" ? <section className="asset-generation-setup">
           <header>
-            <span>Generate audio</span>
+            <span className="asset-generation-provider"><Sparkles />{activeModelLabel}</span>
             <h2>What do you want to create?</h2>
             <p>Choose the audio and the amount of creative control. Both can be changed before generation.</p>
           </header>
@@ -415,12 +426,12 @@ export function GenerationWorkspace({
               <b>Audio type</b>
               <div className="asset-type-cards" role="group" aria-label="Audio type">
                 <button type="button" className={capability === "sfx" ? "is-active" : ""} aria-label="Sound Effect" aria-pressed={capability === "sfx"} onClick={() => setCapability("sfx")}>
-                  <span><AudioLines /></span>
+                  <span data-family="sfx"><SoundMediaIcon kind="sfx" /></span>
                   <div><strong>Sound Effect</strong><small>Foley, ambience, impacts and transitions</small></div>
                   <Check aria-hidden="true" />
                 </button>
                 <button type="button" className={capability === "music" ? "is-active" : ""} aria-label="Music" aria-pressed={capability === "music"} onClick={() => setCapability("music")}>
-                  <span><Music2 /></span>
+                  <span data-family="music"><SoundMediaIcon kind="music" /></span>
                   <div><strong>Music</strong><small>Beds, underscore, themes and stingers</small></div>
                   <Check aria-hidden="true" />
                 </button>
@@ -435,7 +446,7 @@ export function GenerationWorkspace({
         </section> : <>
           <header className="asset-generation-context">
             <Button variant="ghost" onClick={() => setComposeScreen("setup")}><ArrowLeft />Change setup</Button>
-            <div><b>{capability === "music" ? "Music" : "Sound Effect"}</b><span>·</span><b>{promptMode === "expert" ? "Expert" : "Simple"}</b></div>
+            <div><b>{capability === "music" ? "Music" : "Sound Effect"}</b><span>·</span><b>{promptMode === "expert" ? "Expert" : "Simple"}</b><span>·</span><b>{activeModelLabel}</b></div>
             <HistoryMenu history={capabilityHistory} selectedJobId={selectedJobId} open={historyOpen} onOpenChange={setHistoryOpen} onSelect={openHistoryItem} />
           </header>
 
@@ -534,7 +545,7 @@ function VariationWorkspace({ phase, capability, expectedCount, items, playingKe
         const itemCandidate = item.candidate
         const active = Boolean(itemCandidate && playerPlaying && playingKey === `generated-candidate:${itemCandidate.candidate_id}`)
         return <article className="asset-variation-card" data-state={itemCandidate ? "ready" : item.status} key={item.job_id}>
-          <header><span>{label}</span><div><b>{candidateName(item)}</b><small>{itemCandidate ? `${formatDuration(itemCandidate.duration_ms / 1000)} · seed ${itemCandidate.seed}` : variationState(item)}</small></div>{itemCandidate && <OperatorIconButton label={active ? `Pause variation ${label}` : `Play variation ${label}`} detail="Auditioning does not keep or add this audio." onClick={() => onPlay({ key: `generated-candidate:${itemCandidate.candidate_id}`, url: itemCandidate.candidate_url, title: candidateName(item), subtitle: `Temporary variation ${label}`, kind: "asset" })}>{active ? <Pause /> : <Play />}</OperatorIconButton>}</header>
+          <header><span>{label}</span><div><b>{candidateName(item)}</b><small>{itemCandidate ? `${formatDuration(itemCandidate.duration_ms / 1000)} · seed ${itemCandidate.seed}` : variationState(item)}</small></div>{itemCandidate && <OperatorIconButton label={active ? `Pause variation ${label}` : `Play variation ${label}`} detail="Auditioning does not keep or add this audio." onClick={() => onPlay({ key: `generated-candidate:${itemCandidate.candidate_id}`, url: itemCandidate.candidate_url, title: candidateName(item), sourceLabel: "AI preview", subtitle: `Temporary variation ${label}`, kind: "asset" })}>{active ? <Pause /> : <Play />}</OperatorIconButton>}</header>
           {isWorking(item) && <div className="asset-variation-card-progress"><Progress value={item.progress * 100} /><span>{item.detail || "Generating audio…"}</span></div>}
           {item.status === "failed" && <div className="asset-variation-card-error"><b>Generation failed</b><p>{item.error || "This variation could not be created."}</p></div>}
           {itemCandidate && <Button onClick={() => onChoose(item.job_id)}>Choose variation {label}</Button>}
@@ -571,7 +582,7 @@ function CandidateFinalizer({ selected, selectedLabel, selectedActive, name, cat
       <section className="asset-finalize-audition">
         <div className="asset-finalize-wave"><AudioLines /></div>
         <div><span>{auditionName}</span><h3>{candidateName(selected)}</h3>{candidate && <p>{formatDuration(candidate.duration_ms / 1000)} · WAV · seed {candidate.seed}</p>}</div>
-        {candidate && <OperatorIconButton label={selectedActive ? "Pause chosen variation" : "Play chosen variation"} detail="Listen again before keeping it." onClick={() => onPlay({ key: `generated-candidate:${candidate.candidate_id}`, url: candidate.candidate_url, title: candidateName(selected), subtitle: playerSubtitle, kind: "asset" })}>{selectedActive ? <Pause /> : <Play />}</OperatorIconButton>}
+        {candidate && <OperatorIconButton label={selectedActive ? "Pause chosen variation" : "Play chosen variation"} detail="Listen again before keeping it." onClick={() => onPlay({ key: `generated-candidate:${candidate.candidate_id}`, url: candidate.candidate_url, title: candidateName(selected), sourceLabel: "AI preview", subtitle: playerSubtitle, kind: "asset" })}>{selectedActive ? <Pause /> : <Play />}</OperatorIconButton>}
         <Button variant="outline" onClick={onRefine}><RotateCcw />Refine recipe</Button>
       </section>
       {candidate && !selected.kept_asset && <section className="asset-finalize-form">

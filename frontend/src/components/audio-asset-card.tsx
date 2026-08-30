@@ -1,10 +1,11 @@
-import { AudioLines, Check, CircleCheck, Library, Pause, Play, Plus, RefreshCw, Sparkles, Upload } from "lucide-react"
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { Check, CircleCheck, Pause, Play, Plus, RefreshCw } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 
 import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
-import { SoundMediaIcon, audioAssetFamily, audioUsageTags } from "@/features/sound-scene/audio-presentation"
-import { assetSource, assetSourceLine, type AssetSource } from "@/lib/asset-provenance"
+import { AudioFamilyBadge, AudioSourceBadge } from "@/features/sound-scene/audio-identity"
+import { audioAssetFamily, audioUsageTags, type AudioFamily } from "@/features/sound-scene/audio-presentation"
+import { assetSource, assetSourceLine } from "@/lib/asset-provenance"
 import { formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { CatalogSound, VentureAsset } from "@/types/domain"
@@ -15,27 +16,7 @@ export function audioAssetTitle(asset: Pick<VentureAsset, "name" | "title" | "te
   return asset.name || asset.title || asset.text || "Untitled audio"
 }
 
-const SOURCE_LABELS: Record<AssetSource, string> = {
-  generated: "Generated audio",
-  freesound: "Freesound audio",
-  uploaded: "Uploaded audio",
-  library: "Library audio",
-}
-
-function SourceIcon({ source }: { source: AssetSource }) {
-  if (source === "generated") return <Sparkles />
-  if (source === "freesound") return <AudioLines />
-  if (source === "uploaded") return <Upload />
-  return <Library />
-}
-
-function AudioCardProvenance({ source, detail }: { source: AssetSource; detail: string }) {
-  return <OperatorTooltip label={SOURCE_LABELS[source]} detail={detail} side="bottom">
-    <span className={cn("audio-asset-card-origin", `is-${source}`)} tabIndex={0} aria-label={SOURCE_LABELS[source]}><SourceIcon source={source} /></span>
-  </OperatorTooltip>
-}
-
-function AudioCardMain({ title, selected, icon, onSelect }: { title: string; selected?: boolean; icon: ReactNode; onSelect?: () => void }) {
+function AudioCardMain({ title, selected, onSelect }: { title: string; selected?: boolean; onSelect?: () => void }) {
   const titleRef = useRef<HTMLElement>(null)
   const [truncated, setTruncated] = useState(false)
   useEffect(() => {
@@ -48,7 +29,6 @@ function AudioCardMain({ title, selected, icon, onSelect }: { title: string; sel
     return () => window.removeEventListener("resize", measure)
   }, [title])
   const button = <button className="audio-asset-card-main" type="button" aria-label={`Select ${title}`} aria-pressed={selected} onClick={onSelect}>
-    <span className="audio-asset-card-art">{icon}</span>
     <span className="audio-asset-card-copy"><b ref={titleRef}>{title}</b></span>
   </button>
   return truncated
@@ -84,29 +64,30 @@ export function AudioAssetCard({ asset, selected, used, playing, actionLabel = "
   const replacing = actionLabel.toLocaleLowerCase().includes("replace")
   return <article className={cn("audio-asset-card", `is-${family}`, selected && "is-selected")}>
     {used && <OperatorTooltip label="Used in Timeline" detail="This audio already has a placement in the current Production." side="bottom"><span className="audio-asset-card-used" tabIndex={0} aria-label="Used in Timeline"><CircleCheck /></span></OperatorTooltip>}
-    <AudioCardProvenance source={source} detail={assetSourceLine(asset)} />
-    <AudioCardMain title={title} selected={selected} icon={<SoundMediaIcon kind={family} />} onSelect={onSelect} />
+    <header className="audio-asset-card-identity"><AudioFamilyBadge family={family} /><AudioSourceBadge source={source} detail={assetSourceLine(asset)} /></header>
+    <AudioCardMain title={title} selected={selected} onSelect={onSelect} />
     <AudioCardTags tags={usage} />
     <div className="audio-asset-card-actions">
       {asset.filename && onPlay && <span className="audio-asset-card-audition"><OperatorIconButton className="audio-asset-card-play" data-playing={playing || undefined} label={playing ? `Pause ${title}` : `Audition ${title}`} detail="Auditioning does not place this audio." size="icon-sm" onClick={onPlay}>{playing ? <Pause /> : <Play />}</OperatorIconButton><small>{formatDuration(Number(asset.duration_ms || 0) / 1000)}</small></span>}
-      {onAction && <OperatorIconButton className="audio-asset-card-add" label={actionBusy ? "Adding audio…" : actionLabel} detail={replacing ? "Replaces the selected placement while preserving its timing." : "Places this audio on the selected track at the playhead."} side="left" variant="default" busy={actionBusy} busyLabel="Adding audio…" onClick={onAction}>{replacing ? <RefreshCw /> : <Plus />}</OperatorIconButton>}
+      {onAction && <OperatorIconButton className="audio-asset-card-add" label={actionBusy ? "Adding audio…" : actionLabel} detail={replacing ? "Replaces the selected placement while preserving its timing." : "Places this audio on the selected track at the playhead."} side="left" variant="outline" busy={actionBusy} busyLabel="Adding audio…" onClick={onAction}>{replacing ? <RefreshCw /> : <Plus />}</OperatorIconButton>}
     </div>
   </article>
 }
 
-export function AudioCatalogCard({ result, selected, playing, kept, busy, onSelect, onPlay, onKeep }: {
+export function AudioCatalogCard({ result, family, selected, playing, kept, busy, onSelect, onPlay, onKeep }: {
   result: CatalogSound; selected?: boolean; playing?: boolean; kept?: boolean; busy?: boolean
+  family: AudioFamily
   onSelect: () => void; onPlay?: () => void; onKeep: () => void
 }) {
   const tags = [...new Set(result.tags.map((tag) => tag.trim().toLocaleLowerCase()).filter(Boolean))]
-  return <article className={cn("audio-asset-card is-sfx", selected && "is-selected")}>
+  return <article className={cn("audio-asset-card", `is-${family}`, selected && "is-selected")}>
     {kept && <OperatorTooltip label="In Audio Library" detail="This Freesound result is already saved as a reusable Asset." side="bottom"><span className="audio-asset-card-used" tabIndex={0} aria-label="In Audio Library"><CircleCheck /></span></OperatorTooltip>}
-    <AudioCardProvenance source="freesound" detail={`Freesound · ${result.creator}`} />
-    <AudioCardMain title={result.name} selected={selected} icon={<SoundMediaIcon kind="sfx" />} onSelect={onSelect} />
+    <header className="audio-asset-card-identity"><AudioFamilyBadge family={family} suggested /><AudioSourceBadge source="freesound" detail={`Freesound · ${result.creator}`} /></header>
+    <AudioCardMain title={result.name} selected={selected} onSelect={onSelect} />
     <AudioCardTags tags={tags} />
     <div className="audio-asset-card-actions">
       {result.preview_url && onPlay && <span className="audio-asset-card-audition"><OperatorIconButton className="audio-asset-card-play" data-playing={playing || undefined} label={playing ? `Pause ${result.name}` : `Audition ${result.name}`} detail="This is a temporary Freesound preview." size="icon-sm" onClick={onPlay}>{playing ? <Pause /> : <Play />}</OperatorIconButton><small>{formatDuration(result.duration_ms / 1000)}</small></span>}
-      <OperatorIconButton className="audio-asset-card-add" label={kept ? "In Audio Library" : busy ? "Keeping audio…" : "Keep in Audio Library"} detail={kept ? "This result is already a reusable Asset." : "Saves this external result before it can be used in Productions."} side="left" variant="default" busy={busy} busyLabel="Keeping audio…" disabled={kept} onClick={onKeep}>{kept ? <Check /> : <Plus />}</OperatorIconButton>
+      <OperatorIconButton className="audio-asset-card-add" label={kept ? "In Audio Library" : busy ? "Keeping audio…" : "Keep in Audio Library"} detail={kept ? "This result is already a reusable Asset." : "Saves this external result before it can be used in Productions."} side="left" variant="outline" busy={busy} busyLabel="Keeping audio…" disabled={kept} onClick={onKeep}>{kept ? <Check /> : <Plus />}</OperatorIconButton>
     </div>
   </article>
 }

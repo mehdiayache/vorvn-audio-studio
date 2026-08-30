@@ -1,6 +1,8 @@
-import { lazy, Suspense } from "react"
+import { lazy, Suspense, useEffect } from "react"
 
+import { useGlobalPlayer } from "@/components/global-player-provider"
 import type { AssetMode, AssetUploadInput, CatalogKeepInput, GeneratedKeepInput } from "@/components/production-tools/asset-tool"
+import { TransportStripView } from "@/components/transport-strip"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type { CatalogKeepResult, GeneratedKeepResult, PlayerSource, Production, StudioConfig, VentureAsset } from "@/types/domain"
 import type { VoiceDirectory } from "@/types/domain"
@@ -37,18 +39,37 @@ export function ProductionToolDialog({ open, production, config, nextPartNumber,
   onImported: () => void
   onPlay: (source: PlayerSource) => void
 }) {
+  const player = useGlobalPlayer()
   const assetMode: AssetMode = open === "audio" ? "sound" : "sequence"
   const productionId = production.id
   const replacingAsset = Boolean(replacingAssetId)
   const title = open === "import" ? "Import JSON" : open === "silence" ? "Add silence" : replacingAsset ? "Audio Library · Replace linked audio" : "Audio Library"
   const destination = beforePartId ? "Insert at the selected Script position." : `Add as Part ${nextPartNumber}.`
   const description = open === "import" ? "Append authored Speech Drafts and Silence to this existing Production. Validate locally, map roles to owned Voices, then confirm once." : assetMode === "sound" ? "Audition freely. Nothing enters this Audio Track until you confirm." : `${destination} Audition freely; the Script changes only after confirmation.`
+  useEffect(() => {
+    if (open !== "asset" && open !== "audio") return
+    return player.claimTransport("library")
+  }, [open, player.claimTransport])
+  const libraryTransport = player.source ? <TransportStripView
+    variant="library"
+    source={player.source}
+    state={player.state}
+    currentTime={player.currentTime}
+    duration={player.duration}
+    volume={player.volume}
+    speed={player.speed}
+    onToggle={() => void player.toggle()}
+    onSeek={player.seek}
+    onVolume={player.setVolume}
+    onSpeed={player.setSpeed}
+    onClose={player.close}
+  /> : null
   return <Dialog open={Boolean(open)} onOpenChange={(next) => { if (!next) onClose() }}>
     <DialogContent className={`tool-dialog ${open === "import" ? "import-dialog" : open === "silence" ? "silence-dialog" : "asset-dialog"}`}>
       <DialogHeader className={open === "asset" || open === "audio" ? "asset-dialog-a11y-header" : undefined}><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
       <Suspense fallback={<div className="tool-panel-body"><span className="eyebrow">Loading tool…</span></div>}>
         {open === "silence" && <SilenceTool onAdd={onAddSilence} />}
-        {(open === "asset" || open === "audio") && <AssetTool assets={assets} usedAssetIds={usedAssetIds} mode={assetMode} productionId={productionId} chooseLabel={replacingAsset ? "Replace linked audio" : undefined} initialSelectedId={assetMode === "sound" ? initialAudioAssetId : replacingAssetId} playingKey={playingKey} playerPlaying={playerPlaying} onChoose={assetMode === "sound" ? onPlaceAudio : onInsertAsset} onUpload={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onUploadAsset(folder, input) }} onKeep={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onKeepAsset(folder, input) }} onKeepGenerated={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onKeepGenerated(folder, input) }} onPlay={onPlay} />}
+        {(open === "asset" || open === "audio") && <AssetTool assets={assets} usedAssetIds={usedAssetIds} mode={assetMode} productionId={productionId} chooseLabel={replacingAsset ? "Replace linked audio" : undefined} initialSelectedId={assetMode === "sound" ? initialAudioAssetId : replacingAssetId} playingKey={playingKey} playerPlaying={playerPlaying} transport={libraryTransport} onChoose={assetMode === "sound" ? onPlaceAudio : onInsertAsset} onUpload={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onUploadAsset(folder, input) }} onKeep={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onKeepAsset(folder, input) }} onKeepGenerated={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onKeepGenerated(folder, input) }} onPlay={onPlay} />}
         {open === "import" && <ProductionImportTool existing={{ id: production.id, publicId: production.public_id, name: production.name, description: production.description, partCount: nextPartNumber - 1, parent: production.series_id ? { type: "series", id: production.series_id, name: production.trail.at(-1)?.name || "Series" } : { type: "project", id: Number(production.project_id), name: production.trail.at(-1)?.name || "Project" } }} config={config} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onCompleted={onImported} onCancel={onClose} />}
       </Suspense>
     </DialogContent>
