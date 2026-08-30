@@ -97,11 +97,11 @@ export function TimelineWorkspace({ session, visual, onAddAudio, onRemoveClip, o
   const context: SoundContext | null = selectedPart ? {
     kind: selectedPart.silence ? "silence" : "sequence",
     label: selectedPart.silence ? `Silence · ${formatDuration(selectedPart.duration_ms / 1000)}` : selectedPart.role || selectedPart.voice_name || selectedPart.title || `Part ${Number(selectedPart.position ?? 0) + 1}`,
-    muted: selectedPart.mix.muted, gain: selectedPart.mix.gain, effects: selectedPart.mix.effects,
+    muted: selectedPart.mix.muted || selectedPart.mix.gain <= 0, gain: selectedPart.mix.gain, effects: selectedPart.mix.effects,
   } : selectedClips.length ? {
     kind: "audio", label: selectedClips.length === 1 ? selectedClips[0]!.clip.asset_name || "Audio clip" : "Audio selection",
     count: selectedClips.length,
-    muted: selectedClips.every(({ clip }) => clip.muted),
+    muted: selectedClips.every(({ clip }) => clip.muted || clip.gain <= 0),
     lockState: lockedClipCount === 0 ? "unlocked" : lockedClipCount === selectedClips.length ? "locked" : "mixed",
     gain: selectedClips[0]!.clip.gain,
     gainMixed: selectedClips.some(({ clip }) => Math.abs(gainToDb(clip.gain) - gainToDb(selectedClips[0]!.clip.gain)) > .05),

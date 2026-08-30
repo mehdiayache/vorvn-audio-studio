@@ -1,4 +1,4 @@
-import { AudioWaveform, Blend, ChevronDown, CircleHelp, Clock3, Headphones, Music2, Pause, Play, RefreshCcw, SlidersHorizontal, Trash2 } from "lucide-react"
+import { AudioWaveform, Blend, ChevronDown, CircleHelp, Clock3, Music2, Pause, Play, RefreshCcw, SlidersHorizontal, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { OperatorIconButton } from "@/components/operator-action"
@@ -12,7 +12,8 @@ import { soundClipSourceUrl } from "../engine/sound-clip-source"
 import { assetSourceLine } from "@/lib/asset-provenance"
 import { formatDuration } from "@/lib/format"
 import type { PlayerSource, SoundSceneClip, SoundSceneTrack, VentureAsset } from "@/types/domain"
-import { dbToGain, formatDb, gainToDb, MAX_GAIN_DB, MIN_GAIN_DB } from "../sound-scene-gain"
+import { AudioVolumeControl, type AudioVolumeMix } from "../components/audio-volume-control"
+import { formatDb, gainToVolumePercent } from "../sound-scene-gain"
 import { AudioSourceEditor, type AudioSourceWindow } from "../source-editor/music-source-editor"
 
 import "./music-inspector.css"
@@ -31,7 +32,7 @@ function technicalSummary(asset: VentureAsset | undefined, sourceDuration: numbe
   return facts.join(" · ")
 }
 
-export function AudioClipInspector({ track, clip, asset, playingKey, playing, onPlay, onClipChange, onClipCommit, onTrackVolumeChange, onTrackVolumeCommit, onChoose, onRemove }: {
+export function AudioClipInspector({ track, clip, asset, playingKey, playing, onPlay, onClipChange, onClipCommit, onTrackMixChange, onTrackMixCommit, onChoose, onRemove }: {
   track: SoundSceneTrack
   clip: SoundSceneClip | null
   asset?: VentureAsset
@@ -40,13 +41,11 @@ export function AudioClipInspector({ track, clip, asset, playingKey, playing, on
   onPlay: (source: PlayerSource) => void
   onClipChange: (changes: Partial<SoundSceneClip>) => void
   onClipCommit: () => Promise<void>
-  onTrackVolumeChange: (volume: number) => void
-  onTrackVolumeCommit: (volume: number) => Promise<void>
+  onTrackMixChange: (mix: AudioVolumeMix) => void
+  onTrackMixCommit: (mix: AudioVolumeMix) => Promise<void>
   onChoose: () => void
   onRemove: () => void
 }) {
-  const [clipGainDb, setClipGainDb] = useState(gainToDb(clip?.gain ?? 1))
-  const [trackGainDb, setTrackGainDb] = useState(gainToDb(track.volume ?? 1))
   const [start, setStart] = useState((clip?.source_offset_ms ?? 0) / 1000)
   const [windowDuration, setWindowDuration] = useState((clip?.duration_ms ?? clip?.resolved_duration_ms ?? 0) / 1000)
   const [fadeIn, setFadeIn] = useState((clip?.fade_in_ms ?? 0) / 1000)
@@ -54,8 +53,6 @@ export function AudioClipInspector({ track, clip, asset, playingKey, playing, on
   const [duckAmountDb, setDuckAmountDb] = useState(clip?.duck_amount_db ?? -12)
   const [saving, setSaving] = useState("")
   const [error, setError] = useState("")
-  useEffect(() => setClipGainDb(gainToDb(clip?.gain ?? 1)), [clip?.gain])
-  useEffect(() => setTrackGainDb(gainToDb(track.volume ?? 1)), [track.volume])
   useEffect(() => setStart((clip?.source_offset_ms ?? 0) / 1000), [clip?.source_offset_ms])
   useEffect(() => setWindowDuration((clip?.duration_ms ?? clip?.resolved_duration_ms ?? 0) / 1000), [clip?.duration_ms, clip?.resolved_duration_ms])
   useEffect(() => setFadeIn((clip?.fade_in_ms ?? 0) / 1000), [clip?.fade_in_ms])
@@ -83,7 +80,9 @@ export function AudioClipInspector({ track, clip, asset, playingKey, playing, on
   const sourceDuration = Math.max(Number(asset?.duration_ms || clip.source_duration_ms || 0) / 1000, 0.1)
   const usedDuration = Math.max(windowDuration, .1)
   const geometryLocked = Boolean(clip.locked)
-  const effectiveGainDb = Math.max(MIN_GAIN_DB, clipGainDb + trackGainDb)
+  const clipVolume = clip.muted || clip.gain <= 0 ? 0 : gainToVolumePercent(clip.gain)
+  const trackVolume = track.muted || track.volume <= 0 ? 0 : gainToVolumePercent(track.volume)
+  const outputVolume = clipVolume === 0 || trackVolume === 0 ? 0 : Math.round(clip.gain * track.volume * 100)
   const category = String(asset?.category || clip.asset_kind || "other").toLowerCase()
   const SourceIcon = category === "sfx" ? AudioWaveform : Music2
   const duckAmountLabel = duckAmountDb === 0 ? "No reduction" : formatDb(duckAmountDb)
@@ -108,12 +107,12 @@ export function AudioClipInspector({ track, clip, asset, playingKey, playing, on
       <AudioSourceEditor url={soundClipSourceUrl(clip)} sourceDuration={sourceDuration} sourceOffset={start} usedDuration={usedDuration} loop={Boolean(clip.loop)} disabled={Boolean(saving) || geometryLocked} onChange={sourceWindow} onCommit={(next) => { sourceWindow(next); void save("source window", onClipCommit) }} />
     </OperatorInspectorSection>
 
-    <OperatorInspectorSection icon={SlidersHorizontal} title="Level" meta={formatDb(clipGainDb)} metaTechnical help="Clip level affects this placement. Advanced track level affects every clip on the same track." className="music-workbench-section music-level-section">
-      <label className="music-primary-level"><span><Headphones /> Clip level <b>{formatDb(clipGainDb)}</b></span><Slider aria-label="Audio clip gain" disabled={Boolean(saving)} value={[clipGainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setClipGainDb(value); onClipChange({ gain: dbToGain(value) }) }} onValueCommit={([value = clipGainDb]) => { setClipGainDb(value); onClipChange({ gain: dbToGain(value) }); void save("clip level", onClipCommit) }} /></label>
-      <p className="music-output-fact">Output {formatDb(effectiveGainDb)} <span>Clip {formatDb(clipGainDb)} + Track {formatDb(trackGainDb)}</span></p>
+    <OperatorInspectorSection icon={SlidersHorizontal} title="Volume" meta={`${clipVolume}%`} metaTechnical help="Clip volume affects this placement. Track volume affects every clip on the same track." className="music-workbench-section music-level-section">
+      <AudioVolumeControl label="Clip volume" gain={clip.gain} muted={clip.muted} disabled={Boolean(saving)} onPreview={({ gain, muted }) => onClipChange({ gain, muted })} onCommit={({ gain, muted }) => { onClipChange({ gain, muted }); return save("clip volume", onClipCommit) }} />
+      <p className="music-output-fact">Output {outputVolume}% <span>Clip {clipVolume}% × Track {trackVolume}%</span></p>
       <Collapsible className="music-advanced-level">
-        <CollapsibleTrigger><span>Advanced track level</span><b>{formatDb(trackGainDb)}</b><ChevronDown /></CollapsibleTrigger>
-        <CollapsibleContent><label><span><Music2 /> Track level <b>{formatDb(trackGainDb)}</b></span><Slider aria-label="Audio Track gain" disabled={Boolean(saving)} value={[trackGainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setTrackGainDb(value); onTrackVolumeChange(dbToGain(value)) }} onValueCommit={([value = trackGainDb]) => { setTrackGainDb(value); void save("track level", () => onTrackVolumeCommit(dbToGain(value))) }} /></label><p>Changes every clip placed on this track.</p></CollapsibleContent>
+        <CollapsibleTrigger><span>Track volume</span><b>{trackVolume}%</b><ChevronDown /></CollapsibleTrigger>
+        <CollapsibleContent><AudioVolumeControl label="Track volume" gain={track.volume} muted={track.muted} disabled={Boolean(saving)} onPreview={onTrackMixChange} onCommit={(mix) => save("track volume", () => onTrackMixCommit(mix))} /><p>Changes every clip placed on this track.</p></CollapsibleContent>
       </Collapsible>
     </OperatorInspectorSection>
 
@@ -132,7 +131,7 @@ export function AudioClipInspector({ track, clip, asset, playingKey, playing, on
       <p className={`music-save-state${error ? " is-error" : ""}`} role={error ? "alert" : "status"} aria-live="polite">{error || (saving ? `Saving ${saving}…` : "Changes save on release")}</p>
     </OperatorInspectorSection>
 
-    {geometryLocked && <p className="music-lock-note">Timing is locked. Level and effects remain available.</p>}
+    {geometryLocked && <p className="music-lock-note">Timing is locked. Volume and effects remain available.</p>}
     <section className="music-workbench-actions"><Button variant="outline" disabled={Boolean(saving) || geometryLocked} onClick={onChoose}><RefreshCcw /> Replace source</Button><Button variant="ghost" className="danger" disabled={Boolean(saving) || geometryLocked} onClick={onRemove}><Trash2 /> Remove clip</Button></section>
   </div>
 }

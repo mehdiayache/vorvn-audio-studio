@@ -572,6 +572,26 @@ export class SoundSceneSession {
     await this.commitClip()
   }
 
+  async commitSelectedClipMute(muted: boolean, refs = this.selectedClips()) {
+    if (!refs.length) return
+    for (const ref of refs) {
+      const clip = this.currentClip(ref.trackId, ref.clipId)
+      if (!clip) continue
+      this.updateClip(ref.trackId, ref.clipId, { muted, ...(!muted && clip.gain <= 0 ? { gain: 1 } : {}) })
+    }
+    await this.commitClip()
+  }
+
+  async commitSelectedClipVolumeMultiplier(multiplier: number, refs = this.selectedClips()) {
+    if (!refs.length) return
+    for (const ref of refs) {
+      const clip = this.currentClip(ref.trackId, ref.clipId)
+      if (!clip) continue
+      this.updateClip(ref.trackId, ref.clipId, { gain: Math.min(2, Math.max(0, (clip.gain > 0 ? clip.gain : 1) * multiplier)), muted: multiplier <= 0 })
+    }
+    await this.commitClip()
+  }
+
   async commitSelectedClipGainDelta(deltaDb: number, refs = this.selectedClips()) {
     if (!refs.length) return
     for (const ref of refs) {
@@ -605,6 +625,16 @@ export class SoundSceneSession {
   }
   async commitTrackMute(trackId: string, muted: boolean) {
     this.setTrackMute(trackId, muted)
+    await this.persist(this.editor.document())
+  }
+  setTrackMix(trackId: string, changes: { volume: number; muted: boolean }) {
+    this.editor.setTrackVolume(trackId, changes.volume)
+    this.editor.setTrackMute(trackId, changes.muted)
+    this.playout.setTrackVolume(trackId, changes.volume)
+    this.playout.muteTrack(trackId, changes.muted)
+  }
+  async commitTrackMix(trackId: string, changes: { volume: number; muted: boolean }) {
+    this.setTrackMix(trackId, changes)
     await this.persist(this.editor.document())
   }
   toggleTrackSolo(trackId: string) {

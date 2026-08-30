@@ -3,7 +3,6 @@ import { CircleAlert, X } from "lucide-react"
 import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import type { SoundSceneSession, SoundClipRef } from "@/features/sound-scene/engine/sound-scene-session"
-import { dbToGain } from "@/features/sound-scene/sound-scene-gain"
 import { SoundSceneContextToolbar, type SoundContext } from "@/features/sound-scene/timeline/sound-scene-context-toolbar"
 import { videoHasEmbeddedAudio } from "@/features/sound-scene/engine/video-audio-sync"
 import type { VisualSceneSession, VisualClipRef } from "@/features/visual-scene/engine/visual-scene-session"
@@ -47,8 +46,11 @@ export function TimelineContextBar({ audioSession, visualSession, selectedAudioR
       saving={visualSaving || saving}
       canSplit={selectedVisualRefs.length === 1 && canSplitVisual}
       hasAudio={selectedVisualRefs.length === 1 && videoHasEmbeddedAudio(selectedVisualAsset)}
-      audioMuted={selectedVideoAudio?.clip.muted}
-      onAudioMute={selectedVisualRefs.length === 1 && selectedVideoAudio ? () => void audioSession.commitClipChanges(selectedVideoAudio.trackId, selectedVideoAudio.clip.id, { muted: !selectedVideoAudio.clip.muted }) : undefined}
+      audioMuted={selectedVideoAudio ? selectedVideoAudio.clip.muted || selectedVideoAudio.clip.gain <= 0 : undefined}
+      onAudioMute={selectedVisualRefs.length === 1 && selectedVideoAudio ? () => {
+        const muted = selectedVideoAudio.clip.muted || selectedVideoAudio.clip.gain <= 0
+        void audioSession.commitClipChanges(selectedVideoAudio.trackId, selectedVideoAudio.clip.id, { muted: !muted, ...(!muted || selectedVideoAudio.clip.gain > 0 ? {} : { gain: 1 }) })
+      } : undefined}
       onSplit={() => void visualSession.splitVideo(selectedVisualRef, playhead * 1000, selectedVisualAsset)}
       onLock={() => void visualSession.setClipsLocked(selectedVisualRefs, !selectedVisualRefs.every((ref) => visualSession.currentClip(ref)?.locked))}
       onDuplicate={() => void visualSession.duplicateClips(selectedVisualRefs)}
@@ -56,9 +58,9 @@ export function TimelineContextBar({ audioSession, visualSession, selectedAudioR
     /> : context ? <SoundSceneContextToolbar
       context={context}
       saving={saving}
-      onMute={() => { if (selectedPart) void audioSession.updateSequenceOverride(selectedPart.part_public_id, { muted: !selectedPart.mix.muted }); else void audioSession.commitSelectedClipChanges({ muted: !context.muted }, selectedAudioRefs) }}
-      onGainPreview={(gainDb, relative) => { if (relative) return; const gain = dbToGain(gainDb); if (selectedPart) audioSession.previewSequenceOverride(selectedPart.part_public_id, { gain }); else if (selectedAudioRefs[0]) audioSession.updateClip(selectedAudioRefs[0].trackId, selectedAudioRefs[0].clipId, { gain }) }}
-      onGain={(gainDb, relative) => { if (relative) void audioSession.commitSelectedClipGainDelta(gainDb, selectedAudioRefs); else if (selectedPart) void audioSession.updateSequenceOverride(selectedPart.part_public_id, { gain: dbToGain(gainDb) }); else if (selectedAudioRefs[0]) void audioSession.commitClipChanges(selectedAudioRefs[0].trackId, selectedAudioRefs[0].clipId, { gain: dbToGain(gainDb) }) }}
+      onMute={(muted) => { if (selectedPart) void audioSession.updateSequenceOverride(selectedPart.part_public_id, { muted, ...(!muted && selectedPart.mix.gain <= 0 ? { gain: 1 } : {}) }); else void audioSession.commitSelectedClipMute(muted, selectedAudioRefs) }}
+      onVolumePreview={({ gain, muted }, relative) => { if (relative) return; if (selectedPart) audioSession.previewSequenceOverride(selectedPart.part_public_id, { gain, muted }); else if (selectedAudioRefs[0]) audioSession.updateClip(selectedAudioRefs[0].trackId, selectedAudioRefs[0].clipId, { gain, muted }) }}
+      onVolume={({ gain, muted }, relative) => { if (relative) { if (muted) void audioSession.commitSelectedClipMute(true, selectedAudioRefs); else void audioSession.commitSelectedClipVolumeMultiplier(gain, selectedAudioRefs) } else if (selectedPart) void audioSession.updateSequenceOverride(selectedPart.part_public_id, { gain, muted }); else if (selectedAudioRefs[0]) void audioSession.commitClipChanges(selectedAudioRefs[0].trackId, selectedAudioRefs[0].clipId, { gain, muted }) }}
       onEffectsPreview={(effects) => { if (selectedPart) audioSession.previewSequenceOverride(selectedPart.part_public_id, { effects }); else if (selectedAudioRefs[0]) audioSession.updateClip(selectedAudioRefs[0].trackId, selectedAudioRefs[0].clipId, { effects }) }}
       onEffects={(effects) => { if (selectedPart) void audioSession.updateSequenceOverride(selectedPart.part_public_id, { effects }); else if (selectedAudioRefs[0]) void audioSession.commitClipChanges(selectedAudioRefs[0].trackId, selectedAudioRefs[0].clipId, { effects }) }}
       onLock={() => void audioSession.commitSelectedClipChanges({ locked: context.lockState !== "locked" }, selectedAudioRefs)}

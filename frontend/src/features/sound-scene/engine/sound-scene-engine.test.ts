@@ -461,6 +461,29 @@ describe("SoundSceneSession", () => {
     session.dispose()
   })
 
+  it("persists track volume and mute as one coherent mix edit", async () => {
+    const source = scene()
+    const update = vi.fn().mockResolvedValue({ ...source, revision: 2 })
+    const playout = {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(),
+      seek: vi.fn(), currentTime: vi.fn().mockReturnValue(0),
+      isPlaying: vi.fn().mockReturnValue(false), muteTrack: vi.fn(),
+      setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    }
+    const session = new SoundSceneSession(source, {
+      update, undo: vi.fn().mockResolvedValue(source),
+      redo: vi.fn().mockResolvedValue(source),
+    }, playout)
+
+    await session.commitTrackMix("music", { volume: .65, muted: true })
+
+    expect(playout.setTrackVolume).toHaveBeenCalledWith("music", .65)
+    expect(playout.muteTrack).toHaveBeenCalledWith("music", true)
+    expect(update).toHaveBeenCalledOnce()
+    expect(update.mock.calls[0]![0].tracks[0]).toMatchObject({ volume: .65, muted: true })
+    session.dispose()
+  })
+
   it("adopts a saved gain while playing without replacing or moving the transport", async () => {
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(7))
     vi.stubGlobal("cancelAnimationFrame", vi.fn())

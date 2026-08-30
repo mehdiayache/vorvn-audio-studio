@@ -48,12 +48,12 @@ describe("VisualClipInspector", () => {
     const asset = { id: 5, media_type: "video", name: "Evening shore", filename: "shore.mp4", duration_ms: 12_000, channels: 2, sample_rate: 48_000, metadata: { audio_codec: "aac" } } as VentureAsset
     const session = { setClipLocked: vi.fn() } as unknown as VisualSceneSession
 
-    render(<VisualClipInspector clipRef={{ trackId: "track", clipId: "clip" }} track={track} clip={clip} asset={asset} session={session} saving={false} hasEmbeddedAudio audioGain={1} onAudioMutedChange={vi.fn()} onAudioGainChange={vi.fn()} onAudioGainCommit={vi.fn()} />)
+    render(<VisualClipInspector clipRef={{ trackId: "track", clipId: "clip" }} track={track} clip={clip} asset={asset} session={session} saving={false} hasEmbeddedAudio audioGain={1} onAudioMixChange={vi.fn()} onAudioMixCommit={vi.fn()} />)
 
-    expect(screen.getByText("Mute audio")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Mute Video volume" })).toBeTruthy()
     expect(screen.queryByText("Play embedded audio")).toBeNull()
-    expect(screen.getByRole("slider", { name: "Video audio level" })).toBeTruthy()
-    expect(screen.getByText("0.0 dB")).toBeTruthy()
+    expect(screen.getByRole("slider", { name: "Video volume" })).toBeTruthy()
+    expect(screen.getAllByText("100%").length).toBeGreaterThan(0)
   })
 
   it("starts a transform gesture before a keyboard Scale preview", () => {

@@ -65,10 +65,10 @@ export function TimelineTrackControls({ audioSession, visualSession, audioTracks
       collapsed={collapsed}
       soloTrackIds={soloTrackIds}
       sequenceSummary={sequenceSummary}
-      onMute={(track) => void audioSession.commitTrackMute(track.id, !track.muted)}
+      onMute={(track) => void audioSession.commitTrackMix(track.id, { volume: track.volume > 0 ? track.volume : 1, muted: !(track.muted || track.volume <= 0) })}
       onSolo={(track) => audioSession.toggleTrackSolo(track.id)}
-      onVolumeChange={(track, volume) => audioSession.setTrackVolume(track.id, volume)}
-      onVolumeCommit={(track, volume) => void audioSession.commitTrackVolume(track.id, volume)}
+      onVolumeChange={(track, mix) => audioSession.setTrackMix(track.id, { volume: mix.gain, muted: mix.muted })}
+      onVolumeCommit={(track, mix) => void audioSession.commitTrackMix(track.id, { volume: mix.gain, muted: mix.muted })}
       onAdd={(track) => onAddAudio(track.id)}
       onRemove={onRemoveAudioTrack}
     />

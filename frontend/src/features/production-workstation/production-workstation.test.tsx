@@ -201,22 +201,22 @@ describe("Production Workstation", () => {
     expect(screen.getByRole("button", { name: "Add visual at playhead" })).toBeTruthy()
   })
 
-  it("keeps a muted track level editable for the value that applies on unmute", () => {
+  it("shows a muted track at zero while preserving its volume for unmute", () => {
     const soundScene = scene([part({ id: 1, authored_role: "Narrator", duration_ms: 8_000 })])
     const musicTrack = soundScene.document.tracks[0]
     if (!musicTrack) throw new Error("Expected Music track fixture")
     musicTrack.muted = true
     render(<TimelineWorkspace session={sessionFor(soundScene)} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
-    expect(screen.getByRole("button", { name: "Adjust Music gain" }).textContent).toContain("100%")
-    fireEvent.click(screen.getByRole("button", { name: "Adjust Music gain" }))
-    expect(screen.getByRole("slider", { name: "Music gain" }).getAttribute("aria-disabled")).not.toBe("true")
+    expect(screen.getByRole("button", { name: "Adjust Music volume" }).textContent).toContain("0%")
+    fireEvent.click(screen.getByRole("button", { name: "Adjust Music volume" }))
+    expect(screen.getByRole("slider", { name: "Music volume" }).getAttribute("aria-disabled")).not.toBe("true")
     expect(screen.getByRole("button", { name: "Unmute Music" })).toBeTruthy()
     expect(screen.getAllByText("MUTED")).toHaveLength(2)
     expect(screen.getAllByText("MUTED").every((element) => element.classList.contains("is-technical"))).toBe(true)
   })
 
-  it("opens track gain without changing it and resets to unity explicitly", async () => {
+  it("opens track volume without changing it and resets to 100% explicitly", async () => {
     const soundScene = scene([part({ duration_ms: 8_000 })])
     const musicTrack = soundScene.document.tracks[0]
     const resolvedTrack = soundScene.resolved.tracks[0]
@@ -231,12 +231,12 @@ describe("Production Workstation", () => {
     }))
     render(<TimelineWorkspace session={sessionFor(soundScene, update)} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
-    const trigger = screen.getByRole("button", { name: "Adjust Music gain" })
+    const trigger = screen.getByRole("button", { name: "Adjust Music volume" })
     expect(trigger.textContent).toContain("25%")
     fireEvent.click(trigger)
     expect(update).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole("button", { name: "Reset Music gain to 0 dB" }))
+    fireEvent.click(screen.getByRole("button", { name: "Reset Music volume to 100%" }))
     await waitFor(() => expect(update).toHaveBeenCalledOnce())
     expect(update.mock.calls[0]?.[0].tracks[0].volume).toBe(1)
   })
@@ -247,12 +247,12 @@ describe("Production Workstation", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Hide track controls" }))
 
-    expect(screen.getByRole("button", { name: "Adjust Music gain" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Adjust Music volume" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Track actions for Music" })).toBeTruthy()
     expect(screen.queryByRole("button", { name: "Add audio clip to Music" })).toBeNull()
 
-    fireEvent.click(screen.getByRole("button", { name: "Adjust Music gain" }))
-    expect(screen.getByRole("slider", { name: "Music gain" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Adjust Music volume" }))
+    expect(screen.getByRole("slider", { name: "Music volume" })).toBeTruthy()
 
     fireEvent.keyDown(document, { key: "Escape" })
     fireEvent.pointerDown(screen.getByRole("button", { name: "Track actions for Music" }), { button: 0, ctrlKey: false, pointerType: "mouse" })

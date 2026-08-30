@@ -8,7 +8,7 @@ vi.mock("@/components/ui/slider", () => ({
     onValueChange?: (value: number[]) => void
     onValueCommit?: (value: number[]) => void
   }) => <button type="button" aria-label={label} onClick={() => {
-    const value = label?.includes("gain") ? -6 : label === "Echo delay" ? 440 : label === "Echo feedback" ? 60 : 75
+    const value = label?.toLowerCase().includes("volume") ? 50 : label === "Echo delay" ? 440 : label === "Echo feedback" ? 60 : 75
     onValueChange?.([value]); onValueCommit?.([value])
   }} />,
 }))
@@ -25,13 +25,13 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 describe("SoundSceneContextToolbar", () => {
   it("shows contextual actions only while an object is selected", () => {
     const { container, rerender } = render(<SoundSceneContextToolbar
-      context={null} saving={false} onMute={vi.fn()} onGain={vi.fn()} onEffects={vi.fn()}
+      context={null} saving={false} onMute={vi.fn()} onVolume={vi.fn()} onEffects={vi.fn()}
     />)
     expect(container.querySelector(".sound-scene-context")).toBeNull()
 
     rerender(<SoundSceneContextToolbar
       context={{ kind: "audio", label: "Night bed", muted: false, lockState: "unlocked", gain: .2, effects: [] }}
-      saving={false} onMute={vi.fn()} onGain={vi.fn()} onEffects={vi.fn()}
+      saving={false} onMute={vi.fn()} onVolume={vi.fn()} onEffects={vi.fn()}
       onLock={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()}
     />)
     expect(container.querySelector(".sound-scene-context")).toBeTruthy()
@@ -45,7 +45,7 @@ describe("SoundSceneContextToolbar", () => {
     const onEffectsPreview = vi.fn()
     render(<SoundSceneContextToolbar
       context={{ kind: "sequence", label: "Narrator", muted: false, gain: 1, effects: [] }}
-      saving={false} onMute={vi.fn()} onGain={vi.fn()} onEffectsPreview={onEffectsPreview} onEffects={onEffects}
+      saving={false} onMute={vi.fn()} onVolume={vi.fn()} onEffectsPreview={onEffectsPreview} onEffects={onEffects}
     />)
 
     fireEvent.click(screen.getByRole("button", { name: /Effects/ }))
@@ -62,37 +62,37 @@ describe("SoundSceneContextToolbar", () => {
     const onMute = vi.fn()
     render(<SoundSceneContextToolbar
       context={{ kind: "sequence", label: "Narrator", muted: false, gain: 1, effects: [] }}
-      saving={false} onMute={onMute} onGain={vi.fn()} onEffects={vi.fn()}
+      saving={false} onMute={onMute} onVolume={vi.fn()} onEffects={vi.fn()}
     />)
 
     fireEvent.click(screen.getByRole("button", { name: "Mute Part audio" }))
-    expect(onMute).toHaveBeenCalledOnce()
+    expect(onMute).toHaveBeenCalledWith(true)
   })
 
-  it("previews and commits one clip gain in dB", () => {
-    const onGainPreview = vi.fn()
-    const onGain = vi.fn()
+  it("previews and commits one clip volume as a percentage mix", () => {
+    const onVolumePreview = vi.fn()
+    const onVolume = vi.fn()
     render(<SoundSceneContextToolbar
       context={{ kind: "audio", label: "Night bed", muted: false, gain: .25, effects: [] }}
-      saving={false} onMute={vi.fn()} onGainPreview={onGainPreview} onGain={onGain} onEffects={vi.fn()}
+      saving={false} onMute={vi.fn()} onVolumePreview={onVolumePreview} onVolume={onVolume} onEffects={vi.fn()}
     />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Gain" }))
-    fireEvent.click(screen.getByRole("button", { name: "Audio clip gain" }))
+    fireEvent.click(screen.getByRole("button", { name: "Volume" }))
+    fireEvent.click(screen.getByRole("button", { name: "Clip volume" }))
 
-    expect(onGainPreview).toHaveBeenCalledWith(-6, false)
-    expect(onGain).toHaveBeenCalledWith(-6, false)
+    expect(onVolumePreview).toHaveBeenCalledWith({ gain: .5, muted: false }, false)
+    expect(onVolume).toHaveBeenCalledWith({ gain: .5, muted: false }, false)
   })
 
-  it("describes a mixed selection as a relative dB adjustment", () => {
+  it("describes a mixed selection as a relative percentage adjustment", () => {
     render(<SoundSceneContextToolbar
       context={{ kind: "audio", label: "Audio selection", count: 2, muted: false, gain: .25, gainMixed: true, effects: [] }}
-      saving={false} onMute={vi.fn()} onGain={vi.fn()} onEffects={vi.fn()}
+      saving={false} onMute={vi.fn()} onVolume={vi.fn()} onEffects={vi.fn()}
     />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Gain" }))
-    expect(screen.getByText("Relative gain")).toBeTruthy()
-    expect(screen.getByText("0.0 dB")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Volume" }))
+    expect(screen.getByText("Selection volume change")).toBeTruthy()
+    expect(screen.getByText("100%")).toBeTruthy()
   })
 
   it("shows and commits the actual serial effect order", () => {
@@ -102,7 +102,7 @@ describe("SoundSceneContextToolbar", () => {
         { id: "2bc326ca-57ba-4e63-bdfd-6145dfb73181", type: "telephone", enabled: true },
         { id: "3bc326ca-57ba-4e63-bdfd-6145dfb73181", type: "echo", enabled: true, delay_ms: 180, feedback: .28, mix: .22 },
       ] }}
-      saving={false} onMute={vi.fn()} onGain={vi.fn()} onEffects={onEffects}
+      saving={false} onMute={vi.fn()} onVolume={vi.fn()} onEffects={onEffects}
     />)
 
     fireEvent.click(screen.getByRole("button", { name: /Effects/ }))
@@ -123,7 +123,7 @@ describe("SoundSceneContextToolbar", () => {
         id: "3bc326ca-57ba-4e63-bdfd-6145dfb73181", type: "echo",
         enabled: true, delay_ms: 180, feedback: .28, mix: .22,
       }] }}
-      saving={false} onMute={vi.fn()} onGain={vi.fn()}
+      saving={false} onMute={vi.fn()} onVolume={vi.fn()}
       onEffectsPreview={onEffectsPreview} onEffects={onEffects}
       onLock={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()}
     />)

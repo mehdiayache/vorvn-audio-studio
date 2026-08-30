@@ -120,22 +120,7 @@
 .sound-track-control.is-muted { background: color-mix(in oklab, var(--destructive) 4%, white); }
 .sound-track-control.is-solo { background: color-mix(in oklab, var(--warning) 7%, white); }
 .sound-track-control.is-solo-suppressed:not(.is-muted) { color: var(--muted-foreground); background: var(--surface-subtle); }
-.sound-track-volume-popover { width: 10.5rem; display: grid; gap: .65rem; padding: .7rem; }
-.sound-track-volume-popover header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.sound-track-volume-popover header > span { min-width: 0; display: grid; }
-.sound-track-volume-popover header b, .sound-track-volume-popover header small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sound-track-volume-popover header b { font-size: .7rem; }.sound-track-volume-popover header small { color: var(--muted-foreground); font-size: .58rem; }
-.sound-track-volume-popover header strong { display: grid; flex: none; justify-items: end; gap: .12rem; }
-.sound-track-volume-popover header strong b { font: var(--weight-emphasis) var(--type-workstation-secondary)/1 var(--font-mono); }.sound-track-volume-popover header strong small { color: var(--muted-foreground); font: var(--weight-regular) var(--type-workstation-data)/1 var(--font-mono); }
-.sound-track-volume-popover .sound-track-volume-reset { width: 1.45rem; height: 1.45rem; margin-left: -.25rem; }
-.sound-track-volume-editor { height: 8rem; display: grid; grid-template-columns: 2rem 2rem; align-items: center; justify-content: center; gap: .25rem; }
-.sound-track-volume-editor [data-slot="slider"] { width: 2rem; height: 7.5rem; min-height: 7.5rem; }
-.sound-track-volume-editor [data-slot="slider-track"] { width: 4px; }
-.sound-track-volume-editor [data-slot="slider-thumb"] { width: .8rem; height: .8rem; }
-.sound-track-volume-scale { position: relative; width: 2rem; height: 7.5rem; color: var(--muted-foreground); font: var(--weight-regular) var(--type-workstation-data)/1 var(--font-mono); font-variant-numeric: tabular-nums; }
-.sound-track-volume-scale span { position: absolute; left: 0; transform: translateY(-50%); }
-.sound-track-volume-scale span:first-child { transform: none; }
-.sound-track-volume-scale span:last-child { transform: translateY(-100%); }
+.sound-track-volume-popover { width: 14rem; padding: .7rem; }
 .tracks-collapsed .sound-scene-track-head { justify-content: center; padding: 0; }
 .tracks-collapsed .sound-scene-track-head span { display: none; }
 .tracks-collapsed .sound-sequence-control, .tracks-collapsed .sound-track-select { justify-content: center; padding-inline: .3rem; }

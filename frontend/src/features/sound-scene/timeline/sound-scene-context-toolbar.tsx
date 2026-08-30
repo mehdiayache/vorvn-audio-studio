@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import type { SoundSceneEffect } from "@/types/domain"
-import { formatDb, gainToDb, MAX_GAIN_DB, MIN_GAIN_DB } from "../sound-scene-gain"
+import { AudioVolumeControl, type AudioVolumeMix } from "../components/audio-volume-control"
 
 type EffectsProps = {
   effects: SoundSceneEffect[]
@@ -182,13 +182,13 @@ export type SoundContext = {
   count?: number
 }
 
-export function SoundSceneContextToolbar({ context, saving, canSplit, onMute, onGainPreview, onGain, onEffectsPreview, onEffects, onLock, onSplit, onDuplicate, onCrossfade, onPlaySelection, onLoopSelection, onDelete }: {
+export function SoundSceneContextToolbar({ context, saving, canSplit, onMute, onVolumePreview, onVolume, onEffectsPreview, onEffects, onLock, onSplit, onDuplicate, onCrossfade, onPlaySelection, onLoopSelection, onDelete }: {
   context: SoundContext | null
   saving: boolean
   canSplit?: boolean
-  onMute: () => void
-  onGainPreview?: (gainDb: number, relative: boolean) => void
-  onGain: (gainDb: number, relative: boolean) => void
+  onMute: (muted: boolean) => void
+  onVolumePreview?: (mix: AudioVolumeMix, relative: boolean) => void
+  onVolume: (mix: AudioVolumeMix, relative: boolean) => void
   onEffectsPreview?: (effects: SoundSceneEffect[]) => void
   onEffects: (effects: SoundSceneEffect[]) => void
   onLock?: () => void
@@ -199,8 +199,6 @@ export function SoundSceneContextToolbar({ context, saving, canSplit, onMute, on
   onLoopSelection?: () => void
   onDelete?: () => void
 }) {
-  const [gainDb, setGainDb] = useState(context?.gainMixed ? 0 : gainToDb(context?.gain ?? 1))
-  useEffect(() => setGainDb(context?.gainMixed ? 0 : gainToDb(context?.gain ?? 1)), [context?.gain, context?.gainMixed, context?.label])
   if (!context) return null
   const lockState = context.lockState || "unlocked"
   const hasLockedClips = lockState !== "unlocked"
@@ -215,8 +213,8 @@ export function SoundSceneContextToolbar({ context, saving, canSplit, onMute, on
   return <div className="sound-scene-context" aria-label={`${context.label} actions`}>
     <div className="sound-context-group is-identity"><span className="sound-context-label"><b>{context.label}</b>{context.count && context.count > 1 ? <small className="is-technical">{context.count} clips</small> : <small>{context.kind === "audio" ? "Audio clip" : context.kind === "silence" ? "Script pause" : "Script Part"}</small>}</span></div>
     {context.kind !== "silence" && <div className="sound-context-group is-mix">
-      <OperatorIconButton label={muteLabel} detail={muteDetail} className="sound-context-command" disabled={saving} onClick={onMute}>{context.muted ? <VolumeX /> : <Volume2 />}</OperatorIconButton>
-      <Popover><OperatorTooltip label="Gain" detail={context.gainMixed ? "Adjust all selected clips relatively." : context.kind === "sequence" ? "Adjust this Script Part level." : "Adjust this clip level."} disabledTrigger={saving}><PopoverTrigger asChild><Button className="sound-context-command" variant="ghost" size="icon-sm" disabled={saving} aria-label="Gain"><SlidersHorizontal /></Button></PopoverTrigger></OperatorTooltip><PopoverContent align="end" className="sound-volume-popover"><span>{context.gainMixed ? "Relative gain" : context.kind === "sequence" ? "Part gain" : "Clip gain"} <b>{context.gainMixed ? formatDb(gainDb, true) : formatDb(gainDb)}</b></span><Slider aria-label={context.gainMixed ? "Selected clips relative gain" : context.kind === "sequence" ? "Script Part gain" : "Audio clip gain"} value={[gainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setGainDb(value); onGainPreview?.(value, Boolean(context.gainMixed)) }} onValueCommit={([value = gainDb]) => onGain(value, Boolean(context.gainMixed))} /></PopoverContent></Popover>
+      <OperatorIconButton label={muteLabel} detail={muteDetail} className="sound-context-command" disabled={saving} onClick={() => onMute(!context.muted)}>{context.muted ? <VolumeX /> : <Volume2 />}</OperatorIconButton>
+      <Popover><OperatorTooltip label="Volume" detail={context.gainMixed ? "Adjust all selected clips relatively from their current volumes." : context.kind === "sequence" ? "Adjust this Script Part volume." : "Adjust this clip volume."} disabledTrigger={saving}><PopoverTrigger asChild><Button className="sound-context-command" variant="ghost" size="icon-sm" disabled={saving} aria-label="Volume"><SlidersHorizontal /></Button></PopoverTrigger></OperatorTooltip><PopoverContent align="end" className="sound-volume-popover"><AudioVolumeControl label={context.gainMixed ? "Selection volume change" : context.kind === "sequence" ? "Part volume" : "Clip volume"} gain={context.gainMixed ? 1 : context.gain} muted={context.muted} showMute={false} compact onPreview={(mix) => onVolumePreview?.(mix, Boolean(context.gainMixed))} onCommit={(mix) => onVolume(mix, Boolean(context.gainMixed))} /></PopoverContent></Popover>
       {(context.count === undefined || context.count === 1) ? <Popover><OperatorTooltip label="Effects" detail="Shape this placement with the browser-previewed effect chain." disabledTrigger={saving}><PopoverTrigger asChild><Button className={`sound-context-command${activeEffectCount ? " is-active" : ""}`} variant="ghost" size="icon-sm" disabled={saving} aria-label={activeEffectCount ? `Effects · ${activeEffectCount} active` : "Effects"}><RadioTower />{activeEffectCount ? <small>{activeEffectCount}</small> : null}</Button></PopoverTrigger></OperatorTooltip><PopoverContent align="end" className="sound-effects-popover"><SoundEffectsEditor effects={context.effects} disabled={saving} subject={context.kind === "sequence" ? "Part" : "Clip"} onPreview={onEffectsPreview} onCommit={onEffects} /></PopoverContent></Popover> : null}
     </div>}
     {context.kind === "audio" && <div className="sound-context-group is-object">

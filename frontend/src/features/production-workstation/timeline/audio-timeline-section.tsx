@@ -1,4 +1,4 @@
-import { AudioWaveform, Film, Lock, MoreHorizontal, Music2, Pause, Plus, RadioTower, Repeat2, RotateCcw, Trash2, Volume1, Volume2, VolumeX } from "lucide-react"
+import { AudioWaveform, Film, Lock, MoreHorizontal, Music2, Pause, Plus, RadioTower, Repeat2, Trash2, Volume1, Volume2, VolumeX } from "lucide-react"
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
 
 import { useAudioPeaks } from "@/components/audio-waveform"
@@ -15,23 +15,12 @@ import type { SoundScene, SoundSceneClip, SoundSceneTrack } from "@/types/domain
 import { soundClipSourceUrl } from "@/features/sound-scene/engine/sound-clip-source"
 import type { SoundSceneEngineState } from "@/features/sound-scene/engine/sound-scene-engine"
 import { soundTrackDisplayName, type SoundClipRef, type SoundSelection } from "@/features/sound-scene/engine/sound-scene-session"
-import { dbToGain, formatDb, gainToDb, MAX_GAIN_DB, MIN_GAIN_DB } from "@/features/sound-scene/sound-scene-gain"
+import { AudioVolumeControl, type AudioVolumeMix } from "@/features/sound-scene/components/audio-volume-control"
+import { gainToDb, gainToVolumePercent } from "@/features/sound-scene/sound-scene-gain"
 import { loopBoundaryTimes, waveformPeakIndex, type WaveformProjection } from "@/features/sound-scene/timeline/waveform-projection"
 
 const SAMPLE_RATE = 48_000
 const PEAK_TIERS = [128, 256, 512, 1024, 2048, 4096] as const
-const GAIN_SCALE_TICKS = [
-  { value: MAX_GAIN_DB, label: "+6" },
-  { value: 0, label: "0" },
-  { value: -12, label: "−12" },
-  { value: -24, label: "−24" },
-  { value: MIN_GAIN_DB, label: "−∞" },
-] as const
-
-function gainScaleOffset(value: number) {
-  return `${(MAX_GAIN_DB - value) / (MAX_GAIN_DB - MIN_GAIN_DB) * 100}%`
-}
-
 function roleColor(role?: string | null) {
   const palette = ["violet", "blue", "teal", "amber", "rose"]
   const hash = Array.from(String(role || "voice")).reduce((sum, char) => sum + char.charCodeAt(0), 0)
@@ -104,53 +93,25 @@ function CanvasWaveform({ url, projection }: { url?: string; projection?: Wavefo
   return <canvas ref={canvas} className="sound-scene-waveform" aria-hidden="true" />
 }
 
-function TrackGainControl({ name, volume, muted, collapsed, onChange, onCommit }: {
+function TrackVolumeControl({ name, volume, muted, collapsed, onChange, onCommit }: {
   name: string
   volume: number
   muted: boolean
   collapsed: boolean
-  onChange: (volume: number) => void
-  onCommit: (volume: number) => void
+  onChange: (mix: AudioVolumeMix) => void
+  onCommit: (mix: AudioVolumeMix) => void
 }) {
-  const volumeDb = gainToDb(volume)
-  const percentage = Math.round(volume * 100)
+  const percentage = muted || volume <= 0 ? 0 : gainToVolumePercent(volume)
   return <Popover>
-    <OperatorTooltip label={`Adjust ${name} gain`} detail={muted ? `Muted now · ${formatDb(volumeDb)} will apply when unmuted.` : `${percentage}% · ${formatDb(volumeDb)}`}>
+    <OperatorTooltip label={`Adjust ${name} volume`} detail={muted || volume <= 0 ? "Muted · open to restore or choose a new volume." : `${percentage}% of the source level.`}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon-sm" className={cn("sound-track-gain-trigger", collapsed && "is-compact")} aria-label={`Adjust ${name} gain`}>
-          {muted ? <VolumeX /> : <Volume1 />}{!collapsed && <span>{percentage}%</span>}
+        <Button variant="ghost" size="icon-sm" className={cn("sound-track-gain-trigger", collapsed && "is-compact")} aria-label={`Adjust ${name} volume`}>
+          {muted || volume <= 0 ? <VolumeX /> : <Volume1 />}{!collapsed && <span>{percentage}%</span>}
         </Button>
       </PopoverTrigger>
     </OperatorTooltip>
     <PopoverContent side="right" align="center" className="sound-track-volume-popover">
-      <header>
-        <span><b>{name}</b><small>Track gain</small></span>
-        <strong><b>{percentage}%</b><small>{muted ? "Muted" : formatDb(volumeDb)}</small></strong>
-        <OperatorIconButton label={`Reset ${name} gain to 0 dB`} detail="Return this track to unity gain (100%)." className="sound-track-volume-reset" onClick={() => { onChange(1); onCommit(1) }}><RotateCcw /></OperatorIconButton>
-      </header>
-      <div className="sound-track-volume-editor">
-        <Slider
-          orientation="vertical"
-          aria-label={`${name} gain`}
-          value={[volumeDb]}
-          min={MIN_GAIN_DB}
-          max={MAX_GAIN_DB}
-          step={.5}
-          onKeyDownCapture={(event) => {
-            if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return
-            event.preventDefault()
-            event.stopPropagation()
-            const next = Math.max(MIN_GAIN_DB, Math.min(MAX_GAIN_DB, volumeDb + (event.key === "ArrowUp" ? .5 : -.5)))
-            onChange(dbToGain(next))
-            onCommit(dbToGain(next))
-          }}
-          onValueChange={([value = 0]) => onChange(dbToGain(value))}
-          onValueCommit={([value = 0]) => onCommit(dbToGain(value))}
-        />
-        <div className="sound-track-volume-scale" aria-hidden="true">
-          {GAIN_SCALE_TICKS.map(({ value, label }) => <span key={value} style={{ top: gainScaleOffset(value) }}>{label}</span>)}
-        </div>
-      </div>
+      <AudioVolumeControl label={`${name} volume`} gain={volume} muted={muted} showMute={false} compact onPreview={onChange} onCommit={onCommit} />
     </PopoverContent>
   </Popover>
 }
@@ -163,16 +124,15 @@ function SoundTrackControl({ track, volume, collapsed, soloed, soloSuppressed, o
   soloSuppressed: boolean
   onMute: () => void
   onSolo: () => void
-  onVolumeChange: (volume: number) => void
-  onVolumeCommit: (volume: number) => void
+  onVolumeChange: (mix: AudioVolumeMix) => void
+  onVolumeCommit: (mix: AudioVolumeMix) => void
   onAdd: () => void
   onRemove: () => void
 }) {
   const name = soundTrackDisplayName(track)
   const category = trackCategory(track)
   const TrackIcon = category === "sfx" ? AudioWaveform : category === "video" ? Film : Music2
-  const volumeDb = gainToDb(volume)
-  const state = track.muted ? "Muted" : soloed ? "Solo" : soloSuppressed ? "Outside solo" : formatDb(volumeDb)
+  const state = track.muted || volume <= 0 ? "Muted" : soloed ? "Solo" : soloSuppressed ? "Outside solo" : `${gainToVolumePercent(volume)}%`
   const summary = `${name} · ${track.clips.length} clip${track.clips.length === 1 ? "" : "s"} · ${state}`
   return <div className={cn("sound-track-control", collapsed && "is-compact", track.muted && "is-muted", soloed && "is-solo", soloSuppressed && "is-solo-suppressed")}>
     <div className="sound-track-select" title={summary}>
@@ -182,12 +142,12 @@ function SoundTrackControl({ track, volume, collapsed, soloed, soloSuppressed, o
     {collapsed ? <div className="sound-track-compact-actions">
       <OperatorTooltip label={track.muted ? `Unmute ${name}` : `Mute ${name}`} detail="A persistent mix decision used by preview and export."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", track.muted && "is-active is-mute")} aria-label={track.muted ? `Unmute ${name}` : `Mute ${name}`} aria-pressed={track.muted} onClick={onMute}>M</Button></OperatorTooltip>
       <OperatorTooltip label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} detail="Temporary audition only. Script stays audible and export is unchanged."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", soloed && "is-active is-solo")} aria-label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} aria-pressed={soloed} onClick={onSolo}>S</Button></OperatorTooltip>
-      <TrackGainControl name={name} volume={volume} muted={track.muted} collapsed onChange={onVolumeChange} onCommit={onVolumeCommit} />
+      <TrackVolumeControl name={name} volume={volume} muted={track.muted} collapsed onChange={onVolumeChange} onCommit={onVolumeCommit} />
       <DropdownMenu><OperatorTooltip label={`More actions for ${name}`} detail="Add an Audio Library clip or permanently remove this track."><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Track actions for ${name}`}><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent side="right" align="center"><DropdownMenuItem onSelect={onAdd}><Plus /> Add audio clip</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={onRemove}><Trash2 /> Remove “{name}”</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
     </div> : <div className="sound-track-mix">
       <OperatorTooltip label={track.muted ? `Unmute ${name}` : `Mute ${name}`} detail="A persistent mix decision used by preview and export."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", track.muted && "is-active is-mute")} aria-label={track.muted ? `Unmute ${name}` : `Mute ${name}`} aria-pressed={track.muted} onClick={onMute}>M</Button></OperatorTooltip>
       <OperatorTooltip label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} detail="Temporary audition only. Script stays audible and export is unchanged."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", soloed && "is-active is-solo")} aria-label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} aria-pressed={soloed} onClick={onSolo}>S</Button></OperatorTooltip>
-      <TrackGainControl name={name} volume={volume} muted={track.muted} collapsed={false} onChange={onVolumeChange} onCommit={onVolumeCommit} />
+      <TrackVolumeControl name={name} volume={volume} muted={track.muted} collapsed={false} onChange={onVolumeChange} onCommit={onVolumeCommit} />
       <OperatorIconButton label={`Add audio to ${name}`} detail="Choose an Audio Library source and place it in this exact track." className="sound-track-add" onClick={onAdd}><Plus /></OperatorIconButton>
       <OperatorIconButton label={`Remove ${name}`} detail={`Permanently removes the track and its ${track.clips.length} placement${track.clips.length === 1 ? "" : "s"}.`} onClick={onRemove}><Trash2 /></OperatorIconButton>
     </div>}
@@ -202,8 +162,8 @@ export function AudioTrackHeaders({ tracks, engineTracks, collapsed, soloTrackId
   sequenceSummary: string
   onMute: (track: SoundSceneTrack) => void
   onSolo: (track: SoundSceneTrack) => void
-  onVolumeChange: (track: SoundSceneTrack, volume: number) => void
-  onVolumeCommit: (track: SoundSceneTrack, volume: number) => void
+  onVolumeChange: (track: SoundSceneTrack, mix: AudioVolumeMix) => void
+  onVolumeCommit: (track: SoundSceneTrack, mix: AudioVolumeMix) => void
   onAdd: (track: SoundSceneTrack) => void
   onRemove: (track: SoundSceneTrack) => void
 }) {
@@ -268,7 +228,7 @@ export function AudioTimelineSection({ scene, tracks, engineTracks, selection, s
           const ClipIcon = category === "sfx" ? AudioWaveform : category === "video" ? Film : Music2
           return <div key={clip.id} role="button" tabIndex={0} data-timeline-shortcut-surface="true" className={cn("sound-music-clip", `is-category-${category}`, selected && "is-selected", live.locked && "is-locked")} style={styleFor(start, duration, 24)} onPointerDown={(event) => onGesture(event, track.id, clip.id, "move")} onClick={(event) => { if (event.detail === 0) onSelectClip(event, track.id, clip.id) }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelectClip(event, track.id, clip.id) } }}>
             <CanvasWaveform url={soundClipSourceUrl(clip) || undefined} projection={{ clipDuration: duration, sourceDuration: Math.max(.001, Number(live.source_duration_ms || live.resolved_duration_ms || live.duration_ms || 0) / 1_000), sourceOffset: Number(live.source_offset_ms || 0) / 1_000, loop: Boolean(live.loop) }} />
-            <span className="sound-music-label"><ClipIcon /><span><b>{clip.asset_name || soundTrackDisplayName(track)}</b><small>{formatDb(gainToDb(live.gain))}</small></span></span>
+            <span className="sound-music-label"><ClipIcon /><span><b>{clip.asset_name || soundTrackDisplayName(track)}</b><small>{live.muted || live.gain <= 0 ? "0%" : `${gainToVolumePercent(live.gain)}%`}</small></span></span>
             {(live.locked || live.muted || live.loop || activeEffects > 0) && <span className="sound-clip-states">{live.locked && <i title="Locked"><Lock /></i>}{live.muted && <i title="Muted"><VolumeX /></i>}{live.loop && <i title="Looped source" aria-label="Looped source"><Repeat2 /></i>}{activeEffects > 0 && <i title={`${activeEffects} active effect${activeEffects === 1 ? "" : "s"}`}><RadioTower /><b>{activeEffects}</b></i>}</span>}
             {selected && !live.locked && <><OperatorTooltip label="Trim clip start" detail="Drag to change the used source window."><button className="sound-trim-handle is-start" aria-label="Trim start" onPointerDown={(event) => onGesture(event, track.id, clip.id, "left")} /></OperatorTooltip><OperatorTooltip label="Trim clip end" detail="Drag to change the audible duration."><button className="sound-trim-handle is-end" aria-label="Trim end" onPointerDown={(event) => onGesture(event, track.id, clip.id, "right")} /></OperatorTooltip><div className="sound-gain-line" style={{ top: `${gainPosition}%` }} onPointerDown={(event) => onGesture(event, track.id, clip.id, "gain")}><i /></div><svg className="sound-fade-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d={`M 0 100 L ${fadeIn / duration * 100} 0 L ${100 - fadeOut / duration * 100} 0 L 100 100`} /></svg><OperatorTooltip label="Adjust fade in" detail="Drag to shape how this clip enters."><button className="sound-fade-handle is-in" style={{ left: `${fadeIn / duration * 100}%` }} aria-label="Fade in" onPointerDown={(event) => onGesture(event, track.id, clip.id, "fade-in")} /></OperatorTooltip><OperatorTooltip label="Adjust fade out" detail="Drag to shape how this clip leaves."><button className="sound-fade-handle is-out" style={{ left: `${(1 - fadeOut / duration) * 100}%` }} aria-label="Fade out" onPointerDown={(event) => onGesture(event, track.id, clip.id, "fade-out")} /></OperatorTooltip></>}
           </div>

@@ -379,13 +379,12 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
   /> : stage === "sound" && visualRef && visualTrack && visualClip ? <VisualClipInspector
     clipRef={visualRef} track={visualTrack} clip={visualClip} asset={visualAsset} session={visualSession} saving={visualState.saving} audioSaving={soundState.saving}
     hasEmbeddedAudio={videoHasEmbeddedAudio(visualAsset)} audioMuted={linkedVideoAudio?.clip.muted} audioGain={linkedVideoAudio?.clip.gain}
-    onAudioMutedChange={linkedVideoAudio ? (muted) => soundSession.commitClipChanges(linkedVideoAudio.trackId, linkedVideoAudio.clip.id, { muted }) : undefined}
-    onAudioGainChange={linkedVideoAudio ? (gain) => soundSession.updateClip(linkedVideoAudio.trackId, linkedVideoAudio.clip.id, { gain }) : undefined}
-    onAudioGainCommit={linkedVideoAudio ? () => soundSession.commitClip() : undefined}
+    onAudioMixChange={linkedVideoAudio ? ({ gain, muted }) => soundSession.updateClip(linkedVideoAudio.trackId, linkedVideoAudio.clip.id, { gain, muted }) : undefined}
+    onAudioMixCommit={linkedVideoAudio ? ({ gain, muted }) => soundSession.commitClipChanges(linkedVideoAudio.trackId, linkedVideoAudio.clip.id, { gain, muted }) : undefined}
   /> : stage === "sound" && soundSelection?.kind === "clip" && audioTrack ? <AudioClipInspector
     track={audioTrack} clip={audioClip} asset={audioAsset} playingKey={player.source?.key} playing={actions.playerPlaying} onPlay={(source) => void playSource(source)}
     onClipChange={(changes) => { if (audioClip) soundSession.updateClip(audioTrack.id, audioClip.id, changes) }} onClipCommit={() => soundSession.commitClip()}
-    onTrackVolumeChange={(volume) => soundSession.setTrackVolume(audioTrack.id, volume)} onTrackVolumeCommit={(volume) => soundSession.commitTrackVolume(audioTrack.id, volume)}
+    onTrackMixChange={({ gain, muted }) => soundSession.setTrackMix(audioTrack.id, { volume: gain, muted })} onTrackMixCommit={({ gain, muted }) => soundSession.commitTrackMix(audioTrack.id, { volume: gain, muted })}
     onChoose={() => { setAudioTarget({ mode: "replace", trackId: soundSelection.trackId, clipId: soundSelection.clipId }); setTool("audio") }} onRemove={() => setConfirmAction({ title: `Remove “${audioClipName}”?`, description: "The reusable Audio Library asset remains available. Only this Timeline placement is removed.", action: () => soundSession.removeClip(soundSelection.trackId, soundSelection.clipId) })}
   /> : stage === "sound" && soundSpan ? <SequenceMixInspector
     span={soundSpan} saving={soundState.saving}

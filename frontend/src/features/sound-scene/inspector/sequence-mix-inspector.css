@@ -4,8 +4,7 @@
 .sequence-mix-identity svg { width: 1rem; }
 .sequence-mix-identity div { min-width: 0; }.sequence-mix-identity small { color: var(--muted-foreground); font-size: var(--type-caption); }.sequence-mix-identity p { color: var(--muted-foreground); font: var(--weight-regular) var(--type-workstation-data)/1.2 var(--font-mono); font-variant-numeric: tabular-nums; }
 .sequence-mix-identity h3 { overflow: hidden; margin: .1rem 0; text-overflow: ellipsis; white-space: nowrap; }
-.sequence-mix-controls label:not(.switch-like) { display: grid; gap: var(--space-2); }
-.sequence-mix-controls .switch-like { min-height: 1.75rem; display: flex; align-items: center; justify-content: space-between; gap: .6rem; white-space: nowrap; }
+.sequence-mix-controls label { display: grid; gap: var(--space-2); }
 .sequence-mix-controls label > span { display: flex; align-items: center; gap: var(--space-2); color: var(--muted-foreground); font-size: var(--type-caption); }
 .sequence-mix-controls label > span svg { width: .9rem; }.sequence-mix-controls label b { margin-left: auto; color: var(--foreground); font: var(--weight-emphasis) var(--type-workstation-data)/1 var(--font-mono); font-variant-numeric: tabular-nums; }
 .sequence-mix-fades { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }

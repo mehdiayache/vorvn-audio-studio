@@ -9,7 +9,7 @@ vi.mock("@/components/ui/slider", () => ({
     onValueCommit?: (value: number[]) => void
     disabled?: boolean
   }) => {
-    const value = label === "Script Part gain" ? -6
+    const value = label === "Part volume" ? 50
       : label === "Script Part fade in" ? 1.2
         : label === "Echo delay" ? 440
           : label === "Echo feedback" ? 60
@@ -40,13 +40,13 @@ describe("SequenceMixInspector", () => {
       onOpenSequence={vi.fn()}
     />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Script Part gain" }))
+    fireEvent.click(screen.getByRole("button", { name: "Part volume" }))
 
     expect(onPreview).toHaveBeenCalledTimes(1)
-    expect(onPreview).toHaveBeenCalledWith({ gain: expect.closeTo(.501, 2) })
+    expect(onPreview).toHaveBeenCalledWith({ gain: .5, muted: false })
     expect(onCommit).toHaveBeenCalledTimes(1)
-    expect(onCommit).toHaveBeenCalledWith({ gain: expect.closeTo(.501, 2) })
-    expect(screen.getByRole("switch", { name: "Mute Part audio" })).toBeTruthy()
+    expect(onCommit).toHaveBeenCalledWith({ gain: .5, muted: false })
+    expect(screen.getByRole("button", { name: "Mute Part volume" })).toBeTruthy()
     expect(screen.getByRole("button", { name: /Open in Script/ })).toBeTruthy()
   })
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { Clock3, Film, FlipHorizontal2, FlipVertical2, Image as ImageIcon, Info, Library, Lock, LockOpen, Maximize, Minimize2, RotateCcw, Scan, Volume2 } from "lucide-react"
 
 import { OperatorInspectorSection } from "@/components/operator-inspector-section"
@@ -6,9 +6,9 @@ import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
 import { visualAssetDetails, visualAssetFacts, visualAssetName, visualAssetPosterUrl, visualAssetUrl } from "@/features/production-workstation/director/director-assets"
-import { dbToGain, formatDb, gainToDb, MAX_GAIN_DB, MIN_GAIN_DB } from "@/features/sound-scene/sound-scene-gain"
+import { AudioVolumeControl, type AudioVolumeMix } from "@/features/sound-scene/components/audio-volume-control"
+import { gainToVolumePercent } from "@/features/sound-scene/sound-scene-gain"
 import type { VisualClipRef, VisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
 import type { VentureAsset, VisualSceneClip, VisualSceneTrack } from "@/types/domain"
 
@@ -21,7 +21,7 @@ function milliseconds(value: number) {
   return minutes ? `${minutes}:${remainder.toFixed(1).padStart(4, "0")}` : `${remainder.toFixed(1)}s`
 }
 
-export function VisualClipInspector({ clipRef, track, clip, asset, session, saving, audioSaving = saving, hasEmbeddedAudio = false, audioMuted = false, audioGain = 1, onAudioMutedChange, onAudioGainChange, onAudioGainCommit }: {
+export function VisualClipInspector({ clipRef, track, clip, asset, session, saving, audioSaving = saving, hasEmbeddedAudio = false, audioMuted = false, audioGain = 1, onAudioMixChange, onAudioMixCommit }: {
   clipRef: VisualClipRef
   track: VisualSceneTrack
   clip: VisualSceneClip
@@ -32,12 +32,9 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
   hasEmbeddedAudio?: boolean
   audioMuted?: boolean
   audioGain?: number
-  onAudioMutedChange?: (muted: boolean) => void | Promise<void>
-  onAudioGainChange?: (gain: number) => void
-  onAudioGainCommit?: () => void | Promise<void>
+  onAudioMixChange?: (mix: AudioVolumeMix) => void
+  onAudioMixCommit?: (mix: AudioVolumeMix) => void | Promise<void>
 }) {
-  const [audioGainDb, setAudioGainDb] = useState(gainToDb(audioGain))
-  useEffect(() => setAudioGainDb(gainToDb(audioGain)), [audioGain])
   const details = asset ? visualAssetDetails(asset) : { technical: [], library: [] }
   const facts = asset ? visualAssetFacts(asset) : null
   const name = asset ? visualAssetName(asset) : "Missing media"
@@ -74,10 +71,9 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
       <TransformSlider label="Opacity" value={clip.opacity * 100} display={`${Math.round(clip.opacity * 100)}%`} minimum={0} maximum={100} disabled={transformDisabled} onPreview={(value) => session.previewClipTransform(clipRef, { opacity: value / 100 })} onBegin={() => session.beginGesture()} onCommit={(value) => { session.beginGesture(); session.previewClipTransform(clipRef, { opacity: value / 100 }); void session.commitGesture() }} />
     </OperatorInspectorSection>
 
-    {track.media_type === "video" && <OperatorInspectorSection icon={Volume2} title="Audio" meta={hasEmbeddedAudio ? audioMuted ? "Muted" : "Active" : "None"} help={hasEmbeddedAudio ? "This video's sound follows the visual clip in Timeline and Export." : "This video source has no embedded audio."} className="visual-inspector-audio">
+    {track.media_type === "video" && <OperatorInspectorSection icon={Volume2} title="Video audio" meta={hasEmbeddedAudio ? `${audioMuted || audioGain <= 0 ? 0 : gainToVolumePercent(audioGain)}%` : "None"} metaTechnical help={hasEmbeddedAudio ? "This video's sound follows the visual clip in Timeline and Export." : "This video source has no embedded audio."} className="visual-inspector-audio">
       {hasEmbeddedAudio && <div className="visual-inspector-audio-controls">
-        <label className="visual-inspector-audio-toggle"><span><b>Mute audio</b><small>Keeps the picture and timing unchanged.</small></span><Switch checked={audioMuted} disabled={audioSaving || !onAudioMutedChange} onCheckedChange={(checked) => void onAudioMutedChange?.(checked)} aria-label="Mute video audio" /></label>
-        <label className="visual-inspector-audio-level"><span><b>Audio level</b><small>Adjust only this video's sound.</small></span><strong>{formatDb(audioGainDb)}</strong><Slider aria-label="Video audio level" disabled={audioSaving || !onAudioGainChange || !onAudioGainCommit} value={[audioGainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setAudioGainDb(value); onAudioGainChange?.(dbToGain(value)) }} onValueCommit={([value = audioGainDb]) => { setAudioGainDb(value); onAudioGainChange?.(dbToGain(value)); void onAudioGainCommit?.() }} /></label>
+        <AudioVolumeControl label="Video volume" gain={audioGain} muted={audioMuted} disabled={audioSaving || !onAudioMixChange || !onAudioMixCommit} onPreview={onAudioMixChange} onCommit={(mix) => onAudioMixCommit?.(mix)} />
       </div>}
     </OperatorInspectorSection>}
 
