@@ -22,4 +22,3 @@
 .visual-transform-flip [data-slot="button"] { min-width: 0; height: 2rem; padding-inline: .45rem; font-size: .58rem; }
 .visual-transform-flip [data-slot="button"] svg { width: .72rem; }
 .visual-inspector-audio-controls { display: grid; }
-.visual-inspector-lock { display: grid; justify-items: start; gap: .35rem; padding: .9rem 1rem; }.visual-inspector-lock small { color: var(--muted-foreground); font-size: .59rem; }

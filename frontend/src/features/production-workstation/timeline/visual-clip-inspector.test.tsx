@@ -20,10 +20,9 @@ describe("VisualClipInspector", () => {
     const clip: VisualSceneClip = { id: "clip", asset_id: 5, start_ms: 2_000, duration_ms: 8_500, source_offset_ms: 1_000, fit: "contain", position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1, locked: false }
     const track: VisualSceneTrack = { id: "track", name: "Video", media_type: "video", visible: true, locked: false, clips: [clip] }
     const asset = { id: 5, media_type: "video", name: "Evening shore", filename: "shore.mp4", width: 1920, height: 1080, duration_ms: 12_000, channels: 2, sample_rate: 48_000, metadata: { audio_codec: "aac" } } as VentureAsset
-    const setClipLocked = vi.fn()
     const frameClip = vi.fn()
     const setClipTransform = vi.fn()
-    const session = { setClipLocked, frameClip, setClipTransform } as unknown as VisualSceneSession
+    const session = { frameClip, setClipTransform } as unknown as VisualSceneSession
 
     render(<VisualClipInspector clipRef={{ trackId: "track", clipId: "clip" }} track={track} clip={clip} asset={asset} session={session} saving={false} />)
 
@@ -38,15 +37,14 @@ describe("VisualClipInspector", () => {
     expect(frameClip).toHaveBeenCalledWith({ trackId: "track", clipId: "clip" }, "contain")
     fireEvent.click(screen.getByRole("button", { name: "Flip horizontal" }))
     expect(setClipTransform).toHaveBeenCalledWith({ trackId: "track", clipId: "clip" }, { flip_horizontal: true })
-    fireEvent.click(screen.getByRole("button", { name: "Lock placement" }))
-    expect(setClipLocked).toHaveBeenCalledWith({ trackId: "track", clipId: "clip" }, true)
+    expect(screen.queryByRole("button", { name: "Lock placement" })).toBeNull()
   })
 
   it("uses human video-audio controls and exposes the canonical clip level", () => {
     const clip: VisualSceneClip = { id: "clip", asset_id: 5, start_ms: 0, duration_ms: 8_500, source_offset_ms: 0, fit: "contain", position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1, locked: false }
     const track: VisualSceneTrack = { id: "track", name: "Video", media_type: "video", visible: true, locked: false, clips: [clip] }
     const asset = { id: 5, media_type: "video", name: "Evening shore", filename: "shore.mp4", duration_ms: 12_000, channels: 2, sample_rate: 48_000, metadata: { audio_codec: "aac" } } as VentureAsset
-    const session = { setClipLocked: vi.fn() } as unknown as VisualSceneSession
+    const session = {} as unknown as VisualSceneSession
 
     render(<VisualClipInspector clipRef={{ trackId: "track", clipId: "clip" }} track={track} clip={clip} asset={asset} session={session} saving={false} hasEmbeddedAudio audioGain={1} onAudioMixChange={vi.fn()} onAudioMixCommit={vi.fn()} />)
 
@@ -63,7 +61,7 @@ describe("VisualClipInspector", () => {
     const beginGesture = vi.fn()
     const previewClipTransform = vi.fn()
     const commitGesture = vi.fn()
-    const session = { beginGesture, previewClipTransform, commitGesture, setClipLocked: vi.fn() } as unknown as VisualSceneSession
+    const session = { beginGesture, previewClipTransform, commitGesture } as unknown as VisualSceneSession
 
     render(<VisualClipInspector clipRef={{ trackId: "track", clipId: "clip" }} track={track} clip={clip} asset={asset} session={session} saving={false} />)
     const scale = screen.getByRole("slider", { name: "Scale" })

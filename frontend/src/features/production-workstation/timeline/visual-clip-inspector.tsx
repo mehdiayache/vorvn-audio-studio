@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import { Clock3, Film, FlipHorizontal2, FlipVertical2, Image as ImageIcon, Info, Library, Lock, LockOpen, Maximize, Minimize2, RotateCcw, Scan, Volume2 } from "lucide-react"
+import { Clock3, Film, FlipHorizontal2, FlipVertical2, Image as ImageIcon, Info, Library, Maximize, Minimize2, RotateCcw, Scan, Volume2 } from "lucide-react"
 
 import { OperatorInspectorSection } from "@/components/operator-inspector-section"
 import { OperatorTooltip } from "@/components/operator-tooltip"
@@ -79,11 +79,6 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
 
     {details.technical.length > 0 && <DetailSection title="Source" icon={Info} items={details.technical} />}
     {details.library.length > 0 && <DetailSection title="Library" icon={Library} items={details.library} />}
-
-    <div className="visual-inspector-lock">
-      <Button variant="outline" onClick={() => void session.setClipLocked(clipRef, !clip.locked)}>{clip.locked ? <LockOpen /> : <Lock />}{clip.locked ? "Unlock placement" : "Lock placement"}</Button>
-      <small>{clip.locked ? "Timing, trims and visual framing are protected." : "Protect timing, trims and visual framing from accidental changes."}</small>
-    </div>
   </div>
 }
 
