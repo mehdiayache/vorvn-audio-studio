@@ -27,14 +27,16 @@ describe("SoundSceneContextToolbar", () => {
     const { container, rerender } = render(<SoundSceneContextToolbar
       context={null} saving={false} onVolume={vi.fn()} onEffects={vi.fn()}
     />)
-    expect(container.querySelector(".sound-scene-context")).toBeNull()
+    expect(container.querySelector(".selection-bar")).toBeNull()
 
     rerender(<SoundSceneContextToolbar
       context={{ kind: "audio", label: "Night bed", muted: false, lockState: "unlocked", gain: .2, effects: [] }}
       saving={false} onVolume={vi.fn()} onEffects={vi.fn()}
       onLock={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()}
     />)
-    expect(container.querySelector(".sound-scene-context")).toBeTruthy()
+    expect(container.querySelector(".selection-bar")).toBeTruthy()
+    expect(container.querySelector(".selection-bar-group.is-mix")).toBeTruthy()
+    expect(container.querySelector(".selection-bar-group.is-object")).toBeTruthy()
     expect(screen.getByText("Night bed")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Clip volume · 20%" }).textContent).toBe("20%")
     expect(screen.queryByRole("button", { name: "Mute audio clip" })).toBeNull()
@@ -61,11 +63,13 @@ describe("SoundSceneContextToolbar", () => {
 
   it("keeps Sequence volume and mute in one coherent control", () => {
     const onVolume = vi.fn()
-    render(<SoundSceneContextToolbar
+    const { container } = render(<SoundSceneContextToolbar
       context={{ kind: "sequence", label: "Narrator", muted: false, gain: 1, effects: [] }}
       saving={false} onVolume={onVolume} onEffects={vi.fn()}
     />)
 
+    expect(container.querySelector(".selection-bar-group.is-mix")).toBeTruthy()
+    expect(container.querySelector(".selection-bar-group.is-object")).toBeNull()
     fireEvent.click(screen.getByRole("button", { name: "Part volume · 100%" }))
     fireEvent.click(screen.getByRole("button", { name: "Mute Part volume" }))
     expect(onVolume).toHaveBeenCalledWith({ gain: 1, muted: true }, false)

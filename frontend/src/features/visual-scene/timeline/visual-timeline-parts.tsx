@@ -3,6 +3,7 @@ import { useState, type CSSProperties, type PointerEvent as ReactPointerEvent, t
 
 import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
+import { SelectionBar } from "@/components/selection-bar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -117,14 +118,23 @@ export function VisualContextToolbar({ count = 1, track, clip, asset, saving, ca
   onDuplicate: () => void
   onDelete: () => void
 }) {
-  return <div className="visual-context-toolbar selection-context">
-    <span className="visual-context-identity">{asset?.media_type === "video" ? <Film /> : <ImageIcon />}<b>{count > 1 ? `${count} media clips` : asset ? visualAssetName(asset) : "Missing media"}</b><small>{count > 1 ? "Media selection" : asset?.media_type === "video" ? "Video clip" : "Image clip"}</small></span>
-    <div className="visual-context-actions">
-      {count === 1 && asset?.media_type === "video" && <OperatorIconButton label="Split video at playhead" detail={canSplit ? "Creates two non-destructive placements using the same source Asset." : "Place the playhead inside this video, at least 0.1 seconds from either edge."} disabled={saving || !canSplit || selectionLocked || track.locked} onClick={onSplit}><Scissors /></OperatorIconButton>}
-      {count === 1 && asset?.media_type === "video" && hasAudio && onAudioVolume && <SelectionVolumeControl label="Video volume" detail="Adjust or mute this video's embedded audio without changing its picture or timing." gain={audioGain} muted={audioMuted} disabled={saving} onPreview={onAudioVolumePreview} onCommit={onAudioVolume} />}
-      {onLock && <OperatorIconButton label={selectionLocked ? count > 1 ? "Unlock selected media" : "Unlock media placement" : count > 1 ? "Lock selected media" : "Lock media placement"} detail={track.locked ? "Unlock the track before changing these placements." : selectionLocked ? "Allows timing, trimming and framing changes again." : "Protects timing, trimming and framing from accidental changes."} className={cn(selectionLocked && "is-locked")} disabled={saving || track.locked} onClick={onLock}>{selectionLocked ? <Lock /> : <Unlock />}</OperatorIconButton>}
-      <OperatorIconButton label="Duplicate media placement" detail="Creates another Timeline placement using the same Director Asset." disabled={saving} onClick={onDuplicate}><Copy /></OperatorIconButton>
-      <OperatorIconButton label="Remove media placement" detail={selectionLocked || track.locked ? "Unlock the placement or track before removing it." : "The Director Asset remains available."} className="danger" disabled={saving || selectionLocked || track.locked} onClick={onDelete}><Trash2 /></OperatorIconButton>
-    </div>
-  </div>
+  const label = count > 1 ? `${count} media clips` : asset ? visualAssetName(asset) : "Missing media"
+  const meta = count > 1 ? "Media selection" : asset?.media_type === "video" ? "Video clip" : "Image clip"
+  const mixActions = count === 1 && asset?.media_type === "video" && hasAudio && onAudioVolume
+    ? <SelectionVolumeControl label="Video volume" detail="Adjust or mute this video's embedded audio without changing its picture or timing." gain={audioGain} muted={audioMuted} disabled={saving} onPreview={onAudioVolumePreview} onCommit={onAudioVolume} />
+    : undefined
+  const objectActions = <>
+    {onLock && <OperatorIconButton label={selectionLocked ? count > 1 ? "Unlock selected media" : "Unlock media placement" : count > 1 ? "Lock selected media" : "Lock media placement"} detail={track.locked ? "Unlock the track before changing these placements." : selectionLocked ? "Allows timing, trimming and framing changes again." : "Protects timing, trimming and framing from accidental changes."} className={cn("selection-bar-command", selectionLocked && "is-locked")} disabled={saving || track.locked} onClick={onLock}>{selectionLocked ? <Lock /> : <Unlock />}</OperatorIconButton>}
+    {count === 1 && asset?.media_type === "video" && <OperatorIconButton label="Split video at playhead" detail={canSplit ? "Creates two non-destructive placements using the same source Asset." : "Place the playhead inside this video, at least 0.1 seconds from either edge."} className="selection-bar-command" disabled={saving || !canSplit || selectionLocked || track.locked} onClick={onSplit}><Scissors /></OperatorIconButton>}
+    <OperatorIconButton label="Duplicate media placement" detail="Creates another Timeline placement using the same Director Asset." className="selection-bar-command" disabled={saving} onClick={onDuplicate}><Copy /></OperatorIconButton>
+    <OperatorIconButton label="Remove media placement" detail={selectionLocked || track.locked ? "Unlock the placement or track before removing it." : "The Director Asset remains available."} className="selection-bar-command danger" disabled={saving || selectionLocked || track.locked} onClick={onDelete}><Trash2 /></OperatorIconButton>
+  </>
+  return <SelectionBar
+    ariaLabel={`${label} actions`}
+    icon={asset?.media_type === "video" ? <Film /> : <ImageIcon />}
+    label={label}
+    meta={meta}
+    mixActions={mixActions}
+    objectActions={objectActions}
+  />
 }

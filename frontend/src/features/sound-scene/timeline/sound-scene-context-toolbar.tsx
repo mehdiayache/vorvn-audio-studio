@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react"
 import {
-  ArrowDown, ArrowUp, Blend, Check, Copy, Gauge, Lock, MoreHorizontal, MoveHorizontal, Phone,
+  ArrowDown, ArrowUp, AudioWaveform, Blend, Check, Copy, Gauge, Lock, MoreHorizontal, MoveHorizontal, Pause, Phone,
   Play, RadioTower, Repeat2, Scissors, SlidersHorizontal, Trash2, Unlock,
   Waves, Zap, type LucideIcon,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { OperatorInspectorSection } from "@/components/operator-inspector-section"
+import { SelectionBar } from "@/components/selection-bar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
@@ -210,14 +211,15 @@ export function SoundSceneContextToolbar({ context, saving, canSplit, onVolumePr
     : context.kind === "sequence"
       ? "Adjust or mute this Script Part without changing its Script timing."
       : "Adjust or mute this clip without changing its Timeline placement."
-  return <div className="sound-scene-context selection-context" aria-label={`${context.label} actions`}>
-    <div className="sound-context-group is-identity"><span className="sound-context-label"><b>{context.label}</b>{context.count && context.count > 1 ? <small className="is-technical">{context.count} clips</small> : <small>{context.kind === "audio" ? "Audio clip" : context.kind === "silence" ? "Script pause" : "Script Part"}</small>}</span></div>
-    {context.kind !== "silence" && <div className="sound-context-group is-mix">
+  const meta = context.count && context.count > 1
+    ? `${context.count} clips`
+    : context.kind === "audio" ? "Audio clip" : context.kind === "silence" ? "Script pause" : "Script Part"
+  const mixActions = context.kind !== "silence" ? <>
       <SelectionVolumeControl label={volumeLabel} detail={volumeDetail} gain={context.gain} muted={context.muted} mixed={Boolean(context.gainMixed)} disabled={saving} onPreview={(mix) => onVolumePreview?.(mix, Boolean(context.gainMixed))} onCommit={(mix) => onVolume(mix, Boolean(context.gainMixed))} />
-      {(context.count === undefined || context.count === 1) ? <Popover><OperatorTooltip label="Effects" detail="Shape this placement with the browser-previewed effect chain." disabledTrigger={saving}><PopoverTrigger asChild><Button className={`sound-context-command${activeEffectCount ? " is-active" : ""}`} variant="ghost" size="icon-sm" disabled={saving} aria-label={activeEffectCount ? `Effects · ${activeEffectCount} active` : "Effects"}><RadioTower />{activeEffectCount ? <small>{activeEffectCount}</small> : null}</Button></PopoverTrigger></OperatorTooltip><PopoverContent align="end" className="sound-effects-popover"><SoundEffectsEditor effects={context.effects} disabled={saving} subject={context.kind === "sequence" ? "Part" : "Clip"} onPreview={onEffectsPreview} onCommit={onEffects} /></PopoverContent></Popover> : null}
-    </div>}
-    {context.kind === "audio" && <div className="sound-context-group is-object">
-      <OperatorIconButton label={lockLabel} detail="Prevents accidental movement, trimming and deletion." className={`sound-context-command${hasLockedClips ? " is-locked" : ""}`} disabled={saving} onClick={onLock}>{lockState === "locked" ? <Lock /> : <Unlock />}</OperatorIconButton>
+      {(context.count === undefined || context.count === 1) ? <Popover><OperatorTooltip label="Effects" detail="Shape this placement with the browser-previewed effect chain." disabledTrigger={saving}><PopoverTrigger asChild><Button className={`selection-bar-command${activeEffectCount ? " is-active" : ""}`} variant="ghost" size="icon-sm" disabled={saving} aria-label={activeEffectCount ? `Effects · ${activeEffectCount} active` : "Effects"}><RadioTower />{activeEffectCount ? <small>{activeEffectCount}</small> : null}</Button></PopoverTrigger></OperatorTooltip><PopoverContent align="end" className="sound-effects-popover"><SoundEffectsEditor effects={context.effects} disabled={saving} subject={context.kind === "sequence" ? "Part" : "Clip"} onPreview={onEffectsPreview} onCommit={onEffects} /></PopoverContent></Popover> : null}
+    </> : undefined
+  const objectActions = context.kind === "audio" ? <>
+      <OperatorIconButton label={lockLabel} detail="Prevents accidental movement, trimming and deletion." className={`selection-bar-command${hasLockedClips ? " is-locked" : ""}`} disabled={saving} onClick={onLock}>{lockState === "locked" ? <Lock /> : <Unlock />}</OperatorIconButton>
       <OperatorIconButton
         label="Split at playhead"
         detail={hasLockedClips
@@ -225,17 +227,25 @@ export function SoundSceneContextToolbar({ context, saving, canSplit, onVolumePr
           : canSplit === false
             ? "Keep the playhead at least 0.1 seconds away from either edge."
             : "Creates two non-destructive placements that continue to reference the same Audio Library Asset. Shortcut: S"}
-        className="sound-context-command"
+        className="selection-bar-command"
         disabled={saving || hasLockedClips || canSplit === false}
         onClick={onSplit}
       ><Scissors /></OperatorIconButton>
-      <OperatorIconButton label="Duplicate selected clips" detail="Creates another placement using the same Audio Library Asset." className="sound-context-command" disabled={saving || hasLockedClips} onClick={onDuplicate}><Copy /></OperatorIconButton>
-      <DropdownMenu><OperatorTooltip label="More playback actions" disabledTrigger={saving}><DropdownMenuTrigger asChild><Button className="sound-context-command" variant="ghost" size="icon-sm" disabled={saving} aria-label="More playback actions"><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent align="end">
+      <OperatorIconButton label="Duplicate selected clips" detail="Creates another placement using the same Audio Library Asset." className="selection-bar-command" disabled={saving || hasLockedClips} onClick={onDuplicate}><Copy /></OperatorIconButton>
+      <DropdownMenu><OperatorTooltip label="More playback actions" disabledTrigger={saving}><DropdownMenuTrigger asChild><Button className="selection-bar-command" variant="ghost" size="icon-sm" disabled={saving} aria-label="More playback actions"><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={onPlaySelection}><Play /> Play selection</DropdownMenuItem>
         <DropdownMenuItem onSelect={onLoopSelection}><Repeat2 /> Loop selection</DropdownMenuItem>
         {onCrossfade && <DropdownMenuItem onSelect={onCrossfade}><Blend /> Crossfade overlap</DropdownMenuItem>}
       </DropdownMenuContent></DropdownMenu>
-      <OperatorIconButton label="Delete selected clips" detail="Removes the Timeline placement; the Audio Library Asset remains available." className="sound-context-command danger" disabled={saving || hasLockedClips} onClick={onDelete}><Trash2 /></OperatorIconButton>
-    </div>}
-  </div>
+      <OperatorIconButton label="Delete selected clips" detail="Removes the Timeline placement; the Audio Library Asset remains available." className="selection-bar-command danger" disabled={saving || hasLockedClips} onClick={onDelete}><Trash2 /></OperatorIconButton>
+    </> : undefined
+  return <SelectionBar
+    ariaLabel={`${context.label} actions`}
+    icon={context.kind === "silence" ? <Pause /> : <AudioWaveform />}
+    label={context.label}
+    meta={meta}
+    metaTechnical={Boolean(context.count && context.count > 1)}
+    mixActions={mixActions}
+    objectActions={objectActions}
+  />
 }

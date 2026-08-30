@@ -25,7 +25,7 @@ export function SelectionVolumeControl({ label, detail, gain, muted, mixed = fal
     <OperatorTooltip label={accessibleLabel} detail={detail} disabledTrigger={disabled}>
       <PopoverTrigger asChild>
         <Button
-          className={cn("sound-context-command selection-volume-trigger", silent && "is-muted")}
+          className={cn("selection-bar-command selection-volume-trigger", silent && "is-muted")}
           variant="ghost"
           size="icon-sm"
           disabled={disabled}

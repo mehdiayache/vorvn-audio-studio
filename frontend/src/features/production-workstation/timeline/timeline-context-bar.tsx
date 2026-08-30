@@ -43,7 +43,7 @@ export function TimelineContextBar({ audioSession, visualSession, selectedAudioR
     visualSession?.clearError()
   }, [audioSession, feedback, visualSession])
 
-  return <footer className="sound-scene-context-bar" aria-label="Selection actions">
+  return <footer className="timeline-selection-bar" aria-label="Selection actions">
     {selectedVisualRef && selectedVisualTrack && selectedVisualClip && visualSession ? <VisualContextToolbar
       count={selectedVisualRefs.length}
       track={selectedVisualTrack}
@@ -76,6 +76,6 @@ export function TimelineContextBar({ audioSession, visualSession, selectedAudioR
       onPlaySelection={() => { onFollowPlayhead(); void audioSession.playSelection(false, selectedAudioRefs) }}
       onLoopSelection={() => { onFollowPlayhead(); void audioSession.playSelection(true, selectedAudioRefs) }}
       onDelete={onRemoveAudio}
-    /> : <span className="sound-context-empty">Select a clip or Script Part to edit it</span>}
+    /> : <span className="selection-bar-empty">Select a clip or Script Part to edit it</span>}
   </footer>
 }

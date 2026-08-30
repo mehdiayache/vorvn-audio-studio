@@ -60,12 +60,14 @@ describe("visual Timeline controls", () => {
 
   it("exposes linked video audio in the same contextual toolbar", () => {
     const onAudioVolume = vi.fn()
-    render(<VisualContextToolbar track={track} clip={{ ...clip, asset_id: 92 }} asset={video} saving={false} canSplit={false} hasAudio audioGain={1} audioMuted={false} onAudioVolume={onAudioVolume} onSplit={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
+    const { container } = render(<VisualContextToolbar track={track} clip={{ ...clip, asset_id: 92 }} asset={video} saving={false} canSplit={false} hasAudio audioGain={1} audioMuted={false} onAudioVolume={onAudioVolume} onSplit={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
 
     fireEvent.click(screen.getByRole("button", { name: "Video volume · 100%" }))
     fireEvent.click(screen.getByRole("button", { name: "Mute Video volume" }))
     expect(onAudioVolume).toHaveBeenCalledWith({ gain: 1, muted: true })
     expect(screen.getByRole("button", { name: "Duplicate media placement" }).textContent).toBe("")
+    expect(container.querySelector(".selection-bar-group.is-mix")).toBeTruthy()
+    expect(container.querySelector(".selection-bar-group.is-object")).toBeTruthy()
   })
 
   it("keeps unavailable audio out and owns the single-placement lock action", () => {
@@ -77,7 +79,8 @@ describe("visual Timeline controls", () => {
     expect(lock.querySelector(".lucide-lock-open")).toBeTruthy()
     fireEvent.click(lock)
     expect(onLock).toHaveBeenCalledOnce()
-    expect(container.querySelector(".visual-context-identity")?.textContent).toContain("Video clip")
+    expect(container.querySelector(".selection-bar-identity")?.textContent).toContain("Video clip")
+    expect(container.querySelector(".selection-bar-group.is-object")).toBeTruthy()
   })
 
   it("shows the locked state while keeping unlock available in the selection bar", () => {
