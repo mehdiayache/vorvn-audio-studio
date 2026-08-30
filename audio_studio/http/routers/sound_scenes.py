@@ -144,6 +144,7 @@ class SoundSceneTrackDocument(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str = Field(min_length=1, max_length=120)
     kind: Literal["audio", "music", "sfx", "ambience"]
+    role: Literal["audio", "music", "sfx", "ambience"] = "audio"
     name: str = Field(min_length=1, max_length=120)
     volume: float = Field(default=1, ge=0, le=2)
     muted: bool = False
@@ -227,6 +228,7 @@ class ResolvedSoundSceneClip(SoundSceneClipDocument):
 class ResolvedSoundSceneTrack(BaseModel):
     id: str
     kind: Literal["audio"]
+    role: Literal["audio", "music", "sfx", "ambience"] = "audio"
     name: str
     volume: float
     muted: bool

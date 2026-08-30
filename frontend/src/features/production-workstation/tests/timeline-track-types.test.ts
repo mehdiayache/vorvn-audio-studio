@@ -33,10 +33,11 @@ const assets = [
   { id: 2, media_type: "video", name: "Motion" },
 ] as VentureAsset[]
 
-const audioTrack = (kinds: string[], name = "Operator custom name"): SoundSceneTrack => ({
+const audioTrack = (kinds: string[], name = "Operator custom name", role: SoundSceneTrack["role"] = "audio"): SoundSceneTrack => ({
   id: "audio-track",
   kind: "audio",
   name,
+  role,
   volume: 1,
   muted: false,
   clips: kinds.map((kind, index) => ({
@@ -69,16 +70,10 @@ describe("Timeline track type labels", () => {
     expect(visualTrackDisplayName(visualTrack("Video 1", [], "video"), assets)).toBe("Video 1")
   })
 
-  it("labels audio tracks from canonical clip categories instead of filenames", () => {
-    expect(soundTrackDisplayName(audioTrack(["music"]))).toBe("Music")
-    expect(soundTrackDisplayName(audioTrack(["sfx"]))).toBe("SFX")
-    expect(soundTrackDisplayName(audioTrack(["ambience"]))).toBe("Ambience")
-    expect(soundTrackDisplayName(audioTrack(["intro"]))).toBe("Intro")
-    expect(soundTrackDisplayName(audioTrack(["outro"]))).toBe("Outro")
-    expect(soundTrackDisplayName(audioTrack(["music", "sfx"]))).toBe("Audio")
-    expect(soundTrackDisplayName({
-      ...audioTrack(["other"]),
-      clips: [{ ...audioTrack(["other"]).clips[0]!, source_media_type: "video" }],
-    })).toBe("Video audio")
+  it("keeps an audio track name stable while mixed Asset families are placed", () => {
+    expect(soundTrackDisplayName(audioTrack(["music"], "Music 1", "music"))).toBe("Music 1")
+    expect(soundTrackDisplayName(audioTrack(["sfx"], "Foley", "sfx"))).toBe("Foley")
+    expect(soundTrackDisplayName(audioTrack(["music", "sfx"], "Campaign bed", "music"))).toBe("Campaign bed")
+    expect(soundTrackDisplayName({ ...audioTrack(["other"], "Video audio 1"), clips: [{ ...audioTrack(["other"]).clips[0]!, source_media_type: "video" }] })).toBe("Video audio 1")
   })
 })

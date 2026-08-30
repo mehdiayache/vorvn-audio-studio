@@ -7,8 +7,10 @@
 
 .music-workbench-source { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); padding: var(--space-4); border-bottom: var(--stroke-hairline) solid var(--border); }
 .music-workbench-art { width: 42px; height: 42px; display: grid; place-items: center; border-radius: var(--radius-md); color: var(--asset); background: var(--asset-soft); }
-.music-workbench-content[data-category="music"] .music-workbench-art { color: var(--success); background: var(--success-soft); }
-.music-workbench-content[data-category="sfx"] .music-workbench-art { color: var(--warning); background: var(--warning-soft); }
+.music-workbench-content[data-category="audio"] .music-workbench-art { color: var(--audio-audio); background: var(--audio-audio-soft); }
+.music-workbench-content[data-category="music"] .music-workbench-art { color: var(--audio-music); background: var(--audio-music-soft); }
+.music-workbench-content[data-category="sfx"] .music-workbench-art { color: var(--audio-sfx); background: var(--audio-sfx-soft); }
+.music-workbench-content[data-category="ambience"] .music-workbench-art { color: var(--audio-ambience); background: var(--audio-ambience-soft); }
 .music-workbench-source > div { min-width: 0; }
 .music-workbench-source .eyebrow { color: var(--foreground); font-size: .62rem; letter-spacing: .035em; }
 .music-workbench-source h3 { overflow: hidden; margin: 2px 0; font-size: .84rem; text-overflow: ellipsis; white-space: nowrap; }

@@ -12,7 +12,7 @@ describe("asset provenance", () => {
       },
     }
     expect(assetSource(asset)).toBe("generated")
-    expect(assetSourceLine(asset)).toBe("Generated · Stable Audio · Music")
+    expect(assetSourceLine(asset)).toBe("Generated · Stable Audio")
     expect(assetDetails(asset)).toEqual(expect.arrayContaining([
       { label: "Prompt", value: "Quiet piano underscore" },
       { label: "Seed", value: "71" },

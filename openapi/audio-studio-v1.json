@@ -4843,6 +4843,7 @@
         "properties": {
           "category": {
             "enum": [
+              "audio",
               "music",
               "ambience",
               "sfx",
@@ -4902,6 +4903,7 @@
         "properties": {
           "category": {
             "enum": [
+              "audio",
               "music",
               "ambience",
               "sfx",
@@ -8560,6 +8562,17 @@
             "title": "Name",
             "type": "string"
           },
+          "role": {
+            "default": "audio",
+            "enum": [
+              "audio",
+              "music",
+              "sfx",
+              "ambience"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
           "volume": {
             "title": "Volume",
             "type": "number"
@@ -10131,6 +10144,17 @@
             "maxLength": 120,
             "minLength": 1,
             "title": "Name",
+            "type": "string"
+          },
+          "role": {
+            "default": "audio",
+            "enum": [
+              "audio",
+              "music",
+              "sfx",
+              "ambience"
+            ],
+            "title": "Role",
             "type": "string"
           },
           "volume": {
@@ -12230,6 +12254,7 @@
           },
           "category": {
             "enum": [
+              "audio",
               "music",
               "ambience",
               "sfx",

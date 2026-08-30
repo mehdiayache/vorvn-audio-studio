@@ -45,15 +45,18 @@
 .asset-workspace-shell { min-height: 0; height: 100%; display: block; }
 .asset-view { min-width: 0; min-height: 0; height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 304px; grid-template-rows: minmax(0, 1fr) 66px; overflow: hidden; background: var(--surface-raised); }
 .asset-canvas { min-width: 0; min-height: 0; height: 100%; }
+.audio-asset-card-grid { min-height: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); align-content: start; gap: 10px; padding: 12px 14px 24px; }
+.audio-asset-card-grid > .asset-empty { grid-column: 1 / -1; }
 .asset-result-list { min-height: 100%; padding: 5px 0 24px; }
 .asset-result { min-width: 0; min-height: 69px; display: grid; grid-template-columns: minmax(0, 1fr) 38px; align-items: center; gap: 7px; padding: 5px 13px 5px 10px; border-bottom: 1px solid color-mix(in oklab, var(--border) 72%, transparent); box-shadow: inset 3px 0 transparent; transition: background .14s ease, box-shadow .14s ease; }
 .asset-result:hover { background: color-mix(in oklab, var(--primary-soft) 25%, var(--surface-raised)); }
 .asset-result.selected { background: color-mix(in oklab, var(--primary-soft) 70%, var(--surface-raised)); box-shadow: inset 3px 0 var(--primary); }
 .asset-result-select { min-width: 0; height: 100%; display: grid; grid-template-columns: 40px minmax(0, 1fr) 20px; align-items: center; gap: 11px; padding: 0; border: 0; background: transparent; color: var(--foreground); text-align: left; }
 .asset-art { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; background: var(--primary-soft); color: var(--primary); }
-.asset-art[data-category="music"] { background: color-mix(in oklab, var(--success) 10%, var(--surface-raised)); color: var(--success); }
-.asset-art[data-category="ambience"] { background: color-mix(in oklab, #0891b2 10%, var(--surface-raised)); color: #087d99; }
-.asset-art[data-category="sfx"] { background: color-mix(in oklab, var(--warning) 12%, var(--surface-raised)); color: color-mix(in oklab, var(--warning) 82%, var(--foreground)); }
+.asset-art[data-category="audio"] { background: var(--audio-audio-soft); color: var(--audio-audio); }
+.asset-art[data-category="music"] { background: var(--audio-music-soft); color: var(--audio-music); }
+.asset-art[data-category="ambience"] { background: var(--audio-ambience-soft); color: var(--audio-ambience); }
+.asset-art[data-category="sfx"] { background: var(--audio-sfx-soft); color: var(--audio-sfx); }
 .asset-art svg { width: 18px; height: 18px; }
 .asset-result-copy { min-width: 0; display: grid; gap: 3px; }
 .asset-result-copy b, .asset-result-copy > span, .asset-result-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

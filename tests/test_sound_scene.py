@@ -244,6 +244,7 @@ class SoundSceneDomainTests(unittest.TestCase):
 
         self.assertEqual(canonical["sequence_overrides"], {})
         self.assertEqual(canonical["tracks"][0]["kind"], "audio")
+        self.assertEqual(canonical["tracks"][0]["role"], "music")
         self.assertEqual(canonical["tracks"][0]["name"], "Music")
         clip = canonical["tracks"][0]["clips"][0]
         self.assertNotIn("start_ms", clip)
@@ -253,6 +254,36 @@ class SoundSceneDomainTests(unittest.TestCase):
         self.assertFalse(clip["muted"])
         self.assertFalse(clip["locked"])
         self.assertEqual(clip["effects"], [])
+        self.assertEqual(normalize_scene(canonical), canonical)
+
+    def test_audio_track_role_is_explicit_and_never_inferred_from_clips(self):
+        scene = empty_scene()
+        scene["tracks"] = [{
+            "id": "foley", "kind": "audio", "role": "sfx",
+            "name": "Kitchen Foley", "volume": 1, "muted": False,
+            "clips": [],
+        }]
+        canonical = normalize_scene(scene)
+        self.assertEqual(canonical["tracks"][0]["role"], "sfx")
+        self.assertEqual(canonical["tracks"][0]["name"], "Kitchen Foley")
+
+    def test_duplicate_legacy_generic_track_names_are_numbered_once(self):
+        document = empty_scene()
+        document["tracks"] = [{
+            "id": track_id, "kind": "audio", "name": name,
+            "volume": 1, "muted": False, "clips": [],
+        } for track_id, name in (
+            ("audio-one", "Audio"),
+            ("audio-two", "Audio"),
+            ("custom", "Room tone"),
+        )]
+
+        canonical = normalize_scene(document)
+
+        self.assertEqual(
+            [track["name"] for track in canonical["tracks"]],
+            ["Audio 1", "Audio 2", "Room tone"],
+        )
         self.assertEqual(normalize_scene(canonical), canonical)
 
     def test_sequence_override_is_resolved_without_changing_canonical_time(self):

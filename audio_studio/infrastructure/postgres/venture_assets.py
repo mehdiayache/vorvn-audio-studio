@@ -12,12 +12,7 @@ from audio_studio.domain.media import ASSET_MEDIA_TYPES, AssetMediaType
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 
-COLLECTIONS = (
-    ("intros", "Intros"),
-    ("outros", "Outros"),
-    ("music", "Music"),
-    ("stingers", "Stingers"),
-)
+COLLECTIONS = (("assets", "Assets"),)
 
 _ASSET_FIELDS = (
     "id", "venture_id", "collection_id", "name", "kind", "media_type",
@@ -29,6 +24,7 @@ _ASSET_FIELDS = (
 )
 
 _CATEGORY_BY_COLLECTION = {
+    "assets": "audio",
     "intros": "intro",
     "outros": "outro",
     "music": "music",
@@ -71,14 +67,11 @@ class VentureAssetRepository:
         if not row:
             return None
         collections = self.ensure_collections(int(row[0]))
-        preferred = next(
-            (item for item in collections if item["kind"] == "stingers"),
-            None,
-        )
+        preferred = next((item for item in collections if item["kind"] == "assets"), None)
         return int(preferred["id"]) if preferred else None
 
     def ensure_collections(self, venture_id: int) -> list[dict]:
-        """Create the four fixed collections while IDs still bridge legacy rows."""
+        """Create one canonical Asset Library while IDs bridge legacy rows."""
         with transaction() as cursor:
             cursor.execute(
                 "SELECT id FROM ventures WHERE id = %s AND archived_at IS NULL",
@@ -170,7 +163,7 @@ class VentureAssetRepository:
             cursor.execute("""
                 SELECT id, venture_id, kind, name
                   FROM asset_collections
-                 WHERE venture_id = %s ORDER BY name
+                 WHERE venture_id = %s AND kind = 'assets' ORDER BY name
             """, (venture_id,))
             return [{"id": ident, "venture_id": owner, "kind": kind,
                      "name": name}

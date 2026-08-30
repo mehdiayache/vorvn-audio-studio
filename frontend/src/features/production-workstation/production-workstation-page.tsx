@@ -450,8 +450,8 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
             setStage("sound")
           }}
           onUpload={async (file) => {
-            const collectionId = assetCollectionIds.Stingers
-            if (!collectionId) throw new Error("The visual library is unavailable.")
+            const collectionId = assetCollectionIds.Assets
+            if (!collectionId) throw new Error("The Asset Library is unavailable.")
             return await studioApi.uploadAsset(collectionId, file, {
               name: file.name.replace(/\.[^.]+$/, ""),
               category: "other",

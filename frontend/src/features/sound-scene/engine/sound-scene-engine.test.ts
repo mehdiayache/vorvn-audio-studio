@@ -15,11 +15,11 @@ function scene(): SoundScene {
 }
 
 describe("SoundSceneEngine", () => {
-  it("labels tracks by media type instead of source names", () => {
+  it("preserves stable operator track names instead of deriving them from clips", () => {
     const track = scene().resolved.tracks[0]!
     expect(soundTrackDisplayName(track)).toBe("Music")
     expect(soundTrackDisplayName({ ...track, clips: [...track.clips, { ...track.clips[0]!, id: "second" }] })).toBe("Music")
-    expect(soundTrackDisplayName({ ...track, name: "Operator mix", clips: [] })).toBe("Audio")
+    expect(soundTrackDisplayName({ ...track, name: "Operator mix", clips: [] })).toBe("Operator mix")
   })
 
   it("projects looped waveform peaks instead of stretching one source copy", () => {
@@ -163,7 +163,7 @@ describe("SoundSceneSession", () => {
     const document = update.mock.calls[0]![0]
     expect(document.tracks).toHaveLength(2)
     expect(document.tracks[0].clips[0].asset_id).toBe(9)
-    expect(document.tracks[1].name).toBe("Outro")
+    expect(document.tracks[1]).toMatchObject({ name: "Music 1", role: "music" })
     expect(document.tracks[1].clips[0].asset_id).toBe(22)
     expect(document.tracks[1].clips[0].anchor.position_ms).toBe(3_000)
     expect(document.tracks[1].clips[0]).toMatchObject({ gain: 1, duration_ms: 8_000, loop: false, ducking: false })
@@ -187,7 +187,26 @@ describe("SoundSceneSession", () => {
     session.dispose()
   })
 
-  it("uses a truthful generic name when a content-named track becomes a multi-clip track", async () => {
+  it("reclassifies a legacy generic track name but preserves a custom name", async () => {
+    const source = scene()
+    source.document.tracks[0]!.name = "Audio"
+    source.document.tracks[0]!.role = "audio"
+    source.resolved.tracks[0]!.name = "Audio"
+    source.resolved.tracks[0]!.role = "audio"
+    const update = vi.fn().mockImplementation(async (document) => ({ ...source, revision: 2, document }))
+    const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, {
+      replace: vi.fn().mockResolvedValue(undefined), play: vi.fn(), pause: vi.fn(), seek: vi.fn(),
+      currentTime: vi.fn().mockReturnValue(0), isPlaying: vi.fn().mockReturnValue(false),
+      muteTrack: vi.fn(), setTrackVolume: vi.fn(), setClipGain: vi.fn(), dispose: vi.fn(),
+    })
+
+    await session.setTrackRole("music", "sfx")
+
+    expect(update.mock.calls[0]![0].tracks[0]).toMatchObject({ name: "SFX 1", role: "sfx" })
+    session.dispose()
+  })
+
+  it("keeps an operator track name stable when another clip is placed", async () => {
     const source = scene()
     source.document.tracks[0]!.name = "Night bed"
     source.resolved.tracks[0]!.name = "Night bed"
@@ -201,7 +220,7 @@ describe("SoundSceneSession", () => {
     await session.addClip("music", { id: 24, title: "Bell", category: "sfx", duration_ms: 2_000 }, 4)
 
     const track = update.mock.calls[0]![0].tracks[0]
-    expect(track.name).toBe("Audio")
+    expect(track.name).toBe("Night bed")
     expect(track.clips.map((clip: { asset_id: number }) => clip.asset_id)).toEqual([9, 24])
     session.dispose()
   })

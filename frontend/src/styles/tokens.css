@@ -89,6 +89,19 @@
   --info: oklch(0.56 0.14 245);
   --info-soft: oklch(0.97 0.02 245);
   --info-border: oklch(0.84 0.06 245);
+  /* Canonical audio families. Purple remains reserved for active selection. */
+  --audio-audio: oklch(0.48 0.015 255);
+  --audio-audio-soft: oklch(0.97 0.006 255);
+  --audio-audio-border: oklch(0.84 0.015 255);
+  --audio-music: oklch(0.56 0.16 255);
+  --audio-music-soft: oklch(0.97 0.025 255);
+  --audio-music-border: oklch(0.84 0.075 255);
+  --audio-sfx: oklch(0.56 0.145 154);
+  --audio-sfx-soft: oklch(0.97 0.025 154);
+  --audio-sfx-border: oklch(0.83 0.075 154);
+  --audio-ambience: oklch(0.56 0.12 205);
+  --audio-ambience-soft: oklch(0.97 0.022 205);
+  --audio-ambience-border: oklch(0.84 0.065 205);
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;

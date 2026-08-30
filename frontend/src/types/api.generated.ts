@@ -3784,7 +3784,7 @@ export interface components {
              * Category
              * @enum {string}
              */
-            category: "music" | "ambience" | "sfx" | "intro" | "outro" | "other";
+            category: "audio" | "music" | "ambience" | "sfx" | "intro" | "outro" | "other";
             /** Collection Id */
             collection_id: number;
             /** External Id */
@@ -3805,7 +3805,7 @@ export interface components {
              * Category
              * @enum {string}
              */
-            category: "music" | "ambience" | "sfx" | "intro" | "outro" | "other";
+            category: "audio" | "music" | "ambience" | "sfx" | "intro" | "outro" | "other";
             /** Collection Id */
             collection_id: number;
             /** Name */
@@ -5066,6 +5066,12 @@ export interface components {
             muted: boolean;
             /** Name */
             name: string;
+            /**
+             * Role
+             * @default audio
+             * @enum {string}
+             */
+            role: "audio" | "music" | "sfx" | "ambience";
             /** Volume */
             volume: number;
         };
@@ -5619,6 +5625,12 @@ export interface components {
             muted: boolean;
             /** Name */
             name: string;
+            /**
+             * Role
+             * @default audio
+             * @enum {string}
+             */
+            role: "audio" | "music" | "sfx" | "ambience";
             /**
              * Volume
              * @default 1
@@ -6437,7 +6449,7 @@ export interface components {
              * Category
              * @enum {string}
              */
-            category: "music" | "ambience" | "sfx" | "intro" | "outro" | "other";
+            category: "audio" | "music" | "ambience" | "sfx" | "intro" | "outro" | "other";
             /** Channels */
             channels?: number | null;
             /**

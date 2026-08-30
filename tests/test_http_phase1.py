@@ -303,7 +303,7 @@ class NativeHttpTests(unittest.TestCase):
         self.assertEqual(audio.json()["data"]["id"], 103)
 
         document = {"version": 1, "sequence_overrides": {}, "tracks": [{
-            "id": "audio", "kind": "audio", "name": "Audio",
+            "id": "audio", "kind": "audio", "role": "audio", "name": "Audio",
             "volume": 1, "muted": False, "clips": [],
         }]}
         with patch.object(

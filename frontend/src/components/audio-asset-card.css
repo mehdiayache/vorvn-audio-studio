@@ -1,0 +1,38 @@
+.audio-asset-card {
+  --audio-family: var(--foreground);
+  --audio-family-soft: var(--surface-subtle);
+  position: relative;
+  min-width: 0;
+  min-height: 8.5rem;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 1.05);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-xs);
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+.audio-asset-card.is-audio { --audio-family: var(--audio-audio); --audio-family-soft: var(--audio-audio-soft); }
+.audio-asset-card.is-music { --audio-family: var(--audio-music); --audio-family-soft: var(--audio-music-soft); }
+.audio-asset-card.is-sfx { --audio-family: var(--audio-sfx); --audio-family-soft: var(--audio-sfx-soft); }
+.audio-asset-card.is-ambience { --audio-family: var(--audio-ambience); --audio-family-soft: var(--audio-ambience-soft); }
+.audio-asset-card:hover { border-color: color-mix(in oklab, var(--audio-family) 38%, var(--border)); transform: translateY(-1px); }
+.audio-asset-card.is-selected { border-color: var(--primary); box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 16%, transparent), var(--shadow-xs); }
+.audio-asset-card-main { min-width: 0; display: grid; grid-template-columns: 2.6rem minmax(0, 1fr) auto; align-items: start; gap: 10px; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
+.audio-asset-card-main:focus-visible { outline: 3px solid color-mix(in oklab, var(--ring) 34%, transparent); outline-offset: 5px; border-radius: var(--radius-sm); }
+.audio-asset-card-art { width: 2.6rem; height: 2.6rem; display: grid; place-items: center; border-radius: var(--radius-sm); background: var(--audio-family-soft); color: var(--audio-family); }
+.audio-asset-card-art svg { width: 17px; height: 17px; }
+.audio-asset-card-copy { min-width: 0; display: grid; gap: 4px; padding-top: 1px; }
+.audio-asset-card-copy b { overflow: hidden; font-size: var(--type-small); font-weight: var(--weight-emphasis); line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.audio-asset-card-copy small { overflow: hidden; color: color-mix(in oklab, var(--foreground) 62%, transparent); font-family: var(--font-mono); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.audio-asset-card-check { width: 15px; color: var(--primary); }
+.audio-asset-card-meta { min-width: 0; display: flex; align-items: center; gap: 5px; overflow: hidden; }
+.audio-asset-card-meta > span { flex: 0 0 auto; max-width: 7rem; overflow: hidden; padding: 2px 6px; border-radius: var(--radius-sm); background: var(--audio-family-soft); color: var(--audio-family); font-size: 9px; font-weight: var(--weight-emphasis); line-height: 1.35; text-overflow: ellipsis; text-transform: capitalize; white-space: nowrap; }
+.audio-asset-card-meta > .is-used { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; background: var(--primary-soft); color: var(--primary); }
+.audio-asset-card-meta > .is-used svg { width: 10px; }
+.audio-asset-card-actions { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+.audio-asset-card-actions > :first-child:not(:last-child) { margin-right: auto; }
+.audio-asset-card-actions [data-operator-icon-button] { color: var(--audio-family); }
+.audio-asset-card-actions .button, .audio-asset-card-actions button { flex: 0 0 auto; }

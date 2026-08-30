@@ -1,4 +1,4 @@
-import { AudioWaveform, Blend, ChevronDown, CircleHelp, Clock3, Music2, Pause, Play, RefreshCcw, SlidersHorizontal } from "lucide-react"
+import { Blend, ChevronDown, CircleHelp, Clock3, Music2, Pause, Play, RefreshCcw, SlidersHorizontal } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { OperatorIconButton } from "@/components/operator-action"
@@ -13,16 +13,11 @@ import { assetSourceLine } from "@/lib/asset-provenance"
 import { formatDuration } from "@/lib/format"
 import type { PlayerSource, SoundSceneClip, SoundSceneTrack, VentureAsset } from "@/types/domain"
 import { AudioVolumeControl, type AudioVolumeMix } from "../components/audio-volume-control"
+import { AUDIO_FAMILY_LABELS, SoundMediaIcon, audioAssetFamily, audioUsageTags } from "../audio-presentation"
 import { formatDb, gainToVolumePercent } from "../sound-scene-gain"
 import { AudioSourceEditor, type AudioSourceWindow } from "../source-editor/music-source-editor"
 
 import "./music-inspector.css"
-
-function categoryName(value?: string | null) {
-  const category = String(value || "other").toLowerCase()
-  if (category === "sfx") return "SFX"
-  return category.charAt(0).toUpperCase() + category.slice(1)
-}
 
 function technicalSummary(asset: VentureAsset | undefined, sourceDuration: number) {
   const facts = [formatDuration(sourceDuration)]
@@ -82,8 +77,8 @@ export function AudioClipInspector({ track, clip, asset, playingKey, playing, on
   const clipVolume = clip.muted || clip.gain <= 0 ? 0 : gainToVolumePercent(clip.gain)
   const trackVolume = track.muted || track.volume <= 0 ? 0 : gainToVolumePercent(track.volume)
   const outputVolume = clipVolume === 0 || trackVolume === 0 ? 0 : Math.round(clip.gain * track.volume * 100)
-  const category = String(asset?.category || clip.asset_kind || "other").toLowerCase()
-  const SourceIcon = category === "sfx" ? AudioWaveform : Music2
+  const category = audioAssetFamily(asset || { category: clip.asset_kind })
+  const usage = audioUsageTags(asset).find((tag) => tag === "intro" || tag === "outro" || tag === "jingle" || tag === "stinger")
   const duckAmountLabel = duckAmountDb === 0 ? "No reduction" : formatDb(duckAmountDb)
   const placement = `Starts ${formatDuration(Number(clip.resolved_start_ms || 0) / 1000)} · ${clip.loop ? "Loops to fill its placement" : `Uses ${formatDuration(usedDuration)}`}`
 
@@ -96,8 +91,8 @@ export function AudioClipInspector({ track, clip, asset, playingKey, playing, on
 
   return <div className="music-workbench-content" data-category={category}>
     <section className="music-workbench-source">
-      <span className="music-workbench-art"><SourceIcon /></span>
-      <div><span className="eyebrow">{categoryName(category)} · {asset ? assetSourceLine(asset) : "Audio Library"}</span><h3>{asset?.title || asset?.name || clip.asset_name || "Audio"}</h3><p>{technicalSummary(asset, sourceDuration)}</p></div>
+      <span className="music-workbench-art"><SoundMediaIcon kind={category} /></span>
+      <div><span className="eyebrow">{AUDIO_FAMILY_LABELS[category]}{usage ? ` · ${usage}` : ""}</span><h3>{asset?.title || asset?.name || clip.asset_name || "Audio"}</h3><p>{asset ? `${assetSourceLine(asset)} · ${technicalSummary(asset, sourceDuration)}` : technicalSummary(asset, sourceDuration)}</p></div>
       <OperatorIconButton label={active ? "Pause audio audition" : "Play audio audition"} detail="Auditions the source without changing its timeline placement." variant="outline" size="icon" onClick={() => onPlay({ key, url: soundClipSourceUrl(clip), title: clip.asset_name || "Audio", subtitle: "Source audition", kind: "asset" })}>{active ? <Pause /> : <Play />}</OperatorIconButton>
     </section>
 

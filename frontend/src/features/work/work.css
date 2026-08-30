@@ -179,6 +179,9 @@
 .venture-asset-list article > div { min-width: 0; display: grid; gap: 2px; }
 .venture-asset-list article b, .venture-asset-list article small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .venture-asset-list article small { color: color-mix(in oklch, var(--foreground) 64%, transparent); font-size: var(--type-caption); }
+.venture-media-filters { display: flex; align-items: center; gap: 4px; margin-bottom: 12px; }
+.venture-asset-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: 10px; }
+.venture-asset-card-grid > .skeleton { min-height: 8.5rem; border-radius: var(--radius); }
 .venture-asset-loading { display: grid; gap: 7px; }
 .venture-asset-loading > span { height: 58px; border-radius: var(--radius); }
 

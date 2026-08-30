@@ -92,8 +92,10 @@
 .sound-track-control { display: grid; grid-template-rows: minmax(0, 1fr) auto; padding: .22rem .42rem .18rem; }
 .sound-track-select { min-width: 0; display: flex; align-items: center; gap: .42rem; padding: 0; border: 0; background: transparent; text-align: left; }
 .sound-track-icon { width: 1.4rem; height: 1.4rem; display: grid; flex: none; place-items: center; border-radius: .38rem; color: var(--primary); background: var(--primary-soft); }
-.sound-track-icon.is-category-music { color: var(--success); background: var(--success-soft); }
-.sound-track-icon.is-category-sfx { color: var(--warning); background: var(--warning-soft); }
+.sound-track-icon.is-category-audio { color: var(--audio-audio); background: var(--audio-audio-soft); }
+.sound-track-icon.is-category-music { color: var(--audio-music); background: var(--audio-music-soft); }
+.sound-track-icon.is-category-sfx { color: var(--audio-sfx); background: var(--audio-sfx-soft); }
+.sound-track-icon.is-category-ambience { color: var(--audio-ambience); background: var(--audio-ambience-soft); }
 .sound-track-icon.is-category-video { color: var(--info); background: var(--info-soft); }
 .sound-track-icon.is-muted { color: var(--muted-foreground); background: var(--muted); }
 .sound-track-icon svg { width: .72rem; }
@@ -157,8 +159,10 @@
 .sound-sequence-silence > span { min-width: 0; display: flex; align-items: center; justify-content: center; gap: .2rem; padding: 0 .18rem; }
 .sound-sequence-silence svg { width: .62rem; flex: none; }.sound-sequence-silence b { font: var(--weight-emphasis) var(--type-workstation-data)/1 var(--font-mono); white-space: nowrap; }
 .sound-music-clip { padding: .3rem .5rem; border: 1px solid color-mix(in oklab, var(--primary) 26%, var(--border)); color: color-mix(in oklab, var(--primary) 72%, var(--foreground)); background: color-mix(in oklab, var(--primary-soft) 72%, white); cursor: grab; touch-action: none; }
-.sound-music-clip.is-category-music { border-color: var(--success-border); color: color-mix(in oklab, var(--success) 76%, var(--foreground)); background: var(--success-soft); }
-.sound-music-clip.is-category-sfx { border-color: var(--warning-border); color: color-mix(in oklab, var(--warning) 78%, var(--foreground)); background: var(--warning-soft); }
+.sound-music-clip.is-category-audio { border-color: var(--audio-audio-border); color: var(--audio-audio); background: var(--audio-audio-soft); }
+.sound-music-clip.is-category-music { border-color: var(--audio-music-border); color: var(--audio-music); background: var(--audio-music-soft); }
+.sound-music-clip.is-category-sfx { border-color: var(--audio-sfx-border); color: var(--audio-sfx); background: var(--audio-sfx-soft); }
+.sound-music-clip.is-category-ambience { border-color: var(--audio-ambience-border); color: var(--audio-ambience); background: var(--audio-ambience-soft); }
 .sound-music-clip.is-category-video { border-color: var(--info-border); color: color-mix(in oklab, var(--info) 78%, var(--foreground)); background: var(--info-soft); }
 .sound-music-clip:active { cursor: grabbing; }
 .sound-music-clip.is-locked { cursor: default; }
@@ -183,6 +187,10 @@
 .sound-scene-lane.is-muted .sound-music-clip { filter: grayscale(.85); opacity: .34; }
 .sound-scene-lane.is-solo-suppressed:not(.is-muted) .sound-music-clip { filter: saturate(.3); opacity: .55; }
 .sound-scene-lane.is-solo .sound-music-clip { border-color: color-mix(in oklab, var(--warning) 72%, var(--border)); }
+.sound-track-actions-menu { min-width: 12rem; }
+.sound-track-rename { display: flex; gap: .35rem; padding: .3rem; }
+.sound-track-rename input { height: 1.8rem; min-width: 8rem; font-size: var(--type-workstation-label); }
+.sound-track-rename button { height: 1.8rem; }
 .sound-lane-audibility { position: sticky; z-index: 4; top: .28rem; left: .35rem; display: inline-flex; align-items: center; margin: .28rem; padding: .16rem .3rem; border-radius: .24rem; color: var(--muted-foreground); background: color-mix(in oklab, white 90%, transparent); box-shadow: 0 0 0 1px var(--border); font: var(--weight-emphasis) var(--type-workstation-data)/1 var(--font-mono); letter-spacing: .055em; }
 .sound-scene-lane.is-muted .sound-lane-audibility { color: var(--destructive); }
 .sound-scene-lane.is-solo .sound-lane-audibility { color: oklch(.42 .12 72); }

@@ -1,9 +1,10 @@
-import { AudioWaveform, ChevronLeft, ChevronRight, Image as ImageIcon, LocateFixed, Magnet, Plus, Redo2, Undo2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, Image as ImageIcon, LocateFixed, Magnet, Plus, Redo2, Undo2 } from "lucide-react"
 
 import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { SoundMediaIcon } from "@/features/sound-scene/audio-presentation"
 import type { TimelineHistoryDomain } from "./use-timeline-history"
 
 const domainLabel = (domain: TimelineHistoryDomain) => domain === "visual" ? "visual" : "audio"
@@ -44,7 +45,7 @@ export function TimelineToolbar({ canUndo, canRedo, undoDomain, redoDomain, savi
         <DropdownMenuLabel>Place media at playhead</DropdownMenuLabel>
         <DropdownMenuGroup>
           {hasVisualScene && <DropdownMenuItem onSelect={onAddVisual}><ImageIcon /> Image or video</DropdownMenuItem>}
-          <DropdownMenuItem onSelect={onAddAudio}><AudioWaveform /> Audio</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onAddAudio}><SoundMediaIcon kind="audio" /> Audio</DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

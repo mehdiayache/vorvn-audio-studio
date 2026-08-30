@@ -90,9 +90,8 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         first = self.repository.ensure_collections(self.venture_id)
         second = self.repository.ensure_collections(self.venture_id)
         self.assertEqual(first, second)
-        self.assertEqual({item["kind"] for item in first},
-                         {"intros", "outros", "music", "stingers"})
-        self.assertEqual(len(first), 4)
+        self.assertEqual({item["kind"] for item in first}, {"assets"})
+        self.assertEqual(len(first), 1)
         for item in first:
             self.assertEqual(
                 self.repository.collection(item["id"])["venture_id"],
@@ -101,7 +100,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
 
     def test_uploaded_asset_keeps_identity_version_and_ownership(self):
         collections = self.repository.ensure_collections(self.venture_id)
-        music = next(item for item in collections if item["kind"] == "music")
+        music = next(item for item in collections if item["kind"] == "assets")
         with TemporaryDirectory() as output:
             root = Path(output)
             source = root / "incoming.upload"
@@ -119,7 +118,8 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                 created = service.save_asset_file(
                     music["id"], source, source.stat().st_size,
                     "Quiet bed.wav", name="Quiet evening bed",
-                    scope="venture", encoded_tags="%5B%22calm%22%2C%22bed%22%5D")
+                    category="music", scope="venture",
+                    encoded_tags="%5B%22calm%22%2C%22bed%22%5D")
             self.assertTrue((Path(output) / created["filename"]).is_file())
         asset = self.repository.get(created["id"])
         self.assertEqual(
@@ -141,7 +141,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         context = self.repository.library_context(created["id"])
         self.assertEqual(
             (context["venture_id"], context["collection"]),
-            (self.venture_id, "Music"),
+            (self.venture_id, "Assets"),
         )
         production_id = self._production()
         self.assertTrue(self.repository.allowed_for_production(
@@ -188,7 +188,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
     def test_visual_asset_persists_media_truth_without_a_parallel_library(self):
         collections = self.repository.ensure_collections(self.venture_id)
         compatibility_collection = next(
-            item for item in collections if item["kind"] == "stingers")
+            item for item in collections if item["kind"] == "assets")
 
         created = self.repository.create_uploaded_asset(
             compatibility_collection["id"], name="Harbour at dusk",
@@ -270,7 +270,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
 
     def test_director_rejects_audio_and_visuals_from_another_venture(self):
         collections = self.repository.ensure_collections(self.venture_id)
-        music = next(item for item in collections if item["kind"] == "music")
+        music = next(item for item in collections if item["kind"] == "assets")
         audio = self.repository.create_uploaded_asset(
             music["id"], name="Audio only", filename="audio.wav",
             path="/audio/audio.wav", size_bytes=10, duration_ms=1000,
@@ -282,7 +282,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         other_collections = self.repository.ensure_collections(
             self.other_venture_id)
         other = next(
-            item for item in other_collections if item["kind"] == "stingers")
+            item for item in other_collections if item["kind"] == "assets")
         image = self.repository.create_uploaded_asset(
             other["id"], name="Other visual", filename="other.png",
             path="/media/other.png", size_bytes=10, duration_ms=None,
@@ -294,7 +294,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
     def test_sound_scene_accepts_only_video_versions_with_embedded_audio(self):
         collections = self.repository.ensure_collections(self.venture_id)
         stingers = next(
-            item for item in collections if item["kind"] == "stingers")
+            item for item in collections if item["kind"] == "assets")
         production_id = self._production()
         scenes = SoundSceneRepository()
         audible = self.repository.create_uploaded_asset(
@@ -346,7 +346,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
     def test_legacy_visual_track_infers_video_from_its_canonical_asset(self):
         collections = self.repository.ensure_collections(self.venture_id)
         stingers = next(
-            item for item in collections if item["kind"] == "stingers")
+            item for item in collections if item["kind"] == "assets")
         production_id = self._production()
         video = self.repository.create_uploaded_asset(
             stingers["id"], name="Legacy camera",
@@ -391,7 +391,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
     def test_uploaded_studio_asset_is_reusable_by_another_venture(self):
         collections = self.repository.ensure_collections(self.venture_id)
         stingers = next(
-            item for item in collections if item["kind"] == "stingers")
+            item for item in collections if item["kind"] == "assets")
         other_production_id = self._production_for(self.other_venture_id, 2)
         with TemporaryDirectory() as output:
             root = Path(output)
@@ -421,9 +421,9 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         first = self.repository.ensure_collections(self.venture_id)
         second = self.repository.ensure_collections(self.other_venture_id)
         first_stingers = next(
-            item for item in first if item["kind"] == "stingers")
+            item for item in first if item["kind"] == "assets")
         second_stingers = next(
-            item for item in second if item["kind"] == "stingers")
+            item for item in second if item["kind"] == "assets")
         created = self.repository.create_uploaded_asset(
             first_stingers["id"], name="Shared door", filename="door.wav",
             path="/media/door.wav", size_bytes=900, duration_ms=450,
@@ -444,8 +444,8 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         first = self.repository.ensure_collections(self.venture_id)
         second = self.repository.ensure_collections(self.other_venture_id)
         collection_ids = (
-            next(item["id"] for item in first if item["kind"] == "stingers"),
-            next(item["id"] for item in second if item["kind"] == "stingers"),
+            next(item["id"] for item in first if item["kind"] == "assets"),
+            next(item["id"] for item in second if item["kind"] == "assets"),
         )
         external_id = f"studio-{self.marker}"
         barrier = Barrier(2)
@@ -485,8 +485,8 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         first = self.repository.ensure_collections(self.venture_id)
         second = self.repository.ensure_collections(self.other_venture_id)
         collection_ids = (
-            next(item["id"] for item in first if item["kind"] == "stingers"),
-            next(item["id"] for item in second if item["kind"] == "stingers"),
+            next(item["id"] for item in first if item["kind"] == "assets"),
+            next(item["id"] for item in second if item["kind"] == "assets"),
         )
         candidate_id = str(uuid4())
         barrier = Barrier(2)
@@ -527,7 +527,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         second = self.repository.ensure_collections(self.other_venture_id)
         first_collections = [item["id"] for item in first]
         second_collection = next(
-            item["id"] for item in second if item["kind"] == "stingers")
+            item["id"] for item in second if item["kind"] == "assets")
         external_id = f"venture-{self.marker}"
 
         def keep(collection_id: int, filename: str):
@@ -541,7 +541,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                           "external_id": external_id})
 
         first_result = keep(first_collections[0], "venture-first.wav")
-        duplicate_result = keep(first_collections[1], "venture-loser.wav")
+        duplicate_result = keep(first_collections[0], "venture-loser.wav")
         other_result = keep(second_collection, "venture-other.wav")
 
         self.assertFalse(first_result[1])
@@ -560,7 +560,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
     def test_explicit_category_is_independent_from_legacy_collection(self):
         collections = self.repository.ensure_collections(self.venture_id)
         stingers = next(
-            item for item in collections if item["kind"] == "stingers")
+            item for item in collections if item["kind"] == "assets")
         with TemporaryDirectory() as output:
             root = Path(output)
             service = UploadService(

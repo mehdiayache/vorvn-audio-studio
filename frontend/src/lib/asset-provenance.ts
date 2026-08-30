@@ -28,6 +28,11 @@ function modelName(value: string) {
     .replace(/\bmusic\b/i, "Music")
 }
 
+function compactModelName(value: string) {
+  if (/^stable-audio-3-small-/i.test(value)) return "Stable Audio"
+  return modelName(value)
+}
+
 export function assetSource(asset: VentureAsset): AssetSource {
   const origin = text(asset.metadata?.origin).toLocaleLowerCase()
   if (origin === "generated") return "generated"
@@ -41,7 +46,7 @@ export function assetSourceLine(asset: VentureAsset) {
   const metadata = asset.metadata || {}
   if (source === "generated") {
     const model = text(metadata.model)
-    return model ? `Generated · ${modelName(model)}` : "Generated"
+    return model ? `Generated · ${compactModelName(model)}` : "Generated"
   }
   if (source === "freesound") {
     const creator = text(metadata.creator)

@@ -15,6 +15,7 @@ from audio_studio.domain.rendering import silence_duration_seconds
 SAMPLE_RATE = 48_000
 TRACK_KIND = "audio"
 LEGACY_TRACK_KINDS = {"music", "sfx", "ambience"}
+TRACK_ROLES = {"audio", "music", "sfx", "ambience"}
 ANCHOR_KINDS = {"absolute", "part"}
 ANCHOR_EDGES = {"start", "end"}
 EFFECT_TYPES = {
@@ -255,9 +256,15 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
         incoming_kind = str(raw_track.get("kind") or "").strip().lower()
         if incoming_kind not in LEGACY_TRACK_KINDS | {TRACK_KIND}:
             raise SoundSceneError("That Sound Scene track kind is unsupported.")
-        # V1 Music/SFX/Ambience tracks remain valid read inputs. Track is now
-        # purely an audio container; classification belongs to each Asset.
+        # Every sound track remains technically audio. Role is an explicit,
+        # stable operator choice used for organization and presentation; it
+        # never restricts which audio Assets the track can contain.
         kind = TRACK_KIND
+        incoming_role = str(raw_track.get("role") or "").strip().lower()
+        if not incoming_role:
+            incoming_role = (incoming_kind if incoming_kind in TRACK_ROLES
+                             else str(raw_track.get("name") or "").strip().lower())
+        role = incoming_role if incoming_role in TRACK_ROLES else "audio"
         raw_clips = raw_track.get("clips")
         if not isinstance(raw_clips, list) or len(raw_clips) > 1_000:
             raise SoundSceneError("Sound Scene clips are invalid.")
@@ -337,12 +344,35 @@ def normalize_scene(document: dict[str, Any]) -> dict[str, Any]:
         tracks.append({
             "id": track_id,
             "kind": kind,
+            "role": role,
             "name": str(raw_track.get("name") or "Audio")[:120],
             "volume": max(0, min(2, _number(
                 raw_track.get("volume"), 1))),
             "muted": bool(raw_track.get("muted", False)),
             "clips": clips,
         })
+    # Old documents allowed several anonymous tracks to share the exact same
+    # generic label (for example two tracks both named "Audio"). Give only
+    # those duplicates stable operator-facing names. Custom names are never
+    # rewritten, and the result is idempotent once persisted again.
+    generic_names = {role: role.upper() if role == "sfx" else role.title()
+                     for role in TRACK_ROLES}
+    duplicate_counts: dict[tuple[str, str], int] = {}
+    for track in tracks:
+        role = track["role"]
+        canonical_name = generic_names[role]
+        if track["name"].strip().casefold() == canonical_name.casefold():
+            key = (role, canonical_name.casefold())
+            duplicate_counts[key] = duplicate_counts.get(key, 0) + 1
+    duplicate_indexes: dict[tuple[str, str], int] = {}
+    for track in tracks:
+        role = track["role"]
+        canonical_name = generic_names[role]
+        key = (role, canonical_name.casefold())
+        if (duplicate_counts.get(key, 0) > 1
+                and track["name"].strip().casefold() == key[1]):
+            duplicate_indexes[key] = duplicate_indexes.get(key, 0) + 1
+            track["name"] = f"{canonical_name} {duplicate_indexes[key]}"
     result = {
         "version": 1,
         "sequence_overrides": sequence_overrides,

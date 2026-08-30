@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react"
 
 import type { SequenceMixOverride, SoundScene, SoundSceneClip, SoundSceneDocument, SoundSceneTrack, VentureAsset, VisualSceneDocument } from "@/types/domain"
+import { audioAssetFamily } from "../audio-taxonomy"
 import { dbToGain, gainToDb } from "../sound-scene-gain"
 import { SoundSceneEngine, type SoundSceneEngineState } from "./sound-scene-engine"
 import { SoundScenePlayout } from "./sound-scene-playout"
@@ -35,31 +36,13 @@ export type SoundScenePersistence = {
   redo: () => Promise<SoundScene>
 }
 
-function audioTrackType(value?: string | null) {
-  const category = String(value || "").trim().toLowerCase()
-  if (category === "music") return "Music"
-  if (category === "sfx") return "SFX"
-  if (category === "ambience") return "Ambience"
-  if (category === "intro") return "Intro"
-  if (category === "outro") return "Outro"
-  return "Audio"
-}
-
-function assetTrackType(asset?: VentureAsset) {
-  return audioTrackType(String(asset?.category || asset?.kind || ""))
-}
-
 export function soundTrackDisplayName(track: SoundSceneTrack) {
-  if (track.clips.length > 0 && track.clips.every(
-      (clip) => clip.source_media_type === "video")) return "Video audio"
-  const types = new Set(track.clips.map((clip) => audioTrackType(clip.asset_kind)))
-  const declared = audioTrackType(track.name)
-  if (types.size === 1) {
-    const resolved = [...types][0]!
-    return resolved === "Audio" && declared !== "Audio" ? declared : resolved
-  }
-  if (types.size > 1) return "Audio"
-  return declared === "Audio" ? "Audio" : declared
+  return track.name.trim() || "Audio"
+}
+
+export type SoundTrackRole = NonNullable<SoundSceneTrack["role"]>
+const TRACK_ROLE_LABELS: Record<SoundTrackRole, string> = {
+  audio: "Audio", music: "Music", sfx: "SFX", ambience: "Ambience",
 }
 
 type Playout = Pick<SoundScenePlayout,
@@ -341,11 +324,16 @@ export class SoundSceneSession {
     }
   }
 
-  async addTrack(asset?: VentureAsset, timelinePosition = 0) {
+  async addTrack(asset?: VentureAsset, timelinePosition = 0, requestedRole?: SoundTrackRole) {
     const id = `audio-${crypto.randomUUID()}`
+    const role = requestedRole || audioAssetFamily(asset)
     const clip = asset ? this.audioClip(asset, Math.max(0, Math.round(timelinePosition * 1000)), true) : null
+    const stem = TRACK_ROLE_LABELS[role]
+    const used = new Set(this.editor.document().tracks.map((track) => track.name.trim().toLowerCase()))
+    let number = 1
+    while (used.has(`${stem} ${number}`.toLowerCase())) number += 1
     await this.persist(this.nextDocument((document) => document.tracks.push({
-      id, kind: "audio", name: assetTrackType(asset),
+      id, kind: "audio", role, name: `${stem} ${number}`,
       volume: 1, muted: false, clips: clip ? [clip] : [],
     })))
     if (clip) this.select({ kind: "clip", trackId: id, clipId: clip.id })
@@ -364,12 +352,6 @@ export class SoundSceneSession {
     await this.persist(this.nextDocument((document) => {
       const track = document.tracks.find((item) => item.id === trackId)
       if (!track) throw new Error("That Audio Track is no longer available.")
-      if (!track.clips.length && (track.name === "Audio" || /^Audio \d+$/.test(track.name)))
-        track.name = assetTrackType(asset)
-      else if (track.clips.length === 1 && (
-        track.name === "Music" || /^Audio \d+$/.test(track.name)
-        || track.name === String(track.clips[0]?.asset_name || "").trim()
-      )) track.name = "Audio"
       track.clips.push(clip)
     }))
     this.select({ kind: "clip", trackId, clipId: clip.id })
@@ -382,6 +364,24 @@ export class SoundSceneSession {
       const track = document.tracks.find((item) => item.id === trackId)
       if (!track) throw new Error("That Audio Track is no longer available.")
       track.name = next.slice(0, 80)
+    }))
+  }
+
+  async setTrackRole(trackId: string, role: SoundTrackRole) {
+    await this.persist(this.nextDocument((document) => {
+      const track = document.tracks.find((item) => item.id === trackId)
+      if (!track) throw new Error("That Audio Track is no longer available.")
+      const previousRole = track.role || "audio"
+      const previousStem = TRACK_ROLE_LABELS[previousRole]
+      const automaticName = new RegExp(`^${previousStem}(?: \\d+)?$`, "i").test(track.name)
+      track.role = role
+      if (automaticName) {
+        const stem = TRACK_ROLE_LABELS[role]
+        const used = new Set(document.tracks.filter((item) => item.id !== trackId).map((item) => item.name.trim().toLowerCase()))
+        let number = 1
+        while (used.has(`${stem} ${number}`.toLowerCase())) number += 1
+        track.name = `${stem} ${number}`
+      }
     }))
   }
 

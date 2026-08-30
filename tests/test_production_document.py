@@ -112,18 +112,17 @@ class ProductionDocumentTests(unittest.TestCase):
         collections = self.asset_repository.collections_for_venture(
             int(self.venture["id"]))
         intro_collection = next(item for item in collections
-                                if item["kind"] == "intros")
-        music_collection = next(item for item in collections
-                                if item["kind"] == "music")
+                                if item["kind"] == "assets")
+        music_collection = intro_collection
         intro = self.asset_repository.create_uploaded_asset(
             intro_collection["id"], name=f"Intro {self.marker}",
             filename=f"intro-{self.marker}.wav", path=f"/tmp/intro-{self.marker}.wav",
-            size_bytes=44, duration_ms=1200, audio_format="wav",
+            size_bytes=44, duration_ms=1200, audio_format="wav", category="intro",
             mime_type="audio/wav")
         music_asset = self.asset_repository.create_uploaded_asset(
             music_collection["id"], name=f"Music {self.marker}",
             filename=f"music-{self.marker}.wav", path=f"/tmp/music-{self.marker}.wav",
-            size_bytes=44, duration_ms=30000, audio_format="wav",
+            size_bytes=44, duration_ms=30000, audio_format="wav", category="music",
             mime_type="audio/wav")
         silence = self.timeline.add_silence(first_id, 2)
         silence_public_id = self.repository.part(
@@ -149,7 +148,7 @@ class ProductionDocumentTests(unittest.TestCase):
                            if item["id"] == linked["id"])
         self.assertEqual(linked_part["kind"], "asset")
         self.assertEqual(linked_part["asset_kind"], "intro")
-        self.assertEqual(linked_part["asset_collection"], "Intros")
+        self.assertEqual(linked_part["asset_collection"], "Assets")
 
         self.timeline.edit_silence(first_id, silence["id"], 3.5)
         edited = next(item for item in self.repository.parts(first_id)
@@ -396,7 +395,7 @@ class ProductionDocumentTests(unittest.TestCase):
         production_id = int(self.first["id"])
         collection = next(
             item for item in self.asset_repository.collections_for_venture(
-                int(self.venture["id"])) if item["kind"] == "music")
+                int(self.venture["id"])) if item["kind"] == "assets")
         asset = self.asset_repository.create_uploaded_asset(
             collection["id"], name=f"History {self.marker}",
             filename=f"history-{self.marker}.wav",
@@ -479,7 +478,7 @@ class ProductionDocumentTests(unittest.TestCase):
         production_id = int(self.first["id"])
         collection = next(
             item for item in self.asset_repository.collections_for_venture(
-                int(self.venture["id"])) if item["kind"] == "music")
+                int(self.venture["id"])) if item["kind"] == "assets")
         asset = self.asset_repository.create_uploaded_asset(
             collection["id"], name=f"Linked history {self.marker}",
             filename=f"linked-history-{self.marker}.wav",
@@ -591,7 +590,7 @@ class ProductionDocumentTests(unittest.TestCase):
         production_id = int(self.first["id"])
         collections = self.asset_repository.collections_for_venture(
             int(self.venture["id"]))
-        music = next(item for item in collections if item["kind"] == "music")
+        music = next(item for item in collections if item["kind"] == "assets")
         asset = self.asset_repository.create_uploaded_asset(
             music["id"], name=f"Sequence music {self.marker}",
             filename=f"sequence-music-{self.marker}.wav",

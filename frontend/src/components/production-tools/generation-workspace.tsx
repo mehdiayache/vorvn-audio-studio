@@ -342,7 +342,7 @@ export function GenerationWorkspace({
     if (!candidate || !name.trim()) return
     setKeeping(place ? "place" : "library"); setError("")
     try {
-      const kept = await onKeep(category === "music" ? "Music" : category === "intro" ? "Intros" : category === "outro" ? "Outros" : "Stingers", {
+      const kept = await onKeep("Assets", {
         candidateId: candidate.candidate_id, name: name.trim(), category, scope, tags,
       })
       await refreshHistory()

@@ -1,10 +1,11 @@
-import { AudioWaveform, Film, Image as ImageIcon, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react"
+import { Film, Image as ImageIcon, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react"
 
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { SoundSceneEngineState } from "@/features/sound-scene/engine/sound-scene-engine"
 import type { SoundSceneSession } from "@/features/sound-scene/engine/sound-scene-session"
+import { AUDIO_FAMILY_LABELS, SoundMediaIcon, type AudioFamily } from "@/features/sound-scene/audio-presentation"
 import type { VisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
 import type { SoundSceneTrack, VentureAsset, VisualSceneTrack } from "@/types/domain"
 import { AudioTrackHeaders } from "./audio-timeline-section"
@@ -35,12 +36,13 @@ export function TimelineTrackControls({ audioSession, visualSession, audioTracks
             <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" aria-label="New Timeline track"><Plus data-icon="inline-start" />New track</Button></DropdownMenuTrigger>
           </OperatorTooltip>
           <DropdownMenuContent side="right" align="start">
-            <DropdownMenuLabel>Empty track</DropdownMenuLabel>
+            <DropdownMenuLabel>Visual</DropdownMenuLabel>
             <DropdownMenuGroup>
               <DropdownMenuItem onSelect={() => void visualSession?.addTrack("image")} disabled={!visualSession}><ImageIcon /> Image</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => void visualSession?.addTrack("video")} disabled={!visualSession}><Film /> Video</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => void audioSession.addTrack()}><AudioWaveform /> Audio</DropdownMenuItem>
             </DropdownMenuGroup>
+            <DropdownMenuLabel>Audio</DropdownMenuLabel>
+            <DropdownMenuGroup>{(Object.keys(AUDIO_FAMILY_LABELS) as AudioFamily[]).map((role) => <DropdownMenuItem key={role} onSelect={() => void audioSession.addTrack(undefined, 0, role)}><SoundMediaIcon kind={role} /> {AUDIO_FAMILY_LABELS[role]}</DropdownMenuItem>)}</DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>}
         <OperatorTooltip label={collapsed ? "Show track controls" : "Hide track controls"}>
@@ -70,6 +72,8 @@ export function TimelineTrackControls({ audioSession, visualSession, audioTracks
       onVolumeChange={(track, mix) => audioSession.setTrackMix(track.id, { volume: mix.gain, muted: mix.muted })}
       onVolumeCommit={(track, mix) => void audioSession.commitTrackMix(track.id, { volume: mix.gain, muted: mix.muted })}
       onAdd={(track) => onAddAudio(track.id)}
+      onRename={(track, name) => void audioSession.renameTrack(track.id, name)}
+      onRole={(track, role) => void audioSession.setTrackRole(track.id, role)}
       onRemove={onRemoveAudioTrack}
     />
   </>

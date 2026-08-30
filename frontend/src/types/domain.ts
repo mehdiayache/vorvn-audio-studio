@@ -255,6 +255,7 @@ export type SoundSceneClip = {
 export type SoundSceneTrack = {
   id: string
   kind: "audio"
+  role?: "audio" | "music" | "sfx" | "ambience"
   name: string
   volume: number
   muted: boolean

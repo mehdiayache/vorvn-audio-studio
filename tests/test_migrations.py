@@ -75,6 +75,7 @@ class MigrationTests(unittest.TestCase):
                     "048_sound_scene_derived_history.sql",
                 "049_default_speech_volume.sql",
                 "050_saved_visual_references.sql",
+                "051_unified_asset_library.sql",
         ])
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:
@@ -109,7 +110,7 @@ class MigrationTests(unittest.TestCase):
                     SELECT count(*) FROM asset_collections collection
                     JOIN ventures venture ON venture.id = collection.venture_id
                     WHERE venture.system_role = 'sandbox'
-                """).fetchone()[0], 4)
+                """).fetchone()[0], 1)
                 version_columns = {row[0] for row in database.execute("""
                     SELECT column_name FROM information_schema.columns
                      WHERE table_name = 'asset_versions'

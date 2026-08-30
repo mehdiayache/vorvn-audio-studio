@@ -241,7 +241,7 @@ describe("AssetTool", () => {
     expect(onChoose).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole("button", { name: "Select Harbor Intro" }))
     expect(screen.getAllByText("Harbor Intro").length).toBeGreaterThan(1)
-    fireEvent.click(screen.getByRole("button", { name: "Insert in Script" }))
+    fireEvent.click(screen.getByRole("button", { name: "Insert" }))
     await waitFor(() => expect(onChoose).toHaveBeenCalledWith(assets[0]))
   })
 
@@ -265,7 +265,7 @@ describe("AssetTool", () => {
     fireEvent.change(tags, { target: { value: "rain" } })
     fireEvent.keyDown(tags, { key: "Enter" })
     fireEvent.click(screen.getByRole("button", { name: "Add to Library" }))
-    await waitFor(() => expect(onUpload).toHaveBeenCalledWith("Stingers", {
+    await waitFor(() => expect(onUpload).toHaveBeenCalledWith("Assets", {
       file, name: "Rain at dusk", category: "ambience", scope: "studio",
       tags: ["rain"],
     }))
@@ -344,7 +344,7 @@ describe("AssetTool", () => {
     expect(screen.getByRole("button", { name: "Select Night room" })).toBeTruthy()
     expect(screen.queryByRole("button", { name: "Select Harbor still" })).toBeNull()
     expect(screen.queryByRole("button", { name: "Select Slow harbor pan" })).toBeNull()
-    expect(screen.getByRole("button", { name: "Add to Audio Track" }).hasAttribute("disabled")).toBe(true)
+    expect(screen.getByRole("button", { name: "Select Night room" }).getAttribute("aria-pressed")).toBe("false")
   })
 
   it("combines duration, actual tags and Production usage filters with a clear count", () => {
@@ -402,8 +402,8 @@ describe("AssetTool", () => {
     expect(onKeep).not.toHaveBeenCalled()
 
     fireEvent.click(view.getByRole("button", { name: "Select Wooden door close.wav" }))
-    fireEvent.click(view.getByRole("button", { name: "Keep in Library" }))
-    await waitFor(() => expect(onKeep).toHaveBeenCalledWith("Stingers", {
+    fireEvent.click(view.getByRole("button", { name: "Keep" }))
+    await waitFor(() => expect(onKeep).toHaveBeenCalledWith("Assets", {
       result, name: result.name, category: "sfx", scope: "studio",
       tags: ["door", "wood"],
     }))

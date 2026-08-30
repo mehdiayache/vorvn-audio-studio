@@ -284,7 +284,7 @@ class UploadService:
     ) -> StoredAsset:
         if not self.records.asset_collection(collection_id):
             raise UploadError(
-                "Choose an Intros, Outros, Music or Stingers library first.")
+                "Choose the Venture Asset Library first.")
         if size_bytes <= 0 or not source.is_file():
             raise UploadError("That media file is empty.")
         if size_bytes > MAX_ASSET_UPLOAD_BYTES:
