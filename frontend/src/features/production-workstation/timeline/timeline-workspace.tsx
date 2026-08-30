@@ -34,7 +34,7 @@ const RULER_HEIGHT = 30
 type AddTarget = { mode: "new-track" } | { mode: "add-clip"; trackId: string }
 type RemoveTarget = { clips: SoundClipRef[] }
 
-export function TimelineWorkspace({ session, visual, onAddAudio, onRemoveClip, onRemoveTrack, onOpenSequence }: {
+export function TimelineWorkspace({ session, visual, onAddAudio, onRemoveClip, onRemoveTrack }: {
   session: SoundSceneSession
   visual?: {
     session: VisualSceneSession
@@ -46,7 +46,6 @@ export function TimelineWorkspace({ session, visual, onAddAudio, onRemoveClip, o
   onAddAudio: (target: AddTarget) => void
   onRemoveClip: (target: RemoveTarget) => void
   onRemoveTrack: (track: SoundSceneTrack) => void
-  onOpenSequence?: (partId: number) => void
 }) {
   const { scene, engine, selection, playhead, playback, saving, error, soloTrackIds, playbackRange, revisionKind } = useSoundSceneSession(session)
   const visualState = useVisualSceneSession(visual?.session)
@@ -212,7 +211,6 @@ export function TimelineWorkspace({ session, visual, onAddAudio, onRemoveClip, o
       audioSession={session}
       visualSession={visual?.session}
       selectedAudioRefs={selectedRefs}
-      selectedAudio={selectedClips}
       selectedPart={selectedPart}
       context={context}
       selectedVisualRefs={selectedVisualRefs}
@@ -230,7 +228,6 @@ export function TimelineWorkspace({ session, visual, onAddAudio, onRemoveClip, o
       onFollowPlayhead={() => viewport.setFollowPlayhead(true)}
       onRemoveAudio={() => onRemoveClip({ clips: selectedRefs })}
       onRemoveVisual={deleteVisualSelection}
-      onOpenSequence={onOpenSequence}
     />
   </section>
 }

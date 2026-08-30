@@ -49,10 +49,13 @@ describe("SoundSceneContextToolbar", () => {
     />)
 
     fireEvent.click(screen.getByRole("button", { name: /Effects/ }))
-    fireEvent.click(screen.getByRole("button", { name: /Telephone/ }))
+    const telephone = screen.getByRole("button", { name: "Telephone effect · Inactive" })
+    expect(telephone.getAttribute("aria-pressed")).toBe("false")
+    fireEvent.click(telephone)
 
     expect(onEffectsPreview).toHaveBeenCalledWith([expect.objectContaining({ type: "telephone", enabled: true })])
     expect(onEffects).toHaveBeenCalledWith([expect.objectContaining({ type: "telephone", enabled: true })])
+    expect(screen.getByRole("button", { name: "Telephone effect · Active" }).getAttribute("aria-pressed")).toBe("true")
   })
 
   it("names Sequence mute as a mix-only audio action", () => {

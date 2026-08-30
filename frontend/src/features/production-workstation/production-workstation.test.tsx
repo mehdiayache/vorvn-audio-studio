@@ -208,6 +208,8 @@ describe("Production Workstation", () => {
     musicTrack.muted = true
     render(<TimelineWorkspace session={sessionFor(soundScene)} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
+    expect(screen.getByRole("button", { name: "Adjust Music gain" }).textContent).toContain("100%")
+    fireEvent.click(screen.getByRole("button", { name: "Adjust Music gain" }))
     expect(screen.getByRole("slider", { name: "Music gain" }).getAttribute("aria-disabled")).not.toBe("true")
     expect(screen.getByRole("button", { name: "Unmute Music" })).toBeTruthy()
     expect(screen.getAllByText("MUTED")).toHaveLength(2)
@@ -226,7 +228,6 @@ describe("Production Workstation", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Adjust Music gain" }))
     expect(screen.getByRole("slider", { name: "Music gain" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Mute track" })).toBeTruthy()
 
     fireEvent.keyDown(document, { key: "Escape" })
     fireEvent.pointerDown(screen.getByRole("button", { name: "Track actions for Music" }), { button: 0, ctrlKey: false, pointerType: "mouse" })

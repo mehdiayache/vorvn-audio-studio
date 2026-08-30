@@ -10,14 +10,12 @@ import type { VisualSceneSession, VisualClipRef } from "@/features/visual-scene/
 import { VisualContextToolbar } from "@/features/visual-scene/timeline/visual-timeline-parts"
 import type { SequenceProjectionSpan, SoundSceneTrack, VentureAsset, VisualSceneTrack } from "@/types/domain"
 
-type SelectedAudio = { ref: SoundClipRef; clip: SoundSceneTrack["clips"][number] }
 type SelectedVideoAudio = { trackId: string; clip: SoundSceneTrack["clips"][number] }
 
-export function TimelineContextBar({ audioSession, visualSession, selectedAudioRefs, selectedAudio, selectedPart, context, selectedVisualRefs, selectedVisualTrack, selectedVisualAsset, selectedVideoAudio, playhead, saving, visualSaving, canSplitAudio, canSplitVisual, canCrossfade, error, visualError, onFollowPlayhead, onRemoveAudio, onRemoveVisual, onOpenSequence }: {
+export function TimelineContextBar({ audioSession, visualSession, selectedAudioRefs, selectedPart, context, selectedVisualRefs, selectedVisualTrack, selectedVisualAsset, selectedVideoAudio, playhead, saving, visualSaving, canSplitAudio, canSplitVisual, canCrossfade, error, visualError, onFollowPlayhead, onRemoveAudio, onRemoveVisual }: {
   audioSession: SoundSceneSession
   visualSession?: VisualSceneSession
   selectedAudioRefs: SoundClipRef[]
-  selectedAudio: SelectedAudio[]
   selectedPart: SequenceProjectionSpan | null
   context: SoundContext | null
   selectedVisualRefs: VisualClipRef[]
@@ -35,7 +33,6 @@ export function TimelineContextBar({ audioSession, visualSession, selectedAudioR
   onFollowPlayhead: () => void
   onRemoveAudio: () => void
   onRemoveVisual: () => void
-  onOpenSequence?: (partId: number) => void
 }) {
   const selectedVisualRef = selectedVisualRefs[0] || null
   const selectedVisualClip = selectedVisualRef ? selectedVisualTrack?.clips.find((clip) => clip.id === selectedVisualRef.clipId) || null : null
@@ -72,8 +69,6 @@ export function TimelineContextBar({ audioSession, visualSession, selectedAudioR
       onPlaySelection={() => { onFollowPlayhead(); void audioSession.playSelection(false, selectedAudioRefs) }}
       onLoopSelection={() => { onFollowPlayhead(); void audioSession.playSelection(true, selectedAudioRefs) }}
       onDelete={onRemoveAudio}
-      onOptions={selectedAudio.length === 1 || selectedPart ? () => document.querySelector(".ws-right-pane")?.scrollIntoView({ block: "nearest" }) : undefined}
-      onOpenSequence={selectedPart ? () => onOpenSequence?.(selectedPart.part_id) : undefined}
     /> : <span className="sound-context-empty">Select a clip or Script Part to edit it</span>}
     {feedback && <div className="sound-context-feedback" role="alert" aria-live="assertive">
       <CircleAlert aria-hidden="true" />

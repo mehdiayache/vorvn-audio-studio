@@ -497,7 +497,6 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
             description: `This removes the track and its ${track.clips.length} placement${track.clips.length === 1 ? "" : "s"}. Reusable Audio Library assets remain available.`,
             action: () => soundSession.removeTrack(track.id),
           })}
-          onOpenSequence={(partId) => { setStage("sequence"); setSelectedId(partId) }}
         />}
         {inspectorOpen && <aside className="ws-right-pane" aria-label="Contextual inspector">
           <header><h2>{inspectorTitle}</h2><OperatorIconButton label="Close inspector" detail="Keeps the current Production changes." onClick={closeInspector}><X /></OperatorIconButton></header>

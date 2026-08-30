@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
 import {
-  ArrowDown, ArrowUp, Blend, Copy, FileText, Lock, MoreHorizontal, Play, RadioTower, Repeat2,
-  Scissors, SlidersHorizontal, Trash2, Unlock, Volume2, VolumeX,
+  ArrowDown, ArrowUp, Blend, Check, Copy, Gauge, Lock, MoreHorizontal, MoveHorizontal, Phone,
+  Play, RadioTower, Repeat2, Scissors, SlidersHorizontal, Trash2, Unlock, Volume2, VolumeX,
+  Waves, Zap, type LucideIcon,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -27,6 +28,16 @@ function effectId() { return crypto.randomUUID() }
 const EFFECT_LABELS: Record<SoundSceneEffect["type"], string> = {
   telephone: "Telephone", echo: "Echo", filter: "Filter", compressor: "Compressor",
   reverb: "Reverb", distortion: "Distortion", pan: "Stereo Pan",
+}
+
+const EFFECT_ICONS: Record<SoundSceneEffect["type"], LucideIcon> = {
+  telephone: Phone,
+  echo: Repeat2,
+  filter: SlidersHorizontal,
+  compressor: Gauge,
+  reverb: Waves,
+  distortion: Zap,
+  pan: MoveHorizontal,
 }
 
 function newEffect(type: SoundSceneEffect["type"]): SoundSceneEffect {
@@ -116,14 +127,15 @@ export function SoundEffectsEditor({ effects, disabled, subject = "Clip", onPrev
   const focused = draft.find((effect) => effect.type === focusedType && effect.enabled) || null
   const effectTypes = Object.keys(EFFECT_LABELS) as SoundSceneEffect["type"][]
   return <div className="sound-effects-editor">
-    <header><span><RadioTower /></span><div><b>{subject} effects</b><small>Non-destructive · browser and export</small></div></header>
+    <header><span><RadioTower /></span><div><b>{subject} effects</b><small className="is-technical">{active.length ? `${active.length} active` : "None active"}</small></div></header>
     <Select value={preset} onValueChange={applyPreset} disabled={disabled}><SelectTrigger className="sound-effect-preset"><SelectValue placeholder="Apply a creative preset…" /></SelectTrigger><SelectContent>
       <SelectItem value="telephone">Telephone</SelectItem><SelectItem value="radio">Radio</SelectItem><SelectItem value="walkie">Walkie-talkie</SelectItem><SelectItem value="intercom">Intercom</SelectItem>
       <SelectItem value="behind-door">Behind a door</SelectItem><SelectItem value="next-room">Next room</SelectItem><SelectItem value="small-room">Small room</SelectItem><SelectItem value="large-hall">Large hall</SelectItem><SelectItem value="cave">Cave</SelectItem><SelectItem value="old-speaker">Old speaker</SelectItem><SelectItem value="robot">Robot</SelectItem>
     </SelectContent></Select>
     <div className="sound-effect-palette" aria-label="Effect primitives">{effectTypes.map((type) => {
       const enabled = Boolean(draft.find((effect) => effect.type === type)?.enabled)
-      return <button key={type} type="button" aria-pressed={enabled} disabled={disabled} onClick={() => toggle(type)} onFocus={() => setFocusedType(type)}><span>{EFFECT_LABELS[type]}</span><i /></button>
+      const EffectIcon = EFFECT_ICONS[type]
+      return <button key={type} type="button" aria-label={`${EFFECT_LABELS[type]} effect · ${enabled ? "Active" : "Inactive"}`} aria-pressed={enabled} disabled={disabled} onClick={() => toggle(type)} onFocus={() => setFocusedType(type)}><EffectIcon /><span>{EFFECT_LABELS[type]}</span>{enabled && <Check className="sound-effect-active-check" />}</button>
     })}</div>
     {active.length > 0 && <div className="sound-effect-chain" aria-label="Effect processing order">
       <span>Processing order</span>
@@ -163,7 +175,7 @@ export type SoundContext = {
   count?: number
 }
 
-export function SoundSceneContextToolbar({ context, saving, canSplit, onMute, onGainPreview, onGain, onEffectsPreview, onEffects, onLock, onSplit, onDuplicate, onCrossfade, onPlaySelection, onLoopSelection, onDelete, onOptions, onOpenSequence }: {
+export function SoundSceneContextToolbar({ context, saving, canSplit, onMute, onGainPreview, onGain, onEffectsPreview, onEffects, onLock, onSplit, onDuplicate, onCrossfade, onPlaySelection, onLoopSelection, onDelete }: {
   context: SoundContext | null
   saving: boolean
   canSplit?: boolean
@@ -179,8 +191,6 @@ export function SoundSceneContextToolbar({ context, saving, canSplit, onMute, on
   onPlaySelection?: () => void
   onLoopSelection?: () => void
   onDelete?: () => void
-  onOptions?: () => void
-  onOpenSequence?: () => void
 }) {
   const [gainDb, setGainDb] = useState(context?.gainMixed ? 0 : gainToDb(context?.gain ?? 1))
   useEffect(() => setGainDb(context?.gainMixed ? 0 : gainToDb(context?.gain ?? 1)), [context?.gain, context?.gainMixed, context?.label])
@@ -201,7 +211,6 @@ export function SoundSceneContextToolbar({ context, saving, canSplit, onMute, on
       <OperatorIconButton label={muteLabel} detail={muteDetail} className="sound-context-command" disabled={saving} onClick={onMute}>{context.muted ? <VolumeX /> : <Volume2 />}</OperatorIconButton>
       <Popover><OperatorTooltip label="Gain" detail={context.gainMixed ? "Adjust all selected clips relatively." : context.kind === "sequence" ? "Adjust this Script Part level." : "Adjust this clip level."} disabledTrigger={saving}><PopoverTrigger asChild><Button className="sound-context-command" variant="ghost" size="icon-sm" disabled={saving} aria-label="Gain"><SlidersHorizontal /></Button></PopoverTrigger></OperatorTooltip><PopoverContent align="end" className="sound-volume-popover"><span>{context.gainMixed ? "Relative gain" : context.kind === "sequence" ? "Part gain" : "Clip gain"} <b>{context.gainMixed ? formatDb(gainDb, true) : formatDb(gainDb)}</b></span><Slider aria-label={context.gainMixed ? "Selected clips relative gain" : context.kind === "sequence" ? "Script Part gain" : "Audio clip gain"} value={[gainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setGainDb(value); onGainPreview?.(value, Boolean(context.gainMixed)) }} onValueCommit={([value = gainDb]) => onGain(value, Boolean(context.gainMixed))} /></PopoverContent></Popover>
       {(context.count === undefined || context.count === 1) ? <Popover><OperatorTooltip label="Effects" detail="Shape this placement with the browser-previewed effect chain." disabledTrigger={saving}><PopoverTrigger asChild><Button className={`sound-context-command${activeEffectCount ? " is-active" : ""}`} variant="ghost" size="icon-sm" disabled={saving} aria-label={activeEffectCount ? `Effects · ${activeEffectCount} active` : "Effects"}><RadioTower />{activeEffectCount ? <small>{activeEffectCount}</small> : null}</Button></PopoverTrigger></OperatorTooltip><PopoverContent align="end" className="sound-effects-popover"><SoundEffectsEditor effects={context.effects} disabled={saving} subject={context.kind === "sequence" ? "Part" : "Clip"} onPreview={onEffectsPreview} onCommit={onEffects} /></PopoverContent></Popover> : null}
-      {onOptions && <OperatorIconButton label="Options" detail="Open this selection in the inspector." className="sound-context-command" disabled={saving} onClick={onOptions}><MoreHorizontal /></OperatorIconButton>}
     </div>}
     {context.kind === "audio" && <div className="sound-context-group is-object">
       <OperatorIconButton label={lockLabel} detail="Prevents accidental movement, trimming and deletion." className={`sound-context-command${hasLockedClips ? " is-active" : ""}`} disabled={saving} onClick={onLock}>{lockState === "locked" ? <Unlock /> : <Lock />}</OperatorIconButton>
@@ -224,6 +233,5 @@ export function SoundSceneContextToolbar({ context, saving, canSplit, onMute, on
       </DropdownMenuContent></DropdownMenu>
       <OperatorIconButton label="Delete selected clips" detail="Removes the Timeline placement; the Audio Library Asset remains available." className="sound-context-command danger" disabled={saving || hasLockedClips} onClick={onDelete}><Trash2 /></OperatorIconButton>
     </div>}
-    {(context.kind === "sequence" || context.kind === "silence") && onOpenSequence && <div className="sound-context-group is-object"><OperatorIconButton label="Open Script" detail="Open this Part in the Script stage." className="sound-context-command" disabled={saving} onClick={onOpenSequence}><FileText /></OperatorIconButton></div>}
   </div>
 }

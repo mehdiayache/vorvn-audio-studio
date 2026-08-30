@@ -93,6 +93,52 @@ function CanvasWaveform({ url, projection }: { url?: string; projection?: Wavefo
   return <canvas ref={canvas} className="sound-scene-waveform" aria-hidden="true" />
 }
 
+function TrackGainControl({ name, volume, muted, collapsed, onChange, onCommit }: {
+  name: string
+  volume: number
+  muted: boolean
+  collapsed: boolean
+  onChange: (volume: number) => void
+  onCommit: (volume: number) => void
+}) {
+  const volumeDb = gainToDb(volume)
+  const percentage = Math.round(volume * 100)
+  return <Popover>
+    <OperatorTooltip label={`Adjust ${name} gain`} detail={muted ? `Muted now · ${formatDb(volumeDb)} will apply when unmuted.` : `${percentage}% · ${formatDb(volumeDb)}`}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon-sm" className={cn("sound-track-gain-trigger", collapsed && "is-compact")} aria-label={`Adjust ${name} gain`}>
+          {muted ? <VolumeX /> : <Volume1 />}{!collapsed && <span>{percentage}%</span>}
+        </Button>
+      </PopoverTrigger>
+    </OperatorTooltip>
+    <PopoverContent side="right" align="center" className="sound-track-volume-popover">
+      <header><span><b>{name}</b><small>Track gain</small></span><strong>{percentage}%</strong></header>
+      <div className="sound-track-volume-editor">
+        <Slider
+          orientation="vertical"
+          inverted
+          aria-label={`${name} gain`}
+          value={[volumeDb]}
+          min={MIN_GAIN_DB}
+          max={MAX_GAIN_DB}
+          step={.5}
+          onKeyDownCapture={(event) => {
+            if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return
+            event.preventDefault()
+            event.stopPropagation()
+            const next = Math.max(MIN_GAIN_DB, Math.min(MAX_GAIN_DB, volumeDb + (event.key === "ArrowUp" ? .5 : -.5)))
+            onChange(dbToGain(next))
+            onCommit(dbToGain(next))
+          }}
+          onValueChange={([value = 0]) => onChange(dbToGain(value))}
+          onValueCommit={([value = 0]) => onCommit(dbToGain(value))}
+        />
+        <span>{muted ? "Muted" : formatDb(volumeDb)}</span>
+      </div>
+    </PopoverContent>
+  </Popover>
+}
+
 function SoundTrackControl({ track, volume, collapsed, soloed, soloSuppressed, onMute, onSolo, onVolumeChange, onVolumeCommit, onAdd, onRemove }: {
   track: SoundSceneTrack
   volume: number
@@ -120,12 +166,12 @@ function SoundTrackControl({ track, volume, collapsed, soloed, soloSuppressed, o
     {collapsed ? <div className="sound-track-compact-actions">
       <OperatorTooltip label={track.muted ? `Unmute ${name}` : `Mute ${name}`} detail="A persistent mix decision used by preview and export."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", track.muted && "is-active is-mute")} aria-label={track.muted ? `Unmute ${name}` : `Mute ${name}`} aria-pressed={track.muted} onClick={onMute}>M</Button></OperatorTooltip>
       <OperatorTooltip label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} detail="Temporary audition only. Script stays audible and export is unchanged."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", soloed && "is-active is-solo")} aria-label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} aria-pressed={soloed} onClick={onSolo}>S</Button></OperatorTooltip>
-      <Popover><OperatorTooltip label={`Adjust ${name} gain`} detail={track.muted ? `Muted now · ${formatDb(volumeDb)} will apply when unmuted.` : formatDb(volumeDb)}><PopoverTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Adjust ${name} gain`}>{track.muted ? <VolumeX /> : <Volume1 />}</Button></PopoverTrigger></OperatorTooltip><PopoverContent side="right" align="center" className="sound-track-volume-popover"><header><span><b>{name}</b><small>Track gain</small></span><strong>{track.muted ? `Muted · ${formatDb(volumeDb)}` : formatDb(volumeDb)}</strong></header><Slider aria-label={`${name} gain`} value={[volumeDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => onVolumeChange(dbToGain(value))} onValueCommit={([value = 0]) => onVolumeCommit(dbToGain(value))} /><Button variant="ghost" size="sm" onClick={onMute}>{track.muted ? <Volume2 /> : <VolumeX />}{track.muted ? "Unmute track" : "Mute track"}</Button></PopoverContent></Popover>
+      <TrackGainControl name={name} volume={volume} muted={track.muted} collapsed onChange={onVolumeChange} onCommit={onVolumeCommit} />
       <DropdownMenu><OperatorTooltip label={`More actions for ${name}`} detail="Add an Audio Library clip or permanently remove this track."><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Track actions for ${name}`}><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent side="right" align="center"><DropdownMenuItem onSelect={onAdd}><Plus /> Add audio clip</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={onRemove}><Trash2 /> Remove “{name}”</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
     </div> : <div className="sound-track-mix">
       <OperatorTooltip label={track.muted ? `Unmute ${name}` : `Mute ${name}`} detail="A persistent mix decision used by preview and export."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", track.muted && "is-active is-mute")} aria-label={track.muted ? `Unmute ${name}` : `Mute ${name}`} aria-pressed={track.muted} onClick={onMute}>M</Button></OperatorTooltip>
       <OperatorTooltip label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} detail="Temporary audition only. Script stays audible and export is unchanged."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", soloed && "is-active is-solo")} aria-label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} aria-pressed={soloed} onClick={onSolo}>S</Button></OperatorTooltip>
-      <Slider aria-label={`${name} gain`} value={[volumeDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => onVolumeChange(dbToGain(value))} onValueCommit={([value = 0]) => onVolumeCommit(dbToGain(value))} />
+      <TrackGainControl name={name} volume={volume} muted={track.muted} collapsed={false} onChange={onVolumeChange} onCommit={onVolumeCommit} />
       <OperatorIconButton label={`Add audio to ${name}`} detail="Choose an Audio Library source and place it in this exact track." className="sound-track-add" onClick={onAdd}><Plus /></OperatorIconButton>
       <OperatorIconButton label={`Remove ${name}`} detail={`Permanently removes the track and its ${track.clips.length} placement${track.clips.length === 1 ? "" : "s"}.`} onClick={onRemove}><Trash2 /></OperatorIconButton>
     </div>}
