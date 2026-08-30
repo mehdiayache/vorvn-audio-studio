@@ -28,8 +28,8 @@ import "./timeline-workspace.css"
 import "@/features/visual-scene/timeline/visual-scene.css"
 
 const SAMPLE_RATE = 48_000
-const LANE_HEIGHT = 92
-const RULER_HEIGHT = 38
+const LANE_HEIGHT = 64
+const RULER_HEIGHT = 30
 
 type AddTarget = { mode: "new-track" } | { mode: "add-clip"; trackId: string }
 type RemoveTarget = { clips: SoundClipRef[] }
@@ -145,7 +145,7 @@ export function TimelineWorkspace({ session, visual, onAddAudio, onRemoveClip, o
 
   return <section className={cn("timeline-workspace", hasVisualPlacements && "has-visual-monitor", viewport.viewerCollapsed && "viewer-collapsed", tracksCollapsed && "tracks-collapsed", viewport.panning && "is-panning")}>
     <TimelineToolbar
-      summary={`${imageTrackCount} image track${imageTrackCount === 1 ? "" : "s"} · ${videoTrackCount} video track${videoTrackCount === 1 ? "" : "s"} · ${tracks.length} audio track${tracks.length === 1 ? "" : "s"} · ${formatDuration(total)}`}
+      summary={<><span>{imageTrackCount}</span> image track{imageTrackCount === 1 ? "" : "s"} · <span>{videoTrackCount}</span> video track{videoTrackCount === 1 ? "" : "s"} · <span>{tracks.length}</span> audio track{tracks.length === 1 ? "" : "s"} · <span>{formatDuration(total)}</span></>}
       canUndo={history.canUndo}
       canRedo={history.canRedo}
       undoDomain={history.undoDomain}
