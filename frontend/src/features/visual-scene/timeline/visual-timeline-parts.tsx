@@ -4,6 +4,7 @@ import { useState, type CSSProperties, type PointerEvent as ReactPointerEvent, t
 import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { SelectionBar } from "@/components/selection-bar"
+import { TimelineTrackHeader } from "@/components/timeline-track-header"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -59,10 +60,9 @@ export function VisualTrackControl({ track, assets, collapsed, first, last, onVi
   const media = trackMediaSummary(track, assets)
   const displayName = visualTrackDisplayName(track, assets)
   const TrackIcon = track.media_type === "video" ? Film : ImageIcon
-  return <div className={cn("visual-track-control", collapsed && "is-compact", !track.visible && "is-hidden", track.locked && "is-locked")} title={collapsed ? `${displayName} · ${track.visible ? media.label : `Hidden · ${media.label}`}` : undefined}>
-    <span className="sound-track-icon is-visual"><TrackIcon /></span>
-    {!collapsed && (renaming ? <Input className="visual-track-name-input" defaultValue={displayName} autoFocus aria-label="Track name" onBlur={(event) => { onRename(event.target.value); setRenaming(false) }} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") setRenaming(false) }} /> : <span className="sound-track-copy" onDoubleClick={() => setRenaming(true)}><b>{displayName}</b><small className={cn((!track.visible || track.clips.length > 0) && "is-technical")}>{track.visible ? media.label : `Hidden · ${media.label}`}</small></span>)}
-    <div className="visual-track-actions">
+  const meta = track.visible ? media.label : `Hidden · ${media.label}`
+  const identity = renaming ? <Input className="timeline-track-name-input" defaultValue={displayName} autoFocus aria-label="Track name" onBlur={(event) => { onRename(event.target.value); setRenaming(false) }} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") setRenaming(false) }} /> : <span className="timeline-track-header-copy" onDoubleClick={() => setRenaming(true)}><b>{displayName}</b><small className="is-technical">{meta}</small></span>
+  const actions = <>
       <OperatorIconButton label={`Add ${displayName.toLowerCase()} to ${displayName} track`} detail="Choose a compatible Director Asset and place it in this exact track at the playhead." className="visual-track-add" onClick={onAdd}><Plus /></OperatorIconButton>
       <OperatorIconButton label={track.visible ? `Hide ${displayName}` : `Show ${displayName}`} detail="Controls the monitor without deleting media placements." onClick={onVisible}>{track.visible ? <Eye /> : <EyeOff />}</OperatorIconButton>
       {!collapsed && <OperatorIconButton label={track.locked ? `Unlock ${displayName}` : `Lock ${displayName}`} detail="Prevents accidental movement and trimming on this track." className={cn(track.locked && "is-active")} onClick={onLocked}>{track.locked ? <Lock /> : <Unlock />}</OperatorIconButton>}
@@ -76,8 +76,17 @@ export function VisualTrackControl({ track, assets, collapsed, first, last, onVi
           <DropdownMenuItem variant="destructive" onSelect={onRemove}><Trash2 /> Remove “{displayName}”</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </div>
-  </div>
+    </>
+  return <TimelineTrackHeader
+    className={cn("is-visual", !track.visible && "is-hidden", track.locked && "is-locked")}
+    collapsed={collapsed}
+    icon={<TrackIcon />}
+    iconClassName="is-visual"
+    name={displayName}
+    meta={meta}
+    identity={identity}
+    actions={actions}
+  />
 }
 
 export function VisualTimelineClip({ clip, asset, selected, trackLocked, style, onSelect, onGesture }: {

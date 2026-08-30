@@ -116,6 +116,7 @@ describe("visual Timeline controls", () => {
     const unlock = screen.getByRole("button", { name: "Unlock Video" })
     expect(unlock.querySelector(".lucide-lock")).toBeTruthy()
     expect(unlock.className).toContain("is-active")
-    expect(container.querySelector(".visual-track-control")?.className).toContain("is-locked")
+    expect(container.querySelector(".timeline-track-header")?.className).toContain("is-locked")
+    expect(container.querySelector(".timeline-track-header-actions")).toBeTruthy()
   })
 })

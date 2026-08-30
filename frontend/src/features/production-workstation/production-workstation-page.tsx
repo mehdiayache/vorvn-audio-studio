@@ -1,5 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { LoaderCircle, X } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
 import { DeleteProductionDialog } from "@/components/delete-production-dialog"
@@ -17,17 +17,18 @@ import { visualTrackDisplayName } from "@/features/visual-scene/timeline/visual-
 import { ProductionFloatingTransport } from "@/features/production/production-floating-transport"
 import { productionHealth } from "@/features/production/production-health-sheet"
 import { useProductionSpeechJobs } from "@/features/production/use-production-speech-jobs"
-import type { ConfirmAction } from "@/features/production/production-overlays"
+import ProductionOverlays, { type ConfirmAction } from "@/features/production/production-overlays"
 import type { ToolKind } from "@/components/production-tools"
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { useProductionActions } from "@/hooks/use-production-actions"
 import { usePlayerShortcuts } from "@/hooks/use-player-shortcuts"
+import type { StudioAssetResources } from "@/hooks/use-studio-resources"
 import { audioStudioBase } from "@/lib/links"
 import { formatAuthoredRole, formatPartNumber } from "@/lib/format"
 import { loadPartCaptionTracks, loadProductionCaptionTracks } from "@/lib/production-caption-tracks"
 import { studioApi } from "@/lib/api"
 import type {
-  AssetCollection, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, PlayerCaptionTrack,
+  AssetCollection, DurableJob, GeneratePayload, GenerateResult, HierarchyNode, LoadState, PlayerCaptionTrack,
   PlayerSource, Production, ProductionPart, SoundScene, StudioConfig, VentureAsset, VisualScene, VoiceDirectory,
 } from "@/types/domain"
 import { workstationPartState, type SequenceInsertKind, type WorkstationPartActions } from "./workstation-sequence"
@@ -44,22 +45,7 @@ import type { WorkstationStage } from "./workstation-workflow"
 
 import "./production-workstation.css"
 
-const ProductionOverlays = lazy(() => import("@/features/production/production-overlays"))
-
 type AudioTarget = { mode: "new-track" } | { mode: "add-clip"; trackId: string } | { mode: "replace"; trackId: string; clipId: string }
-
-const overlayLoadingLabels: Partial<Record<NonNullable<ToolKind>, string>> = {
-  speech: "Opening Speech editor",
-  silence: "Opening Pause controls",
-  import: "Opening JSON import",
-  asset: "Opening Audio Library",
-  audio: "Opening Audio Library",
-}
-
-function ProductionOverlayLoading({ tool }: { tool: ToolKind }) {
-  const label = tool ? overlayLoadingLabels[tool] || "Opening confirmation" : "Opening confirmation"
-  return <div className="ws-overlay-loading" role="status" aria-live="polite"><span><LoaderCircle className="spin" /><b>{label}…</b></span></div>
-}
 
 function initialSelection(production: Production) {
   if (typeof window !== "undefined") {
@@ -83,7 +69,7 @@ function partDeletionLabel(part: ProductionPart) {
   return `Part ${number} · ${formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"}`
 }
 
-export function ProductionWorkstationPage({ production, tree, soundScene, visualScene, assets, assetCollections, directorAssetIds, config, directory, refresh, refreshAssets }: {
+export function ProductionWorkstationPage({ production, tree, soundScene, visualScene, assets, assetCollections, directorAssetIds, assetState, config, directory, refresh, refreshAssets }: {
   production: Production
   tree: HierarchyNode[] | null
   soundScene: SoundScene
@@ -91,6 +77,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
   assets: VentureAsset[]
   assetCollections: AssetCollection[]
   directorAssetIds: number[]
+  assetState: LoadState<StudioAssetResources>
   config: StudioConfig | null
   directory: VoiceDirectory
   refresh: () => Promise<void>
@@ -538,9 +525,9 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     <DeleteProductionDialog production={production} open={deleteProductionOpen} onOpenChange={setDeleteProductionOpen} onDeleted={() => { player.pause(); navigate(`${audioStudioBase}/projects/${production.project_id}`) }} />
     <PartCaptionsDialog productionId={production.id} part={captionPart} directory={directory} onOpenChange={(open) => { if (!open) setCaptionPartId(null) }} onChanged={async () => { actions.invalidatePreview(); await refresh() }} />
     <MovePartPositionDialog part={movePositionPart} count={sourceParts.length} onClose={() => setMovePositionPart(null)} onMove={actions.movePartToPosition} />
-    {overlaysOpen && <Suspense fallback={<ProductionOverlayLoading tool={tool} />}><ProductionOverlays
+    {overlaysOpen && <ProductionOverlays
       tool={tool} production={production} nextPartNumber={sourceParts.length + 1} insertAt={composerInsertAt} insertBeforePartId={insertBeforePartId}
-      composerPart={null} replacingAssetId={replacingAsset?.asset_id} initialAudioAssetId={audioClip?.asset_id} config={config} directory={directory} assets={assets} usedAssetIds={usedAssetIds} assetCollectionIds={assetCollectionIds}
+      composerPart={null} replacingAssetId={replacingAsset?.asset_id} initialAudioAssetId={audioClip?.asset_id} config={config} directory={directory} assets={assets} assetState={assetState} usedAssetIds={usedAssetIds} assetCollectionIds={assetCollectionIds}
       playingKey={player.source?.key} playerPlaying={actions.playerPlaying} confirmAction={confirmAction}
       onCloseTool={() => { setTool(null); setReplacingAsset(null); setAudioTarget(null) }} onSaveDraft={actions.saveDraft} onUpdateEditorial={async () => undefined} onGenerate={queueRender}
       onAddSilence={async (seconds) => { await actions.addSilence(seconds, insertBeforePartId); setTool(null) }}
@@ -555,7 +542,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
       onKeepAsset={async (folder, input) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); return actions.keepFreesound(collectionId, input) }}
       onKeepGenerated={async (folder, input) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); return actions.keepGeneratedAudio(collectionId, input) }}
       onImported={() => { actions.invalidatePreview(); void refresh().then(() => setTool(null)) }}
-      onPlay={(source) => void playSource(source)} onConfirmAction={setConfirmAction}
-    /></Suspense>}
+      onPlay={(source) => void playSource(source)} onConfirmAction={setConfirmAction} onRetryAssets={refreshAssets}
+    />}
   </>
 }

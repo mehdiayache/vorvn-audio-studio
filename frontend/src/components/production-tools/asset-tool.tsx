@@ -1,8 +1,9 @@
-import { FileAudio, Library, Search, SlidersHorizontal, Sparkles, Upload, X } from "lucide-react"
+import { AlertCircle, FileAudio, Library, LoaderCircle, RefreshCw, Search, SlidersHorizontal, Sparkles, Upload, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 
 import { ActionButton } from "@/components/operator-action"
 import { AudioAssetCard, AudioCatalogCard, audioAssetTitle } from "@/components/audio-asset-card"
+import { AudioLibraryLoadingWorkspace } from "@/components/production-tools/audio-library-loading"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -39,8 +40,9 @@ function humanName(file: File) {
   return cleaned ? cleaned.charAt(0).toLocaleUpperCase() + cleaned.slice(1) : "Untitled audio"
 }
 
-export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, productionId, usedAssetIds = [], playingKey, playerPlaying, transport, onChoose, onPlay, onUpload, onKeep, onKeepGenerated }: {
+export function AssetTool({ assets, loading = false, refreshing = false, resourceError, onRetryResource, mode, chooseLabel, initialSelectedId, productionId, usedAssetIds = [], playingKey, playerPlaying, transport, onChoose, onPlay, onUpload, onKeep, onKeepGenerated }: {
   assets: VentureAsset[]; mode: AssetMode; chooseLabel?: string; initialSelectedId?: number | null; productionId?: number
+  loading?: boolean; refreshing?: boolean; resourceError?: string; onRetryResource?: () => Promise<void>
   usedAssetIds?: number[]
   transport?: ReactNode
   playingKey?: string; playerPlaying: boolean; onChoose: (asset: VentureAsset) => Promise<void>; onPlay: (source: PlayerSource) => void
@@ -188,7 +190,7 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, produc
     onDragOver={(event) => event.preventDefault()} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false) }}
     onDrop={(event) => { event.preventDefault(); setDragging(false); chooseFile(event.dataTransfer.files[0]) }}>
     <header className="asset-workspace-toolbar">
-      <strong className="asset-workspace-title">Audio Library</strong>
+      <strong className="asset-workspace-title">Audio Library</strong>{refreshing && <span className="asset-refreshing" role="status"><LoaderCircle className="spin" />Refreshing…</span>}
       <Tabs value={view} onValueChange={(value) => openView(value as LibraryView)} className="asset-mode-tabs">
         <TabsList variant="line" aria-label="Audio Library views">
           <TabsTrigger value="library" aria-label="Library" onClick={() => openView("library")}><Library />Library</TabsTrigger>
@@ -222,11 +224,11 @@ export function AssetTool({ assets, mode, chooseLabel, initialSelectedId, produc
     </header>
 
     <div className="asset-workspace-shell">
-      {view === "library" ? <section className="asset-view asset-library-view">
+      {view === "library" && loading ? <AudioLibraryLoadingWorkspace /> : view === "library" ? <section className="asset-view asset-library-view">
         <ScrollArea className="asset-canvas"><div className="audio-asset-card-grid">{shown.length ? shown.map((asset) => {
           const sourceKey = `asset-source:${asset.id}`; const active = playerPlaying && playingKey === sourceKey; const isSelected = selectedId === asset.id
           return <AudioAssetCard key={asset.id} asset={asset} selected={isSelected} used={usedIds.has(asset.id)} playing={active} actionLabel={chooseLabel || (mode === "sound" ? "Add to Timeline" : "Insert")} actionBusy={choosingId === asset.id} onSelect={() => setSelectedId(asset.id)} onPlay={() => { setSelectedId(asset.id); onPlay({ key: sourceKey, url: audioUrl(asset.filename!), title: audioAssetTitle(asset), sourceLabel: AUDIO_SOURCE_LABELS[assetSource(asset)], subtitle: "Audio Library audition", kind: "asset" }) }} onAction={() => void choose(asset)} />
-        }) : <div className="asset-empty"><FileAudio /><b>No matching audio</b><p>Change the filter or add a new sound.</p><Button variant="outline" onClick={() => openView("upload")}><Upload />Upload audio</Button></div>}</div></ScrollArea>
+        }) : resourceError ? <div className="asset-empty asset-resource-error"><AlertCircle /><b>Audio Library unavailable</b><p role="alert">{resourceError}</p>{onRetryResource && <ActionButton variant="outline" busy={refreshing} busyLabel="Retrying…" onClick={() => void onRetryResource().catch(() => undefined)}><RefreshCw />Try again</ActionButton>}</div> : <div className="asset-empty"><FileAudio /><b>No matching audio</b><p>Change the filter or add a new sound.</p><Button variant="outline" onClick={() => openView("upload")}><Upload />Upload audio</Button></div>}</div></ScrollArea>
         {selected ? <SavedAudioInspector asset={selected} title={audioAssetTitle(selected)} error={error} /> : <aside className="asset-inspector" aria-label="Selected Asset details"><div className="asset-inspector-empty"><FileAudio /><b>Select audio</b><p>Source, family, scope, tags and file facts will appear here.</p>{error && <p className="asset-inspector-error" role="alert">{error}</p>}</div></aside>}
       </section> : view === "upload" ? <section className="asset-view asset-upload-view">
         <main className="asset-upload-stage"><input ref={fileInput} type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.aif,.aiff" hidden onChange={(event) => { chooseFile(event.target.files?.[0]); event.target.value = "" }} /><div className="asset-upload-dropzone" data-has-file={Boolean(file)}><span><Upload /></span>{file ? <><b>{file.name}</b><p>{formatBytes(file.size)} · ready to inspect</p><Button variant="outline" onClick={() => fileInput.current?.click()}>Choose another file</Button></> : <><b>Drop one audio file here</b><p>MP3, WAV, M4A, AAC, OGG, FLAC or AIFF · up to 250 MB</p><Button onClick={() => fileInput.current?.click()}><Upload />Choose file</Button></>}</div></main>

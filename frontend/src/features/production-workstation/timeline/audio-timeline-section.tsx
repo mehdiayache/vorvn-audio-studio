@@ -3,6 +3,7 @@ import { useState, type CSSProperties, type PointerEvent as ReactPointerEvent } 
 
 import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
+import { TimelineTrackHeader } from "@/components/timeline-track-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -66,24 +67,23 @@ function SoundTrackControl({ track, volume, collapsed, soloed, soloSuppressed, o
   const category = audioTrackRole(track)
   const state = track.muted || volume <= 0 ? "Muted" : soloed ? "Solo" : soloSuppressed ? "Outside solo" : `${gainToVolumePercent(volume)}%`
   const summary = `${name} · ${track.clips.length} clip${track.clips.length === 1 ? "" : "s"} · ${state}`
-  return <div className={cn("sound-track-control", collapsed && "is-compact", track.muted && "is-muted", soloed && "is-solo", soloSuppressed && "is-solo-suppressed")}>
-    <div className="sound-track-select" title={summary}>
-      <span className={cn("sound-track-icon", `is-category-${category}`, track.muted && "is-muted")}><SoundMediaIcon kind={category} /></span>
-      {!collapsed && <span className="sound-track-copy"><b>{name}</b><small className="is-technical">{track.muted ? "MUTED" : soloed ? "SOLO" : soloSuppressed ? "Outside solo" : `${track.clips.length} clip${track.clips.length === 1 ? "" : "s"}`}</small></span>}
-    </div>
-    {collapsed ? <div className="sound-track-compact-actions">
+  const actions = <>
       <OperatorTooltip label={track.muted ? `Unmute ${name}` : `Mute ${name}`} detail="A persistent mix decision used by preview and export."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", track.muted && "is-active is-mute")} aria-label={track.muted ? `Unmute ${name}` : `Mute ${name}`} aria-pressed={track.muted} onClick={onMute}>M</Button></OperatorTooltip>
       <OperatorTooltip label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} detail="Temporary audition only. Script stays audible and export is unchanged."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", soloed && "is-active is-solo")} aria-label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} aria-pressed={soloed} onClick={onSolo}>S</Button></OperatorTooltip>
-      <TrackVolumeControl name={name} volume={volume} muted={track.muted} collapsed onChange={onVolumeChange} onCommit={onVolumeCommit} />
+      <TrackVolumeControl name={name} volume={volume} muted={track.muted} collapsed={collapsed} onChange={onVolumeChange} onCommit={onVolumeCommit} />
+      {!collapsed && <OperatorIconButton label={`Add audio to ${name}`} detail="Choose an Audio Library source and place it in this exact track." className="sound-track-add" onClick={onAdd}><Plus /></OperatorIconButton>}
       <TrackActions name={name} role={category} renaming={renaming} draftName={draftName} onRenaming={setRenaming} onDraftName={setDraftName} onRename={onRename} onRole={onRole} onAdd={onAdd} onRemove={onRemove} />
-    </div> : <div className="sound-track-mix">
-      <OperatorTooltip label={track.muted ? `Unmute ${name}` : `Mute ${name}`} detail="A persistent mix decision used by preview and export."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", track.muted && "is-active is-mute")} aria-label={track.muted ? `Unmute ${name}` : `Mute ${name}`} aria-pressed={track.muted} onClick={onMute}>M</Button></OperatorTooltip>
-      <OperatorTooltip label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} detail="Temporary audition only. Script stays audible and export is unchanged."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", soloed && "is-active is-solo")} aria-label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} aria-pressed={soloed} onClick={onSolo}>S</Button></OperatorTooltip>
-      <TrackVolumeControl name={name} volume={volume} muted={track.muted} collapsed={false} onChange={onVolumeChange} onCommit={onVolumeCommit} />
-      <OperatorIconButton label={`Add audio to ${name}`} detail="Choose an Audio Library source and place it in this exact track." className="sound-track-add" onClick={onAdd}><Plus /></OperatorIconButton>
-      <TrackActions name={name} role={category} renaming={renaming} draftName={draftName} onRenaming={setRenaming} onDraftName={setDraftName} onRename={onRename} onRole={onRole} onAdd={onAdd} onRemove={onRemove} />
-    </div>}
-  </div>
+    </>
+  return <TimelineTrackHeader
+    className={cn("is-audio", track.muted && "is-muted", soloed && "is-solo", soloSuppressed && "is-solo-suppressed")}
+    collapsed={collapsed}
+    icon={<SoundMediaIcon kind={category} />}
+    iconClassName={cn(`is-category-${category}`, track.muted && "is-muted")}
+    name={name}
+    meta={track.muted ? "MUTED" : soloed ? "SOLO" : soloSuppressed ? "Outside solo" : `${track.clips.length} clip${track.clips.length === 1 ? "" : "s"}`}
+    title={summary}
+    actions={actions}
+  />
 }
 
 function TrackActions({ name, role, renaming, draftName, onRenaming, onDraftName, onRename, onRole, onAdd, onRemove }: {
@@ -117,7 +117,7 @@ export function AudioTrackHeaders({ tracks, engineTracks, collapsed, soloTrackId
 }) {
   const byId = new Map(engineTracks.map((track) => [track.id, track]))
   return <>
-    <div className="sound-sequence-control" title={collapsed ? `Script · ${sequenceSummary}` : undefined}><span className="sound-track-icon is-sequence"><SoundMediaIcon kind="speech" /></span>{!collapsed && <span className="sound-track-copy"><b>Script</b><small className="is-technical">{sequenceSummary}</small></span>}</div>
+    <TimelineTrackHeader className="is-sequence" collapsed={collapsed} icon={<SoundMediaIcon kind="speech" />} iconClassName="is-sequence" name="Script" meta={sequenceSummary} />
     {tracks.map((track) => <SoundTrackControl key={track.id} track={track} collapsed={collapsed} soloed={soloTrackIds.includes(track.id)} soloSuppressed={soloTrackIds.length > 0 && !soloTrackIds.includes(track.id)} volume={byId.get(track.id)?.volume ?? track.volume} onMute={() => onMute(track)} onSolo={() => onSolo(track)} onVolumeChange={(volume) => onVolumeChange(track, volume)} onVolumeCommit={(volume) => onVolumeCommit(track, volume)} onAdd={() => onAdd(track)} onRename={(name) => onRename(track, name)} onRole={(role) => onRole(track, role)} onRemove={() => onRemove(track)} />)}
   </>
 }

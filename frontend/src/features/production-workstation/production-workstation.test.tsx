@@ -166,6 +166,17 @@ describe("Production Workstation", () => {
     expect(screen.getByRole("button", { name: "Redo audio edit" }).textContent).toBe("")
   })
 
+  it("renders Script and audio tracks through the same track-header grammar", () => {
+    const { container } = render(<TimelineWorkspace session={sessionFor(scene([part({ duration_ms: 8_000 })]))} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const headers = [...container.querySelectorAll(".timeline-track-header")]
+
+    expect(headers).toHaveLength(2)
+    expect(headers.every((header) => Boolean(header.querySelector(".timeline-track-header-icon")))).toBe(true)
+    expect(headers.every((header) => Boolean(header.querySelector(".timeline-track-header-copy")))).toBe(true)
+    expect(container.querySelector(".timeline-track-header.is-audio .timeline-track-header-actions")).toBeTruthy()
+    expect(container.querySelector(".sound-track-control, .sound-sequence-control")).toBeNull()
+  })
+
   it("opens the new Audio Track flow without altering an existing track first", () => {
     const onAddAudio = vi.fn()
     render(<TimelineWorkspace session={sessionFor(scene([part({ duration_ms: 30_000 })]))} onAddAudio={onAddAudio} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)

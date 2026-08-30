@@ -21,6 +21,23 @@ afterEach(() => {
 })
 
 describe("AssetTool", () => {
+  it("distinguishes a loading Library from an empty Library", () => {
+    const { container } = render(<AssetTool assets={[]} loading mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
+
+    expect(screen.getByRole("status", { name: "Loading Audio Library" })).toBeTruthy()
+    expect(container.querySelectorAll(".audio-asset-card-skeleton")).toHaveLength(8)
+    expect(screen.queryByText("No matching audio")).toBeNull()
+  })
+
+  it("keeps a failed Library inside its modal with a retry action", () => {
+    const retry = vi.fn().mockResolvedValue(undefined)
+    render(<AssetTool assets={[]} resourceError="assets offline" onRetryResource={retry} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
+
+    expect(screen.getByRole("alert").textContent).toContain("assets offline")
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }))
+    expect(retry).toHaveBeenCalledOnce()
+  })
+
   it("keeps source navigation on top and names every Library filter explicitly", () => {
     const { container } = render(<AssetTool assets={assets} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     const view = within(container)

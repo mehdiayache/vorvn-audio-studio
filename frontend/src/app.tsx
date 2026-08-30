@@ -39,9 +39,9 @@ function ProductionRoute({ productionId }: { productionId: number }) {
     {data && tree.status === "error" && <InlineResourceError message={`Production explorer unavailable: ${tree.error}`} retry={() => void refresh()} />}
     {data && soundScene.status === "error" && <InlineResourceError message={`Timeline unavailable: ${soundScene.error}`} retry={() => void refresh()} />}
     {data && visualScene.status === "error" && <InlineResourceError message={`Visual timeline unavailable: ${visualScene.error}`} retry={() => void refresh()} />}
-    {data && resources.assetError && <InlineResourceError message={`Asset library unavailable: ${resources.assetError}`} retry={() => void resources.refreshAssets().catch(() => undefined)} />}
+    {data && resources.assetError && resources.assetState.data && <InlineResourceError message={`Asset library refresh failed: ${resources.assetError}`} retry={() => void resources.refreshAssets().catch(() => undefined)} />}
     {data && resources.voiceError && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void resources.refreshVoices()} />}
-    {data && soundScene.data && visualScene.data && <LazyRoute label="Loading Production workspace"><ProductionWorkstationPage production={data} tree={tree.data || null} soundScene={soundScene.data} visualScene={visualScene.data} assets={resources.assets} assetCollections={resources.assetCollections} directorAssetIds={resources.directorAssetIds} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} /></LazyRoute>}
+    {data && soundScene.data && visualScene.data && <LazyRoute label="Loading Production workspace"><ProductionWorkstationPage production={data} tree={tree.data || null} soundScene={soundScene.data} visualScene={visualScene.data} assets={resources.assets} assetCollections={resources.assetCollections} directorAssetIds={resources.directorAssetIds} assetState={resources.assetState} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} /></LazyRoute>}
   </>
 }
 
