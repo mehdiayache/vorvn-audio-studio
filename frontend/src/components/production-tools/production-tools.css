@@ -87,6 +87,22 @@
 .asset-inspector-facts { display: flex; flex-wrap: wrap; gap: 6px; padding: 14px 0 0; }
 .asset-inspector-facts span, .asset-tag-preview span { padding: 3px 7px; border-radius: var(--radius-full); background: var(--primary-soft); color: var(--foreground); font-size: 10px; }
 .asset-tag-preview { display: flex; flex-wrap: wrap; gap: 5px; }
+.asset-qualification { display: grid; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.asset-qualification-family { display: flex; align-items: center; gap: 9px; }
+.asset-qualification-family > span { width: 30px; height: 30px; display: grid; place-items: center; border-radius: var(--radius-sm); color: var(--audio-audio); background: var(--audio-audio-soft); }
+.asset-qualification-family > span[data-family="music"] { color: var(--audio-music); background: var(--audio-music-soft); }
+.asset-qualification-family > span[data-family="sfx"] { color: var(--audio-sfx); background: var(--audio-sfx-soft); }
+.asset-qualification-family > span[data-family="ambience"] { color: var(--audio-ambience); background: var(--audio-ambience-soft); }
+.asset-qualification-family svg { width: 15px; }
+.asset-qualification-family > div { display: grid; gap: 1px; }
+.asset-qualification-family small, .asset-qualification summary > span { color: var(--muted-foreground); font-size: 9px; font-weight: var(--weight-emphasis); letter-spacing: .05em; text-transform: uppercase; }
+.asset-qualification-family b { font-size: var(--type-caption); }
+.asset-qualification details { display: grid; gap: 8px; }
+.asset-qualification summary { display: flex; align-items: center; gap: 6px; cursor: pointer; list-style: none; }
+.asset-qualification summary::-webkit-details-marker { display: none; }
+.asset-qualification summary > b { min-width: 18px; height: 18px; display: grid; place-items: center; border-radius: 999px; background: var(--surface-subtle); color: var(--foreground); font-family: var(--font-mono); font-size: 9px; }
+.asset-qualification details > .asset-tag-preview, .asset-qualification details > p { margin-top: 8px; }
+.asset-qualification details > p { margin-bottom: 0; color: var(--muted-foreground); font-size: var(--type-caption); }
 .asset-original-link { width: fit-content; font-size: var(--type-caption); font-weight: var(--weight-emphasis); }
 .asset-field { display: grid; gap: 7px; }
 .asset-field > span { color: var(--foreground); font-size: var(--type-caption); font-weight: var(--weight-emphasis); }

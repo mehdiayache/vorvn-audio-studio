@@ -394,22 +394,20 @@ describe("AssetTool", () => {
     expect(search).toHaveBeenCalledWith(expect.objectContaining({
       query: "wooden door closing", license: "all",
     }), expect.any(AbortSignal))
-    expect(view.getByText(/CC BY-NC/)).toBeTruthy()
-
     fireEvent.click(view.getByRole("button", { name: "Audition Wooden door close.wav" }))
     expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({
       key: "freesound-preview:931",
       url: "https://cdn.freesound.org/preview.mp3",
     }))
+    expect(view.getByText(/CC BY-NC/)).toBeTruthy()
     expect(onKeep).not.toHaveBeenCalled()
 
-    fireEvent.click(view.getByRole("button", { name: "Select Wooden door close.wav" }))
-    fireEvent.click(view.getByRole("button", { name: "Keep" }))
+    fireEvent.click(view.getByRole("button", { name: "Keep in Audio Library" }))
     await waitFor(() => expect(onKeep).toHaveBeenCalledWith("Assets", {
       result, name: result.name, category: "sfx", scope: "studio",
       tags: ["door", "wood"],
     }))
-    expect(view.getByRole("button", { name: /In Library/ })).toBeTruthy()
+    expect(view.getByRole("button", { name: "In Audio Library" })).toBeTruthy()
     search.mockRestore()
   })
 })
