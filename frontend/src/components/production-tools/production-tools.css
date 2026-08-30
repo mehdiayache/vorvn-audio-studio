@@ -45,7 +45,7 @@
 .asset-workspace-shell { min-height: 0; height: 100%; display: block; }
 .asset-view { min-width: 0; min-height: 0; height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 304px; grid-template-rows: minmax(0, 1fr) 66px; overflow: hidden; background: var(--surface-raised); }
 .asset-canvas { min-width: 0; min-height: 0; height: 100%; }
-.audio-asset-card-grid { min-height: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); align-content: start; gap: 10px; padding: 12px 14px 24px; }
+.audio-asset-card-grid { min-height: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 220px)); align-content: start; gap: 12px; padding: 12px 14px 24px; }
 .audio-asset-card-grid > .asset-empty { grid-column: 1 / -1; }
 .asset-result-list { min-height: 100%; padding: 5px 0 24px; }
 .asset-result { min-width: 0; min-height: 69px; display: grid; grid-template-columns: minmax(0, 1fr) 38px; align-items: center; gap: 7px; padding: 5px 13px 5px 10px; border-bottom: 1px solid color-mix(in oklab, var(--border) 72%, transparent); box-shadow: inset 3px 0 transparent; transition: background .14s ease, box-shadow .14s ease; }

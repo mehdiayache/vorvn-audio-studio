@@ -325,6 +325,8 @@ describe("AssetTool", () => {
     ]
     const { container } = render(<AssetTool assets={library} usedAssetIds={[22]} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     const view = within(container)
+    expect(view.getByLabelText("Used in Timeline")).toBeTruthy()
+    expect(view.getAllByRole("button", { name: "Add to Timeline" })).toHaveLength(2)
     fireEvent.click(view.getByRole("button", { name: "Filters" }))
     fireEvent.click(screen.getByRole("combobox", { name: "Asset availability" }))
     fireEvent.click(screen.getByRole("option", { name: "This Production" }))

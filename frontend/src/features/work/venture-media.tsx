@@ -46,7 +46,7 @@ export function VentureMedia({ ventureId, summary, refresh }: { ventureId: numbe
     <div className="venture-media-filters" aria-label="Filter Asset Library">{FILTERS.map((value) => <Button key={value} size="sm" variant={filter === value ? "secondary" : "ghost"} onClick={() => setFilter(value)}>{value === "all" ? "All audio" : AUDIO_FAMILY_LABELS[value]}</Button>)}</div>
     {loading ? <div className="venture-asset-card-grid" aria-label="Loading Asset Library"><Skeleton /><Skeleton /><Skeleton /></div> : shown.length ? <div className="venture-asset-card-grid">{shown.map((asset) => {
       const key = `asset:${asset.id}`
-      return <AudioAssetCard key={asset.id} asset={asset} selected={selectedId === asset.id} playing={player.state === "playing" && player.source?.key === key} source={asset.scope === "studio" ? "Studio Library" : "This Venture"} onSelect={() => setSelectedId(asset.id)} onPlay={asset.filename ? () => void player.toggleSource({ key, url: audioUrl(asset.filename!), title: String(asset.title || asset.name || asset.filename), subtitle: AUDIO_FAMILY_LABELS[audioAssetFamily(asset)], kind: "asset" }) : undefined} />
+      return <AudioAssetCard key={asset.id} asset={asset} selected={selectedId === asset.id} playing={player.state === "playing" && player.source?.key === key} onSelect={() => setSelectedId(asset.id)} onPlay={asset.filename ? () => void player.toggleSource({ key, url: audioUrl(asset.filename!), title: String(asset.title || asset.name || asset.filename), subtitle: AUDIO_FAMILY_LABELS[audioAssetFamily(asset)], kind: "asset" }) : undefined} />
     })}</div> : <p className="work-empty compact">No {filter === "all" ? "audio" : AUDIO_FAMILY_LABELS[filter].toLowerCase()} in this library yet.</p>}
   </section>
 }
