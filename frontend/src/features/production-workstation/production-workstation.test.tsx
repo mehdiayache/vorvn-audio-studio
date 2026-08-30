@@ -216,6 +216,31 @@ describe("Production Workstation", () => {
     expect(screen.getAllByText("MUTED").every((element) => element.classList.contains("is-technical"))).toBe(true)
   })
 
+  it("opens track gain without changing it and resets to unity explicitly", async () => {
+    const soundScene = scene([part({ duration_ms: 8_000 })])
+    const musicTrack = soundScene.document.tracks[0]
+    const resolvedTrack = soundScene.resolved.tracks[0]
+    if (!musicTrack || !resolvedTrack) throw new Error("Expected Music track fixture")
+    musicTrack.volume = .25
+    resolvedTrack.volume = .25
+    const update = vi.fn().mockImplementation(async (document: SoundScene["document"]) => ({
+      ...soundScene,
+      revision: soundScene.revision + 1,
+      document,
+      resolved: { ...soundScene.resolved, tracks: document.tracks },
+    }))
+    render(<TimelineWorkspace session={sessionFor(soundScene, update)} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+
+    const trigger = screen.getByRole("button", { name: "Adjust Music gain" })
+    expect(trigger.textContent).toContain("25%")
+    fireEvent.click(trigger)
+    expect(update).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset Music gain to 0 dB" }))
+    await waitFor(() => expect(update).toHaveBeenCalledOnce())
+    expect(update.mock.calls[0]?.[0].tracks[0].volume).toBe(1)
+  })
+
   it("keeps essential track mixing available in the compact rail", () => {
     const onRemoveTrack = vi.fn()
     render(<TimelineWorkspace session={sessionFor(scene([part({ duration_ms: 30_000 })]))} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={onRemoveTrack} />)

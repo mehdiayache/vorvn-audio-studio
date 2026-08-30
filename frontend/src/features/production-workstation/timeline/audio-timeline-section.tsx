@@ -1,4 +1,4 @@
-import { AudioWaveform, Film, Lock, MoreHorizontal, Music2, Pause, Plus, RadioTower, Repeat2, Trash2, Volume1, Volume2, VolumeX } from "lucide-react"
+import { AudioWaveform, Film, Lock, MoreHorizontal, Music2, Pause, Plus, RadioTower, Repeat2, RotateCcw, Trash2, Volume1, Volume2, VolumeX } from "lucide-react"
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
 
 import { useAudioPeaks } from "@/components/audio-waveform"
@@ -20,6 +20,17 @@ import { loopBoundaryTimes, waveformPeakIndex, type WaveformProjection } from "@
 
 const SAMPLE_RATE = 48_000
 const PEAK_TIERS = [128, 256, 512, 1024, 2048, 4096] as const
+const GAIN_SCALE_TICKS = [
+  { value: MAX_GAIN_DB, label: "+6" },
+  { value: 0, label: "0" },
+  { value: -12, label: "−12" },
+  { value: -24, label: "−24" },
+  { value: MIN_GAIN_DB, label: "−∞" },
+] as const
+
+function gainScaleOffset(value: number) {
+  return `${(MAX_GAIN_DB - value) / (MAX_GAIN_DB - MIN_GAIN_DB) * 100}%`
+}
 
 function roleColor(role?: string | null) {
   const palette = ["violet", "blue", "teal", "amber", "rose"]
@@ -112,11 +123,14 @@ function TrackGainControl({ name, volume, muted, collapsed, onChange, onCommit }
       </PopoverTrigger>
     </OperatorTooltip>
     <PopoverContent side="right" align="center" className="sound-track-volume-popover">
-      <header><span><b>{name}</b><small>Track gain</small></span><strong>{percentage}%</strong></header>
+      <header>
+        <span><b>{name}</b><small>Track gain</small></span>
+        <strong><b>{percentage}%</b><small>{muted ? "Muted" : formatDb(volumeDb)}</small></strong>
+        <OperatorIconButton label={`Reset ${name} gain to 0 dB`} detail="Return this track to unity gain (100%)." className="sound-track-volume-reset" onClick={() => { onChange(1); onCommit(1) }}><RotateCcw /></OperatorIconButton>
+      </header>
       <div className="sound-track-volume-editor">
         <Slider
           orientation="vertical"
-          inverted
           aria-label={`${name} gain`}
           value={[volumeDb]}
           min={MIN_GAIN_DB}
@@ -133,7 +147,9 @@ function TrackGainControl({ name, volume, muted, collapsed, onChange, onCommit }
           onValueChange={([value = 0]) => onChange(dbToGain(value))}
           onValueCommit={([value = 0]) => onCommit(dbToGain(value))}
         />
-        <span>{muted ? "Muted" : formatDb(volumeDb)}</span>
+        <div className="sound-track-volume-scale" aria-hidden="true">
+          {GAIN_SCALE_TICKS.map(({ value, label }) => <span key={value} style={{ top: gainScaleOffset(value) }}>{label}</span>)}
+        </div>
       </div>
     </PopoverContent>
   </Popover>

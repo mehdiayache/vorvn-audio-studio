@@ -6,6 +6,7 @@ import {
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { OperatorInspectorSection } from "@/components/operator-inspector-section"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
@@ -126,8 +127,14 @@ export function SoundEffectsEditor({ effects, disabled, subject = "Clip", onPrev
   const active = draft.filter((effect) => effect.enabled)
   const focused = draft.find((effect) => effect.type === focusedType && effect.enabled) || null
   const effectTypes = Object.keys(EFFECT_LABELS) as SoundSceneEffect["type"][]
-  return <div className="sound-effects-editor">
-    <header><span><RadioTower /></span><div><b>{subject} effects</b><small className="is-technical">{active.length ? `${active.length} active` : "None active"}</small></div></header>
+  return <OperatorInspectorSection
+    icon={RadioTower}
+    title={`${subject} effects`}
+    meta={active.length ? `${active.length} active` : "None active"}
+    metaTechnical
+    help="This non-destructive chain is used by browser playback and final export."
+    className="sound-effects-editor"
+  >
     <Select value={preset} onValueChange={applyPreset} disabled={disabled}><SelectTrigger className="sound-effect-preset"><SelectValue placeholder="Apply a creative preset…" /></SelectTrigger><SelectContent>
       <SelectItem value="telephone">Telephone</SelectItem><SelectItem value="radio">Radio</SelectItem><SelectItem value="walkie">Walkie-talkie</SelectItem><SelectItem value="intercom">Intercom</SelectItem>
       <SelectItem value="behind-door">Behind a door</SelectItem><SelectItem value="next-room">Next room</SelectItem><SelectItem value="small-room">Small room</SelectItem><SelectItem value="large-hall">Large hall</SelectItem><SelectItem value="cave">Cave</SelectItem><SelectItem value="old-speaker">Old speaker</SelectItem><SelectItem value="robot">Robot</SelectItem>
@@ -154,7 +161,7 @@ export function SoundEffectsEditor({ effects, disabled, subject = "Clip", onPrev
       {focused.type === "distortion" && <><EffectSlider label="Drive" value={focused.amount * 100} min={0} max={100} step={1} format={(value) => `${Math.round(value)}%`} onPreview={(value) => change("distortion", { amount: value / 100 })} onCommit={(value) => change("distortion", { amount: value / 100 }, true)} /><EffectSlider label="Distortion mix" value={focused.mix * 100} min={0} max={100} step={1} format={(value) => `${Math.round(value)}%`} onPreview={(value) => change("distortion", { mix: value / 100 })} onCommit={(value) => change("distortion", { mix: value / 100 }, true)} /></>}
       {focused.type === "pan" && <EffectSlider label="Position" value={focused.pan * 100} min={-100} max={100} step={1} format={(value) => value === 0 ? "Centre" : `${Math.abs(Math.round(value))}% ${value < 0 ? "left" : "right"}`} onPreview={(value) => change("pan", { pan: value / 100 })} onCommit={(value) => change("pan", { pan: value / 100 }, true)} />}
     </div>}
-  </div>
+  </OperatorInspectorSection>
 }
 
 function EffectSlider({ label, value, min, max, step, format, onPreview, onCommit }: {

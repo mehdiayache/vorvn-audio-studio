@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
-import { Clock3, Film, FlipHorizontal2, FlipVertical2, Image as ImageIcon, Lock, LockOpen, Maximize, Minimize2, RotateCcw, Volume2, VolumeX } from "lucide-react"
+import { Clock3, Film, FlipHorizontal2, FlipVertical2, Image as ImageIcon, Info, Library, Lock, LockOpen, Maximize, Minimize2, RotateCcw, Scan, Volume2 } from "lucide-react"
 
+import { OperatorInspectorSection } from "@/components/operator-inspector-section"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,18 +48,15 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
       <span><b>{name}</b><small>{track.media_type === "video" ? "Video" : "Image"} · {facts?.dimensions || "Source unavailable"}</small></span>
     </div>
 
-    <section className="visual-inspector-placement">
-      <header><b>Timeline placement</b></header>
+    <OperatorInspectorSection icon={Clock3} title="Timeline placement" help="Move the clip or its edges directly in Timeline. Hold Alt while dragging to bypass snapping." className="visual-inspector-placement">
       <dl>
         <div><dt>Starts</dt><dd>{milliseconds(clip.start_ms)}</dd></div>
         <div><dt>Duration</dt><dd>{milliseconds(clip.duration_ms)}</dd></div>
         {track.media_type === "video" && <div><dt>Source starts</dt><dd>{milliseconds(clip.source_offset_ms)}</dd></div>}
       </dl>
-      <p><Clock3 /> Drag the clip or its edges in Timeline. Hold <kbd>Alt</kbd> to bypass snapping.</p>
-    </section>
+    </OperatorInspectorSection>
 
-    <section className="visual-inspector-transform">
-      <header><span><b>Frame</b><small>Place this source inside the Production format.</small></span><OperatorTooltip label="Reset frame" detail="Restores Fill, centered placement, 100% scale, no rotation and no flip. Opacity and audio stay unchanged."><Button variant="ghost" size="sm" disabled={transformDisabled} onClick={() => void session.resetClipTransform(clipRef)}><RotateCcw /> Reset frame</Button></OperatorTooltip></header>
+    <OperatorInspectorSection icon={Scan} title="Frame" help="Fit and Fill establish a starting frame. Position, scale, rotation and flips then create custom framing." actions={<OperatorTooltip label="Reset frame" detail="Restores Fill, centered placement, 100% scale, no rotation and no flip. Opacity and audio stay unchanged."><Button variant="ghost" size="sm" disabled={transformDisabled} onClick={() => void session.resetClipTransform(clipRef)}><RotateCcw /> Reset</Button></OperatorTooltip>} className="visual-inspector-transform">
       <div className="visual-frame-actions" role="group" aria-label="Quick framing actions">
         <OperatorTooltip label="Fit entire source" detail="Recenters and removes rotation so the complete image or video is visible. Empty space may remain."><Button variant="outline" size="sm" disabled={transformDisabled} onClick={() => void session.frameClip(clipRef, "contain")}><Minimize2 /> Fit</Button></OperatorTooltip>
         <OperatorTooltip label="Fill Production frame" detail="Recenters and removes rotation, then enlarges the source until the frame is covered. Outer edges may be cropped."><Button variant="outline" size="sm" disabled={transformDisabled} onClick={() => void session.frameClip(clipRef, "cover")}><Maximize /> Fill</Button></OperatorTooltip>
@@ -74,19 +72,17 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
         <Button variant={clip.flip_vertical ? "secondary" : "outline"} size="sm" disabled={transformDisabled} aria-pressed={clip.flip_vertical} onClick={() => void session.setClipTransform(clipRef, { flip_vertical: !clip.flip_vertical })}><FlipVertical2 /> Flip vertical</Button>
       </div>
       <TransformSlider label="Opacity" value={clip.opacity * 100} display={`${Math.round(clip.opacity * 100)}%`} minimum={0} maximum={100} disabled={transformDisabled} onPreview={(value) => session.previewClipTransform(clipRef, { opacity: value / 100 })} onBegin={() => session.beginGesture()} onCommit={(value) => { session.beginGesture(); session.previewClipTransform(clipRef, { opacity: value / 100 }); void session.commitGesture() }} />
-      <p>Fit and Fill are starting actions. Moving, scaling or rotating afterward creates your custom framing.</p>
-    </section>
+    </OperatorInspectorSection>
 
-    {track.media_type === "video" && <section className="visual-inspector-audio">
-      <header><span><b>Audio</b><small>{hasEmbeddedAudio ? "This video's sound follows the visual clip in Timeline and Export." : "This source has no audio."}</small></span>{hasEmbeddedAudio ? audioMuted ? <VolumeX /> : <Volume2 /> : null}</header>
+    {track.media_type === "video" && <OperatorInspectorSection icon={Volume2} title="Audio" meta={hasEmbeddedAudio ? audioMuted ? "Muted" : "Active" : "None"} help={hasEmbeddedAudio ? "This video's sound follows the visual clip in Timeline and Export." : "This video source has no embedded audio."} className="visual-inspector-audio">
       {hasEmbeddedAudio && <div className="visual-inspector-audio-controls">
         <label className="visual-inspector-audio-toggle"><span><b>Mute audio</b><small>Keeps the picture and timing unchanged.</small></span><Switch checked={audioMuted} disabled={audioSaving || !onAudioMutedChange} onCheckedChange={(checked) => void onAudioMutedChange?.(checked)} aria-label="Mute video audio" /></label>
         <label className="visual-inspector-audio-level"><span><b>Audio level</b><small>Adjust only this video's sound.</small></span><strong>{formatDb(audioGainDb)}</strong><Slider aria-label="Video audio level" disabled={audioSaving || !onAudioGainChange || !onAudioGainCommit} value={[audioGainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setAudioGainDb(value); onAudioGainChange?.(dbToGain(value)) }} onValueCommit={([value = audioGainDb]) => { setAudioGainDb(value); onAudioGainChange?.(dbToGain(value)); void onAudioGainCommit?.() }} /></label>
       </div>}
-    </section>}
+    </OperatorInspectorSection>}
 
-    {details.technical.length > 0 && <DetailSection title="Source" items={details.technical} />}
-    {details.library.length > 0 && <DetailSection title="Library" items={details.library} />}
+    {details.technical.length > 0 && <DetailSection title="Source" icon={Info} items={details.technical} />}
+    {details.library.length > 0 && <DetailSection title="Library" icon={Library} items={details.library} />}
 
     <div className="visual-inspector-lock">
       <Button variant="outline" onClick={() => void session.setClipLocked(clipRef, !clip.locked)}>{clip.locked ? <LockOpen /> : <Lock />}{clip.locked ? "Unlock placement" : "Lock placement"}</Button>
@@ -110,6 +106,6 @@ function TransformSlider({ label, value, display, minimum, maximum, disabled, on
   /></label>
 }
 
-function DetailSection({ title, items }: { title: string; items: { label: string; value: string }[] }) {
-  return <section className="visual-inspector-details"><header><b>{title}</b></header><dl>{items.map((item) => <div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl></section>
+function DetailSection({ title, icon, items }: { title: string; icon: typeof Info; items: { label: string; value: string }[] }) {
+  return <OperatorInspectorSection icon={icon} title={title} className="visual-inspector-details"><dl>{items.map((item) => <div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl></OperatorInspectorSection>
 }

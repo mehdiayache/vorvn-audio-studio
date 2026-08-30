@@ -1,7 +1,8 @@
-import { AudioWaveform, ChevronDown, CircleHelp, Headphones, Music2, Pause, Play, RefreshCcw, Trash2 } from "lucide-react"
+import { AudioWaveform, Blend, ChevronDown, CircleHelp, Clock3, Headphones, Music2, Pause, Play, RefreshCcw, SlidersHorizontal, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { OperatorIconButton } from "@/components/operator-action"
+import { OperatorInspectorSection } from "@/components/operator-inspector-section"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -102,23 +103,21 @@ export function AudioClipInspector({ track, clip, asset, playingKey, playing, on
       <OperatorIconButton label={active ? "Pause audio audition" : "Play audio audition"} detail="Auditions the source without changing its timeline placement." variant="outline" size="icon" onClick={() => onPlay({ key, url: soundClipSourceUrl(clip), title: clip.asset_name || "Audio", subtitle: "Source audition", kind: "asset" })}>{active ? <Pause /> : <Play />}</OperatorIconButton>
     </section>
 
-    <section className="music-workbench-section">
-      <header><div><h3>Source & timing</h3><p>{placement}</p></div><span>Live preview</span></header>
+    <OperatorInspectorSection icon={Clock3} title="Source & timing" meta="Live preview" help="Drag the source window to choose which part of the reusable asset this placement uses." className="music-workbench-section">
+      <p className="music-section-context">{placement}</p>
       <AudioSourceEditor url={soundClipSourceUrl(clip)} sourceDuration={sourceDuration} sourceOffset={start} usedDuration={usedDuration} loop={Boolean(clip.loop)} disabled={Boolean(saving) || geometryLocked} onChange={sourceWindow} onCommit={(next) => { sourceWindow(next); void save("source window", onClipCommit) }} />
-    </section>
+    </OperatorInspectorSection>
 
-    <section className="music-workbench-section music-level-section">
-      <header><div><h3>Level</h3><p>This placement in the mix</p></div><strong>{formatDb(clipGainDb)}</strong></header>
+    <OperatorInspectorSection icon={SlidersHorizontal} title="Level" meta={formatDb(clipGainDb)} metaTechnical help="Clip level affects this placement. Advanced track level affects every clip on the same track." className="music-workbench-section music-level-section">
       <label className="music-primary-level"><span><Headphones /> Clip level <b>{formatDb(clipGainDb)}</b></span><Slider aria-label="Audio clip gain" disabled={Boolean(saving)} value={[clipGainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setClipGainDb(value); onClipChange({ gain: dbToGain(value) }) }} onValueCommit={([value = clipGainDb]) => { setClipGainDb(value); onClipChange({ gain: dbToGain(value) }); void save("clip level", onClipCommit) }} /></label>
       <p className="music-output-fact">Output {formatDb(effectiveGainDb)} <span>Clip {formatDb(clipGainDb)} + Track {formatDb(trackGainDb)}</span></p>
       <Collapsible className="music-advanced-level">
         <CollapsibleTrigger><span>Advanced track level</span><b>{formatDb(trackGainDb)}</b><ChevronDown /></CollapsibleTrigger>
         <CollapsibleContent><label><span><Music2 /> Track level <b>{formatDb(trackGainDb)}</b></span><Slider aria-label="Audio Track gain" disabled={Boolean(saving)} value={[trackGainDb]} min={MIN_GAIN_DB} max={MAX_GAIN_DB} step={.5} onValueChange={([value = 0]) => { setTrackGainDb(value); onTrackVolumeChange(dbToGain(value)) }} onValueCommit={([value = trackGainDb]) => { setTrackGainDb(value); void save("track level", () => onTrackVolumeCommit(dbToGain(value))) }} /></label><p>Changes every clip placed on this track.</p></CollapsibleContent>
       </Collapsible>
-    </section>
+    </OperatorInspectorSection>
 
-    <section className="music-workbench-section">
-      <header><div><h3>Shape</h3><p>Entrance, exit and playback behavior</p></div></header>
+    <OperatorInspectorSection icon={Blend} title="Shape" help="Control the clip entrance, exit, looping and how it yields beneath narration." className="music-workbench-section">
       <div className="music-fade-grid">
         <label><span>Fade in <b>{fadeIn.toFixed(1)}s</b></span><Slider aria-label="Audio fade in" disabled={Boolean(saving) || geometryLocked} value={[fadeIn]} max={15} step={0.1} onValueChange={([value = 0]) => { setFadeIn(value); onClipChange({ fade_in_ms: Math.round(value * 1000) }) }} onValueCommit={([value = fadeIn]) => { setFadeIn(value); onClipChange({ fade_in_ms: Math.round(value * 1000) }); void save("fade in", onClipCommit) }} /></label>
         <label><span>Fade out <b>{fadeOut.toFixed(1)}s</b></span><Slider aria-label="Audio fade out" disabled={Boolean(saving) || geometryLocked} value={[fadeOut]} max={15} step={0.1} onValueChange={([value = 0]) => { setFadeOut(value); onClipChange({ fade_out_ms: Math.round(value * 1000) }) }} onValueCommit={([value = fadeOut]) => { setFadeOut(value); onClipChange({ fade_out_ms: Math.round(value * 1000) }); void save("fade out", onClipCommit) }} /></label>
@@ -131,7 +130,7 @@ export function AudioClipInspector({ track, clip, asset, playingKey, playing, on
         </div>
       </div>
       <p className={`music-save-state${error ? " is-error" : ""}`} role={error ? "alert" : "status"} aria-live="polite">{error || (saving ? `Saving ${saving}…` : "Changes save on release")}</p>
-    </section>
+    </OperatorInspectorSection>
 
     {geometryLocked && <p className="music-lock-note">Timing is locked. Level and effects remain available.</p>}
     <section className="music-workbench-actions"><Button variant="outline" disabled={Boolean(saving) || geometryLocked} onClick={onChoose}><RefreshCcw /> Replace source</Button><Button variant="ghost" className="danger" disabled={Boolean(saving) || geometryLocked} onClick={onRemove}><Trash2 /> Remove clip</Button></section>

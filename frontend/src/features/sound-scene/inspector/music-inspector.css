@@ -14,13 +14,8 @@
 .music-workbench-source h3 { overflow: hidden; margin: 2px 0; font-size: .84rem; text-overflow: ellipsis; white-space: nowrap; }
 .music-workbench-source p { color: var(--muted-foreground); font-size: var(--type-caption); }
 
-.music-workbench-section { display: grid; gap: var(--space-3); padding: var(--space-4); border-bottom: var(--stroke-hairline) solid var(--border); }
-.music-workbench-section > header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
-.music-workbench-section > header > div { display: grid; gap: 2px; }
-.music-workbench-section > header h3 { font-size: .8rem; }
-.music-workbench-section > header p, .music-workbench-section > header > span { margin: 0; color: var(--muted-foreground); font-size: .64rem; line-height: 1.35; }
-.music-workbench-section > header > span { flex: none; }
-.music-workbench-section > header > strong { flex: none; font: var(--weight-emphasis) .7rem/1.2 var(--font-mono); }
+.music-workbench-section { border-bottom: var(--stroke-hairline) solid var(--border); }
+.music-section-context { margin: 0; color: var(--muted-foreground); font: var(--weight-regular) var(--type-workstation-data)/1.35 var(--font-mono); font-variant-numeric: tabular-nums; }
 .music-workbench-section label:not(.music-behavior-row) { display: grid; gap: var(--space-2); }
 .music-workbench-section label > span { display: flex; align-items: center; gap: var(--space-2); color: var(--foreground); font-size: var(--type-caption); }
 .music-workbench-section label > span svg { width: 15px; }
