@@ -10,6 +10,7 @@ import { ProductionComposerStage } from "@/features/composer/production-composer
 import { AudioClipInspector } from "@/features/sound-scene/inspector/music-inspector"
 import { SequenceMixInspector } from "@/features/sound-scene/inspector/sequence-mix-inspector"
 import { SoundSceneSession, soundTrackDisplayName, useSoundSceneSession, type SoundScenePersistence } from "@/features/sound-scene/engine/sound-scene-session"
+import { SOUND_MEDIA_LABELS, soundClipMediaKind } from "@/features/sound-scene/sound-media-icon"
 import { VisualSceneSession, useVisualSceneSession, visualSelectionRefs } from "@/features/visual-scene/engine/visual-scene-session"
 import { videoHasEmbeddedAudio } from "@/features/sound-scene/engine/video-audio-sync"
 import { visualTrackDisplayName } from "@/features/visual-scene/timeline/visual-timeline-parts"
@@ -344,6 +345,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     ? soundSession.currentClip(soundSelection.trackId, soundSelection.clipId)
     : null
   const audioAsset = audioClip ? assets.find((asset) => asset.id === audioClip.asset_id) : undefined
+  const audioClipTitle = audioClip ? SOUND_MEDIA_LABELS[soundClipMediaKind(audioClip)] : "Audio clip"
   const visualSelection = visualState.selection
   const visualRefs = visualSelectionRefs(visualSelection)
   const visualRef = visualRefs[0] || null
@@ -360,7 +362,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
   const inspectorTitle = composerOpen ? (composerPart ? `Edit Part ${formatPartNumber(composerPart.position ?? 0)}` : "New speech")
     : stage === "sequence" && selectedPart ? `Part ${formatPartNumber(selectedPart.position ?? 0)} · ${formatAuthoredRole(selectedPart.authored_role) || partKindLabel(selectedPart)}`
       : stage === "sound" && visualClip ? `${visualTrack?.media_type === "video" ? "Video" : "Image"} clip`
-        : stage === "sound" && soundSelection?.kind === "clip" ? "Audio clip"
+        : stage === "sound" && soundSelection?.kind === "clip" ? audioClipTitle
         : stage === "sound" && soundSelection?.kind === "clips" ? `${soundSelection.clips.length} audio clips`
           : stage === "sound" && soundSpan ? `${soundSpan.role || soundSpan.voice_name || "Script Part"} · Mix` : "Inspector"
   const composerInsertAt = insertBeforePartId ? Math.max(0, sourceParts.findIndex((part) => part.public_id === insertBeforePartId)) : null

@@ -1,10 +1,11 @@
-import { AudioLines, SlidersHorizontal } from "lucide-react"
+import { SlidersHorizontal } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { OperatorInspectorSection } from "@/components/operator-inspector-section"
 import { Slider } from "@/components/ui/slider"
 import { formatDuration } from "@/lib/format"
 import type { SequenceMixOverride, SequenceProjectionSpan } from "@/types/domain"
+import { SoundMediaIcon } from "../sound-media-icon"
 import { AudioVolumeControl } from "../components/audio-volume-control"
 import { SoundEffectsEditor } from "../timeline/sound-scene-context-toolbar"
 
@@ -24,7 +25,7 @@ export function SequenceMixInspector({ span, saving, onPreview, onCommit }: {
 
   return <div className="sequence-mix-inspector">
     <section className="sequence-mix-identity">
-      <span><AudioLines /></span>
+      <span><SoundMediaIcon kind="speech" /></span>
       <div><small>Canonical Script audio</small><h3>{span.role || span.voice_name || span.title || "Script Part"}</h3><p>{formatDuration(span.start_ms / 1_000)} · {formatDuration(span.duration_ms / 1_000)}</p></div>
     </section>
 

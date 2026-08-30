@@ -30,13 +30,14 @@ describe("SoundSceneContextToolbar", () => {
     expect(container.querySelector(".selection-bar")).toBeNull()
 
     rerender(<SoundSceneContextToolbar
-      context={{ kind: "audio", label: "Night bed", muted: false, lockState: "unlocked", gain: .2, effects: [] }}
+      context={{ kind: "audio", mediaKind: "sfx", label: "Night bed", muted: false, lockState: "unlocked", gain: .2, effects: [] }}
       saving={false} onVolume={vi.fn()} onEffects={vi.fn()}
       onLock={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()}
     />)
     expect(container.querySelector(".selection-bar")).toBeTruthy()
     expect(container.querySelector(".selection-bar-group.is-mix")).toBeTruthy()
     expect(container.querySelector(".selection-bar-group.is-object")).toBeTruthy()
+    expect(container.querySelector(".selection-bar-identity .lucide-audio-waveform")).toBeTruthy()
     expect(screen.getByText("Night bed")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Clip volume · 20%" }).textContent).toBe("20%")
     expect(screen.queryByRole("button", { name: "Mute audio clip" })).toBeNull()
@@ -70,6 +71,7 @@ describe("SoundSceneContextToolbar", () => {
 
     expect(container.querySelector(".selection-bar-group.is-mix")).toBeTruthy()
     expect(container.querySelector(".selection-bar-group.is-object")).toBeNull()
+    expect(container.querySelector(".selection-bar-identity .lucide-mic-vocal")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Part volume · 100%" }))
     fireEvent.click(screen.getByRole("button", { name: "Mute Part volume" }))
     expect(onVolume).toHaveBeenCalledWith({ gain: 1, muted: true }, false)

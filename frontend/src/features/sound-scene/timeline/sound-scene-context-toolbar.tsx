@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import {
-  ArrowDown, ArrowUp, AudioWaveform, Blend, Check, Copy, Gauge, Lock, MoreHorizontal, MoveHorizontal, Pause, Phone,
+  ArrowDown, ArrowUp, Blend, Check, Copy, Gauge, Lock, MoreHorizontal, MoveHorizontal, Pause, Phone,
   Play, RadioTower, Repeat2, Scissors, SlidersHorizontal, Trash2, Unlock,
   Waves, Zap, type LucideIcon,
 } from "lucide-react"
@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import type { SoundSceneEffect } from "@/types/domain"
+import { SOUND_MEDIA_LABELS, SoundMediaIcon, type SoundMediaKind } from "../sound-media-icon"
 import type { AudioVolumeMix } from "../components/audio-volume-control"
 import { SelectionVolumeControl } from "../components/selection-volume-control"
 
@@ -175,6 +176,7 @@ function EffectSlider({ label, value, min, max, step, format, onPreview, onCommi
 
 export type SoundContext = {
   kind: "audio" | "sequence" | "silence"
+  mediaKind?: SoundMediaKind
   label: string
   muted: boolean
   gain: number
@@ -213,7 +215,7 @@ export function SoundSceneContextToolbar({ context, saving, canSplit, onVolumePr
       : "Adjust or mute this clip without changing its Timeline placement."
   const meta = context.count && context.count > 1
     ? `${context.count} clips`
-    : context.kind === "audio" ? "Audio clip" : context.kind === "silence" ? "Script pause" : "Script Part"
+    : context.kind === "audio" ? SOUND_MEDIA_LABELS[context.mediaKind || "audio"] : context.kind === "silence" ? "Script pause" : "Script Part"
   const mixActions = context.kind !== "silence" ? <>
       <SelectionVolumeControl label={volumeLabel} detail={volumeDetail} gain={context.gain} muted={context.muted} mixed={Boolean(context.gainMixed)} disabled={saving} onPreview={(mix) => onVolumePreview?.(mix, Boolean(context.gainMixed))} onCommit={(mix) => onVolume(mix, Boolean(context.gainMixed))} />
       {(context.count === undefined || context.count === 1) ? <Popover><OperatorTooltip label="Effects" detail="Shape this placement with the browser-previewed effect chain." disabledTrigger={saving}><PopoverTrigger asChild><Button className={`selection-bar-command${activeEffectCount ? " is-active" : ""}`} variant="ghost" size="icon-sm" disabled={saving} aria-label={activeEffectCount ? `Effects · ${activeEffectCount} active` : "Effects"}><RadioTower />{activeEffectCount ? <small>{activeEffectCount}</small> : null}</Button></PopoverTrigger></OperatorTooltip><PopoverContent align="end" className="sound-effects-popover"><SoundEffectsEditor effects={context.effects} disabled={saving} subject={context.kind === "sequence" ? "Part" : "Clip"} onPreview={onEffectsPreview} onCommit={onEffects} /></PopoverContent></Popover> : null}
@@ -241,7 +243,7 @@ export function SoundSceneContextToolbar({ context, saving, canSplit, onVolumePr
     </> : undefined
   return <SelectionBar
     ariaLabel={`${context.label} actions`}
-    icon={context.kind === "silence" ? <Pause /> : <AudioWaveform />}
+    icon={context.kind === "silence" ? <Pause /> : <SoundMediaIcon kind={context.kind === "sequence" ? "speech" : context.mediaKind || "audio"} />}
     label={context.label}
     meta={meta}
     metaTechnical={Boolean(context.count && context.count > 1)}

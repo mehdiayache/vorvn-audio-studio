@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from "react"
 import { SOUND_SCENE_ZOOM_LEVELS } from "@/features/sound-scene/engine/sound-scene-engine"
 import { SoundSceneSession, useSoundSceneSession, type SoundClipRef } from "@/features/sound-scene/engine/sound-scene-session"
 import { gainToDb } from "@/features/sound-scene/sound-scene-gain"
+import { soundClipMediaKind } from "@/features/sound-scene/sound-media-icon"
 import type { SoundContext } from "@/features/sound-scene/timeline/sound-scene-context-toolbar"
 import { VisualSceneSession, useVisualSceneSession, visualSelectionRefs, type VisualClipRef } from "@/features/visual-scene/engine/visual-scene-session"
 import { formatDuration } from "@/lib/format"
@@ -100,6 +101,8 @@ export function TimelineWorkspace({ session, visual, onAddAudio, onRemoveClip, o
     muted: selectedPart.mix.muted || selectedPart.mix.gain <= 0, gain: selectedPart.mix.gain, effects: selectedPart.mix.effects,
   } : selectedClips.length ? {
     kind: "audio", label: selectedClips.length === 1 ? selectedClips[0]!.clip.asset_name || "Audio clip" : "Audio selection",
+    mediaKind: selectedClips.every(({ clip }) => soundClipMediaKind(clip) === soundClipMediaKind(selectedClips[0]!.clip))
+      ? soundClipMediaKind(selectedClips[0]!.clip) : "audio",
     count: selectedClips.length,
     muted: selectedClips.every(({ clip }) => clip.muted || clip.gain <= 0),
     lockState: lockedClipCount === 0 ? "unlocked" : lockedClipCount === selectedClips.length ? "locked" : "mixed",
@@ -203,7 +206,7 @@ export function TimelineWorkspace({ session, visual, onAddAudio, onRemoveClip, o
           <div className="sound-scene-timeline" style={{ width: viewport.width, gridTemplateRows: rowTemplate }} onPointerDown={viewport.panTimeline}>
             <TimelineRuler marks={viewport.marks} pixelsPerSecond={pixelsPerSecond} playhead={playhead} playbackRange={playbackRange} snapGuide={snapping.guide} onSeek={viewport.seekFromPointer} />
             <VisualTimelineSection tracks={visualTracks} assets={visual?.assets || []} selection={selectedVisualRefs} styleFor={styleFor} onSelect={(event, ref) => { const modified = event.nativeEvent as MouseEvent | KeyboardEvent; visual?.session.selectClip(ref, modified.shiftKey || modified.metaKey || modified.ctrlKey); session.select(null) }} onGesture={visualGesture} onAdd={(trackId) => visual?.onAddVisual(trackId)} onPan={viewport.panTimeline} />
-            <AudioTimelineSection scene={scene} tracks={tracks} engineTracks={engine.tracks} selection={selection} selectedRefs={selectedRefs} soloTrackIds={soloTrackIds} pixelsPerSecond={pixelsPerSecond} styleFor={styleFor} currentClip={(trackId, clipId) => session.currentClip(trackId, clipId)} onSelectPart={(partId) => { session.select({ kind: "part", id: partId }); visual?.session.select(null) }} onSelectClip={(event, trackId, clipId) => { session.selectClip(trackId, clipId, event.shiftKey || event.metaKey || event.ctrlKey); visual?.session.select(null) }} onGesture={audioGesture} onAdd={(trackId) => onAddAudio({ mode: "add-clip", trackId })} onPan={viewport.panTimeline} />
+            <AudioTimelineSection scene={scene} tracks={tracks} engineTracks={engine.tracks} selection={selection} selectedRefs={selectedRefs} soloTrackIds={soloTrackIds} pixelsPerSecond={pixelsPerSecond} styleFor={styleFor} currentClip={(trackId, clipId) => session.currentClip(trackId, clipId)} onSelectPart={(partId) => { session.select({ kind: "part", id: partId }); visual?.session.select(null) }} onPreviewPartMix={(partPublicId, changes) => session.previewSequenceOverride(partPublicId, changes)} onCommitPartMix={(partPublicId, changes) => { void session.updateSequenceOverride(partPublicId, changes) }} onSelectClip={(event, trackId, clipId) => { session.selectClip(trackId, clipId, event.shiftKey || event.metaKey || event.ctrlKey); visual?.session.select(null) }} onGesture={audioGesture} onAdd={(trackId) => onAddAudio({ mode: "add-clip", trackId })} onPan={viewport.panTimeline} saving={saving} />
           </div>
         </div>
         <TimelineZoom index={viewport.zoomIndex} maximum={SOUND_SCENE_ZOOM_LEVELS.length - 1} pixelsPerSecond={pixelsPerSecond} onChange={viewport.setCenteredZoom} onFit={viewport.fitTimeline} />
