@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 import type { PlayerSource, VentureAsset, VisualSceneDocument } from "@/types/domain"
 import { TimelineViewer } from "./timeline-viewer"
 import type { WorkstationSelection } from "./workstation-selection"
+import { WorkstationPaneHeader } from "./workstation-pane-header"
 
 type MediaFilter = "all" | "image" | "video" | "audio"
 type ScopeFilter = "production" | "venture" | "studio"
@@ -66,7 +67,7 @@ const TimelineMediaBrowser = memo(function TimelineMediaBrowser({ assets, produc
   </aside>
 
   return <aside className="timeline-media-browser" aria-label="Media Browser">
-    <header><span><Library /><b>Media</b></span><OperatorIconButton label="Hide Media Browser" onClick={() => onCollapsedChange(true)}><PanelLeftClose /></OperatorIconButton></header>
+    <WorkstationPaneHeader icon={<Library />} title="Media" actions={<OperatorIconButton label="Hide Media Browser" onClick={() => onCollapsedChange(true)}><PanelLeftClose /></OperatorIconButton>} />
     <div className="timeline-media-scope" aria-label="Media scope">
       {(["production", "venture", "studio"] as ScopeFilter[]).map((value) => <button key={value} aria-pressed={scope === value} onClick={() => setScope(value)}>{value === "production" ? "Production" : value === "venture" ? "Venture" : "Studio"}</button>)}
     </div>
@@ -112,7 +113,7 @@ function AudioFocusMonitor({ selection, previewAsset, soundSession, onClosePrevi
   const isSourcePlaying = Boolean(source && player.source?.key === source.key && player.state === "playing")
   const kind = selectedClip ? soundClipMediaKind(selectedClip) : selectedSpan ? "speech" : "audio"
   return <section className="timeline-audio-monitor" aria-label="Audio Monitor">
-    <header><span><Waves /><b>{previewAsset ? "Source" : "Audio"}</b></span>{previewAsset && <OperatorIconButton label="Close Source preview" onClick={() => { player.close(); onClosePreview() }}><X /></OperatorIconButton>}</header>
+    <WorkstationPaneHeader icon={<Waves />} title={previewAsset ? "Source" : "Audio"} actions={previewAsset ? <OperatorIconButton label="Close Source preview" onClick={() => { player.close(); onClosePreview() }}><X /></OperatorIconButton> : undefined} />
     <div className="timeline-audio-focus">
       <span className={cn("timeline-audio-focus-icon", `is-${kind}`)}><SoundMediaIcon kind={kind} /></span>
       <div><small>{previewAsset ? "SOURCE" : selection?.kind === "script-part" ? "SCRIPT PART" : "TIMELINE PLACEMENT"}</small><h3>{name}</h3><span>{formatDuration(durationMs / 1_000)}</span></div>
@@ -127,7 +128,7 @@ function SourceVisualMonitor({ asset, soundSession, onClose }: { asset: VentureA
   const player = useGlobalPlayer()
   const name = visualAssetName(asset)
   return <section className="timeline-source-monitor" aria-label="Source Monitor">
-    <header><span><Film /><b>Source</b></span><OperatorIconButton label="Return to Program Monitor" onClick={onClose}><X /></OperatorIconButton></header>
+    <WorkstationPaneHeader icon={<Film />} title="Source" actions={<OperatorIconButton label="Return to Program Monitor" onClick={onClose}><X /></OperatorIconButton>} />
     <div>{asset.media_type === "video" ? <video src={visualAssetPlaybackUrl(asset)} poster={visualAssetPosterUrl(asset)} controls playsInline onPlay={() => { soundSession.pause(); player.pause() }} /> : <img src={visualAssetUrl(asset)} alt={name} />}</div>
     <footer><small>{asset.media_type === "video" ? "VIDEO SOURCE" : "IMAGE SOURCE"}</small><b title={name}>{name}</b></footer>
   </section>
@@ -166,6 +167,6 @@ export function TimelineWorkbench({ selection, previewAsset, assets, productionA
           : visualSession && hasVisualPlacements ? <TimelineViewer document={document} assets={assets} playheadMs={playheadMs} playback={playback} selection={visualSelection} session={visualSession} saving={visualSaving} />
             : <div className="timeline-monitor-empty"><Waves /><b>Select media or a Timeline placement</b><small>The Monitor adapts to image, video and audio.</small></div>}
     </section>
-    {inspector && <aside className="timeline-workbench-inspector" aria-label="Contextual inspector"><header><h2>{inspectorTitle || "Inspector"}</h2>{onCloseInspector && <OperatorIconButton label="Close Inspector" onClick={onCloseInspector}><X /></OperatorIconButton>}</header><div>{inspector}</div></aside>}
+    {inspector && <aside className="timeline-workbench-inspector" aria-label="Contextual inspector"><WorkstationPaneHeader title={inspectorTitle || "Inspector"} heading actions={onCloseInspector ? <OperatorIconButton label="Close Inspector" onClick={onCloseInspector}><X /></OperatorIconButton> : undefined} /><div>{inspector}</div></aside>}
   </div>
 }

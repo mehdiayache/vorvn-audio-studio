@@ -51,7 +51,25 @@ describe("TimelineViewer", () => {
 
     expect(screen.getByLabelText("Program Monitor")).toBeTruthy()
     expect(screen.getByText("Program")).toBeTruthy()
+    expect(screen.getByLabelText("Program canvas controls")).toBeTruthy()
     expect(screen.getByRole("button", { name: /Production format/ })).toBeTruthy()
+    expect(screen.getByLabelText("Program status")).toBeTruthy()
     expect(screen.queryByRole("button", { name: /Viewer/ })).toBeNull()
+  })
+
+  it("zooms the Program viewport without changing clip framing", () => {
+    const document: VisualSceneDocument = { version: 1, canvas: { width: 1920, height: 1080 }, tracks: [] }
+    const session = { setCanvas: vi.fn() } as unknown as VisualSceneSession
+    const { container } = render(<TimelineViewer document={document} assets={[]} playheadMs={0} playback="idle" selection={null} session={session} saving={false} />)
+
+    expect(screen.getByRole("button", { name: "Pan Program canvas" }).hasAttribute("disabled")).toBe(true)
+    fireEvent.click(screen.getByRole("button", { name: "Zoom Program in" }))
+    expect(screen.getByText("125%")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Pan Program canvas" }).hasAttribute("disabled")).toBe(false)
+    expect((container.querySelector(".timeline-viewer-stage") as HTMLElement).style.getPropertyValue("--program-zoom")).toBe("1.25")
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Fit Program canvas" })[0]!)
+    expect(screen.getByText("Fit")).toBeTruthy()
+    expect((container.querySelector(".timeline-viewer-stage") as HTMLElement).style.getPropertyValue("--program-zoom")).toBe("1")
   })
 })

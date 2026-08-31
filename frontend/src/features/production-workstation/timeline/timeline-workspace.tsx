@@ -203,9 +203,8 @@ export function TimelineWorkspace({ session, visual, productionAssetIds = [], in
       event.preventDefault()
       layout.setWorkbenchHeight(Math.max(220, Math.min(620, layout.workbenchHeight + (event.key === "ArrowDown" ? 16 : -16))))
     }} onPointerDown={layout.begin} onPointerMove={layout.move} onPointerUp={layout.end} onPointerCancel={layout.end} />
-    <div className="timeline-command-surface">
-      <TimelineTransport session={session} />
-      <TimelineToolbar
+    <TimelineToolbar
+      transport={<TimelineTransport session={session} />}
       canUndo={history.canUndo}
       canRedo={history.canRedo}
       undoDomain={history.undoDomain}
@@ -221,30 +220,7 @@ export function TimelineWorkspace({ session, visual, productionAssetIds = [], in
       onFollowPlayheadChange={viewport.setFollowPlayhead}
       onAddVisual={() => visual?.onAddVisual()}
       onAddAudio={() => onAddAudio({ mode: "new-track" })}
-      />
-      <TimelineContextBar
-        audioSession={session}
-        visualSession={visual?.session}
-        selectedAudioRefs={selectedRefs}
-        selectedPart={selectedPart}
-        context={context}
-        selectedVisualRefs={selectedVisualRefs}
-        selectedVisualTrack={selectedVisualTrack}
-        selectedVisualAsset={selectedVisualAsset}
-        selectedVideoAudio={selectedVideoAudio}
-        playhead={playhead}
-        saving={saving}
-        visualSaving={visualState.saving}
-        canSplitAudio={canSplit}
-        canSplitVisual={canSplitVisual}
-        canCrossfade={canCrossfade}
-        error={error}
-        visualError={visualState.error}
-        onFollowPlayhead={() => viewport.setFollowPlayhead(true)}
-        onRemoveAudio={() => onRemoveClip({ clips: selectedRefs })}
-        onRemoveVisual={deleteVisualSelection}
-      />
-    </div>
+    />
     <div className="sound-scene-stage">
       <div className="sound-scene-editor">
         <aside ref={viewport.controlsRef} className="sound-scene-track-controls" style={{ gridTemplateRows: rowTemplate }} onWheel={(event) => { if (viewport.scrollRef.current) viewport.scrollRef.current.scrollTop += event.deltaY }}>
@@ -275,5 +251,27 @@ export function TimelineWorkspace({ session, visual, productionAssetIds = [], in
         <TimelineZoom index={viewport.zoomIndex} maximum={SOUND_SCENE_ZOOM_LEVELS.length - 1} pixelsPerSecond={pixelsPerSecond} onChange={viewport.setCenteredZoom} onFit={viewport.fitTimeline} />
       </div>
     </div>
+    <TimelineContextBar
+      audioSession={session}
+      visualSession={visual?.session}
+      selectedAudioRefs={selectedRefs}
+      selectedPart={selectedPart}
+      context={context}
+      selectedVisualRefs={selectedVisualRefs}
+      selectedVisualTrack={selectedVisualTrack}
+      selectedVisualAsset={selectedVisualAsset}
+      selectedVideoAudio={selectedVideoAudio}
+      playhead={playhead}
+      saving={saving}
+      visualSaving={visualState.saving}
+      canSplitAudio={canSplit}
+      canSplitVisual={canSplitVisual}
+      canCrossfade={canCrossfade}
+      error={error}
+      visualError={visualState.error}
+      onFollowPlayhead={() => viewport.setFollowPlayhead(true)}
+      onRemoveAudio={() => onRemoveClip({ clips: selectedRefs })}
+      onRemoveVisual={deleteVisualSelection}
+    />
   </section>
 }

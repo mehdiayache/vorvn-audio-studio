@@ -172,6 +172,13 @@ describe("Production Workstation", () => {
     expect(screen.queryByText(/image tracks?.*video tracks?.*audio tracks?/)).toBeNull()
     expect(screen.getByRole("button", { name: "Undo audio edit" }).textContent).toBe("")
     expect(screen.getByRole("button", { name: "Redo audio edit" }).textContent).toBe("")
+    const commandBar = screen.getByLabelText("Timeline command bar")
+    const transport = screen.getByLabelText("Timeline transport")
+    const stage = container.querySelector(".sound-scene-stage")
+    const selectionBar = screen.getByLabelText("Selection actions")
+    expect(commandBar.contains(transport)).toBe(true)
+    const selectionOrder = stage?.compareDocumentPosition(selectionBar) ?? 0
+    expect(selectionOrder & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it("renders Script and audio tracks through the same track-header grammar", () => {
