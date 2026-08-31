@@ -5,21 +5,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { AudioAssetCategory, AudioAssetScope } from "@/types/domain"
 
 export const ASSET_CATEGORIES = [
-  ["audio", "Other audio"], ["music", "Music"], ["sfx", "SFX"], ["ambience", "Ambience"],
+  ["music", "Music"], ["sfx", "SFX"], ["ambience", "Ambience"],
 ] as const satisfies readonly (readonly [AudioAssetCategory, string])[]
 
 export const CATEGORY_LABELS: Record<AudioAssetCategory, string> = {
-  audio: "Other audio", music: "Music", sfx: "SFX", ambience: "Ambience",
-  intro: "Music", outro: "Music", other: "Other audio",
+  music: "Music", sfx: "SFX", ambience: "Ambience",
 }
 
 export function AssetCategorySelect({ value, onChange }: {
-  value: AudioAssetCategory
-  onChange: (value: AudioAssetCategory) => void
+  value: AudioAssetCategory | null
+  onChange: (value: AudioAssetCategory | null) => void
 }) {
-  return <label className="asset-field"><span>Category</span><Select value={value} onValueChange={(next) => onChange(next as AudioAssetCategory)}>
+  return <label className="asset-field"><span>Category <small>Optional</small></span><Select value={value || "unclassified"} onValueChange={(next) => onChange(next === "unclassified" ? null : next as AudioAssetCategory)}>
     <SelectTrigger aria-label="Category"><SelectValue /></SelectTrigger>
-    <SelectContent>{ASSET_CATEGORIES.map(([category, label]) => <SelectItem key={category} value={category}>{label}</SelectItem>)}</SelectContent>
+    <SelectContent><SelectItem value="unclassified">No category</SelectItem>{ASSET_CATEGORIES.map(([category, label]) => <SelectItem key={category} value={category}>{label}</SelectItem>)}</SelectContent>
   </Select></label>
 }
 

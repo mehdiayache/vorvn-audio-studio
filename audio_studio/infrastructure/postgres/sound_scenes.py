@@ -84,7 +84,8 @@ class SoundSceneRepository:
             return result
         with read_only() as cursor:
             cursor.execute("""
-                SELECT asset.id, asset.name, asset.kind, asset.media_type,
+                SELECT asset.id, asset.name,
+                       COALESCE(asset.category, asset.kind), asset.media_type,
                        version.id, version.filename, version.duration_ms,
                        version.sample_rate, version.channels, version.metadata
                   FROM assets asset

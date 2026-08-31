@@ -17,6 +17,9 @@ class CatalogSoundResponse(BaseModel):
     preview_url: str
     original_format: str
     tags: list[str]
+    provider_category: str | None = None
+    provider_subcategory: str | None = None
+    provider_category_is_user_provided: bool | None = None
     attribution_required: bool
     attribution_text: str
 

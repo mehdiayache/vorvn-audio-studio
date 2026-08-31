@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assets/{asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Asset */
+        patch: operations["updateAsset"];
+        trace?: never;
+    };
     "/api/v1/audio-catalogs/freesound/keep": {
         parameters: {
             query?: never;
@@ -2646,6 +2663,12 @@ export interface components {
             original_format: string;
             /** Preview Url */
             preview_url: string;
+            /** Provider Category */
+            provider_category?: string | null;
+            /** Provider Category Is User Provided */
+            provider_category_is_user_provided?: boolean | null;
+            /** Provider Subcategory */
+            provider_subcategory?: string | null;
             /** Source Url */
             source_url: string;
             /** Tags */
@@ -3780,11 +3803,8 @@ export interface components {
         };
         /** KeepFreesoundBody */
         KeepFreesoundBody: {
-            /**
-             * Category
-             * @enum {string}
-             */
-            category: "audio" | "music" | "ambience" | "sfx" | "intro" | "outro" | "other";
+            /** Category */
+            category?: ("music" | "ambience" | "sfx") | null;
             /** Collection Id */
             collection_id: number;
             /** External Id */
@@ -3793,6 +3813,7 @@ export interface components {
             name: string;
             /**
              * Scope
+             * @default venture
              * @enum {string}
              */
             scope: "venture" | "studio";
@@ -3805,7 +3826,7 @@ export interface components {
              * Category
              * @enum {string}
              */
-            category: "audio" | "music" | "ambience" | "sfx" | "intro" | "outro" | "other";
+            category: "music" | "ambience" | "sfx";
             /** Collection Id */
             collection_id: number;
             /** Name */
@@ -6437,6 +6458,20 @@ export interface components {
             /** Transcript Id */
             transcript_id: number;
         };
+        /** UpdateAssetBody */
+        UpdateAssetBody: {
+            /** Category */
+            category?: ("music" | "ambience" | "sfx") | null;
+            /** Name */
+            name: string;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "venture" | "studio";
+            /** Tags */
+            tags?: string[];
+        };
         /** UploadedAssetEnvelope */
         UploadedAssetEnvelope: {
             data: components["schemas"]["UploadedAssetResponse"];
@@ -6445,11 +6480,8 @@ export interface components {
         UploadedAssetResponse: {
             /** Audio Format */
             audio_format?: string | null;
-            /**
-             * Category
-             * @enum {string}
-             */
-            category: "audio" | "music" | "ambience" | "sfx" | "intro" | "outro" | "other";
+            /** Category */
+            category?: ("music" | "ambience" | "sfx") | null;
             /** Channels */
             channels?: number | null;
             /**
@@ -7783,6 +7815,41 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadedAssetEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAssetBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

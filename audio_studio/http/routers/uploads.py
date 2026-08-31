@@ -12,6 +12,7 @@ from audio_studio.application.uploads import MAX_ASSET_UPLOAD_BYTES, UploadError
 from audio_studio.composition.uploads import upload_service
 from audio_studio.http.errors import ApiProblem
 from audio_studio.http.upload_contracts import (
+    UpdateAssetBody,
     UploadedAssetEnvelope,
     UploadedImageEnvelope,
     UploadedTranscriptionSourceEnvelope,
@@ -141,6 +142,22 @@ async def upload_venture_asset(collection_id: int, request: Request,
     finally:
         incoming.unlink(missing_ok=True)
     return {"data": result}
+
+
+@router.patch(
+    "/assets/{asset_id}", operation_id="updateAsset",
+    response_model=UploadedAssetEnvelope,
+)
+def update_asset(asset_id: int, payload: UpdateAssetBody) -> dict:
+    try:
+        updated = upload_service.update_asset(
+            asset_id, name=payload.name, category=payload.category,
+            scope=payload.scope, tags=tuple(payload.tags))
+    except UploadError as exc:
+        status_code = 404 if str(exc) == "That Asset no longer exists." else 400
+        code = "asset_not_found" if status_code == 404 else "invalid_asset"
+        raise ApiProblem(status_code, code, str(exc)) from exc
+    return {"data": updated}
 
 
 @router.post(

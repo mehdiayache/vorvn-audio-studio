@@ -133,6 +133,27 @@ class FreesoundProviderTests(unittest.TestCase):
         self.assertIn("fieldrecorder", sounds[1].attribution_text)
         self.assertIn("CC BY-NC", sounds[2].attribution_text)
 
+    def test_search_preserves_provider_taxonomy_and_all_source_tags(self):
+        record = raw_sound()
+        record.update({
+            "category": "Sounds of things",
+            "subcategory": "Doors",
+            "category_is_user_provided": False,
+            "tags": [f"tag-{index}" for index in range(15)],
+        })
+        opener = Mock(return_value=Response({"results": [record]}))
+        with patch.dict("os.environ", {"FREESOUND_API_TOKEN": "search-token"}):
+            sound = FreesoundCatalog(opener=opener).search("wooden door")[0]
+        self.assertEqual(len(sound.tags), 15)
+        self.assertEqual(
+            (sound.provider_category, sound.provider_subcategory,
+             sound.provider_category_is_user_provided),
+            ("Sounds of things", "Doors", False),
+        )
+        request_query = urllib.parse.parse_qs(
+            urllib.parse.urlparse(opener.call_args.args[0].full_url).query)
+        self.assertIn("category_is_user_provided", request_query["fields"][0])
+
     def test_search_failure_is_explicit(self):
         opener = Mock(side_effect=OSError("offline"))
         with patch.dict(
@@ -317,6 +338,18 @@ class AudioCatalogApplicationTests(unittest.TestCase):
         self.assertTrue(created["metadata"]["attribution_required"])
         self.assertEqual(result["asset"]["version_id"], 8)
 
+    def test_keep_without_classification_keeps_source_tags_as_provenance_only(self):
+        with TemporaryDirectory() as directory:
+            service, _, _, records = self.service(Path(directory))
+            service.keep(
+                collection_id=41, external_id="931", name="Wooden door",
+                category=None, scope="venture", tags=())
+        created = records.created[0]
+        self.assertIsNone(created["category"])
+        self.assertEqual(created["tags"], ())
+        self.assertEqual(created["metadata"]["source_tags"],
+                         ["door", "wood", "close"])
+
     def test_duplicate_keep_returns_the_existing_asset_without_download(self):
         with TemporaryDirectory() as directory:
             service, catalog, workspace, records = self.service(Path(directory))
@@ -367,7 +400,7 @@ class AudioCatalogApplicationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "database unavailable"):
                 service.keep(
                     collection_id=41, external_id="931", name="Door",
-                    category="other", scope="studio", tags=())
+                    category=None, scope="studio", tags=())
             remaining = list((root / "incoming").rglob("*"))
         self.assertEqual(workspace.discarded, ["kept.wav"])
         self.assertFalse(records.created)

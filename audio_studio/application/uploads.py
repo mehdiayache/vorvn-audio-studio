@@ -114,6 +114,11 @@ class UploadRecords(Protocol):
         scope: AssetScope,
     ) -> dict | None: ...
     def generated_asset(self, *, candidate_id: str) -> dict | None: ...
+    def update_asset_details(
+        self, asset_id: int, *, name: str,
+        category: AssetCategory | None, scope: AssetScope,
+        tags: tuple[str, ...],
+    ) -> dict | None: ...
 
 
 def clean_name(encoded: str, fallback: str) -> str:
@@ -298,8 +303,7 @@ class UploadService:
                 size_bytes=size_bytes)
         except ValueError as exc:
             raise UploadError(str(exc)) from exc
-        if (stored.media_type != "audio" and details.category
-                not in (None, "other")):
+        if stored.media_type != "audio" and details.category is not None:
             self.workspace.discard_media(stored.filename)
             raise UploadError(
                 "Music, ambience and SFX categories apply only to audio."
@@ -373,6 +377,21 @@ class UploadService:
             tags=tuple(tags),
             metadata=provenance,
         )
+
+    def update_asset(
+        self, asset_id: int, *, name: str, category: str | None,
+        scope: str, tags: tuple[str, ...],
+    ) -> dict:
+        """Update human-owned Asset facts without changing its origin or file."""
+        details = self.prepare_asset_upload(
+            "asset.mp3", name=name, category=category, scope=scope,
+            supplied_tags=tags, metadata={})
+        updated = self.records.update_asset_details(
+            asset_id, name=details.name, category=details.category,
+            scope=details.scope, tags=details.tags)
+        if not updated:
+            raise UploadError("That Asset no longer exists.")
+        return updated
 
     def catalog_asset(
         self, collection_id: int, *, origin: str, external_id: str,

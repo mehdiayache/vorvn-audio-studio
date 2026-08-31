@@ -354,8 +354,8 @@ describe("AssetTool", () => {
     expect(view.getByLabelText("Used in Timeline")).toBeTruthy()
     expect(view.getAllByRole("button", { name: "Add to Timeline" })).toHaveLength(2)
     fireEvent.click(view.getByRole("button", { name: "Filters" }))
-    fireEvent.click(screen.getByRole("combobox", { name: "Asset availability" }))
-    fireEvent.click(screen.getByRole("option", { name: "This Production" }))
+    fireEvent.click(screen.getByRole("combobox", { name: "Asset usage in this Production" }))
+    fireEvent.click(screen.getByRole("option", { name: "Used in this Production" }))
 
     expect(view.getByRole("button", { name: "Select Wooden knock" })).toBeTruthy()
     expect(view.queryByRole("button", { name: "Select Night room" })).toBeNull()
@@ -397,6 +397,54 @@ describe("AssetTool", () => {
     expect(screen.getByRole("button", { name: "Select Long wind" })).toBeTruthy()
   })
 
+  it("opens Freesound with a creator-first welcome before any remote search", async () => {
+    const search = vi.spyOn(studioApi, "searchFreesound").mockResolvedValue([])
+    render(<AssetTool assets={[]} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole("tab", { name: "Freesound" }))
+    expect(screen.getByRole("heading", { name: "What do you want to find?" })).toBeTruthy()
+    expect(screen.getByText(/temporary candidates until you keep one/i)).toBeTruthy()
+    expect(search).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole("button", { name: "wooden door" }))
+    await waitFor(() => expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({ query: "wooden door" }), expect.any(AbortSignal),
+    ))
+  })
+
+  it("acknowledges a Freesound query before the debounced request begins", async () => {
+    let finishSearch!: (results: never[]) => void
+    const search = vi.spyOn(studioApi, "searchFreesound").mockImplementation(
+      () => new Promise((resolve) => { finishSearch = resolve }),
+    )
+    render(<AssetTool assets={[]} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole("tab", { name: "Freesound" }))
+    fireEvent.change(screen.getByPlaceholderText("Describe the sound you need"), { target: { value: "wooden door" } })
+
+    expect(screen.getByText("Searching Freesound…")).toBeTruthy()
+    expect(screen.queryByRole("heading", { name: "What do you want to find?" })).toBeNull()
+    expect(search).not.toHaveBeenCalled()
+    await waitFor(() => expect(search).toHaveBeenCalled())
+    finishSearch([])
+    await waitFor(() => expect(screen.getByText("No matching sounds")).toBeTruthy())
+  })
+
+  it("edits human Asset classification without touching its source identity", async () => {
+    const asset = { id: 41, name: "Raw sound", media_type: "audio" as const, category: null, scope: "venture" as const, tags: [], metadata: { origin: "freesound", source_tags: ["door", "wood"] }, filename: "raw.wav" }
+    const onUpdate = vi.fn().mockResolvedValue({ ...asset, name: "Door close", category: "sfx" })
+    render(<AssetTool assets={[asset]} initialSelectedId={41} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onUpdate={onUpdate} onKeep={vi.fn()} />)
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Name" }), { target: { value: "Door close" } })
+    fireEvent.click(screen.getByRole("combobox", { name: "Category" }))
+    fireEvent.click(screen.getByRole("option", { name: "SFX" }))
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }))
+
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith(asset, {
+      name: "Door close", category: "sfx", scope: "venture", tags: [],
+    }))
+    expect(screen.getByText("Source tags")).toBeTruthy()
+  })
+
   it("auditions an external result without keeping it, then Keeps explicitly", async () => {
     const result = {
       external_id: "931", name: "Wooden door close.wav",
@@ -430,14 +478,14 @@ describe("AssetTool", () => {
 
     fireEvent.click(view.getByRole("button", { name: "Keep in Audio Library" }))
     await waitFor(() => expect(onKeep).toHaveBeenCalledWith("Assets", {
-      result, name: result.name, category: "sfx", scope: "studio",
-      tags: ["door", "wood"],
+      result, name: result.name, category: null, scope: "venture",
+      tags: [],
     }))
     expect(view.getByRole("button", { name: "In Audio Library" })).toBeTruthy()
     search.mockRestore()
   })
 
-  it("suggests and persists an ambience family for matching Freesound results", async () => {
+  it("keeps Freesound taxonomy separate from the user's optional category", async () => {
     const result = {
       external_id: "ocean-1", name: "Calm ocean waves",
       duration_ms: 12_000, creator: "coastrecorder",
@@ -456,11 +504,11 @@ describe("AssetTool", () => {
     fireEvent.click(view.getByRole("tab", { name: "Freesound" }))
     fireEvent.change(view.getByPlaceholderText("Describe the sound you need"), { target: { value: "calm ocean waves" } })
     await waitFor(() => expect(view.getByRole("button", { name: "Select Calm ocean waves" })).toBeTruthy())
-    expect(view.getByLabelText("Suggested Ambience family")).toBeTruthy()
+    expect(view.queryByLabelText("Suggested Ambience family")).toBeNull()
     fireEvent.click(view.getByRole("button", { name: "Keep in Audio Library" }))
     await waitFor(() => expect(onKeep).toHaveBeenCalledWith("Assets", {
-      result, name: result.name, category: "ambience", scope: "studio",
-      tags: ["ocean", "waves", "calm"],
+      result, name: result.name, category: null, scope: "venture",
+      tags: [],
     }))
   })
 })

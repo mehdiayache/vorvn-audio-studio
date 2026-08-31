@@ -240,7 +240,7 @@ export function useProductionActions({ production, soundScene, player, refresh, 
   const moveParts = useCallback((ids: number[], targetId: number, targetName: string) => mutate("parts:move-production", () => studioApi.moveParts(production.id, ids, targetId), `Moved to ${targetName}`, true), [mutate, production.id])
   const uploadAsset = useCallback(async (collectionId: number, folder: string, details: {
     name: string
-    category: string
+    category: AudioAssetCategory | null
     scope: "venture" | "studio"
     tags: string[]
     file: File
@@ -253,10 +253,23 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     })
   }, [mutationActions.run, refreshAssets])
 
+  const updateAsset = useCallback(async (asset: VentureAsset, details: {
+    name: string
+    category: AudioAssetCategory | null
+    scope: AudioAssetScope
+    tags: string[]
+  }): Promise<VentureAsset> => mutationActions.run(
+    `asset:update:${asset.id}`, async () => {
+      const updated = await studioApi.updateAsset(asset.id, details)
+      await refreshAssets()
+      toast.success(`${details.name} updated`)
+      return updated
+    }), [mutationActions.run, refreshAssets])
+
   const keepFreesound = useCallback(async (collectionId: number, details: {
     result: CatalogSound
     name: string
-    category: AudioAssetCategory
+    category: AudioAssetCategory | null
     scope: AudioAssetScope
     tags: string[]
   }): Promise<CatalogKeepResult> => mutationActions.run(
@@ -294,5 +307,5 @@ export function useProductionActions({ production, soundScene, player, refresh, 
       return kept
     }), [mutationActions.run, refreshAssets])
 
-  return { previewing, exporting, exportingFormat, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, mutationStatus, isActionPending: mutationActions.isPending, invalidatePreview, toggleProduction, exportProduction, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, updateSoundScene, undoSoundScene, redoSoundScene, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, moveParts, uploadAsset, keepFreesound, keepGeneratedAudio }
+  return { previewing, exporting, exportingFormat, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, mutationStatus, isActionPending: mutationActions.isPending, invalidatePreview, toggleProduction, exportProduction, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, updateSoundScene, undoSoundScene, redoSoundScene, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, moveParts, uploadAsset, updateAsset, keepFreesound, keepGeneratedAudio }
 }

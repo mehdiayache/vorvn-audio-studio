@@ -140,7 +140,7 @@ export function GenerationWorkspace({
   const [generationProgress, setGenerationProgress] = useState(0)
   const [name, setName] = useState("")
   const [category, setCategory] = useState<AudioAssetCategory>("sfx")
-  const [scope, setScope] = useState<AudioAssetScope>("studio")
+  const [scope, setScope] = useState<AudioAssetScope>("venture")
   const [tags, setTags] = useState<string[]>([])
   const [keeping, setKeeping] = useState<"place" | "library" | null>(null)
   const [discarding, setDiscarding] = useState(false)
@@ -587,7 +587,7 @@ function CandidateFinalizer({ selected, selectedLabel, selectedActive, name, cat
       </section>
       {candidate && !selected.kept_asset && <section className="asset-finalize-form">
         <label className="asset-field"><span>Name</span><Input value={name} maxLength={120} onChange={(event) => onName(event.target.value)} autoFocus /></label>
-        <div className="asset-finalize-fields"><AssetCategorySelect value={category} onChange={onCategory} /><AssetScopeSelect value={scope} onChange={onScope} /></div>
+        <div className="asset-finalize-fields"><AssetCategorySelect value={category} onChange={(next) => { if (next) onCategory(next) }} /><AssetScopeSelect value={scope} onChange={onScope} /></div>
         <AssetTagEditor tags={tags} onChange={onTags} onError={onError} />
       </section>}
       {selected.kept_asset && <section className="asset-generation-kept"><Check /><span><b>Kept in Audio Library</b><small>{selected.kept_asset.name}</small></span></section>}

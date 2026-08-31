@@ -444,7 +444,7 @@ export const studioApi = {
   },
   uploadAsset: async (collectionId: number, file: File, details?: {
     name?: string
-    category?: string
+    category?: string | null
     scope?: "venture" | "studio"
     tags?: string[]
   }) => {
@@ -459,6 +459,14 @@ export const studioApi = {
     )
     return response.data
   },
+  updateAsset: (assetId: number, details: {
+    name: string
+    category: import("@/types/domain").AudioAssetCategory | null
+    scope: import("@/types/domain").AudioAssetScope
+    tags: string[]
+  }) => request<{ data: VentureAsset }>(`/api/v1/assets/${assetId}`, {
+    method: "PATCH", body: JSON.stringify(details),
+  }).then((response) => response.data),
   directorGenerationCapabilities: () => request<DirectorGenerationCapabilitiesEnvelope>("/api/v1/director-generation-capabilities").then((response) => response.data),
   directorModels: () => request<DirectorModelsEnvelope>("/api/v1/director/models").then((response) => response.data),
   directorInputCompatibility: async (

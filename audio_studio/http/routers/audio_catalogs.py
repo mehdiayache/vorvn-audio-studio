@@ -27,8 +27,8 @@ class KeepFreesoundBody(BaseModel):
     collection_id: int = Field(gt=0)
     external_id: str = Field(min_length=1, max_length=40)
     name: str = Field(min_length=1, max_length=120)
-    category: AssetCategory
-    scope: AssetScope
+    category: AssetCategory | None = None
+    scope: AssetScope = "venture"
     tags: list[str] = Field(default_factory=list, max_length=12)
 
 

@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from audio_studio.domain.media import AssetMediaType
 from audio_studio.domain.uploads import AssetCategory, AssetScope
@@ -36,7 +36,7 @@ class UploadedAssetResponse(BaseModel):
     media_type: AssetMediaType
     duration_ms: int | None = None
     url: str
-    category: AssetCategory
+    category: AssetCategory | None = None
     scope: AssetScope
     tags: list[str]
     metadata: dict
@@ -57,6 +57,15 @@ class UploadedAssetResponse(BaseModel):
 
 class UploadedAssetEnvelope(BaseModel):
     data: UploadedAssetResponse
+
+
+class UpdateAssetBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=120)
+    category: AssetCategory | None = None
+    scope: AssetScope
+    tags: list[str] = Field(default_factory=list, max_length=12)
 
 
 class UploadedTranscriptionSourceResponse(BaseModel):

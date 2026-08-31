@@ -1,15 +1,17 @@
 import { ExternalLink } from "lucide-react"
 import { useEffect, useState } from "react"
 
+import { ActionButton } from "@/components/operator-action"
 import { AudioDownloadButton } from "@/components/audio-download-button"
 import { AudioFamilyBadge, AudioSourceBadge } from "@/features/sound-scene/audio-identity"
-import { audioAssetFamily, audioUsageTags, type AudioFamily } from "@/features/sound-scene/audio-presentation"
+import { audioAssetCategory, audioUsageTags } from "@/features/sound-scene/audio-presentation"
+import { Input } from "@/components/ui/input"
 import { audioUrl } from "@/lib/api"
 import { assetSource, assetSourceLine } from "@/lib/asset-provenance"
 import { formatBytes, formatDuration } from "@/lib/format"
 import type { AudioAssetCategory, AudioAssetScope, CatalogLicense, CatalogSound, VentureAsset } from "@/types/domain"
 
-import { AssetCategorySelect, AssetScopeSelect } from "./asset-library-controls"
+import { AssetCategorySelect, AssetScopeSelect, AssetTagEditor } from "./asset-library-controls"
 
 const LICENSE_LABELS: Record<CatalogLicense, string> = { cc0: "CC0", "cc-by": "CC BY", "cc-by-nc": "CC BY-NC" }
 
@@ -28,13 +30,13 @@ function formatDate(value: string) {
   return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date)
 }
 
-function TagsDisclosure({ tags }: { tags: string[] }) {
+function TagsDisclosure({ tags, label = "Tags", empty = "No tags" }: { tags: string[]; label?: string; empty?: string }) {
   const normalized = [...new Set(tags.map((tag) => tag.trim().toLocaleLowerCase()).filter(Boolean))]
   const [open, setOpen] = useState(normalized.length > 0 && normalized.length <= 6)
   useEffect(() => setOpen(normalized.length > 0 && normalized.length <= 6), [normalized.join("\u0000")])
   return <details className="audio-inspector-tags" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
-    <summary><span>Tags</span><b>{normalized.length}</b></summary>
-    {normalized.length ? <div className="asset-tag-preview">{normalized.map((tag) => <span key={tag}>{tag}</span>)}</div> : <p>No usage tags</p>}
+    <summary><span>{label}</span><b>{normalized.length}</b></summary>
+    {normalized.length ? <div className="asset-tag-preview">{normalized.map((tag) => <span key={tag}>{tag}</span>)}</div> : <p>{empty}</p>}
   </details>
 }
 
@@ -47,8 +49,27 @@ function ScopeBadge({ scope }: { scope?: string | null }) {
   return <span className="audio-scope-badge">{scope === "studio" ? "Studio" : "Venture"}</span>
 }
 
-export function SavedAudioInspector({ asset, title, error }: { asset: VentureAsset; title: string; error?: string }) {
+export function SavedAudioInspector({ asset, title, error, onSave }: {
+  asset: VentureAsset
+  title: string
+  error?: string
+  onSave: (details: { name: string; category: AudioAssetCategory | null; scope: AudioAssetScope; tags: string[] }) => Promise<void>
+}) {
   const source = assetSource(asset)
+  const category = audioAssetCategory(asset)
+  const [draftName, setDraftName] = useState(title)
+  const [draftCategory, setDraftCategory] = useState<AudioAssetCategory | null>(category)
+  const [draftScope, setDraftScope] = useState<AudioAssetScope>(asset.scope === "studio" ? "studio" : "venture")
+  const [draftTags, setDraftTags] = useState(audioUsageTags(asset))
+  const [saving, setSaving] = useState(false)
+  const [editError, setEditError] = useState("")
+  useEffect(() => {
+    setDraftName(title)
+    setDraftCategory(audioAssetCategory(asset))
+    setDraftScope(asset.scope === "studio" ? "studio" : "venture")
+    setDraftTags(audioUsageTags(asset))
+    setEditError("")
+  }, [asset.id, asset.updated_at, title])
   const prompt = metadataText(asset, "resolved_prompt") || metadataText(asset, "prompt")
   const sourceRows: Array<{ label: string; value: string; href?: string }> = []
   if (source === "generated") {
@@ -77,29 +98,37 @@ export function SavedAudioInspector({ asset, title, error }: { asset: VentureAss
     asset.channels ? { label: "Channels", value: asset.channels === 1 ? "Mono" : asset.channels === 2 ? "Stereo" : String(asset.channels) } : null,
     asset.size_bytes ? { label: "File size", value: formatBytes(asset.size_bytes) } : null,
   ].filter(Boolean) as Array<{ label: string; value: string }>
+  const sourceTags = Array.isArray(asset.metadata?.source_tags) ? asset.metadata.source_tags.filter((tag): tag is string => typeof tag === "string") : []
+  const save = async () => {
+    if (!draftName.trim()) { setEditError("Give this audio a name."); return }
+    setSaving(true); setEditError("")
+    try { await onSave({ name: draftName.trim(), category: draftCategory, scope: draftScope, tags: draftTags }) }
+    catch (reason) { setEditError(reason instanceof Error ? reason.message : "Library details could not be saved.") }
+    finally { setSaving(false) }
+  }
   return <aside className="asset-inspector audio-library-inspector" aria-label="Selected Asset details">
-    <header className="audio-inspector-header"><div><span className="audio-inspector-source"><AudioSourceBadge source={source} detail={assetSourceLine(asset)} /><AudioFamilyBadge family={audioAssetFamily(asset)} /><ScopeBadge scope={asset.scope} /></span><h3>{title}</h3></div>{asset.filename && <AudioDownloadButton url={audioUrl(asset.filename)} label={title} compact />}</header>
-    <TagsDisclosure tags={audioUsageTags(asset)} />
+    <header className="audio-inspector-header"><div><span className="audio-inspector-source"><AudioSourceBadge source={source} detail={assetSourceLine(asset)} />{category && <AudioFamilyBadge family={category} />}<ScopeBadge scope={asset.scope} /></span><h3>{title}</h3></div>{asset.filename && <AudioDownloadButton url={audioUrl(asset.filename)} label={title} compact />}</header>
+    <section className="audio-inspector-classify"><h4>Library details</h4><div className="asset-inspector-form"><label className="asset-field"><span>Name</span><Input value={draftName} maxLength={120} onChange={(event) => setDraftName(event.target.value)} /></label><AssetCategorySelect value={draftCategory} onChange={setDraftCategory} /><AssetTagEditor tags={draftTags} onChange={setDraftTags} onError={setEditError} /><AssetScopeSelect value={draftScope} onChange={setDraftScope} /><ActionButton busy={saving} busyLabel="Saving…" disabled={!draftName.trim()} onClick={() => void save()}>Save changes</ActionButton></div></section>
+    {sourceTags.length > 0 && <TagsDisclosure tags={sourceTags} label="Source tags" />}
     <DetailGroup title="Origin" rows={sourceRows} />
     {prompt && <section className="audio-inspector-prompt"><h4>Prompt</h4><p>{prompt}</p></section>}
     <DetailGroup title="File" rows={technicalRows} />
-    {error && <p className="asset-inspector-error" role="alert">{error}</p>}
+    {(editError || error) && <p className="asset-inspector-error" role="alert">{editError || error}</p>}
   </aside>
 }
 
-export function FreesoundAudioInspector({ result, family, category, scope, error, onCategory, onScope }: {
+export function FreesoundAudioInspector({ result, category, scope, error, onCategory, onScope }: {
   result: CatalogSound
-  family: AudioFamily
-  category: AudioAssetCategory
+  category: AudioAssetCategory | null
   scope: AudioAssetScope
   error?: string
-  onCategory: (value: AudioAssetCategory) => void
+  onCategory: (value: AudioAssetCategory | null) => void
   onScope: (value: AudioAssetScope) => void
 }) {
   return <aside className="asset-inspector asset-form-inspector audio-library-inspector" aria-label="Selected Freesound details">
-    <header className="audio-inspector-header"><div><span className="audio-inspector-source"><AudioSourceBadge source="freesound" detail={`Freesound · ${result.creator}`} /><AudioFamilyBadge family={family} /><ScopeBadge scope={scope} /></span><h3>{result.name}</h3></div></header>
-    <TagsDisclosure tags={result.tags} />
-    <DetailGroup title="Origin" rows={[{ label: "Creator", value: result.creator }, { label: "License", value: LICENSE_LABELS[result.license] }, { label: "Original", value: "Open on Freesound", href: result.source_url }]} />
+    <header className="audio-inspector-header"><div><span className="audio-inspector-source"><AudioSourceBadge source="freesound" detail={`Freesound · ${result.creator}`} /><ScopeBadge scope={scope} /></span><h3>{result.name}</h3></div></header>
+    <TagsDisclosure tags={result.tags} label="Freesound tags" />
+    <DetailGroup title="Origin" rows={[{ label: "Creator", value: result.creator }, { label: "License", value: LICENSE_LABELS[result.license] }, ...(result.provider_category ? [{ label: "Freesound class", value: [result.provider_category, result.provider_subcategory].filter(Boolean).join(" · ") }] : []), { label: "Original", value: "Open on Freesound", href: result.source_url }]} />
     <DetailGroup title="File" rows={[{ label: "Duration", value: formatDuration(result.duration_ms / 1000) }, { label: "Format", value: result.original_format.toUpperCase() }]} />
     <section className="audio-inspector-classify"><h4>Save as</h4><AssetCategorySelect value={category} onChange={onCategory} /><AssetScopeSelect value={scope} onChange={onScope} /></section>
     {error && <p className="asset-inspector-error" role="alert">{error}</p>}

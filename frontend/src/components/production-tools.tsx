@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from "react"
 
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { AudioLibraryLoadingWorkspace } from "@/components/production-tools/audio-library-loading"
-import type { AssetMode, AssetUploadInput, CatalogKeepInput, GeneratedKeepInput } from "@/components/production-tools/asset-tool"
+import type { AssetMode, AssetUpdateInput, AssetUploadInput, CatalogKeepInput, GeneratedKeepInput } from "@/components/production-tools/asset-tool"
 import { Skeleton } from "@/components/ui/skeleton"
 import { TransportStripView } from "@/components/transport-strip"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -29,7 +29,7 @@ function AudioLibraryToolLoading() {
   </div>
 }
 
-export function ProductionToolDialog({ open, production, config, nextPartNumber, beforePartId, replacingAssetId, initialAudioAssetId, assets, assetState, usedAssetIds = [], assetCollectionIds, directory, playingKey, playerPlaying, onClose, onAddSilence, onInsertAsset, onPlaceAudio, onUploadAsset, onKeepAsset, onKeepGenerated, onImported, onPlay, onRetryAssets }: {
+export function ProductionToolDialog({ open, production, config, nextPartNumber, beforePartId, replacingAssetId, initialAudioAssetId, assets, assetState, usedAssetIds = [], assetCollectionIds, directory, playingKey, playerPlaying, onClose, onAddSilence, onInsertAsset, onPlaceAudio, onUploadAsset, onUpdateAsset, onKeepAsset, onKeepGenerated, onImported, onPlay, onRetryAssets }: {
   open: Exclude<ToolKind, "speech">
   production: Production
   config: StudioConfig | null
@@ -49,6 +49,7 @@ export function ProductionToolDialog({ open, production, config, nextPartNumber,
   onInsertAsset: (asset: VentureAsset) => Promise<void>
   onPlaceAudio: (asset: VentureAsset) => Promise<void>
   onUploadAsset: (folder: string, input: AssetUploadInput) => Promise<VentureAsset>
+  onUpdateAsset: (asset: VentureAsset, input: AssetUpdateInput) => Promise<VentureAsset>
   onKeepAsset: (folder: string, input: CatalogKeepInput) => Promise<CatalogKeepResult>
   onKeepGenerated: (folder: string, input: GeneratedKeepInput) => Promise<GeneratedKeepResult>
   onImported: () => void
@@ -85,7 +86,7 @@ export function ProductionToolDialog({ open, production, config, nextPartNumber,
       <DialogHeader className={open === "asset" || open === "audio" ? "asset-dialog-a11y-header" : undefined}><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
       <Suspense fallback={open === "asset" || open === "audio" ? <AudioLibraryToolLoading /> : <div className="tool-panel-body"><span className="eyebrow">Loading tool…</span></div>}>
         {open === "silence" && <SilenceTool onAdd={onAddSilence} />}
-        {(open === "asset" || open === "audio") && <AssetTool assets={assets} loading={assetState.status === "loading" && !assetState.data} refreshing={assetState.status === "loading" && Boolean(assetState.data)} resourceError={assetState.status === "error" ? assetState.error : undefined} onRetryResource={onRetryAssets} usedAssetIds={usedAssetIds} mode={assetMode} productionId={productionId} chooseLabel={replacingAsset ? "Replace linked audio" : undefined} initialSelectedId={assetMode === "sound" ? initialAudioAssetId : replacingAssetId} playingKey={playingKey} playerPlaying={playerPlaying} transport={libraryTransport} onChoose={assetMode === "sound" ? onPlaceAudio : onInsertAsset} onUpload={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onUploadAsset(folder, input) }} onKeep={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onKeepAsset(folder, input) }} onKeepGenerated={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onKeepGenerated(folder, input) }} onPlay={onPlay} />}
+        {(open === "asset" || open === "audio") && <AssetTool assets={assets} loading={assetState.status === "loading" && !assetState.data} refreshing={assetState.status === "loading" && Boolean(assetState.data)} resourceError={assetState.status === "error" ? assetState.error : undefined} onRetryResource={onRetryAssets} usedAssetIds={usedAssetIds} mode={assetMode} productionId={productionId} chooseLabel={replacingAsset ? "Replace linked audio" : undefined} initialSelectedId={assetMode === "sound" ? initialAudioAssetId : replacingAssetId} playingKey={playingKey} playerPlaying={playerPlaying} transport={libraryTransport} onChoose={assetMode === "sound" ? onPlaceAudio : onInsertAsset} onUpload={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onUploadAsset(folder, input) }} onUpdate={onUpdateAsset} onKeep={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onKeepAsset(folder, input) }} onKeepGenerated={async (folder, input) => { if (!assetCollectionIds[folder]) throw new Error(`${folder} library is unavailable.`); return onKeepGenerated(folder, input) }} onPlay={onPlay} />}
         {open === "import" && <ProductionImportTool existing={{ id: production.id, publicId: production.public_id, name: production.name, description: production.description, partCount: nextPartNumber - 1, parent: production.series_id ? { type: "series", id: production.series_id, name: production.trail.at(-1)?.name || "Series" } : { type: "project", id: Number(production.project_id), name: production.trail.at(-1)?.name || "Project" } }} config={config} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onCompleted={onImported} onCancel={onClose} />}
       </Suspense>
     </DialogContent>

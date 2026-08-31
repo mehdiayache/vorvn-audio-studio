@@ -1,6 +1,6 @@
 import type { components } from "./api.generated"
 
-export type AudioAssetCategory = components["schemas"]["UploadedAssetResponse"]["category"]
+export type AudioAssetCategory = NonNullable<components["schemas"]["UploadedAssetResponse"]["category"]>
 export type AudioAssetScope = components["schemas"]["UploadedAssetResponse"]["scope"]
 export type CatalogSound = components["schemas"]["CatalogSoundResponse"]
 export type CatalogKeepResult = components["schemas"]["CatalogKeepResponse"]
@@ -382,7 +382,7 @@ export type VentureAsset = {
   folder?: string
   collection?: string
   kind?: string
-  category?: "music" | "ambience" | "sfx" | "intro" | "outro" | "other" | string
+  category?: string | null
   venture_id?: number
   scope?: "venture" | "studio"
   tags?: string[]

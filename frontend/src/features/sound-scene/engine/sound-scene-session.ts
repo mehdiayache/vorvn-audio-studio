@@ -1,7 +1,6 @@
 import { useSyncExternalStore } from "react"
 
 import type { SequenceMixOverride, SoundScene, SoundSceneClip, SoundSceneDocument, SoundSceneTrack, VentureAsset, VisualSceneDocument } from "@/types/domain"
-import { audioAssetFamily } from "../audio-taxonomy"
 import { dbToGain, gainToDb } from "../sound-scene-gain"
 import { SoundSceneEngine, type SoundSceneEngineState } from "./sound-scene-engine"
 import { SoundScenePlayout } from "./sound-scene-playout"
@@ -307,18 +306,15 @@ export class SoundSceneSession {
     return document
   }
 
-  private audioClip(asset: VentureAsset, positionMs: number, followSequence: boolean): SoundSceneClip {
+  private audioClip(asset: VentureAsset, positionMs: number): SoundSceneClip {
     const sourceDuration = Math.max(100, Number(asset.duration_ms || 30_000))
-    const category = String(asset.category || asset.kind || "").toLowerCase()
-    const isBed = followSequence && (category === "music" || category === "ambience")
     return {
       id: crypto.randomUUID(), asset_id: asset.id,
       asset_version_id: Number(asset.version_id) || null,
-      duration_ms: isBed ? null : sourceDuration,
-      source_offset_ms: 0, gain: isBed ? .18 : 1,
-      fade_in_ms: isBed ? 2_000 : 0,
-      fade_out_ms: isBed ? 3_000 : 0,
-      loop: isBed, ducking: isBed, duck_amount_db: -12,
+      duration_ms: sourceDuration,
+      source_offset_ms: 0, gain: 1,
+      fade_in_ms: 0, fade_out_ms: 0,
+      loop: false, ducking: false, duck_amount_db: -12,
       muted: false, locked: false, effects: [],
       anchor: { kind: "absolute", position_ms: positionMs },
     }
@@ -326,8 +322,8 @@ export class SoundSceneSession {
 
   async addTrack(asset?: VentureAsset, timelinePosition = 0, requestedRole?: SoundTrackRole) {
     const id = `audio-${crypto.randomUUID()}`
-    const role = requestedRole || audioAssetFamily(asset)
-    const clip = asset ? this.audioClip(asset, Math.max(0, Math.round(timelinePosition * 1000)), true) : null
+    const role = requestedRole || "audio"
+    const clip = asset ? this.audioClip(asset, Math.max(0, Math.round(timelinePosition * 1000))) : null
     const stem = TRACK_ROLE_LABELS[role]
     const used = new Set(this.editor.document().tracks.map((track) => track.name.trim().toLowerCase()))
     let number = 1
@@ -348,7 +344,7 @@ export class SoundSceneSession {
   }
 
   async addClip(trackId: string, asset: VentureAsset, timelinePosition = 0) {
-    const clip = this.audioClip(asset, Math.max(0, Math.round(timelinePosition * 1000)), false)
+    const clip = this.audioClip(asset, Math.max(0, Math.round(timelinePosition * 1000)))
     await this.persist(this.nextDocument((document) => {
       const track = document.tracks.find((item) => item.id === trackId)
       if (!track) throw new Error("That Audio Track is no longer available.")

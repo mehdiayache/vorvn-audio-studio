@@ -21,6 +21,9 @@ class CatalogSound:
     preview_url: str
     original_format: str
     tags: tuple[str, ...]
+    provider_category: str | None = None
+    provider_subcategory: str | None = None
+    provider_category_is_user_provided: bool | None = None
 
     @property
     def attribution_required(self) -> bool:

@@ -1801,6 +1801,39 @@
             "title": "Preview Url",
             "type": "string"
           },
+          "provider_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Category"
+          },
+          "provider_category_is_user_provided": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Category Is User Provided"
+          },
+          "provider_subcategory": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Subcategory"
+          },
           "source_url": {
             "title": "Source Url",
             "type": "string"
@@ -4842,17 +4875,20 @@
         "additionalProperties": false,
         "properties": {
           "category": {
-            "enum": [
-              "audio",
-              "music",
-              "ambience",
-              "sfx",
-              "intro",
-              "outro",
-              "other"
+            "anyOf": [
+              {
+                "enum": [
+                  "music",
+                  "ambience",
+                  "sfx"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Category",
-            "type": "string"
+            "title": "Category"
           },
           "collection_id": {
             "exclusiveMinimum": 0.0,
@@ -4872,6 +4908,7 @@
             "type": "string"
           },
           "scope": {
+            "default": "venture",
             "enum": [
               "venture",
               "studio"
@@ -4891,9 +4928,7 @@
         "required": [
           "collection_id",
           "external_id",
-          "name",
-          "category",
-          "scope"
+          "name"
         ],
         "title": "KeepFreesoundBody",
         "type": "object"
@@ -4903,13 +4938,9 @@
         "properties": {
           "category": {
             "enum": [
-              "audio",
               "music",
               "ambience",
-              "sfx",
-              "intro",
-              "outro",
-              "other"
+              "sfx"
             ],
             "title": "Category",
             "type": "string"
@@ -12227,6 +12258,55 @@
         "title": "TranslationJobCreate",
         "type": "object"
       },
+      "UpdateAssetBody": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "enum": [
+                  "music",
+                  "ambience",
+                  "sfx"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "venture",
+              "studio"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "scope"
+        ],
+        "title": "UpdateAssetBody",
+        "type": "object"
+      },
       "UploadedAssetEnvelope": {
         "properties": {
           "data": {
@@ -12253,17 +12333,20 @@
             "title": "Audio Format"
           },
           "category": {
-            "enum": [
-              "audio",
-              "music",
-              "ambience",
-              "sfx",
-              "intro",
-              "outro",
-              "other"
+            "anyOf": [
+              {
+                "enum": [
+                  "music",
+                  "ambience",
+                  "sfx"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Category",
-            "type": "string"
+            "title": "Category"
           },
           "channels": {
             "anyOf": [
@@ -12426,7 +12509,6 @@
           "filename",
           "media_type",
           "url",
-          "category",
           "scope",
           "tags",
           "metadata",
@@ -16311,6 +16393,58 @@
           }
         },
         "summary": "Upload Venture Asset",
+        "tags": [
+          "uploads"
+        ]
+      }
+    },
+    "/api/v1/assets/{asset_id}": {
+      "patch": {
+        "operationId": "updateAsset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "title": "Asset Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAssetBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadedAssetEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Asset",
         "tags": [
           "uploads"
         ]

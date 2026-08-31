@@ -76,6 +76,8 @@ class MigrationTests(unittest.TestCase):
                 "049_default_speech_volume.sql",
                 "050_saved_visual_references.sql",
                 "051_unified_asset_library.sql",
+                "052_asset_classification.sql",
+                "053_normalize_freesound_assets.sql",
         ])
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:

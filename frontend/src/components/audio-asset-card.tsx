@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { AudioFamilyBadge, AudioSourceBadge } from "@/features/sound-scene/audio-identity"
-import { audioAssetFamily, audioUsageTags, type AudioFamily } from "@/features/sound-scene/audio-presentation"
+import { audioAssetCategory, audioUsageTags } from "@/features/sound-scene/audio-presentation"
 import { assetSource, assetSourceLine } from "@/lib/asset-provenance"
 import { formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -57,14 +57,14 @@ export function AudioAssetCard({ asset, selected, used, playing, actionLabel = "
   onPlay?: () => void
   onAction?: () => void
 }) {
-  const family = audioAssetFamily(asset)
+  const category = audioAssetCategory(asset)
   const title = audioAssetTitle(asset)
   const usage = audioUsageTags(asset)
   const source = assetSource(asset)
   const replacing = actionLabel.toLocaleLowerCase().includes("replace")
-  return <article className={cn("audio-asset-card", `is-${family}`, selected && "is-selected")}>
+  return <article className={cn("audio-asset-card", `is-${category || "unclassified"}`, selected && "is-selected")}>
     {used && <OperatorTooltip label="Used in Timeline" detail="This audio already has a placement in the current Production." side="bottom"><span className="audio-asset-card-used" tabIndex={0} aria-label="Used in Timeline"><CircleCheck /></span></OperatorTooltip>}
-    <header className="audio-asset-card-identity"><AudioFamilyBadge family={family} /><AudioSourceBadge source={source} detail={assetSourceLine(asset)} /></header>
+    <header className="audio-asset-card-identity"><AudioSourceBadge source={source} detail={assetSourceLine(asset)} />{category && <AudioFamilyBadge family={category} />}</header>
     <AudioCardMain title={title} selected={selected} onSelect={onSelect} />
     <AudioCardTags tags={usage} />
     <div className="audio-asset-card-actions">
@@ -74,15 +74,14 @@ export function AudioAssetCard({ asset, selected, used, playing, actionLabel = "
   </article>
 }
 
-export function AudioCatalogCard({ result, family, selected, playing, kept, busy, onSelect, onPlay, onKeep }: {
+export function AudioCatalogCard({ result, selected, playing, kept, busy, onSelect, onPlay, onKeep }: {
   result: CatalogSound; selected?: boolean; playing?: boolean; kept?: boolean; busy?: boolean
-  family: AudioFamily
   onSelect: () => void; onPlay?: () => void; onKeep: () => void
 }) {
   const tags = [...new Set(result.tags.map((tag) => tag.trim().toLocaleLowerCase()).filter(Boolean))]
-  return <article className={cn("audio-asset-card", `is-${family}`, selected && "is-selected")}>
+  return <article className={cn("audio-asset-card", "is-unclassified", selected && "is-selected")}>
     {kept && <OperatorTooltip label="In Audio Library" detail="This Freesound result is already saved as a reusable Asset." side="bottom"><span className="audio-asset-card-used" tabIndex={0} aria-label="In Audio Library"><CircleCheck /></span></OperatorTooltip>}
-    <header className="audio-asset-card-identity"><AudioFamilyBadge family={family} suggested /><AudioSourceBadge source="freesound" detail={`Freesound · ${result.creator}`} /></header>
+    <header className="audio-asset-card-identity"><AudioSourceBadge source="freesound" detail={`Freesound · ${result.creator}`} /></header>
     <AudioCardMain title={result.name} selected={selected} onSelect={onSelect} />
     <AudioCardTags tags={tags} />
     <div className="audio-asset-card-actions">

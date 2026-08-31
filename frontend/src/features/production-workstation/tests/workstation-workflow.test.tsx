@@ -115,7 +115,7 @@ describe("Production workflow", () => {
       frame_rate: 29.97,
       size_bytes: 2_621_440,
       scope: "venture",
-      category: "other",
+      category: null,
       tags: ["harbour", "dusk"],
       created_at: "2026-08-25T10:00:00Z",
     })).toMatchObject({

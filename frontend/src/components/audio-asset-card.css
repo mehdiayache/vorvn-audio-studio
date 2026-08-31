@@ -14,7 +14,8 @@
   background: color-mix(in oklab, var(--audio-family-soft) 72%, var(--surface-raised));
   transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
-.audio-asset-card.is-audio { --audio-family: var(--audio-audio); --audio-family-soft: var(--audio-audio-soft); }
+.audio-asset-card.is-audio,
+.audio-asset-card.is-unclassified { --audio-family: var(--audio-audio); --audio-family-soft: var(--audio-audio-soft); }
 .audio-asset-card.is-music { --audio-family: var(--audio-music); --audio-family-soft: var(--audio-music-soft); }
 .audio-asset-card.is-sfx { --audio-family: var(--audio-sfx); --audio-family-soft: var(--audio-sfx-soft); }
 .audio-asset-card.is-ambience { --audio-family: var(--audio-ambience); --audio-family-soft: var(--audio-ambience-soft); }

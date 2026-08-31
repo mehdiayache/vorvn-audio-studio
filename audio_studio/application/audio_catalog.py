@@ -50,7 +50,7 @@ class AudioCatalogService:
             duration_min=duration_min, duration_max=duration_max)]
 
     def keep(self, *, collection_id: int, external_id: str, name: str,
-             category: AssetCategory, scope: AssetScope,
+             category: AssetCategory | None, scope: AssetScope,
              tags: tuple[str, ...]) -> dict:
         existing = self.uploads.catalog_asset(
             collection_id, origin="freesound", external_id=external_id,
@@ -76,11 +76,15 @@ class AudioCatalogService:
                 "attribution_text": sound.attribution_text,
                 "original_freesound_name": sound.name,
                 "source_tags": list(sound.tags),
+                "provider_category": sound.provider_category,
+                "provider_subcategory": sound.provider_subcategory,
+                "provider_category_is_user_provided": (
+                    sound.provider_category_is_user_provided),
             }
             details = self.uploads.prepare_asset_upload(
                 downloaded.original_name, name=name or sound.name,
                 category=category, scope=scope,
-                encoded_tags=None, supplied_tags=tags or sound.tags,
+                encoded_tags=None, supplied_tags=tags,
                 metadata=provenance)
             result = self.uploads.save_catalog_asset_file(
                 collection_id, Path(downloaded.path), downloaded.size_bytes,

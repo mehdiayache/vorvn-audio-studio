@@ -117,8 +117,8 @@ class ProductionDocumentTests(unittest.TestCase):
         intro = self.asset_repository.create_uploaded_asset(
             intro_collection["id"], name=f"Intro {self.marker}",
             filename=f"intro-{self.marker}.wav", path=f"/tmp/intro-{self.marker}.wav",
-            size_bytes=44, duration_ms=1200, audio_format="wav", category="intro",
-            mime_type="audio/wav")
+            size_bytes=44, duration_ms=1200, audio_format="wav", category="music",
+            tags=("intro",), mime_type="audio/wav")
         music_asset = self.asset_repository.create_uploaded_asset(
             music_collection["id"], name=f"Music {self.marker}",
             filename=f"music-{self.marker}.wav", path=f"/tmp/music-{self.marker}.wav",
@@ -147,7 +147,7 @@ class ProductionDocumentTests(unittest.TestCase):
         linked_part = next(item for item in self.repository.parts(first_id)
                            if item["id"] == linked["id"])
         self.assertEqual(linked_part["kind"], "asset")
-        self.assertEqual(linked_part["asset_kind"], "intro")
+        self.assertEqual(linked_part["asset_kind"], "music")
         self.assertEqual(linked_part["asset_collection"], "Assets")
 
         self.timeline.edit_silence(first_id, silence["id"], 3.5)

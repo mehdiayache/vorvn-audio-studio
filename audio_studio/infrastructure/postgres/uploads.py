@@ -132,3 +132,11 @@ class PostgresUploadRecords:
         return self.assets.catalog_asset(
             collection_id, origin=origin, external_id=external_id,
             scope=scope)
+
+    def update_asset_details(
+        self, asset_id: int, *, name: str,
+        category: AssetCategory | None, scope: AssetScope,
+        tags: tuple[str, ...],
+    ) -> dict | None:
+        return self.assets.update_details(
+            asset_id, name=name, category=category, scope=scope, tags=tags)

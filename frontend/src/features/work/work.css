@@ -160,7 +160,7 @@
 .work-empty h3 { font-size: var(--type-body); font-weight: var(--weight-emphasis); }
 .work-empty p { margin-top: 3px; color: color-mix(in oklch, var(--foreground) 67%, transparent); font-size: var(--type-small); line-height: 1.45; }
 
-/* Venture media keeps canonical category color: Music green, SFX/other audio orange. */
+/* Venture media keeps canonical category color: Music green, SFX orange. */
 .media-collection-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .media-collection { position: relative; min-width: 0; min-height: 6.5rem; display: grid; grid-template-columns: 2.6rem minmax(0, 1fr); align-content: center; gap: 8px 11px; padding: 14px; border: 1px solid var(--border); border-radius: calc(var(--radius) * 1.05); background: var(--surface-raised); box-shadow: var(--shadow-xs); }
 .media-collection.dragging { border-color: var(--asset); background: var(--asset-soft); }

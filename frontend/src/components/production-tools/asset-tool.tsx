@@ -10,9 +10,10 @@ import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AUDIO_SOURCE_LABELS, AudioSourceBadge, FreesoundMark } from "@/features/sound-scene/audio-identity"
-import { audioAssetFamily, suggestedAudioFamily } from "@/features/sound-scene/audio-presentation"
+import { audioAssetCategory } from "@/features/sound-scene/audio-presentation"
 import { audioUrl, studioApi } from "@/lib/api"
 import { assetSource, type AssetSource } from "@/lib/asset-provenance"
 import { formatBytes } from "@/lib/format"
@@ -23,12 +24,13 @@ import { FreesoundAudioInspector, SavedAudioInspector } from "./audio-library-in
 import { GenerationWorkspace } from "./generation-workspace"
 
 export type AssetMode = "sequence" | "sound"
-export type AssetUploadInput = { file: File; name: string; category: AudioAssetCategory; scope: AudioAssetScope; tags: string[] }
-export type CatalogKeepInput = { result: CatalogSound; name: string; category: AudioAssetCategory; scope: AudioAssetScope; tags: string[] }
+export type AssetUploadInput = { file: File; name: string; category: AudioAssetCategory | null; scope: AudioAssetScope; tags: string[] }
+export type CatalogKeepInput = { result: CatalogSound; name: string; category: AudioAssetCategory | null; scope: AudioAssetScope; tags: string[] }
 export type GeneratedKeepInput = { candidateId: string; name: string; category: AudioAssetCategory; scope: AudioAssetScope; tags: string[] }
+export type AssetUpdateInput = { name: string; category: AudioAssetCategory | null; scope: AudioAssetScope; tags: string[] }
 
 type LibraryView = "library" | "upload" | "search" | "generate"
-type ScopeFilter = "all" | "production" | "venture" | "studio"
+type ScopeFilter = "all" | "venture" | "studio"
 type SourceFilter = "all" | AssetSource
 type DurationFilter = "all" | "under-3" | "3-10" | "10-30" | "30-120" | "over-120"
 type UsageFilter = "all" | "used" | "unused"
@@ -40,19 +42,20 @@ function humanName(file: File) {
   return cleaned ? cleaned.charAt(0).toLocaleUpperCase() + cleaned.slice(1) : "Untitled audio"
 }
 
-export function AssetTool({ assets, loading = false, refreshing = false, resourceError, onRetryResource, mode, chooseLabel, initialSelectedId, productionId, usedAssetIds = [], playingKey, playerPlaying, transport, onChoose, onPlay, onUpload, onKeep, onKeepGenerated }: {
+export function AssetTool({ assets, loading = false, refreshing = false, resourceError, onRetryResource, mode, chooseLabel, initialSelectedId, productionId, usedAssetIds = [], playingKey, playerPlaying, transport, onChoose, onPlay, onUpload, onUpdate, onKeep, onKeepGenerated }: {
   assets: VentureAsset[]; mode: AssetMode; chooseLabel?: string; initialSelectedId?: number | null; productionId?: number
   loading?: boolean; refreshing?: boolean; resourceError?: string; onRetryResource?: () => Promise<void>
   usedAssetIds?: number[]
   transport?: ReactNode
   playingKey?: string; playerPlaying: boolean; onChoose: (asset: VentureAsset) => Promise<void>; onPlay: (source: PlayerSource) => void
   onUpload: (folder: string, input: AssetUploadInput) => Promise<VentureAsset>; onKeep: (folder: string, input: CatalogKeepInput) => Promise<CatalogKeepResult>
+  onUpdate?: (asset: VentureAsset, input: AssetUpdateInput) => Promise<VentureAsset>
   onKeepGenerated?: (folder: string, input: GeneratedKeepInput) => Promise<GeneratedKeepResult>
 }) {
   const fileInput = useRef<HTMLInputElement>(null)
   const [view, setView] = useState<LibraryView>("library")
   const [query, setQuery] = useState("")
-  const [category, setCategory] = useState<"all" | AudioAssetCategory>("all")
+  const [category, setCategory] = useState<"all" | "unclassified" | AudioAssetCategory>("all")
   const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("all")
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all")
   const [durationFilter, setDurationFilter] = useState<DurationFilter>("all")
@@ -65,7 +68,7 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
   const [uploading, setUploading] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [name, setName] = useState("")
-  const [uploadCategory, setUploadCategory] = useState<AudioAssetCategory>("audio")
+  const [uploadCategory, setUploadCategory] = useState<AudioAssetCategory | null>(null)
   const [scope, setScope] = useState<AudioAssetScope>("venture")
   const [tags, setTags] = useState<string[]>([])
   const [error, setError] = useState("")
@@ -77,8 +80,8 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
   const [catalogError, setCatalogError] = useState("")
   const [catalogActionError, setCatalogActionError] = useState("")
   const [selectedCatalogId, setSelectedCatalogId] = useState<string | null>(null)
-  const [keepCategory, setKeepCategory] = useState<AudioAssetCategory>("audio")
-  const [keepScope, setKeepScope] = useState<AudioAssetScope>("studio")
+  const [keepCategory, setKeepCategory] = useState<AudioAssetCategory | null>(null)
+  const [keepScope, setKeepScope] = useState<AudioAssetScope>("venture")
   const [keepingId, setKeepingId] = useState<string | null>(null)
   const [kept, setKept] = useState<Record<string, number>>({})
 
@@ -90,11 +93,11 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
   const existingTags = useMemo(() => [...new Set(audioAssets.flatMap((asset) => asset.tags || []))]
     .sort((left, right) => left.localeCompare(right)), [audioAssets])
   const eligible = useMemo(() => audioAssets.filter((asset) => {
-    const matchesCategory = category === "all" || audioAssetFamily(asset) === category
+    const assetCategory = audioAssetCategory(asset)
+    const matchesCategory = category === "all"
+      || (category === "unclassified" ? !assetCategory : assetCategory === category)
     const used = usedIds.has(asset.id)
-    const matchesScope = scopeFilter === "all"
-      || (scopeFilter === "production" && used)
-      || (scopeFilter !== "production" && (asset.scope || "venture") === scopeFilter)
+    const matchesScope = scopeFilter === "all" || (asset.scope || "venture") === scopeFilter
     const seconds = Number(asset.duration_ms || 0) / 1000
     const matchesDuration = durationFilter === "all"
       || durationFilter === "under-3" && seconds < 3
@@ -110,7 +113,10 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
       && (sourceFilter === "all" || assetSource(asset) === sourceFilter)
   }), [audioAssets, category, durationFilter, scopeFilter, sourceFilter, tagFilters, usageFilter, usedIds])
   const normalizedQuery = query.trim().toLocaleLowerCase()
-  const shown = eligible.filter((asset) => `${audioAssetTitle(asset)} ${asset.category || asset.kind || ""} ${(asset.tags || []).join(" ")}`.toLocaleLowerCase().includes(normalizedQuery)).sort((left, right) => {
+  const shown = eligible.filter((asset) => {
+    const sourceTags = Array.isArray(asset.metadata?.source_tags) ? asset.metadata.source_tags.join(" ") : ""
+    return `${audioAssetTitle(asset)} ${asset.category || ""} ${(asset.tags || []).join(" ")} ${sourceTags}`.toLocaleLowerCase().includes(normalizedQuery)
+  }).sort((left, right) => {
     if (assetSort === "name") return audioAssetTitle(left).localeCompare(audioAssetTitle(right))
     if (assetSort === "duration") return Number(left.duration_ms || 0) - Number(right.duration_ms || 0)
     const leftTime = Date.parse(String(left.created_at || left.updated_at || "")) || left.id
@@ -122,8 +128,8 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
   const selected = audioAssets.find((asset) => asset.id === selectedId) || null
   const selectedCatalog = catalogResults.find((result) => result.external_id === selectedCatalogId) || null
   const selectCatalog = (result: CatalogSound) => {
+    if (selectedCatalogId !== result.external_id) setKeepCategory(null)
     setSelectedCatalogId(result.external_id)
-    setKeepCategory(suggestedAudioFamily({ name: result.name, tags: result.tags }))
   }
 
   useEffect(() => {
@@ -136,12 +142,15 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
   useEffect(() => {
     if (view !== "search" || catalogQuery.trim().length < 2) {
       setCatalogSearching(false)
-      if (!catalogQuery.trim()) { setCatalogResults([]); setCatalogError("") }
+      setCatalogResults([])
+      if (!catalogQuery.trim()) setCatalogError("")
       return
     }
+    setCatalogSearching(true)
+    setCatalogResults([])
+    setCatalogError("")
     const controller = new AbortController()
     const timer = window.setTimeout(async () => {
-      setCatalogSearching(true); setCatalogError("")
       try {
         const durationMax = catalogDuration === "all" ? null : Number(catalogDuration)
         setCatalogResults(await studioApi.searchFreesound({ query: catalogQuery.trim(), license: catalogLicense, durationMax }, controller.signal))
@@ -157,7 +166,7 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
   const chooseFile = (next?: File) => { if (next) { setFile(next); setName(humanName(next)); setError(""); setView("upload") } }
   const resetUpload = () => {
     if (fileInput.current) fileInput.current.value = ""
-    setFile(null); setName(""); setUploadCategory("audio"); setScope("venture"); setTags([]); setError(""); setDragging(false)
+    setFile(null); setName(""); setUploadCategory(null); setScope("venture"); setTags([]); setError(""); setDragging(false)
   }
   const upload = async () => {
     if (!file) { setError("Choose an audio file first."); return }
@@ -165,7 +174,7 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
     setUploading(true); setError("")
     try {
       const uploaded = await onUpload(ASSET_LIBRARY, { file, name: name.trim(), category: uploadCategory, scope, tags })
-      setSelectedId(uploaded.id); setCategory(uploadCategory); setScopeFilter("all"); resetUpload(); setView("library")
+      setSelectedId(uploaded.id); setCategory(uploadCategory || "unclassified"); setScopeFilter("all"); resetUpload(); setView("library")
     } catch (reason) { setError(reason instanceof Error ? reason.message : "That audio could not be added.") }
     finally { setUploading(false); setDragging(false) }
   }
@@ -179,7 +188,7 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
     if (!candidate) return
     setKeepingId(candidate.external_id); setCatalogActionError("")
     try {
-      const result = await onKeep(ASSET_LIBRARY, { result: candidate, name: candidate.name, category: categoryToKeep, scope: keepScope, tags: candidate.tags.slice(0, 12) })
+      const result = await onKeep(ASSET_LIBRARY, { result: candidate, name: candidate.name, category: categoryToKeep, scope: keepScope, tags: [] })
       setKept((current) => ({ ...current, [candidate.external_id]: result.asset.id }))
     } catch (reason) { setCatalogActionError(reason instanceof Error ? reason.message : "That sound could not be kept.") }
     finally { setKeepingId(null) }
@@ -205,9 +214,9 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
           <Popover><PopoverTrigger asChild><Button aria-label={activeFilterCount ? `Filters, ${activeFilterCount} active` : "Filters"} variant="outline" className={activeFilterCount ? "asset-filter-trigger is-active" : "asset-filter-trigger"}><SlidersHorizontal />Filters{activeFilterCount > 0 && <b>{activeFilterCount}</b>}</Button></PopoverTrigger><PopoverContent align="end" className="asset-filter-popover">
             <header><div><b>Filter Audio Library</b><small>Filters combine together</small></div>{activeFilterCount > 0 && <Button variant="ghost" size="sm" onClick={clearFilters}><X />Clear</Button>}</header>
             <div className="asset-filter-grid">
-              <label><span>Category</span><Select value={category} onValueChange={(value) => setCategory(value as "all" | AudioAssetCategory)}><SelectTrigger aria-label="Asset category"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All categories</SelectItem>{ASSET_CATEGORIES.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
+              <label><span>Category</span><Select value={category} onValueChange={(value) => setCategory(value as "all" | "unclassified" | AudioAssetCategory)}><SelectTrigger aria-label="Asset category"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All categories</SelectItem><SelectItem value="unclassified">No category</SelectItem>{ASSET_CATEGORIES.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
               <label><span>Duration</span><Select value={durationFilter} onValueChange={(value) => setDurationFilter(value as DurationFilter)}><SelectTrigger aria-label="Asset duration"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Any duration</SelectItem><SelectItem value="under-3">Under 3 seconds</SelectItem><SelectItem value="3-10">3–10 seconds</SelectItem><SelectItem value="10-30">10–30 seconds</SelectItem><SelectItem value="30-120">30 seconds–2 min</SelectItem><SelectItem value="over-120">2 min or longer</SelectItem></SelectContent></Select></label>
-              <label><span>Available from</span><Select value={scopeFilter} onValueChange={(value) => setScopeFilter(value as ScopeFilter)}><SelectTrigger aria-label="Asset availability"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All available</SelectItem><SelectItem value="production">This Production</SelectItem><SelectItem value="venture">This Venture</SelectItem><SelectItem value="studio">Studio Library</SelectItem></SelectContent></Select></label>
+              <label><span>Available from</span><Select value={scopeFilter} onValueChange={(value) => setScopeFilter(value as ScopeFilter)}><SelectTrigger aria-label="Asset availability"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All available</SelectItem><SelectItem value="venture">This Venture</SelectItem><SelectItem value="studio">Studio Library</SelectItem></SelectContent></Select></label>
               <label><span>Source</span><Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as SourceFilter)}><SelectTrigger aria-label="Asset source"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All sources</SelectItem><SelectItem value="generated">AI</SelectItem><SelectItem value="freesound">Freesound</SelectItem><SelectItem value="uploaded">Upload</SelectItem></SelectContent></Select></label>
               <label><span>Usage</span><Select value={usageFilter} onValueChange={(value) => setUsageFilter(value as UsageFilter)}><SelectTrigger aria-label="Asset usage in this Production"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Any usage</SelectItem><SelectItem value="used">Used in this Production</SelectItem><SelectItem value="unused">Unused here</SelectItem></SelectContent></Select></label>
               <label><span>Sort</span><Select value={assetSort} onValueChange={(value) => setAssetSort(value as AssetSort)}><SelectTrigger aria-label="Sort assets"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="recent">Recently added</SelectItem><SelectItem value="name">Name</SelectItem><SelectItem value="duration">Duration</SelectItem></SelectContent></Select></label>
@@ -229,19 +238,20 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
           const sourceKey = `asset-source:${asset.id}`; const active = playerPlaying && playingKey === sourceKey; const isSelected = selectedId === asset.id
           return <AudioAssetCard key={asset.id} asset={asset} selected={isSelected} used={usedIds.has(asset.id)} playing={active} actionLabel={chooseLabel || (mode === "sound" ? "Add to Timeline" : "Insert")} actionBusy={choosingId === asset.id} onSelect={() => setSelectedId(asset.id)} onPlay={() => { setSelectedId(asset.id); onPlay({ key: sourceKey, url: audioUrl(asset.filename!), title: audioAssetTitle(asset), sourceLabel: AUDIO_SOURCE_LABELS[assetSource(asset)], subtitle: "Audio Library audition", kind: "asset" }) }} onAction={() => void choose(asset)} />
         }) : resourceError ? <div className="asset-empty asset-resource-error"><AlertCircle /><b>Audio Library unavailable</b><p role="alert">{resourceError}</p>{onRetryResource && <ActionButton variant="outline" busy={refreshing} busyLabel="Retrying…" onClick={() => void onRetryResource().catch(() => undefined)}><RefreshCw />Try again</ActionButton>}</div> : <div className="asset-empty"><FileAudio /><b>No matching audio</b><p>Change the filter or add a new sound.</p><Button variant="outline" onClick={() => openView("upload")}><Upload />Upload audio</Button></div>}</div></ScrollArea>
-        {selected ? <SavedAudioInspector asset={selected} title={audioAssetTitle(selected)} error={error} /> : <aside className="asset-inspector" aria-label="Selected Asset details"><div className="asset-inspector-empty"><FileAudio /><b>Select audio</b><p>Source, family, scope, tags and file facts will appear here.</p>{error && <p className="asset-inspector-error" role="alert">{error}</p>}</div></aside>}
+        {selected ? <SavedAudioInspector asset={selected} title={audioAssetTitle(selected)} error={error} onSave={async (details) => {
+          if (!onUpdate) throw new Error("Asset editing is unavailable.")
+          await onUpdate(selected, details)
+        }} /> : <aside className="asset-inspector" aria-label="Selected Asset details"><div className="asset-inspector-empty"><FileAudio /><b>Select audio</b><p>Origin, optional category, tags, availability and file facts will appear here.</p>{error && <p className="asset-inspector-error" role="alert">{error}</p>}</div></aside>}
       </section> : view === "upload" ? <section className="asset-view asset-upload-view">
         <main className="asset-upload-stage"><input ref={fileInput} type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.aif,.aiff" hidden onChange={(event) => { chooseFile(event.target.files?.[0]); event.target.value = "" }} /><div className="asset-upload-dropzone" data-has-file={Boolean(file)}><span><Upload /></span>{file ? <><b>{file.name}</b><p>{formatBytes(file.size)} · ready to inspect</p><Button variant="outline" onClick={() => fileInput.current?.click()}>Choose another file</Button></> : <><b>Drop one audio file here</b><p>MP3, WAV, M4A, AAC, OGG, FLAC or AIFF · up to 250 MB</p><Button onClick={() => fileInput.current?.click()}><Upload />Choose file</Button></>}</div></main>
         <aside className="asset-inspector asset-form-inspector"><header><div><span className="audio-inspector-source"><AudioSourceBadge source="uploaded" /></span><h3>{file ? "Describe this audio" : "Choose a file first"}</h3></div></header>{file ? <div className="asset-inspector-form"><label className="asset-field"><span>Name</span><Input value={name} maxLength={120} onChange={(event) => setName(event.target.value)} placeholder="Human-readable audio name" /></label><AssetCategorySelect value={uploadCategory} onChange={setUploadCategory} /><AssetTagEditor tags={tags} onChange={setTags} onError={setError} placeholder="calm, night, transition" /><AssetScopeSelect value={scope} onChange={setScope} /></div> : <div className="asset-inspector-empty"><FileAudio /><b>No file prepared</b><p>The file stays local until you confirm Add to Library.</p></div>}</aside>
         <footer className="asset-action-bar"><div><b>{file ? file.name : "Upload audio"}</b><span>{file ? "Technical audio facts are inspected when you add it." : "Choose a file to begin."}</span></div>{error && <p role="alert">{error}</p>}<Button variant="ghost" disabled={uploading} onClick={() => { resetUpload(); openView("library") }}>Cancel</Button><ActionButton busy={uploading} busyLabel="Adding to Library…" disabled={!file || !name.trim()} onClick={() => void upload()}>Add to Library</ActionButton></footer>
       </section> : view === "search" ? <section className="asset-view asset-search-view">
-        <ScrollArea className="asset-canvas"><div className="audio-asset-card-grid">{catalogSearching ? <div className="asset-empty"><FreesoundMark /><b>Searching Freesound…</b><p>Loading previews and result facts.</p></div> : catalogError ? <div className="asset-empty asset-catalog-error"><FreesoundMark /><b>Search unavailable</b><p role="alert">{catalogError}</p></div> : catalogResults.length ? catalogResults.map((result) => {
+        <ScrollArea className="asset-canvas"><div className="audio-asset-card-grid">{catalogSearching ? <>{Array.from({ length: 8 }, (_, index) => <Skeleton className="audio-asset-card-skeleton" key={index} />)}<span className="audio-library-loading-label"><LoaderCircle className="spin" />Searching Freesound…</span></> : catalogError ? <div className="asset-empty asset-catalog-error"><FreesoundMark /><b>Search unavailable</b><p role="alert">{catalogError}</p></div> : catalogResults.length ? catalogResults.map((result) => {
           const sourceKey = `freesound-preview:${result.external_id}`; const active = playerPlaying && playingKey === sourceKey; const isSelected = selectedCatalogId === result.external_id
-          const suggestedFamily = suggestedAudioFamily({ name: result.name, tags: result.tags })
-          const cardFamily = isSelected ? audioAssetFamily({ category: keepCategory }) : suggestedFamily
-          return <AudioCatalogCard key={result.external_id} result={result} family={cardFamily} selected={isSelected} playing={active} kept={Boolean(kept[result.external_id])} busy={keepingId === result.external_id} onSelect={() => selectCatalog(result)} onPlay={() => { selectCatalog(result); onPlay({ key: sourceKey, url: result.preview_url!, title: result.name, sourceLabel: "Freesound preview", subtitle: result.creator, kind: "asset", downloadable: false }) }} onKeep={() => { const categoryToKeep = isSelected ? keepCategory : suggestedFamily; selectCatalog(result); void keep(result, categoryToKeep) }} />
-        }) : <div className="asset-empty"><FreesoundMark /><b>{catalogQuery.trim().length >= 2 ? "No matching sounds" : "What should be heard?"}</b><p>{catalogQuery.trim().length >= 2 ? "Try another phrase or broaden the filters." : "Describe an object, action, room tone or atmosphere."}</p></div>}</div></ScrollArea>
-        {selectedCatalog ? <FreesoundAudioInspector result={selectedCatalog} family={audioAssetFamily({ category: keepCategory })} category={keepCategory} scope={keepScope} error={catalogActionError} onCategory={setKeepCategory} onScope={setKeepScope} /> : <aside className="asset-inspector asset-form-inspector"><div className="asset-inspector-empty"><FreesoundMark /><b>Select a result</b><p>Review its suggested family, license and technical details before keeping it.</p>{catalogError && <p className="asset-inspector-error" role="alert">{catalogError}</p>}</div></aside>}
+          return <AudioCatalogCard key={result.external_id} result={result} selected={isSelected} playing={active} kept={Boolean(kept[result.external_id])} busy={keepingId === result.external_id} onSelect={() => selectCatalog(result)} onPlay={() => { selectCatalog(result); onPlay({ key: sourceKey, url: result.preview_url!, title: result.name, sourceLabel: "Freesound preview", subtitle: result.creator, kind: "asset", downloadable: false }) }} onKeep={() => { if (!isSelected) selectCatalog(result); void keep(result, isSelected ? keepCategory : null) }} />
+        }) : catalogQuery.trim().length >= 2 ? <div className="asset-empty"><FreesoundMark /><b>No matching sounds</b><p>Try another phrase or broaden the filters.</p></div> : <section className="freesound-welcome"><header><span className="asset-generation-provider"><FreesoundMark />Freesound</span><h2>What do you want to find?</h2><p>Search millions of community sounds, audition them immediately, then keep only what belongs in your Library.</p></header><div><b>Try a sound</b><span>{["city room tone", "soft transition", "wooden door", "crowd applause"].map((example) => <Button key={example} variant="outline" onClick={() => setCatalogQuery(example)}>{example}</Button>)}</span></div></section>}</div></ScrollArea>
+        {selectedCatalog ? <FreesoundAudioInspector result={selectedCatalog} category={keepCategory} scope={keepScope} error={catalogActionError} onCategory={setKeepCategory} onScope={setKeepScope} /> : <aside className="asset-inspector asset-form-inspector"><div className="asset-inspector-empty"><FreesoundMark /><b>{catalogQuery.trim().length >= 2 ? "Select a result" : "Search Freesound"}</b><p>{catalogQuery.trim().length >= 2 ? "Review origin, license and source facts. Category stays yours to decide." : "Results are temporary candidates until you keep one."}</p>{catalogError && <p className="asset-inspector-error" role="alert">{catalogError}</p>}</div></aside>}
       </section> : onKeepGenerated ? <GenerationWorkspace mode={mode} productionId={productionId} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onKeep={onKeepGenerated} onKept={async (asset, keptCategory, place) => { setSelectedId(asset.id); setCategory(keptCategory); setScopeFilter("all"); if (place) await onChoose(asset); else setView("library") }} /> : null}
     </div>
     {transport && <div className="asset-library-transport">{transport}</div>}

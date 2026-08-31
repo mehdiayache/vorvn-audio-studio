@@ -26,7 +26,8 @@ API_ROOT = "https://freesound.org/apiv2"
 AUTHORIZE_URL = f"{API_ROOT}/oauth2/authorize/"
 MAX_SOURCE_BYTES = 250_000_000
 SEARCH_FIELDS = (
-    "id,name,tags,username,license,duration,previews,url,type"
+    "id,name,tags,username,license,duration,previews,url,type,"
+    "category,subcategory,category_is_user_provided"
 )
 LICENSE_FILTERS = {
     "all": 'license:("Creative Commons 0" OR "Attribution" OR '
@@ -127,10 +128,16 @@ def _sound(raw: object) -> CatalogSound:
         raise AudioCatalogError(
             "Freesound returned an incomplete sound record.") from exc
     license_id, license_url = _license(raw.get("license"))
-    tags = tuple(
+    tags = tuple(dict.fromkeys(
         str(item).strip().casefold() for item in (raw.get("tags") or [])
         if str(item).strip()
-    )[:12]
+    ))
+    provider_category = str(raw.get("category") or "").strip() or None
+    provider_subcategory = str(raw.get("subcategory") or "").strip() or None
+    category_source = raw.get("category_is_user_provided")
+    provider_category_is_user_provided = (
+        category_source if isinstance(category_source, bool) else None
+    )
     return CatalogSound(
         external_id=external_id,
         name=name or f"Freesound {external_id}",
@@ -143,6 +150,9 @@ def _sound(raw: object) -> CatalogSound:
         preview_url=_preview(raw.get("previews")),
         original_format=str(raw.get("type") or "").strip().casefold(),
         tags=tags,
+        provider_category=provider_category,
+        provider_subcategory=provider_subcategory,
+        provider_category_is_user_provided=provider_category_is_user_provided,
     )
 
 

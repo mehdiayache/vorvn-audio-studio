@@ -441,7 +441,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
             if (!collectionId) throw new Error("The Asset Library is unavailable.")
             return await studioApi.uploadAsset(collectionId, file, {
               name: file.name.replace(/\.[^.]+$/, ""),
-              category: "other",
+              category: null,
               scope: "venture",
               tags: [],
             }) as VentureAsset
@@ -539,6 +539,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
         setTool(null); setAudioTarget(null); setStage("sound")
       }}
       onUploadAsset={async (folder, input) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); return actions.uploadAsset(collectionId, folder, input) }}
+      onUpdateAsset={actions.updateAsset}
       onKeepAsset={async (folder, input) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); return actions.keepFreesound(collectionId, input) }}
       onKeepGenerated={async (folder, input) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); return actions.keepGeneratedAudio(collectionId, input) }}
       onImported={() => { actions.invalidatePreview(); void refresh().then(() => setTool(null)) }}

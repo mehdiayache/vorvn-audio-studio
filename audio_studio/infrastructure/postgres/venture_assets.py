@@ -16,21 +16,12 @@ COLLECTIONS = (("assets", "Assets"),)
 
 _ASSET_FIELDS = (
     "id", "venture_id", "collection_id", "name", "kind", "media_type",
-    "scope", "tags", "metadata", "legacy_generation_id", "created_at",
+    "category", "scope", "tags", "metadata", "legacy_generation_id", "created_at",
     "updated_at", "version_id",
     "filename", "path", "size_bytes", "duration_ms", "mime_type",
     "audio_format", "sample_rate", "channels", "media_format", "width",
     "height", "video_codec", "frame_rate", "version_metadata",
 )
-
-_CATEGORY_BY_COLLECTION = {
-    "assets": "audio",
-    "intros": "intro",
-    "outros": "outro",
-    "music": "music",
-    "stingers": "sfx",
-}
-
 
 def _asset_url(asset: dict) -> str:
     prefix = "audio" if asset.get("media_type", "audio") == "audio" else "media"
@@ -188,7 +179,7 @@ class VentureAssetRepository:
                 SELECT collection.name, asset.id, '', asset.name,
                        'Uploaded', version.duration_ms, version.filename,
                        version.path,
-                       asset.kind, asset.media_type, version.id,
+                       asset.kind, asset.media_type, asset.category, version.id,
                        asset.venture_id, asset.scope,
                        asset.tags, asset.metadata, version.audio_format,
                        version.sample_rate, version.channels,
@@ -210,7 +201,7 @@ class VentureAssetRepository:
             """, parameters)
             return [{
                 "folder": folder, "collection": folder,
-                "category": kind, "kind": kind,
+                "category": category, "kind": kind,
                 "media_type": media_type, "id": asset_id,
                 "version_id": version_id, "text": text or "", "title": title,
                 "voice": voice or "", "duration_ms": duration,
@@ -227,7 +218,7 @@ class VentureAssetRepository:
                 "mime_type": mime_type,
                 "version_metadata": version_metadata or {},
             } for (folder, asset_id, text, title, voice, duration, filename,
-                   path, kind, media_type, version_id, owner, scope, tags, metadata,
+                   path, kind, media_type, category, version_id, owner, scope, tags, metadata,
                    audio_format, sample_rate, channels, media_format, width,
                    height, video_codec, frame_rate, created_at, updated_at,
                    size_bytes, mime_type,
@@ -313,7 +304,7 @@ class VentureAssetRepository:
             cursor.execute("""
                 SELECT asset.id, asset.venture_id, asset.collection_id,
                        asset.name, asset.kind, asset.media_type,
-                       asset.scope, asset.tags,
+                       asset.category, asset.scope, asset.tags,
                        asset.metadata, asset.legacy_generation_id,
                        asset.created_at, asset.updated_at,
                        version.id, version.filename, version.path,
@@ -348,7 +339,7 @@ class VentureAssetRepository:
         if not asset:
             return None
         return {
-            **asset, "category": asset["kind"],
+            **asset,
             "url": _asset_url(asset),
         }
 
@@ -361,7 +352,7 @@ class VentureAssetRepository:
             return None
         asset = self.get(asset_id)
         return ({
-            **asset, "category": asset["kind"],
+            **asset,
             "url": _asset_url(asset),
         } if asset else None)
 
@@ -419,7 +410,8 @@ class VentureAssetRepository:
     def library_context(self, asset_id: int) -> dict | None:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT asset.venture_id, collection.name, asset.kind, asset.id,
+                SELECT asset.venture_id, collection.name, asset.kind,
+                       asset.category, asset.id,
                        asset.legacy_generation_id, asset.scope,
                        asset.media_type
                   FROM assets asset
@@ -429,10 +421,29 @@ class VentureAssetRepository:
             """, (asset_id,))
             row = cursor.fetchone()
         return ({"venture_id": row[0], "collection": row[1],
-                 "kind": row[2], "category": row[2], "asset_id": row[3],
-                 "legacy_generation_id": row[4], "scope": row[5],
-                 "media_type": row[6]}
+                 "kind": row[2], "category": row[3], "asset_id": row[4],
+                 "legacy_generation_id": row[5], "scope": row[6],
+                 "media_type": row[7]}
                 if row else None)
+
+    def update_details(
+            self, asset_id: int, *, name: str,
+            category: AssetCategory | None, scope: AssetScope,
+            tags: tuple[str, ...]) -> dict | None:
+        """Persist only the mutable, human-owned Asset classification facts."""
+        with transaction() as cursor:
+            cursor.execute("""
+                UPDATE assets
+                   SET name = %s, category = %s, scope = %s, tags = %s,
+                       updated_at = NOW()
+                 WHERE id = %s
+                RETURNING id
+            """, (name, category, scope, list(tags), asset_id))
+            row = cursor.fetchone()
+        if not row:
+            return None
+        asset = self.get(asset_id)
+        return ({**asset, "url": _asset_url(asset)} if asset else None)
 
     def allowed_for_production(
             self, production_id: int, asset_id: int) -> bool:
@@ -538,10 +549,7 @@ class VentureAssetRepository:
         asset = self.get(asset_id)
         if not asset:
             return None, duplicate
-        return ({
-            **asset, "category": asset["kind"],
-            "url": _asset_url(asset),
-        }, duplicate)
+        return ({**asset, "url": _asset_url(asset)}, duplicate)
 
     def create_generated_asset(
             self, collection_id: int, *, candidate_id: str,
@@ -593,10 +601,7 @@ class VentureAssetRepository:
         asset = self.get(asset_id)
         if not asset:
             return None, duplicate
-        return ({
-            **asset, "category": asset["kind"],
-            "url": _asset_url(asset),
-        }, duplicate)
+        return ({**asset, "url": _asset_url(asset)}, duplicate)
 
     @staticmethod
     def _create_uploaded_asset(
@@ -612,25 +617,22 @@ class VentureAssetRepository:
             width: int | None = None, height: int | None = None,
             video_codec: str | None = None,
             frame_rate: float | None = None) -> dict:
-        venture_id, _legacy_container_id, collection_kind = collection
+        venture_id, _legacy_container_id, _collection_kind = collection
         if media_type not in ASSET_MEDIA_TYPES:
             raise ValueError("Asset media type is not supported.")
-        if media_type != "audio" and category not in (None, "other"):
+        if media_type != "audio" and category is not None:
             raise ValueError("Audio categories cannot classify visual Assets.")
-        canonical_category = (
-            category or _CATEGORY_BY_COLLECTION.get(collection_kind, "other")
-            if media_type == "audio" else "other"
-        )
-        if canonical_category not in ASSET_CATEGORIES:
+        canonical_category = category if media_type == "audio" else None
+        if canonical_category is not None and canonical_category not in ASSET_CATEGORIES:
             raise ValueError("Asset category is not supported.")
         cursor.execute("""
             INSERT INTO assets
-                (venture_id, collection_id, name, kind, media_type, scope, tags,
-                 metadata, legacy_generation_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NULL)
+                (venture_id, collection_id, name, kind, media_type, category,
+                 scope, tags, metadata, legacy_generation_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NULL)
             RETURNING id, created_at, updated_at
-        """, (venture_id, collection_id, name, canonical_category,
-              media_type, scope, list(tags), json.dumps(metadata or {})))
+        """, (venture_id, collection_id, name, media_type, media_type,
+              canonical_category, scope, list(tags), json.dumps(metadata or {})))
         asset_id, created_at, updated_at = cursor.fetchone()
         cursor.execute("""
             INSERT INTO asset_versions

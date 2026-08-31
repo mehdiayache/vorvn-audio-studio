@@ -55,6 +55,16 @@
 .asset-canvas { min-width: 0; min-height: 0; height: 100%; }
 .audio-asset-card-grid { min-height: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 220px)); align-content: start; gap: 12px; padding: 12px 14px 24px; }
 .audio-asset-card-grid > .asset-empty { grid-column: 1 / -1; }
+.asset-search-view .audio-asset-card-grid { position: relative; }
+.asset-search-view .audio-asset-card-skeleton { min-height: 202px; border-radius: calc(var(--radius) * 1.2); }
+.asset-search-view .audio-library-loading-label { left: 50%; }
+.freesound-welcome { grid-column: 1 / -1; width: min(100%, 760px); min-height: calc(100% - 24px); display: grid; grid-template-rows: 1fr auto 1fr; align-items: center; gap: 28px; margin: 0 auto; padding: 44px 24px; text-align: center; }
+.freesound-welcome > header { align-self: end; display: grid; justify-items: center; gap: 8px; }
+.freesound-welcome h2 { margin: 0; font-size: clamp(1.55rem, 2.1vw, 2.15rem); letter-spacing: -.035em; }
+.freesound-welcome p { max-width: 570px; margin: 0; color: var(--foreground); font-size: var(--type-small); line-height: 1.55; opacity: .78; }
+.freesound-welcome > div { display: grid; justify-items: center; gap: 12px; padding: 24px; border-block: 1px solid var(--border); }
+.freesound-welcome > div > b { font-size: var(--type-caption); }
+.freesound-welcome > div > span { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .audio-library-loading { position: relative; }
 .audio-library-loading .audio-asset-card-skeleton { min-height: 202px; border-radius: calc(var(--radius) * 1.2); }
 .audio-library-inspector-loading { display: grid; align-content: start; gap: 12px; }

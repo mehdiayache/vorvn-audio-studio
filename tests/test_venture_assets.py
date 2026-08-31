@@ -124,9 +124,9 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         asset = self.repository.get(created["id"])
         self.assertEqual(
             (asset["venture_id"], asset["collection_id"], asset["kind"],
-             asset["scope"], asset["audio_format"], asset["version_id"],
+             asset["category"], asset["scope"], asset["audio_format"], asset["version_id"],
              asset["filename"]),
-            (self.venture_id, music["id"], "music", "venture", "wav",
+            (self.venture_id, music["id"], "audio", "music", "venture", "wav",
              created["version_id"],
              created["filename"]),
         )
@@ -202,7 +202,8 @@ class VentureAssetRepositoryTests(unittest.TestCase):
 
         asset = self.repository.get(created["id"])
         self.assertEqual(asset["media_type"], "image")
-        self.assertEqual(asset["kind"], "other")
+        self.assertEqual(asset["kind"], "image")
+        self.assertIsNone(asset["category"])
         self.assertEqual(asset["mime_type"], "image/jpeg")
         self.assertEqual(asset["media_format"], "jpg")
         self.assertEqual((asset["width"], asset["height"]), (1600, 900))
@@ -412,8 +413,8 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                     "knock.wav", name="Wooden door knock", category="sfx",
                     scope="studio", encoded_tags="%5B%22door%22%5D")
         asset = self.repository.get(created["id"])
-        self.assertEqual((asset["kind"], asset["scope"], asset["tags"]),
-                         ("sfx", "studio", ["door"]))
+        self.assertEqual((asset["kind"], asset["category"], asset["scope"], asset["tags"]),
+                         ("audio", "sfx", "studio", ["door"]))
         self.assertTrue(self.repository.allowed_for_production(
             other_production_id, created["id"]))
 
@@ -573,17 +574,39 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                     mime_type="audio/wav", audio_format="wav",
                     duration_ms=1200, sample_rate=44100, channels=1,
                     metadata={"codec": "pcm_s16le", "container": "wav"})):
-                for category in ("ambience", "sfx", "other"):
-                    source = root / f"{category}.upload"
+                for category in ("ambience", "sfx", None):
+                    label = category or "unclassified"
+                    source = root / f"{label}.upload"
                     source.write_bytes(b"RIFF" + bytes(40))
                     created = service.save_asset_file(
                         stingers["id"], source, source.stat().st_size,
-                        f"{category}.wav", category=category,
+                        f"{label}.wav", category=category,
                     )
-                    self.assertEqual(
-                        self.repository.get(created["id"])["kind"],
-                        category,
-                    )
+                    asset = self.repository.get(created["id"])
+                    self.assertEqual(asset["kind"], "audio")
+                    self.assertEqual(asset["category"], category)
+
+    def test_human_asset_details_are_editable_without_changing_origin_or_file(self):
+        collection = self.repository.ensure_collections(self.venture_id)[0]
+        created = self.repository.create_uploaded_asset(
+            collection["id"], name="Raw import", filename="raw.wav",
+            path="/audio/raw.wav", size_bytes=10, duration_ms=1000,
+            audio_format="wav", mime_type="audio/wav",
+            metadata={"origin": "freesound", "external_id": "77"},
+        )
+
+        updated = self.repository.update_details(
+            created["id"], name="Door close", category="sfx",
+            scope="studio", tags=("door", "close"))
+
+        self.assertEqual(
+            (updated["name"], updated["category"], updated["scope"], updated["tags"]),
+            ("Door close", "sfx", "studio", ["door", "close"]),
+        )
+        self.assertEqual(updated["kind"], "audio")
+        self.assertEqual(updated["filename"], "raw.wav")
+        self.assertEqual(updated["metadata"],
+                         {"origin": "freesound", "external_id": "77"})
 
 
 if __name__ == "__main__":
