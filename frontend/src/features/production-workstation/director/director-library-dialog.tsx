@@ -12,7 +12,7 @@ type AssetSourceFilter = "all" | "production" | "venture" | "studio"
 type AssetUsageFilter = "all" | "used" | "unused"
 type AssetSort = "recent" | "used" | "name"
 
-export function DirectorLibraryDialog({ open, assets, productionAssetIds = [], usedAssetIds = [], pendingId, defaultSource = "all", showProductionSource = true, title = "Visual Library", description = "Choose reusable images and videos available to this Production.", emptyDescription = "Upload a new image or video from Director.", addLabel = "Add", onOpenChange, onPreview, onAdd }: {
+export function DirectorLibraryDialog({ open, assets, productionAssetIds = [], usedAssetIds = [], pendingId, defaultSource = "all", showProductionSource = true, title = "Visual Assets", description = "Choose reusable image and video Assets available to this Production.", emptyDescription = "Upload a new image or video from Director.", addLabel = "Add", onOpenChange, onPreview, onAdd }: {
   open: boolean
   assets: VentureAsset[]
   productionAssetIds?: number[]

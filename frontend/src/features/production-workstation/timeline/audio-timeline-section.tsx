@@ -73,7 +73,7 @@ function SoundTrackControl({ track, volume, collapsed, soloed, soloSuppressed, o
       <TrackVolumeControl name={name} volume={volume} muted={track.muted} collapsed={collapsed} onChange={onVolumeChange} onCommit={onVolumeCommit} />
     </>
   const structureActions = <>
-      {!collapsed && <OperatorIconButton label={`Add audio to ${name}`} detail="Choose an Audio Library source and place it in this exact track." className="sound-track-add" onClick={onAdd}><Plus /></OperatorIconButton>}
+      {!collapsed && <OperatorIconButton label={`Add audio to ${name}`} detail="Choose an audio Asset and place it in this exact track." className="sound-track-add" onClick={onAdd}><Plus /></OperatorIconButton>}
       <TrackActions name={name} role={category} renaming={renaming} draftName={draftName} onRenaming={setRenaming} onDraftName={setDraftName} onRename={onRename} onRole={onRole} onAdd={onAdd} onRemove={onRemove} />
     </>
   return <TimelineTrackHeader

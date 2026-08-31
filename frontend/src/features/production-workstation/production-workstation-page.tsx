@@ -460,12 +460,12 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
             onAddVisual: () => undefined,
             onRemoveClip: (refs, name) => setConfirmAction({
               title: `Remove this media placement: “${name}”?`,
-              description: refs.length === 1 ? "This removes only the Timeline placement. The source remains available in Director and Visual Library." : `This removes ${refs.length} Timeline placements. Their sources remain available in Director and Visual Library.`,
+              description: refs.length === 1 ? "This removes only the Timeline placement. Its source Asset remains available in the Asset Library." : `This removes ${refs.length} Timeline placements. Their source Assets remain available in the Asset Library.`,
               action: () => visualSession.removeClips(refs),
             }),
             onRemoveTrack: (track) => setConfirmAction({
               title: `Remove this ${visualTrackDisplayName(track, assets)} track?`,
-              description: `This removes the track and its ${track.clips.length} media placement${track.clips.length === 1 ? "" : "s"}. Director Assets remain available.`,
+              description: `This removes the track and its ${track.clips.length} media placement${track.clips.length === 1 ? "" : "s"}. Their source Assets remain available in the Asset Library.`,
               action: () => visualSession.removeTrack(track.id),
             }),
           }}
@@ -477,13 +477,13 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
             })
             setConfirmAction({
               title: clips.length === 1 ? `Remove this clip: “${names[0] || "Audio clip"}”?` : `Remove ${clips.length} selected audio clips?`,
-              description: "Reusable Audio Library assets remain available. Only the selected Timeline placements are removed.",
+              description: "Only the selected Timeline placements are removed. Their source Assets remain available in the Asset Library.",
               action: () => soundSession.removeClips(clips),
             })
           }}
           onRemoveTrack={(track) => setConfirmAction({
             title: `Remove this ${soundTrackDisplayName(track)} track?`,
-            description: `This removes the track and its ${track.clips.length} placement${track.clips.length === 1 ? "" : "s"}. Reusable Audio Library assets remain available.`,
+            description: `This removes the track and its ${track.clips.length} placement${track.clips.length === 1 ? "" : "s"}. Their source Assets remain available in the Asset Library.`,
             action: () => soundSession.removeTrack(track.id),
           })}
         />}

@@ -228,18 +228,18 @@ export function SoundSceneContextToolbar({ context, saving, canSplit, onVolumePr
           ? "Every clip under the playhead must be unlocked."
           : canSplit === false
             ? "Keep the playhead at least 0.1 seconds away from either edge."
-            : "Creates two non-destructive placements that continue to reference the same Audio Library Asset. Shortcut: S"}
+            : "Creates two non-destructive placements that continue to reference the same source Asset. Shortcut: S"}
         className="selection-bar-command"
         disabled={saving || hasLockedClips || canSplit === false}
         onClick={onSplit}
       ><Scissors /></OperatorIconButton>
-      <OperatorIconButton label="Duplicate selected clips" detail="Creates another placement using the same Audio Library Asset." className="selection-bar-command" disabled={saving || hasLockedClips} onClick={onDuplicate}><Copy /></OperatorIconButton>
+      <OperatorIconButton label="Duplicate selected clips" detail="Creates another placement using the same source Asset." className="selection-bar-command" disabled={saving || hasLockedClips} onClick={onDuplicate}><Copy /></OperatorIconButton>
       <DropdownMenu><OperatorTooltip label="More playback actions" disabledTrigger={saving}><DropdownMenuTrigger asChild><Button className="selection-bar-command" variant="ghost" size="icon-sm" disabled={saving} aria-label="More playback actions"><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip><DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={onPlaySelection}><Play /> Play selection</DropdownMenuItem>
         <DropdownMenuItem onSelect={onLoopSelection}><Repeat2 /> Loop selection</DropdownMenuItem>
         {onCrossfade && <DropdownMenuItem onSelect={onCrossfade}><Blend /> Crossfade overlap</DropdownMenuItem>}
       </DropdownMenuContent></DropdownMenu>
-      <OperatorIconButton label="Delete selected clips" detail="Removes the Timeline placement; the Audio Library Asset remains available." className="selection-bar-command danger" disabled={saving || hasLockedClips} onClick={onDelete}><Trash2 /></OperatorIconButton>
+      <OperatorIconButton label="Delete selected clips" detail="Removes the Timeline placement; the source Asset remains available in the Asset Library." className="selection-bar-command danger" disabled={saving || hasLockedClips} onClick={onDelete}><Trash2 /></OperatorIconButton>
     </> : undefined
   return <SelectionBar
     ariaLabel={`${context.label} actions`}

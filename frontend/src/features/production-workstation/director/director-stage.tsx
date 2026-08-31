@@ -68,7 +68,7 @@ export function DirectorStage({ centerPaneRef, productionId, ventureId, createOp
     try {
       await studioApi.detachDirectorAsset(productionId, asset.id)
       await onRefresh()
-      toast.success(`${asset.name || asset.title || "Visual"} removed from Director`, { description: "It remains available in Visual Library." })
+      toast.success(`${asset.name || asset.title || "Visual"} removed from Director`, { description: "Its reusable Asset remains available in the Asset Library." })
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "The visual could not be removed from Director."
       setError(message)
@@ -180,7 +180,7 @@ export function DirectorStage({ centerPaneRef, productionId, ventureId, createOp
       upload(Array.from(event.dataTransfer.files))
     }}
   >
-    {dragging && <div className="director-drop-overlay" aria-hidden="true"><ImagePlus /><strong>Drop visuals into Director</strong><span>They will upload here and remain available in Visual Library.</span></div>}
+    {dragging && <div className="director-drop-overlay" aria-hidden="true"><ImagePlus /><strong>Drop visuals into Director</strong><span>They become reusable Venture Assets and are collected in Director.</span></div>}
     <input ref={inputRef} hidden multiple type="file" accept={visualFileAccept} onChange={(event) => {
       if (event.target.files) void upload(Array.from(event.target.files))
       event.target.value = ""
@@ -200,7 +200,7 @@ export function DirectorStage({ centerPaneRef, productionId, ventureId, createOp
           if (!onConfirmAction) return
           onConfirmAction({
             title: `Remove “${name}” from Director?`,
-            description: "This removes the visual from this Production’s Director workspace. The reusable media file remains available in Visual Library. Timeline placements are not changed.",
+            description: "This removes the visual from this Production’s Director workspace. Its reusable Asset remains available in the Asset Library. Timeline placements are not changed.",
             confirmLabel: "Remove from Director", variant: "default", action: () => remove(asset),
           })
         }} onRetryUpload={retryUpload} onDismissUpload={releaseUpload} onUpload={() => inputRef.current?.click()} onOpenLibrary={() => setLibraryOpen(true)} />

@@ -248,7 +248,7 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     return mutationActions.run("asset:upload", async () => {
       const uploaded = await studioApi.uploadAsset(collectionId, details.file, details)
       await refreshAssets()
-      toast.success(`${details.name} added to the Audio Library`)
+      toast.success(`${details.name} added to the Asset Library`)
       return uploaded as VentureAsset
     })
   }, [mutationActions.run, refreshAssets])
@@ -283,7 +283,7 @@ export function useProductionActions({ production, soundScene, player, refresh, 
         tags: details.tags,
       })
       await refreshAssets()
-      toast.success(kept.duplicate ? `${details.name} is already in the Audio Library` : `${details.name} kept in the Audio Library`)
+      toast.success(kept.duplicate ? `${details.name} is already in the Asset Library` : `${details.name} saved to the Asset Library`)
       return kept
     }), [mutationActions.run, refreshAssets])
 
@@ -303,7 +303,7 @@ export function useProductionActions({ production, soundScene, player, refresh, 
         tags: details.tags,
       })
       await refreshAssets()
-      toast.success(kept.duplicate ? `${details.name} is already in the Audio Library` : `${details.name} kept in the Audio Library`)
+      toast.success(kept.duplicate ? `${details.name} is already in the Asset Library` : `${details.name} saved to the Asset Library`)
       return kept
     }), [mutationActions.run, refreshAssets])
 

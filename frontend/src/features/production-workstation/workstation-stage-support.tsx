@@ -27,7 +27,7 @@ export function EmptyInspector({ stage }: { stage: WorkstationStage }) {
   const copy = stage === "sequence"
     ? ["Select a story part", "Its text, captions and technical details stay here while the full Script remains visible."]
     : stage === "sound"
-      ? ["Select a clip or track", "Choose Script or Audio Library clips directly on the timeline to shape them here."]
+      ? ["Select a clip or track", "Choose Script or audio placements directly on the Timeline to shape them here."]
       : ["Release inspector", "Issues and finishing evidence stay beside the output workspace."]
   return <div className="ws-empty-inspector"><span><Search /></span><h3>{copy[0]}</h3><p>{copy[1]}</p></div>
 }

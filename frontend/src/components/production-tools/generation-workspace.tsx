@@ -590,7 +590,7 @@ function CandidateFinalizer({ selected, selectedLabel, selectedActive, name, cat
         <div className="asset-finalize-fields"><AssetCategorySelect value={category} onChange={(next) => { if (next) onCategory(next) }} /><AssetScopeSelect value={scope} onChange={onScope} /></div>
         <AssetTagEditor tags={tags} onChange={onTags} onError={onError} />
       </section>}
-      {selected.kept_asset && <section className="asset-generation-kept"><Check /><span><b>Kept in Audio Library</b><small>{selected.kept_asset.name}</small></span></section>}
+      {selected.kept_asset && <section className="asset-generation-kept"><Check /><span><b>Saved as Asset</b><small>{selected.kept_asset.name}</small></span></section>}
       {!candidate && !selected.kept_asset && <section className="asset-generation-unavailable"><b>Variation unavailable</b><p>{selected.error || "This temporary variation was discarded or expired."}</p><Button variant="outline" onClick={onRefine}>Restore recipe</Button></section>}
     </div>
   </section>

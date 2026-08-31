@@ -33,19 +33,27 @@ function compactModelName(value: string) {
   return modelName(value)
 }
 
+export function assetMetadata(asset: VentureAsset) {
+  return { ...(asset.metadata || {}), ...(asset.version_metadata || {}) }
+}
+
 export function assetSource(asset: VentureAsset): AssetSource {
-  const origin = text(asset.metadata?.origin).toLocaleLowerCase()
-  if (origin === "generated") return "generated"
-  if (origin === "freesound") return "freesound"
-  if (origin === "upload") return "uploaded"
+  const metadata = assetMetadata(asset)
+  const origin = text(metadata.origin).toLocaleLowerCase().replaceAll("_", "-")
+  if (origin === "generated" || origin === "director-generation" || metadata.generated === true || Boolean(metadata.generator)) return "generated"
+  const externalSource = [origin, metadata.provider, metadata.provider_id, metadata.source]
+    .map((value) => text(value).toLocaleLowerCase())
+    .join(" ")
+  if (externalSource.includes("freesound")) return "freesound"
+  if (origin === "upload" || origin === "uploaded") return "uploaded"
   return "library"
 }
 
 export function assetSourceLine(asset: VentureAsset) {
   const source = assetSource(asset)
-  const metadata = asset.metadata || {}
+  const metadata = assetMetadata(asset)
   if (source === "generated") {
-    const model = text(metadata.model)
+    const model = text(metadata.model) || text(metadata.provider_model_id)
     return model ? `Generated · ${compactModelName(model)}` : "Generated"
   }
   if (source === "freesound") {
@@ -53,16 +61,16 @@ export function assetSourceLine(asset: VentureAsset) {
     return creator ? `Freesound · ${creator}` : "Freesound"
   }
   if (source === "uploaded") return "Uploaded"
-  return "Library asset"
+  return "Existing Asset"
 }
 
 export function assetDetails(asset: VentureAsset): Detail[] {
   const source = assetSource(asset)
-  const metadata = asset.metadata || {}
+  const metadata = assetMetadata(asset)
   const details: Detail[] = [{ label: "Source", value: assetSourceLine(asset) }]
 
   if (source === "generated") {
-    const model = text(metadata.model)
+    const model = text(metadata.model) || text(metadata.provider_model_id)
     const created = formatDate(metadata.generated_at)
     const prompt = text(metadata.resolved_prompt) || text(metadata.prompt)
     const seed = number(metadata.seed)

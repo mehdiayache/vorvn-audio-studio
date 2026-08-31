@@ -127,10 +127,27 @@ describe("Production workflow", () => {
         { label: "File size", value: "2.5 MB" },
       ]),
       library: expect.arrayContaining([
-        { label: "Available in", value: "Venture Library" },
+        { label: "Available in", value: "Venture Assets" },
         { label: "Tags", value: "harbour, dusk" },
       ]),
     })
+  })
+
+  it("uses canonical provenance for generated Director visuals", () => {
+    const { container } = render(<VisualAssetCard asset={{
+      id: 45,
+      media_type: "image",
+      name: "Generated harbour",
+      filename: "generated-harbour.webp",
+      version_metadata: {
+        origin: "director-generation",
+        provider_id: "kling",
+        provider_model_id: "kling-3.0-omni",
+      },
+    }} onPreview={vi.fn()} />)
+
+    expect(container.querySelector(".visual-asset-origin")?.classList.contains("is-ai")).toBe(true)
+    expect(container.querySelector(".visual-asset-origin")?.textContent).toBe("AI")
   })
 
   it("marks Director removal as a confirmation-opening collection action", async () => {
@@ -241,7 +258,7 @@ describe("Production workflow", () => {
     expect(screen.getByText("Technical")).toBeTruthy()
     expect(screen.getByText("1920 × 1080")).toBeTruthy()
     expect(screen.getByText("29.97 fps")).toBeTruthy()
-    expect(screen.getByText("Venture Library")).toBeTruthy()
+    expect(screen.getByText("Venture Assets")).toBeTruthy()
     const video = screen.getByRole("dialog", { name: "Harbour move" }).querySelector("video")
     expect(video?.getAttribute("src")).toBe("/media/harbour.mp4")
     expect(video?.getAttribute("poster")).toBe("/api/v1/media/video-poster/harbour.mp4")

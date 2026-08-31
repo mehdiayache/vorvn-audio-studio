@@ -67,7 +67,7 @@ export function AudioClipInspector({ track, clip, asset, playingKey, playing, on
     onClipChange({ source_offset_ms: next.sourceOffsetMs, duration_ms: next.durationMs })
   }
 
-  if (!clip?.filename) return <div className="music-workbench-empty"><Music2 /><span><b>No audio</b><p>Add one reusable Audio Library clip to this track.</p></span><Button onClick={onChoose}>Choose audio</Button></div>
+  if (!clip?.filename) return <div className="music-workbench-empty"><Music2 /><span><b>No audio</b><p>Add one reusable audio Asset to this track.</p></span><Button onClick={onChoose}>Choose audio</Button></div>
 
   const key = `asset-source:${clip.asset_id}`
   const active = playing && playingKey === key

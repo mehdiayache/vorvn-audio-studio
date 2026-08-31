@@ -40,7 +40,7 @@ export function DirectorUploadCard({ item, onRetry, onDismiss }: {
     <footer>
       <div><h3 title={item.file.name}>{item.file.name}</h3><p>{failed ? item.error : "It will appear here when ready."}</p></div>
       <div className="director-upload-actions">
-        {failed && <><OperatorIconButton label={`Retry ${item.file.name}`} size="icon-sm" onClick={() => onRetry(item)}><RotateCcw /></OperatorIconButton><OperatorIconButton label={`Dismiss ${item.file.name}`} detail="The uploaded file may still be available in Visual Library." size="icon-sm" variant="ghost" onClick={() => onDismiss(item)}><X /></OperatorIconButton></>}
+        {failed && <><OperatorIconButton label={`Retry ${item.file.name}`} size="icon-sm" onClick={() => onRetry(item)}><RotateCcw /></OperatorIconButton><OperatorIconButton label={`Dismiss ${item.file.name}`} detail="If the upload completed, its reusable Asset remains in the Asset Library." size="icon-sm" variant="ghost" onClick={() => onDismiss(item)}><X /></OperatorIconButton></>}
       </div>
     </footer>
   </article>

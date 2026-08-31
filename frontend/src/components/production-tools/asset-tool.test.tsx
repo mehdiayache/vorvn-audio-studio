@@ -476,12 +476,12 @@ describe("AssetTool", () => {
     expect(view.getByText(/CC BY-NC/)).toBeTruthy()
     expect(onKeep).not.toHaveBeenCalled()
 
-    fireEvent.click(view.getByRole("button", { name: "Keep in Audio Library" }))
+    fireEvent.click(view.getByRole("button", { name: "Keep as Asset" }))
     await waitFor(() => expect(onKeep).toHaveBeenCalledWith("Assets", {
       result, name: result.name, category: null, scope: "venture",
       tags: [],
     }))
-    expect(view.getByRole("button", { name: "In Audio Library" })).toBeTruthy()
+    expect(view.getByRole("button", { name: "Saved Asset" })).toBeTruthy()
     search.mockRestore()
   })
 
@@ -505,7 +505,7 @@ describe("AssetTool", () => {
     fireEvent.change(view.getByPlaceholderText("Describe the sound you need"), { target: { value: "calm ocean waves" } })
     await waitFor(() => expect(view.getByRole("button", { name: "Select Calm ocean waves" })).toBeTruthy())
     expect(view.queryByLabelText("Suggested Ambience family")).toBeNull()
-    fireEvent.click(view.getByRole("button", { name: "Keep in Audio Library" }))
+    fireEvent.click(view.getByRole("button", { name: "Keep as Asset" }))
     await waitFor(() => expect(onKeep).toHaveBeenCalledWith("Assets", {
       result, name: result.name, category: null, scope: "venture",
       tags: [],

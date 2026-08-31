@@ -80,13 +80,13 @@ export function AudioCatalogCard({ result, selected, playing, kept, busy, onSele
 }) {
   const tags = [...new Set(result.tags.map((tag) => tag.trim().toLocaleLowerCase()).filter(Boolean))]
   return <article className={cn("audio-asset-card", "is-unclassified", selected && "is-selected")}>
-    {kept && <OperatorTooltip label="In Audio Library" detail="This Freesound result is already saved as a reusable Asset." side="bottom"><span className="audio-asset-card-used" tabIndex={0} aria-label="In Audio Library"><CircleCheck /></span></OperatorTooltip>}
+    {kept && <OperatorTooltip label="Saved Asset" detail="This Freesound result is already saved as a reusable Asset." side="bottom"><span className="audio-asset-card-used" tabIndex={0} aria-label="Saved Asset"><CircleCheck /></span></OperatorTooltip>}
     <header className="audio-asset-card-identity"><AudioSourceBadge source="freesound" detail={`Freesound · ${result.creator}`} /></header>
     <AudioCardMain title={result.name} selected={selected} onSelect={onSelect} />
     <AudioCardTags tags={tags} />
     <div className="audio-asset-card-actions">
       {result.preview_url && onPlay && <span className="audio-asset-card-audition"><OperatorIconButton className="audio-asset-card-play" data-playing={playing || undefined} label={playing ? `Pause ${result.name}` : `Audition ${result.name}`} detail="This is a temporary Freesound preview." size="icon-sm" onClick={onPlay}>{playing ? <Pause /> : <Play />}</OperatorIconButton><small>{formatDuration(result.duration_ms / 1000)}</small></span>}
-      <OperatorIconButton className="audio-asset-card-add" label={kept ? "In Audio Library" : busy ? "Keeping audio…" : "Keep in Audio Library"} detail={kept ? "This result is already a reusable Asset." : "Saves this external result before it can be used in Productions."} side="left" variant="outline" busy={busy} busyLabel="Keeping audio…" disabled={kept} onClick={onKeep}>{kept ? <Check /> : <Plus />}</OperatorIconButton>
+      <OperatorIconButton className="audio-asset-card-add" label={kept ? "Saved Asset" : busy ? "Saving Asset…" : "Keep as Asset"} detail={kept ? "This result is already a reusable Asset." : "Saves this external result as a reusable Asset."} side="left" variant="outline" busy={busy} busyLabel="Saving Asset…" disabled={kept} onClick={onKeep}>{kept ? <Check /> : <Plus />}</OperatorIconButton>
     </div>
   </article>
 }
