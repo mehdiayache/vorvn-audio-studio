@@ -118,5 +118,8 @@ describe("visual Timeline controls", () => {
     expect(unlock.className).toContain("is-active")
     expect(container.querySelector(".timeline-track-header")?.className).toContain("is-locked")
     expect(container.querySelector(".timeline-track-header-actions")).toBeTruthy()
+    expect(container.querySelector(".timeline-track-header-state-actions")).toBeTruthy()
+    expect(container.querySelector(".timeline-track-header-structure-actions")).toBeTruthy()
+    expect(container.querySelector(".timeline-track-header-copy")?.textContent).toBe("Video")
   })
 })

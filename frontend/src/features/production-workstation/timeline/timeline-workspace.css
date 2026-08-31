@@ -97,12 +97,12 @@
 .timeline-track-header-icon.is-category-video { color: var(--info); background: var(--info-soft); }
 .timeline-track-header-icon.is-muted { color: var(--muted-foreground); background: var(--muted); }
 .timeline-track-header-icon svg { width: .72rem; }
-.timeline-track-header-copy { min-width: 0; display: grid; }
-.timeline-track-header-copy b, .timeline-track-header-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timeline-track-header-copy { min-width: 0; display: block; }
+.timeline-track-header-copy b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .timeline-track-header-copy b { font-size: var(--type-workstation-label); }
-.timeline-track-header-copy small { color: var(--muted-foreground); font-size: var(--type-workstation-secondary); }
-.timeline-track-header-copy small.is-technical { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -.015em; }
-.timeline-track-header-actions { grid-column: 1 / -1; min-width: 0; display: flex; justify-content: flex-end; align-items: center; gap: .03rem; }
+.timeline-track-header-actions { grid-column: 1 / -1; min-width: 0; display: flex; justify-content: space-between; align-items: center; gap: .28rem; }
+.timeline-track-header-state-actions, .timeline-track-header-structure-actions { min-width: 0; display: flex; align-items: center; gap: .03rem; }
+.timeline-track-header-structure-actions { margin-left: auto; }
 .timeline-track-header-actions svg { width: .72rem; }
 .timeline-track-header-actions [data-slot="button"] { flex: none; }
 .timeline-track-header-actions [data-slot="button"].is-active { color: var(--primary); background: var(--primary-soft); }
@@ -129,6 +129,7 @@
 .timeline-track-header.is-compact .timeline-track-header-icon { width: 1.15rem; height: 1.15rem; border-radius: .3rem; }
 .timeline-track-header.is-compact .timeline-track-header-icon svg { width: .62rem; }
 .timeline-track-header.is-compact .timeline-track-header-actions { grid-column: 1; display: grid; grid-template-columns: repeat(2, 1.2rem); place-items: center; gap: .04rem; }
+.timeline-track-header.is-compact .timeline-track-header-state-actions, .timeline-track-header.is-compact .timeline-track-header-structure-actions { display: contents; }
 .timeline-track-header.is-compact .timeline-track-header-actions [data-slot="button"] { width: 1.2rem; min-width: 1.2rem; height: 1.2rem; min-height: 0; padding: 0; }
 .sound-scene-scroll { min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; background: oklch(.975 .003 70); }
 .sound-scene-timeline { position: relative; min-height: 100%; display: grid; }

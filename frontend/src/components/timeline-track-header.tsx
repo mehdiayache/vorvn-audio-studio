@@ -8,10 +8,9 @@ export function TimelineTrackHeader({
   icon,
   iconClassName,
   name,
-  meta,
-  technicalMeta = true,
   identity,
-  actions,
+  stateActions,
+  structureActions,
   title,
 }: {
   className?: string
@@ -19,19 +18,22 @@ export function TimelineTrackHeader({
   icon: ReactNode
   iconClassName?: string
   name: string
-  meta: string
-  technicalMeta?: boolean
   identity?: ReactNode
-  actions?: ReactNode
+  stateActions?: ReactNode
+  structureActions?: ReactNode
   title?: string
 }) {
+  const hasActions = Boolean(stateActions || structureActions)
   return <div
     className={cn("timeline-track-header", collapsed && "is-compact", className)}
-    data-has-actions={Boolean(actions)}
-    title={title ?? (collapsed ? `${name} · ${meta}` : undefined)}
+    data-has-actions={hasActions}
+    title={title ?? (collapsed ? name : undefined)}
   >
     <span className={cn("timeline-track-header-icon", iconClassName)}>{icon}</span>
-    {!collapsed && (identity || <span className="timeline-track-header-copy"><b>{name}</b><small className={cn(technicalMeta && "is-technical")}>{meta}</small></span>)}
-    {actions && <div className="timeline-track-header-actions">{actions}</div>}
+    {!collapsed && (identity || <span className="timeline-track-header-copy"><b>{name}</b></span>)}
+    {hasActions && <div className="timeline-track-header-actions">
+      {stateActions && <div className="timeline-track-header-state-actions">{stateActions}</div>}
+      {structureActions && <div className="timeline-track-header-structure-actions">{structureActions}</div>}
+    </div>}
   </div>
 }

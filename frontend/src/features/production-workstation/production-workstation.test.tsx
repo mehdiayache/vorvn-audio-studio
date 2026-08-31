@@ -153,13 +153,14 @@ describe("Production Workstation", () => {
       part({ id: 2, position: 1, kind: "silence", title: "1.5", duration_ms: 1_500, clip_id: null }),
       part({ id: 3, position: 2, kind: "asset", title: "Door closes", duration_ms: 2_000, clip_id: 30 }),
     ]
-    render(<TimelineWorkspace session={sessionFor(scene(parts))} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const { container } = render(<TimelineWorkspace session={sessionFor(scene(parts))} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
     expect(screen.getByText("Narrator")).toBeTruthy()
     expect(screen.getByText("Door closes")).toBeTruthy()
     expect(screen.getByText("Music")).toBeTruthy()
     expect(screen.getByText("Quiet room")).toBeTruthy()
-    expect(screen.getByText("2 audio · 1 pause")).toBeTruthy()
+    expect(container.querySelector(".timeline-track-header.is-sequence .timeline-track-header-copy")?.textContent).toBe("Script")
+    expect(container.querySelector(".timeline-track-header.is-sequence small")).toBeNull()
     expect(screen.getByRole("button", { name: "Pause Part 02 · 1.5 seconds" }).className).toContain("sound-sequence-silence")
     expect(screen.queryByText(/image tracks?.*video tracks?.*audio tracks?/)).toBeNull()
     expect(screen.getByRole("button", { name: "Undo audio edit" }).textContent).toBe("")
@@ -174,6 +175,9 @@ describe("Production Workstation", () => {
     expect(headers.every((header) => Boolean(header.querySelector(".timeline-track-header-icon")))).toBe(true)
     expect(headers.every((header) => Boolean(header.querySelector(".timeline-track-header-copy")))).toBe(true)
     expect(container.querySelector(".timeline-track-header.is-audio .timeline-track-header-actions")).toBeTruthy()
+    expect(container.querySelector(".timeline-track-header.is-audio .timeline-track-header-state-actions")).toBeTruthy()
+    expect(container.querySelector(".timeline-track-header.is-audio .timeline-track-header-structure-actions")).toBeTruthy()
+    expect(headers.map((header) => header.textContent)).toEqual(["Script", "MusicMS100%"])
     expect(container.querySelector(".sound-track-control, .sound-sequence-control")).toBeNull()
   })
 
@@ -218,14 +222,14 @@ describe("Production Workstation", () => {
     const musicTrack = soundScene.document.tracks[0]
     if (!musicTrack) throw new Error("Expected Music track fixture")
     musicTrack.muted = true
-    render(<TimelineWorkspace session={sessionFor(soundScene)} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
+    const { container } = render(<TimelineWorkspace session={sessionFor(soundScene)} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
     expect(screen.getByRole("button", { name: "Adjust Music volume" }).textContent).toContain("0%")
     fireEvent.click(screen.getByRole("button", { name: "Adjust Music volume" }))
     expect(screen.getByRole("slider", { name: "Music volume" }).getAttribute("aria-disabled")).not.toBe("true")
     expect(screen.getByRole("button", { name: "Unmute Music" })).toBeTruthy()
-    expect(screen.getAllByText("MUTED")).toHaveLength(2)
-    expect(screen.getAllByText("MUTED").every((element) => element.classList.contains("is-technical"))).toBe(true)
+    expect(container.querySelector(".timeline-track-header.is-audio")?.className).toContain("is-muted")
+    expect(container.querySelector(".timeline-track-header.is-audio")?.textContent).not.toContain("MUTED")
   })
 
   it("opens track volume without changing it and resets to 100% explicitly", async () => {

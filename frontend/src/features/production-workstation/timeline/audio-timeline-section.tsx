@@ -67,10 +67,12 @@ function SoundTrackControl({ track, volume, collapsed, soloed, soloSuppressed, o
   const category = audioTrackRole(track)
   const state = track.muted || volume <= 0 ? "Muted" : soloed ? "Solo" : soloSuppressed ? "Outside solo" : `${gainToVolumePercent(volume)}%`
   const summary = `${name} · ${track.clips.length} clip${track.clips.length === 1 ? "" : "s"} · ${state}`
-  const actions = <>
+  const stateActions = <>
       <OperatorTooltip label={track.muted ? `Unmute ${name}` : `Mute ${name}`} detail="A persistent mix decision used by preview and export."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", track.muted && "is-active is-mute")} aria-label={track.muted ? `Unmute ${name}` : `Mute ${name}`} aria-pressed={track.muted} onClick={onMute}>M</Button></OperatorTooltip>
       <OperatorTooltip label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} detail="Temporary audition only. Script stays audible and export is unchanged."><Button variant="ghost" size="icon-sm" className={cn("sound-track-letter", soloed && "is-active is-solo")} aria-label={soloed ? `Remove ${name} from Solo` : `Solo ${name}`} aria-pressed={soloed} onClick={onSolo}>S</Button></OperatorTooltip>
       <TrackVolumeControl name={name} volume={volume} muted={track.muted} collapsed={collapsed} onChange={onVolumeChange} onCommit={onVolumeCommit} />
+    </>
+  const structureActions = <>
       {!collapsed && <OperatorIconButton label={`Add audio to ${name}`} detail="Choose an Audio Library source and place it in this exact track." className="sound-track-add" onClick={onAdd}><Plus /></OperatorIconButton>}
       <TrackActions name={name} role={category} renaming={renaming} draftName={draftName} onRenaming={setRenaming} onDraftName={setDraftName} onRename={onRename} onRole={onRole} onAdd={onAdd} onRemove={onRemove} />
     </>
@@ -80,9 +82,9 @@ function SoundTrackControl({ track, volume, collapsed, soloed, soloSuppressed, o
     icon={<SoundMediaIcon kind={category} />}
     iconClassName={cn(`is-category-${category}`, track.muted && "is-muted")}
     name={name}
-    meta={track.muted ? "MUTED" : soloed ? "SOLO" : soloSuppressed ? "Outside solo" : `${track.clips.length} clip${track.clips.length === 1 ? "" : "s"}`}
     title={summary}
-    actions={actions}
+    stateActions={stateActions}
+    structureActions={structureActions}
   />
 }
 
@@ -117,7 +119,7 @@ export function AudioTrackHeaders({ tracks, engineTracks, collapsed, soloTrackId
 }) {
   const byId = new Map(engineTracks.map((track) => [track.id, track]))
   return <>
-    <TimelineTrackHeader className="is-sequence" collapsed={collapsed} icon={<SoundMediaIcon kind="speech" />} iconClassName="is-sequence" name="Script" meta={sequenceSummary} />
+    <TimelineTrackHeader className="is-sequence" collapsed={collapsed} icon={<SoundMediaIcon kind="speech" />} iconClassName="is-sequence" name="Script" title={`Script · ${sequenceSummary}`} />
     {tracks.map((track) => <SoundTrackControl key={track.id} track={track} collapsed={collapsed} soloed={soloTrackIds.includes(track.id)} soloSuppressed={soloTrackIds.length > 0 && !soloTrackIds.includes(track.id)} volume={byId.get(track.id)?.volume ?? track.volume} onMute={() => onMute(track)} onSolo={() => onSolo(track)} onVolumeChange={(volume) => onVolumeChange(track, volume)} onVolumeCommit={(volume) => onVolumeCommit(track, volume)} onAdd={() => onAdd(track)} onRename={(name) => onRename(track, name)} onRole={(role) => onRole(track, role)} onRemove={() => onRemove(track)} />)}
   </>
 }
