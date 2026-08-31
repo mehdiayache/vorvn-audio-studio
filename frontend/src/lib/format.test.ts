@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { clipText, formatDuration, formatExactDurationMs, formatMoney, partDurationMs, textDirection } from "@/lib/format"
+import { clipText, formatDuration, formatExactDurationMs, formatMoney, formatTimecode, partDurationMs, textDirection } from "@/lib/format"
 
 describe("Production formatting contracts", () => {
   it("uses the explicit duration for recorded audio", () => {
@@ -13,6 +13,11 @@ describe("Production formatting contracts", () => {
 
   it("formats long production duration on one clock", () => {
     expect(formatDuration(3671)).toBe("1:01:11")
+  })
+
+  it("formats editor timecodes with millisecond precision", () => {
+    expect(formatTimecode(3671.245)).toBe("01:01:11.245")
+    expect(formatTimecode(-2)).toBe("00:00:00.000")
   })
 
   it("keeps exact fractional Silence duration", () => {

@@ -91,7 +91,7 @@ const TimelineMediaBrowser = memo(function TimelineMediaBrowser({ assets, produc
   </aside>
 })
 
-export function TimelineWorkbench({ selection, previewTarget, assets, productionAssetIds, usedAssetIds, document, hasVisualPlacements, playheadMs, playback, visualSession, soundSession, visualSaving, browserCollapsed, onBrowserCollapsedChange, inspector, inspectorTitle, onCloseInspector, onPreviewAsset, onReturnTimeline, onAddAsset }: {
+export function TimelineWorkbench({ selection, previewTarget, assets, productionAssetIds, usedAssetIds, document, hasVisualPlacements, playheadMs, playback, visualSession, soundSession, visualSaving, timelineTransport, browserCollapsed, onBrowserCollapsedChange, inspector, inspectorTitle, onCloseInspector, onPreviewAsset, onReturnTimeline, onAddAsset }: {
   selection: WorkstationSelection
   previewTarget: PreviewTarget
   assets: VentureAsset[]
@@ -104,6 +104,7 @@ export function TimelineWorkbench({ selection, previewTarget, assets, production
   visualSession?: VisualSceneSession
   soundSession: SoundSceneSession
   visualSaving: boolean
+  timelineTransport: ReactNode
   browserCollapsed: boolean
   onBrowserCollapsedChange: (collapsed: boolean) => void
   inspector?: ReactNode
@@ -117,7 +118,7 @@ export function TimelineWorkbench({ selection, previewTarget, assets, production
   return <div className={cn("timeline-workbench", browserCollapsed && "browser-collapsed", !inspector && "inspector-closed")}>
     <TimelineMediaBrowser assets={assets} productionAssetIds={productionAssetIds} usedAssetIds={usedAssetIds} collapsed={browserCollapsed} onCollapsedChange={onBrowserCollapsedChange} selectedAssetId={selectedAssetId} onPreview={onPreviewAsset} onAdd={onAddAsset} />
     <section className="timeline-monitor" aria-label="Preview">
-      <PreviewPane target={previewTarget} selection={selection} assets={assets} document={document} hasVisualPlacements={hasVisualPlacements} playheadMs={playheadMs} playback={playback} visualSession={visualSession} soundSession={soundSession} visualSaving={visualSaving} onReturnTimeline={onReturnTimeline} />
+      <PreviewPane target={previewTarget} selection={selection} assets={assets} document={document} hasVisualPlacements={hasVisualPlacements} playheadMs={playheadMs} playback={playback} visualSession={visualSession} soundSession={soundSession} visualSaving={visualSaving} timelineTransport={timelineTransport} onReturnTimeline={onReturnTimeline} />
     </section>
     {inspector && <aside className="timeline-workbench-inspector" aria-label="Contextual inspector"><WorkstationPaneHeader title={inspectorTitle || "Inspector"} heading actions={onCloseInspector ? <OperatorIconButton label="Close Inspector" onClick={onCloseInspector}><X /></OperatorIconButton> : undefined} /><div>{inspector}</div></aside>}
   </div>

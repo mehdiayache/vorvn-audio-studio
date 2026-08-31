@@ -151,7 +151,7 @@ export function TimelineWorkspace({ session, visual, productionAssetIds = [], in
     splitAudio: () => void session.splitClipsAtPlayhead(selectedRefs),
     splitVisual: () => { if (visual && selectedVisualRef) void visual.session.splitVideo(selectedVisualRef, playhead * 1000, selectedVisualAsset) },
     playAudioSelection: (loop) => { viewport.setFollowPlayhead(true); void session.playSelection(loop, selectedRefs) },
-    togglePlayback: () => { player.pause(); setPreviewTarget({ kind: "timeline" }); viewport.setFollowPlayhead(true); void session.togglePlayback() },
+    togglePlayback: () => { player.close(); setPreviewTarget({ kind: "timeline" }); viewport.setFollowPlayhead(true); void session.togglePlayback() },
     nudgeAudio: (deltaMs) => void session.nudgeClips(deltaMs, selectedRefs),
     nudgeVisual: (deltaMs) => void visual?.session.nudgeClips(selectedVisualRefs, deltaMs),
     seekStart: () => session.seek(0),
@@ -169,16 +169,11 @@ export function TimelineWorkspace({ session, visual, productionAssetIds = [], in
   ], [tracks, visualTracks])
   const previewSourceAsset = useCallback((asset: VentureAsset) => {
     session.pause()
-    player.pause()
+    player.close()
     setPreviewTarget({ kind: "source", assetId: asset.id })
   }, [player, session])
-  const previewSelectedClip = useCallback(() => {
-    session.pause()
-    player.pause()
-    setPreviewTarget({ kind: "clip" })
-  }, [player, session])
   const returnToTimelinePreview = useCallback(() => {
-    player.pause()
+    player.close()
     setPreviewTarget({ kind: "timeline" })
   }, [player])
   const addAssetAtPlayhead = useCallback(async (asset: VentureAsset) => {
@@ -200,6 +195,7 @@ export function TimelineWorkspace({ session, visual, productionAssetIds = [], in
       visualSession={visual?.session}
       soundSession={session}
       visualSaving={visualState.saving}
+      timelineTransport={<TimelineTransport session={session} onActivateTimeline={returnToTimelinePreview} />}
       browserCollapsed={layout.browserCollapsed}
       onBrowserCollapsedChange={layout.setBrowserCollapsed}
       inspector={inspector}
@@ -215,7 +211,6 @@ export function TimelineWorkspace({ session, visual, productionAssetIds = [], in
       layout.setWorkbenchHeight(Math.max(220, Math.min(620, layout.workbenchHeight + (event.key === "ArrowDown" ? 16 : -16))))
     }} onPointerDown={layout.begin} onPointerMove={layout.move} onPointerUp={layout.end} onPointerCancel={layout.end} />
     <TimelineToolbar
-      transport={<TimelineTransport session={session} onActivateTimeline={returnToTimelinePreview} />}
       canUndo={history.canUndo}
       canRedo={history.canRedo}
       undoDomain={history.undoDomain}
@@ -255,8 +250,8 @@ export function TimelineWorkspace({ session, visual, productionAssetIds = [], in
         <div className="sound-scene-scroll" ref={viewport.scrollRef} onScroll={(event) => viewport.syncVerticalScroll(event.currentTarget.scrollTop)}>
           <div className="sound-scene-timeline" style={{ width: viewport.width, gridTemplateRows: rowTemplate }} onPointerDown={viewport.panTimeline}>
             <TimelineRuler marks={viewport.marks} pixelsPerSecond={pixelsPerSecond} playhead={playhead} playbackRange={playbackRange} snapGuide={snapping.guide} onSeek={viewport.seekFromPointer} />
-            <VisualTimelineSection tracks={visualTracks} assets={visual?.assets || []} selection={selectedVisualRefs} styleFor={styleFor} onSelect={(event, ref) => { const modified = event.nativeEvent as MouseEvent | KeyboardEvent; previewSelectedClip(); visual?.session.selectClip(ref, modified.shiftKey || modified.metaKey || modified.ctrlKey); session.select(null) }} onGesture={(event, ref, mode) => { previewSelectedClip(); visualGesture(event, ref, mode) }} onAdd={(trackId) => visual?.onAddVisual(trackId)} onPan={viewport.panTimeline} />
-            <AudioTimelineSection scene={scene} tracks={tracks} engineTracks={engine.tracks} selection={selection} selectedRefs={selectedRefs} soloTrackIds={soloTrackIds} pixelsPerSecond={pixelsPerSecond} styleFor={styleFor} currentClip={(trackId, clipId) => session.currentClip(trackId, clipId)} onSelectPart={(partId) => { previewSelectedClip(); session.select({ kind: "part", id: partId }); visual?.session.select(null) }} onPreviewPartMix={(partPublicId, changes) => session.previewSequenceOverride(partPublicId, changes)} onCommitPartMix={(partPublicId, changes) => { void session.updateSequenceOverride(partPublicId, changes) }} onSelectClip={(event, trackId, clipId) => { previewSelectedClip(); session.selectClip(trackId, clipId, event.shiftKey || event.metaKey || event.ctrlKey); visual?.session.select(null) }} onGesture={(event, trackId, clipId, mode) => { previewSelectedClip(); audioGesture(event, trackId, clipId, mode) }} onAdd={(trackId) => onAddAudio({ mode: "add-clip", trackId })} onPan={viewport.panTimeline} saving={saving} />
+            <VisualTimelineSection tracks={visualTracks} assets={visual?.assets || []} selection={selectedVisualRefs} styleFor={styleFor} onSelect={(event, ref) => { const modified = event.nativeEvent as MouseEvent | KeyboardEvent; returnToTimelinePreview(); visual?.session.selectClip(ref, modified.shiftKey || modified.metaKey || modified.ctrlKey); session.select(null) }} onGesture={(event, ref, mode) => { returnToTimelinePreview(); visualGesture(event, ref, mode) }} onAdd={(trackId) => visual?.onAddVisual(trackId)} onPan={viewport.panTimeline} />
+            <AudioTimelineSection scene={scene} tracks={tracks} engineTracks={engine.tracks} selection={selection} selectedRefs={selectedRefs} soloTrackIds={soloTrackIds} pixelsPerSecond={pixelsPerSecond} styleFor={styleFor} currentClip={(trackId, clipId) => session.currentClip(trackId, clipId)} onSelectPart={(partId) => { returnToTimelinePreview(); session.select({ kind: "part", id: partId }); visual?.session.select(null) }} onPreviewPartMix={(partPublicId, changes) => session.previewSequenceOverride(partPublicId, changes)} onCommitPartMix={(partPublicId, changes) => { void session.updateSequenceOverride(partPublicId, changes) }} onSelectClip={(event, trackId, clipId) => { returnToTimelinePreview(); session.selectClip(trackId, clipId, event.shiftKey || event.metaKey || event.ctrlKey); visual?.session.select(null) }} onGesture={(event, trackId, clipId, mode) => { returnToTimelinePreview(); audioGesture(event, trackId, clipId, mode) }} onAdd={(trackId) => onAddAudio({ mode: "add-clip", trackId })} onPan={viewport.panTimeline} saving={saving} />
           </div>
         </div>
         <TimelineZoom index={viewport.zoomIndex} maximum={SOUND_SCENE_ZOOM_LEVELS.length - 1} pixelsPerSecond={pixelsPerSecond} onChange={viewport.setCenteredZoom} onFit={viewport.fitTimeline} />

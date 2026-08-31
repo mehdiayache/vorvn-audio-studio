@@ -5,13 +5,11 @@ import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { SoundMediaIcon } from "@/features/sound-scene/audio-presentation"
-import type { ReactNode } from "react"
 import type { TimelineHistoryDomain } from "./use-timeline-history"
 
 const domainLabel = (domain: TimelineHistoryDomain) => domain === "visual" ? "visual" : "audio"
 
-export function TimelineToolbar({ transport, canUndo, canRedo, undoDomain, redoDomain, saving, snapping, followPlayhead, hasVisualScene, onUndo, onRedo, onMoveView, onSnappingChange, onFollowPlayheadChange, onAddVisual, onAddAudio }: {
-  transport: ReactNode
+export function TimelineToolbar({ canUndo, canRedo, undoDomain, redoDomain, saving, snapping, followPlayhead, hasVisualScene, onUndo, onRedo, onMoveView, onSnappingChange, onFollowPlayheadChange, onAddVisual, onAddAudio }: {
   canUndo: boolean
   canRedo: boolean
   undoDomain: TimelineHistoryDomain
@@ -41,9 +39,6 @@ export function TimelineToolbar({ transport, canUndo, canRedo, undoDomain, redoD
         <OperatorTooltip label={snapping ? "Turn snapping off" : "Turn snapping on"} detail="Aligns clip edges to the playhead, Script Parts, and other clip edges. Hold Alt while dragging to bypass it temporarily."><Button variant="ghost" size="icon-sm" className={snapping ? "is-active" : undefined} aria-label={snapping ? "Turn snapping off" : "Turn snapping on"} aria-pressed={snapping} onClick={() => onSnappingChange(!snapping)}><Magnet /></Button></OperatorTooltip>
         <OperatorTooltip label="Keep the playhead visible during playback"><Button variant="ghost" size="sm" className={followPlayhead ? "is-active" : undefined} aria-pressed={followPlayhead} onClick={() => onFollowPlayheadChange(!followPlayhead)}><LocateFixed /><span>Follow</span></Button></OperatorTooltip>
       </div>
-    </div>
-    <div className="timeline-transport-slot">
-      {transport}
     </div>
     <div className="timeline-insert-actions" aria-label="Timeline insert actions">
       <span className="sound-scene-save-state">{saving && <b>Saving…</b>}</span>

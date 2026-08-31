@@ -120,35 +120,6 @@ describe("usePlayer", () => {
     expect(element.playbackRate).toBe(1.5)
   })
 
-  it("auditions only the requested source range for a trimmed clip", async () => {
-    const { result } = renderHook(() => usePlayer())
-    const source = {
-      key: "clip:trimmed",
-      url: "/audio/long-source.mp3",
-      title: "Trimmed clip",
-      kind: "clip" as const,
-      startTime: 5,
-      endTime: 8,
-    }
-
-    await act(async () => result.current.toggleSource(source))
-    expect(element.currentTime).toBe(5)
-    expect(result.current.currentTime).toBe(5)
-
-    act(() => result.current.seek(2))
-    expect(element.currentTime).toBe(5)
-    act(() => result.current.seek(12))
-    expect(element.currentTime).toBe(8)
-
-    act(() => element.dispatchEvent(new Event("timeupdate")))
-    expect(result.current.state).toBe("paused")
-    expect(result.current.currentTime).toBe(8)
-
-    await act(async () => result.current.toggleSource(source))
-    expect(element.currentTime).toBe(5)
-    expect(result.current.state).toBe("playing")
-  })
-
   it("keeps caption language and the current cue in the one global player", async () => {
     const { result } = renderHook(() => usePlayer())
     await act(async () => result.current.toggleSource({

@@ -20,7 +20,7 @@ describe("TimelinePreview", () => {
     const asset = { id: 8, media_type: "image", name: "Harbour", filename: "harbour.jpg", width: 1920, height: 1080 } as VentureAsset
     const session = { setCanvas } as unknown as VisualSceneSession
 
-    render(<TimelinePreview document={document} assets={[asset]} playheadMs={0} playback="idle" selection={{ trackId: "image-track", clipId: "image-clip" }} session={session} saving={false} />)
+    render(<TimelinePreview document={document} assets={[asset]} playheadMs={0} playback="idle" selection={{ trackId: "image-track", clipId: "image-clip" }} session={session} saving={false} transport={<span>Transport</span>} />)
 
     expect((screen.getByLabelText("Visual monitor").firstElementChild as HTMLElement).style.getPropertyValue("--visual-scene-aspect")).toBe("1.7777777777777777")
     fireEvent.pointerDown(screen.getByRole("button", { name: "Production format 16:9" }), { button: 0, ctrlKey: false })
@@ -33,7 +33,7 @@ describe("TimelinePreview", () => {
   it("publishes the exact portrait aspect used by the responsive Viewer fit", () => {
     const document: VisualSceneDocument = { version: 1, canvas: { width: 1080, height: 1920 }, tracks: [] }
     const session = { setCanvas: vi.fn() } as unknown as VisualSceneSession
-    render(<TimelinePreview document={document} assets={[]} playheadMs={0} playback="idle" selection={null} session={session} saving={false} />)
+    render(<TimelinePreview document={document} assets={[]} playheadMs={0} playback="idle" selection={null} session={session} saving={false} transport={<span>Transport</span>} />)
 
     const frame = screen.getByLabelText("Visual monitor").firstElementChild as HTMLElement
     expect(frame.style.aspectRatio).toBe("1080 / 1920")
@@ -47,20 +47,21 @@ describe("TimelinePreview", () => {
       tracks: [],
     }
     const session = { setCanvas: vi.fn() } as unknown as VisualSceneSession
-    render(<TimelinePreview document={document} assets={[]} playheadMs={0} playback="idle" selection={null} session={session} saving={false} />)
+    render(<TimelinePreview document={document} assets={[]} playheadMs={0} playback="idle" selection={null} session={session} saving={false} transport={<span>Transport</span>} />)
 
     expect(screen.getByLabelText("Timeline Preview")).toBeTruthy()
     expect(screen.getByText("Preview")).toBeTruthy()
     expect(screen.getByLabelText("Timeline Preview canvas controls")).toBeTruthy()
     expect(screen.getByRole("button", { name: /Production format/ })).toBeTruthy()
-    expect(screen.getByLabelText("Timeline Preview status")).toBeTruthy()
+    expect(screen.getByLabelText("Timeline Preview transport")).toBeTruthy()
+    expect(screen.getByText("Transport")).toBeTruthy()
     expect(screen.getByText("timeline")).toBeTruthy()
   })
 
   it("zooms the Timeline Preview viewport without changing clip framing", () => {
     const document: VisualSceneDocument = { version: 1, canvas: { width: 1920, height: 1080 }, tracks: [] }
     const session = { setCanvas: vi.fn() } as unknown as VisualSceneSession
-    const { container } = render(<TimelinePreview document={document} assets={[]} playheadMs={0} playback="idle" selection={null} session={session} saving={false} />)
+    const { container } = render(<TimelinePreview document={document} assets={[]} playheadMs={0} playback="idle" selection={null} session={session} saving={false} transport={<span>Transport</span>} />)
 
     expect(screen.getByRole("button", { name: "Pan Timeline Preview canvas" }).hasAttribute("disabled")).toBe(true)
     fireEvent.click(screen.getByRole("button", { name: "Zoom Timeline Preview in" }))

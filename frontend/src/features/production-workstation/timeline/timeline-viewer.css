@@ -1,4 +1,4 @@
-.timeline-viewer { --viewer-frame-rule: color-mix(in oklab, var(--foreground) 22%, transparent); min-width: 0; min-height: 0; display: grid; grid-template-rows: var(--workstation-pane-header-height, 2.25rem) minmax(0, 1fr) 2rem; overflow: hidden; color: var(--foreground); background: white; }
+.timeline-viewer { --viewer-frame-rule: color-mix(in oklab, var(--foreground) 22%, transparent); min-width: 0; min-height: 0; display: grid; grid-template-rows: var(--workstation-pane-header-height, 2.25rem) minmax(0, 1fr) 2.25rem; overflow: hidden; color: var(--foreground); background: white; }
 .preview-canvas-controls { min-width: 0; display: flex; align-items: center; gap: .03rem; }
 .preview-canvas-controls [data-slot="button"] { flex: none; width: 1.65rem; height: 1.65rem; color: var(--foreground); }
 .preview-canvas-controls [data-slot="button"] svg { width: .75rem; }
@@ -12,10 +12,8 @@
 .timeline-viewer-stage.is-pan-mode { cursor: grab; }.timeline-viewer-stage.is-pan-mode:active { cursor: grabbing; }
 .timeline-viewer-stage.is-pan-mode .visual-scene-monitor-frame { transition: none; }
 .timeline-viewer-stage.show-transparency-grid .visual-scene-monitor-frame { background-color: white; background-image: linear-gradient(45deg, var(--muted) 25%, transparent 25%), linear-gradient(-45deg, var(--muted) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--muted) 75%), linear-gradient(-45deg, transparent 75%, var(--muted) 75%); background-position: 0 0, 0 6px, 6px -6px, -6px 0; background-size: 12px 12px; }
-.timeline-preview-status { min-width: 0; display: grid; grid-template-columns: 3.25rem minmax(0, 1fr) auto; align-items: center; gap: .5rem; padding: 0 .65rem; border-top: 1px solid var(--border); background: white; }
-.timeline-preview-status b { font: var(--weight-emphasis) var(--type-workstation-label)/1 var(--font-mono); font-variant-numeric: tabular-nums; }
-.timeline-preview-status small { overflow: hidden; color: var(--muted-foreground); font-size: var(--type-workstation-data); text-overflow: ellipsis; white-space: nowrap; }
-.timeline-preview-status span { color: var(--primary); font-size: var(--type-workstation-data); }
+.timeline-preview-footer { position: relative; min-width: 0; display: grid; place-items: center; padding: 0 .65rem; border-top: 1px solid var(--border); background: white; }
+.timeline-preview-save-state { position: absolute; right: .65rem; color: var(--primary); font-size: var(--type-workstation-data); }
 .timeline-viewer-format-menu [data-slot="dropdown-menu-radio-item"] { min-width: 10rem; }
 .timeline-viewer-format-menu [data-slot="dropdown-menu-radio-item"] small { margin-left: auto; color: var(--muted-foreground); font: var(--weight-regular) var(--type-workstation-secondary)/1 var(--font-mono); }
 @container (max-width: 42rem) {

@@ -1,5 +1,5 @@
 import { ChevronDown, Grid2X2, Hand, Maximize2, Minus, MonitorPlay, Plus, Ratio } from "lucide-react"
-import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
+import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
 
 import { OperatorIconButton } from "@/components/operator-action"
 import { Button } from "@/components/ui/button"
@@ -11,10 +11,8 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { visualAssetName } from "@/features/production-workstation/director/director-assets"
 import type { VisualClipRef, VisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
 import { VisualSceneMonitor } from "@/features/visual-scene/timeline/visual-scene-monitor"
-import { formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { VentureAsset, VisualSceneDocument } from "@/types/domain"
 
@@ -36,7 +34,7 @@ function canvasPreset(document: VisualSceneDocument) {
   return CANVAS_PRESETS.find((preset) => preset.width * document.canvas.height === preset.height * document.canvas.width)?.id || "Custom"
 }
 
-export function TimelinePreview({ document, assets, playheadMs, playback, selection, session, saving }: {
+export function TimelinePreview({ document, assets, playheadMs, playback, selection, session, saving, transport }: {
   document: VisualSceneDocument
   assets: VentureAsset[]
   playheadMs: number
@@ -44,18 +42,14 @@ export function TimelinePreview({ document, assets, playheadMs, playback, select
   selection: VisualClipRef | null
   session: VisualSceneSession
   saving: boolean
+  transport: ReactNode
 }) {
   const [previewZoom, setPreviewZoom] = useState(1)
   const [previewPan, setPreviewPan] = useState({ x: 0, y: 0 })
   const [panMode, setPanMode] = useState(false)
   const [transparencyGrid, setTransparencyGrid] = useState(false)
   const panGesture = useRef<{ pointerId: number; x: number; y: number; originX: number; originY: number } | null>(null)
-  const activePlacement = document.tracks.flatMap((track) => track.visible
-    ? track.clips.filter((clip) => playheadMs >= clip.start_ms && playheadMs < clip.start_ms + clip.duration_ms)
-    : []).at(0)
-  const activeAsset = activePlacement ? assets.find((asset) => asset.id === activePlacement.asset_id) : null
   const preset = canvasPreset(document)
-  const activeName = activeAsset ? visualAssetName(activeAsset) : "No visual at playhead"
 
   function changePreviewZoom(next: number) {
     const zoom = Math.max(MIN_PREVIEW_ZOOM, Math.min(MAX_PREVIEW_ZOOM, Number(next.toFixed(2))))
@@ -137,10 +131,9 @@ export function TimelinePreview({ document, assets, playheadMs, playback, select
     >
       <VisualSceneMonitor document={document} assets={assets} playheadMs={playheadMs} playback={playback} selection={selection} session={session} />
     </div>
-    <footer className="timeline-preview-status" aria-label="Timeline Preview status">
-      <b>{formatDuration(playheadMs / 1_000)}</b>
-      <small title={activeName}>{activeName}</small>
-      <span>{saving ? "Saving…" : playback === "preparing" ? "Preparing…" : ""}</span>
+    <footer className="timeline-preview-footer" aria-label="Timeline Preview transport">
+      {transport}
+      <span className="timeline-preview-save-state">{saving ? "Saving…" : ""}</span>
     </footer>
   </aside>
 }

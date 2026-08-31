@@ -174,9 +174,11 @@ describe("Production Workstation", () => {
     expect(screen.getByRole("button", { name: "Redo audio edit" }).textContent).toBe("")
     const commandBar = screen.getByLabelText("Timeline command bar")
     const transport = screen.getByLabelText("Timeline transport")
+    const preview = screen.getByLabelText("Timeline Preview")
     const stage = container.querySelector(".sound-scene-stage")
     const selectionBar = screen.getByLabelText("Selection actions")
-    expect(commandBar.contains(transport)).toBe(true)
+    expect(commandBar.contains(transport)).toBe(false)
+    expect(preview.contains(transport)).toBe(true)
     const selectionOrder = stage?.compareDocumentPosition(selectionBar) ?? 0
     expect(selectionOrder & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
