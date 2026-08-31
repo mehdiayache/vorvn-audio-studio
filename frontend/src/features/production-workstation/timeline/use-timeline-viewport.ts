@@ -5,11 +5,6 @@ import type { SoundSceneSession } from "@/features/sound-scene/engine/sound-scen
 
 const SAMPLE_RATE = 48_000
 const TICK_STEPS = [.1, .25, .5, 1, 2, 5, 10, 15, 30, 60]
-export const VIEWER_DEFAULT_WIDTH = 320
-export const VIEWER_MIN_WIDTH = 240
-export const VIEWER_MAX_WIDTH = 520
-const VIEWER_WIDTH_STORAGE_KEY = "auvi.timeline.viewer-width"
-
 function tickStep(pixelsPerSecond: number) {
   return TICK_STEPS.find((step) => step * pixelsPerSecond >= 70) || 60
 }
@@ -22,26 +17,12 @@ export function useTimelineViewport({ session, total, pixelsPerSecond, samplesPe
   playhead: number
   playback: "idle" | "preparing" | "playing"
 }) {
-  const [viewerCollapsed, setViewerCollapsed] = useState(false)
-  const [viewerWidth, setViewerWidth] = useState(() => {
-    if (typeof window === "undefined") return VIEWER_DEFAULT_WIDTH
-    try {
-      const stored = Number(window.localStorage.getItem(VIEWER_WIDTH_STORAGE_KEY))
-      return Number.isFinite(stored)
-        ? Math.min(VIEWER_MAX_WIDTH, Math.max(VIEWER_MIN_WIDTH, stored))
-        : VIEWER_DEFAULT_WIDTH
-    } catch {
-      return VIEWER_DEFAULT_WIDTH
-    }
-  })
-  const [viewerResizing, setViewerResizing] = useState(false)
   const [followPlayhead, setFollowPlayhead] = useState(true)
   const [panning, setPanning] = useState(false)
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(920)
   const scrollRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<HTMLElement>(null)
   const activeCancel = useRef<(() => void) | null>(null)
-  const viewerResize = useRef<{ startX: number; startWidth: number } | null>(null)
   const zoomIndex = soundSceneZoomIndex(samplesPerPixel)
   const width = Math.max(timelineViewportWidth, Math.ceil(total * pixelsPerSecond))
   const step = tickStep(pixelsPerSecond)
@@ -49,41 +30,6 @@ export function useTimelineViewport({ session, total, pixelsPerSecond, samplesPe
     () => Array.from({ length: Math.floor(total / step) + 1 }, (_, index) => index * step),
     [step, total],
   )
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(VIEWER_WIDTH_STORAGE_KEY, String(Math.round(viewerWidth)))
-    } catch {
-      // Browser storage is an optional preference only.
-    }
-  }, [viewerWidth])
-
-  const resizeViewer = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
-    const active = viewerResize.current
-    if (!active) return
-    const stageWidth = event.currentTarget.parentElement?.clientWidth || VIEWER_MAX_WIDTH * 2
-    const maximum = Math.min(VIEWER_MAX_WIDTH, Math.max(VIEWER_MIN_WIDTH, stageWidth * .46))
-    setViewerWidth(Math.min(maximum, Math.max(VIEWER_MIN_WIDTH, active.startWidth + event.clientX - active.startX)))
-  }, [])
-
-  const finishViewerResize = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (!viewerResize.current) return
-    resizeViewer(event)
-    viewerResize.current = null
-    setViewerResizing(false)
-    event.currentTarget.releasePointerCapture?.(event.pointerId)
-  }, [resizeViewer])
-
-  const adjustViewerWidth = useCallback((delta: number) => {
-    setViewerWidth((current) => Math.min(VIEWER_MAX_WIDTH, Math.max(VIEWER_MIN_WIDTH, current + delta)))
-  }, [])
-
-  const beginViewerResize = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
-    event.preventDefault()
-    event.currentTarget.setPointerCapture?.(event.pointerId)
-    viewerResize.current = { startX: event.clientX, startWidth: viewerWidth }
-    setViewerResizing(true)
-  }, [viewerWidth])
 
   const seekFromPointer = useCallback((event: ReactPointerEvent) => {
     const scroll = scrollRef.current
@@ -214,14 +160,6 @@ export function useTimelineViewport({ session, total, pixelsPerSecond, samplesPe
     width,
     marks,
     zoomIndex,
-    viewerCollapsed,
-    setViewerCollapsed,
-    viewerWidth,
-    viewerResizing,
-    resizeViewer,
-    finishViewerResize,
-    beginViewerResize,
-    adjustViewerWidth,
     followPlayhead,
     setFollowPlayhead,
     panning,

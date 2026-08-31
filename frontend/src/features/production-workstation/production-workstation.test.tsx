@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render as testingRender, screen, waitFor } from "@testing-library/react"
+import type { ReactElement } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
 
 import type { DurableJob, GeneratePayload, GenerateResult, ProductionPart, SoundScene, VisualScene, VoiceDirectory } from "@/types/domain"
 import { audioUrl } from "@/lib/api"
+import { GlobalPlayerProvider } from "@/components/global-player-provider"
 import { InlineProductionName } from "./workstation-header"
 import { WorkstationAssetCard, WorkstationOutline, WorkstationSequence, WorkstationSequenceCard, workstationPartState, type WorkstationPartActions } from "./workstation-sequence"
 import { TimelineWorkspace } from "@/features/production-workstation/timeline/timeline-workspace"
@@ -17,8 +19,13 @@ class ResizeObserverMock {
   disconnect() {}
 }
 globalThis.ResizeObserver = ResizeObserverMock
+Object.defineProperty(globalThis.HTMLMediaElement.prototype, "pause", { configurable: true, value: vi.fn() })
 const sessions: SoundSceneSession[] = []
 afterEach(() => { sessions.splice(0).forEach((session) => session.dispose()); cleanup() })
+
+function render(ui: ReactElement) {
+  return testingRender(<GlobalPlayerProvider>{ui}</GlobalPlayerProvider>)
+}
 
 const directory = { config: null, cloned: [], meta: {}, catalog: [] } as VoiceDirectory
 const musicClipId = "78af885c-aeb4-49bf-9edb-d3fc14496b2c"
@@ -192,7 +199,7 @@ describe("Production Workstation", () => {
     expect(onAddAudio).toHaveBeenCalledWith({ mode: "new-track" })
   })
 
-  it("uses the full Timeline when no visual media is placed and reveals the Viewer after a placement exists", () => {
+  it("keeps audio-only Productions neutral and reveals the Program Monitor after a visual placement exists", () => {
     const emptyVisual: VisualScene = {
       production_id: 6,
       revision: 1,
@@ -202,7 +209,8 @@ describe("Production Workstation", () => {
     const props = { session: sessionFor(scene([part({ duration_ms: 30_000 })])), assets: [], onAddVisual: vi.fn(), onRemoveClip: vi.fn(), onRemoveTrack: vi.fn() }
     const { unmount } = render(<TimelineWorkspace session={props.session} visual={{ ...props, session: visualSessionFor(emptyVisual) }} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
-    expect(screen.queryByLabelText("Production viewer")).toBeNull()
+    expect(screen.queryByLabelText("Program Monitor")).toBeNull()
+    expect(screen.getByLabelText("Adaptive Monitor").textContent).toContain("Select media or a Timeline placement")
     expect(screen.getByRole("button", { name: "Add image to Image track" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Add image to Image track" }).textContent).toBe("")
     unmount()
@@ -210,11 +218,9 @@ describe("Production Workstation", () => {
     const placedVisual: VisualScene = { ...emptyVisual, document: { ...emptyVisual.document, tracks: [{ ...emptyVisual.document.tracks[0]!, clips: [{ id: "placement", asset_id: 91, start_ms: 0, duration_ms: 5_000, source_offset_ms: 0, fit: "cover", position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1, locked: false }] }] } }
     render(<TimelineWorkspace session={sessionFor(scene([part({ duration_ms: 30_000 })]))} visual={{ ...props, session: visualSessionFor(placedVisual) }} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
-    expect(screen.getByLabelText("Production viewer")).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Hide Viewer" }))
-    expect(screen.getByLabelText("Production viewer").className).toContain("is-collapsed")
-    fireEvent.click(screen.getByRole("button", { name: "Show Viewer" }))
-    expect(screen.getByRole("button", { name: "Add visual at playhead" })).toBeTruthy()
+    expect(screen.getByLabelText("Program Monitor")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Resize Monitor and Timeline" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Add to Timeline" })).toBeTruthy()
   })
 
   it("shows a muted track at zero while preserving its volume for unmute", () => {

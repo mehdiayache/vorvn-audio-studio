@@ -25,7 +25,7 @@ export function TimelineStage({ centerPaneRef, directorAssetIds, ...workspacePro
   const usedVisualAssetIds = visual?.session.snapshot().document.tracks.flatMap((track) => track.clips.map((clip) => clip.asset_id)) || []
   const workspaceVisual = visual ? { ...visual, onAddVisual: (trackId?: string) => setTargetTrackId(trackId || null) } : undefined
   return <main className="ws-center-pane" ref={centerPaneRef}>
-    <TimelineWorkspace {...workspaceProps} visual={workspaceVisual} />
+    <TimelineWorkspace {...workspaceProps} visual={workspaceVisual} productionAssetIds={directorAssetIds} />
     {visual && <DirectorLibraryDialog open={targetTrackId !== undefined} assets={availableVisuals} productionAssetIds={directorAssetIds} usedAssetIds={usedVisualAssetIds} defaultSource="production" pendingId={pendingId} title={targetMediaType ? `Add ${targetMediaType} to Timeline` : "Add media to Timeline"} description={targetMediaType ? `Choose a ${targetMediaType} from this Production, Venture or Studio Library. It will be placed on this ${targetMediaType === "video" ? "Video" : "Image"} track at the playhead.` : "Choose an image or video from this Production, Venture or Studio Library. A matching track will be used or created at the playhead."} emptyDescription={`Upload ${targetMediaType ? `a ${targetMediaType}` : "an image or video"} in Director first.`} addLabel={targetTrackId ? "Add to track" : "Add at playhead"} onOpenChange={(open) => { if (!open) setTargetTrackId(undefined) }} onPreview={setPreviewAsset} onAdd={(asset) => {
       setPendingId(asset.id)
       void visual.session.addVisual(asset, workspaceProps.session.snapshot().playhead * 1000, targetTrackId || undefined).then(() => setTargetTrackId(undefined)).finally(() => setPendingId(null))

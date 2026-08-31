@@ -10,7 +10,7 @@ import { TimelineViewer } from "./timeline-viewer"
 afterEach(cleanup)
 
 describe("TimelineViewer", () => {
-  it("keeps the production format in the left viewer without exposing clip fit mechanics", () => {
+  it("keeps the production format in Program without exposing clip fit mechanics", () => {
     const setCanvas = vi.fn()
     const document: VisualSceneDocument = {
       version: 1,
@@ -40,22 +40,18 @@ describe("TimelineViewer", () => {
     expect(frame.style.getPropertyValue("--visual-scene-aspect")).toBe("0.5625")
   })
 
-  it("keeps Viewer controls inside the Viewer and collapses to a recoverable rail", () => {
-    const onCollapsedChange = vi.fn()
+  it("keeps Program controls inside a stable Monitor", () => {
     const document: VisualSceneDocument = {
       version: 1,
       canvas: { width: 1920, height: 1080 },
       tracks: [],
     }
     const session = { setCanvas: vi.fn() } as unknown as VisualSceneSession
-    const { rerender } = render(<TimelineViewer document={document} assets={[]} playheadMs={0} playback="idle" selection={null} session={session} saving={false} onCollapsedChange={onCollapsedChange} onAddMedia={vi.fn()} />)
+    render(<TimelineViewer document={document} assets={[]} playheadMs={0} playback="idle" selection={null} session={session} saving={false} />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Hide Viewer" }))
-    expect(onCollapsedChange).toHaveBeenCalledWith(true)
-
-    rerender(<TimelineViewer document={document} assets={[]} playheadMs={0} playback="idle" selection={null} session={session} saving={false} collapsed onCollapsedChange={onCollapsedChange} onAddMedia={vi.fn()} />)
-    expect(screen.getByRole("button", { name: "Show Viewer" })).toBeTruthy()
-    expect(screen.queryByRole("button", { name: /Production format/ })).toBeNull()
-    expect(screen.queryByRole("button", { name: "Add visual at playhead" })).toBeNull()
+    expect(screen.getByLabelText("Program Monitor")).toBeTruthy()
+    expect(screen.getByText("Program")).toBeTruthy()
+    expect(screen.getByRole("button", { name: /Production format/ })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: /Viewer/ })).toBeNull()
   })
 })

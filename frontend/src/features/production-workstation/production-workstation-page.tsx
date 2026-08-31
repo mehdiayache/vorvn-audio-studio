@@ -402,7 +402,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
     }, undefined, stage !== "sound",
   )
   return <>
-    <section className="production-workstation" data-stage={stage} data-outline-open={(stage === "director" ? directorCreateOpen : outlineOpen) ? "true" : "false"} data-inspector-open={inspectorOpen ? "true" : "false"} data-inspector-expanded={composerOpen ? "true" : "false"}>
+    <section className="production-workstation" data-stage={stage} data-outline-open={(stage === "director" ? directorCreateOpen : outlineOpen) ? "true" : "false"} data-inspector-open={inspectorOpen && stage !== "sound" ? "true" : "false"} data-inspector-expanded={composerOpen ? "true" : "false"}>
       <WorkstationHeader production={production} tree={tree} duration={duration} stage={stage} issueCount={issues.length + staleOverrides.length} previewing={stage === "sound" ? soundState.playback === "preparing" : actions.previewing} playing={stage === "sound" ? soundState.playback === "playing" : actions.productionPlaying} mutationStatus={actions.mutationStatus} onStage={changeStage} onPreview={() => { if (stage === "sound") void soundSession.togglePlayback(); else void actions.toggleProduction() }} onExport={() => setExportOpen(true)} onAdd={openTool} onDelete={() => setDeleteProductionOpen(true)} onRename={renameProduction} />
       <div className="ws-body">
         {stage === "sequence" && <ScriptStage
@@ -451,6 +451,9 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
           centerPaneRef={centerPaneRef}
           directorAssetIds={directorAssetIds}
           session={soundSession}
+          inspector={inspectorOpen ? inspector : undefined}
+          inspectorTitle={inspectorTitle}
+          onCloseInspector={closeInspector}
           visual={{
             session: visualSession,
             assets,
@@ -484,13 +487,12 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
             action: () => soundSession.removeTrack(track.id),
           })}
         />}
-        {inspectorOpen && <aside className="ws-right-pane" aria-label="Contextual inspector">
+        {inspectorOpen && stage !== "sound" && <aside className="ws-right-pane" aria-label="Contextual inspector">
           <header><h2>{inspectorTitle}</h2><OperatorIconButton label="Close inspector" detail="Keeps the current Production changes." onClick={closeInspector}><X /></OperatorIconButton></header>
           <div className="ws-inspector-content">{inspector}</div>
         </aside>}
       </div>
-      <ProductionFloatingTransport
-        soundSession={stage === "sound" ? soundSession : undefined}
+      {stage !== "sound" && <ProductionFloatingTransport
         previewStale={Boolean(player.source?.kind === "production" && !actions.productionLoaded)}
         onRefreshPreview={() => void actions.toggleProduction()}
         onOpenCaptionContext={(partId) => {
@@ -499,7 +501,7 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
           setSelectedId(partId)
           setCaptionPartId(partId)
         }}
-      />
+      />}
     </section>
     <ExportDialog
       open={exportOpen}
