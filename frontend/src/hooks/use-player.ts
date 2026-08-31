@@ -25,14 +25,34 @@ export function usePlayer() {
     element.volume = volume
     element.playbackRate = speed
     audio.current = element
-    const updateTime = () => setCurrentTime(element.currentTime || 0)
+    const updateTime = () => {
+      const next = element.currentTime || 0
+      const end = sourceRef.current?.endTime
+      if (typeof end === "number" && next >= end - .015) {
+        element.pause()
+        try { element.currentTime = end } catch { /* retain the last seekable frame */ }
+        setCurrentTime(end)
+        setState("paused")
+        return
+      }
+      setCurrentTime(next)
+    }
     const updateDuration = () => setDuration(Number.isFinite(element.duration) ? element.duration : 0)
+    const applySourceStart = () => {
+      const start = Math.max(0, Number(sourceRef.current?.startTime || 0))
+      const end = sourceRef.current?.endTime
+      if (element.currentTime < start || (typeof end === "number" && element.currentTime >= end - .015)) {
+        try { element.currentTime = start } catch { /* metadata will retry */ }
+        setCurrentTime(start)
+      }
+    }
     const onPlaying = () => setState("playing")
     const onPause = () => setState(sourceRef.current ? "paused" : "idle")
     const onWaiting = () => setState("loading")
     const onError = () => setState("error")
     element.addEventListener("timeupdate", updateTime)
     element.addEventListener("durationchange", updateDuration)
+    element.addEventListener("loadedmetadata", applySourceStart)
     element.addEventListener("playing", onPlaying)
     element.addEventListener("pause", onPause)
     element.addEventListener("waiting", onWaiting)
@@ -44,6 +64,7 @@ export function usePlayer() {
       element.removeAttribute("src")
       element.removeEventListener("timeupdate", updateTime)
       element.removeEventListener("durationchange", updateDuration)
+      element.removeEventListener("loadedmetadata", applySourceStart)
       element.removeEventListener("playing", onPlaying)
       element.removeEventListener("pause", onPause)
       element.removeEventListener("waiting", onWaiting)
@@ -66,7 +87,9 @@ export function usePlayer() {
         setCaptionTrackIdState(nextTrack?.id || null)
       }
       if (element.paused) {
-        if (element.ended || (Number.isFinite(element.duration) && element.currentTime >= element.duration - 0.05)) element.currentTime = 0
+        const start = Math.max(0, Number(next.startTime || 0))
+        const end = typeof next.endTime === "number" ? next.endTime : element.duration
+        if (element.ended || element.currentTime < start || (Number.isFinite(end) && element.currentTime >= end - 0.05)) element.currentTime = start
         setState("loading")
         try { await element.play() } catch { setState("error") }
       } else {
@@ -76,14 +99,15 @@ export function usePlayer() {
     }
     if (!element.paused) element.pause()
     element.src = next.url
-    element.currentTime = 0
+    const start = Math.max(0, Number(next.startTime || 0))
+    element.currentTime = start
     element.volume = volume
     element.playbackRate = speed
     sourceRef.current = next
     const nextTrack = next.captionTracks?.find((track) => !track.stale) || next.captionTracks?.[0] || null
     captionTrackIdRef.current = nextTrack?.id || null
     setCaptionTrackIdState(nextTrack?.id || null)
-    setCurrentTime(0)
+    setCurrentTime(start)
     setDuration(0)
     setSource(next)
     setState("loading")
@@ -101,7 +125,9 @@ export function usePlayer() {
       element.pause()
       return
     }
-    if (element.ended || (Number.isFinite(element.duration) && element.currentTime >= element.duration - 0.05)) element.currentTime = 0
+    const start = Math.max(0, Number(source.startTime || 0))
+    const end = typeof source.endTime === "number" ? source.endTime : element.duration
+    if (element.ended || element.currentTime < start || (Number.isFinite(end) && element.currentTime >= end - 0.05)) element.currentTime = start
     setState("loading")
     try { await element.play() } catch { setState("error") }
   }, [source])
@@ -112,7 +138,10 @@ export function usePlayer() {
 
   const seek = useCallback((seconds: number) => {
     if (!audio.current) return
-    audio.current.currentTime = Math.max(0, Math.min(seconds, duration || seconds))
+    const start = Math.max(0, Number(sourceRef.current?.startTime || 0))
+    const sourceEnd = sourceRef.current?.endTime
+    const end = typeof sourceEnd === "number" ? sourceEnd : duration || seconds
+    audio.current.currentTime = Math.max(start, Math.min(seconds, end))
     setCurrentTime(audio.current.currentTime)
   }, [duration])
 

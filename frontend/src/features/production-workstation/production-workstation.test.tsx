@@ -206,7 +206,7 @@ describe("Production Workstation", () => {
     expect(onAddAudio).toHaveBeenCalledWith({ mode: "new-track" })
   })
 
-  it("keeps audio-only Productions neutral and reveals the Program Monitor after a visual placement exists", () => {
+  it("keeps audio-only Productions neutral and reveals Timeline Preview after a visual placement exists", () => {
     const emptyVisual: VisualScene = {
       production_id: 6,
       revision: 1,
@@ -216,8 +216,8 @@ describe("Production Workstation", () => {
     const props = { session: sessionFor(scene([part({ duration_ms: 30_000 })])), assets: [], onAddVisual: vi.fn(), onRemoveClip: vi.fn(), onRemoveTrack: vi.fn() }
     const { unmount } = render(<TimelineWorkspace session={props.session} visual={{ ...props, session: visualSessionFor(emptyVisual) }} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
-    expect(screen.queryByLabelText("Program Monitor")).toBeNull()
-    expect(screen.getByLabelText("Adaptive Monitor").textContent).toContain("Select media or a Timeline placement")
+    expect(screen.queryByLabelText("Timeline Preview")).toBeTruthy()
+    expect(screen.getByLabelText("Preview").textContent).toContain("Add visual media")
     expect(screen.getByRole("button", { name: "Add image to Image track" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Add image to Image track" }).textContent).toBe("")
     unmount()
@@ -225,7 +225,7 @@ describe("Production Workstation", () => {
     const placedVisual: VisualScene = { ...emptyVisual, document: { ...emptyVisual.document, tracks: [{ ...emptyVisual.document.tracks[0]!, clips: [{ id: "placement", asset_id: 91, start_ms: 0, duration_ms: 5_000, source_offset_ms: 0, fit: "cover", position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1, locked: false }] }] } }
     render(<TimelineWorkspace session={sessionFor(scene([part({ duration_ms: 30_000 })]))} visual={{ ...props, session: visualSessionFor(placedVisual) }} onAddAudio={vi.fn()} onRemoveClip={vi.fn()} onRemoveTrack={vi.fn()} />)
 
-    expect(screen.getByLabelText("Program Monitor")).toBeTruthy()
+    expect(screen.getByLabelText("Timeline Preview")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Resize Monitor and Timeline" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Add to Timeline" })).toBeTruthy()
   })
