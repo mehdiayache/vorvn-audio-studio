@@ -13,6 +13,16 @@ Follow these strict rules on every file, function, and architecture you generate
 
 ---
 
+### 1.1 PRE-PRODUCTION STATE IS DISPOSABLE
+
+**Pre-production state is disposable and exists only to support development and testing. It must never constrain the target architecture or justify backward compatibility, migration paths, compatibility layers, legacy support, preservation logic, or other technical debt unless explicitly required. Prefer clean breaking changes, resets, regeneration, and replacement whenever they produce a simpler and better architecture.**
+
+**Existing non-production fixtures, sample data, test artifacts, and development resources should be reused whenever they are fit for purpose, including across development tasks or projects where appropriate. Do not create, regenerate, duplicate, upload, transform, or maintain new test material unnecessarily when an existing resource can exercise the same behavior. Create new test resources only when the test requires characteristics that the existing ones do not provide.**
+
+**Treat all such state as non-authoritative and replaceable. Optimize for correctness, simplicity, maintainability, and the intended final architecture—not for preservation of development history or temporary test state.**
+
+---
+
 ### 2. HUMAN-FIRST UX & STATE PHILOSOPHY
 - Instant Feedback Loop: The user must hear/see the output immediately. Never hide basic preview actions behind heavy database job queues, migrations, or multi-step batch workers.
 - No Zombie Concepts: No "takes" state machines or complex "batch" tables unless requested. A clip is simply an asset with `(start_time, duration, file_url)`.
