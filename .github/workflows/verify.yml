@@ -58,6 +58,8 @@ jobs:
           PY
       - name: Run full backend test suite
         run: .venv/bin/python -m unittest discover -s tests
+        env:
+          PYTHONWARNINGS: error
       - name: Check domain boundaries
         run: .venv/bin/python -m scripts.check_domain
 
@@ -68,16 +70,17 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4.4.0
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: pnpm/setup@v2
         with:
-          node-version: "22"
-          cache: pnpm
+          runtime: node@22
+          cache: true
+          install: false
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
       - name: Run full frontend test suite
         run: pnpm test:web
+        env:
+          NODE_OPTIONS: --throw-deprecation
 
   frontend-build:
     name: Frontend Build
@@ -86,16 +89,17 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4.4.0
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: pnpm/setup@v2
         with:
-          node-version: "22"
-          cache: pnpm
+          runtime: node@22
+          cache: true
+          install: false
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
       - name: Run TypeScript check and Vite production build
         run: pnpm build:web
+        env:
+          NODE_OPTIONS: --throw-deprecation
 
   contract-checks:
     name: Contract Checks
@@ -109,22 +113,97 @@ jobs:
           python-version: "3.13"
           cache: pip
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4.4.0
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: pnpm/setup@v2
         with:
-          node-version: "22"
-          cache: pnpm
+          runtime: node@22
+          cache: true
+          install: false
       - name: Install backend dependencies
         run: python -m venv .venv && .venv/bin/pip install -r requirements.txt
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
       - name: Check typography contract
         run: pnpm check:typography
+        env:
+          NODE_OPTIONS: --throw-deprecation
       - name: Regenerate OpenAPI and generated TypeScript
         run: pnpm generate:api
+        env:
+          NODE_OPTIONS: --throw-deprecation
       - name: Fail when generated contracts are stale
         run: >-
           git diff --exit-code --
           openapi/audio-studio-v1.json
           frontend/src/types/api.generated.ts
+
+  browser-smoke:
+    name: Browser Smoke
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: voicestudio
+          POSTGRES_USER: voicestudio
+          POSTGRES_PASSWORD: voicestudio
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U voicestudio -d voicestudio"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://voicestudio:voicestudio@127.0.0.1:5432/voicestudio
+      AUDIO_STUDIO_OUTPUT_DIR: ${{ runner.temp }}/auvi-browser-output
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Set up pnpm and Node.js
+        uses: pnpm/setup@v2
+        with:
+          runtime: node@22
+          cache: true
+          install: false
+      - name: Install backend dependencies
+        run: python -m venv .venv && .venv/bin/pip install -r requirements.txt
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Build browser application
+        run: pnpm build:web
+        env:
+          NODE_OPTIONS: --throw-deprecation
+      - name: Run database migrations
+        run: .venv/bin/python -m audio_studio.migrations
+        env:
+          PYTHONWARNINGS: error
+      - name: Start Auvi Studio
+        run: |
+          mkdir -p "$AUDIO_STUDIO_OUTPUT_DIR"
+          .venv/bin/python -m uvicorn audio_studio.http.app:app --host 127.0.0.1 --port 7860 > "$RUNNER_TEMP/auvi-browser-server.log" 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:7860/api/v1/system/health > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/auvi-browser-server.log"
+          exit 1
+        env:
+          PYTHONWARNINGS: error
+      - name: Verify Production workstation in Chromium
+        run: pnpm test:browser:smoke
+        env:
+          AUVI_E2E_BASE_URL: http://127.0.0.1:7860
+          NODE_OPTIONS: --throw-deprecation
+      - name: Show server log on failure
+        if: failure()
+        run: cat "$RUNNER_TEMP/auvi-browser-server.log"

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 
 import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { assetSource } from "@/lib/asset-provenance"
+import { ASSET_SOURCE_PRESENTATION, assetSource, type AssetSource } from "@/lib/asset-provenance"
 import type { VentureAsset } from "@/types/domain"
 import { DirectorUploadCard, type DirectorUploadItem } from "./director-upload-card"
 import { VisualAssetCard } from "./visual-asset-card"
@@ -39,7 +39,7 @@ export function DirectorGallery({ assets, uploads, creationItems = [], usageCoun
   onOpenLibrary: () => void
 }) {
   const [mediaFilter, setMediaFilter] = useState<"all" | "image" | "video">("all")
-  const [originFilter, setOriginFilter] = useState<"all" | "generated" | "uploaded" | "library">("all")
+  const [originFilter, setOriginFilter] = useState<"all" | AssetSource>("all")
   const [showFailed, setShowFailed] = useState(false)
   const [columnCount, setColumnCount] = useState(5)
   const galleryRef = useRef<HTMLDivElement>(null)
@@ -99,11 +99,9 @@ export function DirectorGallery({ assets, uploads, creationItems = [], usageCoun
           <ToggleGroupItem value="image">Images</ToggleGroupItem>
           <ToggleGroupItem value="video">Videos</ToggleGroupItem>
         </ToggleGroup>
-        <ToggleGroup type="single" variant="outline" size="sm" value={originFilter} onValueChange={(next) => { if (next === "all" || next === "generated" || next === "uploaded" || next === "library") setOriginFilter(next) }} aria-label="Media origin">
+        <ToggleGroup type="single" variant="outline" size="sm" value={originFilter} onValueChange={(next) => { if (next === "all" || next in ASSET_SOURCE_PRESENTATION) setOriginFilter(next as "all" | AssetSource) }} aria-label="Media origin">
           <ToggleGroupItem value="all">All sources</ToggleGroupItem>
-          <ToggleGroupItem value="generated">Generated</ToggleGroupItem>
-          <ToggleGroupItem value="uploaded">Uploaded</ToggleGroupItem>
-          <ToggleGroupItem value="library">Imported</ToggleGroupItem>
+          {(Object.keys(ASSET_SOURCE_PRESENTATION) as AssetSource[]).map((source) => <ToggleGroupItem key={source} value={source}>{ASSET_SOURCE_PRESENTATION[source].label}</ToggleGroupItem>)}
         </ToggleGroup>
       </div>
       {failedCount > 0 && <Button type="button" variant={showFailed ? "secondary" : "outline"} size="sm" aria-pressed={showFailed} onClick={() => setShowFailed((current) => !current)}>{showFailed ? <EyeOff /> : <AlertTriangle />}{showFailed ? "Hide failed" : "Show failed"} <span>{failedCount}</span></Button>}

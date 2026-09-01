@@ -1,13 +1,13 @@
-import { Archive, CheckCircle2, CloudDownload, Film, Image as ImageIcon, Library, PanelLeftClose, PanelLeftOpen, Plus, Search, Sparkles, Upload, Waves, X } from "lucide-react"
+import { CheckCircle2, Film, Image as ImageIcon, Library, PanelLeftClose, PanelLeftOpen, Plus, Search, Waves, X } from "lucide-react"
 import { memo, useMemo, useState, type ReactNode } from "react"
 
 import { OperatorIconButton } from "@/components/operator-action"
+import { AssetSourceIndicator } from "@/components/asset-source-indicator"
 import { Input } from "@/components/ui/input"
 import { SoundMediaIcon } from "@/features/sound-scene/audio-presentation"
 import type { SoundSceneSession } from "@/features/sound-scene/engine/sound-scene-session"
 import { visualAssetName, visualAssetPlaybackUrl, visualAssetPosterUrl, visualAssetUrl } from "@/features/production-workstation/director/director-assets"
 import type { VisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
-import { assetSource } from "@/lib/asset-provenance"
 import { cn } from "@/lib/utils"
 import type { VentureAsset, VisualSceneDocument } from "@/types/domain"
 import { PreviewPane, type PreviewTarget } from "./timeline-preview"
@@ -21,7 +21,7 @@ function assetLabel(asset: VentureAsset) {
   return String(asset.name || asset.title || asset.filename || "Untitled media")
 }
 
-const TimelineMediaBrowser = memo(function TimelineMediaBrowser({ assets, productionAssetIds, usedAssetIds, collapsed, onCollapsedChange, selectedAssetId, onPreview, onAdd }: {
+export const TimelineMediaBrowser = memo(function TimelineMediaBrowser({ assets, productionAssetIds, usedAssetIds, collapsed, onCollapsedChange, selectedAssetId, onPreview, onAdd }: {
   assets: VentureAsset[]
   productionAssetIds: number[]
   usedAssetIds: number[]
@@ -66,7 +66,6 @@ const TimelineMediaBrowser = memo(function TimelineMediaBrowser({ assets, produc
     <div className="timeline-media-results">
       {visible.map((asset) => {
         const name = assetLabel(asset)
-        const origin = assetSource(asset)
         const selected = asset.id === selectedAssetId
         return <article key={asset.id} className={cn("timeline-media-card", selected && "is-selected")} data-media-type={asset.media_type}>
           <button className="timeline-media-card-preview" aria-label={`Preview ${name}`} onClick={() => onPreview(asset)}>
@@ -74,7 +73,7 @@ const TimelineMediaBrowser = memo(function TimelineMediaBrowser({ assets, produc
               : asset.media_type === "video" ? <video src={visualAssetPlaybackUrl(asset)} poster={visualAssetPosterUrl(asset)} muted preload="metadata" playsInline />
                 : <span className="timeline-media-audio-art"><SoundMediaIcon kind={String(asset.category || "audio").toLowerCase() === "sfx" ? "sfx" : String(asset.category || "").toLowerCase() === "music" ? "music" : "audio"} /></span>}
             <span className="timeline-media-kind">{asset.media_type === "image" ? <ImageIcon /> : asset.media_type === "video" ? <Film /> : <Waves />}</span>
-            <span className={cn("timeline-media-origin", origin === "generated" && "is-generated")}>{origin === "generated" ? <Sparkles /> : origin === "freesound" ? <CloudDownload /> : origin === "uploaded" ? <Upload /> : <Archive />}</span>
+            <AssetSourceIndicator asset={asset} className="timeline-media-origin" />
             {usedIds.has(asset.id) && <span className="timeline-media-used"><CheckCircle2 /></span>}
           </button>
           <footer><button className="timeline-media-name" title={name} onClick={() => onPreview(asset)}>{name}</button><OperatorIconButton label={`Add ${name} at playhead`} busy={pendingId === asset.id} busyLabel={`Adding ${name}…`} onClick={async () => { setPendingId(asset.id); try { await onAdd(asset) } finally { setPendingId(null) } }}><Plus /></OperatorIconButton></footer>

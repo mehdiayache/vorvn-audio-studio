@@ -20,7 +20,6 @@
 .audio-source-badge .freesound-mark { width: 12px; height: 12px; flex: none; }
 .audio-source-badge.is-generated { border-color: transparent; background: var(--primary); color: var(--primary-foreground); }
 .audio-source-badge.is-freesound .freesound-mark { width: 14px; }
-.freesound-mark { display: block; object-fit: contain; }
 .audio-family-badge[data-family="audio"] { border-color: var(--audio-audio-border); color: var(--audio-audio); background: var(--audio-audio-soft); }
 .audio-family-badge[data-family="music"] { border-color: var(--audio-music-border); color: var(--audio-music); background: var(--audio-music-soft); }
 .audio-family-badge[data-family="sfx"] { border-color: var(--audio-sfx-border); color: var(--audio-sfx); background: var(--audio-sfx-soft); }

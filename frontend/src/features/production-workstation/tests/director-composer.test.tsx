@@ -160,6 +160,19 @@ describe("Director composer", () => {
     expect(document.querySelector(".director-gallery-items")?.classList.contains("is-single-row")).toBe(true)
   })
 
+  it("offers every canonical provenance filter without calling legacy Assets imported", () => {
+    render(<DirectorGallery
+      assets={[{ id: 7, media_type: "image", name: "Legacy", filename: "legacy.png" }]} uploads={[]}
+      pendingId={null}
+      onPreview={vi.fn()} onRemove={vi.fn()} onRetryUpload={vi.fn()} onDismissUpload={vi.fn()} onUpload={vi.fn()} onOpenLibrary={vi.fn()}
+    />)
+    expect(screen.getByRole("radio", { name: "Generated" })).toBeTruthy()
+    expect(screen.getByRole("radio", { name: "Freesound" })).toBeTruthy()
+    expect(screen.getByRole("radio", { name: "Uploaded" })).toBeTruthy()
+    expect(screen.getByRole("radio", { name: "Existing Asset" })).toBeTruthy()
+    expect(screen.queryByText("Imported")).toBeNull()
+  })
+
   it("keeps Start and End references in semantic order", () => {
     const capability = {
       inputs: [

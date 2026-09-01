@@ -18,6 +18,7 @@ export function DirectorPreviewDialog({ asset, pending = false, onAddToTimeline,
         <aside className="director-preview-details" aria-label="Media details">
           <div className="director-preview-facts"><span>{asset.media_type === "video" ? <Video /> : <ImageIcon />}{asset.media_type === "video" ? "Video" : "Image"}</span>{facts.duration && <span><Clock3 />{facts.duration}</span>}</div>
           {onAddToTimeline && <ActionButton className="director-preview-add" busy={pending} busyLabel="Adding to Timeline…" onClick={() => onAddToTimeline(asset)}><Plus data-icon="inline-start" /> Add to Timeline</ActionButton>}
+          <DetailSection title="Origin" items={details.origin} />
           <DetailSection title="Technical" items={details.technical} />
           {details.library.length > 0 && <DetailSection title="Library" items={details.library} />}
         </aside>

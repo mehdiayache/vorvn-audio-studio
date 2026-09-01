@@ -1,7 +1,6 @@
-import { Archive, Sparkles, Upload } from "lucide-react"
-
+import { AssetSourceIndicator } from "@/components/asset-source-indicator"
 import { OperatorTooltip } from "@/components/operator-tooltip"
-import type { AssetSource } from "@/lib/asset-provenance"
+import { ASSET_SOURCE_PRESENTATION, type AssetSource } from "@/lib/asset-provenance"
 import { cn } from "@/lib/utils"
 
 import { AUDIO_FAMILY_LABELS, SoundMediaIcon, type AudioFamily } from "./audio-presentation"
@@ -9,30 +8,16 @@ import { AUDIO_FAMILY_LABELS, SoundMediaIcon, type AudioFamily } from "./audio-p
 import "./audio-identity.css"
 
 export const AUDIO_SOURCE_LABELS: Record<AssetSource, string> = {
-  generated: "AI",
-  freesound: "Freesound",
-  uploaded: "Upload",
-  library: "Imported",
+  generated: ASSET_SOURCE_PRESENTATION.generated.badgeLabel,
+  freesound: ASSET_SOURCE_PRESENTATION.freesound.badgeLabel,
+  uploaded: ASSET_SOURCE_PRESENTATION.uploaded.badgeLabel,
+  library: ASSET_SOURCE_PRESENTATION.library.badgeLabel,
 }
 
-export function FreesoundMark({ className }: { className?: string }) {
-  return <img className={cn("freesound-mark", className)} src={`${import.meta.env.BASE_URL}brands/freesound.svg`} alt="" aria-hidden="true" />
-}
-
-export function AudioSourceIcon({ source }: { source: AssetSource }) {
-  if (source === "generated") return <Sparkles />
-  if (source === "freesound") return <FreesoundMark />
-  if (source === "uploaded") return <Upload />
-  return <Archive />
-}
+export { AssetSourceIcon as AudioSourceIcon, FreesoundMark } from "@/components/asset-source-indicator"
 
 export function AudioSourceBadge({ source, detail, className }: { source: AssetSource; detail?: string; className?: string }) {
-  const label = AUDIO_SOURCE_LABELS[source]
-  const badge = <span className={cn("audio-source-badge", `is-${source}`, className)} tabIndex={detail ? 0 : undefined} aria-label={`${label} source`}>
-    <AudioSourceIcon source={source} />
-    <span>{label}</span>
-  </span>
-  return detail ? <OperatorTooltip label={`${label} source`} detail={detail} side="bottom">{badge}</OperatorTooltip> : badge
+  return <AssetSourceIndicator source={source} detail={detail} className={cn("audio-source-badge", className)} showLabel />
 }
 
 export function AudioFamilyBadge({ family, suggested = false, className }: { family: AudioFamily; suggested?: boolean; className?: string }) {

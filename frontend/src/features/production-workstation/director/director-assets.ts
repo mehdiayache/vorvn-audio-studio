@@ -1,4 +1,5 @@
 import type { VentureAsset } from "@/types/domain"
+import { assetProvenanceDetails, assetSourceLine } from "@/lib/asset-provenance"
 
 export function isVisualAsset(asset: VentureAsset) {
   return asset.media_type === "image" || asset.media_type === "video"
@@ -82,7 +83,11 @@ export function visualAssetDetails(asset: VentureAsset) {
     { label: "Added", value: formatVisualDate(asset.created_at) },
     { label: "Updated", value: formatVisualDate(asset.updated_at) },
   ].filter((item): item is { label: string; value: string } => Boolean(item.value))
-  return { technical, library }
+  const origin = [
+    { label: "Source", value: assetSourceLine(asset) },
+    ...assetProvenanceDetails(asset).map(({ label, value }) => ({ label, value })),
+  ]
+  return { origin, technical, library }
 }
 
 export const visualFileAccept = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm,.jpg,.jpeg,.png,.webp,.mp4,.mov,.webm"

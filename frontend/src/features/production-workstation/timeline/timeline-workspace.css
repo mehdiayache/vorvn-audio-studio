@@ -241,7 +241,8 @@
 .timeline-media-origin { top: .3rem; left: .3rem; color: var(--muted-foreground); }
 .timeline-media-origin.is-generated { color: var(--primary); background: var(--primary-soft); }
 .timeline-media-used { top: .3rem; right: .3rem; color: var(--success); }
-.timeline-media-kind svg, .timeline-media-origin svg, .timeline-media-used svg { width: .62rem; }
+.timeline-media-kind svg, .timeline-media-origin svg, .timeline-media-used svg,
+.timeline-media-origin .freesound-mark { width: .62rem; height: .62rem; }
 .timeline-media-card > footer { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 1.45rem; align-items: center; gap: .18rem; padding: .18rem .04rem 0; }
 .timeline-media-name { min-width: 0; overflow: hidden; padding: .15rem 0; border: 0; color: var(--foreground); background: transparent; font-size: .6rem; font-weight: var(--weight-emphasis); text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 .timeline-media-card > footer [data-slot="button"] { width: 1.35rem; height: 1.35rem; padding: 0; color: var(--primary); background: white; }

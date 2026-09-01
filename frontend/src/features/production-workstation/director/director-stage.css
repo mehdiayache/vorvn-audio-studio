@@ -74,8 +74,9 @@
 .visual-asset-kind { left: .55rem; }
 .visual-asset-duration { right: .55rem; }
 .visual-asset-origin { position: absolute; left: .55rem; bottom: .55rem; display: inline-flex; align-items: center; gap: .28rem; padding: .28rem .42rem; border-radius: .4rem; color: white; background: rgb(20 17 15 / 78%); font-size: .68rem; line-height: 1; backdrop-filter: blur(5px); }
-.visual-asset-origin.is-ai { background: var(--primary); }
-.visual-asset-origin svg { width: .75rem; }
+.visual-asset-origin.is-generated { background: var(--primary); }
+.visual-asset-origin svg,
+.visual-asset-origin .freesound-mark { width: .75rem; height: .75rem; }
 .visual-asset-used { position: absolute; right: .55rem; top: .55rem; width: 1.55rem; height: 1.55rem; display: grid; place-items: center; border-radius: 999px; color: white; background: var(--success); box-shadow: 0 0 0 2px rgb(255 255 255 / 82%); }
 .visual-asset-used + .visual-asset-hover-actions { bottom: .5rem; }
 .visual-asset-used svg { width: .92rem; }

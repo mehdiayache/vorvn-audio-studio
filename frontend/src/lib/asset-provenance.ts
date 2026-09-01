@@ -1,14 +1,44 @@
 import type { VentureAsset } from "@/types/domain"
 
 export type AssetSource = "generated" | "freesound" | "uploaded" | "library"
+export type AssetSourceIconName = "sparkles" | "freesound" | "upload" | "archive"
+export type AssetDetail = { label: string; value: string; href?: string }
 
-type Detail = { label: string; value: string; href?: string }
+export type AssetSourcePresentation = {
+  key: AssetSource
+  label: string
+  badgeLabel: string
+  icon: AssetSourceIconName
+}
+
+export type AssetProvenance = {
+  source: AssetSource
+  presentation: AssetSourcePresentation
+  metadata: Record<string, unknown>
+  detail: string
+  provider: string
+  model: string
+  prompt: string
+  generatedAt: string
+  seed: number | null
+  creator: string
+  license: string
+  sourceUrl: string
+  originalFilename: string
+}
+
+export const ASSET_SOURCE_PRESENTATION: Record<AssetSource, AssetSourcePresentation> = {
+  generated: { key: "generated", label: "Generated", badgeLabel: "AI", icon: "sparkles" },
+  freesound: { key: "freesound", label: "Freesound", badgeLabel: "Freesound", icon: "freesound" },
+  uploaded: { key: "uploaded", label: "Uploaded", badgeLabel: "Upload", icon: "upload" },
+  library: { key: "library", label: "Existing Asset", badgeLabel: "Existing", icon: "archive" },
+}
 
 function text(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : ""
 }
 
-function number(value: unknown) {
+function finiteNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 
@@ -49,48 +79,71 @@ export function assetSource(asset: VentureAsset): AssetSource {
   return "library"
 }
 
-export function assetSourceLine(asset: VentureAsset) {
-  const source = assetSource(asset)
-  const metadata = assetMetadata(asset)
-  if (source === "generated") {
-    const model = text(metadata.model) || text(metadata.provider_model_id)
-    return model ? `Generated · ${compactModelName(model)}` : "Generated"
-  }
-  if (source === "freesound") {
-    const creator = text(metadata.creator)
-    return creator ? `Freesound · ${creator}` : "Freesound"
-  }
-  if (source === "uploaded") return "Uploaded"
-  return "Existing Asset"
+export function assetSourcePresentation(source: AssetSource) {
+  return ASSET_SOURCE_PRESENTATION[source]
 }
 
-export function assetDetails(asset: VentureAsset): Detail[] {
-  const source = assetSource(asset)
+export function assetProvenance(asset: VentureAsset): AssetProvenance {
   const metadata = assetMetadata(asset)
-  const details: Detail[] = [{ label: "Source", value: assetSourceLine(asset) }]
-
-  if (source === "generated") {
-    const model = text(metadata.model) || text(metadata.provider_model_id)
-    const created = formatDate(metadata.generated_at)
-    const prompt = text(metadata.resolved_prompt) || text(metadata.prompt)
-    const seed = number(metadata.seed)
-    details.push({ label: "Generator", value: "VORVN Audio · ai.vrn.one" })
-    if (model) details.push({ label: "Model", value: modelName(model) })
-    if (created) details.push({ label: "Created", value: created })
-    if (prompt) details.push({ label: "Prompt", value: prompt })
-    if (seed !== null) details.push({ label: "Seed", value: String(seed) })
-  } else if (source === "freesound") {
-    const creator = text(metadata.creator)
-    const license = text(metadata.license)
-    const sourceUrl = text(metadata.source_url)
-    if (creator) details.push({ label: "Creator", value: creator })
-    if (license) details.push({ label: "License", value: license.toUpperCase() })
-    if (sourceUrl) details.push({ label: "Original", value: "Open on Freesound", href: sourceUrl })
-  } else if (source === "uploaded") {
-    const filename = text(metadata.original_filename)
-    if (filename) details.push({ label: "Original file", value: filename })
+  const source = assetSource(asset)
+  const presentation = assetSourcePresentation(source)
+  const provider = text(metadata.provider_id) || text(metadata.provider) || text(metadata.generator)
+  const model = text(metadata.provider_model_id) || text(metadata.model)
+  const creator = text(metadata.creator)
+  const originalFilename = text(metadata.original_filename)
+  const qualifiers = source === "generated"
+    ? [provider, model ? compactModelName(model) : ""]
+    : source === "freesound"
+      ? [creator]
+      : source === "uploaded"
+        ? [originalFilename]
+        : []
+  const detail = [presentation.label, ...qualifiers.filter(Boolean)].join(" · ")
+  return {
+    source,
+    presentation,
+    metadata,
+    detail,
+    provider,
+    model,
+    prompt: text(metadata.resolved_prompt) || text(metadata.prompt),
+    generatedAt: formatDate(metadata.generated_at),
+    seed: finiteNumber(metadata.seed),
+    creator,
+    license: text(metadata.license),
+    sourceUrl: text(metadata.source_url),
+    originalFilename,
   }
+}
 
+export function assetSourceLine(asset: VentureAsset) {
+  return assetProvenance(asset).detail
+}
+
+export function assetProvenanceDetails(asset: VentureAsset): AssetDetail[] {
+  const provenance = assetProvenance(asset)
+  const details: AssetDetail[] = []
+  if (provenance.source === "generated") {
+    if (provenance.provider) details.push({ label: "Provider", value: provenance.provider })
+    if (provenance.model) details.push({ label: "Model", value: modelName(provenance.model) })
+    if (provenance.generatedAt) details.push({ label: "Created", value: provenance.generatedAt })
+    if (provenance.prompt) details.push({ label: "Prompt", value: provenance.prompt })
+    if (provenance.seed !== null) details.push({ label: "Seed", value: String(provenance.seed) })
+  } else if (provenance.source === "freesound") {
+    if (provenance.creator) details.push({ label: "Creator", value: provenance.creator })
+    if (provenance.license) details.push({ label: "License", value: provenance.license.toUpperCase() })
+    if (provenance.sourceUrl) details.push({ label: "Original", value: "Open on Freesound", href: provenance.sourceUrl })
+  } else if (provenance.source === "uploaded" && provenance.originalFilename) {
+    details.push({ label: "Original file", value: provenance.originalFilename })
+  }
+  return details
+}
+
+export function assetDetails(asset: VentureAsset): AssetDetail[] {
+  const details: AssetDetail[] = [
+    { label: "Source", value: assetSourceLine(asset) },
+    ...assetProvenanceDetails(asset),
+  ]
   if (asset.duration_ms) {
     const seconds = Number(asset.duration_ms) / 1000
     details.push({ label: "Duration", value: `${seconds < 10 ? seconds.toFixed(1) : Math.round(seconds)} sec` })

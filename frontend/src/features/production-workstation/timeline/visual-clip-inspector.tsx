@@ -35,7 +35,7 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
   onAudioMixChange?: (mix: AudioVolumeMix) => void
   onAudioMixCommit?: (mix: AudioVolumeMix) => void | Promise<void>
 }) {
-  const details = asset ? visualAssetDetails(asset) : { technical: [], library: [] }
+  const details = asset ? visualAssetDetails(asset) : { origin: [], technical: [], library: [] }
   const facts = asset ? visualAssetFacts(asset) : null
   const name = asset ? visualAssetName(asset) : "Missing media"
   const transformDisabled = saving || clip.locked || track.locked
@@ -77,6 +77,7 @@ export function VisualClipInspector({ clipRef, track, clip, asset, session, savi
       </div>}
     </OperatorInspectorSection>}
 
+    {details.origin.length > 0 && <DetailSection title="Origin" icon={Info} items={details.origin} />}
     {details.technical.length > 0 && <DetailSection title="Source" icon={Info} items={details.technical} />}
     {details.library.length > 0 && <DetailSection title="Library" icon={Library} items={details.library} />}
   </div>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { VentureAsset } from "@/types/domain"
-import { assetSource, assetSourceLine } from "../asset-provenance"
+import { assetDetails, assetProvenance, assetSource, assetSourceLine } from "../asset-provenance"
 
 function asset(metadata: Record<string, unknown> = {}, versionMetadata: Record<string, unknown> = {}): VentureAsset {
   return { id: 1, media_type: "image", metadata, version_metadata: versionMetadata }
@@ -39,5 +39,22 @@ describe("canonical Asset provenance", () => {
       provider_model_id: "kling-3.0-omni",
     }))).toBe("Generated · kling-3.0-omni")
   })
-})
 
+  it("uses only persisted provider and model identity", () => {
+    const kling = asset({}, {
+      origin: "director-generation",
+      provider_id: "kie",
+      provider_model_id: "kling-3.0-omni",
+    })
+    expect(assetProvenance(kling)).toMatchObject({
+      provider: "kie",
+      model: "kling-3.0-omni",
+      detail: "Generated · kie · kling-3.0-omni",
+    })
+    expect(assetDetails(kling)).toEqual(expect.arrayContaining([
+      { label: "Provider", value: "kie" },
+      { label: "Model", value: "kling-3.0-omni" },
+    ]))
+    expect(assetDetails(asset({ origin: "generated" })).some(({ value }) => value.includes("VORVN") || value.includes("ai.vrn.one"))).toBe(false)
+  })
+})

@@ -5,6 +5,9 @@ node_modules/
 frontend/node_modules/
 .pnpm-store/
 .playwright-mcp/
+playwright-report/
+test-results/
+blob-report/
 .codex-audits/
 ui-next/
 out/

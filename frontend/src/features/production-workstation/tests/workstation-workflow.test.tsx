@@ -146,7 +146,7 @@ describe("Production workflow", () => {
       },
     }} onPreview={vi.fn()} />)
 
-    expect(container.querySelector(".visual-asset-origin")?.classList.contains("is-ai")).toBe(true)
+    expect(container.querySelector(".visual-asset-origin")?.classList.contains("is-generated")).toBe(true)
     expect(container.querySelector(".visual-asset-origin")?.textContent).toBe("AI")
   })
 

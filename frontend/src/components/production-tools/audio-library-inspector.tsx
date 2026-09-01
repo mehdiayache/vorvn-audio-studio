@@ -7,28 +7,13 @@ import { AudioFamilyBadge, AudioSourceBadge } from "@/features/sound-scene/audio
 import { audioAssetCategory, audioUsageTags } from "@/features/sound-scene/audio-presentation"
 import { Input } from "@/components/ui/input"
 import { audioUrl } from "@/lib/api"
-import { assetSource, assetSourceLine } from "@/lib/asset-provenance"
+import { assetProvenance, assetProvenanceDetails } from "@/lib/asset-provenance"
 import { formatBytes, formatDuration } from "@/lib/format"
 import type { AudioAssetCategory, AudioAssetScope, CatalogLicense, CatalogSound, VentureAsset } from "@/types/domain"
 
 import { AssetCategorySelect, AssetScopeSelect, AssetTagEditor } from "./asset-library-controls"
 
 const LICENSE_LABELS: Record<CatalogLicense, string> = { cc0: "CC0", "cc-by": "CC BY", "cc-by-nc": "CC BY-NC" }
-
-function metadataText(asset: VentureAsset, key: string) {
-  const value = asset.metadata?.[key]
-  return typeof value === "string" && value.trim() ? value.trim() : ""
-}
-
-function metadataNumber(asset: VentureAsset, key: string) {
-  const value = asset.metadata?.[key]
-  return typeof value === "number" && Number.isFinite(value) ? value : null
-}
-
-function formatDate(value: string) {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date)
-}
 
 function TagsDisclosure({ tags, label = "Tags", empty = "No tags" }: { tags: string[]; label?: string; empty?: string }) {
   const normalized = [...new Set(tags.map((tag) => tag.trim().toLocaleLowerCase()).filter(Boolean))]
@@ -55,7 +40,8 @@ export function SavedAudioInspector({ asset, title, error, onSave }: {
   error?: string
   onSave: (details: { name: string; category: AudioAssetCategory | null; scope: AudioAssetScope; tags: string[] }) => Promise<void>
 }) {
-  const source = assetSource(asset)
+  const provenance = assetProvenance(asset)
+  const source = provenance.source
   const category = audioAssetCategory(asset)
   const [draftName, setDraftName] = useState(title)
   const [draftCategory, setDraftCategory] = useState<AudioAssetCategory | null>(category)
@@ -70,27 +56,7 @@ export function SavedAudioInspector({ asset, title, error, onSave }: {
     setDraftTags(audioUsageTags(asset))
     setEditError("")
   }, [asset.id, asset.updated_at, title])
-  const prompt = metadataText(asset, "resolved_prompt") || metadataText(asset, "prompt")
-  const sourceRows: Array<{ label: string; value: string; href?: string }> = []
-  if (source === "generated") {
-    sourceRows.push({ label: "Generator", value: "VORVN Audio · ai.vrn.one" })
-    const model = metadataText(asset, "model")
-    const created = metadataText(asset, "generated_at")
-    const seed = metadataNumber(asset, "seed")
-    if (model) sourceRows.push({ label: "Model", value: model.replace(/^stable-audio-3-small-/, "Stable Audio · ").replace(/\bsfx\b/i, "SFX").replace(/\bmusic\b/i, "Music") })
-    if (created) sourceRows.push({ label: "Created", value: formatDate(created) })
-    if (seed !== null) sourceRows.push({ label: "Seed", value: String(seed) })
-  } else if (source === "freesound") {
-    const creator = metadataText(asset, "creator")
-    const license = metadataText(asset, "license")
-    const sourceUrl = metadataText(asset, "source_url")
-    if (creator) sourceRows.push({ label: "Creator", value: creator })
-    if (license) sourceRows.push({ label: "License", value: license.toUpperCase() })
-    if (sourceUrl) sourceRows.push({ label: "Original", value: "Open on Freesound", href: sourceUrl })
-  } else if (source === "uploaded") {
-    const original = metadataText(asset, "original_filename")
-    if (original) sourceRows.push({ label: "Original", value: original })
-  }
+  const sourceRows = assetProvenanceDetails(asset).filter(({ label }) => label !== "Prompt")
   const technicalRows = [
     asset.duration_ms ? { label: "Duration", value: formatDuration(asset.duration_ms / 1000) } : null,
     asset.audio_format ? { label: "Format", value: asset.audio_format.toUpperCase() } : null,
@@ -98,7 +64,7 @@ export function SavedAudioInspector({ asset, title, error, onSave }: {
     asset.channels ? { label: "Channels", value: asset.channels === 1 ? "Mono" : asset.channels === 2 ? "Stereo" : String(asset.channels) } : null,
     asset.size_bytes ? { label: "File size", value: formatBytes(asset.size_bytes) } : null,
   ].filter(Boolean) as Array<{ label: string; value: string }>
-  const sourceTags = Array.isArray(asset.metadata?.source_tags) ? asset.metadata.source_tags.filter((tag): tag is string => typeof tag === "string") : []
+  const sourceTags = Array.isArray(provenance.metadata.source_tags) ? provenance.metadata.source_tags.filter((tag): tag is string => typeof tag === "string") : []
   const save = async () => {
     if (!draftName.trim()) { setEditError("Give this audio a name."); return }
     setSaving(true); setEditError("")
@@ -107,11 +73,11 @@ export function SavedAudioInspector({ asset, title, error, onSave }: {
     finally { setSaving(false) }
   }
   return <aside className="asset-inspector audio-library-inspector" aria-label="Selected Asset details">
-    <header className="audio-inspector-header"><div><span className="audio-inspector-source"><AudioSourceBadge source={source} detail={assetSourceLine(asset)} />{category && <AudioFamilyBadge family={category} />}<ScopeBadge scope={asset.scope} /></span><h3>{title}</h3></div>{asset.filename && <AudioDownloadButton url={audioUrl(asset.filename)} label={title} compact />}</header>
+    <header className="audio-inspector-header"><div><span className="audio-inspector-source"><AudioSourceBadge source={source} detail={provenance.detail} />{category && <AudioFamilyBadge family={category} />}<ScopeBadge scope={asset.scope} /></span><h3>{title}</h3></div>{asset.filename && <AudioDownloadButton url={audioUrl(asset.filename)} label={title} compact />}</header>
     <section className="audio-inspector-classify"><h4>Library details</h4><div className="asset-inspector-form"><label className="asset-field"><span>Name</span><Input value={draftName} maxLength={120} onChange={(event) => setDraftName(event.target.value)} /></label><AssetCategorySelect value={draftCategory} onChange={setDraftCategory} /><AssetTagEditor tags={draftTags} onChange={setDraftTags} onError={setEditError} /><AssetScopeSelect value={draftScope} onChange={setDraftScope} /><ActionButton busy={saving} busyLabel="Saving…" disabled={!draftName.trim()} onClick={() => void save()}>Save changes</ActionButton></div></section>
     {sourceTags.length > 0 && <TagsDisclosure tags={sourceTags} label="Source tags" />}
     <DetailGroup title="Origin" rows={sourceRows} />
-    {prompt && <section className="audio-inspector-prompt"><h4>Prompt</h4><p>{prompt}</p></section>}
+    {provenance.prompt && <section className="audio-inspector-prompt"><h4>Prompt</h4><p>{provenance.prompt}</p></section>}
     <DetailGroup title="File" rows={technicalRows} />
     {(editError || error) && <p className="asset-inspector-error" role="alert">{editError || error}</p>}
   </aside>

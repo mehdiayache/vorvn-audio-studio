@@ -51,7 +51,7 @@ describe("AssetTool", () => {
     expect(screen.getByRole("option", { name: "AI" })).toBeTruthy()
     expect(screen.getByRole("option", { name: "Freesound" })).toBeTruthy()
     expect(screen.getByRole("option", { name: "Upload" })).toBeTruthy()
-    expect(screen.queryByRole("option", { name: "Existing Library" })).toBeNull()
+    expect(screen.getByRole("option", { name: "Existing" })).toBeTruthy()
     expect(container.querySelector(".asset-source-rail")).toBeNull()
   })
 
