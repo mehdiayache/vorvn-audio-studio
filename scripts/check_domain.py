@@ -77,6 +77,22 @@ CHECKS = {
         WHERE version.mime_type IS NULL OR btrim(version.mime_type)=''
            OR version.storage_key IS NULL OR btrim(version.storage_key)=''
     """,
+    "Creation output Files stay inside their Job Space": """
+        SELECT count(*) FROM jobs job
+         WHERE job.space_id IS NOT NULL
+           AND EXISTS (
+               SELECT 1 FROM unnest(job.output_file_ids) output(file_id)
+               LEFT JOIN assets file ON file.id=output.file_id
+                WHERE file.id IS NULL OR file.space_id<>job.space_id
+           )
+    """,
+    "standalone subtitle records keep their Job Space": """
+        SELECT count(*) FROM transcripts transcript
+        JOIN jobs job ON job.id=transcript.source_job_id
+        WHERE job.creation_action_id='create-subtitles'
+          AND transcript.part_id IS NULL
+          AND transcript.space_id IS DISTINCT FROM job.space_id
+    """,
 }
 
 

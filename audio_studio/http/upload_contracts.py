@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from audio_studio.domain.media import AssetMediaType
+from audio_studio.domain.files import FileFamily
 from audio_studio.domain.uploads import AssetCategory, AssetScope
 
 
@@ -33,7 +33,7 @@ class UploadedAssetResponse(BaseModel):
     version_id: int
     name: str
     filename: str
-    media_type: AssetMediaType
+    media_type: FileFamily
     duration_ms: int | None = None
     url: str
     category: AssetCategory | None = None

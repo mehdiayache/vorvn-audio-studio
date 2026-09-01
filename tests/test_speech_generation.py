@@ -448,7 +448,7 @@ class SpeechGenerationTests(unittest.TestCase):
 
     def test_job_handler_reports_durable_chunk_progress(self):
         service, _, _, _ = self.service()
-        handler = SpeechJobHandler(service)
+        handler = SpeechJobHandler(service, object())
         progress = Progress()
         job = Job(9, uuid4(), "speech", JobStatus.RUNNING, payload())
         result = handler(job, progress)
@@ -459,7 +459,8 @@ class SpeechGenerationTests(unittest.TestCase):
     def test_http_contract_is_canonical_and_strict(self):
         cleared = SpeechJobCreate(
             text="Hello", voice_identity_id=None,
-            catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry")
+            catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
+            space_id=12)
         self.assertIn("voice_identity_id", cleared.model_dump(exclude_unset=True))
         self.assertEqual(cleared.volume, 100)
         SpeechJobCreate(

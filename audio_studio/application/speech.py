@@ -8,6 +8,7 @@ from urllib.parse import quote
 
 from audio_studio.domain import captions
 from audio_studio.domain.jobs import Job, JobFailed
+from audio_studio.domain.files import StoredFileVersion
 from audio_studio.domain.speech import (
     DEFAULT_SPEECH_VOLUME,
     PreparedSpeech,
@@ -16,6 +17,7 @@ from audio_studio.domain.speech import (
     SynthesizedSpeech,
 )
 from audio_studio.application.provider_operations import ProviderOperationService
+from audio_studio.application.creation_files import CreationFileService
 
 
 PLAUSIBLE_CHARACTERS_PER_SECOND = 25
@@ -424,6 +426,7 @@ class SpeechGenerationService:
             "chars": len(prepared.spoken_text),
             "requests": len(made.diagnostics) or prepared.request_count,
             "size_mb": round(saved.size_bytes / 1_000_000, 2),
+            "size_bytes": saved.size_bytes,
             "duration_ms": saved.duration_ms,
             "cost": round(float(made.cost), 6),
             "estimated_cost": estimate, "cost_basis": made.cost_basis,
@@ -447,12 +450,53 @@ class SpeechGenerationService:
 
 
 class SpeechJobHandler:
-    def __init__(self, service: SpeechGenerationService):
+    def __init__(self, service: SpeechGenerationService,
+                 files: CreationFileService):
         self.service = service
+        self.files = files
 
     def __call__(self, job: Job, repository) -> dict[str, Any]:
-        return self.service.run(
+        result = self.service.run(
             {**job.payload, "_job_id": job.id},
             on_progress=lambda done, total, detail: repository.progress(
                 job.id, done, total, detail),
         )
+        if (job.space_id is not None
+                and job.payload.get("production_id") is None
+                and result.get("path") and result.get("name")):
+            extension = str(result["name"]).rsplit(".", 1)[-1].casefold()
+            mime_type = {
+                "mp3": "audio/mpeg", "wav": "audio/wav", "ogg": "audio/ogg",
+            }.get(extension, "audio/mpeg")
+            script = " ".join(str(job.payload.get("text") or "").split())
+            display_name = str(job.payload.get("title") or "").strip()
+            if not display_name:
+                display_name = f"Speech · {script[:72]}" if script else "Speech recording"
+            try:
+                file = self.files.register(
+                    job, output_key="speech", name=display_name,
+                    stored=StoredFileVersion(
+                        filename=str(result["name"]), path=str(result["path"]),
+                        mime_type=mime_type, family="audio",
+                        duration_ms=result.get("duration_ms"),
+                        audio_format=extension, media_format=extension,
+                    ),
+                    metadata={
+                        "provider": "alibaba",
+                        "model": result.get("model"),
+                        "voice": result.get("voice"),
+                        "language": job.payload.get("language"),
+                    },
+                    tags=("speech",),
+                )
+            except Exception as exc:
+                raise JobFailed(
+                    "The speech was generated and stored, but its File record "
+                    "could not be committed. The paid result needs review, not "
+                    "another provider call.",
+                    {**result, "provider_succeeded": True,
+                     "requires_review": True},
+                ) from exc
+            result["file_id"] = int(file["id"])
+            result["output_file_ids"] = [int(file["id"])]
+        return result

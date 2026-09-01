@@ -12,7 +12,7 @@ TRANSCRIPT_FIELDS = (
     "name", "source_url", "audio_url", "language", "duration_ms", "text",
     "srt", "vtt", "part_id", "clip_id", "translated_from", "source_job_id",
     "model", "provider_region", "price_version", "catalog_rate",
-    "catalog_cost", "cost_basis", "timing_source", "sentences",
+    "catalog_cost", "cost_basis", "timing_source", "sentences", "space_id",
 )
 
 
@@ -58,7 +58,7 @@ class TranscriptRepository:
         data["created_at"] = data["created_at"].isoformat()
         return data
 
-    def list(self, limit: int = 40) -> list[dict]:
+    def list(self, space_id: int, limit: int = 40) -> list[dict]:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT transcript.id, transcript.public_id,
@@ -68,10 +68,11 @@ class TranscriptRepository:
                        transcript.model, transcript.provider_region,
                        transcript.catalog_cost, transcript.cost_basis,
                        job.public_id, transcript.timing_source
-                  FROM transcripts transcript
+                 FROM transcripts transcript
                   LEFT JOIN jobs job ON job.id = transcript.source_job_id
+                 WHERE transcript.space_id = %s
                  ORDER BY transcript.created_at DESC LIMIT %s
-            """, (limit,))
+            """, (space_id, limit))
             rows = cursor.fetchall()
         return [{
             "id": row[0], "public_id": str(row[1]),

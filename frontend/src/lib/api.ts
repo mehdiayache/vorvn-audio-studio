@@ -228,16 +228,16 @@ export const studioApi = {
   savePronunciation: (rule: PronunciationSaveBody) => request<PronunciationSaveEnvelope>("/api/v1/settings/pronunciations", { method: "POST", body: JSON.stringify(rule) }).then((response) => response.data),
   deletePronunciation: (id: number) => request<PronunciationDeleteEnvelope>(`/api/v1/settings/pronunciations/${id}`, { method: "DELETE" }).then((response) => response.data),
   previewPronunciation: (text: string) => request<PronunciationPreviewEnvelope>(`/api/v1/settings/pronunciations/preview?text=${encodeURIComponent(text)}`).then((response) => response.data),
-  externalTranscripts: () => request<SubtitleListEnvelope>("/api/v1/subtitles").then((response) => response.data),
+  externalTranscripts: (spaceId: number) => request<SubtitleListEnvelope>(`/api/v1/subtitles?space_id=${spaceId}`).then((response) => response.data),
   externalTranscript: (id: number) => request<SubtitleEnvelope>(`/api/v1/subtitles/${id}`).then((response) => response.data),
   subtitleLayout: (id: number, profile: CaptionProfile) => request<CaptionLayoutEnvelope>(`/api/v1/subtitles/${id}/layouts/${profile}`).then((response) => response.data),
   deleteExternalTranscript: (id: number) => request<SubtitleDeletedEnvelope>(`/api/v1/subtitles/${id}`, { method: "DELETE" }),
   uploadExternalAudio: (file: File) => uploadFile<{ data: ExternalAudioUpload }>("/api/v1/subtitles/uploads", file).then((response) => response.data),
-  enqueueExternalTranscription: async (payload: { url: string; name: string; playable: string; size_bytes: number; duration_ms: number; language?: string; enable_itn?: boolean; confirmed?: boolean }) => {
+  enqueueExternalTranscription: async (payload: { space_id: number; url: string; name: string; playable: string; size_bytes: number; duration_ms: number; language?: string; enable_itn?: boolean; confirmed?: boolean }) => {
     const response = await request<{ data: DurableJob<CaptionMutationResult> }>("/api/v1/jobs/transcription", { method: "POST", headers: { "Idempotency-Key": `transcribe-${crypto.randomUUID()}` }, body: JSON.stringify(payload) })
     return registerJob(response.data)
   },
-  transcribeExternal: async (payload: { url: string; name: string; playable: string; size_bytes: number; duration_ms: number; language?: string; enable_itn?: boolean; confirmed?: boolean }) => {
+  transcribeExternal: async (payload: { space_id: number; url: string; name: string; playable: string; size_bytes: number; duration_ms: number; language?: string; enable_itn?: boolean; confirmed?: boolean }) => {
     const job = await studioApi.enqueueExternalTranscription(payload)
     return jobObserver.completion<CaptionMutationResult>(job.id)
   },
@@ -414,7 +414,7 @@ export const studioApi = {
     const result = await jobObserver.completion<GenerateResult>(job.id)
     return { ...result, job_id: job.id }
   },
-  recordingHistory: () => v1<RecordingHistory>("/api/v1/speak/recordings"),
+  recordingHistory: (spaceId: number) => v1<RecordingHistory>(`/api/v1/speak/recordings?space_id=${spaceId}`),
   composerDraft: (context: CompositionContext) => postV1<ComposerDraftWireRecord | null>("/api/v1/composer-drafts/resolve", { context: contextWire(context) }).then((record) => record ? draftFromWire(record) : null),
   saveComposerDraft: (context: CompositionContext, state: RecoverableCompositionDraft, expectedVersion: number | null) =>
     request<{ data: ComposerDraftWireRecord }>("/api/v1/composer-drafts", { method: "PUT", body: JSON.stringify({ context: contextWire(context), state: draftWire(state), expected_version: expectedVersion }) }).then((response) => draftFromWire(response.data) as ComposerDraftRecord),

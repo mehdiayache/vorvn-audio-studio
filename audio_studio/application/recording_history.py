@@ -6,15 +6,15 @@ from typing import Protocol
 
 
 class RecordingHistoryLedger(Protocol):
-    def recordings(self) -> list[dict]: ...
+    def recordings(self, space_id: int) -> list[dict]: ...
 
 
 class RecordingHistoryService:
     def __init__(self, ledger: RecordingHistoryLedger):
         self.ledger = ledger
 
-    def get(self) -> dict:
-        recordings = self.ledger.recordings()
+    def get(self, space_id: int) -> dict:
+        recordings = self.ledger.recordings(space_id)
         return {
             "recordings": recordings,
             "total_cost": round(sum(

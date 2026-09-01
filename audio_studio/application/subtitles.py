@@ -9,7 +9,7 @@ from audio_studio.domain import captions
 
 
 class SubtitleRecords(Protocol):
-    def list(self, limit: int = 40) -> list[dict]: ...
+    def list(self, space_id: int, limit: int = 40) -> list[dict]: ...
     def get(self, transcript_id: int) -> dict | None: ...
     def delete(self, transcript_id: int) -> bool: ...
 
@@ -25,8 +25,9 @@ class SubtitleCatalogueService:
         self.records = records
         self.media = media
 
-    def list(self, limit: int = 40) -> list[dict]:
-        return self.records.list(limit=max(1, min(limit, 200)))
+    def list(self, space_id: int, limit: int = 40) -> list[dict]:
+        return self.records.list(
+            space_id, limit=max(1, min(limit, 200)))
 
     def get(self, transcript_id: int) -> dict | None:
         item = self.records.get(transcript_id)
@@ -57,6 +58,7 @@ class SubtitleCatalogueService:
             "price_version": item.get("price_version"),
             "catalog_rate": float(item.get("catalog_rate") or 0),
             "source_job_id": item.get("source_job_public_id"),
+            "space_id": item.get("space_id"),
         }
 
     def layout(self, transcript_id: int, profile: str) -> dict | None:

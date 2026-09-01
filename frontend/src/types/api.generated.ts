@@ -6257,6 +6257,8 @@ export interface components {
              * @default 0
              */
             seed: number;
+            /** Space Id */
+            space_id?: number | null;
             /**
              * Speech Mode
              * @default exact
@@ -6397,6 +6399,8 @@ export interface components {
              * @default 0
              */
             estimate: number;
+            /** File Id */
+            file_id?: number | null;
             /** Finished At */
             finished_at: string | null;
             /** Id */
@@ -6660,6 +6664,8 @@ export interface components {
             sentences: components["schemas"]["TranscriptSentenceResponse"][];
             /** Source Job Id */
             source_job_id: string | null;
+            /** Space Id */
+            space_id: number | null;
             /** Srt */
             srt: string;
             /** Text */
@@ -6951,6 +6957,8 @@ export interface components {
              * @default 0
              */
             size_bytes: number;
+            /** Space Id */
+            space_id?: number | null;
             /**
              * Url
              * @default
@@ -7029,7 +7037,7 @@ export interface components {
              * Media Type
              * @enum {string}
              */
-            media_type: "audio" | "image" | "video";
+            media_type: "audio" | "image" | "video" | "subtitle" | "document" | "archive" | "data" | "other";
             /** Metadata */
             metadata: {
                 [key: string]: unknown;
@@ -11869,7 +11877,9 @@ export interface operations {
     };
     getStandaloneRecordingHistory: {
         parameters: {
-            query?: never;
+            query: {
+                space_id: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -11885,11 +11895,21 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingHistoryEnvelope"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     listSubtitles: {
         parameters: {
-            query?: {
+            query: {
+                space_id: number;
                 limit?: number;
             };
             header?: never;

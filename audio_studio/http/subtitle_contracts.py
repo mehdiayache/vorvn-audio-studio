@@ -60,6 +60,7 @@ class SubtitleResponse(BaseModel):
     price_version: str | None
     catalog_rate: float
     source_job_id: str | None
+    space_id: int | None
 
 
 class SubtitleEnvelope(BaseModel):

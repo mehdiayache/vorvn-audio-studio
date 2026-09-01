@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from audio_studio.composition.subtitles import subtitle_service
 from audio_studio.http.errors import ApiProblem
 from audio_studio.http.subtitle_contracts import (
@@ -21,8 +21,10 @@ router = APIRouter(prefix="/api/v1/subtitles", tags=["subtitles"])
     "", operation_id="listSubtitles",
     response_model=SubtitleListEnvelope,
 )
-def list_subtitles(limit: int = 40) -> dict:
-    return {"data": subtitle_service.list(limit)}
+def list_subtitles(
+    space_id: int = Query(gt=0), limit: int = 40,
+) -> dict:
+    return {"data": subtitle_service.list(space_id, limit)}
 
 
 @router.get(

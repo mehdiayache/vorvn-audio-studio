@@ -5,11 +5,21 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 
-def file_family(mime_type: str) -> str:
+FileFamily = Literal[
+    "audio", "image", "video", "subtitle", "document", "archive", "data",
+    "other",
+]
+FILE_FAMILIES = frozenset({
+    "audio", "image", "video", "subtitle", "document", "archive", "data",
+    "other",
+})
+
+
+def file_family(mime_type: str) -> FileFamily:
     """Return a presentation family without constraining valid MIME types."""
     canonical = mime_type.strip().casefold()
     if canonical.startswith("audio/"):
@@ -33,6 +43,34 @@ def file_family(mime_type: str) -> str:
     if canonical.startswith("text/") or canonical == "application/pdf":
         return "document"
     return "other"
+
+
+@dataclass(frozen=True, slots=True)
+class StoredFileVersion:
+    """Physical facts ready to become one immutable FileVersion."""
+
+    filename: str
+    path: str
+    mime_type: str
+    family: FileFamily
+    duration_ms: int | None = None
+    media_format: str | None = None
+    audio_format: str | None = None
+    sample_rate: int | None = None
+    channels: int | None = None
+    metadata: dict[str, Any] | None = None
+    width: int | None = None
+    height: int | None = None
+    video_codec: str | None = None
+    frame_rate: float | None = None
+
+    def __post_init__(self) -> None:
+        if not self.filename.strip() or not self.path.strip():
+            raise ValueError("Stored File versions require storage identity.")
+        if "/" not in self.mime_type or self.family not in FILE_FAMILIES:
+            raise ValueError("Stored File versions require a valid MIME type and family.")
+        if file_family(self.mime_type) != self.family:
+            raise ValueError("Stored File family must agree with its MIME type.")
 
 
 @dataclass(frozen=True, slots=True)

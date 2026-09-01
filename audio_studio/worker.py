@@ -36,6 +36,7 @@ from audio_studio.application.production_import import ProductionImportJobHandle
 from audio_studio.composition.jobs import job_service
 from audio_studio.composition.renders import render_service
 from audio_studio.composition.audio_generation import audio_generation_service
+from audio_studio.composition.creation_files import creation_file_service
 from audio_studio.composition.catalog import catalog_service
 from audio_studio.composition.timeline import timeline_service
 from audio_studio.composition.work import work_service
@@ -85,10 +86,13 @@ def main() -> int:
         for adapter_key in ("audio", "qwen_tts", "cosyvoice")
     })
     provider_operations = ProviderOperationService(ProviderOperationRepository())
-    service.register("speech", SpeechJobHandler(SpeechGenerationService(
-        speech, speech_provider, AudioWorkspace(), load_preferences,
-        provider_operations,
-    )))
+    service.register("speech", SpeechJobHandler(
+        SpeechGenerationService(
+            speech, speech_provider, AudioWorkspace(), load_preferences,
+            provider_operations,
+        ),
+        creation_file_service,
+    ))
     transcripts = TranscriptRepository()
     service.register("transcribe", TranscriptionJobHandler(
         TranscriptionService(
@@ -96,14 +100,16 @@ def main() -> int:
             AlibabaTranscriptionProvider(),
             TranscriptionSourceResolver(transcripts),
             load_preferences, provider_operations,
-        )
+        ),
+        creation_file_service,
     ))
     service.register("translate", SubtitleTranslationJobHandler(
         SubtitleTranslationService(
             transcripts,
             Translator(AlibabaTranslationProvider()),
             load_preferences, provider_operations,
-        )
+        ),
+        creation_file_service,
     ))
     text_preparation = TextPreparationService(
         PostgresTextPreparationRepository(), AlibabaTextProvider(),

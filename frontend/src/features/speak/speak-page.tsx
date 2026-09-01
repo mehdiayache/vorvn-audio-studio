@@ -8,6 +8,7 @@ import { ErrorState, InlineResourceError, PageLoading } from "@/components/state
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { useJobExecution } from "@/hooks/use-job-execution"
+import { useSpaceHome } from "@/hooks/use-space-home"
 import { useVoiceDirectory } from "@/hooks/use-voice-directory"
 import { studioApi } from "@/lib/api"
 import { playableGenerateResult } from "@/lib/generated-audio"
@@ -61,6 +62,7 @@ function PendingSpeakExecution({ execution, directory, onTerminal }: {
 
 export function SpeakPage() {
   const voices = useVoiceDirectory()
+  const spaceHome = useSpaceHome()
   const player = useGlobalPlayer()
   const [history, setHistory] = useState<RecordingHistory | null>(null)
   const [historyLoading, setHistoryLoading] = useState(true)
@@ -68,11 +70,18 @@ export function SpeakPage() {
   const generationLock = useRef<string | null>(null)
 
   const refreshHistory = useCallback(async () => {
+    if (!spaceHome.selectedSpaceId) return
     setHistoryLoading(true)
-    try { setHistory(await studioApi.recordingHistory()) }
+    try { setHistory(await studioApi.recordingHistory(spaceHome.selectedSpaceId)) }
     catch (reason) { toast.error(reason instanceof Error ? reason.message : "Could not load recording history.") }
     finally { setHistoryLoading(false) }
-  }, [])
+  }, [spaceHome.selectedSpaceId])
+
+  useEffect(() => {
+    setHistory(null)
+    setExecutions([])
+    generationLock.current = null
+  }, [spaceHome.selectedSpaceId])
 
   useEffect(() => { void refreshHistory() }, [refreshHistory])
 
@@ -90,6 +99,7 @@ export function SpeakPage() {
   }, [executions])
 
   async function generate(payload: GeneratePayload): Promise<DurableJob<GenerateResult>> {
+    if (!spaceHome.selectedSpaceId) throw new Error("Choose a Space before generating speech.")
     if (generationLock.current) {
       const reason = new Error("One standalone recording is already generating. Listen to it or wait for it to finish before starting another.")
       toast.warning(reason.message)
@@ -97,9 +107,10 @@ export function SpeakPage() {
     }
     generationLock.current = "submitting"
     try {
-      const job = await studioApi.enqueueGenerate(payload)
+      const request = { ...payload, space_id: spaceHome.selectedSpaceId }
+      const job = await studioApi.enqueueGenerate(request)
       generationLock.current = job.id
-      setExecutions((current) => [...current, { jobId: job.id, payload }])
+      setExecutions((current) => [...current, { jobId: job.id, payload: request }])
       return job
     } catch (reason) {
       generationLock.current = null
@@ -162,6 +173,10 @@ export function SpeakPage() {
 
   if (voices.loading && !voices.config) return <PageLoading label="Loading Speak" />
   if (voices.error && !voices.config) return <ErrorState title="Speak unavailable" message={voices.error} retry={() => void voices.refresh()} />
+  if (spaceHome.spaces.status === "loading") return <PageLoading label="Opening Speak" />
+  if (!spaceHome.selectedSpaceId) return <ErrorState title="Choose a Space first" message="Speech creates reusable audio Files, so it needs a destination Space." retry={() => window.location.assign("/audio-studio/")} />
+  if (spaceHome.overview.status === "error" && !spaceHome.overview.data) return <ErrorState title="Space unavailable" message={spaceHome.overview.error || "This Space could not be loaded."} retry={() => void spaceHome.refresh()} />
+  const spaceName = spaceHome.overview.data?.space.name || spaceHome.spaces.data?.find((space) => space.id === spaceHome.selectedSpaceId)?.name || "Current Space"
   const attemptCount = new Set([
     ...(history?.recordings.map((attempt) => attempt.id) || []),
     ...executions.map((execution) => execution.jobId),
@@ -178,14 +193,14 @@ export function SpeakPage() {
       <section className="speak-workspace"><StandaloneComposerHost config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} generationState={generationState} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} /></section>
       <aside className="speak-session" aria-live="polite">
         <header>
-          <div><span className="eyebrow">Sandbox</span><h2>This session</h2></div>
+          <div><span className="eyebrow">{spaceName}</span><h2>This session</h2></div>
           <span>{attemptCount} audio files · ${Number(history?.total_cost || 0).toFixed(4)}</span>
         </header>
-        <p className="speak-session-intro">The active generation stays visible here. Finished audio remains reusable in your Sandbox.</p>
+        <p className="speak-session-intro">The active generation stays visible here. Finished audio remains reusable in this Space.</p>
         <ScrollArea className="speak-session-scroll">
           {executions.length > 0 && <section className="speak-session-group"><h3>Generating now</h3>{executions.map((execution) => <PendingSpeakExecution key={execution.jobId} execution={execution} directory={voices.directory} onTerminal={(item, job) => void settleExecution(item, job)} />)}</section>}
           <section className="speak-session-group"><h3>Recent audio</h3>
-          {historyLoading && !visibleAttempts.length ? <p className="speak-empty">Loading your Sandbox…</p> : visibleAttempts.length ? visibleAttempts.map((attempt) => {
+          {historyLoading && !visibleAttempts.length ? <p className="speak-empty">Loading audio from {spaceName}…</p> : visibleAttempts.length ? visibleAttempts.map((attempt) => {
         const sourceKey = `job:${attempt.id}`
         const confirmation = attempt.status === "blocked" && attempt.needs_confirmation && !attempt.requires_review && !attempt.continued_by_job_id
         return <RecordingClipCard compact key={attempt.id} clip={clipView(attempt)} directory={voices.directory} active={player.source?.key === sourceKey && player.state === "playing"} onPlay={attempt.audio_url ? () => void player.toggleSource({ key: sourceKey, url: attempt.audio_url!, title: "Generated audio", subtitle: resolveRequestVoice(attempt.request, voices.directory).name, kind: "standalone" }) : undefined} onSecondaryAction={confirmation ? () => void confirmAttempt(attempt) : attempt.status === "blocked" ? undefined : () => void generate(reusableGeneratePayload(attempt.request))} secondaryDisabled={Boolean(generationState)} secondaryLabel={confirmation ? `Confirm $${Number(attempt.estimate || 0).toFixed(4)}` : "Generate again"} />

@@ -12,8 +12,9 @@ class FakeLedger:
         self.rows = recordings
         self.requested = False
 
-    def recordings(self):
+    def recordings(self, space_id):
         self.requested = True
+        self.space_id = space_id
         return self.rows
 
 
@@ -23,17 +24,19 @@ class RecordingHistoryTests(unittest.TestCase):
             {"id": "a", "cost": .001},
             {"id": "b", "cost": .0025},
         ])
-        result = RecordingHistoryService(ledger).get()
+        result = RecordingHistoryService(ledger).get(12)
         self.assertEqual([item["id"] for item in result["recordings"]], ["a", "b"])
         self.assertEqual(result["total_cost"], .0035)
         self.assertTrue(ledger.requested)
+        self.assertEqual(ledger.space_id, 12)
 
-    def test_standalone_speech_needs_no_grouping_identifier(self):
+    def test_standalone_speech_belongs_directly_to_a_space(self):
         contract = SpeechJobCreate(
-            text="Hello", catalogue_voice_id="catalogue:voice",
+            text="Hello", catalogue_voice_id="catalogue:voice", space_id=12,
         )
         persisted = contract.model_dump(exclude_unset=True, mode="json")
         self.assertNotIn("session_id", persisted)
+        self.assertEqual(persisted["space_id"], 12)
 
     def test_history_preserves_ssml_choice_for_safe_reuse(self):
         request = _safe_request({

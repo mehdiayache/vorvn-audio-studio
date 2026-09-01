@@ -10,11 +10,11 @@ from typing import cast, Protocol
 from urllib.parse import unquote
 from uuid import uuid4
 
+from audio_studio.domain.files import StoredFileVersion
 from audio_studio.domain.uploads import (
     ASSET_CATEGORIES,
     AssetCategory,
     AssetScope,
-    StoredAsset,
     StoredVoiceReference,
 )
 
@@ -63,7 +63,7 @@ class UploadWorkspace(Protocol):
     def discard_voice_reference(self, reference_id: str) -> None: ...
     def store_asset(
         self, source: Path, *, original_name: str, size_bytes: int,
-    ) -> StoredAsset: ...
+    ) -> StoredFileVersion: ...
     def discard_media(self, filename: str) -> None: ...
     def reference_storage_ready(self) -> bool: ...
     def store_transcription_source(
@@ -91,41 +91,41 @@ class UploadRecords(Protocol):
     def asset_collection(self, collection_id: int) -> dict | None: ...
     def space(self, space_id: int) -> dict | None: ...
     def create_uploaded_asset(
-        self, collection_id: int, *, name: str, stored: StoredAsset,
+        self, collection_id: int, *, name: str, stored: StoredFileVersion,
         size_bytes: int, category: AssetCategory | None = None,
         scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
     ) -> dict | None: ...
     def create_space_file(
-        self, space_id: int, *, name: str, stored: StoredAsset,
+        self, space_id: int, *, name: str, stored: StoredFileVersion,
         size_bytes: int, category: AssetCategory | None = None,
         scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
     ) -> dict | None: ...
     def create_catalog_asset(
         self, collection_id: int, *, origin: str, external_id: str,
-        name: str, stored: StoredAsset, size_bytes: int,
+        name: str, stored: StoredFileVersion, size_bytes: int,
         category: AssetCategory | None = None,
         scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
     ) -> tuple[dict | None, bool]: ...
     def create_space_catalog_file(
         self, space_id: int, *, origin: str, external_id: str,
-        name: str, stored: StoredAsset, size_bytes: int,
+        name: str, stored: StoredFileVersion, size_bytes: int,
         category: AssetCategory | None = None,
         scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
     ) -> tuple[dict | None, bool]: ...
     def create_generated_asset(
         self, collection_id: int, *, candidate_id: str,
-        name: str, stored: StoredAsset, size_bytes: int,
+        name: str, stored: StoredFileVersion, size_bytes: int,
         category: AssetCategory | None = None,
         scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
     ) -> tuple[dict | None, bool]: ...
     def create_generated_space_file(
         self, space_id: int, *, candidate_id: str,
-        name: str, stored: StoredAsset, size_bytes: int,
+        name: str, stored: StoredFileVersion, size_bytes: int,
         category: AssetCategory | None = None,
         scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
@@ -376,7 +376,7 @@ class UploadService:
     def _store_asset_file(
         self, collection_id: int, source: Path, size_bytes: int,
         details: AssetUploadDetails,
-    ) -> StoredAsset:
+    ) -> StoredFileVersion:
         if not self.records.asset_collection(collection_id):
             raise UploadError(
                 "Choose the Venture Asset Library first.")
@@ -393,7 +393,7 @@ class UploadService:
                 size_bytes=size_bytes)
         except ValueError as exc:
             raise UploadError(str(exc)) from exc
-        if stored.media_type != "audio" and details.category is not None:
+        if stored.family != "audio" and details.category is not None:
             self.workspace.discard_media(stored.filename)
             raise UploadError(
                 "Music, ambience and SFX categories apply only to audio."
@@ -403,14 +403,14 @@ class UploadService:
     def _store_space_file(
         self, space_id: int, source: Path, size_bytes: int,
         details: AssetUploadDetails,
-    ) -> StoredAsset:
+    ) -> StoredFileVersion:
         if not self.records.space(space_id):
             raise UploadError("Choose a Space first.")
         return self._store_media(source, size_bytes, details)
 
     def _store_media(
         self, source: Path, size_bytes: int, details: AssetUploadDetails,
-    ) -> StoredAsset:
+    ) -> StoredFileVersion:
         if size_bytes <= 0 or not source.is_file():
             raise UploadError("That media file is empty.")
         if size_bytes > MAX_ASSET_UPLOAD_BYTES:
@@ -424,15 +424,15 @@ class UploadService:
                 size_bytes=size_bytes)
         except ValueError as exc:
             raise UploadError(str(exc)) from exc
-        if stored.media_type != "audio" and details.category is not None:
+        if stored.family != "audio" and details.category is not None:
             self.workspace.discard_media(stored.filename)
             raise UploadError(
                 "Music, ambience and SFX categories apply only to audio.")
         return stored
 
     @staticmethod
-    def _asset_url(stored: StoredAsset) -> str:
-        prefix = "audio" if stored.media_type == "audio" else "media"
+    def _asset_url(stored: StoredFileVersion) -> str:
+        prefix = "audio" if stored.family == "audio" else "media"
         return f"/{prefix}/{stored.filename}"
 
     def prepare_asset_upload(

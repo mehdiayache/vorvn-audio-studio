@@ -9,11 +9,12 @@ from typing import Callable, Protocol
 
 from audio_studio.domain import captions
 from audio_studio.domain.delivery_tags import TAG_RE
-from audio_studio.domain.jobs import Job
+from audio_studio.domain.jobs import Job, JobFailed
 from audio_studio.domain.text import ProviderText
 from audio_studio.application.provider_operations import (
     ProviderOperationService, enforce_daily_cap,
 )
+from audio_studio.application.creation_files import CreationFileService
 
 
 MODELS = {"fast": "qwen-mt-flash", "best": "qwen-mt-plus"}
@@ -300,6 +301,7 @@ class SubtitleTranslationService:
             "catalog_cost": cost,
             "cost_basis": cost_basis,
             "timing_source": "translated_source_cues",
+            "space_id": transcript.get("space_id"),
         })
         return {
             "id": new_id,
@@ -323,12 +325,16 @@ class SubtitleTranslationService:
             "price_version": PRICE_VERSION,
             "usage": translated.usage,
             "chars": characters,
+            "part_id": transcript.get("part_id"),
+            "space_id": transcript.get("space_id"),
         }
 
 
 class SubtitleTranslationJobHandler:
-    def __init__(self, service: SubtitleTranslationService):
+    def __init__(self, service: SubtitleTranslationService,
+                 files: CreationFileService):
         self.service = service
+        self.files = files
 
     def __call__(self, job: Job, repository: JobProgressRepository) -> dict:
         target = str(job.payload.get("target") or "")
@@ -345,5 +351,30 @@ class SubtitleTranslationJobHandler:
         )
         if result.get("id"):
             result["source_job_id"] = str(job.public_id)
+        if (result.get("id") and job.space_id is not None
+                and not result.get("part_id")):
+            try:
+                outputs = self.files.write_subtitles(
+                    job, base_name=str(result.get("file") or "Subtitles"),
+                    language=result.get("language"),
+                    srt=str(result.get("srt") or ""),
+                    vtt=str(result.get("vtt") or ""),
+                    metadata={
+                        "provider": "alibaba",
+                        "model": result.get("model"),
+                        "language": result.get("language"),
+                        "transcript_id": result.get("id"),
+                        "translated_from": job.payload.get("transcript_id"),
+                    },
+                )
+            except Exception as exc:
+                raise JobFailed(
+                    "Translated subtitles were created, but their canonical "
+                    "Files could not be committed. The provider result needs "
+                    "review, not another translation call.",
+                    {**result, "provider_succeeded": True,
+                     "requires_review": True},
+                ) from exc
+            result["output_file_ids"] = [int(file["id"]) for file in outputs]
         repository.progress(job.id, 1, 1, "Complete")
         return result

@@ -10,7 +10,8 @@ import subprocess
 from uuid import uuid4
 
 from audio_studio.config import settings
-from audio_studio.domain.uploads import StoredAsset, StoredVoiceReference
+from audio_studio.domain.files import StoredFileVersion
+from audio_studio.domain.uploads import StoredVoiceReference
 from audio_studio.infrastructure import object_storage
 from audio_studio.infrastructure.media_metadata import inspect_media
 from audio_studio.infrastructure.media_paths import media_root, voice_reference_root
@@ -138,7 +139,7 @@ class LocalUploadWorkspace:
 
     def store_asset(
         self, source: Path, *, original_name: str, size_bytes: int,
-    ) -> StoredAsset:
+    ) -> StoredFileVersion:
         self.output.mkdir(parents=True, exist_ok=True)
         object_id = uuid4().hex
         staging = self.output / f"{object_id}.upload"
@@ -156,7 +157,7 @@ class LocalUploadWorkspace:
             if target is not None:
                 target.unlink(missing_ok=True)
             raise
-        return StoredAsset(
+        return StoredFileVersion(
             filename=target.name, path=str(target),
             duration_ms=inspection.duration_ms,
             audio_format=inspection.audio_format,
@@ -164,7 +165,7 @@ class LocalUploadWorkspace:
             sample_rate=inspection.sample_rate,
             channels=inspection.channels,
             metadata=inspection.metadata,
-            media_type=inspection.media_type,
+            family=inspection.media_type,
             media_format=inspection.media_format,
             width=inspection.width,
             height=inspection.height,

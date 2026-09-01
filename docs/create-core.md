@@ -100,22 +100,23 @@ until at least two real Project types prove the shared contract.
 
 ## Cutover status and order
 
-The first complete standalone execution slice is live for **Generate music**
-and **Generate sound effect**:
+The standalone execution path is now live for **Generate music**, **Generate
+sound effect**, **Generate speech** and **Create subtitles**:
 
 - Create opens each focused Composer without creating a Project;
 - the resulting Job owns `space_id`, `creation_action_id` and its exact
   `creation_context`;
 - recent generations are queried by Space;
 - Keep creates one canonical File and records its id on the originating Job.
+- standalone Speech commits its exact audio output as a canonical File;
+- standalone transcription and translation commit timed SRT and VTT Files;
+- Speak history and Subtitle history are isolated by the selected Space.
 
 The next vertical slices are deliberately ordered by existing maturity:
 
-1. make standalone Speech and Subtitles produce canonical Files in the same
-   Space-owned execution path;
-2. make Upload a direct File action with processing Jobs only when required;
-3. cut Image and Video generation over action-by-action through their current
+1. make Upload a direct File action with processing Jobs only when required;
+2. cut Image and Video generation over action-by-action through their current
    Engines;
-4. unify Activity around Jobs and produced Files;
-5. remove the remaining legacy Work screens after audiovisual Project parity is
+3. unify Activity around Jobs and produced Files;
+4. remove the remaining legacy Work screens after audiovisual Project parity is
    verified, without adding compatibility writes or preservation layers.

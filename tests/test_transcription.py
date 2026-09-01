@@ -197,7 +197,7 @@ class TranscriptionTests(unittest.TestCase):
         self.assertEqual(operations.events, [])
 
     def test_job_handler_uses_public_job_id_and_reports_progress(self):
-        handler = TranscriptionJobHandler(self.service())
+        handler = TranscriptionJobHandler(self.service(), object())
         progress = Progress()
         job = Job(12, uuid4(), "transcribe", JobStatus.RUNNING, {
             "url": "https://storage.test/audio.mp3", "name": "audio.mp3",
@@ -212,12 +212,13 @@ class TranscriptionTests(unittest.TestCase):
     def test_http_contract_requires_measured_upload_or_part_identity(self):
         uploaded = TranscriptionJobCreate(
             url="https://storage.test/audio.mp3", name="audio.mp3",
-            duration_ms=2000)
+            duration_ms=2000, space_id=12)
         self.assertEqual(uploaded.duration_ms, 2000)
-        local = TranscriptionJobCreate(file="audio.mp3", part_id=44)
+        local = TranscriptionJobCreate(
+            file="audio.mp3", part_id=44, production_id=7)
         self.assertEqual(local.part_id, 44)
         unknown_duration = TranscriptionJobCreate(
-            url="https://storage.test/audio.mp3", name="audio.mp3")
+            url="https://storage.test/audio.mp3", name="audio.mp3", space_id=12)
         self.assertEqual(unknown_duration.duration_ms, 0)
         with self.assertRaises(ValueError):
             TranscriptionJobCreate(file="audio.mp3")
@@ -250,8 +251,16 @@ class TranscriptionTests(unittest.TestCase):
         postgres_transcripts.read_only = cursor_scope
         postgres_transcripts.transaction = cursor_scope
         try:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO spaces (public_id, name)
+                    VALUES (gen_random_uuid(), 'subtitle repository fixture')
+                    RETURNING id
+                """)
+                space_id = int(cursor.fetchone()[0])
             repository = postgres_transcripts.TranscriptRepository()
             transcript_id = repository.save({
+                "space_id": space_id,
                 "name": "native transcription fixture", "language": "English",
                 "duration_ms": 1000, "text": "Hello", "srt": "", "vtt": "",
                 "model": QWEN_MODEL, "provider_region": "intl",
@@ -262,7 +271,7 @@ class TranscriptionTests(unittest.TestCase):
             })
             self.assertEqual(repository.get(transcript_id)["text"], "Hello")
             self.assertIn(transcript_id,
-                          [item["id"] for item in repository.list(200)])
+                          [item["id"] for item in repository.list(space_id, 200)])
             self.assertTrue(repository.delete(transcript_id))
             self.assertIsNone(repository.get(transcript_id))
         finally:

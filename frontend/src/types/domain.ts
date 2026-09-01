@@ -670,6 +670,7 @@ export type RecordingAttempt = {
   duration_ms: number
   size_bytes: number
   audio_url?: string | null
+  file_id?: number | null
   needs_confirmation: boolean
   requires_review: boolean
   estimate: number

@@ -138,7 +138,8 @@ class AudioStudioArchitectureTests(unittest.TestCase):
             self.assertIn("$ref", schema, route)
 
     def test_speech_part_recording_requires_its_production(self):
-        SpeechJobCreate(text="Hello", catalogue_voice_id="catalogue:tina")
+        SpeechJobCreate(text="Hello", catalogue_voice_id="catalogue:tina",
+                        space_id=12)
         with self.assertRaises(ValueError):
             SpeechJobCreate(text="Hello", catalogue_voice_id="catalogue:tina",
                             part_id=8)
@@ -160,8 +161,9 @@ class AudioStudioArchitectureTests(unittest.TestCase):
             self.assertNotIn("get", paths[path])
 
     def test_transcription_accepts_library_or_uploaded_audio_only(self):
-        TranscriptionJobCreate(file="clip.mp3", part_id=7)
-        TranscriptionJobCreate(url="https://storage.example/audio", name="clip.mp3")
+        TranscriptionJobCreate(file="clip.mp3", part_id=7, production_id=6)
+        TranscriptionJobCreate(url="https://storage.example/audio", name="clip.mp3",
+                               space_id=12)
         with self.assertRaises(ValueError):
             TranscriptionJobCreate()
 

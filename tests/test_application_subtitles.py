@@ -20,8 +20,8 @@ class FakeRecords:
         self.limits = []
         self.deleted = []
 
-    def list(self, limit=40):
-        self.limits.append(limit)
+    def list(self, space_id, limit=40):
+        self.limits.append((space_id, limit))
         return [{"id": 7}]
 
     def get(self, transcript_id):
@@ -61,8 +61,8 @@ class SubtitleCatalogueTests(unittest.TestCase):
     def test_list_clamps_limits_and_detail_preserves_public_accounting(self):
         records, media = FakeRecords(transcript()), FakeMedia()
         service = SubtitleCatalogueService(records, media)
-        self.assertEqual(service.list(999), [{"id": 7}])
-        self.assertEqual(records.limits, [200])
+        self.assertEqual(service.list(12, 999), [{"id": 7}])
+        self.assertEqual(records.limits, [(12, 200)])
         detail = service.get(7)
         self.assertEqual(detail["public_id"], "subtitle-public-id")
         self.assertEqual(detail["source_job_id"], "job-public-id")

@@ -79,6 +79,7 @@ class MigrationTests(unittest.TestCase):
                 "052_asset_classification.sql",
                 "053_normalize_freesound_assets.sql",
                 "054_space_create_core.sql",
+                "055_space_creation_outputs.sql",
         ])
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:
@@ -127,6 +128,10 @@ class MigrationTests(unittest.TestCase):
                     SELECT column_default FROM information_schema.columns
                      WHERE table_name = 'assets' AND column_name = 'media_type'
                 """).fetchone()[0], "'audio'::text")
+                self.assertEqual(database.execute("""
+                    SELECT is_nullable FROM information_schema.columns
+                     WHERE table_name = 'transcripts' AND column_name = 'space_id'
+                """).fetchone()[0], "YES")
         finally:
             migrations.settings = original
             with psycopg.connect(admin_url, autocommit=True) as admin:

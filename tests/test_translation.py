@@ -191,7 +191,7 @@ class TranslationTests(unittest.TestCase):
         self.assertEqual(usage_cost(usage, "qwen-mt-plus", "beijing"), 1.034)
 
     def test_job_handler_uses_canonical_payload_and_reports_progress(self):
-        handler = SubtitleTranslationJobHandler(self.service())
+        handler = SubtitleTranslationJobHandler(self.service(), object())
         progress = Progress()
         job = Job(21, uuid4(), "translate", JobStatus.RUNNING, {
             "transcript_id": 4, "target": "French", "source": "English",

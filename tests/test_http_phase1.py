@@ -95,6 +95,7 @@ class NativeHttpTests(unittest.TestCase):
                 "text": "مرحبا",
                 "binding_id": "11111111-1111-4111-8111-111111111111",
                 "language": "Arabic",
+                "space_id": 1,
             })
         self.assertEqual(response.status_code, 409, response.text)
         self.assertEqual(

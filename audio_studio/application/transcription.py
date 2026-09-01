@@ -6,7 +6,7 @@ import hashlib
 from typing import Callable, Protocol
 
 from audio_studio.domain import captions
-from audio_studio.domain.jobs import Job
+from audio_studio.domain.jobs import Job, JobFailed
 from audio_studio.domain.provider_pricing import transcription_cost
 from audio_studio.domain.transcription import (
     FUN_MODEL,
@@ -17,6 +17,7 @@ from audio_studio.domain.transcription import (
 from audio_studio.application.provider_operations import (
     ProviderOperationService, enforce_daily_cap,
 )
+from audio_studio.application.creation_files import CreationFileService
 
 
 class TranscriptionProvider(Protocol):
@@ -58,6 +59,7 @@ class TranscriptionService:
                    enable_itn: bool = False,
                    vocabulary_id: str | None = None,
                    confirmed: bool = False, source_job_id: int | None = None,
+                   space_id: int | None = None,
                    on_progress=None) -> dict:
         language = str(language or "").strip()
         if language.lower() == "auto":
@@ -143,6 +145,7 @@ class TranscriptionService:
             "catalog_cost": cost.catalog_cost,
             "cost_basis": cost.cost_basis,
             "timing_source": "transcription",
+            "space_id": space_id,
         })
         if source.part_id:
             self.repository.finish_part(
@@ -165,12 +168,15 @@ class TranscriptionService:
             # Caption duration is the final timed cue, while catalogue pricing
             # uses Alibaba's billable input duration when the response has it.
             "duration_ms": result.duration_ms,
+            "space_id": space_id,
         }
 
 
 class TranscriptionJobHandler:
-    def __init__(self, service: TranscriptionService):
+    def __init__(self, service: TranscriptionService,
+                 files: CreationFileService):
         self.service = service
+        self.files = files
 
     def __call__(self, job: Job, repository) -> dict:
         repository.progress(job.id, 0, 1, "Listening to the audio")
@@ -180,9 +186,34 @@ class TranscriptionJobHandler:
                           "part_id", "language", "enable_itn",
                           "vocabulary_id", "confirmed", "production_id"}},
             source_job_id=job.id,
+            space_id=job.space_id,
             on_progress=lambda done, total: repository.progress(
                 job.id, done, total, "Listening to the audio"),
         )
         if result.get("id"):
             result["source_job_id"] = str(job.public_id)
+        if (result.get("id") and job.space_id is not None
+                and not result.get("part_id")):
+            try:
+                outputs = self.files.write_subtitles(
+                    job, base_name=str(result.get("file") or "Subtitles"),
+                    language=result.get("language"),
+                    srt=str(result.get("srt") or ""),
+                    vtt=str(result.get("vtt") or ""),
+                    metadata={
+                        "provider": "alibaba",
+                        "model": result.get("model"),
+                        "language": result.get("language"),
+                        "transcript_id": result.get("id"),
+                    },
+                )
+            except Exception as exc:
+                raise JobFailed(
+                    "Subtitles were created, but their canonical Files could "
+                    "not be committed. The provider result needs review, not "
+                    "another transcription call.",
+                    {**result, "provider_succeeded": True,
+                     "requires_review": True},
+                ) from exc
+            result["output_file_ids"] = [int(file["id"]) for file in outputs]
         return result

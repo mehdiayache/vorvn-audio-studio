@@ -25,6 +25,7 @@ class StandaloneRecordingResponse(BaseModel):
     needs_confirmation: bool = False
     requires_review: bool = False
     estimate: float = 0
+    file_id: int | None = None
     continued_by_job_id: str | None = None
 
 

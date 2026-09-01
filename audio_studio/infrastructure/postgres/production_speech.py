@@ -28,12 +28,25 @@ class ProductionSpeechCommandRepository:
                 operation_label: str = "Generate speech") -> tuple[Job, bool]:
         request_payload = dict(payload)
         with transaction() as cursor:
+            cursor.execute("""
+                SELECT space_id FROM productions
+                 WHERE id=%s AND archived_at IS NULL
+            """, (production_id,))
+            production = cursor.fetchone()
+            if not production:
+                raise LookupError("That Production no longer exists.")
+            space_id = int(production[0]) if production[0] is not None else None
             job, created = self.jobs.enqueue_in_transaction(
                 cursor, "speech", request_payload,
                 idempotency_key=idempotency_key,
                 actor_id=actor_id, organization_id=organization_id,
                 production_id=production_id, source_tool=source_tool,
-                operation_label=operation_label)
+                operation_label=operation_label, space_id=space_id,
+                creation_action_id="generate-speech" if space_id else None,
+                creation_context={
+                    "space_id": space_id,
+                    "audiovisual_project_id": production_id,
+                } if space_id else {})
             if not created:
                 return job, False
 

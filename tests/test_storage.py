@@ -124,7 +124,7 @@ class StorageContracts(unittest.TestCase):
                 incoming, original_name="cover.png",
                 size_bytes=incoming.stat().st_size)
 
-            self.assertEqual(stored.media_type, "image")
+            self.assertEqual(stored.family, "image")
             self.assertEqual(stored.media_format, "png")
             self.assertEqual(stored.mime_type, "image/png")
             self.assertEqual((stored.width, stored.height), (320, 180))
@@ -156,7 +156,7 @@ class StorageContracts(unittest.TestCase):
                 incoming, original_name="scene.mp4",
                 size_bytes=incoming.stat().st_size)
 
-            self.assertEqual(stored.media_type, "video")
+            self.assertEqual(stored.family, "video")
             self.assertEqual(stored.media_format, "mp4")
             self.assertEqual(stored.mime_type, "video/mp4")
             self.assertEqual((stored.width, stored.height), (320, 180))

@@ -20,6 +20,7 @@ from audio_studio.composition.production_speech import production_speech_service
 from audio_studio.composition.catalog import catalog_service
 from audio_studio.composition.audio_generation import audio_generation_service
 from audio_studio.composition.spaces import space_service
+from audio_studio.composition.subtitles import subtitle_service
 from audio_studio.http.errors import ApiProblem
 
 
@@ -104,6 +105,7 @@ class SpeechJobCreate(BaseModel):
     text_state: Literal["raw", "shaped", "tagged"] = "raw"
     spoken_profile: Literal["spoken_1", "spoken_2"] = "spoken_1"
     production_id: int | None = Field(default=None, gt=0)
+    space_id: int | None = Field(default=None, gt=0)
     insert_before_part_id: UUID | None = None
     authored_role: str | None = Field(default=None, max_length=120)
     voice_identity_id: str | None = Field(default=None, max_length=120)
@@ -132,6 +134,8 @@ class SpeechJobCreate(BaseModel):
             raise ValueError("An existing Part cannot have an insertion point.")
         if self.insert_before_part_id and not self.production_id:
             raise ValueError("An insertion point requires a Production.")
+        if self.production_id is None and self.space_id is None:
+            raise ValueError("Choose a Space for this speech recording.")
         return self
 
 
@@ -143,6 +147,7 @@ class TranscriptionJobCreate(BaseModel):
     file: str = Field(default="", max_length=500)
     part_id: int | None = Field(default=None, gt=0)
     production_id: int | None = Field(default=None, gt=0)
+    space_id: int | None = Field(default=None, gt=0)
     playable: str = Field(default="", max_length=1000)
     size_bytes: int = Field(default=0, ge=0, le=500_000_000)
     duration_ms: int = Field(default=0, ge=0)
@@ -161,8 +166,12 @@ class TranscriptionJobCreate(BaseModel):
                 "Uploaded audio and Production Parts are separate sources.")
         if has_file and not self.part_id:
             raise ValueError("Auvi Studio files require their Part ID.")
+        if self.part_id and not self.production_id:
+            raise ValueError("A Part transcription requires its audiovisual Project.")
         if self.production_id and not has_file:
             raise ValueError("A Production ID requires one of its Parts.")
+        if self.production_id is None and self.space_id is None:
+            raise ValueError("Choose a Space for these subtitles.")
         return self
 
 
@@ -305,9 +314,14 @@ def create_speech_job(payload: SpeechJobCreate,
             operation_label=("Generate Part" if payload.part_id
                              else "Generate and add Part"))
     else:
+        if not space_service.overview(payload.space_id):
+            raise ApiProblem(404, "space_not_found", "Space not found.")
         job, created = job_service.enqueue(
             "speech", values, idempotency_key=key,
-            source_tool="speak", operation_label="Create recording")
+            space_id=payload.space_id,
+            creation_action_id="generate-speech",
+            creation_context={"space_id": payload.space_id},
+            source_tool="create", operation_label="Generate speech")
     return {"data": _payload(job), "meta": {"created": created}}
 
 
@@ -399,14 +413,33 @@ def create_sound_recipe_normalization_job(
              response_model=JobCreatedEnvelope)
 def create_transcription_job(payload: TranscriptionJobCreate,
                              idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
+    space_id = payload.space_id
+    if payload.production_id is not None:
+        project = space_service.project(str(payload.production_id))
+        if not project:
+            raise ApiProblem(
+                404, "project_not_found", "Audiovisual Project not found.")
+        project_space_id = int(project["space_id"])
+        if space_id is not None and space_id != project_space_id:
+            raise ApiProblem(
+                400, "invalid_creation_context",
+                "The audiovisual Project does not belong to that Space.")
+        space_id = project_space_id
     values = {**payload.model_dump(exclude_none=True),
+              "space_id": space_id,
               "model": FUN_MODEL if payload.vocabulary_id else QWEN_MODEL}
     job, created = job_service.enqueue(
         "transcribe", values,
         idempotency_key=(idempotency_key or f"transcribe-{uuid4()}")[:200],
         production_id=payload.production_id,
         part_id=payload.part_id,
-        source_tool="production" if payload.production_id else "subtitles",
+        space_id=space_id,
+        creation_action_id="create-subtitles",
+        creation_context={
+            "space_id": space_id,
+            "audiovisual_project_id": payload.production_id,
+        },
+        source_tool="production" if payload.production_id else "create",
         operation_label="Create subtitles",
     )
     return {"data": _payload(job), "meta": {"created": created}}
@@ -416,11 +449,22 @@ def create_transcription_job(payload: TranscriptionJobCreate,
              response_model=JobCreatedEnvelope)
 def create_translation_job(payload: TranslationJobCreate,
                            idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
+    transcript = subtitle_service.get(payload.transcript_id)
+    if not transcript:
+        raise ApiProblem(404, "subtitle_not_found", "That subtitle file no longer exists.")
+    space_id = transcript.get("space_id")
+    if space_id is None:
+        raise ApiProblem(
+            409, "subtitle_has_no_space",
+            "This development subtitle has no Space. Create it again in the current Space.")
     values = {**payload.model_dump(exclude_none=True),
               "model": TRANSLATION_MODELS[payload.quality]}
     job, created = job_service.enqueue(
         "translate", values,
         idempotency_key=(idempotency_key or f"translate-{uuid4()}")[:200],
+        space_id=int(space_id),
+        creation_context={"space_id": int(space_id),
+                          "source_transcript_id": payload.transcript_id},
         source_tool="subtitles", operation_label="Translate subtitles",
     )
     return {"data": _payload(job), "meta": {"created": created}}

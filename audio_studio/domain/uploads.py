@@ -3,9 +3,6 @@
 from dataclasses import dataclass
 from typing import Literal
 
-from audio_studio.domain.media import AssetMediaType
-
-
 AssetCategory = Literal[
     "music", "ambience", "sfx",
 ]
@@ -33,21 +30,3 @@ class StoredVoiceReference:
     duration_ms: int | None = None
     sample_rate: int | None = None
     channels: int | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class StoredAsset:
-    filename: str
-    path: str
-    duration_ms: int | None
-    audio_format: str | None
-    mime_type: str
-    sample_rate: int | None = None
-    channels: int | None = None
-    metadata: dict | None = None
-    media_type: AssetMediaType = "audio"
-    media_format: str | None = None
-    width: int | None = None
-    height: int | None = None
-    video_codec: str | None = None
-    frame_rate: float | None = None

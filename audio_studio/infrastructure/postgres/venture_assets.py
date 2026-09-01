@@ -8,7 +8,7 @@ import json
 from audio_studio.domain.uploads import (
     ASSET_CATEGORIES, AssetCategory, AssetScope,
 )
-from audio_studio.domain.media import ASSET_MEDIA_TYPES, AssetMediaType
+from audio_studio.domain.files import FILE_FAMILIES, FileFamily
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 
@@ -419,8 +419,8 @@ class VentureAssetRepository:
         return row[0] if row else None
 
     @staticmethod
-    def _generation_lock_key(candidate_id: str) -> int:
-        identity = f"audio-generation:{candidate_id}"
+    def _generated_file_lock_key(external_id: str) -> int:
+        identity = f"generated-file:{external_id}"
         return int.from_bytes(
             hashlib.blake2b(identity.encode(), digest_size=8).digest(),
             byteorder="big", signed=True)
@@ -524,7 +524,7 @@ class VentureAssetRepository:
             scope: AssetScope = "space", tags: tuple[str, ...] = (),
             metadata: dict | None = None,
             version_metadata: dict | None = None,
-            media_type: AssetMediaType = "audio",
+            media_type: FileFamily = "audio",
             media_format: str | None = None,
             width: int | None = None, height: int | None = None,
             video_codec: str | None = None, frame_rate: float | None = None,
@@ -552,7 +552,7 @@ class VentureAssetRepository:
             scope: AssetScope = "space", tags: tuple[str, ...] = (),
             metadata: dict | None = None,
             version_metadata: dict | None = None,
-            media_type: AssetMediaType = "audio",
+            media_type: FileFamily = "audio",
             media_format: str | None = None,
             width: int | None = None, height: int | None = None,
             video_codec: str | None = None, frame_rate: float | None = None,
@@ -587,7 +587,7 @@ class VentureAssetRepository:
             scope: AssetScope = "space", tags: tuple[str, ...] = (),
             metadata: dict | None = None,
             version_metadata: dict | None = None,
-            media_type: AssetMediaType = "audio",
+            media_type: FileFamily = "audio",
             media_format: str | None = None,
             width: int | None = None, height: int | None = None,
             video_codec: str | None = None, frame_rate: float | None = None,
@@ -642,7 +642,7 @@ class VentureAssetRepository:
             scope: AssetScope = "space", tags: tuple[str, ...] = (),
             metadata: dict | None = None,
             version_metadata: dict | None = None,
-            media_type: AssetMediaType = "audio",
+            media_type: FileFamily = "audio",
             media_format: str | None = None,
             width: int | None = None, height: int | None = None,
             video_codec: str | None = None, frame_rate: float | None = None,
@@ -692,7 +692,7 @@ class VentureAssetRepository:
             scope: AssetScope = "space", tags: tuple[str, ...] = (),
             metadata: dict | None = None,
             version_metadata: dict | None = None,
-            media_type: AssetMediaType = "audio",
+            media_type: FileFamily = "audio",
             media_format: str | None = None,
             width: int | None = None, height: int | None = None,
             video_codec: str | None = None, frame_rate: float | None = None,
@@ -708,7 +708,7 @@ class VentureAssetRepository:
                 return None, False
             cursor.execute(
                 "SELECT pg_advisory_xact_lock(%s)",
-                (self._generation_lock_key(candidate_id),),
+                (self._generated_file_lock_key(candidate_id),),
             )
             existing_id = self._generated_asset_id(
                 cursor, candidate_id=candidate_id)
@@ -744,7 +744,7 @@ class VentureAssetRepository:
             scope: AssetScope = "space", tags: tuple[str, ...] = (),
             metadata: dict | None = None,
             version_metadata: dict | None = None,
-            media_type: AssetMediaType = "audio",
+            media_type: FileFamily = "audio",
             media_format: str | None = None,
             width: int | None = None, height: int | None = None,
             video_codec: str | None = None, frame_rate: float | None = None,
@@ -755,7 +755,7 @@ class VentureAssetRepository:
                 return None, False
             cursor.execute(
                 "SELECT pg_advisory_xact_lock(%s)",
-                (self._generation_lock_key(candidate_id),),
+                (self._generated_file_lock_key(candidate_id),),
             )
             existing_id = self._generated_asset_id(
                 cursor, candidate_id=candidate_id, space_id=space_id)
@@ -787,7 +787,7 @@ class VentureAssetRepository:
             category: AssetCategory | None, sample_rate: int | None,
             channels: int | None, scope: AssetScope, tags: tuple[str, ...],
             metadata: dict | None, version_metadata: dict | None,
-            media_type: AssetMediaType = "audio",
+            media_type: FileFamily = "audio",
             media_format: str | None = None,
             width: int | None = None, height: int | None = None,
             video_codec: str | None = None,
@@ -813,13 +813,13 @@ class VentureAssetRepository:
             category: AssetCategory | None, sample_rate: int | None,
             channels: int | None, scope: AssetScope, tags: tuple[str, ...],
             metadata: dict | None, version_metadata: dict | None,
-            media_type: AssetMediaType = "audio",
+            media_type: FileFamily = "audio",
             media_format: str | None = None,
             width: int | None = None, height: int | None = None,
             video_codec: str | None = None,
             frame_rate: float | None = None) -> dict:
-        if media_type not in ASSET_MEDIA_TYPES:
-            raise ValueError("Asset media type is not supported.")
+        if media_type not in FILE_FAMILIES:
+            raise ValueError("File family is not supported.")
         if media_type != "audio" and category is not None:
             raise ValueError("Audio categories cannot classify visual Assets.")
         canonical_category = category if media_type == "audio" else None
@@ -828,11 +828,13 @@ class VentureAssetRepository:
         cursor.execute("""
             INSERT INTO assets
                 (space_id, venture_id, collection_id, name, kind, media_type,
-                 category, scope, tags, metadata, legacy_generation_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL)
+                 category, scope, tags, metadata, source,
+                 legacy_generation_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL)
             RETURNING id, created_at, updated_at
         """, (space_id, venture_id, collection_id, name, media_type, media_type,
-              canonical_category, scope, list(tags), json.dumps(metadata or {})))
+              canonical_category, scope, list(tags), json.dumps(metadata or {}),
+              str((metadata or {}).get("origin") or "uploaded")))
         asset_id, created_at, updated_at = cursor.fetchone()
         cursor.execute("""
             INSERT INTO asset_versions

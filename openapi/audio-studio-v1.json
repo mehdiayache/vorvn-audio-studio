@@ -11250,6 +11250,18 @@
             "title": "Seed",
             "type": "integer"
           },
+          "space_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Space Id"
+          },
           "speech_mode": {
             "default": "exact",
             "maxLength": 120,
@@ -11646,6 +11658,17 @@
             "default": 0,
             "title": "Estimate",
             "type": "number"
+          },
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id"
           },
           "finished_at": {
             "anyOf": [
@@ -12307,6 +12330,17 @@
             ],
             "title": "Source Job Id"
           },
+          "space_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Space Id"
+          },
           "srt": {
             "title": "Srt",
             "type": "string"
@@ -12360,7 +12394,8 @@
           "provider_region",
           "price_version",
           "catalog_rate",
-          "source_job_id"
+          "source_job_id",
+          "space_id"
         ],
         "title": "SubtitleResponse",
         "type": "object"
@@ -13071,6 +13106,18 @@
             "title": "Size Bytes",
             "type": "integer"
           },
+          "space_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Space Id"
+          },
           "url": {
             "default": "",
             "maxLength": 4096,
@@ -13290,7 +13337,12 @@
             "enum": [
               "audio",
               "image",
-              "video"
+              "video",
+              "subtitle",
+              "document",
+              "archive",
+              "data",
+              "other"
             ],
             "title": "Media Type",
             "type": "string"
@@ -22460,6 +22512,18 @@
     "/api/v1/speak/recordings": {
       "get": {
         "operationId": "getStandaloneRecordingHistory",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "title": "Space Id",
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -22470,6 +22534,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Get Recording History",
@@ -22482,6 +22556,16 @@
       "get": {
         "operationId": "listSubtitles",
         "parameters": [
+          {
+            "in": "query",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "title": "Space Id",
+              "type": "integer"
+            }
+          },
           {
             "in": "query",
             "name": "limit",

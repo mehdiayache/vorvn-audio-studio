@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import psycopg
 
-from audio_studio.domain.uploads import AssetCategory, AssetScope, StoredAsset
+from audio_studio.domain.files import StoredFileVersion
+from audio_studio.domain.uploads import AssetCategory, AssetScope
 from audio_studio.infrastructure.postgres.venture_assets import VentureAssetRepository
 from audio_studio.infrastructure.postgres.spaces import SpaceRepository
 from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
@@ -56,7 +57,7 @@ class PostgresUploadRecords:
         return self.spaces.space(space_id)
 
     def create_uploaded_asset(
-        self, collection_id: int, *, name: str, stored: StoredAsset,
+        self, collection_id: int, *, name: str, stored: StoredFileVersion,
         size_bytes: int, category: AssetCategory | None = None,
         scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
@@ -68,7 +69,7 @@ class PostgresUploadRecords:
                 duration_ms=stored.duration_ms,
                 audio_format=stored.audio_format, mime_type=stored.mime_type,
                 sample_rate=stored.sample_rate, channels=stored.channels,
-                media_type=stored.media_type,
+                media_type=stored.family,
                 media_format=stored.media_format,
                 width=stored.width, height=stored.height,
                 video_codec=stored.video_codec, frame_rate=stored.frame_rate,
@@ -79,7 +80,7 @@ class PostgresUploadRecords:
                 "The database could not save that Asset.") from exc
 
     def create_space_file(
-        self, space_id: int, *, name: str, stored: StoredAsset,
+        self, space_id: int, *, name: str, stored: StoredFileVersion,
         size_bytes: int, category: AssetCategory | None = None,
         scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
@@ -91,7 +92,7 @@ class PostgresUploadRecords:
                 duration_ms=stored.duration_ms,
                 audio_format=stored.audio_format, mime_type=stored.mime_type,
                 sample_rate=stored.sample_rate, channels=stored.channels,
-                media_type=stored.media_type, media_format=stored.media_format,
+                media_type=stored.family, media_format=stored.media_format,
                 width=stored.width, height=stored.height,
                 video_codec=stored.video_codec, frame_rate=stored.frame_rate,
                 version_metadata=stored.metadata or {}, category=category,
@@ -101,7 +102,7 @@ class PostgresUploadRecords:
 
     def create_catalog_asset(
         self, collection_id: int, *, origin: str, external_id: str,
-        name: str, stored: StoredAsset, size_bytes: int,
+        name: str, stored: StoredFileVersion, size_bytes: int,
         category: AssetCategory | None = None,
         scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
@@ -113,7 +114,7 @@ class PostgresUploadRecords:
                 size_bytes=size_bytes, duration_ms=stored.duration_ms,
                 audio_format=stored.audio_format, mime_type=stored.mime_type,
                 sample_rate=stored.sample_rate, channels=stored.channels,
-                media_type=stored.media_type,
+                media_type=stored.family,
                 media_format=stored.media_format,
                 width=stored.width, height=stored.height,
                 video_codec=stored.video_codec, frame_rate=stored.frame_rate,
@@ -125,7 +126,7 @@ class PostgresUploadRecords:
 
     def create_space_catalog_file(
         self, space_id: int, *, origin: str, external_id: str,
-        name: str, stored: StoredAsset, size_bytes: int,
+        name: str, stored: StoredFileVersion, size_bytes: int,
         category: AssetCategory | None = None,
         scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
@@ -136,7 +137,7 @@ class PostgresUploadRecords:
             size_bytes=size_bytes, duration_ms=stored.duration_ms,
             audio_format=stored.audio_format, mime_type=stored.mime_type,
             sample_rate=stored.sample_rate, channels=stored.channels,
-            media_type=stored.media_type, media_format=stored.media_format,
+            media_type=stored.family, media_format=stored.media_format,
             width=stored.width, height=stored.height,
             video_codec=stored.video_codec, frame_rate=stored.frame_rate,
             version_metadata=stored.metadata or {}, category=category,
@@ -144,7 +145,7 @@ class PostgresUploadRecords:
 
     def create_generated_asset(
         self, collection_id: int, *, candidate_id: str,
-        name: str, stored: StoredAsset, size_bytes: int,
+        name: str, stored: StoredFileVersion, size_bytes: int,
         category: AssetCategory | None = None,
         scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
@@ -157,7 +158,7 @@ class PostgresUploadRecords:
                 audio_format=stored.audio_format,
                 mime_type=stored.mime_type,
                 sample_rate=stored.sample_rate, channels=stored.channels,
-                media_type=stored.media_type,
+                media_type=stored.family,
                 media_format=stored.media_format,
                 width=stored.width, height=stored.height,
                 video_codec=stored.video_codec, frame_rate=stored.frame_rate,
@@ -169,7 +170,7 @@ class PostgresUploadRecords:
 
     def create_generated_space_file(
         self, space_id: int, *, candidate_id: str,
-        name: str, stored: StoredAsset, size_bytes: int,
+        name: str, stored: StoredFileVersion, size_bytes: int,
         category: AssetCategory | None = None,
         scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
@@ -180,7 +181,7 @@ class PostgresUploadRecords:
             size_bytes=size_bytes, duration_ms=stored.duration_ms,
             audio_format=stored.audio_format, mime_type=stored.mime_type,
             sample_rate=stored.sample_rate, channels=stored.channels,
-            media_type=stored.media_type, media_format=stored.media_format,
+            media_type=stored.family, media_format=stored.media_format,
             width=stored.width, height=stored.height,
             video_codec=stored.video_codec, frame_rate=stored.frame_rate,
             version_metadata=stored.metadata or {}, category=category,

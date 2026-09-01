@@ -16,7 +16,7 @@ from audio_studio.domain.audio_catalog import (
     CatalogDownload,
     CatalogSound,
 )
-from audio_studio.domain.uploads import StoredAsset
+from audio_studio.domain.files import StoredFileVersion
 from audio_studio.providers.freesound import (
     FreesoundCatalog,
     FreesoundOAuthTokens,
@@ -216,9 +216,11 @@ class FakeWorkspace:
 
     def store_asset(self, source, *, original_name, size_bytes):
         self.stored.append((Path(source), original_name, size_bytes))
-        return StoredAsset(
-            "kept.wav", "/media/kept.wav", 2400, "wav", "audio/wav",
-            48000, 2, {"codec": "pcm_s16le", "container": "wav"})
+        return StoredFileVersion(
+            filename="kept.wav", path="/media/kept.wav",
+            mime_type="audio/wav", family="audio", duration_ms=2400,
+            audio_format="wav", media_format="wav", sample_rate=48000,
+            channels=2, metadata={"codec": "pcm_s16le", "container": "wav"})
 
     def discard_media(self, filename):
         self.discarded.append(filename)

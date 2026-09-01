@@ -12,7 +12,8 @@ from audio_studio.application.uploads import (
     UploadError,
     UploadService,
 )
-from audio_studio.domain.uploads import StoredAsset, StoredVoiceReference
+from audio_studio.domain.files import StoredFileVersion
+from audio_studio.domain.uploads import StoredVoiceReference
 from audio_studio.http.errors import ApiProblem
 from audio_studio.http.routers import uploads as upload_router
 
@@ -27,10 +28,11 @@ class FakeWorkspace:
         self.discarded_media = []
         self.transcriptions = []
         self.voice_duration_ms = 15_000
-        self.stored_asset = StoredAsset(
-            "asset_fixture.mp3", "/media/asset_fixture.mp3", 1250,
-            "mp3", "audio/mpeg", 48000, 2,
-            {"codec": "mp3", "container": "mp3"})
+        self.stored_asset = StoredFileVersion(
+            filename="asset_fixture.mp3", path="/media/asset_fixture.mp3",
+            mime_type="audio/mpeg", family="audio", duration_ms=1250,
+            audio_format="mp3", media_format="mp3", sample_rate=48000,
+            channels=2, metadata={"codec": "mp3", "container": "mp3"})
 
     def store_image(self, raw, original_name):
         self.images.append((raw, original_name))
@@ -100,7 +102,7 @@ class FakeRecords:
                 "duration_ms": stored.duration_ms,
                 "category": category or "music", "scope": scope,
                 "tags": list(tags), "metadata": metadata or {},
-                "media_type": stored.media_type,
+                "media_type": stored.family,
                 "media_format": stored.media_format or stored.audio_format,
                 "audio_format": stored.audio_format,
                 "sample_rate": stored.sample_rate,
@@ -198,10 +200,10 @@ class UploadServiceTests(unittest.TestCase):
 
     def test_visual_asset_uses_the_same_ingestion_path_and_generic_url(self):
         service, workspace, records = self.service()
-        workspace.stored_asset = StoredAsset(
+        workspace.stored_asset = StoredFileVersion(
             filename="visual_fixture.png", path="/media/visual_fixture.png",
             duration_ms=None, audio_format=None, mime_type="image/png",
-            media_type="image", media_format="png", width=1280, height=720,
+            family="image", media_format="png", width=1280, height=720,
             metadata={"codec": "png", "container": "image2"},
         )
         with TemporaryDirectory() as directory:
@@ -215,14 +217,14 @@ class UploadServiceTests(unittest.TestCase):
         self.assertEqual(result["url"], "/media/visual_fixture.png")
         self.assertEqual(result["media_type"], "image")
         self.assertEqual((result["width"], result["height"]), (1280, 720))
-        self.assertEqual(records.created_assets[0]["stored"].media_type, "image")
+        self.assertEqual(records.created_assets[0]["stored"].family, "image")
 
     def test_visual_asset_rejects_an_audio_only_classification(self):
         service, workspace, records = self.service()
-        workspace.stored_asset = StoredAsset(
+        workspace.stored_asset = StoredFileVersion(
             filename="visual_fixture.mp4", path="/media/visual_fixture.mp4",
             duration_ms=2_000, audio_format=None, mime_type="video/mp4",
-            media_type="video", media_format="mp4", width=1920, height=1080,
+            family="video", media_format="mp4", width=1920, height=1080,
             video_codec="h264", frame_rate=24,
         )
         with TemporaryDirectory() as directory:
@@ -239,10 +241,10 @@ class UploadServiceTests(unittest.TestCase):
 
     def test_asset_upload_limit_is_realistic_for_video_and_still_bounded(self):
         service, workspace, records = self.service()
-        workspace.stored_asset = StoredAsset(
+        workspace.stored_asset = StoredFileVersion(
             filename="feature.mp4", path="/media/feature.mp4",
             duration_ms=120_000, audio_format=None, mime_type="video/mp4",
-            media_type="video", media_format="mp4", width=1920,
+            family="video", media_format="mp4", width=1920,
             height=1080, video_codec="h264", frame_rate=24,
         )
         with TemporaryDirectory() as directory:
