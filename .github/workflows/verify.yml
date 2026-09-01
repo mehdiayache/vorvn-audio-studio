@@ -73,7 +73,7 @@ jobs:
         uses: pnpm/setup@v2
         with:
           runtime: node@22
-          cache: true
+          cache: false
           install: false
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
@@ -92,7 +92,7 @@ jobs:
         uses: pnpm/setup@v2
         with:
           runtime: node@22
-          cache: true
+          cache: false
           install: false
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
@@ -169,7 +169,7 @@ jobs:
         uses: pnpm/setup@v2
         with:
           runtime: node@22
-          cache: true
+          cache: false
           install: false
       - name: Install backend dependencies
         run: python -m venv .venv && .venv/bin/pip install -r requirements.txt
