@@ -155,7 +155,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://voicestudio:voicestudio@127.0.0.1:5432/voicestudio
-      AUDIO_STUDIO_OUTPUT_DIR: ${{ runner.temp }}/auvi-browser-output
+      AUDIO_STUDIO_OUTPUT_DIR: /tmp/auvi-browser-output
       PYTHONUNBUFFERED: "1"
     steps:
       - name: Check out repository
