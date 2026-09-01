@@ -1191,6 +1191,18 @@
             "maxLength": 2000,
             "title": "Source Free Text",
             "type": "string"
+          },
+          "space_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Space Id"
           }
         },
         "required": [
@@ -5187,6 +5199,28 @@
             ],
             "title": "Created At"
           },
+          "creation_action_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Creation Action Id"
+          },
+          "creation_preset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Creation Preset Id"
+          },
           "detail": {
             "title": "Detail",
             "type": "string"
@@ -5218,6 +5252,13 @@
             "title": "Id",
             "type": "string"
           },
+          "output_file_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Output File Ids",
+            "type": "array"
+          },
           "part_id": {
             "anyOf": [
               {
@@ -5241,6 +5282,17 @@
           "retries": {
             "title": "Retries",
             "type": "integer"
+          },
+          "space_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Space Id"
           },
           "started_at": {
             "anyOf": [
@@ -10355,6 +10407,18 @@
             "maxLength": 2000,
             "title": "Source Free Text",
             "type": "string"
+          },
+          "space_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Space Id"
           }
         },
         "required": [
@@ -11315,6 +11379,28 @@
             ],
             "title": "Created At"
           },
+          "creation_action_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Creation Action Id"
+          },
+          "creation_preset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Creation Preset Id"
+          },
           "detail": {
             "title": "Detail",
             "type": "string"
@@ -11346,6 +11432,13 @@
             "title": "Id",
             "type": "string"
           },
+          "output_file_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Output File Ids",
+            "type": "array"
+          },
           "part_id": {
             "anyOf": [
               {
@@ -11367,6 +11460,17 @@
           "retries": {
             "title": "Retries",
             "type": "integer"
+          },
+          "space_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Space Id"
           },
           "started_at": {
             "anyOf": [
@@ -17510,10 +17614,33 @@
           {
             "in": "query",
             "name": "production_id",
-            "required": true,
+            "required": false,
             "schema": {
-              "title": "Production Id",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Production Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "space_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Space Id"
             }
           }
         ],

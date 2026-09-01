@@ -27,8 +27,8 @@ export type SpaceHomeView = "create" | "projects" | "files"
 
 const actionPresentation: Record<string, { icon: LucideIcon; href?: string; tone: string }> = {
   "generate-speech": { icon: Mic2, href: "/audio-studio/speak", tone: "speech" },
-  "generate-music": { icon: Music2, tone: "music" },
-  "generate-sound-effect": { icon: Waves, tone: "sound" },
+  "generate-music": { icon: Music2, href: "/audio-studio/create/generate-music", tone: "music" },
+  "generate-sound-effect": { icon: Waves, href: "/audio-studio/create/generate-sound-effect", tone: "sound" },
   "generate-image": { icon: Image, tone: "image" },
   "generate-video": { icon: Video, tone: "video" },
   "create-subtitles": { icon: Captions, href: "/audio-studio/subtitles", tone: "subtitle" },

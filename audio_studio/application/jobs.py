@@ -25,6 +25,9 @@ class JobStore(JobProgress, Protocol):
     def get(self, public_id: UUID) -> Job | None: ...
     def recent_for_production(self, production_id: int, *, kind: str,
                               limit: int = 8) -> list[Job]: ...
+    def recent_for_space(self, space_id: int, *, kind: str,
+                         limit: int = 8) -> list[Job]: ...
+    def attach_output_file(self, public_id: UUID, file_id: int) -> bool: ...
     def events(self, public_id: UUID) -> list[dict[str, Any]]: ...
     def cancel(self, public_id: UUID) -> Job | None: ...
     def confirm(self, public_id: UUID, *, idempotency_key: str) \
@@ -52,6 +55,14 @@ class JobService:
                               limit: int = 8) -> list[Job]:
         return self.repository.recent_for_production(
             production_id, kind=kind, limit=limit)
+
+    def recent_for_space(self, space_id: int, *, kind: str,
+                         limit: int = 8) -> list[Job]:
+        return self.repository.recent_for_space(
+            space_id, kind=kind, limit=limit)
+
+    def attach_output_file(self, public_id: UUID, file_id: int) -> bool:
+        return self.repository.attach_output_file(public_id, file_id)
 
     def events(self, public_id: UUID) -> list[dict[str, Any]]:
         return self.repository.events(public_id)

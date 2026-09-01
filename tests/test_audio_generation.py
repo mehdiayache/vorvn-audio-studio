@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -116,7 +117,13 @@ class FakeJobs:
         self.enqueued = []
 
     def enqueue(self, kind, payload, **values):
-        job = Job(1, uuid4(), kind, JobStatus.QUEUED, payload=payload)
+        job = Job(
+            1, uuid4(), kind, JobStatus.QUEUED, payload=payload,
+            space_id=values.get("space_id"),
+            creation_action_id=values.get("creation_action_id"),
+            creation_preset_id=values.get("creation_preset_id"),
+            creation_context=values.get("creation_context") or {},
+        )
         self.jobs[job.public_id] = job
         self.enqueued.append((kind, payload, values))
         return job, True
@@ -127,6 +134,18 @@ class FakeJobs:
     def recent_for_production(self, _production_id, *, kind, limit=8):
         return [job for job in reversed(list(self.jobs.values()))
                 if job.kind == kind][:limit]
+
+    def recent_for_space(self, space_id, *, kind, limit=8):
+        return [job for job in reversed(list(self.jobs.values()))
+                if job.kind == kind and job.space_id == space_id][:limit]
+
+    def attach_output_file(self, public_id, file_id):
+        job = self.jobs.get(public_id)
+        if not job:
+            return False
+        self.jobs[public_id] = replace(
+            job, output_file_ids=(*job.output_file_ids, file_id))
+        return True
 
 
 class FakeUploads:
@@ -151,6 +170,15 @@ class FakeUploads:
             "details": details,
         })
         return {"asset": {"id": 91}, "duplicate": False}
+
+    def save_generated_space_file(self, space_id, source, size_bytes,
+                                  *, candidate_id, details):
+        self.saved.append({
+            "space_id": space_id, "source": Path(source),
+            "size_bytes": size_bytes, "candidate_id": candidate_id,
+            "details": details,
+        })
+        return {"asset": {"id": 93}, "duplicate": False}
 
 
 class WinningUploads(FakeUploads):
@@ -334,6 +362,43 @@ class AudioGenerationApplicationTests(unittest.TestCase):
             self.assertEqual(recent[0]["request"]["generation_brief"], {
                 "purpose": "quiet underscore"})
             self.assertFalse(recent[0]["candidate_available"])
+
+    def test_space_generation_owns_its_action_history_and_output_file(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            service, jobs, uploads = self.service(root)
+            job, _ = service.enqueue(
+                capability="sfx", prompt="A short wooden knock", seconds=2,
+                seed=7, idempotency_key="space-sfx", space_id=14)
+
+            self.assertEqual(job.space_id, 14)
+            self.assertEqual(job.creation_action_id, "generate-sound-effect")
+            self.assertEqual(job.creation_context, {
+                "space_id": 14, "audiovisual_project_id": None,
+            })
+            jobs.jobs[job.public_id] = replace(
+                job, status=JobStatus.SUCCEEDED,
+                result={
+                    "candidate_id": str(job.public_id),
+                    "candidate_url": f"/api/v1/audio-generations/{job.public_id}/candidate",
+                    "capability": "sfx", "prompt": "A short wooden knock",
+                    "seconds": 2, "seed": 7, "duration_ms": 2000,
+                })
+            candidate = root / "generated" / f"{job.public_id}.wav"
+            candidate.parent.mkdir(parents=True)
+            candidate.write_bytes(b"generated-wave")
+
+            self.assertEqual(
+                service.recent(None, space_id=14)[0]["job_id"],
+                str(job.public_id))
+            kept = service.keep_in_space(
+                candidate_id=job.public_id, space_id=14,
+                name="Wooden knock", category="sfx", tags=("wood",))
+
+            self.assertEqual(kept["asset"]["id"], 93)
+            self.assertEqual(uploads.saved[0]["space_id"], 14)
+            self.assertEqual(
+                jobs.jobs[job.public_id].output_file_ids, (93,))
 
     def test_kept_history_serializes_canonical_asset_datetimes(self):
         with TemporaryDirectory() as directory:

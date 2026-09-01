@@ -17,6 +17,64 @@ from audio_studio.domain.jobs import IdempotencyConflict
 
 
 class JobRepositoryTests(unittest.TestCase):
+    def test_space_creation_job_round_trips_canonical_creation_metadata(self):
+        try:
+            connection = psycopg.connect(settings.database_url)
+        except psycopg.OperationalError as exc:
+            self.skipTest(str(exc))
+        repository = jobs_module.JobRepository()
+        job_id = None
+        file_id = None
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT id FROM spaces ORDER BY id LIMIT 1")
+                owner = cursor.fetchone()
+            if not owner:
+                self.skipTest("No Space fixture is available")
+            space_id = int(owner[0])
+            created, _ = repository.enqueue(
+                "audio_generate", {"capability": "music"},
+                idempotency_key=f"space-creation-{uuid4()}",
+                space_id=space_id,
+                creation_action_id="generate-music",
+                creation_context={"space_id": space_id},
+                source_tool="create",
+                operation_label="Generate music")
+            job_id = created.id
+
+            loaded = repository.get(created.public_id)
+            recent = repository.recent_for_space(
+                space_id, kind="audio_generate", limit=1)
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO assets (space_id, name, kind, media_type, source)
+                    VALUES (%s, 'Space Job output', 'audio', 'audio', 'generated')
+                    RETURNING id
+                """, (space_id,))
+                file_id = int(cursor.fetchone()[0])
+            connection.commit()
+            self.assertTrue(repository.attach_output_file(
+                created.public_id, file_id))
+            self.assertTrue(repository.attach_output_file(
+                created.public_id, file_id))
+            linked = repository.get(created.public_id)
+
+            self.assertIsNotNone(loaded)
+            self.assertEqual(loaded.space_id, space_id)
+            self.assertEqual(loaded.creation_action_id, "generate-music")
+            self.assertEqual(loaded.creation_context, {"space_id": space_id})
+            self.assertEqual(loaded.output_file_ids, ())
+            self.assertEqual(recent[0].id, created.id)
+            self.assertEqual(linked.output_file_ids, (file_id,))
+        finally:
+            if job_id:
+                with connection.cursor() as cursor:
+                    cursor.execute("DELETE FROM jobs WHERE id=%s", (job_id,))
+                    if file_id:
+                        cursor.execute("DELETE FROM assets WHERE id=%s", (file_id,))
+                connection.commit()
+            connection.close()
+
     def test_recent_generation_jobs_are_scoped_and_newest_first(self):
         try:
             connection = psycopg.connect(settings.database_url)

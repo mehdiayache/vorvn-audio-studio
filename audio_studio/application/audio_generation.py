@@ -60,7 +60,8 @@ class AudioGenerationService:
                 source_free_text: str = "",
                 final_prompt_override: str | None = None,
                 authored_prompt: str | None = None,
-                idempotency_key: str, production_id: int | None = None) \
+                idempotency_key: str, production_id: int | None = None,
+                space_id: int | None = None) \
             -> tuple[Job, bool]:
         compiled = None
         if semantic_state is not None:
@@ -105,7 +106,16 @@ class AudioGenerationService:
             "audio_generate", payload,
             idempotency_key=idempotency_key,
             production_id=production_id,
-            source_tool="audio-library",
+            space_id=space_id,
+            creation_action_id=(
+                "generate-sound-effect" if capability == "sfx"
+                else "generate-music"),
+            creation_context={
+                "space_id": space_id,
+                "audiovisual_project_id": production_id,
+            },
+            source_tool="create" if space_id and not production_id
+            else "audio-library",
             operation_label=("Generate sound effect" if capability == "sfx"
                              else "Generate music"),
         )
@@ -268,14 +278,26 @@ class AudioGenerationService:
         path.unlink(missing_ok=True)
         return existed
 
-    def recent(self, production_id: int, *, limit: int = 8) -> list[dict]:
+    def recent(
+        self, production_id: int | None = None, *, space_id: int | None = None,
+        limit: int = 8,
+    ) -> list[dict]:
         """Return durable generation attempts with their current candidate truth."""
         history = []
-        for job in self.jobs.recent_for_production(
-                production_id, kind="audio_generate", limit=limit):
+        jobs = (
+            self.jobs.recent_for_space(space_id, kind="audio_generate", limit=limit)
+            if space_id is not None else
+            self.jobs.recent_for_production(
+                production_id, kind="audio_generate", limit=limit)
+        )
+        for job in jobs:
             candidate_id = str(job.public_id)
-            kept_asset = self.uploads.generated_asset(
-                candidate_id=candidate_id)
+            kept_asset = (
+                self.uploads.generated_space_file(
+                    space_id=job.space_id, candidate_id=candidate_id)
+                if job.space_id is not None else
+                self.uploads.generated_asset(candidate_id=candidate_id)
+            )
             candidate_available = (
                 job.status in {JobStatus.SUCCEEDED, JobStatus.WARNING}
                 and self._candidate_path(job.public_id).is_file())
@@ -334,6 +356,7 @@ class AudioGenerationService:
     ) -> dict:
         existing = self._kept_file(candidate_id, space_id)
         if existing:
+            self._attach_output_file(candidate_id, space_id, existing)
             self._candidate_path(candidate_id).unlink(missing_ok=True)
             return {"asset": existing, "duplicate": True}
         try:
@@ -343,6 +366,7 @@ class AudioGenerationService:
             # candidate after our first lookup. Resolve that canonical winner.
             existing = self._kept_file(candidate_id, space_id)
             if existing:
+                self._attach_output_file(candidate_id, space_id, existing)
                 return {"asset": existing, "duplicate": True}
             raise
         provenance = {
@@ -400,7 +424,21 @@ class AudioGenerationService:
                     collection_id, copy, copy.stat().st_size,
                     candidate_id=str(candidate_id), details=details)
         source.unlink(missing_ok=True)
+        self._attach_output_file(candidate_id, space_id, result["asset"])
         return result
+
+    def _attach_output_file(
+        self, candidate_id: UUID, space_id: int | None, file: dict,
+    ) -> None:
+        if space_id is None:
+            return
+        job = self.jobs.get(candidate_id)
+        if not job or job.space_id != space_id:
+            raise RuntimeError(
+                "The generated File does not belong to this Space execution.")
+        if not self.jobs.attach_output_file(candidate_id, int(file["id"])):
+            raise RuntimeError(
+                "The generated File could not be linked to its execution.")
 
     def _kept_file(
         self, candidate_id: UUID, space_id: int | None,

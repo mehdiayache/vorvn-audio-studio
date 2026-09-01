@@ -19,6 +19,7 @@ from audio_studio.composition.jobs import job_service
 from audio_studio.composition.production_speech import production_speech_service
 from audio_studio.composition.catalog import catalog_service
 from audio_studio.composition.audio_generation import audio_generation_service
+from audio_studio.composition.spaces import space_service
 from audio_studio.http.errors import ApiProblem
 
 
@@ -38,6 +39,10 @@ class JobResponse(BaseModel):
     finished_at: datetime | None = None
     result: dict[str, Any]
     part_id: int | None = None
+    space_id: int | None = None
+    creation_action_id: str | None = None
+    creation_preset_id: str | None = None
+    output_file_ids: list[int] = Field(default_factory=list)
     context: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -206,6 +211,7 @@ class AudioGenerationJobCreate(BaseModel):
     seconds: int = Field(ge=1, le=120)
     seed: int | None = Field(default=None, ge=0, le=2_147_483_647)
     production_id: int | None = Field(default=None, gt=0)
+    space_id: int | None = Field(default=None, gt=0)
 
     @model_validator(mode="after")
     def duration_matches_capability(self):
@@ -224,6 +230,9 @@ class AudioGenerationJobCreate(BaseModel):
         if self.semantic_state is not None and len(str(
                 self.semantic_state)) > 30_000:
             raise ValueError("The Sound Recipe is too large.")
+        if self.production_id is None and self.space_id is None:
+            raise ValueError(
+                "Choose a Space or an audiovisual Project for this creation.")
         return self
 
 
@@ -234,6 +243,7 @@ class SoundRecipeNormalizationJobCreate(BaseModel):
     semantic_state: dict[str, Any]
     source_free_text: str = Field(default="", max_length=2_000)
     production_id: int | None = Field(default=None, gt=0)
+    space_id: int | None = Field(default=None, gt=0)
     confirmed: bool = False
 
     @model_validator(mode="after")
@@ -255,8 +265,13 @@ def _payload(job: Job) -> dict:
             "started_at": job.started_at.isoformat() if job.started_at else None,
             "finished_at": job.finished_at.isoformat() if job.finished_at else None,
             "result": job.result, "part_id": job.part_id,
-            "context": {key: value for key, value in job.payload.items()
-                        if key in context_keys}}
+            "space_id": job.space_id,
+            "creation_action_id": job.creation_action_id,
+            "creation_preset_id": job.creation_preset_id,
+            "output_file_ids": list(job.output_file_ids),
+            "context": job.creation_context or {
+                key: value for key, value in job.payload.items()
+                if key in context_keys}}
 
 
 @router.post("/speech", operation_id="createSpeechJob", status_code=202,
@@ -320,9 +335,21 @@ def create_audio_generation_job(
     payload: AudioGenerationJobCreate,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> dict:
+    values = payload.model_dump()
+    if payload.production_id is not None:
+        project = space_service.project(str(payload.production_id))
+        if not project:
+            raise ApiProblem(
+                404, "project_not_found", "Audiovisual Project not found.")
+        project_space_id = int(project["space_id"])
+        if payload.space_id is not None and payload.space_id != project_space_id:
+            raise ApiProblem(
+                400, "invalid_creation_context",
+                "The audiovisual Project does not belong to that Space.")
+        values["space_id"] = project_space_id
     try:
         job, created = audio_generation_service.enqueue(
-            **payload.model_dump(),
+            **values,
             idempotency_key=(
                 idempotency_key or f"audio-generation-{uuid4()}")[:200])
     except ValueError as exc:
@@ -337,12 +364,32 @@ def create_sound_recipe_normalization_job(
     payload: SoundRecipeNormalizationJobCreate,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> dict:
+    values = payload.model_dump()
+    space_id = payload.space_id
+    if payload.production_id is not None:
+        project = space_service.project(str(payload.production_id))
+        if not project:
+            raise ApiProblem(
+                404, "project_not_found", "Audiovisual Project not found.")
+        project_space_id = int(project["space_id"])
+        if space_id is not None and space_id != project_space_id:
+            raise ApiProblem(
+                400, "invalid_creation_context",
+                "The audiovisual Project does not belong to that Space.")
+        space_id = project_space_id
+    values["space_id"] = space_id
     job, created = job_service.enqueue(
-        "sound_recipe_normalize", payload.model_dump(),
+        "sound_recipe_normalize", values,
         idempotency_key=(
             idempotency_key or f"sound-recipe-normalization-{uuid4()}")[:200],
         production_id=payload.production_id,
-        source_tool="production",
+        space_id=space_id,
+        creation_context={
+            "space_id": space_id,
+            "audiovisual_project_id": payload.production_id,
+        },
+        source_tool="create" if space_id and not payload.production_id
+        else "production",
         operation_label="Understand Sound Recipe",
     )
     return {"data": _payload(job), "meta": {"created": created}}

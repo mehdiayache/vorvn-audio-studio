@@ -97,3 +97,25 @@ until at least two real Project types prove the shared contract.
   Folders.
 - The application opens on the current Space with Create dominant and Recent,
   Projects, Files and Folders available around it.
+
+## Cutover status and order
+
+The first complete standalone execution slice is live for **Generate music**
+and **Generate sound effect**:
+
+- Create opens each focused Composer without creating a Project;
+- the resulting Job owns `space_id`, `creation_action_id` and its exact
+  `creation_context`;
+- recent generations are queried by Space;
+- Keep creates one canonical File and records its id on the originating Job.
+
+The next vertical slices are deliberately ordered by existing maturity:
+
+1. make standalone Speech and Subtitles produce canonical Files in the same
+   Space-owned execution path;
+2. make Upload a direct File action with processing Jobs only when required;
+3. cut Image and Video generation over action-by-action through their current
+   Engines;
+4. unify Activity around Jobs and produced Files;
+5. remove the remaining legacy Work screens after audiovisual Project parity is
+   verified, without adding compatibility writes or preservation layers.

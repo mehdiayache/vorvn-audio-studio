@@ -29,6 +29,7 @@ const ProjectPage = lazy(() => import("@/features/work/project-page").then((modu
 const SeriesPage = lazy(() => import("@/features/work/series-page").then((module) => ({ default: module.SeriesPage })))
 const VenturePage = lazy(() => import("@/features/work/venture-page").then((module) => ({ default: module.VenturePage })))
 const SpaceHomePage = lazy(() => import("@/features/space/space-home-page").then((module) => ({ default: module.SpaceHomePage })))
+const SpaceAudioCreationPage = lazy(() => import("@/features/create/space-audio-creation-page").then((module) => ({ default: module.SpaceAudioCreationPage })))
 
 function ProductionRoute({ productionId }: { productionId: number }) {
   const { production, tree, soundScene, visualScene, refresh } = useProduction(productionId)
@@ -123,6 +124,7 @@ function AudioStudioRoutes({ mode }: { mode: AudioStudioMountMode }) {
       <Route path="/audio-studio" element={<AppShell mode={mode} />}>
         <Route index element={<SpaceHomeRoute />} />
         <Route path="create" element={<SpaceHomeRoute />} />
+        <Route path="create/:actionId" element={<LazyRoute label="Opening Create"><SpaceAudioCreationPage /></LazyRoute>} />
         <Route path="projects" element={<SpaceHomeRoute view="projects" />} />
         <Route path="projects/audiovisual/:identifier" element={<AudiovisualProjectRoute />} />
         <Route path="files" element={<SpaceHomeRoute view="files" />} />

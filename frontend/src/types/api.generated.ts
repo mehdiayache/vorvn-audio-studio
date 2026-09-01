@@ -2677,6 +2677,8 @@ export interface components {
              * @default
              */
             source_free_text: string;
+            /** Space Id */
+            space_id?: number | null;
         };
         /** AudioGenerationRequestResponse */
         AudioGenerationRequestResponse: {
@@ -4148,6 +4150,10 @@ export interface components {
             };
             /** Created At */
             created_at?: string | null;
+            /** Creation Action Id */
+            creation_action_id?: string | null;
+            /** Creation Preset Id */
+            creation_preset_id?: string | null;
             /** Detail */
             detail: string;
             /** Error */
@@ -4156,6 +4162,8 @@ export interface components {
             finished_at?: string | null;
             /** Id */
             id: string;
+            /** Output File Ids */
+            output_file_ids?: number[];
             /** Part Id */
             part_id?: number | null;
             /** Progress */
@@ -4166,6 +4174,8 @@ export interface components {
             };
             /** Retries */
             retries: number;
+            /** Space Id */
+            space_id?: number | null;
             /** Started At */
             started_at?: string | null;
             /** Status */
@@ -5924,6 +5934,8 @@ export interface components {
              * @default
              */
             source_free_text: string;
+            /** Space Id */
+            space_id?: number | null;
         };
         /** SoundRecipeTaxonomyEnvelope */
         SoundRecipeTaxonomyEnvelope: {
@@ -6291,6 +6303,10 @@ export interface components {
             };
             /** Created At */
             created_at?: string | null;
+            /** Creation Action Id */
+            creation_action_id?: string | null;
+            /** Creation Preset Id */
+            creation_preset_id?: string | null;
             /** Detail */
             detail: string;
             /** Error */
@@ -6299,6 +6315,8 @@ export interface components {
             finished_at?: string | null;
             /** Id */
             id: string;
+            /** Output File Ids */
+            output_file_ids?: number[];
             /** Part Id */
             part_id?: number | null;
             /** Progress */
@@ -6306,6 +6324,8 @@ export interface components {
             result: components["schemas"]["SpeechGenerateResultResponse"];
             /** Retries */
             retries: number;
+            /** Space Id */
+            space_id?: number | null;
             /** Started At */
             started_at?: string | null;
             /** Status */
@@ -8534,8 +8554,9 @@ export interface operations {
     };
     listRecentAudioGenerations: {
         parameters: {
-            query: {
-                production_id: number;
+            query?: {
+                production_id?: number | null;
+                space_id?: number | null;
             };
             header?: never;
             path?: never;

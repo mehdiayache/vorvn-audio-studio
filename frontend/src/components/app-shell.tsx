@@ -72,6 +72,7 @@ export function activeAudioStudioDestination(pathname: string) {
     item.id === "create"
       ? pathname === "/audio-studio" || pathname === "/audio-studio/"
         || pathname === "/audio-studio/create"
+        || pathname.startsWith("/audio-studio/create/")
         || pathname.startsWith("/audio-studio/speak")
         || pathname.startsWith("/audio-studio/subtitles")
       : item.id === "projects"

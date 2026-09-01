@@ -255,7 +255,7 @@ describe("AssetTool", () => {
     expect(view.queryByRole("button", { name: "Keep in Library" })).toBeNull()
     fireEvent.click(view.getByRole("button", { name: "Choose variation A" }))
     expect(view.getByRole("heading", { name: "Name and keep the audio" })).toBeTruthy()
-    expect(view.getByRole("button", { name: "Keep in Library" })).toBeTruthy()
+    expect(view.getByRole("button", { name: "Keep in Files" })).toBeTruthy()
   })
 
   it("keeps audition separate from explicit insertion", async () => {

@@ -57,6 +57,11 @@ class Job:
     started_at: datetime | None = None
     finished_at: datetime | None = None
     part_id: int | None = None
+    space_id: int | None = None
+    creation_action_id: str | None = None
+    creation_preset_id: str | None = None
+    creation_context: dict[str, Any] = field(default_factory=dict)
+    output_file_ids: tuple[int, ...] = ()
 
     @property
     def terminal(self) -> bool:

@@ -32,7 +32,11 @@ beforeEach(() => {
   window.localStorage.clear()
   vi.mocked(studioApi.spaces).mockResolvedValue(spaces)
   vi.mocked(studioApi.space).mockResolvedValue(overview)
-  vi.mocked(studioApi.creationActions).mockResolvedValue([{ id: "generate-speech", label: "Generate speech", description: "Turn text into speech.", output_mime_types: ["audio/wav"], supported_contexts: ["space"], composer: "speech" }])
+  vi.mocked(studioApi.creationActions).mockResolvedValue([
+    { id: "generate-speech", label: "Generate speech", description: "Turn text into speech.", output_mime_types: ["audio/wav"], supported_contexts: ["space"], composer: "speech" },
+    { id: "generate-music", label: "Generate music", description: "Create a music File.", output_mime_types: ["audio/wav"], supported_contexts: ["space"], composer: "audio-generation" },
+    { id: "generate-sound-effect", label: "Generate sound effect", description: "Create an SFX File.", output_mime_types: ["audio/wav"], supported_contexts: ["space"], composer: "audio-generation" },
+  ])
 })
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
@@ -41,6 +45,8 @@ describe("SpaceHomePage", () => {
     renderPage()
     expect(await screen.findByRole("heading", { name: "What do you want to create?" })).toBeTruthy()
     expect(screen.getByRole("link", { name: /Generate speech/ }).getAttribute("href")).toBe("/audio-studio/speak")
+    expect(screen.getByRole("link", { name: /Generate music/ }).getAttribute("href")).toBe("/audio-studio/create/generate-music")
+    expect(screen.getByRole("link", { name: /Generate sound effect/ }).getAttribute("href")).toBe("/audio-studio/create/generate-sound-effect")
     expect(screen.getByRole("link", { name: "Open Launch film" }).getAttribute("href")).toBe("/audio-studio/projects/audiovisual/project-8")
     expect(screen.getByText("Score.wav")).toBeTruthy()
   })

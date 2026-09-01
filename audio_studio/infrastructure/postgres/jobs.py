@@ -22,7 +22,9 @@ _SELECT = """
     SELECT id, public_id, kind, status, payload, result,
            CASE WHEN total > 0 THEN done::float / total ELSE 0 END,
            coalesce(detail, ''), coalesce(error, ''), retries,
-           created_at, started_at, finished_at, part_id
+           created_at, started_at, finished_at, part_id,
+           space_id, creation_action_id, creation_preset_id,
+           creation_context, output_file_ids
       FROM jobs
 """
 _EXECUTOR = "audio-studio-worker-v1"
@@ -50,7 +52,8 @@ def _requested_model(kind: str, payload: dict[str, Any]) -> str | None:
 def _job(row) -> Job:
     return Job(row[0], row[1], row[2], JobStatus(row[3]), row[4] or {},
                row[5] or {}, float(row[6] or 0), row[7], row[8], int(row[9]),
-               row[10], row[11], row[12], row[13])
+               row[10], row[11], row[12], row[13], row[14], row[15], row[16],
+               row[17] or {}, tuple(int(value) for value in (row[18] or [])))
 
 
 class JobRepository:
@@ -77,7 +80,12 @@ class JobRepository:
                 source_tool: str | None = None,
                 operation_label: str | None = None,
                 parent_id: int | None = None,
-                part_id: int | None = None) -> tuple[Job, bool]:
+                part_id: int | None = None,
+                space_id: int | None = None,
+                creation_action_id: str | None = None,
+                creation_preset_id: str | None = None,
+                creation_context: dict[str, Any] | None = None) \
+            -> tuple[Job, bool]:
         actor_id = actor_id or _DEFAULT_ACTOR
         organization_id = organization_id or _DEFAULT_ORGANIZATION
         with transaction() as cursor:
@@ -86,7 +94,10 @@ class JobRepository:
                 actor_id=actor_id, organization_id=organization_id,
                 project_id=project_id, production_id=production_id,
                 source_tool=source_tool, operation_label=operation_label,
-                parent_id=parent_id, part_id=part_id)
+                parent_id=parent_id, part_id=part_id, space_id=space_id,
+                creation_action_id=creation_action_id,
+                creation_preset_id=creation_preset_id,
+                creation_context=creation_context)
 
     def enqueue_in_transaction(self, cursor, kind: str,
                  payload: dict[str, Any], *,
@@ -96,7 +107,12 @@ class JobRepository:
                  source_tool: str | None = None,
                  operation_label: str | None = None,
                  parent_id: int | None = None,
-                 part_id: int | None = None) -> tuple[Job, bool]:
+                 part_id: int | None = None,
+                 space_id: int | None = None,
+                 creation_action_id: str | None = None,
+                 creation_preset_id: str | None = None,
+                 creation_context: dict[str, Any] | None = None) \
+            -> tuple[Job, bool]:
         actor_id = actor_id or _DEFAULT_ACTOR
         organization_id = organization_id or _DEFAULT_ORGANIZATION
         requested_model = _requested_model(kind, payload)
@@ -107,7 +123,16 @@ class JobRepository:
             "model": requested_model,
         }
         fingerprint = hashlib.sha256(json.dumps(
-            {"kind": kind, "payload": payload}, sort_keys=True,
+            {
+                "kind": kind,
+                "payload": payload,
+                "project_id": project_id,
+                "production_id": production_id,
+                "space_id": space_id,
+                "creation_action_id": creation_action_id,
+                "creation_preset_id": creation_preset_id,
+                "creation_context": creation_context or {},
+            }, sort_keys=True,
             separators=(",", ":"), ensure_ascii=False,
         ).encode()).hexdigest()
         cursor.execute("""
@@ -116,10 +141,11 @@ class JobRepository:
                      organization_id, project_id, production_id, estimated, cost,
                      requested_route, resolved_route, source_tool, operation_label,
                      model, voice, engine, tier, idempotency_fingerprint,
-                     parent_id, part_id)
+                     parent_id, part_id, space_id, creation_action_id,
+                     creation_preset_id, creation_context)
                 VALUES (%s, 'queued', %s::jsonb, %s, %s, %s, %s, %s, 0, 0,
                         %s::jsonb, '{}'::jsonb, %s, %s, %s, %s, %s, %s, %s,
-                        %s, %s)
+                        %s, %s, %s, %s, %s, %s::jsonb)
                 ON CONFLICT (organization_id, idempotency_key)
                     WHERE idempotency_key IS NOT NULL
                       AND organization_id IS NOT NULL
@@ -129,7 +155,9 @@ class JobRepository:
                   organization_id, project_id, production_id,
                   json.dumps(requested_route), source_tool, operation_label,
                   requested_model, payload.get("voice"), payload.get("engine"),
-                  payload.get("model"), fingerprint, parent_id, part_id))
+                  payload.get("model"), fingerprint, parent_id, part_id,
+                  space_id, creation_action_id, creation_preset_id,
+                  json.dumps(creation_context or {})))
         inserted = cursor.fetchone()
         if not inserted:
             cursor.execute("""
@@ -167,7 +195,8 @@ class JobRepository:
                 SELECT id, kind, status, payload, result, actor_id,
                        organization_id, project_id, production_id,
                        source_tool, operation_label, provider_attempt_id,
-                       part_id
+                       part_id, space_id, creation_action_id,
+                       creation_preset_id, creation_context
                   FROM jobs WHERE public_id=%s FOR UPDATE
             """, (public_id,))
             source = cursor.fetchone()
@@ -201,7 +230,10 @@ class JobRepository:
                 project_id=source[7], production_id=source[8],
                 source_tool=source[9], operation_label=source[10],
                 parent_id=int(source[0]),
-                part_id=int(source[12]) if source[12] is not None else None)
+                part_id=int(source[12]) if source[12] is not None else None,
+                space_id=source[13], creation_action_id=source[14],
+                creation_preset_id=source[15],
+                creation_context=source[16] or {})
             if created:
                 cursor.execute("""
                     INSERT INTO job_events (job_id, kind, detail)
@@ -294,6 +326,39 @@ class JobRepository:
                 (production_id, kind, max(1, min(limit, 20))),
             )
             return [_job(row) for row in cursor.fetchall()]
+
+    def recent_for_space(self, space_id: int, *, kind: str,
+                         limit: int = 8) -> list[Job]:
+        """Return recent executions owned directly by one Space."""
+        with read_only() as cursor:
+            cursor.execute(
+                _SELECT + """
+                 WHERE space_id = %s AND kind = %s
+                 ORDER BY created_at DESC, id DESC
+                 LIMIT %s
+                """,
+                (space_id, kind, max(1, min(limit, 20))),
+            )
+            return [_job(row) for row in cursor.fetchall()]
+
+    def attach_output_file(self, public_id: UUID, file_id: int) -> bool:
+        """Record the canonical File produced when a candidate is kept."""
+        with transaction() as cursor:
+            cursor.execute("""
+                UPDATE jobs
+                   SET output_file_ids = CASE
+                       WHEN %s = ANY(output_file_ids) THEN output_file_ids
+                       ELSE array_append(output_file_ids, %s)
+                   END
+                 WHERE public_id = %s
+                   AND space_id IS NOT NULL
+                   AND EXISTS (
+                       SELECT 1 FROM assets file
+                        WHERE file.id = %s
+                          AND file.space_id = jobs.space_id
+                   )
+            """, (file_id, file_id, public_id, file_id))
+            return cursor.rowcount == 1
 
     def claim_next(self, kinds: Iterable[str]) -> Job | None:
         kinds = list(kinds)

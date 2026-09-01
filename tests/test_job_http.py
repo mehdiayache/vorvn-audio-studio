@@ -12,6 +12,55 @@ from audio_studio.infrastructure.postgres.jobs import JobRepository
 
 
 class JobHttpTests(unittest.TestCase):
+    def test_space_audio_creation_exposes_exact_job_ownership(self):
+        try:
+            connection = psycopg.connect(settings.database_url)
+        except psycopg.OperationalError as exc:
+            self.skipTest(str(exc))
+        job_id = None
+        client = TestClient(app)
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT id FROM spaces ORDER BY id LIMIT 1")
+                owner = cursor.fetchone()
+            if not owner:
+                self.skipTest("No Space fixture is available")
+            space_id = int(owner[0])
+
+            response = client.post(
+                "/api/v1/jobs/audio-generation",
+                headers={"Idempotency-Key": f"space-audio-http-{uuid4()}"},
+                json={
+                    "capability": "sfx",
+                    "prompt": "A short ceramic tap",
+                    "seconds": 2,
+                    "space_id": space_id,
+                },
+            )
+
+            self.assertEqual(response.status_code, 202, response.text)
+            data = response.json()["data"]
+            job = JobRepository().get(UUID(data["id"]))
+            job_id = job.id
+            self.assertEqual(data["space_id"], space_id)
+            self.assertEqual(data["creation_action_id"],
+                             "generate-sound-effect")
+            self.assertEqual(data["context"], {
+                "space_id": space_id,
+                "audiovisual_project_id": None,
+            })
+            self.assertEqual(data["output_file_ids"], [])
+        finally:
+            client.close()
+            if job_id is not None:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "DELETE FROM audit_records WHERE resource_type = 'job' "
+                        "AND resource_id = %s", (str(job_id),))
+                    cursor.execute("DELETE FROM jobs WHERE id = %s", (job_id,))
+                connection.commit()
+            connection.close()
+
     def test_read_events_and_cancel_share_the_composed_service(self):
         try:
             connection = psycopg.connect(settings.database_url)

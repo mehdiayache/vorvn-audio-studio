@@ -1,0 +1,47 @@
+.space-audio-creation {
+  min-width: 0;
+  min-height: 100%;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: 3.75rem minmax(0, 1fr);
+  padding: 0.75rem;
+  background: var(--workspace-background);
+}
+
+.space-audio-creation-header {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto 2.25rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 0.5rem;
+}
+
+.space-audio-creation-header > a { justify-self: start; }
+.space-audio-creation-icon { width: 2.25rem; height: 2.25rem; display: grid; place-items: center; border-radius: var(--radius-md); }
+.space-audio-creation-icon svg { width: 1rem; height: 1rem; }
+.space-audio-creation-icon.is-music { color: var(--audio-music); background: var(--audio-music-soft); }
+.space-audio-creation-icon.is-sfx { color: var(--audio-sfx); background: var(--audio-sfx-soft); }
+.space-audio-creation-header > div { min-width: 0; display: grid; gap: 0.125rem; }
+.space-audio-creation-header h1 { margin: 0; font-size: var(--type-heading-md); font-weight: var(--weight-title); letter-spacing: -0.02em; }
+.space-audio-creation-header p { overflow: hidden; margin: 0; color: var(--muted-foreground); font-size: var(--type-caption); text-overflow: ellipsis; white-space: nowrap; }
+.space-audio-creation-space { min-width: 0; display: grid; justify-items: end; gap: 0.125rem; }
+.space-audio-creation-space small { color: var(--muted-foreground); font-size: 0.625rem; }
+.space-audio-creation-space b { max-width: 14rem; overflow: hidden; font-size: var(--type-caption); text-overflow: ellipsis; white-space: nowrap; }
+
+.space-audio-creation-workspace {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-xs);
+}
+
+@media (max-width: 48rem) {
+  .space-audio-creation { height: auto; min-height: 100dvh; padding: 0; grid-template-rows: auto minmax(42rem, 1fr); }
+  .space-audio-creation-header { grid-template-columns: auto 2.25rem minmax(0, 1fr); padding: 0.75rem; border-bottom: 1px solid var(--border); }
+  .space-audio-creation-space { grid-column: 2 / -1; justify-items: start; }
+  .space-audio-creation-workspace { border: 0; border-radius: 0; }
+}

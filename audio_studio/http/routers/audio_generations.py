@@ -74,10 +74,19 @@ def compile_recipe(payload: SoundRecipeCompileRequest) -> dict:
 
 @router.get("/recent", operation_id="listRecentAudioGenerations",
             response_model=AudioGenerationHistoryEnvelope)
-def recent_audio_generations(production_id: int) -> dict:
-    if production_id <= 0:
-        raise ApiProblem(400, "invalid_production", "Choose a Production.")
-    return {"data": audio_generation_service.recent(production_id)}
+def recent_audio_generations(
+    production_id: int | None = None, space_id: int | None = None,
+) -> dict:
+    if (production_id is None) == (space_id is None):
+        raise ApiProblem(
+            400, "invalid_creation_context",
+            "Choose exactly one Space or audiovisual Project.")
+    if production_id is not None and production_id <= 0:
+        raise ApiProblem(400, "invalid_project", "Choose an audiovisual Project.")
+    if space_id is not None and space_id <= 0:
+        raise ApiProblem(400, "invalid_space", "Choose a Space.")
+    return {"data": audio_generation_service.recent(
+        production_id, space_id=space_id)}
 
 
 def _candidate(candidate_id: UUID) -> tuple[dict, Path]:

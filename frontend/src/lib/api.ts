@@ -576,6 +576,7 @@ export const studioApi = {
     return jobObserver.completion<import("@/types/domain").SoundRecipeNormalizationResult>(job.id)
   },
   recentAudioGenerations: (productionId: number) => request<AudioGenerationHistoryEnvelope>(`/api/v1/audio-generations/recent?production_id=${productionId}`).then((response) => response.data),
+  recentAudioGenerationsForSpace: (spaceId: number) => request<AudioGenerationHistoryEnvelope>(`/api/v1/audio-generations/recent?space_id=${spaceId}`).then((response) => response.data),
   enqueueAudioGeneration: async (payload: AudioGenerationJobBody) => {
     const response = await request<{ data: DurableJob<import("@/types/domain").AudioGenerationCandidate> }>("/api/v1/jobs/audio-generation", {
       method: "POST",

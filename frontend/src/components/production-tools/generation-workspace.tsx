@@ -104,19 +104,23 @@ function legacyRecipe(item: AudioGenerationHistoryItem): SoundRecipe {
 }
 
 export function GenerationWorkspace({
-  mode, productionId, playingKey, playerPlaying, onPlay, onKeep, onKept,
+  mode, productionId, spaceId, fixedCapability, allowPlacement = true,
+  playingKey, playerPlaying, onPlay, onKeep, onKept,
 }: {
   mode: AssetMode
   productionId?: number
+  spaceId?: number
+  fixedCapability?: RecipeCapability
+  allowPlacement?: boolean
   playingKey?: string
   playerPlaying: boolean
   onPlay: (source: PlayerSource) => void
   onKeep: (folder: string, input: GeneratedKeepInput) => Promise<GeneratedKeepResult>
   onKept: (asset: VentureAsset, category: AudioAssetCategory, place: boolean) => Promise<void>
 }) {
-  const [capability, setCapability] = useState<RecipeCapability>("sfx")
+  const [capability, setCapability] = useState<RecipeCapability>(fixedCapability || "sfx")
   const [promptMode, setPromptMode] = useState<"simple" | "expert">("simple")
-  const [composeScreen, setComposeScreen] = useState<ComposeScreen>("setup")
+  const [composeScreen, setComposeScreen] = useState<ComposeScreen>(fixedCapability ? "recipe" : "setup")
   const [recipes, setRecipes] = useState<Record<RecipeCapability, SoundRecipe>>({
     music: emptySoundRecipe("music"), sfx: emptySoundRecipe("sfx"),
   })
@@ -171,14 +175,16 @@ export function GenerationWorkspace({
   const setPath = (path: string, value: unknown) => setRecipe((current) => updateRecipePath(current, path, value))
 
   const refreshHistory = useCallback(async () => {
-    if (!productionId) return
+    if (!productionId && !spaceId) return
     try {
-      const recent = await studioApi.recentAudioGenerations(productionId)
+      const recent = spaceId
+        ? await studioApi.recentAudioGenerationsForSpace(spaceId)
+        : await studioApi.recentAudioGenerations(productionId!)
       setHistory(recent)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Recent variations could not be loaded.")
     }
-  }, [productionId])
+  }, [productionId, spaceId])
 
   useEffect(() => { void refreshHistory() }, [refreshHistory])
   useEffect(() => {
@@ -264,6 +270,7 @@ export function GenerationWorkspace({
         semantic_state: recipe,
         source_free_text: recipe.creative_brief,
         production_id: productionId,
+        space_id: spaceId,
         confirmed: false,
       }) as SoundRecipeNormalizationResult
       const normalizedRecipe = normalized.semantic_state as SoundRecipe
@@ -288,6 +295,7 @@ export function GenerationWorkspace({
           seconds: normalizedRecipe.duration,
           seed: semanticState.seed < 0 ? null : semanticState.seed,
           production_id: productionId,
+          space_id: spaceId,
         })
         createdJobIds.push(job.id)
         setSessionJobIds((current) => [...current, job.id])
@@ -305,7 +313,7 @@ export function GenerationWorkspace({
     const restored = item.request.semantic_state
       ? item.request.semantic_state as SoundRecipe
       : legacyRecipe(item)
-    setCapability(nextCapability)
+    setCapability(fixedCapability || nextCapability)
     setRecipes((current) => ({ ...current, [nextCapability]: restored }))
     setPromptMode(item.request.prompt_mode as "simple" | "expert")
     setPromptOverride((current) => ({ ...current, [nextCapability]: null }))
@@ -326,7 +334,7 @@ export function GenerationWorkspace({
     setHistorySelection(false)
     setSessionJobIds([])
     setPhase("compose")
-    setComposeScreen("setup")
+    setComposeScreen(fixedCapability ? "recipe" : "setup")
     setError("")
   }
 
@@ -352,7 +360,7 @@ export function GenerationWorkspace({
     if (!candidate || !name.trim()) return
     setKeeping(place ? "place" : "library"); setError("")
     try {
-      const kept = await onKeep("Assets", {
+      const kept = await onKeep(spaceId ? "Files" : "Assets", {
         candidateId: candidate.candidate_id, name: name.trim(), category, scope, tags,
       })
       await refreshHistory()
@@ -415,7 +423,7 @@ export function GenerationWorkspace({
   return <section className="asset-view asset-generation-view" data-phase={phase}>
     <main className="asset-generation-stage">
       {phase === "compose" && <div className="asset-generation-compose" data-screen={composeScreen}>
-        {composeScreen === "setup" ? <section className="asset-generation-setup">
+        {composeScreen === "setup" && !fixedCapability ? <section className="asset-generation-setup">
           <header>
             <span className="asset-generation-provider"><Sparkles />{activeModelLabel}</span>
             <h2>What do you want to create?</h2>
@@ -445,7 +453,7 @@ export function GenerationWorkspace({
           <HistoryMenu history={capabilityHistory} selectedJobId={selectedJobId} open={historyOpen} onOpenChange={setHistoryOpen} onSelect={openHistoryItem} />
         </section> : <>
           <header className="asset-generation-context">
-            <Button variant="ghost" onClick={() => setComposeScreen("setup")}><ArrowLeft />Change setup</Button>
+            {!fixedCapability && <Button variant="ghost" onClick={() => setComposeScreen("setup")}><ArrowLeft />Change setup</Button>}
             <div><b>{capability === "music" ? "Music" : "Sound Effect"}</b><span>·</span><b>{promptMode === "expert" ? "Expert" : "Simple"}</b><span>·</span><b>{activeModelLabel}</b></div>
             <HistoryMenu history={capabilityHistory} selectedJobId={selectedJobId} open={historyOpen} onOpenChange={setHistoryOpen} onSelect={openHistoryItem} />
           </header>
@@ -482,6 +490,7 @@ export function GenerationWorkspace({
         name={name}
         category={category}
         scope={scope}
+        showScope={!spaceId}
         tags={tags}
         onName={setName}
         onCategory={setCategory}
@@ -500,13 +509,13 @@ export function GenerationWorkspace({
         <span>{phase === "generating" ? generationStage === "understanding" ? "Understanding the creative direction…" : generationStage === "starting" ? `Starting ${generationProgress} of ${recipe.variation_count}…` : `${sessionItems.filter((item) => item.candidate).length} of ${recipe.variation_count} ready` : phase === "compare" ? "Audition freely. Nothing is kept until you choose it." : phase === "finalize" ? "Name and file the chosen audio before keeping it." : composeScreen === "setup" ? "Choose an audio type and creation mode together." : promptMode === "expert" && activeStage < stages.length - 1 ? "Complete this focused screen, then continue." : statusCopy}</span>
       </div>
       {error && <p role="alert">{error}</p>}
-      {phase === "compose" && composeScreen === "setup" && <Button onClick={() => setComposeScreen("recipe")}>Continue</Button>}
+      {phase === "compose" && composeScreen === "setup" && !fixedCapability && <Button onClick={() => setComposeScreen("recipe")}>Continue</Button>}
       {phase === "compose" && composeScreen === "recipe" && promptMode === "expert" && activeStage > 0 && <Button variant="ghost" onClick={() => setActiveStage((current) => Math.max(0, current - 1))}><ArrowLeft />Back</Button>}
       {phase === "compose" && composeScreen === "recipe" && promptMode === "expert" && activeStage < stages.length - 1 && <Button onClick={() => setActiveStage((current) => Math.min(stages.length - 1, current + 1))}>Continue</Button>}
       {phase === "compose" && composeScreen === "recipe" && (promptMode === "simple" || activeStage === stages.length - 1) && <ActionButton busy={generating} busyLabel={generationStage === "understanding" ? "Understanding…" : "Starting…"} disabled={status !== "ready" || !hasCreativeDirection || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length)} onClick={() => void generate()}><Sparkles />Generate {recipe.variation_count} variation{recipe.variation_count === 1 ? "" : "s"}</ActionButton>}
       {phase === "generating" && <div className="asset-generation-footer-progress"><Progress value={Math.max(generationProgress / recipe.variation_count, ...sessionItems.map((item) => item.progress)) * 100} /><span>{sessionItems.filter((item) => item.candidate).length}/{recipe.variation_count}</span></div>}
       {phase === "compare" && <><Button variant="outline" onClick={() => { setComposeScreen("recipe"); setPhase("compose") }}><ArrowLeft />Back to recipe</Button><Button variant="ghost" onClick={startFresh}>Start fresh</Button></>}
-      {phase === "finalize" && candidate && !selected?.kept_asset && <><ActionButton variant="ghost" busy={discarding} busyLabel="Discarding…" disabled={Boolean(keeping)} onClick={() => void discard()}><Trash2 />Discard</ActionButton><ActionButton variant="outline" busy={keeping === "library"} busyLabel="Keeping…" disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(false)}><Check />Keep in Library</ActionButton><ActionButton busy={keeping === "place"} busyLabel={mode === "sound" ? "Adding to track…" : "Inserting…"} disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(true)}><Check />{mode === "sound" ? "Keep & Add to Track" : "Keep & Insert"}</ActionButton></>}
+      {phase === "finalize" && candidate && !selected?.kept_asset && <><ActionButton variant="ghost" busy={discarding} busyLabel="Discarding…" disabled={Boolean(keeping)} onClick={() => void discard()}><Trash2 />Discard</ActionButton><ActionButton variant={allowPlacement ? "outline" : "default"} busy={keeping === "library"} busyLabel="Keeping…" disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(false)}><Check />Keep in Files</ActionButton>{allowPlacement && <ActionButton busy={keeping === "place"} busyLabel={mode === "sound" ? "Adding to track…" : "Inserting…"} disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(true)}><Check />{mode === "sound" ? "Keep & Add to Track" : "Keep & Insert"}</ActionButton>}</>}
       {phase === "finalize" && selected?.kept_asset && <Button onClick={startFresh}><Sparkles />Create another</Button>}
     </footer>
   </section>
@@ -555,13 +564,14 @@ function VariationWorkspace({ phase, capability, expectedCount, items, playingKe
   </section>
 }
 
-function CandidateFinalizer({ selected, selectedLabel, selectedActive, name, category, scope, tags, onName, onCategory, onScope, onTags, onError, onPlay, onRefine, onBack }: {
+function CandidateFinalizer({ selected, selectedLabel, selectedActive, name, category, scope, showScope, tags, onName, onCategory, onScope, onTags, onError, onPlay, onRefine, onBack }: {
   selected: AudioGenerationHistoryItem
   selectedLabel: string | null
   selectedActive: boolean
   name: string
   category: AudioAssetCategory
   scope: AudioAssetScope
+  showScope: boolean
   tags: string[]
   onName: (value: string) => void
   onCategory: (value: AudioAssetCategory) => void
@@ -587,10 +597,10 @@ function CandidateFinalizer({ selected, selectedLabel, selectedActive, name, cat
       </section>
       {candidate && !selected.kept_asset && <section className="asset-finalize-form">
         <label className="asset-field"><span>Name</span><Input value={name} maxLength={120} onChange={(event) => onName(event.target.value)} autoFocus /></label>
-        <div className="asset-finalize-fields"><AssetCategorySelect value={category} onChange={(next) => { if (next) onCategory(next) }} /><AssetScopeSelect value={scope} onChange={onScope} /></div>
+        <div className="asset-finalize-fields"><AssetCategorySelect value={category} onChange={(next) => { if (next) onCategory(next) }} />{showScope && <AssetScopeSelect value={scope} onChange={onScope} />}</div>
         <AssetTagEditor tags={tags} onChange={onTags} onError={onError} />
       </section>}
-      {selected.kept_asset && <section className="asset-generation-kept"><Check /><span><b>Saved as Asset</b><small>{selected.kept_asset.name}</small></span></section>}
+      {selected.kept_asset && <section className="asset-generation-kept"><Check /><span><b>Saved as File</b><small>{selected.kept_asset.name}</small></span></section>}
       {!candidate && !selected.kept_asset && <section className="asset-generation-unavailable"><b>Variation unavailable</b><p>{selected.error || "This temporary variation was discarded or expired."}</p><Button variant="outline" onClick={onRefine}>Restore recipe</Button></section>}
     </div>
   </section>
