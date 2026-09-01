@@ -7075,6 +7075,72 @@ export interface components {
             /** Width */
             width?: number | null;
         };
+        /** UploadedFileEnvelope */
+        UploadedFileEnvelope: {
+            data: components["schemas"]["UploadedFileResponse"];
+        };
+        /** UploadedFileResponse */
+        UploadedFileResponse: {
+            /** Audio Format */
+            audio_format?: string | null;
+            /** Category */
+            category?: ("music" | "ambience" | "sfx") | null;
+            /** Channels */
+            channels?: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /**
+             * Family
+             * @enum {string}
+             */
+            family: "audio" | "image" | "video" | "subtitle" | "document" | "archive" | "data" | "other";
+            /** Filename */
+            filename: string;
+            /** Frame Rate */
+            frame_rate?: number | null;
+            /** Height */
+            height?: number | null;
+            /** Id */
+            id: number;
+            /** Media Format */
+            media_format: string;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Mime Type */
+            mime_type: string;
+            /** Name */
+            name: string;
+            /** Sample Rate */
+            sample_rate?: number | null;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Tags */
+            tags: string[];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Url */
+            url: string;
+            /** Version Id */
+            version_id: number;
+            /** Version Metadata */
+            version_metadata: {
+                [key: string]: unknown;
+            };
+            /** Video Codec */
+            video_codec?: string | null;
+            /** Width */
+            width?: number | null;
+        };
         /** UploadedImageEnvelope */
         UploadedImageEnvelope: {
             data: components["schemas"]["UploadedImageResponse"];
@@ -11678,9 +11744,9 @@ export interface operations {
             query?: never;
             header?: {
                 "x-filename"?: string;
-                "x-asset-category"?: string | null;
-                "x-asset-name"?: string | null;
-                "x-asset-tags"?: string | null;
+                "x-file-category"?: string | null;
+                "x-file-name"?: string | null;
+                "x-file-tags"?: string | null;
             };
             path: {
                 space_id: number;
@@ -11695,7 +11761,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UploadedAssetEnvelope"];
+                    "application/json": components["schemas"]["UploadedFileEnvelope"];
                 };
             };
             /** @description Validation Error */

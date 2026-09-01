@@ -52,6 +52,7 @@
 .space-create-action-icon { inline-size: 2.25rem; block-size: 2.25rem; display: grid; place-items: center; border-radius: var(--radius-md); color: var(--primary); background: var(--primary-soft); }
 .space-create-action-icon svg { inline-size: 1rem; }
 .space-create-action.is-project { inline-size: min(100%, 30rem); margin-inline: auto; }
+.space-create-action.is-upload .space-create-action-icon { color: var(--primary); background: var(--primary-soft); }
 .space-create-action.is-music .space-create-action-icon { color: var(--audio-music); background: var(--audio-music-soft); }
 .space-create-action.is-sound .space-create-action-icon { color: var(--audio-sfx); background: var(--audio-sfx-soft); }
 .space-create-action.is-image .space-create-action-icon { color: var(--file-image); background: var(--file-image-soft); }
@@ -111,6 +112,12 @@
 .space-resource-dialog label { display: grid; gap: .35rem; }
 .space-resource-dialog label > span { font-size: var(--type-small); font-weight: var(--weight-emphasis); }
 .space-resource-dialog label small { color: var(--muted-foreground); font-weight: var(--weight-body); }
+.space-file-upload-dialog { inline-size: min(42rem, calc(100vw - 2rem)); }
+.space-file-upload-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .75rem; }
+.space-file-upload-fields label { min-inline-size: 0; display: grid; gap: .35rem; }
+.space-file-upload-fields label > span { font-size: var(--type-small); font-weight: var(--weight-emphasis); }
+.space-file-upload-fields label small { color: var(--muted-foreground); font-weight: var(--weight-body); }
+.space-file-upload-error { color: var(--destructive); font-size: var(--type-caption); }
 
 .space-home-loading { min-block-size: calc(100dvh - 3.5rem); display: grid; place-items: center; align-content: center; gap: .5rem; color: var(--muted-foreground); text-align: center; }
 .space-home-loading svg { inline-size: 1.25rem; color: var(--primary); }
@@ -127,4 +134,5 @@
   .space-library-toolbar { flex-wrap: wrap; }
   .space-library-toolbar > label { flex-basis: 100%; }
   .space-file-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .space-file-upload-fields { grid-template-columns: 1fr; }
 }

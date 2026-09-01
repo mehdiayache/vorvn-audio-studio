@@ -10,11 +10,23 @@ import subprocess
 from uuid import uuid4
 
 from audio_studio.config import settings
-from audio_studio.domain.files import StoredFileVersion
+from audio_studio.domain.files import StoredFileVersion, file_family
 from audio_studio.domain.uploads import StoredVoiceReference
 from audio_studio.infrastructure import object_storage
 from audio_studio.infrastructure.media_metadata import inspect_media
 from audio_studio.infrastructure.media_paths import media_root, voice_reference_root
+
+
+DIRECT_FILE_MIME_TYPES = {
+    ".srt": "application/x-subrip",
+    ".vtt": "text/vtt",
+    ".txt": "text/plain",
+    ".md": "text/markdown",
+    ".pdf": "application/pdf",
+    ".json": "application/json",
+    ".csv": "text/csv",
+    ".zip": "application/zip",
+}
 
 
 def _audio_duration_ms(target: Path) -> int | None:
@@ -140,6 +152,18 @@ class LocalUploadWorkspace:
     def store_asset(
         self, source: Path, *, original_name: str, size_bytes: int,
     ) -> StoredFileVersion:
+        return self._store_file_version(
+            source, original_name=original_name, allow_documents=False)
+
+    def store_file(
+        self, source: Path, *, original_name: str, size_bytes: int,
+    ) -> StoredFileVersion:
+        return self._store_file_version(
+            source, original_name=original_name, allow_documents=True)
+
+    def _store_file_version(
+        self, source: Path, *, original_name: str, allow_documents: bool,
+    ) -> StoredFileVersion:
         self.output.mkdir(parents=True, exist_ok=True)
         object_id = uuid4().hex
         staging = self.output / f"{object_id}.upload"
@@ -148,15 +172,28 @@ class LocalUploadWorkspace:
             shutil.move(str(source), staging)
             inspection = inspect_media(staging, original_name=original_name)
             if inspection is None:
-                raise ValueError(
-                    "That file is not a supported audio, image or video file.")
-            target = self.output / f"{object_id}.{inspection.extension}"
+                suffix = Path(original_name).suffix.casefold()
+                mime_type = DIRECT_FILE_MIME_TYPES.get(suffix)
+                if not allow_documents or not mime_type:
+                    raise ValueError(
+                        "That file is not a supported audio, image or video file.")
+                target = self.output / f"{object_id}{suffix}"
+            else:
+                mime_type = inspection.mime_type
+                suffix = f".{inspection.extension}"
+                target = self.output / f"{object_id}{suffix}"
             staging.replace(target)
         except Exception:
             staging.unlink(missing_ok=True)
             if target is not None:
                 target.unlink(missing_ok=True)
             raise
+        if inspection is None:
+            return StoredFileVersion(
+                filename=target.name, path=str(target), mime_type=mime_type,
+                family=file_family(mime_type), media_format=suffix.lstrip("."),
+                metadata={"original_filename": Path(original_name).name},
+            )
         return StoredFileVersion(
             filename=target.name, path=str(target),
             duration_ms=inspection.duration_ms,

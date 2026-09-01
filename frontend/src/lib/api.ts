@@ -40,6 +40,7 @@ type GeneratedJob = paths["/api/v1/jobs/{job_id}"]["get"]["responses"][200]["con
 type UploadedImage = paths["/api/v1/project-covers/upload"]["post"]["responses"][200]["content"]["application/json"]["data"]
 type UploadedVoiceReference = paths["/api/v1/voice-references/upload"]["post"]["responses"][200]["content"]["application/json"]["data"]
 type UploadedAsset = paths["/api/v1/asset-collections/{collection_id}/assets/upload"]["post"]["responses"][201]["content"]["application/json"]["data"]
+type UploadedFile = paths["/api/v1/spaces/{space_id}/files/upload"]["post"]["responses"][201]["content"]["application/json"]["data"]
 type FreesoundSearchEnvelope = paths["/api/v1/audio-catalogs/freesound/search"]["get"]["responses"][200]["content"]["application/json"]
 type FreesoundKeepEnvelope = paths["/api/v1/audio-catalogs/freesound/keep"]["post"]["responses"][201]["content"]["application/json"]
 type FreesoundKeepBody = paths["/api/v1/audio-catalogs/freesound/keep"]["post"]["requestBody"]["content"]["application/json"]
@@ -480,10 +481,10 @@ export const studioApi = {
     tags?: string[]
   }) => {
     const headers: Record<string, string> = {}
-    if (details?.name) headers["X-Asset-Name"] = encodeURIComponent(details.name)
-    if (details?.category) headers["X-Asset-Category"] = details.category
-    if (details?.tags) headers["X-Asset-Tags"] = encodeURIComponent(JSON.stringify(details.tags))
-    const response = await uploadFile<{ data: UploadedAsset }>(
+    if (details?.name) headers["X-File-Name"] = encodeURIComponent(details.name)
+    if (details?.category) headers["X-File-Category"] = details.category
+    if (details?.tags) headers["X-File-Tags"] = encodeURIComponent(JSON.stringify(details.tags))
+    const response = await uploadFile<{ data: UploadedFile }>(
       `/api/v1/spaces/${spaceId}/files/upload`, file, headers,
     )
     return response.data

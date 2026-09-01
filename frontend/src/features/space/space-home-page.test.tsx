@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -11,6 +11,7 @@ import { SpaceHomePage } from "./space-home-page"
 vi.mock("@/lib/api", () => ({ studioApi: {
   spaces: vi.fn(), space: vi.fn(), creationActions: vi.fn(),
   createAudiovisualProject: vi.fn(), createFolder: vi.fn(),
+  uploadSpaceFile: vi.fn(),
 } }))
 
 const spaces: SpaceSummary[] = [{
@@ -73,5 +74,41 @@ describe("SpaceHomePage", () => {
     expect(await screen.findByRole("heading", { name: "Files" })).toBeTruthy()
     expect(screen.queryByRole("heading", { name: "Projects" })).toBeNull()
     expect(document.querySelector(".space-library-layout.has-single-column")).toBeTruthy()
+  })
+
+  it("uploads a File directly into the selected Space and refreshes Files", async () => {
+    vi.mocked(studioApi.uploadSpaceFile).mockResolvedValue({
+      id: 12, version_id: 13, name: "Brief", filename: "brief.pdf",
+      family: "document", duration_ms: null, url: "/media/brief.pdf",
+      category: null, tags: ["reference"], metadata: {}, media_format: "pdf",
+      audio_format: null, sample_rate: null, channels: null, width: null,
+      height: null, video_codec: null, frame_rate: null, size_bytes: 5,
+      mime_type: "application/pdf", version_metadata: {},
+      created_at: "2026-01-02T00:00:00Z", updated_at: "2026-01-02T00:00:00Z",
+    })
+    renderPage("files")
+    fireEvent.click(await screen.findByRole("button", { name: "Upload File" }))
+    const dialog = screen.getByRole("dialog")
+    const input = dialog.querySelector<HTMLInputElement>('input[type="file"]')!
+    const file = new File(["%PDF"], "Brief.pdf", { type: "application/pdf" })
+    fireEvent.change(input, { target: { files: [file] } })
+    fireEvent.change(within(dialog).getByRole("textbox", { name: "Tags optional, separated by commas" }), { target: { value: "Reference" } })
+    fireEvent.click(within(dialog).getByRole("button", { name: "Upload File" }))
+    await waitFor(() => expect(studioApi.uploadSpaceFile).toHaveBeenCalledWith(4, file, {
+      name: "Brief", tags: ["Reference"],
+    }))
+    await waitFor(() => expect(studioApi.space).toHaveBeenCalledTimes(2))
+  })
+
+  it("keeps the chosen File visible when upload fails", async () => {
+    vi.mocked(studioApi.uploadSpaceFile).mockRejectedValue(new Error("This File could not be decoded."))
+    renderPage("files")
+    fireEvent.click(await screen.findByRole("button", { name: "Upload File" }))
+    const dialog = screen.getByRole("dialog")
+    const input = dialog.querySelector<HTMLInputElement>('input[type="file"]')!
+    fireEvent.change(input, { target: { files: [new File(["broken"], "Broken.pdf", { type: "application/pdf" })] } })
+    fireEvent.click(within(dialog).getByRole("button", { name: "Upload File" }))
+    expect((await within(dialog).findByRole("alert")).textContent).toContain("This File could not be decoded.")
+    expect(within(dialog).getByText("Broken.pdf")).toBeTruthy()
   })
 })

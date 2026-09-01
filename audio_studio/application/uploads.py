@@ -29,11 +29,15 @@ VISUAL_VIDEO_EXTENSIONS = {".mp4", ".mov", ".webm"}
 ASSET_EXTENSIONS = (
     AUDIO_EXTENSIONS | VISUAL_IMAGE_EXTENSIONS | VISUAL_VIDEO_EXTENSIONS
 )
+FILE_EXTENSIONS = ASSET_EXTENSIONS | {
+    ".srt", ".vtt", ".txt", ".md", ".pdf", ".json", ".csv", ".zip",
+}
 ASSET_SCOPES = frozenset({"space", "studio"})
 MAX_ASSET_NAME_LENGTH = 120
 MAX_ASSET_TAGS = 12
 MAX_ASSET_TAG_LENGTH = 32
 MAX_ASSET_UPLOAD_BYTES = 1_000_000_000
+MAX_FILE_UPLOAD_BYTES = 1_000_000_000
 MIN_VOICE_REFERENCE_DURATION_MS = 5_000
 MAX_VOICE_REFERENCE_DURATION_MS = 600_000
 MAX_VOICE_REFERENCE_SIZE_BYTES = 100_000_000
@@ -46,7 +50,7 @@ class UploadError(ValueError):
 
 
 @dataclass(frozen=True, slots=True)
-class AssetUploadDetails:
+class FileUploadDetails:
     original_name: str
     name: str
     category: AssetCategory | None
@@ -62,6 +66,9 @@ class UploadWorkspace(Protocol):
     ) -> StoredVoiceReference: ...
     def discard_voice_reference(self, reference_id: str) -> None: ...
     def store_asset(
+        self, source: Path, *, original_name: str, size_bytes: int,
+    ) -> StoredFileVersion: ...
+    def store_file(
         self, source: Path, *, original_name: str, size_bytes: int,
     ) -> StoredFileVersion: ...
     def discard_media(self, filename: str) -> None: ...
@@ -239,7 +246,7 @@ class UploadService:
         encoded_name: str, *, name: str | None = None,
         category: str | None = None, scope: str | None = None,
         encoded_tags: str | None = None,
-        details: AssetUploadDetails | None = None,
+        details: FileUploadDetails | None = None,
     ) -> dict:
         prepared = details or self.prepare_asset_upload(
             encoded_name, name=name, category=category, scope=scope,
@@ -265,10 +272,10 @@ class UploadService:
         self, space_id: int, source: Path, size_bytes: int,
         encoded_name: str, *, name: str | None = None,
         category: str | None = None, encoded_tags: str | None = None,
-        details: AssetUploadDetails | None = None,
+        details: FileUploadDetails | None = None,
     ) -> dict:
-        prepared = details or self.prepare_asset_upload(
-            encoded_name, name=name, category=category, scope="space",
+        prepared = details or self.prepare_file_upload(
+            encoded_name, name=name, category=category,
             encoded_tags=encoded_tags)
         stored = self._store_space_file(space_id, source, size_bytes, prepared)
         try:
@@ -287,7 +294,7 @@ class UploadService:
 
     def save_catalog_asset_file(
         self, collection_id: int, source: Path, size_bytes: int, *,
-        origin: str, external_id: str, details: AssetUploadDetails,
+        origin: str, external_id: str, details: FileUploadDetails,
     ) -> dict:
         """Store an external original, then resolve its canonical Asset once."""
         stored = self._store_asset_file(
@@ -310,7 +317,7 @@ class UploadService:
 
     def save_space_catalog_file(
         self, space_id: int, source: Path, size_bytes: int, *,
-        origin: str, external_id: str, details: AssetUploadDetails,
+        origin: str, external_id: str, details: FileUploadDetails,
     ) -> dict:
         stored = self._store_space_file(space_id, source, size_bytes, details)
         try:
@@ -331,7 +338,7 @@ class UploadService:
 
     def save_generated_asset_file(
         self, collection_id: int, source: Path, size_bytes: int, *,
-        candidate_id: str, details: AssetUploadDetails,
+        candidate_id: str, details: FileUploadDetails,
     ) -> dict:
         """Store one candidate, then resolve its globally unique Asset."""
         stored = self._store_asset_file(
@@ -354,7 +361,7 @@ class UploadService:
 
     def save_generated_space_file(
         self, space_id: int, source: Path, size_bytes: int, *,
-        candidate_id: str, details: AssetUploadDetails,
+        candidate_id: str, details: FileUploadDetails,
     ) -> dict:
         stored = self._store_space_file(space_id, source, size_bytes, details)
         try:
@@ -375,7 +382,7 @@ class UploadService:
 
     def _store_asset_file(
         self, collection_id: int, source: Path, size_bytes: int,
-        details: AssetUploadDetails,
+        details: FileUploadDetails,
     ) -> StoredFileVersion:
         if not self.records.asset_collection(collection_id):
             raise UploadError(
@@ -402,24 +409,24 @@ class UploadService:
 
     def _store_space_file(
         self, space_id: int, source: Path, size_bytes: int,
-        details: AssetUploadDetails,
+        details: FileUploadDetails,
     ) -> StoredFileVersion:
         if not self.records.space(space_id):
             raise UploadError("Choose a Space first.")
-        return self._store_media(source, size_bytes, details)
+        return self._store_file(source, size_bytes, details)
 
-    def _store_media(
-        self, source: Path, size_bytes: int, details: AssetUploadDetails,
+    def _store_file(
+        self, source: Path, size_bytes: int, details: FileUploadDetails,
     ) -> StoredFileVersion:
         if size_bytes <= 0 or not source.is_file():
-            raise UploadError("That media file is empty.")
-        if size_bytes > MAX_ASSET_UPLOAD_BYTES:
-            raise UploadError("That file is over the 1 GB media limit.")
-        if Path(details.original_name).suffix.lower() not in ASSET_EXTENSIONS:
+            raise UploadError("That file is empty.")
+        if size_bytes > MAX_FILE_UPLOAD_BYTES:
+            raise UploadError("That file is over the 1 GB limit.")
+        if Path(details.original_name).suffix.lower() not in FILE_EXTENSIONS:
             raise UploadError(
-                "Use supported audio, JPG, PNG, WebP, MP4, MOV or WebM media.")
+                "Use supported media, subtitles, text, PDF, JSON, CSV or ZIP.")
         try:
-            stored = self.workspace.store_asset(
+            stored = self.workspace.store_file(
                 source, original_name=details.original_name,
                 size_bytes=size_bytes)
         except ValueError as exc:
@@ -441,19 +448,48 @@ class UploadService:
         encoded_tags: str | None = None,
         supplied_tags: tuple[str, ...] | None = None,
         metadata: dict | None = None,
-    ) -> AssetUploadDetails:
+    ) -> FileUploadDetails:
         """Validate human Asset facts before streaming or storing media."""
+        return self._prepare_file_details(
+            encoded_name, name=name, category=category, scope=scope,
+            encoded_tags=encoded_tags, supplied_tags=supplied_tags,
+            metadata=metadata, allowed_extensions=ASSET_EXTENSIONS,
+            subject="Asset",
+        )
+
+    def prepare_file_upload(
+        self, encoded_name: str, *, name: str | None = None,
+        category: str | None = None, encoded_tags: str | None = None,
+        supplied_tags: tuple[str, ...] | None = None,
+        metadata: dict | None = None,
+    ) -> FileUploadDetails:
+        """Validate one direct Space File before reading its request body."""
+        return self._prepare_file_details(
+            encoded_name, name=name, category=category, scope="space",
+            encoded_tags=encoded_tags, supplied_tags=supplied_tags,
+            metadata=metadata, allowed_extensions=FILE_EXTENSIONS,
+            subject="File",
+        )
+
+    def _prepare_file_details(
+        self, encoded_name: str, *, name: str | None, category: str | None,
+        scope: str | None, encoded_tags: str | None,
+        supplied_tags: tuple[str, ...] | None, metadata: dict | None,
+        allowed_extensions: set[str], subject: str,
+    ) -> FileUploadDetails:
         original = clean_name(encoded_name, "audio.mp3")
-        if Path(original).suffix.lower() not in ASSET_EXTENSIONS:
+        if Path(original).suffix.lower() not in allowed_extensions:
             raise UploadError(
+                "Use supported media, subtitles, text, PDF, JSON, CSV or ZIP."
+                if subject == "File" else
                 "Use supported audio, JPG, PNG, WebP, MP4, MOV or WebM media.")
         canonical_name = " ".join(
             (unquote(name) if name is not None else Path(original).stem).split())
         if not canonical_name:
-            raise UploadError("Give this Asset a name.")
+            raise UploadError(f"Give this {subject} a name.")
         if len(canonical_name) > MAX_ASSET_NAME_LENGTH:
             raise UploadError(
-                f"Keep the Asset name under {MAX_ASSET_NAME_LENGTH} characters.")
+                f"Keep the {subject} name under {MAX_ASSET_NAME_LENGTH} characters.")
 
         canonical_category = category.strip().lower() if category else None
         if canonical_category and canonical_category not in ASSET_CATEGORIES:
@@ -486,10 +522,10 @@ class UploadService:
             raise UploadError(f"Use at most {MAX_ASSET_TAGS} tags.")
 
         provenance = {
-            "origin": "upload", "original_filename": original,
+            "origin": "uploaded", "original_filename": original,
             **(metadata or {}),
         }
-        return AssetUploadDetails(
+        return FileUploadDetails(
             original_name=original,
             name=canonical_name,
             category=cast(AssetCategory | None, canonical_category),

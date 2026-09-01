@@ -111,12 +111,14 @@ sound effect**, **Generate speech** and **Create subtitles**:
 - standalone Speech commits its exact audio output as a canonical File;
 - standalone transcription and translation commit timed SRT and VTT Files;
 - Speak history and Subtitle history are isolated by the selected Space.
+- Upload is a direct Space File command, visible from Create and Files;
+- uploads accept media, subtitle, document, data and archive representations;
+- direct uploads never create a Job, Asset collection or duplicate ownership row.
 
 The next vertical slices are deliberately ordered by existing maturity:
 
-1. make Upload a direct File action with processing Jobs only when required;
-2. cut Image and Video generation over action-by-action through their current
+1. cut Image and Video generation over action-by-action through their current
    Engines;
-3. unify Activity around Jobs and produced Files;
-4. remove the remaining legacy Work screens after audiovisual Project parity is
+2. unify Activity around Jobs and produced Files;
+3. remove the remaining legacy Work screens after audiovisual Project parity is
    verified, without adding compatibility writes or preservation layers.

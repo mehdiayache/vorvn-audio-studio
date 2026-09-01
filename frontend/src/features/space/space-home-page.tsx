@@ -2,13 +2,14 @@ import { useMemo, useState } from "react"
 import {
   Captions, ChevronRight, Clapperboard, FileAudio2, FileImage, FileText,
   FileVideo2, Folder, FolderPlus, Image, Mic2, Music2, Plus, Search,
-  Sparkles, Video, WandSparkles, Waves,
+  Sparkles, Upload, Video, WandSparkles, Waves,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 
 import { ActionButton, OperatorIconButton } from "@/components/operator-action"
+import { FileDropZone } from "@/components/file-drop-zone"
 import { Button } from "@/components/ui/button"
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -82,7 +83,7 @@ function FileTile({ file }: { file: SpaceFile }) {
   </article>
 }
 
-function SpaceContent({ spaceOverview, view, actions, actionsError, onRetryActions, onNewProject, onNewFolder }: {
+function SpaceContent({ spaceOverview, view, actions, actionsError, onRetryActions, onNewProject, onNewFolder, onUploadFile }: {
   spaceOverview: SpaceOverview
   view: SpaceHomeView
   actions: CreationActionSummary[]
@@ -90,6 +91,7 @@ function SpaceContent({ spaceOverview, view, actions, actionsError, onRetryActio
   onRetryActions: () => void
   onNewProject: () => void
   onNewFolder: () => void
+  onUploadFile: () => void
 }) {
   const [query, setQuery] = useState("")
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
@@ -110,6 +112,7 @@ function SpaceContent({ spaceOverview, view, actions, actionsError, onRetryActio
       <p>Start with an idea or open an audiovisual Project. Files stay reusable across this Space.</p>
       <div className="space-create-action-catalog" role="list">
         <Button className="space-create-action is-project" variant="ghost" onClick={onNewProject}><span className="space-create-action-icon"><Clapperboard /></span><span><b>New audiovisual project</b><small>Script, Timeline, Preview and Director in one Project.</small></span><ChevronRight /></Button>
+        <Button className="space-create-action is-upload" variant="ghost" onClick={onUploadFile}><span className="space-create-action-icon"><Upload /></span><span><b>Upload a File</b><small>Add an existing file directly to this Space.</small></span><ChevronRight /></Button>
         {actions.map((action) => <CreateActionButton action={action} key={action.id} />)}
       </div>
       {actionsError && <div className="space-create-inline-error" role="alert"><span>{actionsError}</span><Button variant="ghost" size="sm" onClick={onRetryActions}>Try again</Button></div>}
@@ -118,6 +121,7 @@ function SpaceContent({ spaceOverview, view, actions, actionsError, onRetryActio
     <div className="space-library-toolbar">
       <label><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${view === "projects" ? "Projects" : view === "files" ? "Files" : "this Space"}`} /></label>
       {showProjects && <Button variant="outline" onClick={onNewProject}><Plus /> New Project</Button>}
+      {showFiles && <Button variant="outline" onClick={onUploadFile}><Upload /> Upload File</Button>}
       <OperatorIconButton label="New Folder" detail="Folders organize Projects and Files without changing their technical identity." variant="outline" onClick={onNewFolder}><FolderPlus /></OperatorIconButton>
     </div>
 
@@ -140,6 +144,59 @@ function SpaceContent({ spaceOverview, view, actions, actionsError, onRetryActio
     </div>
 
   </>
+}
+
+function FileUploadDialog({ open, onOpenChange, spaceId, onUploaded }: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  spaceId: number
+  onUploaded: () => void
+}) {
+  const [file, setFile] = useState<File | null>(null)
+  const [name, setName] = useState("")
+  const [tagText, setTagText] = useState("")
+  const [error, setError] = useState("")
+  const action = useAsyncAction<"upload">()
+  const uploading = action.isPending("upload")
+
+  function reset() {
+    setFile(null)
+    setName("")
+    setTagText("")
+    setError("")
+  }
+
+  function chooseFile(next: File) {
+    setFile(next)
+    setName(next.name.replace(/\.[^.]+$/, ""))
+    setError("")
+  }
+
+  async function upload() {
+    if (!file || !name.trim()) return
+    await action.run("upload", async () => {
+      try {
+        const tags = tagText.split(",").map((tag) => tag.trim()).filter(Boolean)
+        await studioApi.uploadSpaceFile(spaceId, file, { name: name.trim(), tags })
+        toast.success("File added to this Space.")
+        reset()
+        onOpenChange(false)
+        onUploaded()
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : "The File could not be uploaded.")
+      }
+    })
+  }
+
+  return <Dialog open={open} onOpenChange={(next) => { if (!uploading) { if (!next) reset(); onOpenChange(next) } }}>
+    <DialogContent className="space-file-upload-dialog">
+      <DialogHeader><DialogTitle>Upload a File</DialogTitle><DialogDescription>Add one reusable File directly to this Space. Processing starts only when a format actually requires it.</DialogDescription></DialogHeader>
+      <FileDropZone file={file} kind="file" accept="audio/*,image/*,video/*,.srt,.vtt,.txt,.md,.pdf,.json,.csv,.zip" hint="Audio, image, video, subtitles, text, PDF, JSON, CSV or ZIP · up to 1 GB" disabled={uploading} onFile={chooseFile} />
+      {file && <div className="space-file-upload-fields"><label><span>Name</span><Input value={name} maxLength={120} onChange={(event) => setName(event.target.value)} /></label><label><span>Tags <small>optional, separated by commas</small></span><Input value={tagText} onChange={(event) => setTagText(event.target.value)} placeholder="reference, final, campaign" /></label></div>}
+      {error && <p className="space-file-upload-error" role="alert">{error}</p>}
+      <DialogFooter><Button type="button" variant="outline" disabled={uploading} onClick={() => { reset(); onOpenChange(false) }}>Cancel</Button><ActionButton disabled={!file || !name.trim()} busy={uploading} busyLabel="Uploading…" onClick={() => void upload()}><Upload />Upload File</ActionButton></DialogFooter>
+    </DialogContent>
+  </Dialog>
 }
 
 function ResourceDialog({ kind, open, onOpenChange, spaceId, onCreated }: {
@@ -187,6 +244,7 @@ function ResourceDialog({ kind, open, onOpenChange, spaceId, onCreated }: {
 export function SpaceHomePage({ view = "create" }: { view?: SpaceHomeView }) {
   const { spaces, overview, actions, selectedSpaceId, setSelectedSpaceId, refresh, refreshSpaces, refreshActions } = useSpaceHome()
   const [dialog, setDialog] = useState<"space" | "project" | "folder" | null>(null)
+  const [uploadOpen, setUploadOpen] = useState(false)
   const availableSpaces = spaces.data || []
   const spaceOverview = overview.data
   const createActions = useMemo(() => actions.data || [], [actions.data])
@@ -199,8 +257,9 @@ export function SpaceHomePage({ view = "create" }: { view?: SpaceHomeView }) {
   return <main className="space-home">
     <header className="space-home-header"><div><select aria-label="Current Space" value={selectedSpaceId} onChange={(event) => setSelectedSpaceId(Number(event.target.value))}>{availableSpaces.map((space) => <option value={space.id} key={space.id}>{space.name}</option>)}</select><OperatorIconButton label="New Space" detail="Create another root for independent Projects and Files." size="icon-sm" variant="ghost" onClick={() => setDialog("space")}><Plus /></OperatorIconButton><span>{spaceOverview?.space.description || "Your creative Space"}</span></div><small>{spaceOverview ? `${spaceOverview.projects.length} Projects · ${spaceOverview.files.length} Files` : "Loading…"}</small></header>
     {spaceOverview ? <div className={cn("space-home-content", view !== "create" && "is-library-view")}>
-      <SpaceContent spaceOverview={spaceOverview} view={view} actions={createActions} actionsError={actions.status === "error" ? actions.error : undefined} onRetryActions={() => void refreshActions()} onNewProject={() => setDialog("project")} onNewFolder={() => setDialog("folder")} />
+      <SpaceContent spaceOverview={spaceOverview} view={view} actions={createActions} actionsError={actions.status === "error" ? actions.error : undefined} onRetryActions={() => void refreshActions()} onNewProject={() => setDialog("project")} onNewFolder={() => setDialog("folder")} onUploadFile={() => setUploadOpen(true)} />
     </div> : <div className="space-home-loading"><Sparkles className="spin" /><span>Loading Space…</span></div>}
     {dialog && <ResourceDialog kind={dialog} open onOpenChange={(open) => { if (!open) setDialog(null) }} spaceId={selectedSpaceId} onCreated={(spaceId) => { if (spaceId) { void refreshSpaces().then(() => setSelectedSpaceId(spaceId)) } else { void refresh() } }} />}
+    <FileUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} spaceId={selectedSpaceId} onUploaded={() => void refresh()} />
   </main>
 }

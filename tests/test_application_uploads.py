@@ -25,6 +25,7 @@ class FakeWorkspace:
         self.references = []
         self.discarded_references = []
         self.assets = []
+        self.files = []
         self.discarded_media = []
         self.transcriptions = []
         self.voice_duration_ms = 15_000
@@ -53,6 +54,10 @@ class FakeWorkspace:
         self.assets.append((source, original_name, size_bytes))
         return self.stored_asset
 
+    def store_file(self, source, *, original_name, size_bytes):
+        self.files.append((source, original_name, size_bytes))
+        return self.stored_asset
+
     def discard_media(self, filename):
         self.discarded_media.append(filename)
 
@@ -72,6 +77,7 @@ class FakeRecords:
     def __init__(self):
         self.references = []
         self.created_assets = []
+        self.created_files = []
         self.collection = {"id": 41}
         self.fail_reference = False
         self.fail_asset = False
@@ -85,6 +91,9 @@ class FakeRecords:
 
     def asset_collection(self, collection_id):
         return self.collection if collection_id == 41 else None
+
+    def space(self, space_id):
+        return {"id": space_id} if space_id == 4 else None
 
     def create_uploaded_asset(
             self, collection_id, *, name, stored, size_bytes, category=None,
@@ -121,6 +130,15 @@ class FakeRecords:
             if key != "candidate_id"
         })
         return asset, self.generated_duplicate
+
+    def create_space_file(
+            self, space_id, *, name, stored, size_bytes, category=None,
+            scope="space", tags=(), metadata=None):
+        created = self.create_uploaded_asset(0, name=name, stored=stored,
+            size_bytes=size_bytes, category=category, scope=scope, tags=tags,
+            metadata=metadata)
+        self.created_files.append({**created, "space_id": space_id})
+        return created
 
 
 class UploadServiceTests(unittest.TestCase):
@@ -239,6 +257,31 @@ class UploadServiceTests(unittest.TestCase):
         self.assertFalse(records.created_assets)
         self.assertEqual(workspace.discarded_media, ["visual_fixture.mp4"])
 
+    def test_direct_space_file_accepts_documents_without_turning_them_into_assets(self):
+        service, workspace, records = self.service()
+        workspace.stored_asset = StoredFileVersion(
+            filename="brief.pdf", path="/media/brief.pdf",
+            mime_type="application/pdf", family="document",
+            media_format="pdf", metadata={"original_filename": "Brief.pdf"},
+        )
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / "incoming"
+            source.write_bytes(b"%PDF-1.4")
+            result = service.save_space_file(
+                4, source, source.stat().st_size, "Brief.pdf",
+                name="Campaign brief",
+                encoded_tags="%5B%22reference%22%5D")
+
+        self.assertEqual(result["media_type"], "document")
+        self.assertEqual(result["url"], "/media/brief.pdf")
+        self.assertEqual(records.created_files[0]["space_id"], 4)
+        self.assertEqual(workspace.assets, [])
+        self.assertEqual(len(workspace.files), 1)
+        with self.assertRaisesRegex(UploadError, "supported audio"):
+            service.prepare_asset_upload("Brief.pdf")
+        with self.assertRaisesRegex(UploadError, "supported media"):
+            service.prepare_file_upload("installer.exe")
+
     def test_asset_upload_limit_is_realistic_for_video_and_still_bounded(self):
         service, workspace, records = self.service()
         workspace.stored_asset = StoredFileVersion(
@@ -307,7 +350,7 @@ class UploadServiceTests(unittest.TestCase):
         self.assertEqual(details.tags, ("night", "room tone"))
         self.assertEqual(details.scope, "studio")
         self.assertEqual(details.metadata, {
-            "origin": "upload", "original_filename": "Night_Room.wav",
+            "origin": "uploaded", "original_filename": "Night_Room.wav",
         })
         self.assertFalse(workspace.assets)
         with self.assertRaisesRegex(UploadError, "at most 12"):
@@ -364,6 +407,27 @@ class UploadRouterCleanupTests(unittest.IsolatedAsyncioTestCase):
                         41, Mock(), x_filename="broken.wav")
             self.assertEqual((raised.exception.status, raised.exception.code),
                              (400, "invalid_asset"))
+            self.assertFalse(incoming.exists())
+
+    async def test_space_upload_uses_file_contract_and_cleans_rejected_input(self):
+        with TemporaryDirectory() as directory:
+            incoming = Path(directory) / "incoming.upload"
+            incoming.write_bytes(b"%PDF")
+            service = Mock()
+            service.prepare_file_upload.return_value = Mock()
+            service.save_space_file.side_effect = UploadError("Rejected File")
+            with patch.object(upload_router, "upload_service", service), patch.object(
+                    upload_router, "_stream_to_file",
+                    AsyncMock(return_value=(incoming, incoming.stat().st_size))):
+                with self.assertRaises(ApiProblem) as raised:
+                    await upload_router.upload_space_file(
+                        4, Mock(), x_filename="brief.pdf",
+                        x_file_category=None, x_file_name="Brief",
+                        x_file_tags="[]")
+            service.prepare_file_upload.assert_called_once_with(
+                "brief.pdf", name="Brief", category=None, encoded_tags="[]")
+            self.assertEqual((raised.exception.status, raised.exception.code),
+                             (400, "invalid_file"))
             self.assertFalse(incoming.exists())
 
 

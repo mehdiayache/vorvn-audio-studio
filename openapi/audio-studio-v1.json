@@ -13451,6 +13451,217 @@
         "title": "UploadedAssetResponse",
         "type": "object"
       },
+      "UploadedFileEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UploadedFileResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "UploadedFileEnvelope",
+        "type": "object"
+      },
+      "UploadedFileResponse": {
+        "properties": {
+          "audio_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Format"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "enum": [
+                  "music",
+                  "ambience",
+                  "sfx"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "channels": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channels"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "family": {
+            "enum": [
+              "audio",
+              "image",
+              "video",
+              "subtitle",
+              "document",
+              "archive",
+              "data",
+              "other"
+            ],
+            "title": "Family",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "frame_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frame Rate"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "media_format": {
+            "title": "Media Format",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "mime_type": {
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "sample_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Rate"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "version_id": {
+            "title": "Version Id",
+            "type": "integer"
+          },
+          "version_metadata": {
+            "additionalProperties": true,
+            "title": "Version Metadata",
+            "type": "object"
+          },
+          "video_codec": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Codec"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
+          }
+        },
+        "required": [
+          "id",
+          "version_id",
+          "name",
+          "filename",
+          "family",
+          "url",
+          "tags",
+          "metadata",
+          "media_format",
+          "size_bytes",
+          "mime_type",
+          "version_metadata",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "UploadedFileResponse",
+        "type": "object"
+      },
       "UploadedImageEnvelope": {
         "properties": {
           "data": {
@@ -22187,14 +22398,14 @@
             "name": "x-filename",
             "required": false,
             "schema": {
-              "default": "media.mp3",
+              "default": "file.txt",
               "title": "X-Filename",
               "type": "string"
             }
           },
           {
             "in": "header",
-            "name": "x-asset-category",
+            "name": "x-file-category",
             "required": false,
             "schema": {
               "anyOf": [
@@ -22205,12 +22416,12 @@
                   "type": "null"
                 }
               ],
-              "title": "X-Asset-Category"
+              "title": "X-File-Category"
             }
           },
           {
             "in": "header",
-            "name": "x-asset-name",
+            "name": "x-file-name",
             "required": false,
             "schema": {
               "anyOf": [
@@ -22221,12 +22432,12 @@
                   "type": "null"
                 }
               ],
-              "title": "X-Asset-Name"
+              "title": "X-File-Name"
             }
           },
           {
             "in": "header",
-            "name": "x-asset-tags",
+            "name": "x-file-tags",
             "required": false,
             "schema": {
               "anyOf": [
@@ -22237,7 +22448,7 @@
                   "type": "null"
                 }
               ],
-              "title": "X-Asset-Tags"
+              "title": "X-File-Tags"
             }
           }
         ],
@@ -22246,7 +22457,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UploadedAssetEnvelope"
+                  "$ref": "#/components/schemas/UploadedFileEnvelope"
                 }
               }
             },

@@ -133,7 +133,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
         self.assertEqual(asset["name"], "Quiet evening bed")
         self.assertEqual(asset["tags"], ["calm", "bed"])
         self.assertEqual((asset["sample_rate"], asset["channels"]), (48000, 2))
-        self.assertEqual(asset["metadata"]["origin"], "upload")
+        self.assertEqual(asset["metadata"]["origin"], "uploaded")
         self.assertEqual(asset["version_metadata"]["codec"], "pcm_s16le")
         listed = self.repository.list_for_venture(self.venture_id)
         self.assertEqual([item["id"] for item in listed], [created["id"]])

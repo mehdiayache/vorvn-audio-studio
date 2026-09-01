@@ -8,13 +8,18 @@ from uuid import uuid4
 
 from audio_studio.config import settings
 
-from audio_studio.application.uploads import MAX_ASSET_UPLOAD_BYTES, UploadError
+from audio_studio.application.uploads import (
+    MAX_ASSET_UPLOAD_BYTES,
+    MAX_FILE_UPLOAD_BYTES,
+    UploadError,
+)
 from audio_studio.composition.uploads import upload_service
 from audio_studio.composition.spaces import space_service
 from audio_studio.http.errors import ApiProblem
 from audio_studio.http.upload_contracts import (
     UpdateAssetBody,
     UploadedAssetEnvelope,
+    UploadedFileEnvelope,
     UploadedImageEnvelope,
     UploadedTranscriptionSourceEnvelope,
     UploadedVoiceReferenceEnvelope,
@@ -149,22 +154,22 @@ async def upload_venture_asset(collection_id: int, request: Request,
     "/spaces/{space_id}/files/upload",
     operation_id="uploadSpaceFile",
     status_code=201,
-    response_model=UploadedAssetEnvelope,
+    response_model=UploadedFileEnvelope,
 )
 async def upload_space_file(
     space_id: int, request: Request,
-    x_filename: str = Header(default="media.mp3"),
-    x_asset_category: str | None = Header(default=None),
-    x_asset_name: str | None = Header(default=None),
-    x_asset_tags: str | None = Header(default=None),
+    x_filename: str = Header(default="file.txt"),
+    x_file_category: str | None = Header(default=None),
+    x_file_name: str | None = Header(default=None),
+    x_file_tags: str | None = Header(default=None),
 ) -> dict:
     try:
-        details = upload_service.prepare_asset_upload(
-            x_filename, name=x_asset_name, category=x_asset_category,
-            scope="space", encoded_tags=x_asset_tags)
+        details = upload_service.prepare_file_upload(
+            x_filename, name=x_file_name, category=x_file_category,
+            encoded_tags=x_file_tags)
     except UploadError as exc:
         raise ApiProblem(400, "invalid_file", str(exc)) from exc
-    incoming, size = await _stream_to_file(request, MAX_ASSET_UPLOAD_BYTES)
+    incoming, size = await _stream_to_file(request, MAX_FILE_UPLOAD_BYTES)
     try:
         result = upload_service.save_space_file(
             space_id, incoming, size, x_filename, details=details)

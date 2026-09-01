@@ -3,14 +3,19 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from uuid import uuid4
 
 import psycopg
 
 from audio_studio.application.spaces import SpaceService
+from audio_studio.application.uploads import UploadService
 from audio_studio.config import settings
 from audio_studio.infrastructure.postgres.spaces import SpaceRepository
+from audio_studio.infrastructure.postgres.uploads import PostgresUploadRecords
 from audio_studio.infrastructure.postgres.venture_assets import VentureAssetRepository
+from audio_studio.infrastructure.upload_workspace import LocalUploadWorkspace
 
 
 class SpaceRepositoryTests(unittest.TestCase):
@@ -123,6 +128,36 @@ class SpaceRepositoryTests(unittest.TestCase):
                 database.execute(
                     "DELETE FROM spaces WHERE id=%s", (other_space["id"],))
                 database.commit()
+
+    def test_direct_document_upload_commits_one_file_version_without_a_job(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "incoming.upload"
+            source.write_bytes(b"%PDF-1.4\nSpace fixture")
+            uploads = UploadService(
+                LocalUploadWorkspace(
+                    root=root, output=root / "files",
+                    references=root / "references"),
+                PostgresUploadRecords(),
+            )
+            details = uploads.prepare_file_upload(
+                "Campaign Brief.pdf", name="Campaign brief",
+                supplied_tags=("reference",))
+            created = uploads.save_space_file(
+                int(self.space["id"]), source, source.stat().st_size,
+                "Campaign Brief.pdf", details=details)
+
+            overview = self.service.overview(int(self.space["id"]))
+            file = next(item for item in overview["files"]
+                        if item["id"] == created["id"])
+            self.assertEqual(file["source"], "uploaded")
+            self.assertEqual(file["current_version"]["family"], "document")
+            self.assertEqual(file["current_version"]["mime_type"],
+                             "application/pdf")
+            with psycopg.connect(settings.database_url) as database:
+                self.assertEqual(database.execute(
+                    "SELECT count(*) FROM jobs WHERE %s=ANY(output_file_ids)",
+                    (created["id"],)).fetchone()[0], 0)
 
 
 if __name__ == "__main__":

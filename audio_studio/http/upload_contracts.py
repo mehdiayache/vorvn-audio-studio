@@ -59,6 +59,38 @@ class UploadedAssetEnvelope(BaseModel):
     data: UploadedAssetResponse
 
 
+class UploadedFileResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: int
+    version_id: int
+    name: str
+    filename: str
+    family: FileFamily = Field(validation_alias="media_type")
+    duration_ms: int | None = None
+    url: str
+    category: AssetCategory | None = None
+    tags: list[str]
+    metadata: dict
+    media_format: str
+    audio_format: str | None = None
+    sample_rate: int | None = None
+    channels: int | None = None
+    width: int | None = None
+    height: int | None = None
+    video_codec: str | None = None
+    frame_rate: float | None = None
+    size_bytes: int
+    mime_type: str
+    version_metadata: dict
+    created_at: datetime
+    updated_at: datetime
+
+
+class UploadedFileEnvelope(BaseModel):
+    data: UploadedFileResponse
+
+
 class UpdateAssetBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

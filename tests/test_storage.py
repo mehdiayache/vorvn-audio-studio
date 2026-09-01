@@ -249,6 +249,23 @@ class StorageContracts(unittest.TestCase):
                         source, original_name="broken.wav", size_bytes=9)
             self.assertEqual(list(output.iterdir()), [])
 
+    def test_direct_file_storage_keeps_a_document_as_a_document_version(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "incoming.upload"
+            source.write_bytes(b"%PDF-1.4\nfixture")
+            workspace = LocalUploadWorkspace(
+                root=root, output=root / "media", references=root / "references")
+            with patch.object(upload_workspace, "inspect_media", return_value=None):
+                stored = workspace.store_file(
+                    source, original_name="Campaign Brief.pdf",
+                    size_bytes=source.stat().st_size)
+
+            self.assertEqual(stored.family, "document")
+            self.assertEqual(stored.mime_type, "application/pdf")
+            self.assertEqual(stored.media_format, "pdf")
+            self.assertTrue(Path(stored.path).read_bytes().startswith(b"%PDF"))
+
     def test_keys_are_stable_scoped_ids_not_user_filenames(self):
         with patch.dict("os.environ", {
             "RUSTFS_PREFIX": "audio-studio",
